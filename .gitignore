@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment & Secrets
+.env
+.env.local
+.env.production
+*.key
+*.pem
+credentials.json
+secrets.json
+
+# Trading bot sensitive data
+**/trading-bot/config/api_keys.*
+**/trading-bot/logs/
+**/trading-bot/data/*.csv
+
+# Build outputs
+*.apk
+*.ipa
+*.aab
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/

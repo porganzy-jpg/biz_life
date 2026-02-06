@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BarcodeQuest - Scan & Discover!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'Malgun Gothic', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .app {
+            max-width: 420px;
+            margin: 0 auto;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 상단 HUD */
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.5);
+        }
+        .hud .level {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+        .hud .coins {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255,215,0,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            color: #FFD700;
+        }
+        .hud .pokedex-count {
+            color: #7ee8fa;
+            font-weight: 600;
+        }
+
+        /* 메인 화면 - 스캔 영역 */
+        .scan-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+        }
+        .scan-frame {
+            width: 280px;
+            height: 280px;
+            border: 3px solid rgba(126,232,250,0.5);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        .scan-frame .corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #7ee8fa;
+        }
+        .scan-frame .corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+        .scan-frame .corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+        .scan-frame .corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+        .scan-frame .corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+
+        .scan-line {
+            position: absolute;
+            width: 90%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #7ee8fa, transparent);
+            animation: scanMove 2s ease-in-out infinite;
+        }
+        @keyframes scanMove {
+            0%, 100% { top: 10%; }
+            50% { top: 85%; }
+        }
+
+        .scan-text {
+            color: #7ee8fa;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .scan-btn {
+            background: linear-gradient(135deg, #7ee8fa, #80ff72);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 30px;
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 16px;
+            letter-spacing: 1px;
+        }
+
+        /* 몬스터 결과 화면 */
+        .result-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .result-screen.active {
+            display: flex;
+        }
+
+        .monster-card {
+            background: linear-gradient(135deg, #16213e, #0f3460);
+            border: 2px solid #533483;
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 340px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .rarity-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .rarity-common { background: #6c757d; }
+        .rarity-rare { background: #0d6efd; }
+        .rarity-epic { background: #6f42c1; }
+        .rarity-legendary { background: linear-gradient(135deg, #FFD700, #FF6B35); }
+
+        .monster-sprite {
+            width: 160px;
+            height: 160px;
+            margin: 16px auto;
+            background: radial-gradient(circle, rgba(126,232,250,0.2), transparent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .monster-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #7ee8fa, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 8px 0;
+        }
+        .monster-type {
+            color: #999;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .stat-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 8px;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.7rem;
+        }
+        .stat-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #7ee8fa;
+        }
+
+        .barcode-info {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 16px;
+            width: 100%;
+            max-width: 340px;
+        }
+        .barcode-info h3 {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .barcode-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.8rem;
+        }
+        .barcode-detail .key { color: #999; }
+        .barcode-detail .val { color: #7ee8fa; font-weight: 600; }
+
+        .location-bonus {
+            background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,107,53,0.05));
+            border: 1px solid rgba(255,107,53,0.3);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            width: 100%;
+            max-width: 340px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .location-bonus .bonus-icon { font-size: 1.5rem; }
+        .location-bonus .bonus-text {
+            font-size: 0.85rem;
+            color: #FF6B35;
+            font-weight: 600;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .btn-again {
+            background: rgba(126,232,250,0.2);
+            border: 1px solid #7ee8fa;
+            color: #7ee8fa;
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn-collection {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            border: none;
+            color: white;
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* 하단 네비 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(26,26,46,0.95);
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0 24px;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            color: #666;
+            cursor: pointer;
+        }
+        .nav-item.active { color: #7ee8fa; }
+        .nav-item .icon { font-size: 1.3rem; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- HUD -->
+        <div class="hud">
+            <div class="level">Lv.7 Explorer</div>
+            <div class="coins">G 1,250</div>
+            <div class="pokedex-count">23/150</div>
+        </div>
+
+        <!-- 스캔 화면 -->
+        <div class="scan-area" id="scanScreen">
+            <h2 style="color: #7ee8fa; margin-bottom: 8px; font-size: 1.2rem;">Scan a Barcode!</h2>
+            <p style="color: #888; font-size: 0.85rem; margin-bottom: 20px; text-align: center">
+                Find any product barcode and scan it<br>to discover a monster!
+            </p>
+            <div class="scan-frame">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="scan-line"></div>
+                <div style="text-align: center">
+                    <div style="font-size: 3rem; margin-bottom: 8px">&#x1F4F7;</div>
+                    <p class="scan-text">Point camera at barcode</p>
+                </div>
+            </div>
+            <button class="scan-btn" onclick="simulateScan()">SCAN NOW</button>
+            <p style="color: #555; font-size: 0.75rem; margin-top: 12px">Demo: Click to simulate barcode scan</p>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div class="result-screen" id="resultScreen">
+            <div style="color: #FFD700; font-weight: 800; font-size: 1.2rem; margin-bottom: 4px">
+                NEW DISCOVERY!
+            </div>
+
+            <div class="monster-card">
+                <div class="rarity-badge rarity-rare">RARE</div>
+                <div class="monster-sprite" id="monsterSprite">&#x1F409;</div>
+                <div class="monster-name" id="monsterName">Choco Drake</div>
+                <div class="monster-type" id="monsterType">Type: Food Dragon | Origin: Korea</div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">HP</div>
+                        <div class="stat-value" id="statHp">156</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">ATK</div>
+                        <div class="stat-value" id="statAtk">89</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">DEF</div>
+                        <div class="stat-value" id="statDef">72</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="barcode-info">
+                <h3>Barcode Analysis</h3>
+                <div class="barcode-detail">
+                    <span class="key">Barcode</span>
+                    <span class="val" id="barcodeNum">8801062-871247</span>
+                </div>
+                <div class="barcode-detail">
+                    <span class="key">Country</span>
+                    <span class="val" id="barcodeCountry">880 (Korea)</span>
+                </div>
+                <div class="barcode-detail">
+                    <span class="key">Manufacturer</span>
+                    <span class="val" id="barcodeMfg">1062 (Lotte)</span>
+                </div>
+                <div class="barcode-detail">
+                    <span class="key">Product</span>
+                    <span class="val" id="barcodeProd">Choco Pie</span>
+                </div>
+            </div>
+
+            <div class="location-bonus">
+                <div class="bonus-icon">&#x1F4CD;</div>
+                <div>
+                    <div class="bonus-text">Location Bonus: Gangnam +15% Stats!</div>
+                    <div style="color: #999; font-size: 0.75rem">First scan in this area</div>
+                </div>
+            </div>
+
+            <div class="action-btns">
+                <button class="btn-again" onclick="goBack()">Scan More</button>
+                <button class="btn-collection">View Collection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 네비 -->
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <span class="icon">&#x1F50D;</span>
+            <span>Scan</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">&#x1F4D6;</span>
+            <span>Collection</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">&#x1F5FA;</span>
+            <span>Map</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">&#x2694;</span>
+            <span>Battle</span>
+        </div>
+        <div class="nav-item">
+            <span class="icon">&#x1F464;</span>
+            <span>Profile</span>
+        </div>
+    </div>
+
+    <script>
+        const monsters = [
+            {
+                emoji: '&#x1F409;', name: 'Choco Drake', type: 'Food Dragon | Origin: Korea',
+                rarity: 'rare', hp: 156, atk: 89, def: 72,
+                barcode: '8801062-871247', country: '880 (Korea)',
+                mfg: '1062 (Lotte)', product: 'Choco Pie',
+                location: 'Gangnam +15% Stats!'
+            },
+            {
+                emoji: '&#x1F98A;', name: 'Noodle Fox', type: 'Instant Spirit | Origin: Korea',
+                rarity: 'common', hp: 98, atk: 65, def: 45,
+                barcode: '8801043-150842', country: '880 (Korea)',
+                mfg: '1043 (Nongshim)', product: 'Shin Ramyun',
+                location: 'Convenience Store +10% ATK!'
+            },
+            {
+                emoji: '&#x1F432;', name: 'Milk Guardian', type: 'Dairy Titan | Origin: Korea',
+                rarity: 'epic', hp: 210, atk: 120, def: 95,
+                barcode: '8801115-114505', country: '880 (Korea)',
+                mfg: '1115 (Seoul Milk)', product: 'Fresh Milk',
+                location: 'Supermarket +20% DEF!'
+            },
+            {
+                emoji: '&#x1F47E;', name: 'Wasabi Phantom', type: 'Spice Ghost | Origin: Japan',
+                rarity: 'legendary', hp: 280, atk: 165, def: 130,
+                barcode: '4902105-231456', country: '490 (Japan)',
+                mfg: '2105 (Glico)', product: 'Pocky',
+                location: 'Import Store +25% ALL!'
+            },
+        ];
+
+        let currentMonster = 0;
+
+        function simulateScan() {
+            const m = monsters[currentMonster % monsters.length];
+            currentMonster++;
+
+            document.getElementById('monsterSprite').innerHTML = m.emoji;
+            document.getElementById('monsterName').textContent = m.name;
+            document.getElementById('monsterType').textContent = 'Type: ' + m.type;
+            document.getElementById('statHp').textContent = m.hp;
+            document.getElementById('statAtk').textContent = m.atk;
+            document.getElementById('statDef').textContent = m.def;
+            document.getElementById('barcodeNum').textContent = m.barcode;
+            document.getElementById('barcodeCountry').textContent = m.country;
+            document.getElementById('barcodeMfg').textContent = m.mfg;
+            document.getElementById('barcodeProd').textContent = m.product;
+
+            const badge = document.querySelector('.rarity-badge');
+            badge.textContent = m.rarity.toUpperCase();
+            badge.className = 'rarity-badge rarity-' + m.rarity;
+
+            document.querySelector('.location-bonus .bonus-text').textContent =
+                'Location Bonus: ' + m.location;
+
+            document.getElementById('scanScreen').style.display = 'none';
+            document.getElementById('resultScreen').classList.add('active');
+        }
+
+        function goBack() {
+            document.getElementById('scanScreen').style.display = 'flex';
+            document.getElementById('resultScreen').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
