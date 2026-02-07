@@ -1,0 +1,105 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#FF6B35;">👥</div>
+        <div class="stat-content">
+            <div class="stat-value" id="statUsers">-</div>
+            <div class="stat-label">총 사용자</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#4285f4;">🏪</div>
+        <div class="stat-content">
+            <div class="stat-value" id="statStores">-</div>
+            <div class="stat-label">총 매장</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#34C759;">🏢</div>
+        <div class="stat-content">
+            <div class="stat-value" id="statCompanies">-</div>
+            <div class="stat-label">총 기업</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#FF3B30;">📋</div>
+        <div class="stat-content">
+            <div class="stat-value" id="statUsage">-</div>
+            <div class="stat-label">총 사용 건수</div>
+        </div>
+    </div>
+</div>
+
+<div class="charts-grid">
+    <div class="chart-card">
+        <h3>일별 할인 사용량 (최근 30일)</h3>
+        <canvas id="usageChart"></canvas>
+    </div>
+    <div class="chart-card">
+        <h3>인기 매장 TOP 10</h3>
+        <canvas id="popularChart"></canvas>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadDashboard() {
+    try {
+        const stats = await adminAPI('/admin/api/stats');
+        document.getElementById('statUsers').textContent = stats.total_users || 0;
+        document.getElementById('statStores').textContent = stats.total_stores || 0;
+        document.getElementById('statCompanies').textContent = stats.total_companies || 0;
+        document.getElementById('statUsage').textContent = stats.total_usage || 0;
+
+        // 일별 사용량 차트
+        if (stats.daily_usage && stats.daily_usage.length > 0) {
+            new Chart(document.getElementById('usageChart'), {
+                type: 'line',
+                data: {
+                    labels: stats.daily_usage.map(d => d.date),
+                    datasets: [{
+                        label: '사용 건수',
+                        data: stats.daily_usage.map(d => d.count),
+                        borderColor: '#FF6B35',
+                        backgroundColor: 'rgba(255,107,53,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // 인기 매장 차트
+        if (stats.popular_stores && stats.popular_stores.length > 0) {
+            new Chart(document.getElementById('popularChart'), {
+                type: 'bar',
+                data: {
+                    labels: stats.popular_stores.map(s => s.store_name),
+                    datasets: [{
+                        label: '사용 횟수',
+                        data: stats.popular_stores.map(s => s.usage_count),
+                        backgroundColor: '#4285f4',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    } catch (e) {
+        console.error('Dashboard load error:', e);
+    }
+}
+loadDashboard();
+</script>
+{% endblock %}

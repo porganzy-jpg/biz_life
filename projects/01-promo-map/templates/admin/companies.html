@@ -1,0 +1,124 @@
+{% extends "admin/base.html" %}
+{% block title %}기업 관리{% endblock %}
+{% block nav_companies %}active{% endblock %}
+{% block page_title %}기업 관리{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <button class="btn btn-primary" onclick="openCreateCompanyModal()">+ 기업 추가</button>
+</div>
+
+<div class="data-table-container">
+    <table class="data-table">
+        <thead>
+            <tr><th>ID</th><th>기업명</th><th>코드</th><th>업종</th><th>직원수</th><th>상태</th><th>관리</th></tr>
+        </thead>
+        <tbody id="companiesBody">
+            <tr><td colspan="7" class="loading-cell">로딩 중...</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="companiesPagination"></div>
+
+<div class="modal-overlay" id="companyFormModal" style="display:none;">
+    <div class="admin-modal">
+        <div class="admin-modal-header">
+            <h3 id="companyFormTitle">기업 추가</h3>
+            <button class="modal-close" onclick="document.getElementById('companyFormModal').style.display='none'">&times;</button>
+        </div>
+        <div class="admin-modal-body">
+            <form id="companyForm" onsubmit="return submitCompanyForm(event)">
+                <input type="hidden" id="cf_id">
+                <div class="form-row">
+                    <div class="form-group"><label>기업명 *</label><input type="text" id="cf_name" required></div>
+                    <div class="form-group"><label>코드 *</label><input type="text" id="cf_code" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>업종</label><input type="text" id="cf_industry"></div>
+                    <div class="form-group"><label>직원수</label><input type="number" id="cf_emp" value="0"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>계약 시작</label><input type="date" id="cf_start"></div>
+                    <div class="form-group"><label>계약 종료</label><input type="date" id="cf_end"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('companyFormModal').style.display='none'">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let companiesData = [];
+let companiesPage = 1;
+
+async function loadCompanies(page = 1) {
+    companiesPage = page;
+    try {
+        const data = await adminAPI(`/admin/api/companies?page=${page}&size=20`);
+        companiesData = data.items || [];
+        const tbody = document.getElementById('companiesBody');
+        if (!companiesData.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">기업이 없습니다</td></tr>';
+            return;
+        }
+        tbody.innerHTML = companiesData.map(c => `
+            <tr>
+                <td>${c.id}</td><td>${c.name}</td><td>${c.code}</td>
+                <td>${c.industry||'-'}</td><td>${c.employee_count||0}</td>
+                <td><span class="status-badge ${c.is_active?'active':'inactive'}">${c.is_active?'활성':'비활성'}</span></td>
+                <td><button class="btn btn-sm btn-secondary" onclick="editCompany(${c.id})">수정</button></td>
+            </tr>
+        `).join('');
+        renderPagination('companiesPagination', data, loadCompanies);
+    } catch(e) { console.error(e); }
+}
+
+function openCreateCompanyModal() {
+    document.getElementById('companyFormTitle').textContent = '기업 추가';
+    document.getElementById('companyForm').reset();
+    document.getElementById('cf_id').value = '';
+    document.getElementById('companyFormModal').style.display = 'flex';
+}
+
+function editCompany(id) {
+    const c = companiesData.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('companyFormTitle').textContent = '기업 수정';
+    document.getElementById('cf_id').value = id;
+    document.getElementById('cf_name').value = c.name;
+    document.getElementById('cf_code').value = c.code;
+    document.getElementById('cf_industry').value = c.industry || '';
+    document.getElementById('cf_emp').value = c.employee_count || 0;
+    if (c.contract_start) document.getElementById('cf_start').value = c.contract_start;
+    if (c.contract_end) document.getElementById('cf_end').value = c.contract_end;
+    document.getElementById('companyFormModal').style.display = 'flex';
+}
+
+async function submitCompanyForm(e) {
+    e.preventDefault();
+    const id = document.getElementById('cf_id').value;
+    const data = {
+        name: document.getElementById('cf_name').value,
+        code: document.getElementById('cf_code').value,
+        industry: document.getElementById('cf_industry').value,
+        employee_count: parseInt(document.getElementById('cf_emp').value) || 0,
+        contract_start: document.getElementById('cf_start').value || null,
+        contract_end: document.getElementById('cf_end').value || null,
+    };
+    try {
+        if (id) await adminAPI(`/admin/api/companies/${id}`, 'PUT', data);
+        else await adminAPI('/admin/api/companies', 'POST', data);
+        document.getElementById('companyFormModal').style.display = 'none';
+        loadCompanies(companiesPage);
+    } catch(e) { alert(e.detail || '저장 실패'); }
+    return false;
+}
+
+loadCompanies();
+</script>
+{% endblock %}

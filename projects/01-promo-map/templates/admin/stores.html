@@ -1,0 +1,252 @@
+{% extends "admin/base.html" %}
+{% block title %}매장 관리{% endblock %}
+{% block nav_stores %}active{% endblock %}
+{% block page_title %}매장 관리{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <button class="btn btn-primary" onclick="openCreateStoreModal()">+ 매장 추가</button>
+    <div class="toolbar-search">
+        <input type="text" id="storeSearch" placeholder="매장 검색..." onkeyup="filterStores()">
+    </div>
+</div>
+
+<div class="data-table-container">
+    <table class="data-table" id="storesTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>매장명</th>
+                <th>브랜드</th>
+                <th>카테고리</th>
+                <th>주소</th>
+                <th>상태</th>
+                <th>관리</th>
+            </tr>
+        </thead>
+        <tbody id="storesBody">
+            <tr><td colspan="7" class="loading-cell">로딩 중...</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="storesPagination"></div>
+
+<!-- 생성/수정 모달 -->
+<div class="modal-overlay" id="storeFormModal" style="display:none;">
+    <div class="admin-modal">
+        <div class="admin-modal-header">
+            <h3 id="storeFormTitle">매장 추가</h3>
+            <button class="modal-close" onclick="closeStoreFormModal()">&times;</button>
+        </div>
+        <div class="admin-modal-body">
+            <form id="storeForm" onsubmit="return submitStoreForm(event)">
+                <input type="hidden" id="storeFormId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>매장명 *</label>
+                        <input type="text" id="sf_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>브랜드 *</label>
+                        <input type="text" id="sf_brand" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>카테고리</label>
+                        <select id="sf_category">
+                            <option value="food">음식</option>
+                            <option value="cafe">카페</option>
+                            <option value="shopping">쇼핑</option>
+                            <option value="entertainment">엔터</option>
+                            <option value="convenience">편의점</option>
+                            <option value="general">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>전화번호</label>
+                        <input type="text" id="sf_phone">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>주소</label>
+                    <input type="text" id="sf_address">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>위도 *</label>
+                        <input type="number" step="any" id="sf_lat" required>
+                    </div>
+                    <div class="form-group">
+                        <label>경도 *</label>
+                        <input type="number" step="any" id="sf_lon" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>아이콘 색상</label>
+                        <input type="color" id="sf_color" value="#FF6B35">
+                    </div>
+                    <div class="form-group">
+                        <label>아이콘 글자</label>
+                        <input type="text" id="sf_letter" maxlength="2" value="S">
+                    </div>
+                </div>
+                <div id="storeMapPicker" style="height:200px;background:#e8e0d8;border-radius:8px;margin:12px 0;display:flex;align-items:center;justify-content:center;color:#999;font-size:0.85rem;">
+                    카카오맵 API 키를 설정하면 지도 클릭으로 좌표 선택 가능
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeStoreFormModal()">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let storesData = [];
+let storesPage = 1;
+
+async function loadStores(page = 1) {
+    storesPage = page;
+    try {
+        const data = await adminAPI(`/admin/api/stores?page=${page}&size=20`);
+        storesData = data.items || [];
+        renderStoresTable(storesData);
+        renderPagination('storesPagination', data, loadStores);
+    } catch(e) { console.error(e); }
+}
+
+function renderStoresTable(stores) {
+    const tbody = document.getElementById('storesBody');
+    if (!stores.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">매장이 없습니다</td></tr>';
+        return;
+    }
+    tbody.innerHTML = stores.map(s => `
+        <tr>
+            <td>${s.id}</td>
+            <td><span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${s.icon_color};color:white;text-align:center;line-height:18px;font-size:10px;margin-right:4px;">${s.icon_letter}</span>${s.name}</td>
+            <td>${s.brand}</td>
+            <td>${s.category}</td>
+            <td>${s.address || '-'}</td>
+            <td><span class="status-badge ${s.is_active?'active':'inactive'}">${s.is_active?'활성':'비활성'}</span></td>
+            <td>
+                <button class="btn btn-sm btn-secondary" onclick="editStore(${s.id})">수정</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteStore(${s.id})">삭제</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function filterStores() {
+    const q = document.getElementById('storeSearch').value.toLowerCase();
+    const filtered = storesData.filter(s =>
+        s.name.toLowerCase().includes(q) || s.brand.toLowerCase().includes(q)
+    );
+    renderStoresTable(filtered);
+}
+
+function openCreateStoreModal() {
+    document.getElementById('storeFormTitle').textContent = '매장 추가';
+    document.getElementById('storeForm').reset();
+    document.getElementById('storeFormId').value = '';
+    document.getElementById('sf_color').value = '#FF6B35';
+    document.getElementById('sf_letter').value = 'S';
+    document.getElementById('storeFormModal').style.display = 'flex';
+    initStoreMapPicker();
+}
+
+function editStore(id) {
+    const s = storesData.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('storeFormTitle').textContent = '매장 수정';
+    document.getElementById('storeFormId').value = id;
+    document.getElementById('sf_name').value = s.name;
+    document.getElementById('sf_brand').value = s.brand;
+    document.getElementById('sf_category').value = s.category;
+    document.getElementById('sf_phone').value = s.phone || '';
+    document.getElementById('sf_address').value = s.address || '';
+    document.getElementById('sf_lat').value = s.latitude;
+    document.getElementById('sf_lon').value = s.longitude;
+    document.getElementById('sf_color').value = s.icon_color;
+    document.getElementById('sf_letter').value = s.icon_letter;
+    document.getElementById('storeFormModal').style.display = 'flex';
+    initStoreMapPicker();
+}
+
+function closeStoreFormModal() {
+    document.getElementById('storeFormModal').style.display = 'none';
+}
+
+async function submitStoreForm(e) {
+    e.preventDefault();
+    const id = document.getElementById('storeFormId').value;
+    const data = {
+        name: document.getElementById('sf_name').value,
+        brand: document.getElementById('sf_brand').value,
+        category: document.getElementById('sf_category').value,
+        phone: document.getElementById('sf_phone').value,
+        address: document.getElementById('sf_address').value,
+        latitude: parseFloat(document.getElementById('sf_lat').value),
+        longitude: parseFloat(document.getElementById('sf_lon').value),
+        icon_color: document.getElementById('sf_color').value,
+        icon_letter: document.getElementById('sf_letter').value,
+    };
+    try {
+        if (id) {
+            await adminAPI(`/admin/api/stores/${id}`, 'PUT', data);
+        } else {
+            await adminAPI('/admin/api/stores', 'POST', data);
+        }
+        closeStoreFormModal();
+        loadStores(storesPage);
+    } catch(e) { alert(e.detail || '저장 실패'); }
+    return false;
+}
+
+async function deleteStore(id) {
+    if (!confirm('이 매장을 삭제하시겠습니까?')) return;
+    try {
+        await adminAPI(`/admin/api/stores/${id}`, 'DELETE');
+        loadStores(storesPage);
+    } catch(e) { alert(e.detail || '삭제 실패'); }
+}
+
+function initStoreMapPicker() {
+    const el = document.getElementById('storeMapPicker');
+    if (typeof kakao !== 'undefined' && kakao.maps) {
+        el.innerHTML = '';
+        el.style.cursor = 'crosshair';
+        const map = new kakao.maps.Map(el, {
+            center: new kakao.maps.LatLng(
+                parseFloat(document.getElementById('sf_lat').value) || 37.5005,
+                parseFloat(document.getElementById('sf_lon').value) || 127.0365
+            ),
+            level: 4,
+        });
+        let marker = null;
+        const lat = parseFloat(document.getElementById('sf_lat').value);
+        const lon = parseFloat(document.getElementById('sf_lon').value);
+        if (lat && lon) {
+            marker = new kakao.maps.Marker({position: new kakao.maps.LatLng(lat, lon)});
+            marker.setMap(map);
+        }
+        kakao.maps.event.addListener(map, 'click', function(e) {
+            const latlng = e.latLng;
+            document.getElementById('sf_lat').value = latlng.getLat().toFixed(6);
+            document.getElementById('sf_lon').value = latlng.getLng().toFixed(6);
+            if (marker) marker.setMap(null);
+            marker = new kakao.maps.Marker({position: latlng});
+            marker.setMap(map);
+        });
+        setTimeout(() => map.relayout(), 100);
+    }
+}
+
+loadStores();
+</script>
+{% endblock %}

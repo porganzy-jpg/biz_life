@@ -54,3 +54,24 @@ secrets.json
 # Logs
 *.log
 logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+**/flutter_app/.env.dev
+**/flutter_app/.env.prod
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+*.jks
+*.keystore

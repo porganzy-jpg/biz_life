@@ -1,0 +1,135 @@
+/* PromoMap - 컴포넌트 스타일 */
+
+/* 매장 카드 */
+.store-card {
+    background: white; border-radius: 12px; padding: 14px;
+    margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: box-shadow 0.2s;
+}
+.store-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.store-card .card-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: white; font-weight: 700; flex-shrink: 0;
+}
+.store-card .card-info { flex: 1; min-width: 0; }
+.store-card .card-name { font-weight: 600; font-size: 0.92rem; }
+.store-card .card-meta { color: #999; font-size: 0.78rem; margin-top: 2px; }
+.store-card .card-discount {
+    background: #FF3B30; color: white; padding: 4px 10px;
+    border-radius: 8px; font-weight: 700; font-size: 0.82rem;
+    white-space: nowrap;
+}
+.store-card .card-actions { display: flex; gap: 8px; }
+.store-card .fav-btn {
+    background: none; border: none; font-size: 1.2rem; cursor: pointer;
+    color: #ccc; transition: color 0.2s;
+}
+.store-card .fav-btn.active { color: #FF3B30; }
+
+/* 매장 상세 */
+.store-detail-modal .detail-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.store-detail-modal .detail-icon {
+    width: 50px; height: 50px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: white; font-weight: 700;
+}
+.store-detail-modal .detail-info h4 { font-size: 1rem; }
+.store-detail-modal .detail-info p { color: #666; font-size: 0.82rem; }
+.store-detail-modal .detail-section { margin-top: 16px; }
+.store-detail-modal .detail-section h5 {
+    font-size: 0.85rem; color: #666; margin-bottom: 8px;
+    padding-bottom: 4px; border-bottom: 1px solid #eee;
+}
+.discount-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid #f5f5f5;
+}
+.discount-item:last-child { border-bottom: none; }
+.discount-item .disc-desc { font-size: 0.88rem; }
+.discount-item .disc-badge {
+    background: #FF3B30; color: white; padding: 3px 8px;
+    border-radius: 6px; font-weight: 700; font-size: 0.8rem;
+}
+
+/* 리뷰 */
+.review-item {
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0;
+}
+.review-item:last-child { border-bottom: none; }
+.review-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.review-user { font-weight: 600; font-size: 0.85rem; }
+.review-date { color: #999; font-size: 0.75rem; }
+.review-rating { color: #FFB800; font-size: 0.85rem; margin-bottom: 4px; }
+.review-content { font-size: 0.88rem; color: #333; }
+
+/* 리뷰 작성 폼 */
+.review-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+.star-rating { display: flex; gap: 4px; margin-bottom: 8px; }
+.star-rating span {
+    font-size: 1.5rem; cursor: pointer; color: #ddd;
+    transition: color 0.2s;
+}
+.star-rating span.active { color: #FFB800; }
+
+/* 마이페이지 */
+.profile-card {
+    background: white; border-radius: 16px; padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 16px;
+}
+.profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.profile-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--primary); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 700;
+}
+.profile-info h3 { font-size: 1.05rem; }
+.profile-info p { color: #666; font-size: 0.82rem; }
+.profile-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; text-align: center;
+}
+.stat-item .stat-value { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+.stat-item .stat-label { font-size: 0.72rem; color: #999; margin-top: 2px; }
+
+.menu-list { background: white; border-radius: 12px; overflow: hidden; }
+.menu-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; border-bottom: 1px solid #f5f5f5;
+    cursor: pointer; transition: background 0.2s;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item:hover { background: #f8f8f8; }
+.menu-item span:last-child { color: #ccc; }
+
+/* 즐겨찾기 버튼 인라인 */
+.fav-toggle {
+    background: none; border: 2px solid #ddd; border-radius: 8px;
+    padding: 6px 12px; font-size: 0.85rem; cursor: pointer;
+    color: #666; transition: all 0.2s;
+}
+.fav-toggle.active {
+    border-color: #FF3B30; color: #FF3B30; background: #fff5f5;
+}
+
+/* 사용 이력 */
+.history-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0;
+}
+.history-item:last-child { border-bottom: none; }
+.history-store { font-weight: 600; font-size: 0.88rem; }
+.history-desc { color: #666; font-size: 0.78rem; }
+.history-date { color: #999; font-size: 0.72rem; }
+.history-amount { color: var(--primary); font-weight: 700; font-size: 0.88rem; }
+
+/* 탭 내 로그인 안내 */
+.login-prompt {
+    text-align: center; padding: 60px 20px;
+}
+.login-prompt p { color: #666; margin-bottom: 16px; }
+.login-prompt .btn-primary { display: inline-block; }

@@ -1,0 +1,194 @@
+{% extends "admin/base.html" %}
+{% block title %}할인 관리{% endblock %}
+{% block nav_discounts %}active{% endblock %}
+{% block page_title %}할인 관리{% endblock %}
+
+{% block content %}
+<div class="toolbar">
+    <button class="btn btn-primary" onclick="openCreateDiscountModal()">+ 할인 추가</button>
+</div>
+
+<div class="data-table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>매장</th>
+                <th>기업</th>
+                <th>타입</th>
+                <th>할인값</th>
+                <th>설명</th>
+                <th>상태</th>
+                <th>관리</th>
+            </tr>
+        </thead>
+        <tbody id="discountsBody">
+            <tr><td colspan="8" class="loading-cell">로딩 중...</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="discountsPagination"></div>
+
+<!-- 할인 모달 -->
+<div class="modal-overlay" id="discountFormModal" style="display:none;">
+    <div class="admin-modal">
+        <div class="admin-modal-header">
+            <h3 id="discountFormTitle">할인 추가</h3>
+            <button class="modal-close" onclick="document.getElementById('discountFormModal').style.display='none'">&times;</button>
+        </div>
+        <div class="admin-modal-body">
+            <form id="discountForm" onsubmit="return submitDiscountForm(event)">
+                <input type="hidden" id="df_id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>매장 ID *</label>
+                        <input type="number" id="df_store_id" required>
+                    </div>
+                    <div class="form-group">
+                        <label>기업 ID *</label>
+                        <input type="number" id="df_company_id" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>할인 타입</label>
+                        <select id="df_type">
+                            <option value="percent">퍼센트</option>
+                            <option value="fixed">정액</option>
+                            <option value="bogo">1+1</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>할인값 *</label>
+                        <input type="number" step="0.1" id="df_value" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>설명</label>
+                    <input type="text" id="df_desc">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>최소 구매금액</label>
+                        <input type="number" id="df_min" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>최대 할인금액</label>
+                        <input type="number" id="df_max" value="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>시작일</label>
+                        <input type="datetime-local" id="df_from">
+                    </div>
+                    <div class="form-group">
+                        <label>종료일</label>
+                        <input type="datetime-local" id="df_until">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('discountFormModal').style.display='none'">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let discountsData = [];
+let discountsPage = 1;
+
+async function loadDiscounts(page = 1) {
+    discountsPage = page;
+    try {
+        const data = await adminAPI(`/admin/api/discounts?page=${page}&size=20`);
+        discountsData = data.items || [];
+        const tbody = document.getElementById('discountsBody');
+        if (!discountsData.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">할인이 없습니다</td></tr>';
+            return;
+        }
+        tbody.innerHTML = discountsData.map(d => `
+            <tr>
+                <td>${d.id}</td>
+                <td>${d.store_name || d.store_id}</td>
+                <td>${d.company_name || d.company_id}</td>
+                <td>${d.discount_type}</td>
+                <td>${d.discount_value}${d.discount_type==='percent'?'%':'원'}</td>
+                <td>${d.description || '-'}</td>
+                <td><span class="status-badge ${d.is_active?'active':'inactive'}">${d.is_active?'활성':'비활성'}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="editDiscount(${d.id})">수정</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteDiscount(${d.id})">삭제</button>
+                </td>
+            </tr>
+        `).join('');
+        renderPagination('discountsPagination', data, loadDiscounts);
+    } catch(e) { console.error(e); }
+}
+
+function openCreateDiscountModal() {
+    document.getElementById('discountFormTitle').textContent = '할인 추가';
+    document.getElementById('discountForm').reset();
+    document.getElementById('df_id').value = '';
+    document.getElementById('discountFormModal').style.display = 'flex';
+}
+
+function editDiscount(id) {
+    const d = discountsData.find(x => x.id === id);
+    if (!d) return;
+    document.getElementById('discountFormTitle').textContent = '할인 수정';
+    document.getElementById('df_id').value = id;
+    document.getElementById('df_store_id').value = d.store_id;
+    document.getElementById('df_company_id').value = d.company_id;
+    document.getElementById('df_type').value = d.discount_type;
+    document.getElementById('df_value').value = d.discount_value;
+    document.getElementById('df_desc').value = d.description || '';
+    document.getElementById('df_min').value = d.min_purchase || 0;
+    document.getElementById('df_max').value = d.max_discount || 0;
+    if (d.valid_from) document.getElementById('df_from').value = d.valid_from.slice(0,16);
+    if (d.valid_until) document.getElementById('df_until').value = d.valid_until.slice(0,16);
+    document.getElementById('discountFormModal').style.display = 'flex';
+}
+
+async function submitDiscountForm(e) {
+    e.preventDefault();
+    const id = document.getElementById('df_id').value;
+    const data = {
+        store_id: parseInt(document.getElementById('df_store_id').value),
+        company_id: parseInt(document.getElementById('df_company_id').value),
+        discount_type: document.getElementById('df_type').value,
+        discount_value: parseFloat(document.getElementById('df_value').value),
+        description: document.getElementById('df_desc').value,
+        min_purchase: parseInt(document.getElementById('df_min').value) || 0,
+        max_discount: parseInt(document.getElementById('df_max').value) || 0,
+        valid_from: document.getElementById('df_from').value || null,
+        valid_until: document.getElementById('df_until').value || null,
+    };
+    try {
+        if (id) {
+            await adminAPI(`/admin/api/discounts/${id}`, 'PUT', data);
+        } else {
+            await adminAPI('/admin/api/discounts', 'POST', data);
+        }
+        document.getElementById('discountFormModal').style.display = 'none';
+        loadDiscounts(discountsPage);
+    } catch(e) { alert(e.detail || '저장 실패'); }
+    return false;
+}
+
+async function deleteDiscount(id) {
+    if (!confirm('이 할인을 삭제하시겠습니까?')) return;
+    try {
+        await adminAPI(`/admin/api/discounts/${id}`, 'DELETE');
+        loadDiscounts(discountsPage);
+    } catch(e) { alert(e.detail || '삭제 실패'); }
+}
+
+loadDiscounts();
+</script>
+{% endblock %}

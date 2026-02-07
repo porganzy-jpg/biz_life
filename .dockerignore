@@ -1,0 +1,17 @@
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.git
+**/.gitignore
+**/node_modules
+**/*.db
+**/flutter_app
+**/.env
+**/venv
+**/.venv
+**/docs
+**/*.md
+**/.mypy_cache
+**/.pytest_cache
+**/mockups
+**/frontend

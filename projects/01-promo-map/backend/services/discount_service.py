@@ -1,0 +1,53 @@
+"""할인 서비스"""
+from sqlalchemy.orm import Session
+from models import User
+from repositories.discount_repo import DiscountRepository
+from repositories.usage_log_repo import UsageLogRepository
+
+
+def get_active_discounts(db: Session, user: User) -> list:
+    """사용자 회사의 활성 할인 목록"""
+    if not user.company_id:
+        return []
+    discount_repo = DiscountRepository(db)
+    discounts = discount_repo.get_active_by_company(user.company_id)
+    return [
+        {
+            "id": d.id,
+            "store_id": d.store_id,
+            "discount_type": d.discount_type,
+            "discount_value": d.discount_value,
+            "description": d.description,
+            "store_name": d.store.name if d.store else None,
+            "store_brand": d.store.brand if d.store else None,
+            "company_name": d.company.name if d.company else None,
+        }
+        for d in discounts
+    ]
+
+
+def get_my_discount_history(db: Session, user: User, page: int = 1, size: int = 20) -> dict:
+    """내가 사용한 할인 이력"""
+    usage_repo = UsageLogRepository(db)
+    offset = (page - 1) * size
+    logs = usage_repo.get_by_user(user.id, offset=offset, limit=size)
+    total = usage_repo.count_by_user(user.id)
+
+    return {
+        "items": [
+            {
+                "id": log.id,
+                "store_name": log.store.name if log.store else "Unknown",
+                "store_brand": log.store.brand if log.store else "",
+                "discount_description": log.discount.description if log.discount else "",
+                "discount_value": log.discount.discount_value if log.discount else 0,
+                "saved_amount": log.saved_amount,
+                "used_at": log.used_at.isoformat() if log.used_at else "",
+            }
+            for log in logs
+        ],
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": (total + size - 1) // size if total > 0 else 1,
+    }

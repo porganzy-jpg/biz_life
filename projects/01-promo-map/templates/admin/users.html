@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% block title %}사용자 관리{% endblock %}
+{% block nav_users %}active{% endblock %}
+{% block page_title %}사용자 관리{% endblock %}
+
+{% block content %}
+<div class="data-table-container">
+    <table class="data-table">
+        <thead>
+            <tr><th>ID</th><th>이름</th><th>이메일</th><th>회사</th><th>관리자</th><th>상태</th><th>최근 접속</th><th>관리</th></tr>
+        </thead>
+        <tbody id="usersBody">
+            <tr><td colspan="8" class="loading-cell">로딩 중...</td></tr>
+        </tbody>
+    </table>
+</div>
+<div class="pagination" id="usersPagination"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let usersData = [];
+let usersPage = 1;
+
+async function loadUsers(page = 1) {
+    usersPage = page;
+    try {
+        const data = await adminAPI(`/admin/api/users?page=${page}&size=20`);
+        usersData = data.items || [];
+        const tbody = document.getElementById('usersBody');
+        if (!usersData.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">사용자가 없습니다</td></tr>';
+            return;
+        }
+        tbody.innerHTML = usersData.map(u => `
+            <tr>
+                <td>${u.id}</td><td>${u.name}</td><td>${u.email}</td>
+                <td>${u.company_name||'-'}</td>
+                <td>${u.is_admin?'<span class="status-badge active">관리자</span>':'-'}</td>
+                <td><span class="status-badge ${u.is_active?'active':'inactive'}">${u.is_active?'활성':'비활성'}</span></td>
+                <td>${u.last_login_at?u.last_login_at.split('T')[0]:'-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="toggleUserActive(${u.id},${!u.is_active})">${u.is_active?'비활성화':'활성화'}</button>
+                </td>
+            </tr>
+        `).join('');
+        renderPagination('usersPagination', data, loadUsers);
+    } catch(e) { console.error(e); }
+}
+
+async function toggleUserActive(id, active) {
+    try {
+        await adminAPI(`/admin/api/users/${id}`, 'PUT', {is_active: active});
+        loadUsers(usersPage);
+    } catch(e) { alert(e.detail || '처리 실패'); }
+}
+
+loadUsers();
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromoMap Admin - {% block title %}Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="admin-body">
+    <div class="admin-layout">
+        <!-- 사이드바 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>PromoMap</h2>
+                <span class="badge">Admin</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/admin/dashboard" class="nav-link {% block nav_dashboard %}{% endblock %}">
+                    <span class="nav-icon">📊</span> Dashboard
+                </a>
+                <a href="/admin/stores" class="nav-link {% block nav_stores %}{% endblock %}">
+                    <span class="nav-icon">🏪</span> 매장 관리
+                </a>
+                <a href="/admin/discounts" class="nav-link {% block nav_discounts %}{% endblock %}">
+                    <span class="nav-icon">🏷️</span> 할인 관리
+                </a>
+                <a href="/admin/companies" class="nav-link {% block nav_companies %}{% endblock %}">
+                    <span class="nav-icon">🏢</span> 기업 관리
+                </a>
+                <a href="/admin/users" class="nav-link {% block nav_users %}{% endblock %}">
+                    <span class="nav-icon">👥</span> 사용자 관리
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="admin-info">
+                    <span>{{ admin_name }}</span>
+                </div>
+                <button class="btn-logout" onclick="adminLogout()">로그아웃</button>
+            </div>
+        </aside>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+            </div>
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/admin.js"></script>
+    {% block scripts %}{% endblock %}
+
+    <script>
+        async function adminLogout() {
+            await fetch('/admin/api/logout', {method:'POST'});
+            window.location.href = '/admin/login';
+        }
+    </script>
+</body>
+</html>

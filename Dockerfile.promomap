@@ -1,0 +1,32 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# System deps for PostgreSQL client
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Python deps (install first for layer caching)
+COPY projects/01-promo-map/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+# Shared modules (auth, utils)
+COPY shared/ ./shared/
+
+# PromoMap project files (preserve relative path for sys.path.append)
+COPY projects/01-promo-map/backend/ ./projects/01-promo-map/backend/
+COPY projects/01-promo-map/templates/ ./projects/01-promo-map/templates/
+COPY projects/01-promo-map/static/ ./projects/01-promo-map/static/
+
+# Working directory = backend (uvicorn/gunicorn runs from here)
+WORKDIR /app/projects/01-promo-map/backend
+
+EXPOSE 8000
+
+CMD ["gunicorn", "main:app", \
+     "-w", "2", \
+     "-k", "uvicorn.workers.UvicornWorker", \
+     "--bind", "0.0.0.0:8000", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]
