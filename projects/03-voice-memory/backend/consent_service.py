@@ -1,0 +1,101 @@
+"""
+VoiceMemory 동의 관리 서비스
+
+법적 요구사항:
+- 통신비밀보호법 준수 (도청이 아닌 본인 동의 하 녹음)
+- 개인정보보호법 준수
+- 동의 철회 시 데이터 삭제
+"""
+from datetime import datetime
+from sqlalchemy.orm import Session
+from models import Consent, Person
+
+
+REQUIRED_CONSENTS = [
+    {
+        "type": "voice_recording",
+        "title": "음성 녹음 동의",
+        "description": "대화 내용을 녹음하고 저장하는 것에 동의합니다. 녹음된 음성은 AI 학습 및 음성 복원에 사용됩니다.",
+    },
+    {
+        "type": "ai_clone",
+        "title": "AI 음성 복원 동의",
+        "description": "녹음된 음성을 기반으로 AI 음성 모델을 생성하는 것에 동의합니다.",
+    },
+    {
+        "type": "data_storage",
+        "title": "데이터 보관 동의",
+        "description": "음성 데이터와 대화 내용을 안전하게 보관하는 것에 동의합니다. 동의 철회 시 모든 데이터가 삭제됩니다.",
+    },
+]
+
+
+class ConsentService:
+    """동의 관리"""
+
+    @staticmethod
+    def get_required_consents() -> list:
+        """필요한 동의 항목 목록"""
+        return REQUIRED_CONSENTS
+
+    @staticmethod
+    def grant_consent(db: Session, person_id: int, consent_type: str,
+                      ip_address: str = "", notes: str = "") -> Consent:
+        """동의 부여"""
+        existing = db.query(Consent).filter(
+            Consent.person_id == person_id,
+            Consent.consent_type == consent_type,
+        ).first()
+
+        if existing:
+            existing.is_granted = True
+            existing.granted_at = datetime.utcnow()
+            existing.revoked_at = None
+            existing.ip_address = ip_address
+            existing.notes = notes
+        else:
+            existing = Consent(
+                person_id=person_id,
+                consent_type=consent_type,
+                is_granted=True,
+                granted_at=datetime.utcnow(),
+                ip_address=ip_address,
+                notes=notes,
+            )
+            db.add(existing)
+
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    @staticmethod
+    def revoke_consent(db: Session, person_id: int, consent_type: str) -> bool:
+        """동의 철회"""
+        consent = db.query(Consent).filter(
+            Consent.person_id == person_id,
+            Consent.consent_type == consent_type,
+        ).first()
+
+        if consent:
+            consent.is_granted = False
+            consent.revoked_at = datetime.utcnow()
+            db.commit()
+            return True
+        return False
+
+    @staticmethod
+    def check_all_consents(db: Session, person_id: int) -> dict:
+        """모든 필수 동의 확인"""
+        consents = db.query(Consent).filter(
+            Consent.person_id == person_id,
+            Consent.is_granted == True,
+        ).all()
+
+        granted_types = {c.consent_type for c in consents}
+        required_types = {c["type"] for c in REQUIRED_CONSENTS}
+
+        return {
+            "all_granted": required_types.issubset(granted_types),
+            "granted": list(granted_types),
+            "missing": list(required_types - granted_types),
+        }

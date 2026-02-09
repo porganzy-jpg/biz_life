@@ -84,13 +84,11 @@ async def analyze_symbol(symbol: str):
     """특정 심볼 분석"""
     analysis = trader.analyze_market(symbol)
     return {
-        "symbol": analysis["symbol"],
-        "consensus": analysis["consensus"],
-        "confidence": analysis["avg_confidence"],
-        "signals": [
-            {"action": s.action, "confidence": s.confidence, "reason": s.reason}
-            for s in analysis["signals"]
-        ],
+        "symbol": analysis.get("symbol", symbol),
+        "action": analysis.get("action", "HOLD"),
+        "confidence": analysis.get("confidence", 0),
+        "signals": analysis.get("signals", []),
+        "vote_detail": analysis.get("vote_detail", {}),
     }
 
 

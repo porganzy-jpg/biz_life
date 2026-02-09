@@ -1,13 +1,12 @@
-ccxt==4.4.54
 pandas==2.2.3
 numpy==2.2.2
-ta==0.11.0
 python-dotenv==1.0.1
 requests==2.32.3
-schedule==1.2.2
 fastapi==0.115.6
 uvicorn==0.34.0
 jinja2==3.1.5
-websockets==14.2
 aiohttp==3.11.11
-pyupbit==0.2.35
+beautifulsoup4==4.12.3
+feedparser==6.0.11
+ta==0.11.0
+schedule==1.2.2

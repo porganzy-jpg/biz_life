@@ -1,6 +1,6 @@
 """
-CryptoBot 트레이딩 엔진
-전략 신호에 따라 자동으로 매매를 수행하고, 결과를 기록합니다.
+CryptoBot 트레이딩 엔진 v2.0
+앙상블 전략, 서킷브레이커, 알림 시스템, 리스크 관리 통합
 """
 import sys
 import os
@@ -14,10 +14,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "strategy"))
 
 from exchange_client import ExchangeClient
 from config import TRADING_CONFIG, TARGET_MARKETS, STRATEGY_CONFIG
+from circuit_breaker import CircuitBreaker
+from alert_system import AlertSystem
+from risk_manager import RiskManager
 from base_strategy import Signal
 from bollinger_rsi_strategy import BollingerRSIStrategy
 from volatility_breakout_strategy import VolatilityBreakoutStrategy
 from macd_strategy import MACDStrategy
+from moving_average_strategy import MovingAverageStrategy
+from strategy_ensemble import StrategyEnsemble
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,18 +39,39 @@ logger = logging.getLogger(__name__)
 
 
 class CryptoTrader:
-    """코인 자동매매 트레이더"""
+    """코인 자동매매 트레이더 v2.0"""
 
     def __init__(self, paper_trading: bool = True):
         self.client = ExchangeClient(paper_trading=paper_trading)
         self.paper_trading = paper_trading
 
-        # 전략 초기화 (복합 사용)
+        # 전략 초기화 (4개 전략)
         self.strategies = [
             BollingerRSIStrategy(STRATEGY_CONFIG),
             VolatilityBreakoutStrategy(),
             MACDStrategy(),
+            MovingAverageStrategy(STRATEGY_CONFIG),
         ]
+
+        # 앙상블 초기화 (가중 투표)
+        self.ensemble = StrategyEnsemble(
+            self.strategies,
+            weights={
+                "BollingerBand+RSI": 0.30,
+                "VolatilityBreakout": 0.25,
+                "MACD": 0.25,
+                "MovingAverage": 0.20,
+            }
+        )
+
+        # 서킷브레이커
+        self.circuit_breaker = CircuitBreaker()
+
+        # 알림 시스템
+        self.alert = AlertSystem()
+
+        # 리스크 관리
+        self.risk_manager = RiskManager()
 
         # 매매 이력
         self.trade_history = []
@@ -70,85 +96,66 @@ class CryptoTrader:
 
     def analyze_market(self, symbol: str) -> dict:
         """
-        특정 마켓을 모든 전략으로 분석
+        특정 마켓을 앙상블 전략으로 분석
 
         Returns:
-            dict: {
-                "symbol": str,
-                "signals": [Signal, ...],
-                "consensus": str,  # BUY/SELL/HOLD
-                "avg_confidence": float,
-            }
+            dict: 앙상블 분석 결과
         """
         ohlcv = self.client.fetch_ohlcv(symbol, timeframe="15m", limit=200)
         if not ohlcv:
-            return {"symbol": symbol, "signals": [], "consensus": "HOLD", "avg_confidence": 0}
+            return {"symbol": symbol, "action": "HOLD", "confidence": 0,
+                    "signals": [], "vote_detail": {}}
 
-        # OHLCV를 DataFrame으로 변환
         import pandas as pd
         df = pd.DataFrame(ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         df.set_index("timestamp", inplace=True)
 
-        # 모든 전략으로 분석
-        signals = []
-        for strategy in self.strategies:
-            try:
-                signal = strategy.analyze(df, symbol)
-                signals.append(signal)
-            except Exception as e:
-                logger.error(f"전략 분석 오류 [{strategy.name}][{symbol}]: {e}")
-
-        # 다수결 합의
-        buy_count = sum(1 for s in signals if s.action == Signal.BUY)
-        sell_count = sum(1 for s in signals if s.action == Signal.SELL)
-        total = len(signals)
-
-        if buy_count > total / 2:
-            consensus = Signal.BUY
-            avg_conf = sum(s.confidence for s in signals if s.action == Signal.BUY) / max(buy_count, 1)
-        elif sell_count > total / 2:
-            consensus = Signal.SELL
-            avg_conf = sum(s.confidence for s in signals if s.action == Signal.SELL) / max(sell_count, 1)
-        else:
-            consensus = Signal.HOLD
-            avg_conf = 0.0
-
-        return {
-            "symbol": symbol,
-            "signals": signals,
-            "consensus": consensus,
-            "avg_confidence": avg_conf,
-        }
+        # 앙상블 분석
+        result = self.ensemble.analyze(df, symbol)
+        result["symbol"] = symbol
+        return result
 
     def execute_trade(self, analysis: dict):
-        """분석 결과에 따라 매매 실행"""
+        """분석 결과에 따라 매매 실행 (리스크 관리 적용)"""
         symbol = analysis["symbol"]
-        consensus = analysis["consensus"]
-        confidence = analysis["avg_confidence"]
+        action = analysis.get("action", "HOLD")
+        confidence = analysis.get("confidence", 0)
 
-        if consensus == Signal.HOLD:
+        # 서킷브레이커 체크
+        can_trade, reason = self.circuit_breaker.can_trade()
+        if not can_trade:
+            logger.info(f"매매 중지 (서킷브레이커): {reason}")
+            return None
+
+        if action == "HOLD":
             return None
 
         balance = self.client.fetch_balance()
         positions = self.client.get_positions()
 
-        if consensus == Signal.BUY:
-            # 이미 최대 포지션이면 스킵
-            if len(positions) >= TRADING_CONFIG["max_open_positions"]:
-                logger.info(f"최대 포지션 초과 - 매수 스킵: {symbol}")
+        if action == Signal.BUY:
+            krw_balance = balance.get("KRW", 0)
+
+            # 리스크 관리: 포지션 사이즈 계산
+            trade_amount = self.risk_manager.calculate_position_size(
+                krw_balance, confidence, len(positions)
+            )
+
+            if trade_amount <= 0:
                 return None
 
-            # 매수 금액 계산
-            krw_balance = balance.get("KRW", 0)
-            trade_amount = krw_balance * TRADING_CONFIG["per_trade_ratio"]
-
-            if trade_amount < 5000:  # 최소 주문 금액
-                logger.info(f"잔고 부족 - 매수 스킵: {symbol}")
+            # 매매 전 검증
+            valid, msg = self.risk_manager.validate_trade(
+                "BUY", symbol, trade_amount, krw_balance, positions, confidence
+            )
+            if not valid:
+                logger.info(f"리스크 검증 실패 [{symbol}]: {msg}")
                 return None
 
             result = self.client.buy(symbol, trade_amount)
             if result:
+                self.alert.alert_trade("BUY", symbol, trade_amount, result.get("price", 0), confidence)
                 trade_record = {
                     "timestamp": datetime.now().isoformat(),
                     "action": "BUY",
@@ -156,14 +163,13 @@ class CryptoTrader:
                     "amount": trade_amount,
                     "price": result.get("price", 0),
                     "confidence": confidence,
-                    "reasons": [s.reason for s in analysis["signals"]],
+                    "reasons": [s["reason"] for s in analysis.get("signals", [])],
                 }
                 self.trade_history.append(trade_record)
                 self._save_history()
                 return trade_record
 
-        elif consensus == Signal.SELL:
-            # 보유 중이 아니면 스킵
+        elif action == Signal.SELL:
             if symbol not in positions:
                 return None
 
@@ -173,11 +179,19 @@ class CryptoTrader:
 
             result = self.client.sell(symbol, qty)
             if result:
-                # 수익률 계산
                 buy_price = positions[symbol].get("avg_price", 0)
                 sell_price = result.get("price", 0)
                 pnl_pct = ((sell_price - buy_price) / buy_price * 100) if buy_price > 0 else 0
 
+                # 서킷브레이커에 결과 기록
+                self.circuit_breaker.record_trade(pnl_pct)
+
+                # 앙상블 성과 업데이트
+                for sig in analysis.get("signals", []):
+                    if sig["action"] == Signal.SELL:
+                        self.ensemble.update_performance(sig["strategy"], pnl_pct > 0)
+
+                self.alert.alert_trade("SELL", symbol, qty * sell_price, sell_price, confidence)
                 trade_record = {
                     "timestamp": datetime.now().isoformat(),
                     "action": "SELL",
@@ -187,7 +201,7 @@ class CryptoTrader:
                     "buy_price": buy_price,
                     "pnl_pct": round(pnl_pct, 2),
                     "confidence": confidence,
-                    "reasons": [s.reason for s in analysis["signals"]],
+                    "reasons": [s["reason"] for s in analysis.get("signals", [])],
                 }
                 self.trade_history.append(trade_record)
                 self._save_history()
@@ -215,6 +229,8 @@ class CryptoTrader:
             if pnl_pct <= TRADING_CONFIG["stop_loss_pct"]:
                 logger.warning(f"손절 실행: {symbol} (수익률: {pnl_pct:.2f}%)")
                 self.client.sell(symbol, pos["qty"])
+                self.circuit_breaker.record_trade(pnl_pct)
+                self.alert.alert_stop_loss(symbol, pnl_pct, current_price)
                 self.trade_history.append({
                     "timestamp": datetime.now().isoformat(),
                     "action": "STOP_LOSS",
@@ -228,6 +244,8 @@ class CryptoTrader:
             elif pnl_pct >= TRADING_CONFIG["take_profit_pct"]:
                 logger.info(f"익절 실행: {symbol} (수익률: {pnl_pct:.2f}%)")
                 self.client.sell(symbol, pos["qty"])
+                self.circuit_breaker.record_trade(pnl_pct)
+                self.alert.alert_take_profit(symbol, pnl_pct, current_price)
                 self.trade_history.append({
                     "timestamp": datetime.now().isoformat(),
                     "action": "TAKE_PROFIT",
@@ -243,6 +261,12 @@ class CryptoTrader:
         logger.info(f"매매 사이클 시작: {datetime.now()}")
         logger.info(f"모드: {'모의투자' if self.paper_trading else '실전투자'}")
 
+        # 서킷브레이커 체크
+        can_trade, reason = self.circuit_breaker.can_trade()
+        if not can_trade:
+            logger.warning(f"매매 중지: {reason}")
+            return {"timestamp": datetime.now().isoformat(), "status": "paused", "reason": reason}
+
         # 손절/익절 체크
         self.check_stop_loss_take_profit()
 
@@ -254,15 +278,15 @@ class CryptoTrader:
                 trade = self.execute_trade(analysis)
                 results.append({
                     "symbol": symbol,
-                    "consensus": analysis["consensus"],
-                    "confidence": analysis["avg_confidence"],
+                    "action": analysis.get("action", "HOLD"),
+                    "confidence": analysis.get("confidence", 0),
                     "trade": trade,
                 })
-                time.sleep(0.5)  # API 호출 간격
+                time.sleep(0.5)
             except Exception as e:
                 logger.error(f"매매 사이클 오류 [{symbol}]: {e}")
+                self.alert.alert_error(f"[{symbol}] {e}")
 
-        # 현재 상태 로깅
         balance = self.client.fetch_balance()
         positions = self.client.get_positions()
         logger.info(f"잔고: {balance}")
@@ -281,7 +305,6 @@ class CryptoTrader:
         balance = self.client.fetch_balance()
         positions = self.client.get_positions()
 
-        # 총 수익률 계산
         total_trades = len(self.trade_history)
         profitable = sum(1 for t in self.trade_history if t.get("pnl_pct", 0) > 0)
         total_pnl = sum(t.get("pnl_pct", 0) for t in self.trade_history if "pnl_pct" in t)
@@ -295,14 +318,20 @@ class CryptoTrader:
             "win_rate": (profitable / total_trades * 100) if total_trades > 0 else 0,
             "total_pnl_pct": round(total_pnl, 2),
             "recent_trades": self.trade_history[-10:],
+            "circuit_breaker": self.circuit_breaker.get_status(),
+            "risk_manager": self.risk_manager.get_status(),
+            "ensemble_report": self.ensemble.get_strategy_report(),
+            "recent_alerts": self.alert.get_recent_alerts(10),
         }
 
 
 def main():
     """메인 실행"""
     print("=" * 60)
-    print("  CryptoBot v1.0 - 코인 자동매매 프로그램")
+    print("  CryptoBot v2.0 - 코인 자동매매 프로그램")
     print("  모드: 모의투자 (Paper Trading)")
+    print("  전략: 앙상블 (4전략 가중 투표)")
+    print("  보안: 서킷브레이커 + 리스크관리 + 알림")
     print("=" * 60)
 
     trader = CryptoTrader(paper_trading=True)
@@ -324,6 +353,7 @@ def main():
         print(f"총 거래: {status['total_trades']}건")
         print(f"승률: {status['win_rate']:.1f}%")
         print(f"누적 수익률: {status['total_pnl_pct']:.2f}%")
+        print(f"서킷브레이커: {'발동중' if status['circuit_breaker']['is_active'] else '정상'}")
 
 
 if __name__ == "__main__":

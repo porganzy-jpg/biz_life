@@ -42,6 +42,8 @@ secrets.json
 **/trading-bot/config/api_keys.*
 **/trading-bot/logs/
 **/trading-bot/data/*.csv
+trading_log.json
+scalp_trades.json
 
 # Build outputs
 *.apk
