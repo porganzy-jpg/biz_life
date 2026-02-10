@@ -1,7 +1,8 @@
 """
-종목 선정 앙상블
+종목 선정 앙상블 v2.0
 
-여러 전략의 점수를 가중 합산하여 종합 판단
+8가지 전략의 가중 합산으로 종합 판단
+기본 5전략 + 모멘텀 + 듀얼모멘텀 + 변동성타겟
 """
 import sys
 import os
@@ -15,10 +16,13 @@ from rsi_strategy import RSIStrategy
 from macd_strategy import MACDStockStrategy
 from ma_strategy import MAStockStrategy
 from institutional_flow import InstitutionalFlowStrategy
+from momentum_strategy import MomentumStrategy
+from dual_momentum import DualMomentumStrategy
+from volatility_target import VolatilityTargetStrategy
 
 
 class StockSelectorEnsemble:
-    """종목 선정 앙상블"""
+    """종목 선정 앙상블 v2.0 (8전략)"""
 
     def __init__(self):
         self.strategies = [
@@ -27,6 +31,9 @@ class StockSelectorEnsemble:
             MACDStockStrategy(),
             MAStockStrategy(),
             InstitutionalFlowStrategy(),
+            MomentumStrategy(),
+            DualMomentumStrategy(),
+            VolatilityTargetStrategy(),
         ]
 
     def evaluate(self, df: pd.DataFrame, symbol: str, name: str) -> dict:
