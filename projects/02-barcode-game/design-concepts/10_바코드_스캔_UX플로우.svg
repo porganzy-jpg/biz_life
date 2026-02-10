@@ -1,0 +1,204 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 700" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="scanBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="700" fill="#F8F6FF"/>
+
+  <text x="400" y="40" text-anchor="middle" font-size="22" font-weight="bold" fill="#333">Barcode Scan UX Flow</text>
+  <text x="400" y="62" text-anchor="middle" font-size="12" fill="#999">The core dopamine loop: Scan → Anticipation → Reveal → Collect</text>
+
+  <!-- Step 1: Ready to Scan -->
+  <g transform="translate(100, 185)">
+    <rect x="-65" y="-85" width="130" height="230" rx="16" fill="#333"/>
+    <rect x="-57" y="-70" width="114" height="200" rx="10" fill="url(#scanBg)" opacity="0.2"/>
+    <rect x="-57" y="-70" width="114" height="200" rx="10" fill="#FFF"/>
+
+    <!-- Camera viewfinder -->
+    <rect x="-40" y="-50" width="80" height="80" rx="8" fill="#F5F5F5" stroke="#DDD" stroke-width="1"/>
+    <!-- Corner brackets -->
+    <path d="M-35,-45 L-35,-35 M-35,-45 L-25,-45" fill="none" stroke="#6C63FF" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M35,-45 L35,-35 M35,-45 L25,-45" fill="none" stroke="#6C63FF" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M-35,25 L-35,15 M-35,25 L-25,25" fill="none" stroke="#6C63FF" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M35,25 L35,15 M35,25 L25,25" fill="none" stroke="#6C63FF" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Barcode illustration -->
+    <rect x="-20" y="-25" width="3" height="30" fill="#999"/>
+    <rect x="-14" y="-20" width="2" height="25" fill="#999"/>
+    <rect x="-9" y="-25" width="4" height="30" fill="#999"/>
+    <rect x="-2" y="-22" width="2" height="27" fill="#999"/>
+    <rect x="3" y="-25" width="3" height="30" fill="#999"/>
+    <rect x="9" y="-20" width="2" height="25" fill="#999"/>
+    <rect x="14" y="-25" width="4" height="30" fill="#999"/>
+
+    <!-- Scan line -->
+    <line x1="-35" y1="-10" x2="35" y2="-10" stroke="#FF6B6B" stroke-width="2" opacity="0.7"/>
+
+    <text x="0" y="55" text-anchor="middle" font-size="11" font-weight="bold" fill="#6C63FF">Scan Barcode</text>
+    <rect x="-35" y="65" width="70" height="28" rx="14" fill="#6C63FF"/>
+    <text x="0" y="84" text-anchor="middle" font-size="10" fill="#FFF">SCAN</text>
+
+    <text x="0" y="165" text-anchor="middle" font-size="12" font-weight="bold" fill="#555">1. SCAN</text>
+    <text x="0" y="180" text-anchor="middle" font-size="9" fill="#888">Point camera at barcode</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M175,185 L215,185" fill="none" stroke="#6C63FF" stroke-width="2"/>
+  <polygon points="215,180 225,185 215,190" fill="#6C63FF"/>
+
+  <!-- Step 2: Processing / Anticipation -->
+  <g transform="translate(300, 185)">
+    <rect x="-65" y="-85" width="130" height="230" rx="16" fill="#333"/>
+    <rect x="-57" y="-70" width="114" height="200" rx="10" fill="#1A1A2E"/>
+
+    <!-- Energy gathering animation -->
+    <circle cx="0" cy="-10" r="35" fill="none" stroke="#FFD54F" stroke-width="2" opacity="0.4" stroke-dasharray="8,4"/>
+    <circle cx="0" cy="-10" r="25" fill="none" stroke="#FFD54F" stroke-width="1.5" opacity="0.3" stroke-dasharray="6,3"/>
+    <circle cx="0" cy="-10" r="15" fill="#FFD54F" opacity="0.15"/>
+
+    <!-- Particles converging -->
+    <circle cx="-30" cy="-35" r="4" fill="#FF6B6B" opacity="0.7"/>
+    <circle cx="28" cy="-30" r="3" fill="#4D96FF" opacity="0.7"/>
+    <circle cx="-25" cy="15" r="3.5" fill="#6BCB77" opacity="0.7"/>
+    <circle cx="30" cy="10" r="3" fill="#DDA0DD" opacity="0.7"/>
+    <circle cx="0" cy="-40" r="3" fill="#FFD93D" opacity="0.7"/>
+    <circle cx="-15" cy="20" r="2.5" fill="#FF8A65" opacity="0.7"/>
+
+    <!-- Dotted lines to center -->
+    <line x1="-30" y1="-35" x2="-5" y2="-15" stroke="#FF6B6B" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.5"/>
+    <line x1="28" y1="-30" x2="5" y2="-12" stroke="#4D96FF" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.5"/>
+    <line x1="-25" y1="15" x2="-3" y2="-5" stroke="#6BCB77" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.5"/>
+
+    <!-- Loading text -->
+    <text x="0" y="55" text-anchor="middle" font-size="10" fill="#FFD54F">Gathering emotions...</text>
+    <rect x="-35" y="65" width="70" height="6" rx="3" fill="#333"/>
+    <rect x="-35" y="65" width="45" height="6" rx="3" fill="#FFD54F"/>
+
+    <!-- Rarity hint (near-miss dopamine) -->
+    <text x="0" y="95" text-anchor="middle" font-size="9" fill="#AB47BC" opacity="0.8">A rare aura detected...!</text>
+
+    <text x="0" y="165" text-anchor="middle" font-size="12" font-weight="bold" fill="#555">2. ANTICIPATION</text>
+    <text x="0" y="180" text-anchor="middle" font-size="9" fill="#888">Build excitement</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M375,185 L415,185" fill="none" stroke="#FFD54F" stroke-width="2"/>
+  <polygon points="415,180 425,185 415,190" fill="#FFD54F"/>
+
+  <!-- Step 3: Reveal -->
+  <g transform="translate(500, 185)">
+    <rect x="-65" y="-85" width="130" height="230" rx="16" fill="#333"/>
+    <rect x="-57" y="-70" width="114" height="200" rx="10" fill="#0D1B2A"/>
+
+    <!-- Card reveal with glow -->
+    <circle cx="0" cy="-5" r="40" fill="#42A5F5" opacity="0.08"/>
+    <circle cx="0" cy="-5" r="30" fill="#42A5F5" opacity="0.06"/>
+
+    <!-- Revealed card -->
+    <rect x="-28" y="-40" width="56" height="75" rx="6" fill="#E3F2FD" stroke="#42A5F5" stroke-width="2"/>
+    <!-- Creature on card -->
+    <circle cx="0" cy="-15" r="16" fill="#90CAF9"/>
+    <circle cx="0" cy="-15" r="12" fill="#BBDEFB"/>
+    <circle cx="-4" cy="-18" r="2.5" fill="#1565C0"/>
+    <circle cx="4" cy="-18" r="2.5" fill="#1565C0"/>
+    <path d="M-3,-10 Q0,-7 3,-10" fill="none" stroke="#1565C0" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Rarity label -->
+    <rect x="-18" y="15" width="36" height="12" rx="6" fill="#42A5F5"/>
+    <text x="0" y="24" text-anchor="middle" font-size="8" fill="#FFF" font-weight="bold">RARE!</text>
+
+    <!-- Burst effect -->
+    <text x="-40" y="-30" font-size="14" fill="#42A5F5" opacity="0.6">*</text>
+    <text x="35" y="-25" font-size="10" fill="#42A5F5" opacity="0.5">*</text>
+    <text x="-35" y="20" font-size="8" fill="#42A5F5" opacity="0.4">*</text>
+    <text x="40" y="15" font-size="12" fill="#42A5F5" opacity="0.5">*</text>
+    <text x="0" y="-48" font-size="10" fill="#FFD54F" opacity="0.7">*</text>
+
+    <!-- Name -->
+    <text x="0" y="55" text-anchor="middle" font-size="10" font-weight="bold" fill="#42A5F5">Teardrop</text>
+    <text x="0" y="68" text-anchor="middle" font-size="8" fill="#64B5F6">Memory Type</text>
+
+    <text x="0" y="165" text-anchor="middle" font-size="12" font-weight="bold" fill="#555">3. REVEAL</text>
+    <text x="0" y="180" text-anchor="middle" font-size="9" fill="#888">Dopamine peak!</text>
+  </g>
+
+  <!-- Arrow -->
+  <path d="M575,185 L615,185" fill="none" stroke="#FF69B4" stroke-width="2"/>
+  <polygon points="615,180 625,185 615,190" fill="#FF69B4"/>
+
+  <!-- Step 4: Collect & Bond -->
+  <g transform="translate(700, 185)">
+    <rect x="-65" y="-85" width="130" height="230" rx="16" fill="#333"/>
+    <rect x="-57" y="-70" width="114" height="200" rx="10" fill="#FFF"/>
+
+    <!-- Collection added animation -->
+    <rect x="-45" y="-55" width="90" height="45" rx="8" fill="#F3E5F5" stroke="#CE93D8" stroke-width="1"/>
+    <text x="0" y="-35" text-anchor="middle" font-size="9" fill="#6A1B9A" font-weight="bold">NEW!</text>
+    <text x="0" y="-22" text-anchor="middle" font-size="8" fill="#AB47BC">Added to collection</text>
+
+    <!-- Mini creature portrait -->
+    <circle cx="0" cy="5" r="22" fill="#E3F2FD"/>
+    <circle cx="0" cy="5" r="16" fill="#BBDEFB"/>
+    <circle cx="-5" cy="2" r="2" fill="#1565C0"/>
+    <circle cx="5" cy="2" r="2" fill="#1565C0"/>
+    <path d="M-3,10 Q0,13 3,10" fill="none" stroke="#1565C0" stroke-width="1" stroke-linecap="round"/>
+
+    <!-- Info -->
+    <text x="0" y="40" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">Teardrop</text>
+    <text x="0" y="52" text-anchor="middle" font-size="8" fill="#888">Comfort Type | Lv.1</text>
+
+    <!-- Action buttons -->
+    <rect x="-40" y="60" width="35" height="20" rx="10" fill="#6C63FF"/>
+    <text x="-22" y="74" text-anchor="middle" font-size="8" fill="#FFF">Details</text>
+    <rect x="5" y="60" width="35" height="20" rx="10" fill="#FF69B4"/>
+    <text x="22" y="74" text-anchor="middle" font-size="8" fill="#FFF">Share</text>
+
+    <!-- Bond indicator -->
+    <text x="0" y="100" text-anchor="middle" font-size="8" fill="#FFB300">Bond: 1/100</text>
+    <rect x="-30" y="105" width="60" height="4" rx="2" fill="#FFF3E0"/>
+    <rect x="-30" y="105" width="3" height="4" rx="2" fill="#FFB300"/>
+
+    <text x="0" y="165" text-anchor="middle" font-size="12" font-weight="bold" fill="#555">4. COLLECT</text>
+    <text x="0" y="180" text-anchor="middle" font-size="9" fill="#888">Begin the bond</text>
+  </g>
+
+  <!-- Dopamine curve -->
+  <text x="400" y="430" text-anchor="middle" font-size="16" font-weight="bold" fill="#555">Dopamine Curve</text>
+
+  <!-- Graph -->
+  <rect x="100" y="450" width="600" height="180" rx="10" fill="#FFF" stroke="#E0E0E0" stroke-width="1"/>
+
+  <!-- Axes -->
+  <line x1="130" y1="600" x2="680" y2="600" stroke="#CCC" stroke-width="1"/>
+  <line x1="130" y1="470" x2="130" y2="600" stroke="#CCC" stroke-width="1"/>
+
+  <!-- Y axis label -->
+  <text x="120" y="475" text-anchor="end" font-size="9" fill="#999">High</text>
+  <text x="120" y="600" text-anchor="end" font-size="9" fill="#999">Low</text>
+  <text x="110" y="540" text-anchor="middle" font-size="9" fill="#BBB" transform="rotate(-90,110,540)">Excitement</text>
+
+  <!-- X axis labels -->
+  <text x="180" y="618" text-anchor="middle" font-size="9" fill="#999">Scan</text>
+  <text x="330" y="618" text-anchor="middle" font-size="9" fill="#999">Processing</text>
+  <text x="500" y="618" text-anchor="middle" font-size="9" fill="#999">Reveal</text>
+  <text x="630" y="618" text-anchor="middle" font-size="9" fill="#999">Collect</text>
+
+  <!-- Dopamine curve -->
+  <path d="M150,580 Q200,570 250,550 Q300,530 350,520 Q400,510 450,490 Q475,485 500,475 Q510,473 520,478 Q550,490 580,510 Q620,530 660,550" fill="none" stroke="#FF6B6B" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Peak marker -->
+  <circle cx="510" cy="473" r="6" fill="#FF6B6B" opacity="0.3"/>
+  <circle cx="510" cy="473" r="3" fill="#FF6B6B"/>
+  <text x="510" y="462" text-anchor="middle" font-size="9" font-weight="bold" fill="#FF6B6B">PEAK!</text>
+
+  <!-- Near-miss zone -->
+  <rect x="305" y="515" width="90" height="30" rx="5" fill="#FFF3E0" opacity="0.5" stroke="#FFB300" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="350" y="535" text-anchor="middle" font-size="8" fill="#FFB300">Near-miss hints</text>
+
+  <!-- Anticipation build -->
+  <path d="M250,548 L260,540 L270,545 L280,535 L290,540 L300,530 L310,535 L320,525" fill="none" stroke="#FFB300" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+
+  <text x="400" y="660" text-anchor="middle" font-size="11" fill="#CCC">BarcodeQuest - Core Scan UX Flow &amp; Dopamine Design</text>
+</svg>

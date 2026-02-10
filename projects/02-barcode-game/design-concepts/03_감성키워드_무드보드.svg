@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="sunset" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="50%" stop-color="#FFA07A"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+    <linearGradient id="dawn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <linearGradient id="spring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a8edea"/>
+      <stop offset="100%" stop-color="#fed6e3"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="900" fill="#1a1a2e"/>
+
+  <!-- Title -->
+  <text x="400" y="45" text-anchor="middle" font-size="24" font-weight="bold" fill="#FFF">Emotional Keyword Mood Board</text>
+  <text x="400" y="70" text-anchor="middle" font-size="13" fill="#888">Core feelings that define BarcodeQuest</text>
+
+  <!-- Row 1: Large mood cards -->
+  <!-- Nostalgia -->
+  <rect x="30" y="95" width="235" height="190" rx="14" fill="#2D1B69" opacity="0.8"/>
+  <rect x="30" y="95" width="235" height="190" rx="14" fill="url(#dawn)" opacity="0.3"/>
+  <circle cx="148" cy="160" r="35" fill="#FFD700" opacity="0.15"/>
+  <circle cx="148" cy="160" r="25" fill="#FFD700" opacity="0.1"/>
+  <text x="148" y="155" text-anchor="middle" font-size="40">🌅</text>
+  <text x="148" y="210" text-anchor="middle" font-size="18" font-weight="bold" fill="#E8D5FF">Nostalgia</text>
+  <text x="148" y="230" text-anchor="middle" font-size="11" fill="#B8A9D4">faded photos, warm sepia,</text>
+  <text x="148" y="245" text-anchor="middle" font-size="11" fill="#B8A9D4">the smell of old books</text>
+  <text x="148" y="268" text-anchor="middle" font-size="10" fill="#7C6EA5">#07 #10 #11</text>
+
+  <!-- Warmth -->
+  <rect x="283" y="95" width="235" height="190" rx="14" fill="#3D1F00" opacity="0.8"/>
+  <rect x="283" y="95" width="235" height="190" rx="14" fill="url(#sunset)" opacity="0.2"/>
+  <text x="400" y="155" text-anchor="middle" font-size="40">🧣</text>
+  <text x="400" y="210" text-anchor="middle" font-size="18" font-weight="bold" fill="#FFE0B2">Warmth</text>
+  <text x="400" y="230" text-anchor="middle" font-size="11" fill="#FFCC80">hot cocoa, knitted sweater,</text>
+  <text x="400" y="245" text-anchor="middle" font-size="11" fill="#FFCC80">mom's hug after school</text>
+  <text x="400" y="268" text-anchor="middle" font-size="10" fill="#BF8040">#01 #03 #09</text>
+
+  <!-- Wonder -->
+  <rect x="536" y="95" width="235" height="190" rx="14" fill="#0D2137" opacity="0.8"/>
+  <rect x="536" y="95" width="235" height="190" rx="14" fill="url(#spring)" opacity="0.15"/>
+  <text x="653" y="155" text-anchor="middle" font-size="40">✨</text>
+  <text x="653" y="210" text-anchor="middle" font-size="18" font-weight="bold" fill="#B5FFFC">Wonder</text>
+  <text x="653" y="230" text-anchor="middle" font-size="11" fill="#8ED1CC">first snowfall, fireflies,</text>
+  <text x="653" y="245" text-anchor="middle" font-size="11" fill="#8ED1CC">finding shapes in clouds</text>
+  <text x="653" y="268" text-anchor="middle" font-size="10" fill="#5BA3A0">#06 #12 #25</text>
+
+  <!-- Row 2: Keyword bubbles -->
+  <text x="400" y="325" text-anchor="middle" font-size="16" font-weight="bold" fill="#666">Emotional Spectrum</text>
+
+  <!-- Keyword bubbles scattered -->
+  <rect x="40" y="345" width="100" height="36" rx="18" fill="#FF6B6B" opacity="0.8"/>
+  <text x="90" y="368" text-anchor="middle" font-size="12" fill="#FFF">Growing Up</text>
+
+  <rect x="155" y="340" width="80" height="36" rx="18" fill="#FFA07A" opacity="0.8"/>
+  <text x="195" y="363" text-anchor="middle" font-size="12" fill="#FFF">Goodbye</text>
+
+  <rect x="250" y="350" width="110" height="36" rx="18" fill="#FFD700" opacity="0.8"/>
+  <text x="305" y="373" text-anchor="middle" font-size="12" fill="#333">First Love</text>
+
+  <rect x="375" y="342" width="75" height="36" rx="18" fill="#98FB98" opacity="0.8"/>
+  <text x="412" y="365" text-anchor="middle" font-size="12" fill="#333">Healing</text>
+
+  <rect x="465" y="348" width="95" height="36" rx="18" fill="#87CEEB" opacity="0.8"/>
+  <text x="512" y="371" text-anchor="middle" font-size="12" fill="#333">Longing</text>
+
+  <rect x="575" y="340" width="105" height="36" rx="18" fill="#DDA0DD" opacity="0.8"/>
+  <text x="627" y="363" text-anchor="middle" font-size="12" fill="#FFF">Connection</text>
+
+  <rect x="695" y="345" width="80" height="36" rx="18" fill="#F0E68C" opacity="0.8"/>
+  <text x="735" y="368" text-anchor="middle" font-size="12" fill="#333">Dream</text>
+
+  <rect x="60" y="395" width="120" height="36" rx="18" fill="#E6E6FA" opacity="0.8"/>
+  <text x="120" y="418" text-anchor="middle" font-size="12" fill="#555">Adolescence</text>
+
+  <rect x="195" y="400" width="80" height="36" rx="18" fill="#FFDAB9" opacity="0.8"/>
+  <text x="235" y="423" text-anchor="middle" font-size="12" fill="#555">Comfort</text>
+
+  <rect x="290" y="392" width="100" height="36" rx="18" fill="#B0E0E6" opacity="0.8"/>
+  <text x="340" y="415" text-anchor="middle" font-size="12" fill="#333">Adventure</text>
+
+  <rect x="405" y="398" width="125" height="36" rx="18" fill="#FFB6C1" opacity="0.8"/>
+  <text x="467" y="421" text-anchor="middle" font-size="12" fill="#333">Heartbeat</text>
+
+  <rect x="545" y="393" width="80" height="36" rx="18" fill="#C1E1C1" opacity="0.8"/>
+  <text x="585" y="416" text-anchor="middle" font-size="12" fill="#333">Growth</text>
+
+  <rect x="640" y="400" width="120" height="36" rx="18" fill="#D8BFD8" opacity="0.8"/>
+  <text x="700" y="423" text-anchor="middle" font-size="12" fill="#333">Innocence</text>
+
+  <!-- Row 3: Emotional journey map -->
+  <text x="400" y="475" text-anchor="middle" font-size="16" font-weight="bold" fill="#666">Player Emotional Journey</text>
+
+  <!-- Timeline -->
+  <line x1="80" y1="530" x2="720" y2="530" stroke="#444" stroke-width="2"/>
+
+  <!-- Points on timeline -->
+  <circle cx="120" cy="530" r="18" fill="#FFD700" stroke="#FFF" stroke-width="2"/>
+  <text x="120" y="535" text-anchor="middle" font-size="14">!</text>
+  <text x="120" y="560" text-anchor="middle" font-size="10" fill="#AAA">Discovery</text>
+  <text x="120" y="573" text-anchor="middle" font-size="9" fill="#666">"What's this?"</text>
+
+  <circle cx="240" cy="530" r="18" fill="#FF69B4" stroke="#FFF" stroke-width="2"/>
+  <text x="240" y="535" text-anchor="middle" font-size="14">~</text>
+  <text x="240" y="560" text-anchor="middle" font-size="10" fill="#AAA">Excitement</text>
+  <text x="240" y="573" text-anchor="middle" font-size="9" fill="#666">"So cute!"</text>
+
+  <circle cx="360" cy="530" r="18" fill="#87CEEB" stroke="#FFF" stroke-width="2"/>
+  <text x="360" y="535" text-anchor="middle" font-size="14">*</text>
+  <text x="360" y="560" text-anchor="middle" font-size="10" fill="#AAA">Bonding</text>
+  <text x="360" y="573" text-anchor="middle" font-size="9" fill="#666">"My friend"</text>
+
+  <circle cx="480" cy="530" r="18" fill="#DDA0DD" stroke="#FFF" stroke-width="2"/>
+  <text x="480" y="535" text-anchor="middle" font-size="14">...</text>
+  <text x="480" y="560" text-anchor="middle" font-size="10" fill="#AAA">Nostalgia</text>
+  <text x="480" y="573" text-anchor="middle" font-size="9" fill="#666">"Remember?"</text>
+
+  <circle cx="600" cy="530" r="18" fill="#98FB98" stroke="#FFF" stroke-width="2"/>
+  <text x="600" y="535" text-anchor="middle" font-size="14">^</text>
+  <text x="600" y="560" text-anchor="middle" font-size="10" fill="#AAA">Growth</text>
+  <text x="600" y="573" text-anchor="middle" font-size="9" fill="#666">"I've grown"</text>
+
+  <circle cx="700" cy="530" r="18" fill="#FFD700" stroke="#FFD700" stroke-width="2"/>
+  <text x="700" y="535" text-anchor="middle" font-size="14">+</text>
+  <text x="700" y="560" text-anchor="middle" font-size="10" fill="#AAA">Connection</text>
+  <text x="700" y="573" text-anchor="middle" font-size="9" fill="#666">"We're linked"</text>
+
+  <!-- Row 4: Seasonal mood -->
+  <text x="400" y="620" text-anchor="middle" font-size="16" font-weight="bold" fill="#666">Seasonal Mood Mapping</text>
+
+  <!-- Spring -->
+  <rect x="40" y="640" width="170" height="100" rx="12" fill="#FFF0F5"/>
+  <text x="125" y="670" text-anchor="middle" font-size="28">🌸</text>
+  <text x="125" y="700" text-anchor="middle" font-size="14" font-weight="bold" fill="#FF69B4">Spring</text>
+  <text x="125" y="718" text-anchor="middle" font-size="10" fill="#DB7093">New beginnings, first meetings</text>
+  <text x="125" y="732" text-anchor="middle" font-size="10" fill="#DB7093">Cherry blossom pink palette</text>
+
+  <!-- Summer -->
+  <rect x="225" y="640" width="170" height="100" rx="12" fill="#F0F8FF"/>
+  <text x="310" y="670" text-anchor="middle" font-size="28">🌊</text>
+  <text x="310" y="700" text-anchor="middle" font-size="14" font-weight="bold" fill="#4682B4">Summer</text>
+  <text x="310" y="718" text-anchor="middle" font-size="10" fill="#5F9EA0">Adventure, energy, youth</text>
+  <text x="310" y="732" text-anchor="middle" font-size="10" fill="#5F9EA0">Ocean blue &amp; sun gold</text>
+
+  <!-- Autumn -->
+  <rect x="410" y="640" width="170" height="100" rx="12" fill="#FFF8E7"/>
+  <text x="495" y="670" text-anchor="middle" font-size="28">🍂</text>
+  <text x="495" y="700" text-anchor="middle" font-size="14" font-weight="bold" fill="#D2691E">Autumn</text>
+  <text x="495" y="718" text-anchor="middle" font-size="10" fill="#CD853F">Nostalgia, warmth, harvest</text>
+  <text x="495" y="732" text-anchor="middle" font-size="10" fill="#CD853F">Amber, rust, golden brown</text>
+
+  <!-- Winter -->
+  <rect x="595" y="640" width="170" height="100" rx="12" fill="#F5F5FF"/>
+  <text x="680" y="670" text-anchor="middle" font-size="28">❄️</text>
+  <text x="680" y="700" text-anchor="middle" font-size="14" font-weight="bold" fill="#6A5ACD">Winter</text>
+  <text x="680" y="718" text-anchor="middle" font-size="10" fill="#7B68EE">Reflection, quiet, coziness</text>
+  <text x="680" y="732" text-anchor="middle" font-size="10" fill="#7B68EE">Frost white, deep purple</text>
+
+  <!-- Bottom quote -->
+  <rect x="100" y="780" width="600" height="70" rx="14" fill="#222240"/>
+  <text x="400" y="808" text-anchor="middle" font-size="14" font-style="italic" fill="#E8D5FF">"Every barcode holds someone's story.</text>
+  <text x="400" y="828" text-anchor="middle" font-size="14" font-style="italic" fill="#E8D5FF">Scan it, and you might just feel what they felt."</text>
+
+  <!-- Footer -->
+  <text x="400" y="880" text-anchor="middle" font-size="11" fill="#555">BarcodeQuest - Emotional Design Language</text>
+</svg>

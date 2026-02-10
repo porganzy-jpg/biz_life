@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE4B5"/>
+      <stop offset="100%" stop-color="#FFF8DC"/>
+    </linearGradient>
+    <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B0C4DE"/>
+      <stop offset="100%" stop-color="#E6E6FA"/>
+    </linearGradient>
+    <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFB6C1"/>
+      <stop offset="100%" stop-color="#FFF0F5"/>
+    </linearGradient>
+    <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#191970"/>
+      <stop offset="100%" stop-color="#483D8B"/>
+    </linearGradient>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="1000" fill="#FAFAF5"/>
+
+  <!-- Title -->
+  <text x="400" y="55" text-anchor="middle" font-size="28" font-weight="bold" fill="#4A4A4A">CONCEPT 01: Heart Weather</text>
+  <text x="400" y="82" text-anchor="middle" font-size="16" fill="#888">Color Palette &amp; Mood Board</text>
+
+  <!-- Divider -->
+  <line x1="100" y1="100" x2="700" y2="100" stroke="#DDD" stroke-width="1"/>
+
+  <!-- Section: Emotion Colors -->
+  <text x="50" y="140" font-size="18" font-weight="bold" fill="#555">Emotion Color System</text>
+
+  <!-- Joy / Sunshine -->
+  <rect x="50" y="160" width="160" height="120" rx="12" fill="url(#sky1)"/>
+  <circle cx="130" cy="210" r="28" fill="#FFD700" opacity="0.9"/>
+  <circle cx="130" cy="210" r="20" fill="#FFF8DC"/>
+  <text x="130" y="215" text-anchor="middle" font-size="18">:)</text>
+  <text x="130" y="295" text-anchor="middle" font-size="13" font-weight="bold" fill="#B8860B">JOY / Sunshine</text>
+  <rect x="60" y="305" width="30" height="20" rx="4" fill="#FFD700"/>
+  <rect x="95" y="305" width="30" height="20" rx="4" fill="#FFE4B5"/>
+  <rect x="130" y="305" width="30" height="20" rx="4" fill="#FFF8DC"/>
+  <rect x="165" y="305" width="30" height="20" rx="4" fill="#FFFACD"/>
+  <text x="60" y="340" font-size="9" fill="#999">#FFD700</text>
+  <text x="95" y="340" font-size="9" fill="#999">#FFE4B5</text>
+  <text x="130" y="340" font-size="9" fill="#999">#FFF8DC</text>
+  <text x="165" y="340" font-size="9" fill="#999">#FFFACD</text>
+
+  <!-- Sadness / Rain -->
+  <rect x="230" y="160" width="160" height="120" rx="12" fill="url(#sky2)"/>
+  <ellipse cx="310" cy="200" rx="30" ry="18" fill="#778899" opacity="0.7"/>
+  <circle cx="300" cy="230" r="4" fill="#87CEEB" opacity="0.6"/>
+  <circle cx="310" cy="240" r="4" fill="#87CEEB" opacity="0.6"/>
+  <circle cx="320" cy="232" r="4" fill="#87CEEB" opacity="0.6"/>
+  <text x="310" y="295" text-anchor="middle" font-size="13" font-weight="bold" fill="#4682B4">COMFORT / Rain</text>
+  <rect x="240" y="305" width="30" height="20" rx="4" fill="#4682B4"/>
+  <rect x="275" y="305" width="30" height="20" rx="4" fill="#87CEEB"/>
+  <rect x="310" y="305" width="30" height="20" rx="4" fill="#B0C4DE"/>
+  <rect x="345" y="305" width="30" height="20" rx="4" fill="#E6E6FA"/>
+  <text x="240" y="340" font-size="9" fill="#999">#4682B4</text>
+  <text x="275" y="340" font-size="9" fill="#999">#87CEEB</text>
+  <text x="310" y="340" font-size="9" fill="#999">#B0C4DE</text>
+  <text x="345" y="340" font-size="9" fill="#999">#E6E6FA</text>
+
+  <!-- Love / Rainbow -->
+  <rect x="410" y="160" width="160" height="120" rx="12" fill="url(#sky3)"/>
+  <path d="M490,195 C490,183 475,175 475,190 C475,175 460,183 460,195 C460,210 490,225 490,225 C490,225 520,210 520,195 Z" fill="#FF69B4" opacity="0.7"/>
+  <text x="490" y="295" text-anchor="middle" font-size="13" font-weight="bold" fill="#DB7093">FLUTTER / Rainbow</text>
+  <rect x="420" y="305" width="30" height="20" rx="4" fill="#FF69B4"/>
+  <rect x="455" y="305" width="30" height="20" rx="4" fill="#FFB6C1"/>
+  <rect x="490" y="305" width="30" height="20" rx="4" fill="#FFF0F5"/>
+  <rect x="525" y="305" width="30" height="20" rx="4" fill="#FFE4E1"/>
+  <text x="420" y="340" font-size="9" fill="#999">#FF69B4</text>
+  <text x="455" y="340" font-size="9" fill="#999">#FFB6C1</text>
+  <text x="490" y="340" font-size="9" fill="#999">#FFF0F5</text>
+  <text x="525" y="340" font-size="9" fill="#999">#FFE4E1</text>
+
+  <!-- Mystery / Night -->
+  <rect x="590" y="160" width="160" height="120" rx="12" fill="url(#sky4)"/>
+  <circle cx="660" cy="195" r="15" fill="#F0E68C" opacity="0.8"/>
+  <circle cx="650" cy="192" r="12" fill="#483D8B"/>
+  <circle cx="630" cy="215" r="2" fill="#FFF" opacity="0.6"/>
+  <circle cx="680" cy="205" r="1.5" fill="#FFF" opacity="0.5"/>
+  <circle cx="670" cy="225" r="2" fill="#FFF" opacity="0.4"/>
+  <circle cx="645" cy="235" r="1" fill="#FFF" opacity="0.7"/>
+  <text x="670" y="295" text-anchor="middle" font-size="13" font-weight="bold" fill="#6A5ACD">LONGING / Night</text>
+  <rect x="600" y="305" width="30" height="20" rx="4" fill="#191970"/>
+  <rect x="635" y="305" width="30" height="20" rx="4" fill="#483D8B"/>
+  <rect x="670" y="305" width="30" height="20" rx="4" fill="#6A5ACD"/>
+  <rect x="705" y="305" width="30" height="20" rx="4" fill="#9370DB"/>
+  <text x="600" y="340" font-size="9" fill="#FFF">#191970</text>
+  <text x="635" y="340" font-size="9" fill="#FFF">#483D8B</text>
+  <text x="670" y="340" font-size="9" fill="#999">#6A5ACD</text>
+  <text x="705" y="340" font-size="9" fill="#999">#9370DB</text>
+
+  <!-- Divider -->
+  <line x1="100" y1="365" x2="700" y2="365" stroke="#DDD" stroke-width="1"/>
+
+  <!-- Section: Creature Silhouettes -->
+  <text x="50" y="400" font-size="18" font-weight="bold" fill="#555">Creature Silhouette Concepts</text>
+
+  <!-- Cloud creature - Joy -->
+  <g transform="translate(130, 490)">
+    <ellipse cx="0" cy="0" rx="45" ry="30" fill="#FFD700" opacity="0.3"/>
+    <ellipse cx="0" cy="-5" rx="38" ry="25" fill="#FFD700" opacity="0.5"/>
+    <ellipse cx="0" cy="-10" rx="30" ry="20" fill="#FFE4B5"/>
+    <circle cx="-10" cy="-15" r="4" fill="#FFF"/>
+    <circle cx="10" cy="-15" r="4" fill="#FFF"/>
+    <circle cx="-10" cy="-15" r="2" fill="#333"/>
+    <circle cx="10" cy="-15" r="2" fill="#333"/>
+    <path d="M-5,-7 Q0,-3 5,-7" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="0" cy="-30" r="12" fill="#FFD700" opacity="0.4"/>
+    <text x="0" y="45" text-anchor="middle" font-size="11" fill="#888">Sunny</text>
+  </g>
+
+  <!-- Rain creature - Comfort -->
+  <g transform="translate(310, 490)">
+    <path d="M0,-35 C-20,-35 -35,-20 -35,0 C-35,20 -20,35 0,35 C20,35 35,20 35,0 C35,-20 20,-35 0,-35" fill="#87CEEB" opacity="0.4"/>
+    <path d="M0,-25 C-15,-25 -25,-15 -25,0 C-25,15 -15,25 0,25 C15,25 25,15 25,0 C25,-15 15,-25 0,-25" fill="#B0C4DE" opacity="0.6"/>
+    <circle cx="-8" cy="-8" r="3.5" fill="#FFF"/>
+    <circle cx="8" cy="-8" r="3.5" fill="#FFF"/>
+    <circle cx="-8" cy="-8" r="2" fill="#4682B4"/>
+    <circle cx="8" cy="-8" r="2" fill="#4682B4"/>
+    <path d="M-4,4 Q0,8 4,4" fill="none" stroke="#4682B4" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-15" y1="30" x2="-18" y2="42" stroke="#87CEEB" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <line x1="0" y1="32" x2="-2" y2="44" stroke="#87CEEB" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <line x1="15" y1="28" x2="13" y2="40" stroke="#87CEEB" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <text x="0" y="55" text-anchor="middle" font-size="11" fill="#888">Drizzle</text>
+  </g>
+
+  <!-- Heart creature - Flutter -->
+  <g transform="translate(490, 490)">
+    <path d="M0,-15 C0,-30 -25,-30 -25,-15 C-25,5 0,25 0,25 C0,25 25,5 25,-15 C25,-30 0,-30 0,-15 Z" fill="#FFB6C1" opacity="0.6"/>
+    <path d="M0,-10 C0,-22 -18,-22 -18,-10 C-18,5 0,18 0,18 C0,18 18,5 18,-10 C18,-22 0,-22 0,-10 Z" fill="#FF69B4" opacity="0.4"/>
+    <circle cx="-6" cy="-8" r="3" fill="#FFF"/>
+    <circle cx="6" cy="-8" r="3" fill="#FFF"/>
+    <circle cx="-6" cy="-8" r="1.5" fill="#DB7093"/>
+    <circle cx="6" cy="-8" r="1.5" fill="#DB7093"/>
+    <path d="M-3,2 Q0,5 3,2" fill="none" stroke="#DB7093" stroke-width="1.5" stroke-linecap="round"/>
+    <ellipse cx="-14" cy="0" rx="5" ry="3" fill="#FFB6C1" opacity="0.5"/>
+    <ellipse cx="14" cy="0" rx="5" ry="3" fill="#FFB6C1" opacity="0.5"/>
+    <text x="0" y="45" text-anchor="middle" font-size="11" fill="#888">Flutter</text>
+  </g>
+
+  <!-- Star creature - Longing -->
+  <g transform="translate(670, 490)">
+    <circle cx="0" cy="0" r="30" fill="#483D8B" opacity="0.3"/>
+    <polygon points="0,-25 6,-8 23,-8 9,3 14,20 0,10 -14,20 -9,3 -23,-8 -6,-8" fill="#9370DB" opacity="0.5"/>
+    <polygon points="0,-18 4,-6 17,-6 7,2 10,15 0,8 -10,15 -7,2 -17,-6 -4,-6" fill="#B8A9E0" opacity="0.6"/>
+    <circle cx="-5" cy="-5" r="2.5" fill="#FFF"/>
+    <circle cx="5" cy="-5" r="2.5" fill="#FFF"/>
+    <circle cx="-5" cy="-5" r="1.2" fill="#191970"/>
+    <circle cx="5" cy="-5" r="1.2" fill="#191970"/>
+    <path d="M-3,3 L0,1 L3,3" fill="none" stroke="#6A5ACD" stroke-width="1.2" stroke-linecap="round"/>
+    <text x="0" y="45" text-anchor="middle" font-size="11" fill="#888">Twilight</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="100" y1="560" x2="700" y2="560" stroke="#DDD" stroke-width="1"/>
+
+  <!-- UI Color Theme -->
+  <text x="50" y="595" font-size="18" font-weight="bold" fill="#555">UI Color Theme</text>
+
+  <!-- Primary palette -->
+  <text x="50" y="625" font-size="12" fill="#888">Primary</text>
+  <rect x="50" y="635" width="70" height="35" rx="6" fill="#6C63FF"/>
+  <rect x="125" y="635" width="70" height="35" rx="6" fill="#FF6B8A"/>
+  <rect x="200" y="635" width="70" height="35" rx="6" fill="#4ECDC4"/>
+  <rect x="275" y="635" width="70" height="35" rx="6" fill="#FFD93D"/>
+  <text x="85" y="657" text-anchor="middle" font-size="10" fill="#FFF">Main</text>
+  <text x="160" y="657" text-anchor="middle" font-size="10" fill="#FFF">Accent</text>
+  <text x="235" y="657" text-anchor="middle" font-size="10" fill="#FFF">Sub</text>
+  <text x="310" y="657" text-anchor="middle" font-size="10" fill="#333">Point</text>
+
+  <!-- Background palette -->
+  <text x="400" y="625" font-size="12" fill="#888">Background</text>
+  <rect x="400" y="635" width="70" height="35" rx="6" fill="#FEFEFE"/>
+  <rect x="475" y="635" width="70" height="35" rx="6" fill="#F8F6FF"/>
+  <rect x="550" y="635" width="70" height="35" rx="6" fill="#FFF5F5"/>
+  <rect x="625" y="635" width="70" height="35" rx="6" fill="#F0F8FF"/>
+  <text x="435" y="657" text-anchor="middle" font-size="10" fill="#999">Base</text>
+  <text x="510" y="657" text-anchor="middle" font-size="10" fill="#999">Dreamy</text>
+  <text x="585" y="657" text-anchor="middle" font-size="10" fill="#999">Warm</text>
+  <text x="660" y="657" text-anchor="middle" font-size="10" fill="#999">Cool</text>
+
+  <!-- Typography -->
+  <text x="50" y="710" font-size="12" fill="#888">Typography</text>
+  <text x="50" y="740" font-size="24" font-weight="bold" fill="#333">Heading</text>
+  <text x="200" y="740" font-size="16" fill="#555">Body Text Regular</text>
+  <text x="400" y="740" font-size="13" fill="#888">Caption - Small Details</text>
+  <text x="600" y="740" font-size="11" fill="#AAA">Micro text</text>
+
+  <!-- Rarity system colors -->
+  <line x1="100" y1="765" x2="700" y2="765" stroke="#DDD" stroke-width="1"/>
+  <text x="50" y="800" font-size="18" font-weight="bold" fill="#555">Rarity Visual System</text>
+
+  <rect x="50" y="815" width="120" height="50" rx="10" fill="#E8E8E8" stroke="#CCC" stroke-width="2"/>
+  <text x="110" y="845" text-anchor="middle" font-size="12" fill="#888">Common</text>
+
+  <rect x="190" y="815" width="120" height="50" rx="10" fill="#E8F5E9" stroke="#66BB6A" stroke-width="2"/>
+  <text x="250" y="845" text-anchor="middle" font-size="12" fill="#43A047">Uncommon</text>
+
+  <rect x="330" y="815" width="120" height="50" rx="10" fill="#E3F2FD" stroke="#42A5F5" stroke-width="2"/>
+  <text x="390" y="845" text-anchor="middle" font-size="12" fill="#1E88E5">Rare</text>
+
+  <rect x="470" y="815" width="120" height="50" rx="10" fill="#F3E5F5" stroke="#AB47BC" stroke-width="2"/>
+  <text x="530" y="845" text-anchor="middle" font-size="12" fill="#8E24AA">Epic</text>
+
+  <rect x="610" y="815" width="130" height="50" rx="10" fill="#FFF8E1" stroke="#FFB300" stroke-width="2.5"/>
+  <text x="675" y="845" text-anchor="middle" font-size="12" font-weight="bold" fill="#F57F17">Legendary</text>
+
+  <!-- Footer -->
+  <text x="400" y="920" text-anchor="middle" font-size="14" fill="#BBB">BarcodeQuest Design Concept - Heart Weather</text>
+  <text x="400" y="945" text-anchor="middle" font-size="11" fill="#CCC">Color Palette &amp; Creature Silhouettes &amp; UI Theme</text>
+</svg>

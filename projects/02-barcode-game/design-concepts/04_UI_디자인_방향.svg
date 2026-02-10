@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1100" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="uiBg1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <linearGradient id="uiBg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFECD2"/>
+      <stop offset="100%" stop-color="#FCB69F"/>
+    </linearGradient>
+    <linearGradient id="uiBg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F2027"/>
+      <stop offset="50%" stop-color="#203A43"/>
+      <stop offset="100%" stop-color="#2C5364"/>
+    </linearGradient>
+    <linearGradient id="cardShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF" stop-opacity="0.2"/>
+      <stop offset="50%" stop-color="#FFF" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FFF" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="1100" fill="#F5F5F0"/>
+
+  <text x="400" y="45" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">UI Design Direction Concepts</text>
+  <text x="400" y="68" text-anchor="middle" font-size="13" fill="#999">Mobile-first interface approaches for BarcodeQuest</text>
+
+  <!-- Direction A: Dreamy Journal -->
+  <text x="200" y="110" text-anchor="middle" font-size="16" font-weight="bold" fill="#764ba2">A. Dreamy Journal</text>
+
+  <!-- Phone mockup -->
+  <rect x="80" y="125" width="240" height="440" rx="24" fill="#333" stroke="#222" stroke-width="2"/>
+  <rect x="88" y="145" width="224" height="400" rx="16" fill="url(#uiBg1)" opacity="0.15"/>
+  <rect x="88" y="145" width="224" height="400" rx="16" fill="#FAFAFE"/>
+
+  <!-- Status bar -->
+  <text x="100" y="162" font-size="9" fill="#999">9:41</text>
+  <circle cx="290" cy="158" r="4" fill="#4CAF50" opacity="0.6"/>
+
+  <!-- Header -->
+  <rect x="88" y="170" width="224" height="50" fill="#F8F6FF"/>
+  <text x="200" y="195" text-anchor="middle" font-size="14" font-weight="bold" fill="#5C4B99">Today's Weather</text>
+  <text x="200" y="210" text-anchor="middle" font-size="9" fill="#A89FCC">Sunny with a chance of joy</text>
+
+  <!-- Card area -->
+  <rect x="100" y="230" width="200" height="130" rx="14" fill="#FFF" stroke="#E8E0F0" stroke-width="1.5"/>
+  <rect x="100" y="230" width="200" height="130" rx="14" fill="url(#cardShine)"/>
+  <!-- Mini creature -->
+  <circle cx="200" cy="280" r="25" fill="#FFE4EC" opacity="0.8"/>
+  <circle cx="200" cy="280" r="18" fill="#FFDEE9"/>
+  <circle cx="193" cy="276" r="2.5" fill="#6B5B95"/>
+  <circle cx="207" cy="276" r="2.5" fill="#6B5B95"/>
+  <path d="M196,284 Q200,288 204,284" fill="none" stroke="#C9A0DC" stroke-width="1.2" stroke-linecap="round"/>
+  <text x="200" y="325" text-anchor="middle" font-size="10" fill="#6B5B95">Lv.5 Sunny</text>
+  <text x="200" y="340" text-anchor="middle" font-size="8" fill="#A89FCC">Joy Type | Common</text>
+  <rect x="155" y="347" width="90" height="5" rx="2.5" fill="#E8E0F0"/>
+  <rect x="155" y="347" width="55" height="5" rx="2.5" fill="#9C89E0"/>
+
+  <!-- Bottom tabs -->
+  <rect x="88" y="498" width="224" height="47" rx="0 0 16 16" fill="#FFF" stroke="#EEE" stroke-width="1"/>
+  <text x="125" y="525" text-anchor="middle" font-size="16">🏠</text>
+  <text x="168" y="525" text-anchor="middle" font-size="16">📷</text>
+  <text x="211" y="525" text-anchor="middle" font-size="16">📖</text>
+  <text x="254" y="525" text-anchor="middle" font-size="16">💌</text>
+  <text x="297" y="525" text-anchor="middle" font-size="16">⚙️</text>
+
+  <!-- Nav labels -->
+  <text x="125" y="537" text-anchor="middle" font-size="7" fill="#999">Home</text>
+  <text x="168" y="537" text-anchor="middle" font-size="7" fill="#6B5B95">Scan</text>
+  <text x="211" y="537" text-anchor="middle" font-size="7" fill="#999">Book</text>
+  <text x="254" y="537" text-anchor="middle" font-size="7" fill="#999">Mail</text>
+  <text x="297" y="537" text-anchor="middle" font-size="7" fill="#999">Set</text>
+
+  <!-- Key features -->
+  <text x="200" y="580" text-anchor="middle" font-size="10" fill="#764ba2">Soft purples, dreamy transitions</text>
+  <text x="200" y="595" text-anchor="middle" font-size="10" fill="#764ba2">Journal/diary page metaphor</text>
+
+  <!-- Direction B: Warm Storybook -->
+  <text x="600" y="110" text-anchor="middle" font-size="16" font-weight="bold" fill="#E07C4F">B. Warm Storybook</text>
+
+  <!-- Phone mockup -->
+  <rect x="480" y="125" width="240" height="440" rx="24" fill="#333" stroke="#222" stroke-width="2"/>
+  <rect x="488" y="145" width="224" height="400" rx="16" fill="#FFF8F0"/>
+
+  <!-- Status bar -->
+  <text x="500" y="162" font-size="9" fill="#999">9:41</text>
+
+  <!-- Header - warm style -->
+  <rect x="488" y="170" width="224" height="50" fill="#FFF0E0"/>
+  <text x="600" y="195" text-anchor="middle" font-size="14" font-weight="bold" fill="#D2691E">My Little World</text>
+  <text x="600" y="210" text-anchor="middle" font-size="9" fill="#DEB887">Page 42 of your story</text>
+
+  <!-- Storybook card -->
+  <rect x="500" y="230" width="200" height="130" rx="14" fill="#FFFAF3" stroke="#E8D5B5" stroke-width="2"/>
+  <!-- Book texture lines -->
+  <line x1="510" y1="250" x2="690" y2="250" stroke="#F0E0C8" stroke-width="0.5"/>
+  <line x1="510" y1="265" x2="690" y2="265" stroke="#F0E0C8" stroke-width="0.5"/>
+  <line x1="510" y1="280" x2="690" y2="280" stroke="#F0E0C8" stroke-width="0.5"/>
+  <!-- Mini creature (storybook style) -->
+  <ellipse cx="600" cy="290" rx="22" ry="25" fill="#D7CCC8" stroke="#8D6E63" stroke-width="1.5"/>
+  <circle cx="593" cy="283" r="4" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <circle cx="607" cy="283" r="4" fill="#5D4037" stroke="#3E2723" stroke-width="1"/>
+  <line x1="593" y1="281" x2="593" y2="285" stroke="#BCAAA4" stroke-width="0.8"/>
+  <line x1="607" y1="281" x2="607" y2="285" stroke="#BCAAA4" stroke-width="0.8"/>
+  <path d="M596,295 L599,298 L601,295 L603,298 L606,295" fill="none" stroke="#5D4037" stroke-width="1" stroke-linecap="round"/>
+  <text x="600" y="330" text-anchor="middle" font-size="10" fill="#8D6E63">Lv.3 Button Bear</text>
+  <text x="600" y="345" text-anchor="middle" font-size="8" fill="#BCAAA4">Memory Type | Uncommon</text>
+  <rect x="555" y="350" width="90" height="5" rx="2.5" fill="#E8D5B5"/>
+  <rect x="555" y="350" width="35" height="5" rx="2.5" fill="#D2691E"/>
+
+  <!-- Bottom tabs -->
+  <rect x="488" y="498" width="224" height="47" fill="#FFFAF3" stroke="#E8D5B5" stroke-width="1"/>
+  <text x="525" y="525" text-anchor="middle" font-size="16">🏡</text>
+  <text x="568" y="525" text-anchor="middle" font-size="16">📷</text>
+  <text x="611" y="525" text-anchor="middle" font-size="16">📚</text>
+  <text x="654" y="525" text-anchor="middle" font-size="16">🧸</text>
+  <text x="697" y="525" text-anchor="middle" font-size="16">🎒</text>
+
+  <text x="525" y="537" text-anchor="middle" font-size="7" fill="#999">Home</text>
+  <text x="568" y="537" text-anchor="middle" font-size="7" fill="#D2691E">Scan</text>
+  <text x="611" y="537" text-anchor="middle" font-size="7" fill="#999">Album</text>
+  <text x="654" y="537" text-anchor="middle" font-size="7" fill="#999">Toys</text>
+  <text x="697" y="537" text-anchor="middle" font-size="7" fill="#999">Bag</text>
+
+  <text x="600" y="580" text-anchor="middle" font-size="10" fill="#E07C4F">Warm browns, paper texture</text>
+  <text x="600" y="595" text-anchor="middle" font-size="10" fill="#E07C4F">Old storybook page feel</text>
+
+  <!-- Direction C: Night Sky -->
+  <text x="200" y="640" text-anchor="middle" font-size="16" font-weight="bold" fill="#5B9BD5">C. Night Sky Explorer</text>
+
+  <rect x="80" y="655" width="240" height="440" rx="24" fill="#333" stroke="#222" stroke-width="2"/>
+  <rect x="88" y="675" width="224" height="400" rx="16" fill="url(#uiBg3)"/>
+
+  <text x="100" y="692" font-size="9" fill="#AAA">9:41</text>
+
+  <!-- Dark theme header -->
+  <text x="200" y="725" text-anchor="middle" font-size="14" font-weight="bold" fill="#E0E0E0">Night Postman</text>
+  <text x="200" y="740" text-anchor="middle" font-size="9" fill="#78909C">3 letters delivered tonight</text>
+
+  <!-- Stars in bg -->
+  <circle cx="110" cy="760" r="1.5" fill="#FFF" opacity="0.4"/>
+  <circle cx="250" cy="770" r="1" fill="#FFF" opacity="0.3"/>
+  <circle cx="180" cy="690" r="1" fill="#FFF" opacity="0.5"/>
+  <circle cx="280" cy="710" r="1.5" fill="#FFF" opacity="0.3"/>
+  <circle cx="140" cy="780" r="1" fill="#FFF" opacity="0.6"/>
+
+  <!-- Creature card (dark) -->
+  <rect x="100" y="760" width="200" height="130" rx="14" fill="#1A3040" stroke="#2C5364" stroke-width="1.5"/>
+  <circle cx="200" cy="810" r="25" fill="#2C5364"/>
+  <circle cx="200" cy="810" r="18" fill="#203A43"/>
+  <!-- Star eyes -->
+  <text x="192" y="808" font-size="8" fill="#FFD700">*</text>
+  <text x="205" y="808" font-size="8" fill="#FFD700">*</text>
+  <path d="M196,816 Q200,820 204,816" fill="none" stroke="#5B9BD5" stroke-width="1" stroke-linecap="round"/>
+  <!-- Glow effect -->
+  <circle cx="200" cy="810" r="30" fill="#FFD700" opacity="0.05"/>
+  <text x="200" y="855" text-anchor="middle" font-size="10" fill="#B0BEC5">Lv.8 Starfall</text>
+  <text x="200" y="870" text-anchor="middle" font-size="8" fill="#78909C">Dream Type | Rare</text>
+  <rect x="155" y="877" width="90" height="5" rx="2.5" fill="#2C5364"/>
+  <rect x="155" y="877" width="70" height="5" rx="2.5" fill="#5B9BD5"/>
+
+  <!-- Bottom tabs (dark) -->
+  <rect x="88" y="1028" width="224" height="47" fill="#0F2027"/>
+  <text x="125" y="1055" text-anchor="middle" font-size="16">🌙</text>
+  <text x="168" y="1055" text-anchor="middle" font-size="16">📷</text>
+  <text x="211" y="1055" text-anchor="middle" font-size="16">🌟</text>
+  <text x="254" y="1055" text-anchor="middle" font-size="16">✉️</text>
+  <text x="297" y="1055" text-anchor="middle" font-size="16">🔭</text>
+
+  <text x="200" y="1085" text-anchor="middle" font-size="10" fill="#5B9BD5">Dark theme, glowing accents</text>
+
+  <!-- Direction D: Fresh Minimal -->
+  <text x="600" y="640" text-anchor="middle" font-size="16" font-weight="bold" fill="#26A69A">D. Fresh Minimal</text>
+
+  <rect x="480" y="655" width="240" height="440" rx="24" fill="#333" stroke="#222" stroke-width="2"/>
+  <rect x="488" y="675" width="224" height="400" rx="16" fill="#FFFFFF"/>
+
+  <text x="500" y="692" font-size="9" fill="#999">9:41</text>
+
+  <!-- Clean header -->
+  <text x="600" y="725" text-anchor="middle" font-size="16" font-weight="bold" fill="#263238">Scan</text>
+  <line x1="560" y1="735" x2="640" y2="735" stroke="#26A69A" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Minimal card -->
+  <rect x="500" y="760" width="200" height="130" rx="14" fill="#FFF" stroke="#E0E0E0" stroke-width="1.5"/>
+  <!-- Flat creature -->
+  <circle cx="600" cy="805" r="25" fill="#E0F2F1"/>
+  <circle cx="600" cy="805" r="20" fill="#B2DFDB"/>
+  <circle cx="593" cy="800" r="3" fill="#263238"/>
+  <circle cx="607" cy="800" r="3" fill="#263238"/>
+  <path d="M596,812 Q600,816 604,812" fill="none" stroke="#263238" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="600" y="852" text-anchor="middle" font-size="10" fill="#263238">Lv.12 Leaf</text>
+  <text x="600" y="867" text-anchor="middle" font-size="8" fill="#78909C">Nature | Common</text>
+  <rect x="555" y="874" width="90" height="4" rx="2" fill="#E0E0E0"/>
+  <rect x="555" y="874" width="80" height="4" rx="2" fill="#26A69A"/>
+
+  <!-- Bottom tabs (minimal) -->
+  <rect x="488" y="1028" width="224" height="47" fill="#FFF" stroke="#EEE" stroke-width="1"/>
+  <circle cx="525" cy="1048" r="4" fill="#BDBDBD"/>
+  <circle cx="568" cy="1048" r="4" fill="#26A69A"/>
+  <circle cx="611" cy="1048" r="4" fill="#BDBDBD"/>
+  <circle cx="654" cy="1048" r="4" fill="#BDBDBD"/>
+  <circle cx="697" cy="1048" r="4" fill="#BDBDBD"/>
+
+  <text x="600" y="1085" text-anchor="middle" font-size="10" fill="#26A69A">White space, clean typography</text>
+</svg>

@@ -1,0 +1,233 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="magicPink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF80AB"/>
+      <stop offset="100%" stop-color="#F48FB1"/>
+    </linearGradient>
+    <linearGradient id="magicPurple" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#CE93D8"/>
+      <stop offset="100%" stop-color="#AB47BC"/>
+    </linearGradient>
+    <linearGradient id="fadedMagic" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E1BEE7" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#F3E5F5" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="900" fill="#FFF5F8"/>
+
+  <!-- Header -->
+  <text x="400" y="40" text-anchor="middle" font-size="11" fill="#F48FB1" letter-spacing="4">TYPE 02</text>
+  <text x="400" y="72" text-anchor="middle" font-size="28" font-weight="bold" fill="#EC407A">MAGICAL GIRL</text>
+  <text x="400" y="95" text-anchor="middle" font-size="13" fill="#F48FB1">"반짝이는 변신 지팡이를 몰래 휘둘러 보던 그 시절"</text>
+  <text x="400" y="115" text-anchor="middle" font-size="11" fill="#F8BBD0">빛바랜 변신 완구처럼, 반짝임을 잃었지만... 누가 믿어주면 다시 빛난다.</text>
+
+  <line x1="100" y1="130" x2="700" y2="130" stroke="#FCE4EC" stroke-width="1"/>
+
+  <!-- Main: Stage 1 - Faded -->
+  <text x="200" y="165" text-anchor="middle" font-size="14" font-weight="bold" fill="#CE93D8">Stage 1: Faded</text>
+  <text x="200" y="182" text-anchor="middle" font-size="10" fill="#E1BEE7">"...변신... 안 돼..."</text>
+
+  <g transform="translate(200, 340)">
+    <ellipse cx="0" cy="80" rx="40" ry="8" fill="#F8BBD0" opacity="0.2"/>
+
+    <!-- Body - faded magical creature -->
+    <!-- Dress/robe shape -->
+    <path d="M-25,10 Q-30,40 -20,65 L20,65 Q30,40 25,10Z" fill="url(#fadedMagic)" stroke="#E1BEE7" stroke-width="1.5"/>
+    <!-- Torso -->
+    <ellipse cx="0" cy="0" rx="22" ry="18" fill="#F3E5F5" stroke="#E1BEE7" stroke-width="1.5"/>
+
+    <!-- Head -->
+    <circle cx="0" cy="-30" r="22" fill="#FCE4EC" stroke="#F8BBD0" stroke-width="1.5"/>
+    <!-- Eyes (sad, dim) -->
+    <ellipse cx="-7" cy="-32" rx="4" ry="5" fill="#FFF"/>
+    <ellipse cx="7" cy="-32" rx="4" ry="5" fill="#FFF"/>
+    <circle cx="-7" cy="-31" r="2.5" fill="#CE93D8" opacity="0.4"/>
+    <circle cx="7" cy="-31" r="2.5" fill="#CE93D8" opacity="0.4"/>
+    <!-- Sad mouth -->
+    <path d="M-4,-22 Q0,-25 4,-22" fill="none" stroke="#CE93D8" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+    <!-- Hair (messy, faded) -->
+    <path d="M-22,-30 Q-28,-50 -15,-52 Q0,-55 15,-52 Q28,-50 22,-30" fill="#E1BEE7" opacity="0.5"/>
+    <path d="M-18,-35 Q-25,-55 -22,-65" fill="none" stroke="#E1BEE7" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    <path d="M18,-35 Q25,-55 22,-65" fill="none" stroke="#E1BEE7" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+
+    <!-- Cracked star accessory -->
+    <polygon points="0,-55 3,-48 10,-48 4,-43 6,-36 0,-40 -6,-36 -4,-43 -10,-48 -3,-48" fill="#F8BBD0" opacity="0.4" stroke="#F48FB1" stroke-width="0.5"/>
+    <line x1="-2" y1="-50" x2="3" y2="-42" stroke="#E1BEE7" stroke-width="0.8" opacity="0.5"/>
+
+    <!-- Broken wand -->
+    <line x1="22" y1="5" x2="40" y2="-20" stroke="#CE93D8" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="40" cy="-20" r="5" fill="#F8BBD0" opacity="0.3" stroke="#CE93D8" stroke-width="1"/>
+
+    <!-- Faded sparkles (barely visible) -->
+    <circle cx="-30" cy="-15" r="1.5" fill="#F48FB1" opacity="0.15"/>
+    <circle cx="32" cy="20" r="1" fill="#F48FB1" opacity="0.1"/>
+    <circle cx="-15" cy="50" r="1.5" fill="#F48FB1" opacity="0.12"/>
+  </g>
+
+  <!-- Stage 3: Radiant -->
+  <text x="600" y="165" text-anchor="middle" font-size="14" font-weight="bold" fill="#EC407A">Stage 3: Radiant</text>
+  <text x="600" y="182" text-anchor="middle" font-size="10" fill="#F48FB1">"다시 한번, 모두를 지킬게!"</text>
+
+  <g transform="translate(600, 330)">
+    <ellipse cx="0" cy="90" rx="50" ry="10" fill="#FF80AB" opacity="0.15"/>
+
+    <!-- Magic aura -->
+    <circle cx="0" cy="5" r="75" fill="#FF80AB" opacity="0.04"/>
+    <circle cx="0" cy="5" r="60" fill="#FF80AB" opacity="0.05"/>
+
+    <!-- Flowing dress -->
+    <path d="M-30,15 Q-40,50 -25,75 Q0,85 25,75 Q40,50 30,15Z" fill="url(#magicPink)" opacity="0.7" stroke="#EC407A" stroke-width="1"/>
+    <!-- Dress details -->
+    <path d="M-20,30 Q0,35 20,30" fill="none" stroke="#FFF" stroke-width="0.8" opacity="0.5"/>
+    <path d="M-22,45 Q0,50 22,45" fill="none" stroke="#FFF" stroke-width="0.8" opacity="0.4"/>
+
+    <!-- Torso -->
+    <ellipse cx="0" cy="5" rx="25" ry="20" fill="#F48FB1" stroke="#EC407A" stroke-width="1.5"/>
+    <!-- Ribbon -->
+    <path d="M-12,-2 Q-20,-8 -15,-14" fill="#FF80AB" stroke="#EC407A" stroke-width="0.8"/>
+    <path d="M12,-2 Q20,-8 15,-14" fill="#FF80AB" stroke="#EC407A" stroke-width="0.8"/>
+    <circle cx="0" cy="-2" r="4" fill="#FFD54F" stroke="#FFC107" stroke-width="1"/>
+
+    <!-- Head -->
+    <circle cx="0" cy="-30" r="25" fill="#FFEBEE" stroke="#F8BBD0" stroke-width="1.5"/>
+    <!-- Eyes (bright, sparkling) -->
+    <ellipse cx="-8" cy="-33" rx="5" ry="6" fill="#FFF"/>
+    <ellipse cx="8" cy="-33" rx="5" ry="6" fill="#FFF"/>
+    <circle cx="-8" cy="-32" r="3.5" fill="#AB47BC"/>
+    <circle cx="8" cy="-32" r="3.5" fill="#AB47BC"/>
+    <circle cx="-6" cy="-34" r="1.5" fill="#FFF"/>
+    <circle cx="10" cy="-34" r="1.5" fill="#FFF"/>
+    <circle cx="-9" cy="-30" r="1" fill="#FFF" opacity="0.7"/>
+    <circle cx="7" cy="-30" r="1" fill="#FFF" opacity="0.7"/>
+    <!-- Happy mouth -->
+    <path d="M-5,-22 Q0,-18 5,-22" fill="none" stroke="#EC407A" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Blush -->
+    <ellipse cx="-14" cy="-25" rx="5" ry="3" fill="#FF80AB" opacity="0.4"/>
+    <ellipse cx="14" cy="-25" rx="5" ry="3" fill="#FF80AB" opacity="0.4"/>
+
+    <!-- Flowing hair -->
+    <path d="M-25,-30 Q-35,-55 -18,-60 Q0,-65 18,-60 Q35,-55 25,-30" fill="#CE93D8" stroke="#AB47BC" stroke-width="1"/>
+    <path d="M-22,-38 Q-30,-60 -28,-78" fill="none" stroke="#CE93D8" stroke-width="4" stroke-linecap="round"/>
+    <path d="M22,-38 Q30,-60 28,-78" fill="none" stroke="#CE93D8" stroke-width="4" stroke-linecap="round"/>
+    <!-- Hair ornament -->
+    <circle cx="-18" cy="-48" r="5" fill="#FFD54F" stroke="#FFC107" stroke-width="1"/>
+    <circle cx="18" cy="-48" r="5" fill="#FFD54F" stroke="#FFC107" stroke-width="1"/>
+
+    <!-- Star crown -->
+    <polygon points="0,-58 4,-50 12,-50 6,-44 8,-36 0,-40 -8,-36 -6,-44 -12,-50 -4,-50" fill="#FFD54F" stroke="#FFC107" stroke-width="1"/>
+
+    <!-- Magic wand (restored) -->
+    <line x1="28" y1="10" x2="50" y2="-25" stroke="#CE93D8" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="50" cy="-25" r="8" fill="#FF80AB" stroke="#EC407A" stroke-width="1.5"/>
+    <polygon points="50,-25 53,-18 60,-18 54,-13 56,-6 50,-10 44,-6 46,-13 40,-18 47,-18" fill="#FFD54F" opacity="0.8"/>
+
+    <!-- Sparkles everywhere -->
+    <text x="-50" y="-40" font-size="12" fill="#FFD54F" opacity="0.7">+</text>
+    <text x="55" y="-50" font-size="10" fill="#FF80AB" opacity="0.6">+</text>
+    <text x="-45" y="30" font-size="8" fill="#CE93D8" opacity="0.5">+</text>
+    <text x="50" y="40" font-size="14" fill="#FFD54F" opacity="0.5">*</text>
+    <text x="-55" y="0" font-size="8" fill="#FF80AB" opacity="0.4">*</text>
+    <circle cx="-40" cy="-20" r="2" fill="#FFD54F" opacity="0.5"/>
+    <circle cx="45" cy="10" r="2.5" fill="#FF80AB" opacity="0.4"/>
+    <circle cx="30" cy="-55" r="1.5" fill="#FFD54F" opacity="0.6"/>
+  </g>
+
+  <line x1="100" y1="475" x2="700" y2="475" stroke="#FCE4EC" stroke-width="1"/>
+
+  <!-- Variations -->
+  <text x="400" y="510" text-anchor="middle" font-size="16" font-weight="bold" fill="#EC407A">Magical Tribe Variations</text>
+
+  <!-- Var 1: Ribbon Fairy -->
+  <g transform="translate(120, 640)">
+    <circle cx="0" cy="0" r="48" fill="#FFF0F5" stroke="#F8BBD0" stroke-width="1.5"/>
+    <ellipse cx="0" cy="-5" rx="18" ry="15" fill="#FFEBEE"/>
+    <circle cx="0" cy="-22" r="14" fill="#FCE4EC"/>
+    <circle cx="-4" cy="-24" r="2.5" fill="#EC407A"/>
+    <circle cx="4" cy="-24" r="2.5" fill="#EC407A"/>
+    <path d="M-3,-17 Q0,-14 3,-17" fill="none" stroke="#EC407A" stroke-width="1" stroke-linecap="round"/>
+    <!-- Ribbons -->
+    <path d="M-15,-5 Q-25,0 -20,10" fill="none" stroke="#FF80AB" stroke-width="2" stroke-linecap="round"/>
+    <path d="M15,-5 Q25,0 20,10" fill="none" stroke="#FF80AB" stroke-width="2" stroke-linecap="round"/>
+    <path d="M0,10 Q-5,20 0,25 Q5,20 0,10" fill="#FF80AB" opacity="0.4"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#EC407A">Ribbon</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#F48FB1">Support Type</text>
+  </g>
+
+  <!-- Var 2: Crystal Fairy -->
+  <g transform="translate(280, 640)">
+    <circle cx="0" cy="0" r="48" fill="#F3E5F5" stroke="#CE93D8" stroke-width="1.5"/>
+    <!-- Crystal body -->
+    <polygon points="0,-30 15,-5 10,20 -10,20 -15,-5" fill="#E1BEE7" stroke="#CE93D8" stroke-width="1.5" opacity="0.8"/>
+    <polygon points="0,-25 10,-5 7,15 -7,15 -10,-5" fill="#F3E5F5" opacity="0.6"/>
+    <circle cx="-3" cy="-10" r="2" fill="#7B1FA2" opacity="0.6"/>
+    <circle cx="3" cy="-10" r="2" fill="#7B1FA2" opacity="0.6"/>
+    <path d="M-2,-3 Q0,-1 2,-3" fill="none" stroke="#7B1FA2" stroke-width="0.8" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="0" cy="0" r="4" fill="#CE93D8" opacity="0.2"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#AB47BC">Crystal</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#CE93D8">Magic Type</text>
+  </g>
+
+  <!-- Var 3: Moon Cat -->
+  <g transform="translate(440, 640)">
+    <circle cx="0" cy="0" r="48" fill="#EDE7F6" stroke="#B39DDB" stroke-width="1.5"/>
+    <!-- Cat body -->
+    <ellipse cx="0" cy="5" rx="18" ry="16" fill="#D1C4E9"/>
+    <circle cx="0" cy="-15" r="14" fill="#E8D5FF"/>
+    <!-- Cat ears -->
+    <polygon points="-12,-25 -15,-38 -5,-28" fill="#D1C4E9"/>
+    <polygon points="12,-25 15,-38 5,-28" fill="#D1C4E9"/>
+    <!-- Eyes -->
+    <ellipse cx="-5" cy="-16" rx="3" ry="3.5" fill="#311B92"/>
+    <ellipse cx="5" cy="-16" rx="3" ry="3.5" fill="#311B92"/>
+    <circle cx="-4" cy="-17" r="1" fill="#FFF"/>
+    <circle cx="6" cy="-17" r="1" fill="#FFF"/>
+    <!-- Moon mark -->
+    <circle cx="0" cy="-28" r="4" fill="#FFD54F" opacity="0.6"/>
+    <circle cx="2" cy="-29" r="3" fill="#EDE7F6"/>
+    <!-- Tail -->
+    <path d="M15,10 Q25,0 22,15 Q20,25 28,20" fill="none" stroke="#D1C4E9" stroke-width="3" stroke-linecap="round"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#7E57C2">Luna Cat</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#B39DDB">Mystic Type</text>
+  </g>
+
+  <!-- Var 4: Legendary Prism -->
+  <g transform="translate(600, 640)">
+    <circle cx="0" cy="0" r="48" fill="#FFF8E1" stroke="#FFD54F" stroke-width="2"/>
+    <!-- Prism winged creature -->
+    <circle cx="0" cy="-5" r="18" fill="#FFECB3" stroke="#FFB300" stroke-width="1"/>
+    <!-- Wings (rainbow) -->
+    <path d="M-18,-5 Q-35,-20 -30,-5 Q-28,5 -18,5" fill="#FF80AB" opacity="0.5"/>
+    <path d="M-18,-8 Q-30,-18 -25,-8" fill="#CE93D8" opacity="0.4"/>
+    <path d="M18,-5 Q35,-20 30,-5 Q28,5 18,5" fill="#80DEEA" opacity="0.5"/>
+    <path d="M18,-8 Q30,-18 25,-8" fill="#A5D6A7" opacity="0.4"/>
+    <!-- Face -->
+    <circle cx="-5" cy="-7" r="3" fill="#FF6F00"/>
+    <circle cx="5" cy="-7" r="3" fill="#FF6F00"/>
+    <circle cx="-4" cy="-8" r="1.2" fill="#FFF"/>
+    <circle cx="6" cy="-8" r="1.2" fill="#FFF"/>
+    <path d="M-3,2 Q0,5 3,2" fill="none" stroke="#FF6F00" stroke-width="1" stroke-linecap="round"/>
+    <!-- Crown -->
+    <path d="M-8,-22 L-5,-30 L0,-22 L5,-30 L8,-22" fill="#FFD54F" stroke="#FFB300" stroke-width="0.8"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#FFB300">Prism</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#FFC107">Legendary</text>
+  </g>
+
+  <!-- Concept note -->
+  <rect x="80" y="750" width="640" height="55" rx="10" fill="#FFF0F5" stroke="#FCE4EC" stroke-width="1"/>
+  <text x="400" y="772" text-anchor="middle" font-size="11" fill="#EC407A">CONCEPT: "서랍 깊이 숨겨둔 변신 완구, 색 바랜 마법소녀 포스터"</text>
+  <text x="400" y="790" text-anchor="middle" font-size="10" fill="#F48FB1">마법이 사라진 세계에서 "다시 믿어줄 누군가"를 기다리는 크리처들</text>
+
+  <!-- Color palette -->
+  <text x="400" y="835" text-anchor="middle" font-size="10" fill="#F48FB1">Color Palette</text>
+  <rect x="250" y="845" width="30" height="18" rx="4" fill="#FF80AB"/>
+  <rect x="285" y="845" width="30" height="18" rx="4" fill="#F48FB1"/>
+  <rect x="320" y="845" width="30" height="18" rx="4" fill="#CE93D8"/>
+  <rect x="355" y="845" width="30" height="18" rx="4" fill="#AB47BC"/>
+  <rect x="390" y="845" width="30" height="18" rx="4" fill="#FFD54F"/>
+  <rect x="425" y="845" width="30" height="18" rx="4" fill="#FCE4EC"/>
+  <rect x="460" y="845" width="30" height="18" rx="4" fill="#E1BEE7"/>
+  <rect x="495" y="845" width="30" height="18" rx="4" fill="#80DEEA"/>
+
+  <text x="400" y="890" text-anchor="middle" font-size="10" fill="#F8BBD0">BarcodeQuest Monster Design Sheet - MAGICAL GIRL TYPE</text>
+</svg>

@@ -1,0 +1,273 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" font-family="'Courier New', monospace">
+  <rect width="800" height="900" fill="#0D0D1A"/>
+
+  <text x="400" y="40" text-anchor="middle" font-size="11" fill="#00E676" letter-spacing="4" font-family="'Segoe UI', sans-serif">TYPE 05</text>
+  <text x="400" y="72" text-anchor="middle" font-size="28" font-weight="bold" fill="#00E676">RETRO GAME / PIXEL</text>
+  <text x="400" y="95" text-anchor="middle" font-size="13" fill="#69F0AE" font-family="'Segoe UI', sans-serif">"START 버튼을 누르면 모험이 시작되던 그 시절"</text>
+  <text x="400" y="115" text-anchor="middle" font-size="11" fill="#2E7D32" font-family="'Segoe UI', sans-serif">오락실 동전, 카트리지 후후 불기, 세이브 안 하고 엄마한테 혼나기</text>
+
+  <line x1="100" y1="130" x2="700" y2="130" stroke="#1B5E20" stroke-width="1"/>
+
+  <!-- Stage 1: Glitched -->
+  <text x="200" y="165" text-anchor="middle" font-size="14" font-weight="bold" fill="#4CAF50" font-family="'Segoe UI', sans-serif">Stage 1: Glitched</text>
+  <text x="200" y="182" text-anchor="middle" font-size="10" fill="#81C784" font-family="'Segoe UI', sans-serif">"...ERROR... SAVE_DATA_NOT_FOUND..."</text>
+
+  <g transform="translate(200, 330)">
+    <!-- Pixel grid background -->
+    <rect x="-55" y="-65" width="110" height="130" fill="#0D1A0D" stroke="#1B5E20" stroke-width="1.5" rx="4"/>
+
+    <!-- Glitched pixel creature -->
+    <!-- Body pixels (with glitch offset) -->
+    <rect x="-20" y="-10" width="8" height="8" fill="#4CAF50" opacity="0.4"/>
+    <rect x="-12" y="-10" width="8" height="8" fill="#4CAF50" opacity="0.5"/>
+    <rect x="-4" y="-10" width="8" height="8" fill="#4CAF50" opacity="0.3"/>
+    <rect x="4" y="-10" width="8" height="8" fill="#4CAF50" opacity="0.5"/>
+    <rect x="12" y="-10" width="8" height="8" fill="#4CAF50" opacity="0.4"/>
+
+    <rect x="-24" y="-2" width="8" height="8" fill="#4CAF50" opacity="0.5"/>
+    <rect x="-16" y="-2" width="8" height="8" fill="#66BB6A" opacity="0.4"/>
+    <rect x="-8" y="-2" width="8" height="8" fill="#66BB6A" opacity="0.6"/>
+    <rect x="0" y="-2" width="8" height="8" fill="#66BB6A" opacity="0.5"/>
+    <rect x="8" y="-2" width="8" height="8" fill="#66BB6A" opacity="0.4"/>
+    <rect x="16" y="-2" width="8" height="8" fill="#4CAF50" opacity="0.5"/>
+
+    <rect x="-24" y="6" width="8" height="8" fill="#4CAF50" opacity="0.4"/>
+    <rect x="-16" y="6" width="8" height="8" fill="#81C784" opacity="0.5"/>
+    <rect x="-8" y="6" width="8" height="8" fill="#81C784" opacity="0.3"/>
+    <rect x="0" y="6" width="8" height="8" fill="#81C784" opacity="0.5"/>
+    <rect x="8" y="6" width="8" height="8" fill="#81C784" opacity="0.4"/>
+    <rect x="16" y="6" width="8" height="8" fill="#4CAF50" opacity="0.3"/>
+
+    <!-- Glitched head -->
+    <rect x="-16" y="-34" width="8" height="8" fill="#A5D6A7" opacity="0.4"/>
+    <rect x="-8" y="-34" width="8" height="8" fill="#A5D6A7" opacity="0.5"/>
+    <rect x="0" y="-34" width="8" height="8" fill="#A5D6A7" opacity="0.4"/>
+    <rect x="8" y="-34" width="8" height="8" fill="#A5D6A7" opacity="0.3"/>
+
+    <rect x="-20" y="-26" width="8" height="8" fill="#A5D6A7" opacity="0.5"/>
+    <rect x="-12" y="-26" width="8" height="8" fill="#C8E6C9" opacity="0.4"/>
+    <rect x="-4" y="-26" width="8" height="8" fill="#C8E6C9" opacity="0.5"/>
+    <rect x="4" y="-26" width="8" height="8" fill="#C8E6C9" opacity="0.4"/>
+    <rect x="12" y="-26" width="8" height="8" fill="#A5D6A7" opacity="0.3"/>
+
+    <!-- Eyes (glitching) -->
+    <rect x="-12" y="-24" width="4" height="4" fill="#FFF" opacity="0.3"/>
+    <rect x="6" y="-24" width="4" height="4" fill="#FFF" opacity="0.5"/>
+
+    <!-- Glitch lines -->
+    <rect x="-40" y="-18" width="80" height="2" fill="#FF1744" opacity="0.15"/>
+    <rect x="-30" y="2" width="60" height="1" fill="#00E676" opacity="0.1"/>
+    <rect x="-35" y="15" width="70" height="2" fill="#FF1744" opacity="0.1"/>
+
+    <!-- Legs pixels -->
+    <rect x="-16" y="14" width="8" height="8" fill="#4CAF50" opacity="0.4"/>
+    <rect x="8" y="14" width="8" height="8" fill="#4CAF50" opacity="0.4"/>
+    <rect x="-16" y="22" width="8" height="8" fill="#388E3C" opacity="0.3"/>
+    <rect x="8" y="22" width="8" height="8" fill="#388E3C" opacity="0.3"/>
+
+    <text x="0" y="50" text-anchor="middle" font-size="8" fill="#4CAF50" opacity="0.4">DATA_CORRUPTED</text>
+  </g>
+
+  <!-- Stage 3: Full Power -->
+  <text x="600" y="165" text-anchor="middle" font-size="14" font-weight="bold" fill="#00E676" font-family="'Segoe UI', sans-serif">Stage 3: FULL POWER</text>
+  <text x="600" y="182" text-anchor="middle" font-size="10" fill="#69F0AE" font-family="'Segoe UI', sans-serif">"PLAYER 1 READY! GAME START!"</text>
+
+  <g transform="translate(600, 325)">
+    <rect x="-65" y="-70" width="130" height="140" fill="#0D1A0D" stroke="#00E676" stroke-width="2" rx="4"/>
+
+    <!-- Fully restored pixel hero -->
+    <!-- Head -->
+    <rect x="-16" y="-50" width="8" height="8" fill="#69F0AE"/>
+    <rect x="-8" y="-50" width="8" height="8" fill="#69F0AE"/>
+    <rect x="0" y="-50" width="8" height="8" fill="#69F0AE"/>
+    <rect x="8" y="-50" width="8" height="8" fill="#69F0AE"/>
+
+    <rect x="-24" y="-42" width="8" height="8" fill="#69F0AE"/>
+    <rect x="-16" y="-42" width="8" height="8" fill="#A5D6A7"/>
+    <rect x="-8" y="-42" width="8" height="8" fill="#C8E6C9"/>
+    <rect x="0" y="-42" width="8" height="8" fill="#C8E6C9"/>
+    <rect x="8" y="-42" width="8" height="8" fill="#A5D6A7"/>
+    <rect x="16" y="-42" width="8" height="8" fill="#69F0AE"/>
+
+    <rect x="-24" y="-34" width="8" height="8" fill="#69F0AE"/>
+    <rect x="-16" y="-34" width="8" height="8" fill="#FFF"/>
+    <rect x="-8" y="-34" width="8" height="8" fill="#C8E6C9"/>
+    <rect x="0" y="-34" width="8" height="8" fill="#C8E6C9"/>
+    <rect x="8" y="-34" width="8" height="8" fill="#FFF"/>
+    <rect x="16" y="-34" width="8" height="8" fill="#69F0AE"/>
+
+    <!-- Pixel eyes -->
+    <rect x="-14" y="-32" width="4" height="4" fill="#1B5E20"/>
+    <rect x="10" y="-32" width="4" height="4" fill="#1B5E20"/>
+
+    <!-- Smile -->
+    <rect x="-8" y="-26" width="4" height="4" fill="#2E7D32"/>
+    <rect x="-4" y="-22" width="4" height="4" fill="#2E7D32"/>
+    <rect x="0" y="-22" width="4" height="4" fill="#2E7D32"/>
+    <rect x="4" y="-26" width="4" height="4" fill="#2E7D32"/>
+
+    <!-- Body -->
+    <rect x="-20" y="-18" width="8" height="8" fill="#4CAF50"/>
+    <rect x="-12" y="-18" width="8" height="8" fill="#66BB6A"/>
+    <rect x="-4" y="-18" width="8" height="8" fill="#66BB6A"/>
+    <rect x="4" y="-18" width="8" height="8" fill="#66BB6A"/>
+    <rect x="12" y="-18" width="8" height="8" fill="#4CAF50"/>
+
+    <rect x="-24" y="-10" width="8" height="8" fill="#388E3C"/>
+    <rect x="-16" y="-10" width="8" height="8" fill="#4CAF50"/>
+    <rect x="-8" y="-10" width="8" height="8" fill="#FFD54F"/>
+    <rect x="0" y="-10" width="8" height="8" fill="#FFD54F"/>
+    <rect x="8" y="-10" width="8" height="8" fill="#4CAF50"/>
+    <rect x="16" y="-10" width="8" height="8" fill="#388E3C"/>
+
+    <!-- Arms -->
+    <rect x="-32" y="-14" width="8" height="8" fill="#66BB6A"/>
+    <rect x="-40" y="-10" width="8" height="8" fill="#A5D6A7"/>
+    <rect x="24" y="-14" width="8" height="8" fill="#66BB6A"/>
+    <rect x="32" y="-10" width="8" height="8" fill="#A5D6A7"/>
+
+    <!-- Sword (pixel) -->
+    <rect x="38" y="-22" width="4" height="4" fill="#FFD54F"/>
+    <rect x="38" y="-26" width="4" height="4" fill="#FFD54F"/>
+    <rect x="38" y="-30" width="4" height="4" fill="#FFF"/>
+    <rect x="38" y="-34" width="4" height="4" fill="#FFF"/>
+    <rect x="38" y="-38" width="4" height="4" fill="#FFF"/>
+
+    <!-- Lower body / legs -->
+    <rect x="-16" y="-2" width="8" height="8" fill="#4CAF50"/>
+    <rect x="-8" y="-2" width="8" height="8" fill="#4CAF50"/>
+    <rect x="0" y="-2" width="8" height="8" fill="#4CAF50"/>
+    <rect x="8" y="-2" width="8" height="8" fill="#4CAF50"/>
+
+    <rect x="-16" y="6" width="8" height="8" fill="#2E7D32"/>
+    <rect x="8" y="6" width="8" height="8" fill="#2E7D32"/>
+
+    <rect x="-16" y="14" width="8" height="8" fill="#1B5E20"/>
+    <rect x="8" y="14" width="8" height="8" fill="#1B5E20"/>
+
+    <!-- HP bar -->
+    <text x="-45" y="45" font-size="8" fill="#00E676">HP</text>
+    <rect x="-30" y="38" width="60" height="6" fill="#1B5E20"/>
+    <rect x="-30" y="38" width="55" height="6" fill="#00E676"/>
+
+    <!-- Power sparkles -->
+    <rect x="-50" y="-45" width="4" height="4" fill="#00E676" opacity="0.4"/>
+    <rect x="48" y="-40" width="4" height="4" fill="#00E676" opacity="0.3"/>
+    <rect x="-45" y="10" width="4" height="4" fill="#69F0AE" opacity="0.3"/>
+    <rect x="50" y="0" width="4" height="4" fill="#69F0AE" opacity="0.4"/>
+  </g>
+
+  <line x1="100" y1="475" x2="700" y2="475" stroke="#1B5E20" stroke-width="1"/>
+
+  <!-- Variations -->
+  <text x="400" y="510" text-anchor="middle" font-size="16" font-weight="bold" fill="#00E676" font-family="'Segoe UI', sans-serif">Retro Game Tribe Variations</text>
+
+  <!-- Var 1: Slime (RPG) -->
+  <g transform="translate(120, 640)">
+    <circle cx="0" cy="0" r="48" fill="#0D1A0D" stroke="#1B5E20" stroke-width="1.5"/>
+    <!-- Pixel slime -->
+    <rect x="-16" y="-8" width="8" height="8" fill="#42A5F5"/>
+    <rect x="-8" y="-8" width="8" height="8" fill="#64B5F6"/>
+    <rect x="0" y="-8" width="8" height="8" fill="#64B5F6"/>
+    <rect x="8" y="-8" width="8" height="8" fill="#42A5F5"/>
+    <rect x="-20" y="0" width="8" height="8" fill="#42A5F5"/>
+    <rect x="-12" y="0" width="8" height="8" fill="#90CAF9"/>
+    <rect x="-4" y="0" width="8" height="8" fill="#BBDEFB"/>
+    <rect x="4" y="0" width="8" height="8" fill="#90CAF9"/>
+    <rect x="12" y="0" width="8" height="8" fill="#42A5F5"/>
+    <rect x="-12" y="8" width="8" height="8" fill="#42A5F5"/>
+    <rect x="-4" y="8" width="8" height="8" fill="#42A5F5"/>
+    <rect x="4" y="8" width="8" height="8" fill="#42A5F5"/>
+    <!-- Eyes -->
+    <rect x="-10" y="-4" width="4" height="4" fill="#FFF"/>
+    <rect x="6" y="-4" width="4" height="4" fill="#FFF"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#42A5F5" font-family="'Segoe UI'">Slime</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#1565C0" font-family="'Segoe UI'">RPG Type</text>
+  </g>
+
+  <!-- Var 2: Space Invader -->
+  <g transform="translate(280, 640)">
+    <circle cx="0" cy="0" r="48" fill="#0D1A0D" stroke="#1B5E20" stroke-width="1.5"/>
+    <!-- Pixel invader -->
+    <rect x="-4" y="-20" width="8" height="4" fill="#00E676"/>
+    <rect x="-12" y="-16" width="24" height="4" fill="#00E676"/>
+    <rect x="-16" y="-12" width="32" height="4" fill="#69F0AE"/>
+    <rect x="-20" y="-8" width="8" height="4" fill="#69F0AE"/>
+    <rect x="-8" y="-8" width="16" height="4" fill="#69F0AE"/>
+    <rect x="12" y="-8" width="8" height="4" fill="#69F0AE"/>
+    <rect x="-20" y="-4" width="40" height="4" fill="#00E676"/>
+    <rect x="-16" y="0" width="8" height="4" fill="#00E676"/>
+    <rect x="8" y="0" width="8" height="4" fill="#00E676"/>
+    <rect x="-12" y="4" width="4" height="4" fill="#00E676"/>
+    <rect x="8" y="4" width="4" height="4" fill="#00E676"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#00E676" font-family="'Segoe UI'">Invader</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#4CAF50" font-family="'Segoe UI'">Arcade Type</text>
+  </g>
+
+  <!-- Var 3: Ghost (Pac-style) -->
+  <g transform="translate(440, 640)">
+    <circle cx="0" cy="0" r="48" fill="#0D1A0D" stroke="#1B5E20" stroke-width="1.5"/>
+    <!-- Pixel ghost -->
+    <rect x="-8" y="-20" width="16" height="4" fill="#FF80AB"/>
+    <rect x="-12" y="-16" width="24" height="4" fill="#FF80AB"/>
+    <rect x="-16" y="-12" width="32" height="4" fill="#F48FB1"/>
+    <rect x="-16" y="-8" width="32" height="4" fill="#F48FB1"/>
+    <rect x="-16" y="-4" width="32" height="4" fill="#FF80AB"/>
+    <rect x="-16" y="0" width="32" height="4" fill="#FF80AB"/>
+    <rect x="-16" y="4" width="8" height="4" fill="#FF80AB"/>
+    <rect x="-4" y="4" width="8" height="4" fill="#FF80AB"/>
+    <rect x="8" y="4" width="8" height="4" fill="#FF80AB"/>
+    <!-- Eyes -->
+    <rect x="-10" y="-12" width="4" height="4" fill="#FFF"/>
+    <rect x="6" y="-12" width="4" height="4" fill="#FFF"/>
+    <rect x="-8" y="-10" width="4" height="4" fill="#1A237E"/>
+    <rect x="8" y="-10" width="4" height="4" fill="#1A237E"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#FF80AB" font-family="'Segoe UI'">Ghost</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#F48FB1" font-family="'Segoe UI'">Stealth Type</text>
+  </g>
+
+  <!-- Var 4: Dragon Boss -->
+  <g transform="translate(600, 640)">
+    <circle cx="0" cy="0" r="48" fill="#0D1A0D" stroke="#FFD54F" stroke-width="2"/>
+    <!-- Pixel dragon head -->
+    <rect x="-16" y="-16" width="8" height="8" fill="#FF5722"/>
+    <rect x="-8" y="-16" width="8" height="8" fill="#FF9800"/>
+    <rect x="0" y="-16" width="8" height="8" fill="#FF9800"/>
+    <rect x="8" y="-16" width="8" height="8" fill="#FF5722"/>
+    <rect x="-20" y="-8" width="8" height="8" fill="#FF5722"/>
+    <rect x="-12" y="-8" width="8" height="8" fill="#FFD54F"/>
+    <rect x="-4" y="-8" width="8" height="8" fill="#FFD54F"/>
+    <rect x="4" y="-8" width="8" height="8" fill="#FFD54F"/>
+    <rect x="12" y="-8" width="8" height="8" fill="#FF5722"/>
+    <rect x="-12" y="0" width="8" height="8" fill="#FF9800"/>
+    <rect x="-4" y="0" width="8" height="8" fill="#FF9800"/>
+    <rect x="4" y="0" width="8" height="8" fill="#FF9800"/>
+    <!-- Eyes -->
+    <rect x="-10" y="-6" width="4" height="4" fill="#FFF"/>
+    <rect x="6" y="-6" width="4" height="4" fill="#FFF"/>
+    <!-- Flame -->
+    <rect x="-4" y="8" width="4" height="4" fill="#FF5722"/>
+    <rect x="0" y="8" width="4" height="4" fill="#FFD54F"/>
+    <rect x="0" y="12" width="4" height="4" fill="#FF5722" opacity="0.6"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#FFD54F" font-family="'Segoe UI'">Pixel Dragon</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#FFB300" font-family="'Segoe UI'">Legendary</text>
+  </g>
+
+  <!-- Concept note -->
+  <rect x="80" y="750" width="640" height="55" rx="4" fill="#0D1A0D" stroke="#1B5E20" stroke-width="1"/>
+  <text x="400" y="772" text-anchor="middle" font-size="11" fill="#00E676" font-family="'Segoe UI'">CONCEPT: "오락실 동전 넣던 기억, 게임보이 불빛 아래 이불 속 모험"</text>
+  <text x="400" y="790" text-anchor="middle" font-size="10" fill="#4CAF50" font-family="'Segoe UI'">세이브 데이터가 손상된 것처럼 처음엔 깨져있지만, 추억으로 복구된다</text>
+
+  <!-- Color palette -->
+  <text x="400" y="835" text-anchor="middle" font-size="10" fill="#4CAF50" font-family="'Segoe UI'">Color Palette</text>
+  <rect x="250" y="845" width="30" height="18" rx="2" fill="#00E676"/>
+  <rect x="285" y="845" width="30" height="18" rx="2" fill="#69F0AE"/>
+  <rect x="320" y="845" width="30" height="18" rx="2" fill="#0D1A0D" stroke="#00E676" stroke-width="1"/>
+  <rect x="355" y="845" width="30" height="18" rx="2" fill="#FFD54F"/>
+  <rect x="390" y="845" width="30" height="18" rx="2" fill="#42A5F5"/>
+  <rect x="425" y="845" width="30" height="18" rx="2" fill="#FF80AB"/>
+  <rect x="460" y="845" width="30" height="18" rx="2" fill="#FF5722"/>
+  <rect x="495" y="845" width="30" height="18" rx="2" fill="#1B5E20"/>
+
+  <text x="400" y="890" text-anchor="middle" font-size="10" fill="#2E7D32" font-family="'Segoe UI'">BarcodeQuest Monster Design Sheet - RETRO GAME TYPE</text>
+</svg>

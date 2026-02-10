@@ -1,0 +1,265 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="cardCommon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F5F5"/>
+      <stop offset="100%" stop-color="#E0E0E0"/>
+    </linearGradient>
+    <linearGradient id="cardRare" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E3F2FD"/>
+      <stop offset="100%" stop-color="#90CAF9"/>
+    </linearGradient>
+    <linearGradient id="cardEpic" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F3E5F5"/>
+      <stop offset="100%" stop-color="#CE93D8"/>
+    </linearGradient>
+    <linearGradient id="cardLegendary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF8E1"/>
+      <stop offset="25%" stop-color="#FFE082"/>
+      <stop offset="50%" stop-color="#FFCC02"/>
+      <stop offset="75%" stop-color="#FFE082"/>
+      <stop offset="100%" stop-color="#FFF8E1"/>
+    </linearGradient>
+    <linearGradient id="holoSheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF6B6B" stop-opacity="0.15"/>
+      <stop offset="25%" stop-color="#FFD93D" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="#6BCB77" stop-opacity="0.15"/>
+      <stop offset="75%" stop-color="#4D96FF" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#DDA0DD" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="900" fill="#1E1E2E"/>
+
+  <text x="400" y="45" text-anchor="middle" font-size="24" font-weight="bold" fill="#FFF">Card Collection UI Concept</text>
+  <text x="400" y="68" text-anchor="middle" font-size="13" fill="#888">Gacha pull &amp; collection card design</text>
+
+  <!-- Card rarity showcase -->
+
+  <!-- Common Card -->
+  <g transform="translate(85, 260)">
+    <rect x="-60" y="-120" width="120" height="175" rx="10" fill="url(#cardCommon)" stroke="#CCC" stroke-width="2"/>
+    <!-- Card art area -->
+    <rect x="-50" y="-110" width="100" height="95" rx="6" fill="#FFF"/>
+    <!-- Simple creature -->
+    <circle cx="0" cy="-60" r="25" fill="#E8E8E8"/>
+    <circle cx="0" cy="-60" r="20" fill="#F5F5F5"/>
+    <circle cx="-7" cy="-65" r="3" fill="#888"/>
+    <circle cx="7" cy="-65" r="3" fill="#888"/>
+    <path d="M-4,-54 Q0,-50 4,-54" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Card info -->
+    <text x="0" y="0" text-anchor="middle" font-size="11" font-weight="bold" fill="#555">Cloud Puff</text>
+    <text x="0" y="15" text-anchor="middle" font-size="9" fill="#999">Common | Comfort Type</text>
+    <!-- Stats bar -->
+    <rect x="-45" y="25" width="90" height="4" rx="2" fill="#E0E0E0"/>
+    <rect x="-45" y="25" width="35" height="4" rx="2" fill="#9E9E9E"/>
+    <text x="-45" y="42" font-size="8" fill="#999">HP 35</text>
+    <text x="45" y="42" text-anchor="end" font-size="8" fill="#999">ATK 12</text>
+  </g>
+  <text x="85" y="460" text-anchor="middle" font-size="12" fill="#888">Common</text>
+  <text x="85" y="478" text-anchor="middle" font-size="10" fill="#666">55% drop rate</text>
+
+  <!-- Uncommon Card -->
+  <g transform="translate(245, 260)">
+    <rect x="-60" y="-120" width="120" height="175" rx="10" fill="#E8F5E9" stroke="#66BB6A" stroke-width="2"/>
+    <rect x="-50" y="-110" width="100" height="95" rx="6" fill="#F1F8E9"/>
+    <!-- Nature creature -->
+    <circle cx="0" cy="-65" r="22" fill="#A5D6A7"/>
+    <circle cx="0" cy="-65" r="17" fill="#C8E6C9"/>
+    <circle cx="-6" cy="-70" r="2.5" fill="#2E7D32"/>
+    <circle cx="6" cy="-70" r="2.5" fill="#2E7D32"/>
+    <path d="M-3,-59 Q0,-55 3,-59" fill="none" stroke="#2E7D32" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Leaf on head -->
+    <ellipse cx="8" cy="-88" rx="8" ry="5" fill="#66BB6A" transform="rotate(30,8,-88)"/>
+    <text x="0" y="0" text-anchor="middle" font-size="11" font-weight="bold" fill="#2E7D32">Sprout Bean</text>
+    <text x="0" y="15" text-anchor="middle" font-size="9" fill="#66BB6A">Uncommon | Growth Type</text>
+    <rect x="-45" y="25" width="90" height="4" rx="2" fill="#C8E6C9"/>
+    <rect x="-45" y="25" width="50" height="4" rx="2" fill="#66BB6A"/>
+    <text x="-45" y="42" font-size="8" fill="#66BB6A">HP 48</text>
+    <text x="45" y="42" text-anchor="end" font-size="8" fill="#66BB6A">ATK 22</text>
+  </g>
+  <text x="245" y="460" text-anchor="middle" font-size="12" fill="#66BB6A">Uncommon</text>
+  <text x="245" y="478" text-anchor="middle" font-size="10" fill="#666">25% drop rate</text>
+
+  <!-- Rare Card -->
+  <g transform="translate(405, 260)">
+    <rect x="-60" y="-120" width="120" height="175" rx="10" fill="url(#cardRare)" stroke="#42A5F5" stroke-width="2.5"/>
+    <rect x="-50" y="-110" width="100" height="95" rx="6" fill="#E3F2FD"/>
+    <!-- Water creature -->
+    <path d="M0,-90 C-15,-75 -22,-55 0,-45 C22,-55 15,-75 0,-90Z" fill="#64B5F6"/>
+    <path d="M0,-85 C-12,-72 -18,-58 0,-50 C18,-58 12,-72 0,-85Z" fill="#90CAF9"/>
+    <circle cx="-5" cy="-65" r="3" fill="#FFF"/>
+    <circle cx="5" cy="-65" r="3" fill="#FFF"/>
+    <circle cx="-5" cy="-65" r="1.5" fill="#1565C0"/>
+    <circle cx="5" cy="-65" r="1.5" fill="#1565C0"/>
+    <path d="M-3,-56 Q0,-52 3,-56" fill="none" stroke="#1565C0" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Sparkles -->
+    <circle cx="-30" cy="-80" r="2" fill="#64B5F6" opacity="0.5"/>
+    <circle cx="25" cy="-50" r="1.5" fill="#64B5F6" opacity="0.6"/>
+    <text x="0" y="0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565C0">Teardrop</text>
+    <text x="0" y="15" text-anchor="middle" font-size="9" fill="#42A5F5">Rare | Memory Type</text>
+    <rect x="-45" y="25" width="90" height="4" rx="2" fill="#BBDEFB"/>
+    <rect x="-45" y="25" width="65" height="4" rx="2" fill="#42A5F5"/>
+    <text x="-45" y="42" font-size="8" fill="#42A5F5">HP 72</text>
+    <text x="45" y="42" text-anchor="end" font-size="8" fill="#42A5F5">ATK 38</text>
+  </g>
+  <text x="405" y="460" text-anchor="middle" font-size="12" fill="#42A5F5">Rare</text>
+  <text x="405" y="478" text-anchor="middle" font-size="10" fill="#666">12% drop rate</text>
+
+  <!-- Epic Card -->
+  <g transform="translate(565, 260)">
+    <rect x="-60" y="-120" width="120" height="175" rx="10" fill="url(#cardEpic)" stroke="#AB47BC" stroke-width="2.5"/>
+    <rect x="-50" y="-110" width="100" height="95" rx="6" fill="#F3E5F5"/>
+    <!-- Star creature -->
+    <polygon points="0,-90 8,-70 28,-70 12,-56 18,-36 0,-48 -18,-36 -12,-56 -28,-70 -8,-70" fill="#CE93D8"/>
+    <polygon points="0,-85 6,-72 20,-72 10,-60 14,-44 0,-53 -14,-44 -10,-60 -20,-72 -6,-72" fill="#E1BEE7"/>
+    <circle cx="-4" cy="-68" r="2.5" fill="#6A1B9A"/>
+    <circle cx="4" cy="-68" r="2.5" fill="#6A1B9A"/>
+    <path d="M-2,-60 Q0,-57 2,-60" fill="none" stroke="#6A1B9A" stroke-width="1.2" stroke-linecap="round"/>
+    <text x="0" y="0" text-anchor="middle" font-size="11" font-weight="bold" fill="#6A1B9A">Twilight Star</text>
+    <text x="0" y="15" text-anchor="middle" font-size="9" fill="#AB47BC">Epic | Dream Type</text>
+    <rect x="-45" y="25" width="90" height="4" rx="2" fill="#E1BEE7"/>
+    <rect x="-45" y="25" width="75" height="4" rx="2" fill="#AB47BC"/>
+    <text x="-45" y="42" font-size="8" fill="#AB47BC">HP 95</text>
+    <text x="45" y="42" text-anchor="end" font-size="8" fill="#AB47BC">ATK 55</text>
+  </g>
+  <text x="565" y="460" text-anchor="middle" font-size="12" fill="#AB47BC">Epic</text>
+  <text x="565" y="478" text-anchor="middle" font-size="10" fill="#666">6% drop rate</text>
+
+  <!-- Legendary Card -->
+  <g transform="translate(725, 260)">
+    <rect x="-60" y="-125" width="120" height="182" rx="10" fill="url(#cardLegendary)" stroke="#FFB300" stroke-width="3"/>
+    <rect x="-60" y="-125" width="120" height="182" rx="10" fill="url(#holoSheen)"/>
+    <rect x="-50" y="-115" width="100" height="100" rx="6" fill="#FFFDE7"/>
+    <!-- Legendary creature - aurora phoenix -->
+    <path d="M0,-95 C-20,-80 -25,-60 -15,-45 C-5,-30 5,-30 15,-45 C25,-60 20,-80 0,-95Z" fill="#FFD54F" opacity="0.8"/>
+    <path d="M0,-88 C-15,-76 -18,-60 -10,-50 C-3,-40 3,-40 10,-50 C18,-60 15,-76 0,-88Z" fill="#FFE082"/>
+    <!-- Wings -->
+    <path d="M-15,-60 C-30,-70 -35,-50 -25,-45" fill="none" stroke="#FF8A65" stroke-width="2" stroke-linecap="round"/>
+    <path d="M15,-60 C30,-70 35,-50 25,-45" fill="none" stroke="#FF8A65" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="-4" cy="-65" r="2.5" fill="#E65100"/>
+    <circle cx="4" cy="-65" r="2.5" fill="#E65100"/>
+    <path d="M-2,-58 Q0,-54 2,-58" fill="none" stroke="#E65100" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Crown -->
+    <path d="M-8,-90 L-5,-98 L0,-90 L5,-98 L8,-90" fill="#FFD700" stroke="#FF8F00" stroke-width="0.8"/>
+    <!-- Extra sparkles -->
+    <text x="-35" y="-80" font-size="10" fill="#FFD700" opacity="0.7">+</text>
+    <text x="30" y="-40" font-size="8" fill="#FFD700" opacity="0.5">+</text>
+    <text x="-25" y="-35" font-size="6" fill="#FFD700" opacity="0.6">+</text>
+    <text x="0" y="5" text-anchor="middle" font-size="11" font-weight="bold" fill="#E65100">Aurora Phoenix</text>
+    <text x="0" y="20" text-anchor="middle" font-size="9" fill="#FF8F00">Legendary | Bond Type</text>
+    <rect x="-45" y="30" width="90" height="4" rx="2" fill="#FFE082"/>
+    <rect x="-45" y="30" width="88" height="4" rx="2" fill="#FFB300"/>
+    <text x="-45" y="47" font-size="8" fill="#FF8F00">HP 150</text>
+    <text x="45" y="47" text-anchor="end" font-size="8" fill="#FF8F00">ATK 88</text>
+  </g>
+  <text x="725" y="465" text-anchor="middle" font-size="12" font-weight="bold" fill="#FFB300">Legendary</text>
+  <text x="725" y="483" text-anchor="middle" font-size="10" fill="#666">2% drop rate</text>
+
+  <!-- Gacha Pull Animation Storyboard -->
+  <text x="400" y="530" text-anchor="middle" font-size="18" font-weight="bold" fill="#FFF">Gacha Pull Sequence</text>
+
+  <!-- Step 1 -->
+  <rect x="40" y="555" width="155" height="120" rx="10" fill="#2A2A3E"/>
+  <text x="117" y="580" text-anchor="middle" font-size="10" fill="#888">1. Barcode Scan</text>
+  <!-- Scan lines -->
+  <line x1="75" y1="600" x2="75" y2="650" stroke="#FF6B6B" stroke-width="2" opacity="0.8"/>
+  <rect x="85" y="605" width="3" height="35" fill="#888"/>
+  <rect x="91" y="600" width="5" height="40" fill="#888"/>
+  <rect x="99" y="608" width="3" height="32" fill="#888"/>
+  <rect x="105" y="600" width="4" height="40" fill="#888"/>
+  <rect x="112" y="603" width="3" height="37" fill="#888"/>
+  <rect x="118" y="600" width="5" height="40" fill="#888"/>
+  <rect x="126" y="607" width="3" height="33" fill="#888"/>
+  <rect x="132" y="600" width="4" height="40" fill="#888"/>
+  <rect x="139" y="605" width="3" height="35" fill="#888"/>
+  <rect x="145" y="600" width="5" height="40" fill="#888"/>
+  <!-- Red scan line -->
+  <line x1="80" y1="625" x2="155" y2="625" stroke="#FF6B6B" stroke-width="2" opacity="0.6"/>
+
+  <!-- Step 2 -->
+  <rect x="210" y="555" width="155" height="120" rx="10" fill="#2A2A3E"/>
+  <text x="287" y="580" text-anchor="middle" font-size="10" fill="#888">2. Energy Gather</text>
+  <circle cx="287" cy="625" r="25" fill="none" stroke="#FFD700" stroke-width="2" opacity="0.6"/>
+  <circle cx="287" cy="625" r="18" fill="none" stroke="#FFD700" stroke-width="1.5" opacity="0.4"/>
+  <circle cx="287" cy="625" r="10" fill="#FFD700" opacity="0.3"/>
+  <!-- Particles -->
+  <circle cx="265" cy="608" r="3" fill="#FF6B6B" opacity="0.6"/>
+  <circle cx="310" cy="612" r="2" fill="#4D96FF" opacity="0.6"/>
+  <circle cx="275" cy="645" r="2.5" fill="#6BCB77" opacity="0.6"/>
+  <circle cx="300" cy="640" r="2" fill="#DDA0DD" opacity="0.6"/>
+
+  <!-- Step 3 -->
+  <rect x="380" y="555" width="155" height="120" rx="10" fill="#2A2A3E"/>
+  <text x="457" y="580" text-anchor="middle" font-size="10" fill="#888">3. Rarity Reveal</text>
+  <!-- Card flip -->
+  <rect x="432" y="595" width="50" height="70" rx="6" fill="#333" stroke="#FFD700" stroke-width="2"/>
+  <text x="457" y="635" text-anchor="middle" font-size="20" fill="#FFD700">?</text>
+  <!-- Glow -->
+  <circle cx="457" cy="630" r="35" fill="#FFD700" opacity="0.08"/>
+
+  <!-- Step 4 -->
+  <rect x="550" y="555" width="155" height="120" rx="10" fill="#2A2A3E"/>
+  <text x="627" y="580" text-anchor="middle" font-size="10" fill="#888">4. Creature Born!</text>
+  <!-- Card revealed -->
+  <rect x="602" y="595" width="50" height="70" rx="6" fill="#E3F2FD" stroke="#42A5F5" stroke-width="2"/>
+  <circle cx="627" cy="620" r="12" fill="#90CAF9"/>
+  <circle cx="624" cy="618" r="2" fill="#1565C0"/>
+  <circle cx="630" cy="618" r="2" fill="#1565C0"/>
+  <text x="627" y="650" text-anchor="middle" font-size="7" fill="#1565C0">Rare!</text>
+  <!-- Sparkles -->
+  <text x="595" y="600" font-size="12" fill="#FFD700">*</text>
+  <text x="655" y="610" font-size="10" fill="#64B5F6">*</text>
+  <text x="600" y="660" font-size="8" fill="#FFD700">*</text>
+
+  <!-- Arrows -->
+  <text x="202" y="625" text-anchor="middle" font-size="18" fill="#555">></text>
+  <text x="372" y="625" text-anchor="middle" font-size="18" fill="#555">></text>
+  <text x="542" y="625" text-anchor="middle" font-size="18" fill="#555">></text>
+
+  <!-- Collection grid preview -->
+  <text x="400" y="720" text-anchor="middle" font-size="16" font-weight="bold" fill="#FFF">Collection Grid (Dex View)</text>
+
+  <g transform="translate(100, 740)">
+    <!-- Grid cells -->
+    <rect x="0" y="0" width="55" height="55" rx="6" fill="#2A2A3E" stroke="#444" stroke-width="1"/>
+    <circle cx="27" cy="22" r="14" fill="#E8E8E8" opacity="0.5"/>
+    <text x="27" y="48" text-anchor="middle" font-size="7" fill="#888">#001</text>
+
+    <rect x="65" y="0" width="55" height="55" rx="6" fill="#2A2A3E" stroke="#444" stroke-width="1"/>
+    <circle cx="92" cy="22" r="14" fill="#A5D6A7" opacity="0.5"/>
+    <text x="92" y="48" text-anchor="middle" font-size="7" fill="#888">#002</text>
+
+    <rect x="130" y="0" width="55" height="55" rx="6" fill="#2A2A3E" stroke="#42A5F5" stroke-width="1.5"/>
+    <circle cx="157" cy="22" r="14" fill="#90CAF9" opacity="0.5"/>
+    <text x="157" y="48" text-anchor="middle" font-size="7" fill="#42A5F5">#003</text>
+
+    <rect x="195" y="0" width="55" height="55" rx="6" fill="#1A1A28" stroke="#333" stroke-width="1"/>
+    <text x="222" y="30" text-anchor="middle" font-size="18" fill="#333">?</text>
+    <text x="222" y="48" text-anchor="middle" font-size="7" fill="#555">#004</text>
+
+    <rect x="260" y="0" width="55" height="55" rx="6" fill="#1A1A28" stroke="#333" stroke-width="1"/>
+    <text x="287" y="30" text-anchor="middle" font-size="18" fill="#333">?</text>
+    <text x="287" y="48" text-anchor="middle" font-size="7" fill="#555">#005</text>
+
+    <rect x="325" y="0" width="55" height="55" rx="6" fill="#2A2A3E" stroke="#AB47BC" stroke-width="1.5"/>
+    <circle cx="352" cy="22" r="14" fill="#CE93D8" opacity="0.5"/>
+    <text x="352" y="48" text-anchor="middle" font-size="7" fill="#AB47BC">#006</text>
+
+    <rect x="390" y="0" width="55" height="55" rx="6" fill="#1A1A28" stroke="#333" stroke-width="1"/>
+    <text x="417" y="30" text-anchor="middle" font-size="18" fill="#333">?</text>
+    <text x="417" y="48" text-anchor="middle" font-size="7" fill="#555">#007</text>
+
+    <rect x="455" y="0" width="55" height="55" rx="6" fill="#2A2A3E" stroke="#444" stroke-width="1"/>
+    <circle cx="482" cy="22" r="14" fill="#E8E8E8" opacity="0.5"/>
+    <text x="482" y="48" text-anchor="middle" font-size="7" fill="#888">#008</text>
+
+    <rect x="520" y="0" width="55" height="55" rx="6" fill="#2A2A3E" stroke="#FFB300" stroke-width="2"/>
+    <circle cx="547" cy="22" r="14" fill="#FFE082" opacity="0.5"/>
+    <text x="547" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#FFB300">#009</text>
+  </g>
+
+  <!-- Stats -->
+  <text x="400" y="830" text-anchor="middle" font-size="12" fill="#888">Collected: 5/9 (55%) | Common: 2 | Uncommon: 1 | Rare: 1 | Epic: 1</text>
+
+  <text x="400" y="875" text-anchor="middle" font-size="11" fill="#555">BarcodeQuest - Card Collection &amp; Gacha UI Concept</text>
+</svg>

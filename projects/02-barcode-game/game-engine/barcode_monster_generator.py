@@ -173,14 +173,14 @@ class BarcodeMonsterGenerator:
         }
 
     def generate_seed(self, barcode: str, latitude: float = 0, longitude: float = 0,
-                      hour: int = 12) -> str:
+                      hour: int = 12, month: int = 0) -> str:
         """
         결정적 시드 생성
 
-        같은 바코드 + 같은 위치 + 같은 시간대 = 항상 같은 몬스터
+        같은 바코드 + 같은 위치 + 같은 시간대 + 같은 계절 = 항상 같은 몬스터
         다른 위치나 시간대 = 다른 변형(Variant)
 
-        [특허 포인트] 바코드의 고유 정보와 컨텍스트(위치, 시간)의 결합
+        [특허 포인트] 바코드의 고유 정보와 컨텍스트(위치, 시간, 계절)의 결합
         """
         # 위치를 격자 단위로 양자화 (약 1km 단위)
         lat_grid = round(latitude * 100) / 100
@@ -196,8 +196,21 @@ class BarcodeMonsterGenerator:
         else:
             time_period = "night"
 
-        # 시드 문자열
-        seed_str = f"{barcode}|{lat_grid}|{lon_grid}|{time_period}"
+        # 계절 분류 (시드에 포함하여 계절별 변형 생성)
+        if month == 0:
+            from datetime import datetime
+            month = datetime.now().month
+        if month in (3, 4, 5):
+            season = "spring"
+        elif month in (6, 7, 8):
+            season = "summer"
+        elif month in (9, 10, 11):
+            season = "autumn"
+        else:
+            season = "winter"
+
+        # 시드 문자열 (계절 포함)
+        seed_str = f"{barcode}|{lat_grid}|{lon_grid}|{time_period}|{season}"
         return hashlib.sha256(seed_str.encode()).hexdigest()
 
     def determine_rarity(self, barcode_data: dict, seed: str) -> Rarity:

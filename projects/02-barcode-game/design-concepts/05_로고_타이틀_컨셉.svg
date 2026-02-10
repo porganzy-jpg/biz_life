@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="logo1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+    <linearGradient id="logo2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#FFA500"/>
+    </linearGradient>
+    <linearGradient id="logo3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="33%" stop-color="#FFD93D"/>
+      <stop offset="66%" stop-color="#6BCB77"/>
+      <stop offset="100%" stop-color="#4D96FF"/>
+    </linearGradient>
+    <linearGradient id="logo4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F2027"/>
+      <stop offset="100%" stop-color="#2C5364"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="1000" fill="#FAFAFA"/>
+  <text x="400" y="45" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">Logo &amp; Title Concepts</text>
+  <text x="400" y="68" text-anchor="middle" font-size="13" fill="#999">Title treatments for top game concepts</text>
+
+  <!-- Logo 1: Heart Weather -->
+  <rect x="30" y="90" width="360" height="155" rx="16" fill="#F8F6FF" stroke="#E8E0F0" stroke-width="1.5"/>
+
+  <!-- Barcode-inspired lines with cloud on top -->
+  <g transform="translate(90, 155)">
+    <rect x="0" y="0" width="4" height="35" fill="#6B5B95" rx="1"/>
+    <rect x="7" y="5" width="3" height="30" fill="#6B5B95" rx="1"/>
+    <rect x="13" y="0" width="5" height="35" fill="#6B5B95" rx="1"/>
+    <rect x="21" y="8" width="3" height="27" fill="#6B5B95" rx="1"/>
+    <rect x="27" y="0" width="4" height="35" fill="#6B5B95" rx="1"/>
+    <rect x="34" y="3" width="3" height="32" fill="#6B5B95" rx="1"/>
+    <!-- Cloud emerging from barcode -->
+    <ellipse cx="20" cy="-8" rx="22" ry="14" fill="#E8E0F0"/>
+    <ellipse cx="10" cy="-5" rx="12" ry="10" fill="#E8E0F0"/>
+    <ellipse cx="30" cy="-5" rx="12" ry="10" fill="#E8E0F0"/>
+    <ellipse cx="20" cy="-12" rx="15" ry="10" fill="#F3EFFF"/>
+    <!-- Little face on cloud -->
+    <circle cx="15" cy="-12" r="2" fill="#6B5B95"/>
+    <circle cx="25" cy="-12" r="2" fill="#6B5B95"/>
+    <path d="M18,-7 Q20,-4 22,-7" fill="none" stroke="#6B5B95" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <text x="175" y="155" font-size="22" font-weight="bold" fill="url(#logo1)">Heart</text>
+  <text x="175" y="180" font-size="22" font-weight="bold" fill="url(#logo1)">Weather</text>
+  <text x="175" y="200" font-size="11" fill="#A89FCC">Scan the sky of emotions</text>
+  <text x="360" y="225" text-anchor="end" font-size="9" fill="#BBB">Concept #01 - Emotion + Weather</text>
+
+  <!-- Logo 2: Forgotten Things Box -->
+  <rect x="410" y="90" width="360" height="155" rx="16" fill="#FFFAF3" stroke="#E8D5B5" stroke-width="1.5"/>
+
+  <!-- Old box with creature peeking -->
+  <g transform="translate(470, 148)">
+    <!-- Box -->
+    <rect x="0" y="10" width="50" height="35" rx="4" fill="#D7CCC8" stroke="#8D6E63" stroke-width="2"/>
+    <!-- Box lid (slightly open) -->
+    <path d="M-3,10 L25,-5 L53,10" fill="#BCAAA4" stroke="#8D6E63" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Creature peeking out -->
+    <circle cx="30" cy="5" r="10" fill="#EFEBE9" stroke="#8D6E63" stroke-width="1.5"/>
+    <circle cx="27" cy="3" r="2" fill="#5D4037"/>
+    <circle cx="33" cy="3" r="2" fill="#5D4037"/>
+    <path d="M29,8 Q30,10 31,8" fill="none" stroke="#5D4037" stroke-width="1" stroke-linecap="round"/>
+    <!-- Sparkle -->
+    <text x="42" y="-2" font-size="10" fill="#FFD700">*</text>
+  </g>
+
+  <text x="555" y="160" font-size="20" font-weight="bold" fill="#5D4037">Forgotten</text>
+  <text x="555" y="185" font-size="20" font-weight="bold" fill="#5D4037">Things Box</text>
+  <text x="555" y="203" font-size="11" fill="#BCAAA4">Open the box of memories</text>
+  <text x="740" y="225" text-anchor="end" font-size="9" fill="#BBB">Concept #07 - Memory + Vintage</text>
+
+  <!-- Logo 3: Invisible Thread -->
+  <rect x="30" y="265" width="360" height="155" rx="16" fill="#FFF5F5" stroke="#FFB6C1" stroke-width="1.5"/>
+
+  <g transform="translate(80, 340)">
+    <!-- Two creatures connected by thread -->
+    <circle cx="0" cy="0" r="14" fill="#FFE4EC"/>
+    <circle cx="-4" cy="-3" r="2" fill="#DB7093"/>
+    <circle cx="4" cy="-3" r="2" fill="#DB7093"/>
+    <path d="M-2,4 Q0,6 2,4" fill="none" stroke="#DB7093" stroke-width="1" stroke-linecap="round"/>
+
+    <!-- Thread -->
+    <path d="M14,0 Q30,-15 45,-5 Q60,5 75,0" fill="none" stroke="#FF69B4" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+    <circle cx="85" cy="0" r="14" fill="#E8F5E9"/>
+    <circle cx="81" cy="-3" r="2" fill="#4CAF50"/>
+    <circle cx="89" cy="-3" r="2" fill="#4CAF50"/>
+    <path d="M83,4 Q85,6 87,4" fill="none" stroke="#4CAF50" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <text x="215" y="330" font-size="22" font-weight="bold" fill="#DB7093">Invisible</text>
+  <text x="215" y="357" font-size="22" font-weight="bold" fill="#DB7093">Thread</text>
+  <text x="215" y="377" font-size="11" fill="#FFB6C1">We're connected, somehow</text>
+  <text x="360" y="400" text-anchor="end" font-size="9" fill="#BBB">Concept #19 - Connection + Fate</text>
+
+  <!-- Logo 4: Night Sky Postman -->
+  <rect x="410" y="265" width="360" height="155" rx="16" fill="#1A1A2E" stroke="#2C3E50" stroke-width="1.5"/>
+
+  <g transform="translate(470, 340)">
+    <!-- Moon -->
+    <circle cx="20" cy="-5" r="18" fill="#F0E68C" opacity="0.8"/>
+    <circle cx="28" cy="-10" r="15" fill="#1A1A2E"/>
+    <!-- Stars -->
+    <circle cx="0" cy="-20" r="1.5" fill="#FFF" opacity="0.6"/>
+    <circle cx="45" cy="-25" r="2" fill="#FFF" opacity="0.4"/>
+    <circle cx="55" cy="0" r="1" fill="#FFF" opacity="0.7"/>
+    <!-- Little envelope with wings -->
+    <rect x="25" y="5" width="20" height="14" rx="2" fill="#FFF" opacity="0.9"/>
+    <path d="M25,5 L35,14 L45,5" fill="none" stroke="#FFD700" stroke-width="1"/>
+    <!-- Wings on envelope -->
+    <path d="M25,10 Q15,3 18,15" fill="none" stroke="#B0C4DE" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M45,10 Q55,3 52,15" fill="none" stroke="#B0C4DE" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <text x="555" y="330" font-size="20" font-weight="bold" fill="#F0E68C">Night Sky</text>
+  <text x="555" y="357" font-size="20" font-weight="bold" fill="#B0C4DE">Postman</text>
+  <text x="555" y="377" font-size="11" fill="#5B9BD5">Delivering dreams under stars</text>
+  <text x="740" y="400" text-anchor="end" font-size="9" fill="#555">Concept #27 - Night + Idle</text>
+
+  <!-- Logo 5: Growing Pains Diary -->
+  <rect x="30" y="440" width="360" height="155" rx="16" fill="#FFF8E1" stroke="#FFE082" stroke-width="1.5"/>
+
+  <g transform="translate(85, 510)">
+    <!-- Diary book -->
+    <rect x="0" y="-5" width="40" height="50" rx="3" fill="#FFE082" stroke="#F9A825" stroke-width="1.5"/>
+    <line x1="10" y1="-5" x2="10" y2="45" stroke="#F9A825" stroke-width="1" stroke-dasharray="3,3"/>
+    <!-- Plant growing from book -->
+    <line x1="25" y1="-5" x2="25" y2="-20" stroke="#66BB6A" stroke-width="2"/>
+    <ellipse cx="18" cy="-22" rx="8" ry="6" fill="#81C784"/>
+    <ellipse cx="32" cy="-25" rx="8" ry="6" fill="#66BB6A"/>
+    <circle cx="25" cy="-32" r="5" fill="#FFAB91"/>
+    <!-- Band-aid on book -->
+    <rect x="22" y="15" width="16" height="8" rx="4" fill="#FFCCBC" stroke="#FF8A65" stroke-width="0.8"/>
+    <line x1="25" y1="17" x2="25" y2="21" stroke="#FF8A65" stroke-width="0.5"/>
+    <line x1="35" y1="17" x2="35" y2="21" stroke="#FF8A65" stroke-width="0.5"/>
+  </g>
+
+  <text x="180" y="505" font-size="22" font-weight="bold" fill="#F57F17">Growing</text>
+  <text x="180" y="532" font-size="22" font-weight="bold" fill="#F57F17">Pains Diary</text>
+  <text x="180" y="552" font-size="11" fill="#FFB300">It hurts because you're growing</text>
+  <text x="360" y="575" text-anchor="end" font-size="9" fill="#BBB">Concept #13 - Growth + Journal</text>
+
+  <!-- Logo 6: Fridge Kingdom -->
+  <rect x="410" y="440" width="360" height="155" rx="16" fill="#F1F8E9" stroke="#AED581" stroke-width="1.5"/>
+
+  <g transform="translate(470, 510)">
+    <!-- Fridge -->
+    <rect x="0" y="-15" width="35" height="50" rx="4" fill="#E8EAF6" stroke="#7986CB" stroke-width="1.5"/>
+    <rect x="0" y="-15" width="35" height="22" rx="4" fill="#C5CAE9" stroke="#7986CB" stroke-width="1.5"/>
+    <circle cx="30" cy="0" r="2" fill="#9FA8DA"/>
+    <circle cx="30" cy="22" r="2" fill="#9FA8DA"/>
+    <!-- Crown on fridge -->
+    <path d="M8,-18 L12,-28 L18,-18 L22,-30 L28,-18 L32,-28 L36,-18" fill="#FFD700" stroke="#FFA000" stroke-width="1" stroke-linejoin="round"/>
+    <!-- Little characters peeking -->
+    <circle cx="-5" cy="10" r="7" fill="#FFEB3B" stroke="#F57F17" stroke-width="1"/>
+    <circle cx="-7" cy="8" r="1.5" fill="#333"/>
+    <circle cx="-3" cy="8" r="1.5" fill="#333"/>
+    <circle cx="40" cy="5" r="7" fill="#EF5350" stroke="#C62828" stroke-width="1"/>
+    <circle cx="38" cy="3" r="1.5" fill="#FFF"/>
+    <circle cx="42" cy="3" r="1.5" fill="#FFF"/>
+  </g>
+
+  <text x="555" y="505" font-size="22" font-weight="bold" fill="#558B2F">Fridge</text>
+  <text x="555" y="532" font-size="22" font-weight="bold" fill="#558B2F">Kingdom</text>
+  <text x="555" y="552" font-size="11" fill="#7CB342">When midnight comes, they awaken!</text>
+  <text x="740" y="575" text-anchor="end" font-size="9" fill="#BBB">Concept #29 - Fun + Food</text>
+
+  <!-- Barcode integration concept -->
+  <line x1="100" y1="620" x2="700" y2="620" stroke="#DDD" stroke-width="1"/>
+  <text x="400" y="655" text-anchor="middle" font-size="18" font-weight="bold" fill="#555">Barcode Integration in Logo</text>
+  <text x="400" y="678" text-anchor="middle" font-size="12" fill="#999">The barcode itself becomes part of the visual identity</text>
+
+  <!-- Barcode morphing concepts -->
+  <!-- Barcode to creature -->
+  <g transform="translate(130, 750)">
+    <text x="0" y="-30" text-anchor="middle" font-size="11" fill="#888">Barcode → Creature</text>
+    <rect x="-40" y="-15" width="4" height="40" fill="#333" rx="1"/>
+    <rect x="-33" y="-10" width="3" height="35" fill="#333" rx="1"/>
+    <rect x="-27" y="-15" width="5" height="40" fill="#333" rx="1"/>
+    <rect x="-19" y="-8" width="3" height="33" fill="#333" rx="1"/>
+    <rect x="-13" y="-15" width="4" height="40" fill="#333" rx="1"/>
+    <!-- Transition -->
+    <rect x="-3" y="-12" width="4" height="37" fill="#6B5B95" rx="1"/>
+    <rect x="4" y="-8" width="3" height="33" fill="#9C89E0" rx="1"/>
+    <rect x="10" y="-15" width="5" height="35" fill="#B8A9D4" rx="1" opacity="0.8"/>
+    <!-- Creature emerging -->
+    <circle cx="30" cy="5" r="16" fill="#E8E0F0"/>
+    <circle cx="26" cy="2" r="2" fill="#6B5B95"/>
+    <circle cx="34" cy="2" r="2" fill="#6B5B95"/>
+    <path d="M28,9 Q30,12 32,9" fill="none" stroke="#6B5B95" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <!-- Barcode as landscape -->
+  <g transform="translate(400, 750)">
+    <text x="0" y="-30" text-anchor="middle" font-size="11" fill="#888">Barcode → Landscape</text>
+    <!-- Bars become buildings/trees -->
+    <rect x="-40" y="5" width="6" height="20" fill="#4CAF50" rx="2"/>
+    <rect x="-30" y="-10" width="4" height="35" fill="#66BB6A" rx="2"/>
+    <rect x="-23" y="-5" width="8" height="30" fill="#81C784" rx="2"/>
+    <rect x="-12" y="0" width="5" height="25" fill="#A5D6A7" rx="2"/>
+    <rect x="-4" y="-15" width="6" height="40" fill="#43A047" rx="2"/>
+    <rect x="5" y="-8" width="4" height="33" fill="#388E3C" rx="2"/>
+    <rect x="12" y="2" width="7" height="23" fill="#2E7D32" rx="2"/>
+    <rect x="22" y="-5" width="5" height="30" fill="#4CAF50" rx="2"/>
+    <rect x="30" y="8" width="4" height="17" fill="#66BB6A" rx="2"/>
+    <!-- Sun -->
+    <circle cx="35" cy="-15" r="8" fill="#FFD700" opacity="0.5"/>
+    <!-- Ground -->
+    <line x1="-45" y1="25" x2="45" y2="25" stroke="#795548" stroke-width="2"/>
+  </g>
+
+  <!-- Barcode as musical staff -->
+  <g transform="translate(670, 750)">
+    <text x="0" y="-30" text-anchor="middle" font-size="11" fill="#888">Barcode → Music</text>
+    <!-- Staff lines -->
+    <line x1="-40" y1="-10" x2="40" y2="-10" stroke="#DDD" stroke-width="0.8"/>
+    <line x1="-40" y1="0" x2="40" y2="0" stroke="#DDD" stroke-width="0.8"/>
+    <line x1="-40" y1="10" x2="40" y2="10" stroke="#DDD" stroke-width="0.8"/>
+    <line x1="-40" y1="20" x2="40" y2="20" stroke="#DDD" stroke-width="0.8"/>
+    <!-- Bars become notes -->
+    <rect x="-35" y="-10" width="3" height="30" fill="#333" rx="1"/>
+    <circle cx="-33" cy="20" r="4" fill="#333"/>
+    <rect x="-25" y="-5" width="3" height="25" fill="#FF6B6B" rx="1"/>
+    <circle cx="-23" cy="20" r="4" fill="#FF6B6B"/>
+    <rect x="-15" y="0" width="3" height="20" fill="#FFD93D" rx="1"/>
+    <circle cx="-13" cy="20" r="4" fill="#FFD93D"/>
+    <rect x="-5" y="-10" width="3" height="30" fill="#6BCB77" rx="1"/>
+    <circle cx="-3" cy="20" r="4" fill="#6BCB77"/>
+    <rect x="5" y="5" width="3" height="15" fill="#4D96FF" rx="1"/>
+    <circle cx="7" cy="20" r="4" fill="#4D96FF"/>
+    <rect x="15" y="-5" width="3" height="25" fill="#DDA0DD" rx="1"/>
+    <circle cx="17" cy="20" r="4" fill="#DDA0DD"/>
+  </g>
+
+  <!-- Footer -->
+  <text x="400" y="840" text-anchor="middle" font-size="14" fill="#BBB">BarcodeQuest - Logo &amp; Title Concept Sheet</text>
+  <text x="400" y="860" text-anchor="middle" font-size="11" fill="#DDD">The barcode is not just a mechanic, it's the visual soul of the game</text>
+</svg>

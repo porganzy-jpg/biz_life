@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="watercolor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFDEE9"/>
+      <stop offset="100%" stop-color="#B5FFFC"/>
+    </linearGradient>
+    <linearGradient id="retro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FBE8A6"/>
+      <stop offset="100%" stop-color="#F4A261"/>
+    </linearGradient>
+    <filter id="rough">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="3"/>
+    </filter>
+    <filter id="blur">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <rect width="800" height="1000" fill="#FAF9F6"/>
+
+  <!-- Title -->
+  <text x="400" y="50" text-anchor="middle" font-size="26" font-weight="bold" fill="#4A4A4A">Creature Art Style Directions</text>
+  <text x="400" y="75" text-anchor="middle" font-size="14" fill="#999">4 Visual Approaches for BarcodeQuest</text>
+
+  <!-- Style A: Soft Watercolor -->
+  <rect x="30" y="100" width="360" height="380" rx="16" fill="#FFF" stroke="#E8E0F0" stroke-width="2"/>
+  <rect x="30" y="100" width="360" height="45" rx="16" fill="#E8E0F0"/>
+  <rect x="30" y="129" width="360" height="16" fill="#E8E0F0"/>
+  <text x="210" y="130" text-anchor="middle" font-size="16" font-weight="bold" fill="#6B5B95">A. Soft Watercolor Style</text>
+
+  <!-- Watercolor creature -->
+  <g transform="translate(210, 310)">
+    <!-- Body - soft blob -->
+    <ellipse cx="0" cy="15" rx="55" ry="20" fill="#B5FFFC" opacity="0.3"/>
+    <ellipse cx="0" cy="-5" rx="50" ry="45" fill="#FFDEE9" opacity="0.4"/>
+    <ellipse cx="0" cy="-5" rx="42" ry="38" fill="#FFDEE9" opacity="0.5"/>
+    <ellipse cx="0" cy="-5" rx="35" ry="32" fill="#FFE4EC" opacity="0.7"/>
+    <!-- Ears -->
+    <ellipse cx="-22" cy="-40" rx="12" ry="18" fill="#FFDEE9" opacity="0.6" transform="rotate(-15,-22,-40)"/>
+    <ellipse cx="22" cy="-40" rx="12" ry="18" fill="#FFDEE9" opacity="0.6" transform="rotate(15,22,-40)"/>
+    <!-- Face -->
+    <circle cx="-10" cy="-12" r="5" fill="#FFF"/>
+    <circle cx="10" cy="-12" r="5" fill="#FFF"/>
+    <circle cx="-10" cy="-12" r="2.5" fill="#6B5B95"/>
+    <circle cx="10" cy="-12" r="2.5" fill="#6B5B95"/>
+    <circle cx="-8" cy="-13" r="1" fill="#FFF"/>
+    <circle cx="12" cy="-13" r="1" fill="#FFF"/>
+    <path d="M-5,0 Q0,5 5,0" fill="none" stroke="#C9A0DC" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Blush -->
+    <ellipse cx="-18" cy="-3" rx="7" ry="4" fill="#FFB6C1" opacity="0.4"/>
+    <ellipse cx="18" cy="-3" rx="7" ry="4" fill="#FFB6C1" opacity="0.4"/>
+    <!-- Sparkles -->
+    <text x="-40" y="-30" font-size="14" opacity="0.5">*</text>
+    <text x="35" y="-40" font-size="10" opacity="0.4">*</text>
+    <text x="45" y="-10" font-size="12" opacity="0.3">*</text>
+  </g>
+
+  <text x="210" y="410" text-anchor="middle" font-size="11" fill="#999">Soft edges, transparent layers</text>
+  <text x="210" y="425" text-anchor="middle" font-size="11" fill="#999">Pastel gradients, dreamy feel</text>
+  <text x="210" y="450" text-anchor="middle" font-size="12" fill="#6B5B95">Best for: Heart Weather, Teardrop Garden</text>
+
+  <!-- Style B: Crayon Sketch -->
+  <rect x="410" y="100" width="360" height="380" rx="16" fill="#FFF" stroke="#F4A261" stroke-width="2"/>
+  <rect x="410" y="100" width="360" height="45" rx="16" fill="#FBE8A6"/>
+  <rect x="410" y="129" width="360" height="16" fill="#FBE8A6"/>
+  <text x="590" y="130" text-anchor="middle" font-size="16" font-weight="bold" fill="#E76F51">B. Crayon / Kid Drawing Style</text>
+
+  <!-- Crayon creature -->
+  <g transform="translate(590, 310)">
+    <!-- Body - hand drawn look -->
+    <path d="M-35,25 C-40,10 -45,-15 -35,-30 C-25,-45 -10,-50 0,-48 C10,-50 25,-45 35,-30 C45,-15 40,10 35,25 C30,35 -30,35 -35,25Z" fill="#FFE082" stroke="#E76F51" stroke-width="3" stroke-linejoin="round"/>
+    <!-- Hand-drawn eyes (imperfect circles) -->
+    <path d="M-15,-15 C-15,-21 -7,-21 -7,-15 C-7,-9 -15,-9 -15,-15Z" fill="#333" stroke="#333" stroke-width="2"/>
+    <path d="M7,-15 C7,-21 15,-21 15,-15 C15,-9 7,-9 7,-15Z" fill="#333" stroke="#333" stroke-width="2"/>
+    <!-- Smile -->
+    <path d="M-10,2 C-5,12 5,12 10,2" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Arms (stick-like) -->
+    <line x1="-38" y1="0" x2="-55" y2="-15" stroke="#E76F51" stroke-width="3" stroke-linecap="round"/>
+    <line x1="38" y1="0" x2="55" y2="-15" stroke="#E76F51" stroke-width="3" stroke-linecap="round"/>
+    <!-- Legs -->
+    <line x1="-15" y1="28" x2="-18" y2="50" stroke="#E76F51" stroke-width="3" stroke-linecap="round"/>
+    <line x1="15" y1="28" x2="18" y2="50" stroke="#E76F51" stroke-width="3" stroke-linecap="round"/>
+    <!-- Crown (childish) -->
+    <path d="M-18,-45 L-12,-55 L-5,-45 L0,-58 L5,-45 L12,-55 L18,-45" fill="#FFD700" stroke="#E76F51" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Stars around -->
+    <text x="-50" y="-40" font-size="16" fill="#E76F51">*</text>
+    <text x="45" y="-35" font-size="20" fill="#F4A261">*</text>
+  </g>
+
+  <text x="590" y="410" text-anchor="middle" font-size="11" fill="#999">Hand-drawn, imperfect lines</text>
+  <text x="590" y="425" text-anchor="middle" font-size="11" fill="#999">Crayon texture, warm paper bg</text>
+  <text x="590" y="450" text-anchor="middle" font-size="12" fill="#E76F51">Best for: Imaginary Friends, Dreams</text>
+
+  <!-- Style C: Minimal Flat -->
+  <rect x="30" y="500" width="360" height="380" rx="16" fill="#FFF" stroke="#4ECDC4" stroke-width="2"/>
+  <rect x="30" y="500" width="360" height="45" rx="16" fill="#E0F7FA"/>
+  <rect x="30" y="529" width="360" height="16" fill="#E0F7FA"/>
+  <text x="210" y="530" text-anchor="middle" font-size="16" font-weight="bold" fill="#00897B">C. Minimal Flat Style</text>
+
+  <!-- Flat creature -->
+  <g transform="translate(210, 700)">
+    <!-- Body - clean geometric -->
+    <circle cx="0" cy="0" r="42" fill="#4ECDC4"/>
+    <circle cx="0" cy="0" r="36" fill="#80DEEA"/>
+    <!-- Eyes - simple dots -->
+    <circle cx="-12" cy="-8" r="4" fill="#263238"/>
+    <circle cx="12" cy="-8" r="4" fill="#263238"/>
+    <circle cx="-10" cy="-9" r="1.5" fill="#FFF"/>
+    <circle cx="14" cy="-9" r="1.5" fill="#FFF"/>
+    <!-- Mouth - simple line -->
+    <path d="M-6,8 Q0,14 6,8" fill="none" stroke="#263238" stroke-width="2" stroke-linecap="round"/>
+    <!-- Ears - triangles -->
+    <polygon points="-25,-35 -35,-55 -15,-45" fill="#4ECDC4"/>
+    <polygon points="25,-35 35,-55 15,-45" fill="#4ECDC4"/>
+    <polygon points="-24,-38 -32,-52 -17,-44" fill="#80DEEA"/>
+    <polygon points="24,-38 32,-52 17,-44" fill="#80DEEA"/>
+    <!-- Tail -->
+    <path d="M38,10 Q55,5 50,20 Q45,35 60,30" fill="none" stroke="#4ECDC4" stroke-width="5" stroke-linecap="round"/>
+    <!-- Badge -->
+    <circle cx="28" cy="-25" r="8" fill="#FFD54F"/>
+    <text x="28" y="-21" text-anchor="middle" font-size="10" fill="#FFF" font-weight="bold">!</text>
+  </g>
+
+  <text x="210" y="800" text-anchor="middle" font-size="11" fill="#999">Clean shapes, solid colors</text>
+  <text x="210" y="815" text-anchor="middle" font-size="11" fill="#999">Geometric forms, no gradients</text>
+  <text x="210" y="840" text-anchor="middle" font-size="12" fill="#00897B">Best for: Alley Explorers, Corner Fairies</text>
+
+  <!-- Style D: Storybook / Vintage -->
+  <rect x="410" y="500" width="360" height="380" rx="16" fill="#FFF" stroke="#8D6E63" stroke-width="2"/>
+  <rect x="410" y="500" width="360" height="45" rx="16" fill="#EFEBE9"/>
+  <rect x="410" y="529" width="360" height="16" fill="#EFEBE9"/>
+  <text x="590" y="530" text-anchor="middle" font-size="16" font-weight="bold" fill="#5D4037">D. Storybook / Vintage Style</text>
+
+  <!-- Storybook creature -->
+  <g transform="translate(590, 700)">
+    <!-- Body - old toy feel -->
+    <ellipse cx="0" cy="5" rx="38" ry="40" fill="#D7CCC8" stroke="#8D6E63" stroke-width="2"/>
+    <ellipse cx="0" cy="5" rx="32" ry="34" fill="#EFEBE9" stroke="#BCAAA4" stroke-width="1"/>
+    <!-- Patch (stitched look) -->
+    <ellipse cx="15" cy="15" rx="10" ry="8" fill="#A1887F" opacity="0.3" stroke="#8D6E63" stroke-width="1" stroke-dasharray="3,2"/>
+    <!-- Button eyes -->
+    <circle cx="-12" cy="-10" r="6" fill="#8D6E63" stroke="#5D4037" stroke-width="1.5"/>
+    <circle cx="12" cy="-10" r="6" fill="#8D6E63" stroke="#5D4037" stroke-width="1.5"/>
+    <line x1="-12" y1="-13" x2="-12" y2="-7" stroke="#EFEBE9" stroke-width="1"/>
+    <line x1="-15" y1="-10" x2="-9" y2="-10" stroke="#EFEBE9" stroke-width="1"/>
+    <line x1="12" y1="-13" x2="12" y2="-7" stroke="#EFEBE9" stroke-width="1"/>
+    <line x1="9" y1="-10" x2="15" y2="-10" stroke="#EFEBE9" stroke-width="1"/>
+    <!-- Stitched mouth -->
+    <path d="M-8,5 L-4,8 L0,5 L4,8 L8,5" fill="none" stroke="#5D4037" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Ears -->
+    <circle cx="-30" cy="-30" r="12" fill="#D7CCC8" stroke="#8D6E63" stroke-width="2"/>
+    <circle cx="30" cy="-30" r="12" fill="#D7CCC8" stroke="#8D6E63" stroke-width="2"/>
+    <circle cx="-30" cy="-30" r="7" fill="#BCAAA4"/>
+    <circle cx="30" cy="-30" r="7" fill="#BCAAA4"/>
+    <!-- Little bow -->
+    <path d="M-6,-42 C-15,-50 -5,-55 0,-45 C5,-55 15,-50 6,-42" fill="#E57373" stroke="#C62828" stroke-width="1"/>
+    <circle cx="0" cy="-43" r="3" fill="#EF5350"/>
+  </g>
+
+  <text x="590" y="800" text-anchor="middle" font-size="11" fill="#999">Stitched, patched, worn textures</text>
+  <text x="590" y="815" text-anchor="middle" font-size="11" fill="#999">Button eyes, fabric feel, warm tones</text>
+  <text x="590" y="840" text-anchor="middle" font-size="12" fill="#5D4037">Best for: Old Toy Box, Forgotten Things</text>
+
+  <!-- Footer -->
+  <text x="400" y="930" text-anchor="middle" font-size="14" fill="#BBB">BarcodeQuest - Art Style Direction Sheet</text>
+  <text x="400" y="955" text-anchor="middle" font-size="11" fill="#DDD">Each style can be mixed or used as seasonal themes</text>
+</svg>

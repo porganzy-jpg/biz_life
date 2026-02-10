@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="hotRed" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF5722"/>
+      <stop offset="100%" stop-color="#D84315"/>
+    </linearGradient>
+    <linearGradient id="hotOrange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF9800"/>
+      <stop offset="100%" stop-color="#F57C00"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="900" fill="#FFF3E0"/>
+
+  <text x="400" y="40" text-anchor="middle" font-size="11" fill="#E65100" letter-spacing="4">TYPE 03</text>
+  <text x="400" y="72" text-anchor="middle" font-size="28" font-weight="bold" fill="#FF5722">HOT-BLOODED / SHONEN</text>
+  <text x="400" y="95" text-anchor="middle" font-size="13" fill="#FF8A65">"포기하지 마! 아직 끝나지 않았어!!"</text>
+  <text x="400" y="115" text-anchor="middle" font-size="11" fill="#FFAB91">만화책 속 주인공처럼 뜨겁던 시절. 꿈을 외치면 뭐든 될 것 같았던 그때.</text>
+
+  <line x1="100" y1="130" x2="700" y2="130" stroke="#FFE0B2" stroke-width="1"/>
+
+  <!-- Stage 1: Exhausted -->
+  <text x="200" y="165" text-anchor="middle" font-size="14" font-weight="bold" fill="#BF360C">Stage 1: Exhausted</text>
+  <text x="200" y="182" text-anchor="middle" font-size="10" fill="#FFAB91">"...하아... 이제 꿈 같은 건..."</text>
+
+  <g transform="translate(200, 340)">
+    <ellipse cx="0" cy="80" rx="40" ry="8" fill="#FF5722" opacity="0.1"/>
+
+    <!-- Slouching fire creature -->
+    <!-- Body (dim flame shape) -->
+    <path d="M-22,15 Q-25,-10 -15,-25 Q0,-40 15,-25 Q25,-10 22,15 Q15,55 -15,55Z" fill="#FFCCBC" stroke="#FFAB91" stroke-width="1.5" opacity="0.7"/>
+    <path d="M-15,15 Q-18,-5 -10,-18 Q0,-28 10,-18 Q18,-5 15,15 Q10,45 -10,45Z" fill="#FFE0B2" opacity="0.6"/>
+
+    <!-- Face (tired) -->
+    <!-- Eyes (half-closed, tired) -->
+    <line x1="-10" y1="-8" x2="-4" y2="-8" stroke="#BF360C" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <line x1="4" y1="-8" x2="10" y2="-8" stroke="#BF360C" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    <!-- Tired mouth -->
+    <path d="M-5,2 L5,2" fill="none" stroke="#BF360C" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+
+    <!-- Drooping headband -->
+    <path d="M-20,-18 Q-5,-22 20,-18" fill="none" stroke="#FF8A65" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    <path d="M20,-18 Q25,-15 28,-20" fill="none" stroke="#FF8A65" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+
+    <!-- Extinguished spark -->
+    <circle cx="0" cy="-30" r="5" fill="#FF5722" opacity="0.1"/>
+    <circle cx="0" cy="-30" r="3" fill="#FF5722" opacity="0.15"/>
+
+    <!-- Smoke wisps (instead of fire) -->
+    <path d="M-8,-35 Q-10,-42 -6,-45" fill="none" stroke="#BCAAA4" stroke-width="1" opacity="0.3"/>
+    <path d="M5,-33 Q7,-40 3,-44" fill="none" stroke="#BCAAA4" stroke-width="1" opacity="0.2"/>
+  </g>
+
+  <!-- Stage 3: Blazing -->
+  <text x="600" y="165" text-anchor="middle" font-size="14" font-weight="bold" fill="#FF5722">Stage 3: BLAZING</text>
+  <text x="600" y="182" text-anchor="middle" font-size="10" fill="#FF8A65">"불꽃이야!! 내 안의 불꽃은 절대 꺼지지 않아!!!"</text>
+
+  <g transform="translate(600, 330)">
+    <ellipse cx="0" cy="90" rx="50" ry="10" fill="#FF5722" opacity="0.15"/>
+
+    <!-- Fire aura -->
+    <circle cx="0" cy="5" r="80" fill="#FF5722" opacity="0.04"/>
+    <circle cx="0" cy="5" r="65" fill="#FF9800" opacity="0.05"/>
+
+    <!-- Blazing body -->
+    <path d="M-28,20 Q-35,-15 -20,-40 Q-10,-55 0,-60 Q10,-55 20,-40 Q35,-15 28,20 Q20,60 -20,60Z" fill="url(#hotRed)" opacity="0.8" stroke="#BF360C" stroke-width="1.5"/>
+    <path d="M-20,15 Q-25,-10 -15,-30 Q-5,-42 0,-45 Q5,-42 15,-30 Q25,-10 20,15 Q15,50 -15,50Z" fill="url(#hotOrange)" opacity="0.7"/>
+    <path d="M-12,10 Q-15,-5 -8,-20 Q0,-30 8,-20 Q15,-5 12,10 Q8,35 -8,35Z" fill="#FFD54F" opacity="0.5"/>
+
+    <!-- Fierce eyes -->
+    <path d="M-14,-12 L-4,-8 L-14,-4Z" fill="#FFF" stroke="#BF360C" stroke-width="1"/>
+    <circle cx="-10" cy="-8" r="3" fill="#BF360C"/>
+    <circle cx="-9" cy="-9" r="1" fill="#FFF"/>
+    <path d="M4,-12 L14,-8 L4,-4Z" fill="#FFF" stroke="#BF360C" stroke-width="1"/>
+    <circle cx="8" cy="-8" r="3" fill="#BF360C"/>
+    <circle cx="9" cy="-9" r="1" fill="#FFF"/>
+
+    <!-- Determined grin -->
+    <path d="M-8,5 Q0,14 8,5" fill="#FFF" stroke="#BF360C" stroke-width="1.5"/>
+    <line x1="-5" y1="8" x2="5" y2="8" stroke="#BF360C" stroke-width="0.5"/>
+
+    <!-- HEADBAND (flying dramatically) -->
+    <path d="M-22,-20 Q0,-28 22,-20" fill="none" stroke="#FF5722" stroke-width="4" stroke-linecap="round"/>
+    <path d="M22,-20 Q35,-18 45,-25 Q50,-28 48,-22" fill="none" stroke="#FF5722" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M48,-22 Q55,-20 52,-15" fill="none" stroke="#FF5722" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Fists raised -->
+    <circle cx="-35" cy="-25" r="10" fill="#FFD54F" stroke="#FF9800" stroke-width="2"/>
+    <circle cx="35" cy="-25" r="10" fill="#FFD54F" stroke="#FF9800" stroke-width="2"/>
+
+    <!-- Flame crown -->
+    <path d="M-10,-55 Q-5,-70 0,-58 Q5,-72 10,-55" fill="#FF5722" opacity="0.6"/>
+    <path d="M-6,-52 Q0,-65 6,-52" fill="#FF9800" opacity="0.5"/>
+    <path d="M-3,-50 Q0,-58 3,-50" fill="#FFD54F" opacity="0.4"/>
+
+    <!-- Speed lines / impact -->
+    <line x1="-60" y1="-30" x2="-50" y2="-25" stroke="#FF5722" stroke-width="2" opacity="0.3"/>
+    <line x1="-65" y1="-10" x2="-52" y2="-8" stroke="#FF5722" stroke-width="1.5" opacity="0.25"/>
+    <line x1="60" y1="-30" x2="50" y2="-25" stroke="#FF5722" stroke-width="2" opacity="0.3"/>
+    <line x1="65" y1="-10" x2="52" y2="-8" stroke="#FF5722" stroke-width="1.5" opacity="0.25"/>
+    <line x1="-55" y1="15" x2="-48" y2="12" stroke="#FF9800" stroke-width="1" opacity="0.2"/>
+    <line x1="55" y1="15" x2="48" y2="12" stroke="#FF9800" stroke-width="1" opacity="0.2"/>
+  </g>
+
+  <line x1="100" y1="475" x2="700" y2="475" stroke="#FFE0B2" stroke-width="1"/>
+
+  <!-- Variations -->
+  <text x="400" y="510" text-anchor="middle" font-size="16" font-weight="bold" fill="#FF5722">Hot-Blood Tribe Variations</text>
+
+  <!-- Var 1: Martial Arts -->
+  <g transform="translate(120, 640)">
+    <circle cx="0" cy="0" r="48" fill="#FFF3E0" stroke="#FFE0B2" stroke-width="1.5"/>
+    <!-- Fighting pose creature -->
+    <circle cx="0" cy="-8" r="16" fill="#FFCC80"/>
+    <circle cx="0" cy="-22" r="12" fill="#FFE0B2"/>
+    <!-- Determined eyes -->
+    <rect x="-7" y="-25" width="5" height="3" rx="1" fill="#BF360C"/>
+    <rect x="2" y="-25" width="5" height="3" rx="1" fill="#BF360C"/>
+    <path d="M-3,-17 Q0,-14 3,-17" fill="none" stroke="#BF360C" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Belt -->
+    <rect x="-18" y="-2" width="36" height="5" rx="2" fill="#FF5722"/>
+    <!-- Punch fist -->
+    <circle cx="22" cy="-15" r="7" fill="#FFE0B2" stroke="#FFCC80" stroke-width="1.5"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#FF5722">Fist Fighter</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#FF8A65">Attack Type</text>
+  </g>
+
+  <!-- Var 2: Speed Runner -->
+  <g transform="translate(280, 640)">
+    <circle cx="0" cy="0" r="48" fill="#FFF3E0" stroke="#FFE0B2" stroke-width="1.5"/>
+    <!-- Streaking speed creature -->
+    <ellipse cx="5" cy="-5" rx="22" ry="14" fill="#FFB74D"/>
+    <circle cx="15" cy="-12" r="10" fill="#FFE0B2"/>
+    <!-- Speed eyes -->
+    <path d="M12,-15 L18,-13" stroke="#BF360C" stroke-width="2" stroke-linecap="round"/>
+    <path d="M11,-10 L17,-10" stroke="#BF360C" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Speed lines behind -->
+    <line x1="-25" y1="-10" x2="-15" y2="-8" stroke="#FF9800" stroke-width="1.5" opacity="0.4"/>
+    <line x1="-28" y1="-2" x2="-18" y2="-2" stroke="#FF9800" stroke-width="1" opacity="0.3"/>
+    <line x1="-22" y1="5" x2="-14" y2="4" stroke="#FF9800" stroke-width="1" opacity="0.25"/>
+    <!-- Headband flying -->
+    <path d="M8,-18 Q-5,-22 -15,-18" fill="none" stroke="#FF5722" stroke-width="2" stroke-linecap="round"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#FF5722">Dash</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#FF8A65">Speed Type</text>
+  </g>
+
+  <!-- Var 3: Shield Spirit -->
+  <g transform="translate(440, 640)">
+    <circle cx="0" cy="0" r="48" fill="#FFF3E0" stroke="#FFE0B2" stroke-width="1.5"/>
+    <!-- Sturdy spirit -->
+    <rect x="-16" y="-15" width="32" height="35" rx="8" fill="#FFCC80" stroke="#FF9800" stroke-width="1.5"/>
+    <circle cx="0" cy="-22" r="12" fill="#FFE0B2" stroke="#FFCC80" stroke-width="1"/>
+    <!-- Thick eyebrows + determined -->
+    <rect x="-8" y="-28" width="6" height="2" rx="1" fill="#BF360C"/>
+    <rect x="2" y="-28" width="6" height="2" rx="1" fill="#BF360C"/>
+    <circle cx="-5" cy="-23" r="2" fill="#BF360C"/>
+    <circle cx="5" cy="-23" r="2" fill="#BF360C"/>
+    <path d="M-3,-16 Q0,-13 3,-16" fill="none" stroke="#BF360C" stroke-width="1.2"/>
+    <!-- Scars (badges of honor) -->
+    <line x1="6" y1="-20" x2="10" y2="-16" stroke="#E65100" stroke-width="1" opacity="0.5"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#FF5722">Guard Spirit</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#FF8A65">Defense Type</text>
+  </g>
+
+  <!-- Var 4: Legendary - Dragon Fist -->
+  <g transform="translate(600, 640)">
+    <circle cx="0" cy="0" r="48" fill="#FFF8E1" stroke="#FFD54F" stroke-width="2"/>
+    <!-- Dragon flame creature -->
+    <path d="M0,-30 Q-15,-15 -12,0 Q-10,15 0,20 Q10,15 12,0 Q15,-15 0,-30Z" fill="#FF9800" opacity="0.8"/>
+    <path d="M0,-25 Q-10,-12 -8,0 Q-6,12 0,16 Q6,12 8,0 Q10,-12 0,-25Z" fill="#FFD54F" opacity="0.7"/>
+    <!-- Dragon horns -->
+    <path d="M-8,-25 L-15,-38 L-5,-30" fill="#FF5722"/>
+    <path d="M8,-25 L15,-38 L5,-30" fill="#FF5722"/>
+    <!-- Fierce eyes -->
+    <circle cx="-5" cy="-12" r="3.5" fill="#FFF"/>
+    <circle cx="5" cy="-12" r="3.5" fill="#FFF"/>
+    <circle cx="-5" cy="-12" r="2" fill="#BF360C"/>
+    <circle cx="5" cy="-12" r="2" fill="#BF360C"/>
+    <!-- Snarl -->
+    <path d="M-5,-2 Q0,3 5,-2" fill="#FFF" stroke="#BF360C" stroke-width="1"/>
+    <text x="0" y="65" text-anchor="middle" font-size="10" font-weight="bold" fill="#FFB300">Dragon Fist</text>
+    <text x="0" y="78" text-anchor="middle" font-size="8" fill="#FFC107">Legendary</text>
+  </g>
+
+  <!-- Concept note -->
+  <rect x="80" y="750" width="640" height="55" rx="10" fill="#FFF3E0" stroke="#FFE0B2" stroke-width="1"/>
+  <text x="400" y="772" text-anchor="middle" font-size="11" fill="#FF5722">CONCEPT: "만화책 보며 필살기를 따라하던 그 시절의 열정"</text>
+  <text x="400" y="790" text-anchor="middle" font-size="10" fill="#FF8A65">어른이 되어 식어버린 열정의 불꽃. 그 불씨를 다시 지펴줄 수 있는 건 오직 추억뿐.</text>
+
+  <!-- Color palette -->
+  <text x="400" y="835" text-anchor="middle" font-size="10" fill="#FF8A65">Color Palette</text>
+  <rect x="250" y="845" width="30" height="18" rx="4" fill="#FF5722"/>
+  <rect x="285" y="845" width="30" height="18" rx="4" fill="#FF9800"/>
+  <rect x="320" y="845" width="30" height="18" rx="4" fill="#FFD54F"/>
+  <rect x="355" y="845" width="30" height="18" rx="4" fill="#BF360C"/>
+  <rect x="390" y="845" width="30" height="18" rx="4" fill="#FFCC80"/>
+  <rect x="425" y="845" width="30" height="18" rx="4" fill="#FFE0B2"/>
+  <rect x="460" y="845" width="30" height="18" rx="4" fill="#D84315"/>
+  <rect x="495" y="845" width="30" height="18" rx="4" fill="#FFF3E0"/>
+
+  <text x="400" y="890" text-anchor="middle" font-size="10" fill="#FFAB91">BarcodeQuest Monster Design Sheet - HOT-BLOODED TYPE</text>
+</svg>

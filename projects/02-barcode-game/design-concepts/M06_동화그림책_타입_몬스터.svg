@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 650" font-family="'Segoe UI', sans-serif">
+  <rect width="800" height="650" fill="#FFF8E1"/>
+
+  <text x="400" y="40" text-anchor="middle" font-size="11" fill="#F9A825" letter-spacing="4">TYPE 06</text>
+  <text x="400" y="72" text-anchor="middle" font-size="28" font-weight="bold" fill="#E65100">STORYBOOK / FAIRY TALE</text>
+  <text x="400" y="95" text-anchor="middle" font-size="13" fill="#FF8F00">"옛날 옛적에... 한 아이가 있었습니다"</text>
+  <text x="400" y="115" text-anchor="middle" font-size="11" fill="#FFAB40">잠자리에서 읽어주던 그림책 속 친구들. 책을 덮으면 사라지는 줄 알았는데...</text>
+
+  <line x1="100" y1="130" x2="700" y2="130" stroke="#FFE082" stroke-width="1"/>
+
+  <!-- Storybook creatures displayed on open book -->
+  <text x="400" y="165" text-anchor="middle" font-size="16" font-weight="bold" fill="#E65100">Fairy Tale Tribe</text>
+
+  <!-- Open book background -->
+  <path d="M100,200 Q400,185 700,200 L700,550 Q400,535 100,550Z" fill="#FFFDE7" stroke="#FFE082" stroke-width="2"/>
+  <line x1="400" y1="195" x2="400" y2="545" stroke="#FFE082" stroke-width="1" stroke-dasharray="5,5"/>
+  <!-- Book lines (faint) -->
+  <line x1="120" y1="240" x2="380" y2="235" stroke="#FFF9C4" stroke-width="0.5"/>
+  <line x1="120" y1="260" x2="380" y2="255" stroke="#FFF9C4" stroke-width="0.5"/>
+  <line x1="420" y1="235" x2="680" y2="240" stroke="#FFF9C4" stroke-width="0.5"/>
+  <line x1="420" y1="255" x2="680" y2="260" stroke="#FFF9C4" stroke-width="0.5"/>
+
+  <!-- Creature 1: Fairy Tale Fox -->
+  <g transform="translate(200, 340)">
+    <!-- Watercolor-ish fox -->
+    <ellipse cx="0" cy="15" rx="30" ry="25" fill="#FFCC80" opacity="0.7"/>
+    <circle cx="0" cy="-15" r="22" fill="#FFE0B2" opacity="0.8"/>
+    <!-- Fox ears -->
+    <polygon points="-15,-30 -20,-50 -5,-35" fill="#FFCC80" opacity="0.7"/>
+    <polygon points="15,-30 20,-50 5,-35" fill="#FFCC80" opacity="0.7"/>
+    <polygon points="-13,-32 -17,-45 -7,-35" fill="#FFF3E0" opacity="0.5"/>
+    <polygon points="13,-32 17,-45 7,-35" fill="#FFF3E0" opacity="0.5"/>
+    <!-- Eyes (storybook style - large, expressive) -->
+    <ellipse cx="-7" cy="-18" rx="5" ry="6" fill="#FFF"/>
+    <ellipse cx="7" cy="-18" rx="5" ry="6" fill="#FFF"/>
+    <circle cx="-7" cy="-17" r="3.5" fill="#5D4037"/>
+    <circle cx="7" cy="-17" r="3.5" fill="#5D4037"/>
+    <circle cx="-5" cy="-19" r="1.5" fill="#FFF"/>
+    <circle cx="9" cy="-19" r="1.5" fill="#FFF"/>
+    <!-- Nose -->
+    <circle cx="0" cy="-10" r="2.5" fill="#5D4037"/>
+    <!-- Mouth -->
+    <path d="M-3,-7 Q0,-4 3,-7" fill="none" stroke="#8D6E63" stroke-width="1" stroke-linecap="round"/>
+    <!-- Fluffy tail -->
+    <path d="M25,20 Q45,10 40,25 Q38,35 28,30" fill="#FFCC80" opacity="0.6"/>
+    <path d="M35,18 Q42,28 32,28" fill="#FFF3E0" opacity="0.4"/>
+    <!-- Scarf -->
+    <path d="M-15,-5 Q0,0 15,-5" fill="none" stroke="#EF5350" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <path d="M15,-5 Q18,0 16,8" fill="none" stroke="#EF5350" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+
+    <text x="0" y="55" text-anchor="middle" font-size="11" font-weight="bold" fill="#E65100">Story Fox</text>
+    <text x="0" y="68" text-anchor="middle" font-size="9" fill="#FF8F00">Wisdom Type</text>
+  </g>
+
+  <!-- Creature 2: Mushroom Sprite -->
+  <g transform="translate(600, 340)">
+    <!-- Mushroom cap -->
+    <ellipse cx="0" cy="-22" rx="28" ry="18" fill="#EF5350" opacity="0.7"/>
+    <circle cx="-10" cy="-25" r="5" fill="#FFF" opacity="0.5"/>
+    <circle cx="8" cy="-30" r="4" fill="#FFF" opacity="0.4"/>
+    <circle cx="15" cy="-20" r="3" fill="#FFF" opacity="0.3"/>
+    <!-- Stem / body -->
+    <rect x="-12" y="-10" width="24" height="30" rx="8" fill="#FFFDE7" stroke="#FFE082" stroke-width="1"/>
+    <!-- Face -->
+    <circle cx="-5" cy="0" r="2.5" fill="#5D4037"/>
+    <circle cx="5" cy="0" r="2.5" fill="#5D4037"/>
+    <circle cx="-4" cy="-1" r="1" fill="#FFF"/>
+    <circle cx="6" cy="-1" r="1" fill="#FFF"/>
+    <path d="M-3,7 Q0,10 3,7" fill="none" stroke="#8D6E63" stroke-width="1" stroke-linecap="round"/>
+    <!-- Blush -->
+    <ellipse cx="-10" cy="4" rx="4" ry="2.5" fill="#FF8A65" opacity="0.3"/>
+    <ellipse cx="10" cy="4" rx="4" ry="2.5" fill="#FF8A65" opacity="0.3"/>
+    <!-- Little feet -->
+    <ellipse cx="-6" cy="22" rx="5" ry="3" fill="#D7CCC8"/>
+    <ellipse cx="6" cy="22" rx="5" ry="3" fill="#D7CCC8"/>
+    <!-- Sparkle -->
+    <circle cx="-20" cy="-10" r="2" fill="#FFD54F" opacity="0.4"/>
+    <circle cx="22" cy="-30" r="1.5" fill="#FFD54F" opacity="0.3"/>
+
+    <text x="0" y="55" text-anchor="middle" font-size="11" font-weight="bold" fill="#EF5350">Mushroom Sprite</text>
+    <text x="0" y="68" text-anchor="middle" font-size="9" fill="#FF8A65">Forest Type</text>
+  </g>
+
+  <!-- Bottom row: Additional storybook creatures -->
+  <!-- Cloud Sheep -->
+  <g transform="translate(130, 500)">
+    <ellipse cx="0" cy="0" rx="25" ry="18" fill="#E3F2FD" opacity="0.7"/>
+    <ellipse cx="-10" cy="-5" rx="12" ry="10" fill="#BBDEFB" opacity="0.5"/>
+    <ellipse cx="10" cy="-5" rx="12" ry="10" fill="#BBDEFB" opacity="0.5"/>
+    <ellipse cx="0" cy="-10" rx="15" ry="10" fill="#E3F2FD" opacity="0.6"/>
+    <circle cx="-4" cy="-8" r="2" fill="#455A64"/>
+    <circle cx="4" cy="-8" r="2" fill="#455A64"/>
+    <path d="M-2,-3 Q0,-1 2,-3" fill="none" stroke="#455A64" stroke-width="0.8"/>
+    <!-- Tiny legs -->
+    <line x1="-8" y1="15" x2="-8" y2="22" stroke="#90A4AE" stroke-width="2" stroke-linecap="round"/>
+    <line x1="8" y1="15" x2="8" y2="22" stroke="#90A4AE" stroke-width="2" stroke-linecap="round"/>
+    <text x="0" y="35" text-anchor="middle" font-size="9" font-weight="bold" fill="#1565C0">Cloud Sheep</text>
+  </g>
+
+  <!-- Candy Witch -->
+  <g transform="translate(290, 500)">
+    <ellipse cx="0" cy="5" rx="15" ry="12" fill="#E1BEE7" opacity="0.7"/>
+    <circle cx="0" cy="-10" r="12" fill="#F3E5F5" opacity="0.8"/>
+    <!-- Witch hat -->
+    <polygon points="0,-30 -12,-18 12,-18" fill="#7B1FA2" opacity="0.6"/>
+    <rect x="-15" y="-18" width="30" height="4" rx="2" fill="#9C27B0" opacity="0.5"/>
+    <!-- Face -->
+    <circle cx="-4" cy="-12" r="2" fill="#4A148C"/>
+    <circle cx="4" cy="-12" r="2" fill="#4A148C"/>
+    <path d="M-2,-6 Q0,-4 2,-6" fill="none" stroke="#4A148C" stroke-width="0.8"/>
+    <!-- Candy wand -->
+    <line x1="14" y1="0" x2="22" y2="-12" stroke="#FFB300" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="22" cy="-12" r="4" fill="#FF80AB" opacity="0.6" stroke="#EC407A" stroke-width="0.8"/>
+    <text x="0" y="35" text-anchor="middle" font-size="9" font-weight="bold" fill="#7B1FA2">Candy Witch</text>
+  </g>
+
+  <!-- Star Knight -->
+  <g transform="translate(450, 500)">
+    <rect x="-12" y="-5" width="24" height="25" rx="5" fill="#C5CAE9" opacity="0.7"/>
+    <circle cx="0" cy="-15" r="11" fill="#E8EAF6" opacity="0.8"/>
+    <!-- Helmet -->
+    <path d="M-10,-18 Q0,-28 10,-18" fill="#7986CB" opacity="0.6"/>
+    <circle cx="0" cy="-25" r="3" fill="#FFD54F" opacity="0.5"/>
+    <!-- Face -->
+    <circle cx="-3" cy="-16" r="2" fill="#283593"/>
+    <circle cx="3" cy="-16" r="2" fill="#283593"/>
+    <path d="M-2,-10 Q0,-8 2,-10" fill="none" stroke="#283593" stroke-width="0.8"/>
+    <!-- Shield -->
+    <ellipse cx="-16" cy="5" rx="6" ry="8" fill="#FFD54F" opacity="0.5" stroke="#FFC107" stroke-width="0.8"/>
+    <!-- Sword -->
+    <line x1="12" y1="0" x2="20" y2="-10" stroke="#90A4AE" stroke-width="2" stroke-linecap="round"/>
+    <text x="0" y="35" text-anchor="middle" font-size="9" font-weight="bold" fill="#3949AB">Star Knight</text>
+  </g>
+
+  <!-- Golden Dragon (Legendary) -->
+  <g transform="translate(610, 500)">
+    <circle cx="0" cy="-5" r="20" fill="#FFE082" opacity="0.5" stroke="#FFB300" stroke-width="1"/>
+    <!-- Dragon body -->
+    <path d="M-12,5 Q-15,-10 0,-18 Q15,-10 12,5Z" fill="#FFD54F" opacity="0.7"/>
+    <!-- Wings -->
+    <path d="M-12,-5 Q-25,-15 -18,-3" fill="#FFCC80" opacity="0.5"/>
+    <path d="M12,-5 Q25,-15 18,-3" fill="#FFCC80" opacity="0.5"/>
+    <!-- Face -->
+    <circle cx="-4" cy="-10" r="2.5" fill="#E65100"/>
+    <circle cx="4" cy="-10" r="2.5" fill="#E65100"/>
+    <circle cx="-3" cy="-11" r="1" fill="#FFD54F"/>
+    <circle cx="5" cy="-11" r="1" fill="#FFD54F"/>
+    <path d="M-3,-4 Q0,-1 3,-4" fill="none" stroke="#E65100" stroke-width="0.8"/>
+    <!-- Horns -->
+    <line x1="-5" y1="-16" x2="-8" y2="-24" stroke="#FFB300" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="5" y1="-16" x2="8" y2="-24" stroke="#FFB300" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="0" y="35" text-anchor="middle" font-size="9" font-weight="bold" fill="#FFB300">Golden Dragon</text>
+  </g>
+
+  <!-- Concept note -->
+  <rect x="80" y="565" width="640" height="42" rx="10" fill="#FFFDE7" stroke="#FFE082" stroke-width="1"/>
+  <text x="400" y="582" text-anchor="middle" font-size="11" fill="#E65100">CONCEPT: "잠자리에서 읽어주던 동화책의 삽화가 살아난다"</text>
+  <text x="400" y="598" text-anchor="middle" font-size="10" fill="#FF8F00">수채화 터치, 따뜻한 종이 질감, 이야기를 들려주는 존재들</text>
+
+  <text x="400" y="640" text-anchor="middle" font-size="10" fill="#FFAB40">BarcodeQuest Monster Design Sheet - STORYBOOK TYPE</text>
+</svg>

@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900" font-family="'Segoe UI', sans-serif">
+  <defs>
+    <linearGradient id="morningsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#87CEEB"/>
+      <stop offset="100%" stop-color="#FFE4B5"/>
+    </linearGradient>
+    <linearGradient id="nightsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0D1B2A"/>
+      <stop offset="60%" stop-color="#1B2838"/>
+      <stop offset="100%" stop-color="#2C3E50"/>
+    </linearGradient>
+    <linearGradient id="sunsetsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="40%" stop-color="#FFA07A"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+    <linearGradient id="forestGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#81C784"/>
+      <stop offset="100%" stop-color="#388E3C"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="900" fill="#F5F5F0"/>
+
+  <text x="400" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#333">World &amp; Environment Concepts</text>
+  <text x="400" y="62" text-anchor="middle" font-size="13" fill="#999">Time-of-day environments &amp; themed worlds</text>
+
+  <!-- Morning Scene -->
+  <rect x="25" y="85" width="365" height="220" rx="14" fill="url(#morningsky)"/>
+  <text x="40" y="108" font-size="14" font-weight="bold" fill="#FFF">Morning / Dawn</text>
+  <text x="40" y="124" font-size="10" fill="rgba(255,255,255,0.8)">6:00 - 12:00 | Growth &amp; Discovery</text>
+
+  <!-- Sun -->
+  <circle cx="320" cy="130" r="30" fill="#FFD700" opacity="0.6"/>
+  <circle cx="320" cy="130" r="22" fill="#FFE082" opacity="0.8"/>
+
+  <!-- Hills -->
+  <ellipse cx="200" cy="290" rx="250" ry="80" fill="#81C784" opacity="0.5"/>
+  <ellipse cx="100" cy="300" rx="200" ry="70" fill="#66BB6A" opacity="0.5"/>
+
+  <!-- Morning flowers -->
+  <circle cx="80" cy="255" r="5" fill="#FF69B4" opacity="0.7"/>
+  <line x1="80" y1="260" x2="80" y2="275" stroke="#4CAF50" stroke-width="1.5"/>
+  <circle cx="120" cy="260" r="4" fill="#FFD700" opacity="0.7"/>
+  <line x1="120" y1="264" x2="120" y2="278" stroke="#4CAF50" stroke-width="1.5"/>
+  <circle cx="160" cy="252" r="6" fill="#FF8A65" opacity="0.7"/>
+  <line x1="160" y1="258" x2="160" y2="275" stroke="#4CAF50" stroke-width="1.5"/>
+
+  <!-- Morning creatures -->
+  <g transform="translate(250, 240)">
+    <circle cx="0" cy="0" r="14" fill="#FFE082"/>
+    <circle cx="-4" cy="-3" r="2" fill="#333"/>
+    <circle cx="4" cy="-3" r="2" fill="#333"/>
+    <path d="M-3,4 Q0,7 3,4" fill="none" stroke="#333" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="0" cy="-16" r="6" fill="#FFD700" opacity="0.5"/>
+  </g>
+
+  <!-- Dew drops -->
+  <circle cx="300" cy="265" r="3" fill="#87CEEB" opacity="0.5"/>
+  <circle cx="340" cy="250" r="2" fill="#87CEEB" opacity="0.6"/>
+  <circle cx="280" cy="275" r="2.5" fill="#87CEEB" opacity="0.4"/>
+
+  <!-- Evening/Sunset Scene -->
+  <rect x="410" y="85" width="365" height="220" rx="14" fill="url(#sunsetsky)"/>
+  <text x="425" y="108" font-size="14" font-weight="bold" fill="#FFF">Evening / Sunset</text>
+  <text x="425" y="124" font-size="10" fill="rgba(255,255,255,0.8)">16:00 - 20:00 | Nostalgia &amp; Warmth</text>
+
+  <!-- Setting sun -->
+  <circle cx="590" cy="280" r="40" fill="#FF6B6B" opacity="0.4"/>
+  <circle cx="590" cy="280" r="30" fill="#FFA07A" opacity="0.5"/>
+
+  <!-- Silhouette buildings -->
+  <rect x="430" y="240" width="25" height="60" fill="#2C1810" opacity="0.4"/>
+  <rect x="460" y="220" width="30" height="80" fill="#2C1810" opacity="0.4"/>
+  <rect x="495" y="250" width="20" height="50" fill="#2C1810" opacity="0.4"/>
+  <rect x="520" y="230" width="35" height="70" fill="#2C1810" opacity="0.4"/>
+  <rect x="560" y="245" width="22" height="55" fill="#2C1810" opacity="0.4"/>
+
+  <!-- Evening creature on lamp post -->
+  <line x1="700" y1="180" x2="700" y2="280" stroke="#5D4037" stroke-width="3"/>
+  <circle cx="700" cy="180" r="12" fill="#FFD700" opacity="0.4"/>
+  <circle cx="700" cy="180" r="8" fill="#FFE082" opacity="0.6"/>
+  <g transform="translate(700, 165)">
+    <circle cx="0" cy="0" r="7" fill="#FF8A65"/>
+    <circle cx="-2" cy="-1" r="1.5" fill="#333"/>
+    <circle cx="2" cy="-1" r="1.5" fill="#333"/>
+  </g>
+
+  <!-- Birds -->
+  <path d="M620,150 Q625,145 630,150" fill="none" stroke="#333" stroke-width="1" opacity="0.4"/>
+  <path d="M650,140 Q655,135 660,140" fill="none" stroke="#333" stroke-width="1" opacity="0.3"/>
+
+  <!-- Night Scene -->
+  <rect x="25" y="325" width="365" height="220" rx="14" fill="url(#nightsky)"/>
+  <text x="40" y="348" font-size="14" font-weight="bold" fill="#FFF">Night / Midnight</text>
+  <text x="40" y="364" font-size="10" fill="rgba(255,255,255,0.6)">20:00 - 6:00 | Dreams &amp; Mystery</text>
+
+  <!-- Moon -->
+  <circle cx="320" cy="380" r="25" fill="#F0E68C" opacity="0.8"/>
+  <circle cx="330" cy="375" r="20" fill="#1B2838"/>
+
+  <!-- Stars -->
+  <circle cx="60" cy="370" r="1.5" fill="#FFF" opacity="0.7"/>
+  <circle cx="100" cy="355" r="1" fill="#FFF" opacity="0.5"/>
+  <circle cx="150" cy="380" r="2" fill="#FFF" opacity="0.4"/>
+  <circle cx="200" cy="350" r="1.5" fill="#FFF" opacity="0.6"/>
+  <circle cx="250" cy="370" r="1" fill="#FFF" opacity="0.8"/>
+  <circle cx="180" cy="345" r="1" fill="#FFF" opacity="0.3"/>
+  <circle cx="280" cy="360" r="1.5" fill="#FFF" opacity="0.5"/>
+
+  <!-- Constellation pattern -->
+  <circle cx="100" cy="400" r="3" fill="#6C63FF" opacity="0.6"/>
+  <circle cx="130" cy="385" r="3" fill="#6C63FF" opacity="0.6"/>
+  <circle cx="155" cy="410" r="3" fill="#6C63FF" opacity="0.6"/>
+  <circle cx="180" cy="390" r="3" fill="#6C63FF" opacity="0.6"/>
+  <line x1="100" y1="400" x2="130" y2="385" stroke="#6C63FF" stroke-width="0.8" opacity="0.4"/>
+  <line x1="130" y1="385" x2="155" y2="410" stroke="#6C63FF" stroke-width="0.8" opacity="0.4"/>
+  <line x1="155" y1="410" x2="180" y2="390" stroke="#6C63FF" stroke-width="0.8" opacity="0.4"/>
+
+  <!-- Night creatures (glowing) -->
+  <g transform="translate(230, 470)">
+    <circle cx="0" cy="0" r="12" fill="#9370DB" opacity="0.3"/>
+    <circle cx="0" cy="0" r="8" fill="#B8A9E0"/>
+    <circle cx="-3" cy="-2" r="1.5" fill="#FFF"/>
+    <circle cx="3" cy="-2" r="1.5" fill="#FFF"/>
+  </g>
+  <g transform="translate(280, 490)">
+    <circle cx="0" cy="0" r="10" fill="#4FC3F7" opacity="0.3"/>
+    <circle cx="0" cy="0" r="6" fill="#81D4FA"/>
+    <circle cx="-2" cy="-1" r="1" fill="#FFF"/>
+    <circle cx="2" cy="-1" r="1" fill="#FFF"/>
+  </g>
+
+  <!-- Indoor/Cozy Scene -->
+  <rect x="410" y="325" width="365" height="220" rx="14" fill="#3E2723"/>
+  <text x="425" y="348" font-size="14" font-weight="bold" fill="#FFE0B2">Cozy / Indoor</text>
+  <text x="425" y="364" font-size="10" fill="rgba(255,224,178,0.6)">Rainy days &amp; comfort time</text>
+
+  <!-- Window -->
+  <rect x="540" y="370" width="80" height="100" rx="4" fill="#546E7A" stroke="#795548" stroke-width="4"/>
+  <line x1="580" y1="370" x2="580" y2="470" stroke="#795548" stroke-width="3"/>
+  <line x1="540" y1="420" x2="620" y2="420" stroke="#795548" stroke-width="3"/>
+  <!-- Rain on window -->
+  <line x1="555" y1="380" x2="553" y2="395" stroke="#90CAF9" stroke-width="1" opacity="0.4"/>
+  <line x1="570" y1="385" x2="568" y2="400" stroke="#90CAF9" stroke-width="1" opacity="0.3"/>
+  <line x1="595" y1="378" x2="593" y2="393" stroke="#90CAF9" stroke-width="1" opacity="0.4"/>
+  <line x1="605" y1="430" x2="603" y2="445" stroke="#90CAF9" stroke-width="1" opacity="0.3"/>
+
+  <!-- Cup of tea -->
+  <rect x="460" y="460" width="30" height="25" rx="3" fill="#FFCC80" stroke="#F57F17" stroke-width="1.5"/>
+  <path d="M490,465 Q498,470 490,480" fill="none" stroke="#F57F17" stroke-width="1.5"/>
+  <!-- Steam -->
+  <path d="M468,455 Q470,448 472,455" fill="none" stroke="#BCAAA4" stroke-width="1" opacity="0.5"/>
+  <path d="M478,452 Q480,445 482,452" fill="none" stroke="#BCAAA4" stroke-width="1" opacity="0.4"/>
+
+  <!-- Blanket creature -->
+  <g transform="translate(690, 460)">
+    <rect x="-25" y="-10" width="50" height="30" rx="8" fill="#FF8A65" opacity="0.6"/>
+    <circle cx="0" cy="-12" r="14" fill="#FFCCBC"/>
+    <circle cx="-4" cy="-14" r="2" fill="#5D4037"/>
+    <circle cx="4" cy="-14" r="2" fill="#5D4037"/>
+    <path d="M-3,-8 Q0,-5 3,-8" fill="none" stroke="#5D4037" stroke-width="1" stroke-linecap="round"/>
+    <text x="0" y="30" text-anchor="middle" font-size="8" fill="#BCAAA4">zzz...</text>
+  </g>
+
+  <!-- World Map concept -->
+  <rect x="25" y="565" width="750" height="290" rx="14" fill="#FFF" stroke="#E0E0E0" stroke-width="1.5"/>
+  <text x="400" y="595" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">Themed Exploration Zones</text>
+  <text x="400" y="615" text-anchor="middle" font-size="11" fill="#999">Each zone has unique creatures, items, and atmosphere</text>
+
+  <!-- Zone 1: Memory Forest -->
+  <rect x="50" y="635" width="155" height="95" rx="10" fill="#E8F5E9"/>
+  <text x="127" y="660" text-anchor="middle" font-size="24">🌳</text>
+  <text x="127" y="685" text-anchor="middle" font-size="12" font-weight="bold" fill="#2E7D32">Memory Forest</text>
+  <text x="127" y="700" text-anchor="middle" font-size="9" fill="#66BB6A">Growth &amp; Nature types</text>
+  <text x="127" y="715" text-anchor="middle" font-size="9" fill="#66BB6A">Comfort creatures</text>
+
+  <!-- Zone 2: Dream Ocean -->
+  <rect x="220" y="635" width="155" height="95" rx="10" fill="#E3F2FD"/>
+  <text x="297" y="660" text-anchor="middle" font-size="24">🌊</text>
+  <text x="297" y="685" text-anchor="middle" font-size="12" font-weight="bold" fill="#1565C0">Dream Ocean</text>
+  <text x="297" y="700" text-anchor="middle" font-size="9" fill="#42A5F5">Memory &amp; Emotion types</text>
+  <text x="297" y="715" text-anchor="middle" font-size="9" fill="#42A5F5">Rare encounters</text>
+
+  <!-- Zone 3: Star Summit -->
+  <rect x="390" y="635" width="155" height="95" rx="10" fill="#EDE7F6"/>
+  <text x="467" y="660" text-anchor="middle" font-size="24">⭐</text>
+  <text x="467" y="685" text-anchor="middle" font-size="12" font-weight="bold" fill="#4527A0">Star Summit</text>
+  <text x="467" y="700" text-anchor="middle" font-size="9" fill="#7E57C2">Dream &amp; Bond types</text>
+  <text x="467" y="715" text-anchor="middle" font-size="9" fill="#7E57C2">Epic encounters</text>
+
+  <!-- Zone 4: Heart's Core -->
+  <rect x="560" y="635" width="155" height="95" rx="10" fill="#FCE4EC"/>
+  <text x="637" y="660" text-anchor="middle" font-size="24">💖</text>
+  <text x="637" y="685" text-anchor="middle" font-size="12" font-weight="bold" fill="#AD1457">Heart's Core</text>
+  <text x="637" y="700" text-anchor="middle" font-size="9" fill="#E91E63">Connection &amp; Love types</text>
+  <text x="637" y="715" text-anchor="middle" font-size="9" fill="#E91E63">Legendary encounters</text>
+
+  <!-- Connection arrows -->
+  <path d="M205,682 L220,682" fill="none" stroke="#CCC" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M375,682 L390,682" fill="none" stroke="#CCC" stroke-width="1.5"/>
+  <path d="M545,682 L560,682" fill="none" stroke="#CCC" stroke-width="1.5"/>
+  <text x="212" y="678" font-size="10" fill="#CCC">></text>
+  <text x="382" y="678" font-size="10" fill="#CCC">></text>
+  <text x="552" y="678" font-size="10" fill="#CCC">></text>
+
+  <!-- Zone unlocking -->
+  <text x="400" y="760" text-anchor="middle" font-size="10" fill="#999">Zones unlock as player level increases. Higher zones = rarer creatures + deeper stories</text>
+
+  <!-- Time-creature mapping -->
+  <text x="400" y="795" text-anchor="middle" font-size="11" fill="#888">Real world time-of-day changes which creatures appear in each zone</text>
+  <text x="400" y="812" text-anchor="middle" font-size="10" fill="#BBB">Morning: Growth types | Afternoon: Adventure types | Evening: Memory types | Night: Dream types</text>
+
+  <text x="400" y="845" text-anchor="middle" font-size="11" fill="#CCC">BarcodeQuest - World &amp; Environment Concept Sheet</text>
+</svg>
