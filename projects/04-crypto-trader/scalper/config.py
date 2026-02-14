@@ -15,7 +15,7 @@ PAPER_TRADING = os.getenv("SCALPER_PAPER_TRADING", "true").lower() == "true"
 PAPER_INITIAL_KRW = float(os.getenv("SCALPER_PAPER_KRW", "1000000"))
 
 # === Target Markets ===
-MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL", "KRW-DOGE"]
+MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP"]
 
 # === Timeframe ===
 CANDLE_INTERVAL = "minute1"

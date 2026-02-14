@@ -43,6 +43,14 @@ class EnsembleStrategy:
 
     def analyze(self, df: pd.DataFrame, market: str = "", bar_index: int = 0) -> ScalpSignal:
         """Run all strategies and produce weighted ensemble signal."""
+        # Run all strategies first (for market watch even during cooldown/vol filter)
+        signals: list[ScalpSignal] = []
+        for strategy in self.strategies:
+            sig = strategy.analyze(df)
+            signals.append(sig)
+
+        sig_meta = {"signals": signals}
+
         # 쿨다운 체크
         if market and market in self.last_trade_bar:
             bars_since = bar_index - self.last_trade_bar[market]
@@ -50,6 +58,7 @@ class EnsembleStrategy:
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"Cooldown ({bars_since}/{config.ENTRY_COOLDOWN_BARS})",
+                    metadata=sig_meta,
                 )
 
         # 변동성 레짐 체크
@@ -57,12 +66,8 @@ class EnsembleStrategy:
             return ScalpSignal(
                 signal=SignalType.HOLD, strategy_name="ensemble",
                 reason="Volatility outside optimal range",
+                metadata=sig_meta,
             )
-
-        signals: list[ScalpSignal] = []
-        for strategy in self.strategies:
-            sig = strategy.analyze(df)
-            signals.append(sig)
 
         buy_weight = 0.0
         sell_weight = 0.0
@@ -92,26 +97,29 @@ class EnsembleStrategy:
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"BUY confidence too low ({buy_weight:.2f}<{config.MIN_ENSEMBLE_CONFIDENCE})",
+                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                 )
             # 상승추세에서만 매수 허용
             if trend != "up":
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"BUY blocked: trend={trend} (need 'up'): {reason_str}",
+                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                 )
             if getattr(config, 'TREND_POSITION_FILTER', False):
                 if not self._price_above_trend_ema(df):
                     return ScalpSignal(
                         signal=SignalType.HOLD, strategy_name="ensemble",
                         reason=f"BUY blocked: price below EMA({config.TREND_EMA_PERIOD}): {reason_str}",
+                        metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                     )
             return ScalpSignal(
                 signal=SignalType.BUY,
                 strategy_name="ensemble",
                 confidence=min(1.0, buy_weight),
                 reason=f"Ensemble BUY ({buy_count}/{len(self.strategies)}, trend={trend}): {reason_str}",
-                metadata={"buy_weight": buy_weight, "sell_weight": sell_weight,
-                          "buy_count": buy_count, "signals": signals},
+                metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight,
+                          "buy_count": buy_count},
             )
 
         # SELL 조건
@@ -120,19 +128,21 @@ class EnsembleStrategy:
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"SELL confidence too low ({sell_weight:.2f}<{config.MIN_ENSEMBLE_CONFIDENCE})",
+                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                 )
             if trend == "up":
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"SELL blocked by uptrend filter: {reason_str}",
+                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                 )
             return ScalpSignal(
                 signal=SignalType.SELL,
                 strategy_name="ensemble",
                 confidence=min(1.0, sell_weight),
                 reason=f"Ensemble SELL ({sell_count}/{len(self.strategies)}, trend={trend}): {reason_str}",
-                metadata={"buy_weight": buy_weight, "sell_weight": sell_weight,
-                          "sell_count": sell_count, "signals": signals},
+                metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight,
+                          "sell_count": sell_count},
             )
 
         return ScalpSignal(
@@ -140,6 +150,7 @@ class EnsembleStrategy:
             strategy_name="ensemble",
             confidence=0.0,
             reason=f"No consensus (buy={buy_count},sell={sell_count}): {reason_str}",
+            metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
         )
 
     def _price_above_trend_ema(self, df: pd.DataFrame) -> bool:

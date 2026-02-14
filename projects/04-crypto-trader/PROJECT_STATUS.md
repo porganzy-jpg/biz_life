@@ -85,9 +85,33 @@ python trader.py
 - [x] 웹 대시보드 (실시간 모니터링)
 - [x] 백테스팅 엔진
 
+## 대시보드 v2.0 (2026-02-14 업그레이드)
+
+### 주요 변경사항
+- **캔들스틱 차트**: TradingView lightweight-charts v4 기반 OHLC 캔들 + BB/EMA/VWAP 오버레이
+- **서브차트 3종**: RSI(7), StochRSI K/D, Volume + 서지 라인
+- **매매 조건 체크리스트**: 4개 전략별 조건 충족 상태 실시간 표시 (✅/❌)
+- **앙상블 판단 패널**: 투표 수, 가중 신뢰도, 추세 상태, 최종 시그널
+- **Guide 탭 확장**: 실시간 상태 해석, 앙상블 플로우차트, 상세 초심자 가이드
+
+### 변경 파일
+| 파일 | 변경 내용 |
+|------|----------|
+| scalper/trader.py | `_compute_indicators()`에 15개 시계열 추가, `_build_trigger_summary()` 신규 |
+| scalper/dashboard.py | lightweight-charts CDN, 확장형 카드, 캔들스틱/서브차트, 체크리스트 UI, Guide 확장 |
+
+### 실행 방법
+```bash
+cd projects/04-crypto-trader
+python -m scalper.run --dashboard    # 대시보드만
+python -m scalper.run                # 봇 + 대시보드
+# → http://localhost:8081
+```
+
 ## 향후 과제
 - [ ] 실제 거래소 API 키 연동
-- [ ] WebSocket 실시간 데이터
+- [ ] WebSocket 실시간 데이터 (5초 폴링 → 실시간 스트리밍)
 - [ ] 전략 성과 기반 동적 가중치 조정
 - [ ] 다중 거래소 지원
-- [ ] 수익률 차트/리포트
+- [ ] 차트 시간범위 선택 (5분/15분/1시간)
+- [ ] 백테스트 결과 차트 대시보드 통합
