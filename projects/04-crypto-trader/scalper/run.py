@@ -7,6 +7,8 @@ Usage:
   python -m scalper.run --backtest       # Run backtester
   python -m scalper.run --dashboard      # Dashboard only
   python -m scalper.run --with-dashboard # Trading + dashboard
+  python -m scalper.run --no-scanner     # Disable dynamic market scanner
+  python -m scalper.run --no-optimizer   # Disable walk-forward optimizer
 """
 import argparse
 import logging
@@ -37,12 +39,27 @@ def main():
     parser.add_argument("--with-dashboard", action="store_true", help="Trading + dashboard")
     parser.add_argument("--market", default="KRW-BTC", help="Market for backtest")
     parser.add_argument("--days", type=int, default=7, help="Days for backtest")
+    parser.add_argument("--no-scanner", action="store_true",
+                        help="Disable dynamic market scanner")
+    parser.add_argument("--no-optimizer", action="store_true",
+                        help="Disable walk-forward optimizer")
     args = parser.parse_args()
 
     setup_logging()
     logger = logging.getLogger("scalper")
 
+    # Apply CLI overrides before creating any components
+    if args.no_scanner:
+        config.DYNAMIC_MARKETS_ENABLED = False
+        logger.info("Dynamic market scanner disabled via --no-scanner")
+    if args.no_optimizer:
+        config.OPTIMIZER_ENABLED = False
+        logger.info("Walk-forward optimizer disabled via --no-optimizer")
+
     if args.backtest:
+        # Backtest mode: always disable scanner/optimizer
+        config.DYNAMIC_MARKETS_ENABLED = False
+        config.OPTIMIZER_ENABLED = False
         logger.info("=== Backtest Mode ===")
         bt = Backtester(initial_balance=config.PAPER_INITIAL_KRW)
         result = bt.run(market=args.market, days=args.days)

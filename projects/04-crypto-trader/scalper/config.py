@@ -105,5 +105,18 @@ DASHBOARD_PORT = 8081
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
+# === Dynamic Market Scanner ===
+DYNAMIC_MARKETS_ENABLED = True
+SCANNER_TOP_N = 5               # 상위 5개 마켓
+SCANNER_INTERVAL_SEC = 3600     # 1시간마다 스캔
+SCANNER_MIN_VOLUME_KRW = 1_000_000_000  # 최소 24h 거래대금 10억원
+
+# === Walk-Forward Optimizer ===
+OPTIMIZER_ENABLED = True
+OPTIMIZER_INTERVAL_SEC = 7200   # 2시간마다 최적화
+OPTIMIZER_LOOKBACK_DAYS = 3     # 과거 3일 데이터
+OPTIMIZER_N_PROFILES = 12       # 테스트할 프로필 수
+OPTIMIZER_MARKETS = ["KRW-BTC", "KRW-ETH"]  # 최적화 대상 (고정, 속도)
+
 # === Logging ===
 LOG_LEVEL = os.getenv("SCALPER_LOG_LEVEL", "INFO")

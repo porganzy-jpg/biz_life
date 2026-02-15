@@ -185,10 +185,14 @@ async def api_trades_history(
 async def api_runtime():
     if _trader is None:
         return {"initialized": False}
+    # Active markets (dynamic or static)
+    active_markets = (_trader.scanner.get_active_markets()
+                      if _trader.scanner else list(config.MARKETS))
     return {
         "initialized": True,
         "paper": _trader.client.paper,
-        "markets": config.MARKETS,
+        "markets": active_markets,
+        "static_markets": list(config.MARKETS),
         "loop_interval_sec": config.LOOP_INTERVAL_SEC,
         "candle_interval": config.CANDLE_INTERVAL,
         "risk_per_trade": config.RISK_PER_TRADE,
@@ -204,6 +208,8 @@ async def api_runtime():
         "min_ensemble_confidence": config.MIN_ENSEMBLE_CONFIDENCE,
         "trend_ema_period": config.TREND_EMA_PERIOD,
         "uptime_sec": round(time.time() - _trader.start_time, 0),
+        "scanner_status": _trader.scanner.get_status() if _trader.scanner else {"enabled": False},
+        "optimizer_status": _trader.optimizer.get_status() if _trader.optimizer else {"enabled": False},
     }
 
 
@@ -487,6 +493,11 @@ table{min-width:600px}
   <div class="card"><div class="card-label">Total Trades</div><div class="card-value" id="sc-trades">-</div><div class="card-sub" id="sc-trades-sub">-</div></div>
   <div class="card"><div class="card-label">Circuit Breaker</div><div class="card-value" id="sc-cb">-</div><div class="card-sub" id="sc-cb-sub">-</div></div>
 </div>
+<!-- Active Markets & Optimizer Status Bar -->
+<div class="cards" id="v4StatusBar" style="margin-top:8px">
+  <div class="card" style="flex:2"><div class="card-label">Active Markets (Scanner)</div><div class="card-value" id="sc-active-markets" style="font-size:13px;color:var(--accent)">-</div><div class="card-sub" id="sc-scanner-sub">-</div></div>
+  <div class="card" style="flex:2"><div class="card-label">Optimizer Status</div><div class="card-value" id="sc-optimizer" style="font-size:13px">-</div><div class="card-sub" id="sc-optimizer-sub">-</div></div>
+</div>
 <div class="tabs">
   <div class="tab active" data-tab="realtime">Real-time</div>
   <div class="tab" data-tab="performance">Performance</div>
@@ -764,6 +775,19 @@ function applyStatus(d){
   setEl('sc-trades-sub','Cycle #'+d.cycle_count);
   const cbEl=document.getElementById('sc-cb');if(cbEl){cbEl.textContent=cb.can_trade?'OK':(cb.reason||'OFF');cbEl.className='card-value '+(cb.can_trade?'positive':'negative')}
   setEl('sc-cb-sub','Consec. losses: '+(cb.consecutive_losses||0));
+  // v4: Active Markets (scanner)
+  const am=d.active_markets||[];
+  const amEl=document.getElementById('sc-active-markets');
+  if(amEl)amEl.textContent=am.length?am.join(', '):'(static)';
+  const ss=d.scanner_status||{};
+  const ssSub=document.getElementById('sc-scanner-sub');
+  if(ssSub){if(ss.enabled){const ago=ss.last_scan?(Math.round((Date.now()/1000-ss.last_scan)/60))+'m ago':'never';ssSub.textContent='Last scan: '+ago+' | Top '+ss.top_n}else{ssSub.textContent='Scanner disabled'}}
+  // v4: Optimizer status
+  const os=d.optimizer_status||{};
+  const osEl=document.getElementById('sc-optimizer');
+  if(osEl){if(os.enabled){osEl.textContent='Score: '+os.best_score+' (#'+os.run_count+')';osEl.className='card-value '+(os.best_score>0?'positive':'')}else{osEl.textContent='Disabled';osEl.className='card-value'}}
+  const osSub=document.getElementById('sc-optimizer-sub');
+  if(osSub){if(os.enabled&&os.best_profile){const bp=os.best_profile;osSub.textContent='SL:'+((bp.sl_cap||0)*100).toFixed(1)+'% TP:'+((bp.tp||0)*100).toFixed(1)+'% Trail:'+((bp.trail_act||0)*100).toFixed(1)+'%'}else{osSub.textContent=os.enabled?'Waiting for first run...':'Optimizer disabled'}}
   renderPositions(d.open_positions||{});
   _prevStatus=d;
 }

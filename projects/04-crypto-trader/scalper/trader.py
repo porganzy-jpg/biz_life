@@ -23,6 +23,8 @@ from .strategies.base import SignalType
 from .risk_manager import RiskManager, RiskLevels
 from .circuit_breaker import CircuitBreaker
 from .alert_system import AlertSystem
+from .market_scanner import MarketScanner
+from .optimizer import WalkForwardOptimizer
 
 logger = logging.getLogger("scalper.trader")
 
@@ -73,6 +75,11 @@ class ScalpTrader:
         self.running = False
         self.today = date.today()
 
+        # Dynamic market scanner
+        self.scanner = MarketScanner() if config.DYNAMIC_MARKETS_ENABLED else None
+        # Walk-forward optimizer
+        self.optimizer = WalkForwardOptimizer() if config.OPTIMIZER_ENABLED else None
+
         # Stats
         self.total_wins = 0
         self.total_losses = 0
@@ -85,8 +92,14 @@ class ScalpTrader:
         self._ws_callback = None
         self._prev_can_trade = True
 
+        mode_info = []
+        if self.scanner:
+            mode_info.append(f"Scanner(top{config.SCANNER_TOP_N})")
+        if self.optimizer:
+            mode_info.append("Optimizer")
         logger.info(f"ScalpTrader initialized. Balance: {initial_balance:,.0f} KRW, "
-                     f"Paper: {paper}, Markets: {config.MARKETS}")
+                     f"Paper: {paper}, Markets: {config.MARKETS}, "
+                     f"Modules: {', '.join(mode_info) or 'none'}")
 
     def set_ws_callback(self, push_fn):
         """Set WebSocket push callback (thread-safe queue.put)."""
@@ -106,9 +119,15 @@ class ScalpTrader:
         self.start_time = time.time()
         logger.info("=== Scalping Bot Started ===")
 
+        # Start background optimizer
+        if self.optimizer:
+            self.optimizer.start()
+            logger.info("Walk-forward optimizer started (background thread)")
+
         # Startup alert
         balance = self.client.get_krw_balance()
-        self.alert.startup_alert(balance, config.MARKETS, self.client.paper)
+        markets = self.scanner.get_markets(self.positions) if self.scanner else config.MARKETS
+        self.alert.startup_alert(balance, markets, self.client.paper)
 
         while self.running:
             try:
@@ -150,6 +169,8 @@ class ScalpTrader:
 
     def stop(self):
         self.running = False
+        if self.optimizer:
+            self.optimizer.stop()
 
     def _tick(self):
         """Single trading cycle."""
@@ -173,11 +194,13 @@ class ScalpTrader:
         for market in list(self.positions.keys()):
             self._check_position(market)
 
-        # 3. Scan markets
+        # 3. Scan markets (dynamic or static)
         if not can_trade:
             return
 
-        for market in config.MARKETS:
+        markets = (self.scanner.get_markets(self.positions)
+                   if self.scanner else config.MARKETS)
+        for market in markets:
             if market in self.positions:
                 continue  # Already have a position
 
@@ -454,6 +477,12 @@ class ScalpTrader:
                 "contributing_strategies": p.contributing_strategies,
             }
 
+        # Scanner / Optimizer status
+        active_markets = (self.scanner.get_active_markets()
+                          if self.scanner else list(config.MARKETS))
+        scanner_status = self.scanner.get_status() if self.scanner else {"enabled": False}
+        optimizer_status = self.optimizer.get_status() if self.optimizer else {"enabled": False}
+
         return {
             "running": self.running,
             "paper": self.client.paper,
@@ -471,6 +500,9 @@ class ScalpTrader:
             "circuit_breaker": self.circuit.get_status(),
             "ensemble": self.ensemble.get_status(),
             "recent_trades": [asdict(t) for t in self.trade_history[-20:]],
+            "active_markets": active_markets,
+            "scanner_status": scanner_status,
+            "optimizer_status": optimizer_status,
         }
 
     def get_market_watch(self) -> dict:

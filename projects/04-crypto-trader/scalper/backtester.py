@@ -12,6 +12,7 @@ from . import config
 from .strategies.ensemble import EnsembleStrategy
 from .strategies.base import SignalType
 from .risk_manager import RiskManager
+from .optimizer import ParamProfile
 
 logger = logging.getLogger("scalper.backtest")
 
@@ -34,7 +35,13 @@ class BacktestResult:
 
 class Backtester:
 
-    def __init__(self, initial_balance: float = 1_000_000):
+    def __init__(self, initial_balance: float = 1_000_000,
+                 param_profile: ParamProfile = None):
+        self._original_profile = None
+        if param_profile:
+            self._original_profile = ParamProfile.from_config()
+            param_profile.apply_to_config()
+
         self.initial_balance = initial_balance
         self.ensemble = EnsembleStrategy()
         self.risk_mgr = RiskManager()
@@ -152,6 +159,10 @@ class Backtester:
                 "duration": len(df) - position["entry_idx"],
                 "won": pnl_krw > 0,
             })
+
+        # Restore original config if a param_profile was applied
+        if self._original_profile:
+            self._original_profile.apply_to_config()
 
         return self._compile_results(trades, equity_curve, balance)
 
