@@ -156,11 +156,7 @@ class Backtester:
         return self._compile_results(trades, equity_curve, balance)
 
     def _fetch_data(self, market: str, days: int) -> Optional[pd.DataFrame]:
-        """Fetch historical candle data.
-
-        pyupbit.get_ohlcv handles internal pagination (200 per API call)
-        automatically when count > 200, so we just pass total_candles directly.
-        """
+        """Fetch historical candle data via pyupbit (auto-paginates internally)."""
         try:
             import pyupbit
         except ImportError:
@@ -169,22 +165,22 @@ class Backtester:
 
         try:
             interval = config.CANDLE_INTERVAL
-            # Calculate candles per day based on interval
             minutes_per_candle = {"minute1": 1, "minute3": 3, "minute5": 5,
                                   "minute10": 10, "minute15": 15, "minute30": 30,
                                   "minute60": 60}.get(interval, 1)
             total_candles = days * 24 * 60 // minutes_per_candle
-            logger.info(f"Fetching {total_candles} {interval} candles for {market} ({days} days)... "
-                        f"(~{total_candles // 200 + 1} API calls, may take a moment)")
+            api_calls = (total_candles + 199) // 200
+            logger.info(f"Fetching {total_candles} {interval} candles for {market} "
+                        f"({days} days, ~{api_calls} API calls)...")
 
-            df = pyupbit.get_ohlcv(market, interval=interval, count=total_candles)
+            df = pyupbit.get_ohlcv(market, interval=interval,
+                                   count=total_candles, period=0.12)
 
             if df is None or df.empty:
                 logger.warning(f"No data returned for {market}, using synthetic")
                 return self._generate_synthetic(market, days)
 
             df = df.reset_index()
-            # pyupbit returns: index(datetime), open, high, low, close, volume, value
             if "value" in df.columns:
                 df = df.drop(columns=["value"])
             df.columns = ["timestamp", "open", "high", "low", "close", "volume"]

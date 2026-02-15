@@ -113,6 +113,14 @@ class EnsembleStrategy:
                         reason=f"BUY blocked: price below EMA({config.TREND_EMA_PERIOD}): {reason_str}",
                         metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                     )
+            # 캔들 확인: 약세봉에서는 매수 차단
+            candle_dir = self._candle_confirmation(df)
+            if candle_dir == "bearish":
+                return ScalpSignal(
+                    signal=SignalType.HOLD, strategy_name="ensemble",
+                    reason=f"BUY blocked: bearish candle confirmation: {reason_str}",
+                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
+                )
             return ScalpSignal(
                 signal=SignalType.BUY,
                 strategy_name="ensemble",

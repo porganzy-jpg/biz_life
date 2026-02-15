@@ -82,9 +82,23 @@ class ScalpTrader:
         self.total_fees_krw = 0.0
         self.today_trades = 0
         self._last_market_analysis: dict[str, dict] = {}  # market -> analysis cache
+        self._ws_callback = None
+        self._prev_can_trade = True
 
         logger.info(f"ScalpTrader initialized. Balance: {initial_balance:,.0f} KRW, "
                      f"Paper: {paper}, Markets: {config.MARKETS}")
+
+    def set_ws_callback(self, push_fn):
+        """Set WebSocket push callback (thread-safe queue.put)."""
+        self._ws_callback = push_fn
+
+    def _ws_push(self, event: dict):
+        """Push event via callback if set."""
+        if self._ws_callback:
+            try:
+                self._ws_callback(event)
+            except Exception:
+                pass
 
     def run(self):
         """Main trading loop."""
@@ -141,6 +155,15 @@ class ScalpTrader:
         """Single trading cycle."""
         # 1. Circuit breaker
         can_trade, reason = self.circuit.can_trade()
+        if can_trade != self._prev_can_trade:
+            self._ws_push({
+                "type": "circuit_event",
+                "data": {
+                    "can_trade": can_trade,
+                    "reason": reason,
+                },
+            })
+            self._prev_can_trade = can_trade
         if not can_trade:
             if self.cycle_count % 100 == 0:
                 logger.warning(f"Trading paused: {reason}")
@@ -244,6 +267,16 @@ class ScalpTrader:
             contributing_strategies=contributing,
         )
 
+        self._ws_push({
+            "type": "trade_event",
+            "data": {
+                "side": "buy", "market": market,
+                "price": price, "amount": amount,
+                "krw_amount": risk_levels.position_size_krw,
+                "reason": signal.reason,
+            },
+        })
+
         self.alert.trade_alert(
             market=market, side="buy", price=price, amount=amount,
             krw_amount=risk_levels.position_size_krw, reason=signal.reason,
@@ -334,6 +367,17 @@ class ScalpTrader:
         )
         self.trade_history.append(record)
         self._save_trade(record)
+
+        self._ws_push({
+            "type": "trade_event",
+            "data": {
+                "side": "sell", "market": market,
+                "price": actual_exit_price, "amount": pos.amount,
+                "exit_type": exit_type,
+                "pnl_krw": round(pnl_krw, 0),
+                "pnl_pct": round(net_pnl_pct * 100, 2),
+            },
+        })
 
         self.alert.exit_alert(
             market=market, exit_type=exit_type,

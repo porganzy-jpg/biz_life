@@ -1,6 +1,6 @@
 # BIZ LIFE - 5대 프로젝트 통합 현황
 
-**최종 업데이트**: 2026-02-07
+**최종 업데이트**: 2026-02-15
 
 ## 프로젝트 요약
 
@@ -9,7 +9,7 @@
 | 1 | **PromoMap** (위치기반 할인) | :8000 | 57 | 20개+ | v2.0 리팩토링 완료 |
 | 2 | **BarcodeQuest** (바코드 몬스터) | :8001 | 9 | 7개 | 전체 통과 |
 | 3 | **VoiceMemory** (AI 음성 보존) | :8002 | 11 | 13개 | 전체 통과 |
-| 4 | **CryptoBot** (암호화폐 트레이딩) | :8003 | 16 | 6개 | 전체 통과 |
+| 4 | **CryptoBot** (암호화폐 트레이딩) | :8081 | 20+ | 8개+WS | v3.0 전략개선+WS실시간+24/7 |
 | 5 | **StockBot** (주식 자동매매) | :8004 | 19 | 7개 | 전체 통과 |
 | - | **shared** (공유 모듈) | - | 6 | - | 사용 중 |
 
@@ -34,8 +34,8 @@ cd projects/02-barcode-game/backend && python main.py  # http://localhost:8001
 # 3. VoiceMemory
 cd projects/03-voice-memory/backend && python main.py  # http://localhost:8002
 
-# 4. CryptoBot
-cd projects/04-crypto-trader/dashboard && python app.py  # http://localhost:8003
+# 4. CryptoBot (v3.0 - WebSocket + 3분봉 스캘퍼)
+cd projects/04-crypto-trader && python -m scalper.run --with-dashboard  # http://localhost:8081
 
 # 5. StockBot
 cd projects/05-stock-trader/dashboard && python app.py  # http://localhost:8004

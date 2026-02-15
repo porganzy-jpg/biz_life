@@ -18,12 +18,12 @@ PAPER_INITIAL_KRW = float(os.getenv("SCALPER_PAPER_KRW", "1000000"))
 MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP"]
 
 # === Timeframe ===
-CANDLE_INTERVAL = "minute1"
-CANDLE_COUNT = 200  # 장기 EMA + 지표 안정화
+CANDLE_INTERVAL = "minute3"   # 3분봉: 1분봉 대비 노이즈 대폭 감소
+CANDLE_COUNT = 120            # 6시간 데이터 (3분 × 120 = 360분)
 
 # === Trading Loop ===
-LOOP_INTERVAL_SEC = 3
-WEIGHT_ADJUST_CYCLE = 500  # 500사이클마다 가중치 조정
+LOOP_INTERVAL_SEC = 5         # 3분봉에 맞게 조정
+WEIGHT_ADJUST_CYCLE = 300     # 300사이클마다 가중치 조정
 
 # === RSI + Bollinger Band Strategy ===
 RSI_PERIOD = 7               # 노이즈 감소
@@ -56,12 +56,12 @@ DEFAULT_WEIGHTS = {
     "ema_cross": 0.20,
 }
 MIN_AGREEMENT = 2            # 최소 2개 전략 동의
-MIN_ENSEMBLE_CONFIDENCE = 0.30
+MIN_ENSEMBLE_CONFIDENCE = 0.35  # 신뢰도 문턱 약간 상향
 WEIGHT_EMA_ALPHA = 0.1
-ENTRY_COOLDOWN_BARS = 8      # 거래 후 최소 8분 대기
+ENTRY_COOLDOWN_BARS = 5      # 3분봉 기준 5봉 = 15분 대기
 
 # === Signal Exit Filter ===
-SIGNAL_EXIT_MIN_BARS = 15    # 진입 후 최소 15분 보유 후 시그널 매도 허용
+SIGNAL_EXIT_MIN_BARS = 8     # 3분봉 기준 8봉 = 24분 보유 후 시그널 매도 허용
 SIGNAL_EXIT_MIN_PROFIT = -0.001  # 시그널 매도는 -0.1% 이상일 때만
 
 # === Trend Filter (앙상블 레벨) ===
@@ -75,20 +75,20 @@ VOL_LOW_PERCENTILE = 0.2     # 변동성 너무 낮으면 HOLD (횡보장)
 VOL_HIGH_PERCENTILE = 0.9    # 변동성 너무 높으면 HOLD (급변장)
 
 # === Risk Management ===
-RISK_PER_TRADE = 0.015       # 잔고 1.5% 리스크
+RISK_PER_TRADE = 0.01        # 잔고 1.0% 리스크 (보수적)
 ATR_PERIOD = 14
-ATR_STOP_MULTIPLIER = 4.0    # ATR 0.13% × 4 = 0.52%
-ATR_TP_MULTIPLIER = 6.0      # ATR × 6 = 0.78% (min 1.0% 보장)
-STOP_LOSS_MIN_PCT = 0.004    # 0.4% 최소 스탑
-STOP_LOSS_HARD_CAP = 0.012   # 1.2% 하드캡
-TAKE_PROFIT_PCT = 0.010      # 1.0% 익절
-TAKE_PROFIT_MIN = 0.010      # 1.0% 고정
-TRAILING_ACTIVATE_PCT = 0.005  # 0.5% 수익 시 트레일링
-TRAILING_STOP_PCT = 0.003    # 0.3% 추적
+ATR_STOP_MULTIPLIER = 2.0    # 3분봉 ATR 더 크므로 축소 (was 4.0)
+ATR_TP_MULTIPLIER = 3.5      # 3분봉 ATR 비례 조정 (was 6.0)
+STOP_LOSS_MIN_PCT = 0.003    # 0.3% 최소 스탑 (was 0.4%)
+STOP_LOSS_HARD_CAP = 0.007   # 0.7% 하드캡 (was 1.2%) ← 핵심 개선
+TAKE_PROFIT_PCT = 0.008      # 0.8% 익절 (was 1.0%)
+TAKE_PROFIT_MIN = 0.006      # 0.6% 최소 TP (was 1.0%)
+TRAILING_ACTIVATE_PCT = 0.004  # 0.4% 수익 시 트레일링 (was 0.5%)
+TRAILING_STOP_PCT = 0.002    # 0.2% 추적 (was 0.3%) ← 수익 더 잡기
 
-# === Breakeven Stop (비활성: 999분) ===
-BREAKEVEN_AFTER_BARS = 999   # 사실상 비활성
-BREAKEVEN_BUFFER = 0.0015
+# === Breakeven Stop ===
+BREAKEVEN_AFTER_BARS = 20    # 3분봉 20봉 = 60분 후 BEP (was 999/비활성)
+BREAKEVEN_BUFFER = 0.001     # 0.1% 버퍼 (was 0.15%)
 COMMISSION_RATE = 0.0005     # 업비트 편도 0.05%
 ROUND_TRIP_COMMISSION = 0.001  # 왕복 0.1%
 

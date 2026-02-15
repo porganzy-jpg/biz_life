@@ -10,12 +10,14 @@ Endpoints:
 - GET /api/runtime   -> Runtime info + config summary
 - POST /api/bot/start|stop|halt|resume -> Bot control
 """
+import asyncio
 import logging
+import queue
 import threading
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from . import config
@@ -31,10 +33,110 @@ def set_trader(trader):
     _trader = trader
 
 
+class WSManager:
+    """WebSocket connection manager with thread-safe event queue."""
+
+    def __init__(self):
+        self._connections: list[WebSocket] = []
+        self._queue: queue.Queue = queue.Queue()
+        self._drain_task = None
+        self._status_interval = 5.0
+        self._market_interval = 3.0
+
+    async def connect(self, ws: WebSocket):
+        await ws.accept()
+        self._connections.append(ws)
+        logger.info(f"WS client connected ({len(self._connections)} total)")
+        # Send initial snapshot
+        try:
+            if _trader:
+                await ws.send_json({"type": "status_update", "data": _trader.get_status()})
+                await ws.send_json({"type": "market_update", "data": _trader.get_market_watch()})
+        except Exception:
+            pass
+
+    def disconnect(self, ws: WebSocket):
+        if ws in self._connections:
+            self._connections.remove(ws)
+        logger.info(f"WS client disconnected ({len(self._connections)} total)")
+
+    async def broadcast(self, message: dict):
+        dead = []
+        for ws in self._connections:
+            try:
+                await ws.send_json(message)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.disconnect(ws)
+
+    def push_event(self, event: dict):
+        """Thread-safe: called from trader thread."""
+        self._queue.put(event)
+
+    async def _drain_loop(self):
+        """Async loop: drain queue and push periodic updates."""
+        last_status = 0.0
+        last_market = 0.0
+        while True:
+            try:
+                # Drain all queued events
+                while True:
+                    try:
+                        event = self._queue.get_nowait()
+                        await self.broadcast(event)
+                    except queue.Empty:
+                        break
+
+                now = time.time()
+                if self._connections and _trader:
+                    if now - last_status >= self._status_interval:
+                        await self.broadcast({
+                            "type": "status_update",
+                            "data": _trader.get_status(),
+                        })
+                        last_status = now
+                    if now - last_market >= self._market_interval:
+                        await self.broadcast({
+                            "type": "market_update",
+                            "data": _trader.get_market_watch(),
+                        })
+                        last_market = now
+
+                await asyncio.sleep(1.0)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"WS drain error: {e}")
+                await asyncio.sleep(1.0)
+
+    async def start(self):
+        self._drain_task = asyncio.create_task(self._drain_loop())
+
+    async def stop(self):
+        if self._drain_task:
+            self._drain_task.cancel()
+            try:
+                await self._drain_task
+            except asyncio.CancelledError:
+                pass
+        for ws in list(self._connections):
+            try:
+                await ws.close()
+            except Exception:
+                pass
+        self._connections.clear()
+
+
+ws_mgr = WSManager()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Dashboard starting on port {config.DASHBOARD_PORT}")
+    await ws_mgr.start()
     yield
+    await ws_mgr.stop()
     logger.info("Dashboard shutting down")
 
 
@@ -138,6 +240,20 @@ async def resume_bot():
     return {"status": "resumed"}
 
 
+# ── WebSocket Endpoint ─────────────────────────────────────────
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws_mgr.connect(ws)
+    try:
+        while True:
+            await ws.receive_text()  # Keep connection alive
+    except WebSocketDisconnect:
+        ws_mgr.disconnect(ws)
+    except Exception:
+        ws_mgr.disconnect(ws)
+
+
 # ── Dashboard HTML ─────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -156,7 +272,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--purple:#bc8cff;--orange:#f0883e}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;-webkit-tap-highlight-color:transparent}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
 .topbar h1{font-size:18px;color:var(--accent);white-space:nowrap}
 .badge{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase}
@@ -243,7 +359,7 @@ tr:hover{background:rgba(88,166,255,.04)}
 /* Expandable chart panel */
 .mw-card{cursor:pointer;transition:all .2s}
 .mw-card.expanded{grid-column:1/-1}
-.mw-detail{display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px}
+.mw-detail{display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;max-height:550px;overflow-y:auto}
 .mw-card.expanded .mw-detail{display:block}
 .mw-expand-hint{font-size:10px;color:var(--text2);text-align:center;margin-top:4px}
 .mw-card.expanded .mw-expand-hint{display:none}
@@ -277,7 +393,76 @@ tr:hover{background:rgba(88,166,255,.04)}
 .guide-flow{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:12px;font-family:monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--text)}
 .guide-flow .step{color:var(--accent);font-weight:700}
 .guide-flow .yes{color:var(--green)}.guide-flow .no{color:var(--red)}
-@media(max-width:768px){.chart-row,.mw-grid{grid-template-columns:1fr}.topbar{flex-wrap:wrap}.subchart-row{grid-template-columns:1fr}}
+/* Tablet */
+@media(max-width:768px){
+.chart-row,.mw-grid{grid-template-columns:1fr}
+.topbar{flex-wrap:wrap;padding:10px 12px;gap:8px}
+.topbar h1{font-size:15px}
+.topbar-right{width:100%;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.container{padding:12px}
+.cards{grid-template-columns:repeat(3,1fr);gap:8px}
+.card{padding:10px}
+.card-value{font-size:18px}
+.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 14px;font-size:12px;white-space:nowrap}
+.mw-grid{gap:12px}
+.mw-card{padding:12px}
+.mw-card.expanded{overflow:visible}
+.mw-detail{max-height:480px}
+.tv-chart-wrap{height:250px}
+.subchart-row{grid-template-columns:1fr}
+.subchart-canvas,.subchart-canvas.vol{height:80px}
+.pos-grid{grid-template-columns:1fr}
+.scroll-table{max-height:400px;overflow-x:auto}
+table{min-width:600px}
+.stats-grid{grid-template-columns:repeat(2,1fr)}
+.period-btns{flex-wrap:wrap;gap:6px}
+.filter-row{flex-wrap:wrap}
+.guide-flow{font-size:11px;padding:12px;overflow-x:auto}
+.guide-section{padding:14px}
+.guide-card{padding:10px}
+}
+/* Mobile */
+@media(max-width:480px){
+.topbar{padding:8px 10px;gap:6px}
+.topbar h1{font-size:14px}
+.badge{font-size:9px;padding:3px 6px}
+.topbar-right{gap:4px}
+.btn{padding:5px 8px;font-size:11px}
+#uptime{font-size:10px}
+.container{padding:8px}
+.cards{grid-template-columns:repeat(2,1fr);gap:6px}
+.card{padding:8px}
+.card-label{font-size:10px}
+.card-value{font-size:16px}
+.card-sub{font-size:10px}
+.tab{padding:8px 10px;font-size:11px}
+.mw-card{padding:10px}
+.mw-market{font-size:14px}
+.mw-price{font-size:13px}
+.mw-chart-wrap{height:60px}
+.ind-row{gap:4px;font-size:11px}
+.ind-label{width:65px;font-size:10px}
+.ind-val{width:45px;font-size:11px}
+.ind-status{width:32px;font-size:9px}
+.sig-row{font-size:11px}
+.mw-detail{max-height:420px}
+.tv-chart-wrap{height:200px}
+.trigger-cond{font-size:10px;gap:4px}
+.trigger-ensemble{padding:8px}
+.trigger-ensemble-row{font-size:10px}
+.pos-card{padding:10px}
+.pos-market{font-size:13px}
+.pos-row{font-size:11px}
+.period-btn{padding:5px 10px;font-size:11px}
+.stats-grid{grid-template-columns:1fr 1fr;gap:8px}
+.page-btn{padding:4px 8px;font-size:11px}
+.guide-section p,.guide-section li{font-size:12px}
+.guide-flow{font-size:10px;line-height:1.6}
+.guide-card h4{font-size:12px}
+.panel-title{font-size:13px}
+}
 </style>
 </head>
 <body>
@@ -294,7 +479,14 @@ tr:hover{background:rgba(88,166,255,.04)}
   </div>
 </div>
 <div class="container">
-<div class="cards" id="summaryCards"></div>
+<div class="cards" id="summaryCards">
+  <div class="card"><div class="card-label">Balance</div><div class="card-value" id="sc-balance" style="color:var(--accent)">-</div></div>
+  <div class="card"><div class="card-label">Today PnL</div><div class="card-value" id="sc-pnl">-</div><div class="card-sub" id="sc-pnl-sub">-</div></div>
+  <div class="card"><div class="card-label">Total Fees</div><div class="card-value" id="sc-fees" style="color:var(--yellow)">-</div></div>
+  <div class="card"><div class="card-label">Win Rate</div><div class="card-value" id="sc-wr">-</div><div class="card-sub" id="sc-wr-sub">-</div></div>
+  <div class="card"><div class="card-label">Total Trades</div><div class="card-value" id="sc-trades">-</div><div class="card-sub" id="sc-trades-sub">-</div></div>
+  <div class="card"><div class="card-label">Circuit Breaker</div><div class="card-value" id="sc-cb">-</div><div class="card-sub" id="sc-cb-sub">-</div></div>
+</div>
 <div class="tabs">
   <div class="tab active" data-tab="realtime">Real-time</div>
   <div class="tab" data-tab="performance">Performance</div>
@@ -553,21 +745,30 @@ document.querySelectorAll('.period-btn').forEach(btn=>{
   });
 });
 
-// ── Status (5s) ──
-async function refreshStatus(){
-  const d=await api('/api/status');if(!d)return;
+// ── Status (5s) - targeted DOM updates ──
+let _prevStatus=null;
+function setEl(id,text,cls){const e=document.getElementById(id);if(!e)return;if(e.textContent!==text)e.textContent=text;if(cls!==undefined)e.className='card-value '+cls}
+function applyStatus(d){
+  if(!d)return;
   const mb=document.getElementById('modeBadge');mb.textContent=d.paper?'PAPER':'LIVE';mb.className='badge '+(d.paper?'badge-paper':'badge-live');
   const sb=document.getElementById('statusBadge');sb.textContent=d.running?'RUNNING':'STOPPED';sb.className='badge '+(d.running?'badge-running':'badge-stopped');
   document.getElementById('uptime').textContent=fmtUptime(d.uptime_sec||0);
   const cb=d.circuit_breaker||{};
-  document.getElementById('summaryCards').innerHTML=`
-    <div class="card"><div class="card-label">Balance</div><div class="card-value" style="color:var(--accent)">${fmt(d.balance_krw)} <span style="font-size:12px">KRW</span></div></div>
-    <div class="card"><div class="card-label">Today PnL</div><div class="card-value ${cls(d.daily_pnl)}">${d.daily_pnl>=0?'+':''}${fmt(d.daily_pnl)}</div><div class="card-sub">${d.today_trades||0} trades today</div></div>
-    <div class="card"><div class="card-label">Total Fees</div><div class="card-value" style="color:var(--yellow)">${fmt(d.total_fees_krw||0)}</div></div>
-    <div class="card"><div class="card-label">Win Rate</div><div class="card-value ${d.win_rate>=50?'positive':'negative'}">${d.win_rate.toFixed(1)}%</div><div class="card-sub">${d.wins}W / ${d.losses}L</div></div>
-    <div class="card"><div class="card-label">Total Trades</div><div class="card-value">${d.total_trades}</div><div class="card-sub">Cycle #${d.cycle_count}</div></div>
-    <div class="card"><div class="card-label">Circuit Breaker</div><div class="card-value ${cb.can_trade?'positive':'negative'}">${cb.can_trade?'OK':cb.reason||'OFF'}</div><div class="card-sub">Consec. losses: ${cb.consecutive_losses||0}</div></div>`;
+  setEl('sc-balance',fmt(d.balance_krw)+' KRW');
+  const pnlEl=document.getElementById('sc-pnl');if(pnlEl){pnlEl.textContent=(d.daily_pnl>=0?'+':'')+fmt(d.daily_pnl);pnlEl.className='card-value '+cls(d.daily_pnl)}
+  setEl('sc-pnl-sub',(d.today_trades||0)+' trades today');
+  setEl('sc-fees',fmt(d.total_fees_krw||0));
+  const wrEl=document.getElementById('sc-wr');if(wrEl){wrEl.textContent=d.win_rate.toFixed(1)+'%';wrEl.className='card-value '+(d.win_rate>=50?'positive':'negative')}
+  setEl('sc-wr-sub',d.wins+'W / '+d.losses+'L');
+  setEl('sc-trades',String(d.total_trades));
+  setEl('sc-trades-sub','Cycle #'+d.cycle_count);
+  const cbEl=document.getElementById('sc-cb');if(cbEl){cbEl.textContent=cb.can_trade?'OK':(cb.reason||'OFF');cbEl.className='card-value '+(cb.can_trade?'positive':'negative')}
+  setEl('sc-cb-sub','Consec. losses: '+(cb.consecutive_losses||0));
   renderPositions(d.open_positions||{});
+  _prevStatus=d;
+}
+async function refreshStatus(){
+  const d=await api('/api/status');applyStatus(d);
 }
 
 function renderPositions(positions){
@@ -588,9 +789,10 @@ function renderPositions(positions){
 }
 
 // ── Market Watch (5s) with charts + gauges ──
-let miniCharts={};
-async function refreshMarketWatch(){
-  const d=await api('/api/market-watch');if(!d)return;
+let miniCharts={},_mwCache={};
+function mwHash(m){const i=m.indicators||{};return [m.price,m.trend,m.ensemble_signal,i.rsi?.toFixed(1),i.bb_pctb?.toFixed(3),i.stoch_k?.toFixed(1),i.vol_ratio?.toFixed(2)].join('|')}
+function applyMarketWatch(d){
+  if(!d)return;
   const el=document.getElementById('marketWatch');const markets=Object.values(d);
   markets.forEach(m=>{_lastMW[m.market]=m});
   if(!markets.length){el.innerHTML='<p style="color:var(--text2)">Waiting for market data...</p>';return}
@@ -623,12 +825,14 @@ async function refreshMarketWatch(){
 
   markets.forEach(m=>{
     const ind=m.indicators||{};
-    // Header
+    const hash=mwHash(m);const changed=_mwCache[m.market]!==hash;_mwCache[m.market]=hash;
+    // Header - always update (cheap)
     const tEl=document.getElementById('trend-'+m.market);
-    tEl.textContent=m.trend==='up'?'Uptrend':m.trend==='down'?'Downtrend':'Neutral';
-    tEl.className='mw-trend '+(m.trend==='up'?'trend-up':m.trend==='down'?'trend-down':'trend-neutral');
+    if(tEl){tEl.textContent=m.trend==='up'?'Uptrend':m.trend==='down'?'Downtrend':'Neutral';
+    tEl.className='mw-trend '+(m.trend==='up'?'trend-up':m.trend==='down'?'trend-down':'trend-neutral')}
     // Price
-    document.getElementById('price-'+m.market).innerHTML=`${fmt(m.price)} KRW <span style="font-size:11px;color:var(--text2);margin-left:8px">Ensemble: </span><span style="font-size:12px;font-weight:700" class="${m.ensemble_signal==='BUY'?'sig-buy':m.ensemble_signal==='SELL'?'sig-sell':'sig-hold'}">${m.ensemble_signal}</span>`;
+    const prEl=document.getElementById('price-'+m.market);
+    if(prEl&&changed)prEl.innerHTML=`${fmt(m.price)} KRW <span style="font-size:11px;color:var(--text2);margin-left:8px">Ensemble: </span><span style="font-size:12px;font-weight:700" class="${m.ensemble_signal==='BUY'?'sig-buy':m.ensemble_signal==='SELL'?'sig-sell':'sig-hold'}">${m.ensemble_signal}</span>`;
 
     // Mini price chart
     if(ind.chart_close&&ind.chart_close.length>1){
@@ -646,14 +850,17 @@ async function refreshMarketWatch(){
       }
     }
 
-    // Strategy signals
+    // Strategy signals - only update if data changed
+    if(changed){
     const sigRows=(m.strategy_signals||[]).map(s=>{
       const sc=s.signal==='BUY'?'sig-buy':s.signal==='SELL'?'sig-sell':'sig-hold';
       return `<div class="sig-row"><span class="sig-name">${s.name}</span><span class="${sc}">${s.signal}</span><span style="color:var(--text2)">${(s.confidence*100).toFixed(0)}%</span></div>`;
     }).join('');
     document.getElementById('sigs-'+m.market).innerHTML=sigRows;
+    }
 
-    // Indicator gauges
+    // Indicator gauges - only update if data changed
+    if(!changed){/* skip gauge rebuild */}else{
     let gaugeHtml='';
     if(ind.rsi!=null) gaugeHtml+=makeGauge('RSI (7)',ind.rsi,0,100,ind.rsi_oversold,ind.rsi_overbought);
     if(ind.bb_pctb!=null) gaugeHtml+=makeGauge('BB%B',ind.bb_pctb*100,0,100,ind.bb_buy_zone*100,ind.bb_sell_zone*100);
@@ -672,6 +879,7 @@ async function refreshMarketWatch(){
         <span class="ind-status" style="background:${aboveVwap?'#1a3a1a':'#3a1a1a'};color:${aboveVwap?'var(--green)':'var(--red)'}">${aboveVwap?'UP':'DN'}</span></div>`;
     }
     document.getElementById('ind-'+m.market).innerHTML=gaugeHtml;
+    } // end gauge changed check
 
     // Expanded detail: TV candlestick + subcharts + trigger
     const card=document.getElementById('mw-'+m.market);
@@ -681,6 +889,9 @@ async function refreshMarketWatch(){
       renderTriggerPanel(m);
     }
   });
+}
+async function refreshMarketWatch(){
+  const d=await api('/api/market-watch');applyMarketWatch(d);
 }
 
 // Toggle expand
@@ -1016,9 +1227,71 @@ async function refreshGuideLive(){
   document.getElementById('guideLiveContent').innerHTML=html;
 }
 
-// ── Init ──
-async function init(){await refreshStatus();await refreshMarketWatch()}
-init();setInterval(refreshStatus,5000);setInterval(refreshMarketWatch,5000);setInterval(refreshGuideLive,5000);
+// ── WebSocket Client ──
+let _ws=null,_wsRetry=0,_wsMaxRetry=30000,_wsTimer=null,_useWS=false;
+function connectWS(){
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  const url=proto+'//'+location.host+'/ws';
+  try{_ws=new WebSocket(url)}catch(e){console.warn('WS connect failed',e);return}
+  _ws.onopen=()=>{
+    console.log('WS connected');_wsRetry=0;_useWS=true;
+    stopPolling();
+  };
+  _ws.onmessage=(e)=>{
+    try{handleWSMessage(JSON.parse(e.data))}catch(err){console.error('WS msg error',err)}
+  };
+  _ws.onclose=()=>{
+    console.log('WS closed');_ws=null;_useWS=false;
+    startPolling();
+    _wsRetry=Math.min(_wsRetry?_wsRetry*2:1000,_wsMaxRetry);
+    _wsTimer=setTimeout(connectWS,_wsRetry);
+  };
+  _ws.onerror=(e)=>{console.warn('WS error',e)};
+}
+function handleWSMessage(msg){
+  switch(msg.type){
+    case 'status_update':applyStatus(msg.data);break;
+    case 'market_update':applyMarketWatch(msg.data);break;
+    case 'trade_event':showTradeAlert(msg.data);break;
+    case 'circuit_event':showCircuitAlert(msg.data);break;
+  }
+}
+function showTradeAlert(data){
+  const bar=document.querySelector('.topbar');if(!bar)return;
+  const color=data.side==='buy'?'var(--green)':'var(--red)';
+  const label=data.side==='buy'?'BUY':'SELL';
+  bar.style.transition='box-shadow .3s';
+  bar.style.boxShadow='inset 0 -3px 0 0 '+color;
+  const el=document.createElement('span');
+  el.style.cssText='color:'+color+';font-weight:700;font-size:12px;margin-left:12px';
+  el.textContent=label+' '+data.market+' @ '+fmt(data.price);
+  const right=document.querySelector('.topbar-right');
+  if(right)right.prepend(el);
+  setTimeout(()=>{bar.style.boxShadow='none';if(el.parentNode)el.remove()},5000);
+}
+function showCircuitAlert(data){
+  const bar=document.querySelector('.topbar');if(!bar)return;
+  bar.style.transition='box-shadow .3s';
+  bar.style.boxShadow='inset 0 -3px 0 0 var(--yellow)';
+  setTimeout(()=>{bar.style.boxShadow='none'},3000);
+}
+
+// ── Init with visibility-aware polling + WebSocket ──
+let _timers=[];
+function startPolling(){
+  if(_useWS)return;
+  _timers.forEach(clearInterval);_timers=[];
+  _timers.push(setInterval(refreshStatus,5000));
+  _timers.push(setInterval(refreshMarketWatch,5000));
+  _timers.push(setInterval(refreshGuideLive,5000));
+}
+function stopPolling(){_timers.forEach(clearInterval);_timers=[]}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){stopPolling();if(_ws)_ws.close()}
+  else{refreshStatus();refreshMarketWatch();if(!_useWS)startPolling();connectWS()}
+});
+async function init(){await refreshStatus();await refreshMarketWatch();startPolling();connectWS()}
+init();
 </script>
 </body>
 </html>"""

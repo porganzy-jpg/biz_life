@@ -55,16 +55,18 @@ def main():
 
     if args.dashboard:
         logger.info("=== Dashboard Only Mode ===")
-        from .dashboard import run_dashboard
+        from .dashboard import run_dashboard, ws_mgr
+        trader.set_ws_callback(ws_mgr.push_event)
         run_dashboard(trader)
         return
 
     if args.with_dashboard:
         logger.info("=== Trading + Dashboard Mode ===")
-        from .dashboard import set_trader, app, config as cfg
+        from .dashboard import set_trader, app, ws_mgr, config as cfg
         import uvicorn
 
         set_trader(trader)
+        trader.set_ws_callback(ws_mgr.push_event)
 
         # Start dashboard in background
         dash_thread = threading.Thread(
