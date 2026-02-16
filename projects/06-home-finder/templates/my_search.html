@@ -1,0 +1,861 @@
+{% extends "base.html" %}
+{% block title %}내 조건 검색{% endblock %}
+{% block nav_search %}active{% endblock %}
+
+{% block head %}
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services,clusterer&autoload=false"></script>
+<style>
+    .filter-panel {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        position: sticky;
+        top: 70px;
+        max-height: calc(100vh - 90px);
+        overflow-y: auto;
+    }
+    .filter-panel .form-label { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+    .filter-section { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #dee2e6; }
+    .filter-section:last-child { border-bottom: none; }
+
+    .result-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .result-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #0d6efd; }
+
+    .score-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px; height: 48px;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 1.1rem;
+        color: white;
+    }
+    .score-high { background: #198754; }
+    .score-mid { background: #0d6efd; }
+    .score-low { background: #6c757d; }
+
+    .sub-score-bar { height: 6px; border-radius: 3px; background: #e9ecef; overflow: hidden; margin-bottom: 4px; }
+    .sub-score-fill { height: 100%; border-radius: 3px; }
+
+    .tag { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin: 2px; }
+
+    .summary-bar {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .range-display { font-size: 0.85rem; color: #0d6efd; font-weight: 600; }
+
+    .district-checks label { font-size: 0.82rem; }
+
+    .btn-add-candidate {
+        padding: 2px 8px;
+        font-size: 0.75rem;
+    }
+
+    .saved-search-item {
+        padding: 6px 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .saved-search-item:hover { background: #e3f2fd; }
+
+    #loadingSpinner { display: none; }
+    #loadingSpinner.active { display: flex; justify-content: center; padding: 40px; }
+
+    /* View toggle tabs */
+    .view-tabs .btn { font-size: 0.85rem; }
+    .view-tabs .btn.active { font-weight: 600; }
+    #searchMapContainer { width: 100%; height: 500px; border-radius: 8px; display: none; }
+    #searchMapContainer.active { display: block; }
+    #resultList.hidden { display: none; }
+    #paginationNav.hidden { display: none; }
+
+    .map-no-data {
+        display: flex; align-items: center; justify-content: center;
+        height: 500px; background: #f8f9fa; border-radius: 8px; color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left: Filter Panel -->
+    <div class="col-lg-3 col-md-4 mb-3">
+        <div class="filter-panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-sliders"></i> 조건 설정</h5>
+                <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()" title="초기화">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+            </div>
+
+            <!-- Budget -->
+            <div class="filter-section">
+                <label class="form-label">예산 범위</label>
+                <div class="d-flex gap-2 align-items-center">
+                    <input type="number" id="priceMin" class="form-control form-control-sm" placeholder="최소(억)" step="0.5" min="0">
+                    <span>~</span>
+                    <input type="number" id="priceMax" class="form-control form-control-sm" placeholder="최대(억)" step="0.5" min="0">
+                </div>
+                <div class="range-display mt-1" id="priceDisplay"></div>
+            </div>
+
+            <!-- Districts -->
+            <div class="filter-section">
+                <label class="form-label">대상 지역</label>
+                <div class="district-checks" id="districtChecks">
+                    {% for d in target_districts %}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input district-cb" type="checkbox" value="{{ d }}" id="dist-{{ d }}">
+                        <label class="form-check-label" for="dist-{{ d }}">{{ d }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-1">
+                    <button class="btn btn-sm btn-link p-0" onclick="toggleAllDistricts(true)">전체선택</button>
+                    <button class="btn btn-sm btn-link p-0 ms-2" onclick="toggleAllDistricts(false)">해제</button>
+                </div>
+            </div>
+
+            <!-- Area -->
+            <div class="filter-section">
+                <label class="form-label">전용면적 (㎡)</label>
+                <div class="d-flex gap-2 align-items-center">
+                    <input type="number" id="areaMin" class="form-control form-control-sm" placeholder="최소" min="0">
+                    <span>~</span>
+                    <input type="number" id="areaMax" class="form-control form-control-sm" placeholder="최대" min="0">
+                </div>
+            </div>
+
+            <!-- Subway Distance -->
+            <div class="filter-section">
+                <label class="form-label">역세권 거리: <span id="subwayLabel" class="range-display">제한없음</span></label>
+                <input type="range" id="subwayDist" class="form-range" min="0" max="2000" step="100" value="2000">
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">0m</small>
+                    <small class="text-muted">2km</small>
+                </div>
+            </div>
+
+            <!-- Building Age -->
+            <div class="filter-section">
+                <label class="form-label">건물 연식: <span id="ageLabel" class="range-display">제한없음</span></label>
+                <input type="range" id="maxAge" class="form-range" min="0" max="40" step="1" value="40">
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">신축</small>
+                    <small class="text-muted">40년</small>
+                </div>
+            </div>
+
+            <!-- Floor -->
+            <div class="filter-section">
+                <label class="form-label">최소 층수</label>
+                <input type="number" id="floorMin" class="form-control form-control-sm" placeholder="예: 3" min="0">
+            </div>
+
+            <!-- Direction -->
+            <div class="filter-section">
+                <label class="form-label">향</label>
+                <div>
+                    {% for dir in ["남향", "남동향", "남서향", "동향", "서향", "북향"] %}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input direction-cb" type="checkbox" value="{{ dir }}" id="dir-{{ dir }}">
+                        <label class="form-check-label" for="dir-{{ dir }}" style="font-size:0.82rem;">{{ dir }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Total Units -->
+            <div class="filter-section">
+                <label class="form-label">최소 세대수</label>
+                <input type="number" id="minUnits" class="form-control form-control-sm" placeholder="예: 300" min="0">
+            </div>
+
+            <!-- Score -->
+            <div class="filter-section">
+                <label class="form-label">최소 점수: <span id="scoreLabel" class="range-display">0점</span></label>
+                <input type="range" id="scoreMin" class="form-range" min="0" max="100" step="5" value="0">
+            </div>
+
+            <!-- Sort -->
+            <div class="filter-section">
+                <label class="form-label">정렬 기준</label>
+                <select id="sortOrder" class="form-select form-select-sm">
+                    <option value="score_desc" selected>점수 높은순</option>
+                    <option value="price_asc">가격 낮은순</option>
+                    <option value="price_desc">가격 높은순</option>
+                    <option value="newest">최신순</option>
+                    <option value="area_desc">면적 넓은순</option>
+                </select>
+            </div>
+
+            <!-- Search Button -->
+            <button class="btn btn-primary w-100 mb-2" onclick="doSearch()">
+                <i class="bi bi-search"></i> 검색
+            </button>
+
+            <!-- Save / Load -->
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success btn-sm flex-fill" onclick="showSaveModal()">
+                    <i class="bi bi-bookmark-plus"></i> 조건 저장
+                </button>
+                <button class="btn btn-outline-info btn-sm flex-fill" onclick="loadSavedSearches()">
+                    <i class="bi bi-bookmarks"></i> 불러오기
+                </button>
+            </div>
+
+            <!-- Saved Searches List -->
+            <div id="savedSearchList" class="mt-2" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Right: Results -->
+    <div class="col-lg-9 col-md-8">
+        <!-- Summary Bar -->
+        <div class="summary-bar">
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="mb-0 d-inline"><i class="bi bi-search"></i> 검색 결과</h5>
+                <span class="badge bg-primary" id="resultCount">0건</span>
+                <!-- View Toggle -->
+                <div class="btn-group btn-group-sm view-tabs ms-3">
+                    <button class="btn btn-outline-primary active" id="btnListView" onclick="switchView('list')">
+                        <i class="bi bi-list-ul"></i> 리스트
+                    </button>
+                    <button class="btn btn-outline-primary" id="btnMapView" onclick="switchView('map')">
+                        <i class="bi bi-geo-alt"></i> 지도
+                    </button>
+                </div>
+            </div>
+            <div id="filterTags"></div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Map View -->
+        <div id="searchMapContainer"></div>
+
+        <!-- Results -->
+        <div id="resultList"></div>
+
+        <!-- Pagination -->
+        <nav id="paginationNav" style="display:none;">
+            <ul class="pagination justify-content-center" id="pagination"></ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Save Search Modal -->
+<div class="modal fade" id="saveModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">조건 저장</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="searchName" class="form-control form-control-sm" placeholder="조건 이름 (예: 마포 역세권)">
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="alertNew" checked>
+                    <label class="form-check-label" for="alertNew" style="font-size:0.85rem;">새 매물 알림</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" onclick="saveCurrentSearch()">저장</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API_SEARCH = '/api/v1/search/query';
+const API_SAVED = '/api/v1/search/saved';
+const API_CANDIDATES = '/api/v1/candidates';
+
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let currentView = 'list'; // 'list' or 'map'
+let searchItems = []; // last search results for map rendering
+
+// ──── Map State ────
+let sMap = null;
+let sMarkers = [];
+let sClusterer = null;
+let sInfowindow = null;
+let mapInitialized = false;
+
+// ──── Helpers ────
+function eokToKrw(eok) { return eok ? Math.round(eok * 100000000) : null; }
+function krwToEok(krw) {
+    if (!krw) return '가격미정';
+    const e = Math.floor(krw / 100000000);
+    const m = Math.floor((krw % 100000000) / 10000);
+    if (e > 0 && m > 0) return `${e}억 ${m.toLocaleString()}만`;
+    if (e > 0) return `${e}억`;
+    return `${m.toLocaleString()}만`;
+}
+
+function getScoreClass(s) {
+    if (s >= 70) return 'score-high';
+    if (s >= 45) return 'score-mid';
+    return 'score-low';
+}
+
+function subScoreColor(s) {
+    if (s >= 70) return '#198754';
+    if (s >= 45) return '#0d6efd';
+    return '#6c757d';
+}
+
+// ──── Build Criteria ────
+function buildCriteria(page) {
+    const c = { page: page || 1, page_size: PAGE_SIZE };
+
+    const pMin = parseFloat(document.getElementById('priceMin').value);
+    const pMax = parseFloat(document.getElementById('priceMax').value);
+    if (pMin) c.price_min = eokToKrw(pMin);
+    if (pMax) c.price_max = eokToKrw(pMax);
+
+    const districts = [...document.querySelectorAll('.district-cb:checked')].map(cb => cb.value);
+    if (districts.length > 0) c.districts = districts;
+
+    const aMin = parseFloat(document.getElementById('areaMin').value);
+    const aMax = parseFloat(document.getElementById('areaMax').value);
+    if (aMin) c.area_min = aMin;
+    if (aMax) c.area_max = aMax;
+
+    const subway = parseInt(document.getElementById('subwayDist').value);
+    if (subway < 2000) c.subway_max_distance = subway;
+
+    const maxAge = parseInt(document.getElementById('maxAge').value);
+    if (maxAge < 40) {
+        const minYear = new Date().getFullYear() - maxAge;
+        c.built_year_min = minYear;
+    }
+
+    const floorMin = parseInt(document.getElementById('floorMin').value);
+    if (floorMin) c.floor_min = floorMin;
+
+    const dirs = [...document.querySelectorAll('.direction-cb:checked')].map(cb => cb.value);
+    if (dirs.length > 0) c.directions = dirs;
+
+    const minUnits = parseInt(document.getElementById('minUnits').value);
+    if (minUnits) c.min_total_units = minUnits;
+
+    const scoreMin = parseInt(document.getElementById('scoreMin').value);
+    if (scoreMin > 0) c.score_min = scoreMin;
+
+    c.sort = document.getElementById('sortOrder').value;
+    return c;
+}
+
+// ──── Filter Tags ────
+function renderTags(criteria) {
+    const tags = [];
+    if (criteria.price_min || criteria.price_max) {
+        const mn = criteria.price_min ? krwToEok(criteria.price_min) : '0';
+        const mx = criteria.price_max ? krwToEok(criteria.price_max) : '~';
+        tags.push(`💰 ${mn} ~ ${mx}`);
+    }
+    if (criteria.districts) tags.push(`📍 ${criteria.districts.join(', ')}`);
+    if (criteria.area_min || criteria.area_max) tags.push(`📐 ${criteria.area_min||''}~${criteria.area_max||''}㎡`);
+    if (criteria.subway_max_distance) tags.push(`🚇 ${criteria.subway_max_distance}m 이내`);
+    if (criteria.built_year_min) tags.push(`🏗️ ${new Date().getFullYear() - criteria.built_year_min}년 이내`);
+    if (criteria.floor_min) tags.push(`🏢 ${criteria.floor_min}층+`);
+    if (criteria.directions) tags.push(`🧭 ${criteria.directions.join(',')}`);
+    if (criteria.min_total_units) tags.push(`🏘️ ${criteria.min_total_units}세대+`);
+    if (criteria.score_min) tags.push(`⭐ ${criteria.score_min}점+`);
+
+    document.getElementById('filterTags').innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join('');
+}
+
+// ──── Search ────
+async function doSearch(page) {
+    currentPage = page || 1;
+    const criteria = buildCriteria(currentPage);
+    renderTags(criteria);
+
+    const spinner = document.getElementById('loadingSpinner');
+    const resultList = document.getElementById('resultList');
+    spinner.classList.add('active');
+    resultList.innerHTML = '';
+
+    try {
+        const resp = await fetch(API_SEARCH, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(criteria)
+        });
+        const data = await resp.json();
+
+        document.getElementById('resultCount').textContent = `${data.total}건`;
+        searchItems = data.items || [];
+        renderResults(searchItems);
+        renderPagination(data);
+        updateMapMarkers(searchItems);
+    } catch (e) {
+        resultList.innerHTML = `<div class="alert alert-danger">검색 오류: ${e.message}</div>`;
+    } finally {
+        spinner.classList.remove('active');
+    }
+}
+
+// ──── Render Results ────
+function renderResults(items) {
+    const container = document.getElementById('resultList');
+    if (!items || items.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-house" style="font-size:3rem;"></i>
+                <p class="mt-2">조건에 맞는 매물이 없습니다.<br>필터를 조정해보세요.</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = items.map(p => {
+        const score = (p.score_composite || 0).toFixed(0);
+        const sLoc = p.score_location || 0;
+        const sPrice = p.score_price || 0;
+        const sProp = p.score_property || 0;
+        const sArea = p.score_area || 0;
+        const age = p.built_year ? (new Date().getFullYear() - p.built_year) + '년' : '-';
+        const subwayInfo = p.nearest_subway_name
+            ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance) + 'm' : ''}`
+            : '-';
+
+        return `
+        <div class="result-card" onclick="onCardClick(${p.id}, ${p.lat || 'null'}, ${p.lng || 'null'})">
+            <div class="row align-items-center">
+                <div class="col-auto text-center">
+                    <div class="score-badge ${getScoreClass(p.score_composite)}">${score}</div>
+                </div>
+                <div class="col">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${p.complex_name || p.address || '매물 #' + p.id}</h6>
+                            <small class="text-muted">${p.district || ''} ${p.dong || ''} · ${p.property_type || ''}</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-primary">${krwToEok(p.price_krw)}</div>
+                            <small class="text-muted">${p.area_m2 ? p.area_m2 + '㎡' : ''}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 mt-2 small text-muted">
+                        <span><i class="bi bi-train-front"></i> ${subwayInfo}</span>
+                        <span><i class="bi bi-layers"></i> ${p.floor ? p.floor + '층' : '-'}</span>
+                        <span><i class="bi bi-calendar3"></i> ${age}</span>
+                        <span><i class="bi bi-compass"></i> ${p.direction || '-'}</span>
+                        <span><i class="bi bi-door-open"></i> ${p.rooms ? p.rooms + '룸' : '-'}</span>
+                    </div>
+                    <!-- Sub-scores -->
+                    <div class="row mt-2 gx-2" style="max-width:400px;">
+                        <div class="col-3">
+                            <div class="sub-score-bar"><div class="sub-score-fill" style="width:${sLoc}%;background:${subScoreColor(sLoc)}"></div></div>
+                            <div style="font-size:0.65rem;color:#888;">위치 ${sLoc.toFixed(0)}</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="sub-score-bar"><div class="sub-score-fill" style="width:${sPrice}%;background:${subScoreColor(sPrice)}"></div></div>
+                            <div style="font-size:0.65rem;color:#888;">가격 ${sPrice.toFixed(0)}</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="sub-score-bar"><div class="sub-score-fill" style="width:${sProp}%;background:${subScoreColor(sProp)}"></div></div>
+                            <div style="font-size:0.65rem;color:#888;">매물 ${sProp.toFixed(0)}</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="sub-score-bar"><div class="sub-score-fill" style="width:${sArea}%;background:${subScoreColor(sArea)}"></div></div>
+                            <div style="font-size:0.65rem;color:#888;">지역 ${sArea.toFixed(0)}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-success btn-add-candidate" onclick="event.stopPropagation(); addCandidate(${p.id})" title="후보 추가">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ──── Pagination ────
+function renderPagination(data) {
+    const nav = document.getElementById('paginationNav');
+    const ul = document.getElementById('pagination');
+    if (data.total_pages <= 1) { nav.style.display = 'none'; return; }
+    nav.style.display = 'block';
+
+    let html = '';
+    html += `<li class="page-item ${data.has_prev ? '' : 'disabled'}"><a class="page-link" href="#" onclick="event.preventDefault();doSearch(${data.page-1})">이전</a></li>`;
+
+    const start = Math.max(1, data.page - 2);
+    const end = Math.min(data.total_pages, data.page + 2);
+    for (let i = start; i <= end; i++) {
+        html += `<li class="page-item ${i === data.page ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault();doSearch(${i})">${i}</a></li>`;
+    }
+
+    html += `<li class="page-item ${data.has_next ? '' : 'disabled'}"><a class="page-link" href="#" onclick="event.preventDefault();doSearch(${data.page+1})">다음</a></li>`;
+    ul.innerHTML = html;
+}
+
+// ──── Add to Candidates ────
+async function addCandidate(propertyId) {
+    try {
+        const resp = await fetch(API_CANDIDATES, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ property_id: propertyId, status: '발견', priority: 3 })
+        });
+        if (resp.ok) {
+            alert('후보에 추가되었습니다!');
+        } else {
+            const err = await resp.json();
+            alert(err.detail || '추가 실패');
+        }
+    } catch (e) {
+        alert('오류: ' + e.message);
+    }
+}
+
+// ──── Save / Load ────
+function showSaveModal() {
+    new bootstrap.Modal(document.getElementById('saveModal')).show();
+}
+
+async function saveCurrentSearch() {
+    const name = document.getElementById('searchName').value.trim();
+    if (!name) { alert('이름을 입력하세요'); return; }
+
+    const criteria = buildCriteria(1);
+    delete criteria.page;
+    delete criteria.page_size;
+
+    const body = {
+        name: name,
+        criteria: criteria,
+        alert_on_new: document.getElementById('alertNew').checked,
+        alert_on_price_change: false
+    };
+
+    try {
+        const resp = await fetch(API_SAVED, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        if (resp.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
+            document.getElementById('searchName').value = '';
+            alert('저장 완료!');
+        } else {
+            const err = await resp.json();
+            alert(err.detail || '저장 실패');
+        }
+    } catch (e) {
+        alert('오류: ' + e.message);
+    }
+}
+
+async function loadSavedSearches() {
+    const listEl = document.getElementById('savedSearchList');
+    if (listEl.style.display !== 'none') { listEl.style.display = 'none'; return; }
+
+    try {
+        const resp = await fetch(API_SAVED);
+        const data = await resp.json();
+        const items = data.items || [];
+
+        if (items.length === 0) {
+            listEl.innerHTML = '<div class="text-muted small p-2">저장된 조건 없음</div>';
+        } else {
+            listEl.innerHTML = items.map(s => `
+                <div class="saved-search-item" onclick="applySaved('${encodeURIComponent(s.criteria_json)}')">
+                    <span><i class="bi bi-bookmark"></i> ${s.name}</span>
+                    <div>
+                        <span class="badge bg-secondary">${s.match_count || 0}건</span>
+                        <button class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="event.stopPropagation(); deleteSaved(${s.id})" title="삭제">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </div>
+                </div>`).join('');
+        }
+        listEl.style.display = 'block';
+    } catch (e) {
+        listEl.innerHTML = `<div class="text-danger small p-2">로딩 실패</div>`;
+        listEl.style.display = 'block';
+    }
+}
+
+function applySaved(encoded) {
+    try {
+        const criteria = JSON.parse(decodeURIComponent(encoded));
+        // Apply price
+        if (criteria.price_min) document.getElementById('priceMin').value = criteria.price_min / 100000000;
+        if (criteria.price_max) document.getElementById('priceMax').value = criteria.price_max / 100000000;
+
+        // Districts
+        document.querySelectorAll('.district-cb').forEach(cb => {
+            cb.checked = criteria.districts ? criteria.districts.includes(cb.value) : false;
+        });
+
+        // Area
+        if (criteria.area_min) document.getElementById('areaMin').value = criteria.area_min;
+        if (criteria.area_max) document.getElementById('areaMax').value = criteria.area_max;
+
+        // Subway
+        if (criteria.subway_max_distance != null) {
+            document.getElementById('subwayDist').value = criteria.subway_max_distance;
+        } else {
+            document.getElementById('subwayDist').value = 2000;
+        }
+        updateSubwayLabel();
+
+        // Age
+        if (criteria.built_year_min) {
+            document.getElementById('maxAge').value = new Date().getFullYear() - criteria.built_year_min;
+        } else {
+            document.getElementById('maxAge').value = 40;
+        }
+        updateAgeLabel();
+
+        // Floor
+        if (criteria.floor_min) document.getElementById('floorMin').value = criteria.floor_min;
+
+        // Direction
+        document.querySelectorAll('.direction-cb').forEach(cb => {
+            cb.checked = criteria.directions ? criteria.directions.includes(cb.value) : false;
+        });
+
+        // Units
+        if (criteria.min_total_units) document.getElementById('minUnits').value = criteria.min_total_units;
+
+        // Score
+        if (criteria.score_min) {
+            document.getElementById('scoreMin').value = criteria.score_min;
+        } else {
+            document.getElementById('scoreMin').value = 0;
+        }
+        updateScoreLabel();
+
+        // Sort
+        if (criteria.sort) document.getElementById('sortOrder').value = criteria.sort;
+
+        document.getElementById('savedSearchList').style.display = 'none';
+        doSearch();
+    } catch (e) {
+        alert('불러오기 실패: ' + e.message);
+    }
+}
+
+async function deleteSaved(id) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    await fetch(`${API_SAVED}/${id}`, { method: 'DELETE' });
+    loadSavedSearches();
+}
+
+// ──── UI Updates ────
+function updateSubwayLabel() {
+    const v = parseInt(document.getElementById('subwayDist').value);
+    document.getElementById('subwayLabel').textContent = v >= 2000 ? '제한없음' : v + 'm';
+}
+
+function updateAgeLabel() {
+    const v = parseInt(document.getElementById('maxAge').value);
+    document.getElementById('ageLabel').textContent = v >= 40 ? '제한없음' : v + '년 이내';
+}
+
+function updateScoreLabel() {
+    const v = parseInt(document.getElementById('scoreMin').value);
+    document.getElementById('scoreLabel').textContent = v + '점';
+}
+
+function toggleAllDistricts(checked) {
+    document.querySelectorAll('.district-cb').forEach(cb => cb.checked = checked);
+}
+
+function resetFilters() {
+    document.getElementById('priceMin').value = '';
+    document.getElementById('priceMax').value = '';
+    document.querySelectorAll('.district-cb').forEach(cb => cb.checked = false);
+    document.getElementById('areaMin').value = '';
+    document.getElementById('areaMax').value = '';
+    document.getElementById('subwayDist').value = 2000;
+    document.getElementById('maxAge').value = 40;
+    document.getElementById('floorMin').value = '';
+    document.querySelectorAll('.direction-cb').forEach(cb => cb.checked = false);
+    document.getElementById('minUnits').value = '';
+    document.getElementById('scoreMin').value = 0;
+    document.getElementById('sortOrder').value = 'score_desc';
+    updateSubwayLabel();
+    updateAgeLabel();
+    updateScoreLabel();
+    document.getElementById('priceDisplay').textContent = '';
+}
+
+function updatePriceDisplay() {
+    const mn = document.getElementById('priceMin').value;
+    const mx = document.getElementById('priceMax').value;
+    let txt = '';
+    if (mn && mx) txt = `${mn}억 ~ ${mx}억`;
+    else if (mn) txt = `${mn}억 이상`;
+    else if (mx) txt = `${mx}억 이하`;
+    document.getElementById('priceDisplay').textContent = txt;
+}
+
+// ──── Card Click ────
+function onCardClick(id, lat, lng) {
+    if (currentView === 'map' && lat && lng && sMap) {
+        sMap.panTo(new kakao.maps.LatLng(lat, lng));
+        sMap.setLevel(4);
+    } else {
+        location.href = '/property/' + id;
+    }
+}
+
+// ──── View Toggle ────
+function switchView(view) {
+    currentView = view;
+    const mapEl = document.getElementById('searchMapContainer');
+    const listEl = document.getElementById('resultList');
+    const pagEl = document.getElementById('paginationNav');
+    const btnList = document.getElementById('btnListView');
+    const btnMap = document.getElementById('btnMapView');
+
+    if (view === 'map') {
+        btnMap.classList.add('active');
+        btnList.classList.remove('active');
+        mapEl.classList.add('active');
+        listEl.classList.add('hidden');
+        pagEl.classList.add('hidden');
+        initSearchMap();
+        updateMapMarkers(searchItems);
+    } else {
+        btnList.classList.add('active');
+        btnMap.classList.remove('active');
+        mapEl.classList.remove('active');
+        listEl.classList.remove('hidden');
+        pagEl.classList.remove('hidden');
+    }
+}
+
+// ──── Search Map ────
+function initSearchMap() {
+    if (mapInitialized) return;
+    if (typeof kakao === 'undefined' || !kakao.maps) {
+        document.getElementById('searchMapContainer').innerHTML = `
+            <div class="map-no-data">
+                <div class="text-center">
+                    <i class="bi bi-geo-alt" style="font-size:3rem"></i>
+                    <p class="mt-2">카카오맵 API 키를 .env에 설정해주세요</p>
+                    <small>KAKAO_REST_API_KEY=your_api_key</small>
+                </div>
+            </div>`;
+        return;
+    }
+    kakao.maps.load(function() {
+        const container = document.getElementById('searchMapContainer');
+        sMap = new kakao.maps.Map(container, {
+            center: new kakao.maps.LatLng(37.5665, 126.9780),
+            level: 8,
+        });
+        sClusterer = new kakao.maps.MarkerClusterer({
+            map: sMap,
+            averageCenter: true,
+            minLevel: 5,
+        });
+        sInfowindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+        mapInitialized = true;
+        updateMapMarkers(searchItems);
+    });
+}
+
+function updateMapMarkers(items) {
+    if (!mapInitialized || !sMap) return;
+
+    // Clear
+    if (sClusterer) sClusterer.clear();
+    sMarkers = [];
+    if (sInfowindow) sInfowindow.close();
+
+    if (!items || items.length === 0) return;
+
+    const bounds = new kakao.maps.LatLngBounds();
+    const kakaoMarkers = [];
+
+    for (const p of items) {
+        if (!p.lat || !p.lng) continue;
+        const pos = new kakao.maps.LatLng(p.lat, p.lng);
+        bounds.extend(pos);
+
+        const marker = new kakao.maps.Marker({ position: pos });
+
+        kakao.maps.event.addListener(marker, 'click', (function(prop) {
+            return function() {
+                const score = (prop.score_composite || 0).toFixed(0);
+                const scoreColor = prop.score_composite >= 70 ? '#198754' : prop.score_composite >= 45 ? '#0d6efd' : '#6c757d';
+                const content = `
+                    <div style="padding:12px;min-width:220px;font-size:13px;line-height:1.6">
+                        <strong>${prop.complex_name || prop.address || '매물 #' + prop.id}</strong><br>
+                        <span style="color:#0d6efd;font-weight:700">${krwToEok(prop.price_krw)}</span>
+                        <span style="margin-left:8px;color:${scoreColor};font-weight:600">점수 ${score}</span><br>
+                        <small>${prop.district || ''} ${prop.dong || ''} · ${prop.area_m2 ? prop.area_m2 + '㎡' : ''}</small><br>
+                        <a href="/property/${prop.id}" style="font-size:12px">상세보기 →</a>
+                    </div>`;
+                sInfowindow.setContent(content);
+                sInfowindow.open(sMap, marker);
+            };
+        })(p));
+
+        sMarkers.push(marker);
+        kakaoMarkers.push(marker);
+    }
+
+    sClusterer.addMarkers(kakaoMarkers);
+
+    // Fit bounds if we have markers
+    if (kakaoMarkers.length > 0) {
+        sMap.setBounds(bounds);
+    }
+}
+
+// ──── Event Listeners ────
+document.getElementById('subwayDist').addEventListener('input', updateSubwayLabel);
+document.getElementById('maxAge').addEventListener('input', updateAgeLabel);
+document.getElementById('scoreMin').addEventListener('input', updateScoreLabel);
+document.getElementById('priceMin').addEventListener('input', updatePriceDisplay);
+document.getElementById('priceMax').addEventListener('input', updatePriceDisplay);
+
+// Initial search on load
+doSearch();
+</script>
+{% endblock %}

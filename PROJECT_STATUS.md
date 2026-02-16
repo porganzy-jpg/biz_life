@@ -1,4 +1,4 @@
-# BIZ LIFE - 5대 프로젝트 통합 현황
+# BIZ LIFE - 6대 프로젝트 통합 현황
 
 **최종 업데이트**: 2026-02-16
 
@@ -11,9 +11,10 @@
 | 3 | **VoiceMemory** (AI 음성 보존) | :8002 | 11 | 13개 | 전체 통과 |
 | 4 | **CryptoBot** (암호화폐 트레이딩) | :8081 | 22+ | 8개+WS | v4.0 동적마켓스캐너+적응형최적화 |
 | 5 | **StockBot** (주식 자동매매) | :8004 | 19 | 7개 | 전체 통과 |
+| 6 | **HomeFinder** (마지막 집 찾기) | :8006 | 90+ | 10개 | v1.0 내 조건 검색 완료 |
 | - | **shared** (공유 모듈) | - | 6 | - | 사용 중 |
 
-**총 120개 Python 파일, 53개+ API 엔드포인트**
+**총 210개+ Python 파일, 63개+ API 엔드포인트**
 
 ## 기술 스택 공통
 - Python 3.13 + pip
@@ -39,6 +40,9 @@ cd projects/04-crypto-trader && python -m scalper.run --with-dashboard  # http:/
 
 # 5. StockBot
 cd projects/05-stock-trader/dashboard && python app.py  # http://localhost:8004
+
+# 6. HomeFinder (v1.0 - 내 조건 검색 포함)
+cd projects/06-home-finder && python main.py  # http://localhost:8006
 ```
 
 ## 테스트 중 수정된 버그
@@ -64,7 +68,8 @@ biz_life/
 │   ├── 02-barcode-game/       # 바코드 몬스터 수집 게임
 │   ├── 03-voice-memory/       # AI 음성 보존 서비스
 │   ├── 04-crypto-trader/      # 암호화폐 자동매매
-│   └── 05-stock-trader/       # 주식 자동매매
+│   ├── 05-stock-trader/       # 주식 자동매매
+│   └── 06-home-finder/        # 마지막 집 찾기 (부동산 검색·분석)
 └── docs/                      # 마스터플랜, 기획서
 ```
 

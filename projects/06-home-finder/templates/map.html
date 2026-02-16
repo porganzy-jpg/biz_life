@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}매물 지도{% endblock %}
+{% block nav_map %}active{% endblock %}
+
+{% block head %}
+<style>
+    #mapContainer { height: calc(100vh - 160px); width: 100%; }
+    .map-sidebar { height: calc(100vh - 160px); overflow-y: auto; }
+    .filter-panel { background: #f8f9fa; padding: 10px; border-radius: 8px; }
+    .marker-info { font-size: 0.9em; }
+    .score-badge { font-size: 0.75em; padding: 2px 6px; border-radius: 4px; color: white; }
+    .score-high { background: #28a745; }
+    .score-mid { background: #007bff; }
+    .score-low { background: #fd7e14; }
+    .score-vlow { background: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Sidebar Filters -->
+    <div class="col-md-3 map-sidebar">
+        <div class="filter-panel mb-3">
+            <h6><i class="bi bi-funnel"></i> 필터</h6>
+            <div class="mb-2">
+                <label class="form-label small">지역</label>
+                <select id="filterDistrict" class="form-select form-select-sm">
+                    <option value="">전체</option>
+                    <option>마포구</option>
+                    <option>용산구</option>
+                    <option>성동구</option>
+                    <option>광진구</option>
+                    <option>영등포구</option>
+                    <option>동작구</option>
+                    <option>강동구</option>
+                    <option>은평구</option>
+                    <option>강서구</option>
+                    <option>노원구</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small">유형</label>
+                <select id="filterType" class="form-select form-select-sm">
+                    <option value="">전체</option>
+                    <option>아파트</option>
+                    <option>빌라</option>
+                    <option>단독</option>
+                    <option>타운하우스</option>
+                    <option>오피스텔</option>
+                </select>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small">가격 (억)</label>
+                <div class="d-flex gap-1">
+                    <input type="number" id="filterPriceMin" class="form-control form-control-sm" placeholder="최소" value="8">
+                    <span class="align-self-center">~</span>
+                    <input type="number" id="filterPriceMax" class="form-control form-control-sm" placeholder="최대" value="15">
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small">최소 점수</label>
+                <input type="range" id="filterScoreMin" class="form-range" min="0" max="100" value="0">
+                <small id="scoreMinLabel">0점 이상</small>
+            </div>
+            <button class="btn btn-primary btn-sm w-100" onclick="applyFilters()">
+                <i class="bi bi-search"></i> 적용
+            </button>
+        </div>
+
+        <!-- Property list -->
+        <div id="propertyList">
+            <p class="text-muted text-center">지도를 로딩중...</p>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div class="col-md-9 p-0">
+        <div id="mapContainer"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services,clusterer"></script>
+<script src="/static/js/map.js"></script>
+{% endblock %}

@@ -1,0 +1,139 @@
+/* HomeFinder - 대시보드 스타일 */
+
+/* ── 공통 ── */
+body {
+    background: #f5f6fa;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.container-fluid { max-width: 1400px; }
+
+/* ── 서머리 카드 ── */
+.summary-card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.15s ease;
+}
+.summary-card:hover { transform: translateY(-2px); }
+.summary-card .card-body h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+.summary-card .card-body small { opacity: 0.85; }
+
+/* ── 카드 공통 ── */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.card-header {
+    background: white;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* ── 테이블 ── */
+.table th { font-weight: 600; font-size: 0.85em; color: #6c757d; }
+.table td { vertical-align: middle; }
+.table-hover tbody tr:hover { background: #f0f4ff; }
+
+/* ── 점수 뱃지 ── */
+.score-badge {
+    display: inline-block;
+    min-width: 36px;
+    text-align: center;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.8em;
+    font-weight: 700;
+    color: white;
+}
+.score-high { background: #28a745; }
+.score-mid  { background: #007bff; }
+.score-low  { background: #fd7e14; }
+.score-vlow { background: #dc3545; }
+
+/* ── 칸반 보드 ── */
+.kanban-board {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    min-height: 500px;
+    padding-bottom: 12px;
+}
+.kanban-column {
+    min-width: 220px;
+    flex: 1;
+    background: #f0f2f5;
+    border-radius: 8px;
+    padding: 10px;
+}
+.kanban-column h6 {
+    text-align: center;
+    padding: 6px;
+    border-radius: 4px;
+    color: white;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+.kanban-card {
+    background: white;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease;
+}
+.kanban-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.kanban-card .price { font-weight: bold; color: #0d6efd; }
+
+/* ── 필터 패널 (지도) ── */
+.filter-panel {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+}
+.filter-panel .form-label { margin-bottom: 2px; }
+.map-sidebar {
+    height: calc(100vh - 160px);
+    overflow-y: auto;
+}
+#mapContainer {
+    height: calc(100vh - 160px);
+    width: 100%;
+    border-radius: 8px;
+}
+
+/* ── 매물 리스트 (사이드바) ── */
+.property-list-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.property-list-item:hover { background: #e9ecef; }
+.property-list-item .name { font-weight: 600; font-size: 0.9em; }
+.property-list-item .price { color: #0d6efd; font-weight: 700; }
+.property-list-item .info { font-size: 0.8em; color: #6c757d; }
+
+/* ── 최근 활동 ── */
+.activity-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9em;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-item .activity-icon { margin-right: 6px; }
+.activity-item .activity-time { color: #999; font-size: 0.8em; }
+
+/* ── 반응형 ── */
+@media (max-width: 768px) {
+    .kanban-board { flex-direction: column; min-height: auto; }
+    .kanban-column { min-width: 100%; }
+    .map-sidebar { height: auto; max-height: 300px; }
+    #mapContainer { height: 400px; }
+}

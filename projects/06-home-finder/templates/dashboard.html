@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}대시보드{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4><i class="bi bi-speedometer2"></i> 대시보드</h4>
+        <p class="text-muted">예산: {{ budget_min }} ~ {{ budget_max }} | 대상: {{ target_districts }}</p>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-title">전체 매물</h6>
+                <h2 id="totalProperties">-</h2>
+                <small>활성 매물 수</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-title">후보 매물</h6>
+                <h2 id="totalCandidates">-</h2>
+                <small>파이프라인 총 건수</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-warning text-dark">
+            <div class="card-body">
+                <h6 class="card-title">이번주 경매</h6>
+                <h2 id="weeklyAuctions">-</h2>
+                <small>진행 예정</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title">진행중 청약</h6>
+                <h2 id="activeSubscriptions">-</h2>
+                <small>접수중</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pipeline + Top Scored -->
+<div class="row mb-4">
+    <div class="col-md-5 mb-3">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-kanban"></i> 후보 파이프라인</div>
+            <div class="card-body">
+                <canvas id="pipelineChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7 mb-3">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-trophy"></i> 점수 상위 매물</div>
+            <div class="card-body p-0">
+                <table class="table table-hover table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>매물</th>
+                            <th>위치</th>
+                            <th>가격</th>
+                            <th>면적</th>
+                            <th>점수</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topScoredTable">
+                        <tr><td colspan="5" class="text-center text-muted">로딩중...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Price Chart + Recent Activity -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-graph-up"></i> 가격 추이
+                <select id="priceDistrictSelect" class="form-select form-select-sm d-inline-block w-auto ms-2">
+                    <option value="서울">서울 전체</option>
+                    <option value="마포구">마포구</option>
+                    <option value="용산구">용산구</option>
+                    <option value="성동구">성동구</option>
+                    <option value="영등포구">영등포구</option>
+                    <option value="강동구">강동구</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <canvas id="priceChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-clock-history"></i> 최근 활동</div>
+            <div class="card-body" id="recentActivity">
+                <p class="text-muted">로딩중...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

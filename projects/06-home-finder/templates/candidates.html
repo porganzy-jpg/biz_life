@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}후보 관리{% endblock %}
+{% block nav_candidates %}active{% endblock %}
+
+{% block head %}
+<style>
+    .kanban-board { display: flex; gap: 12px; overflow-x: auto; min-height: 500px; }
+    .kanban-column { min-width: 220px; flex: 1; background: #f0f2f5; border-radius: 8px; padding: 10px; }
+    .kanban-column h6 { text-align: center; padding: 6px; border-radius: 4px; color: white; margin-bottom: 10px; }
+    .kanban-card { background: white; border-radius: 6px; padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
+    .kanban-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    .kanban-card .price { font-weight: bold; color: #0d6efd; }
+    .kanban-card .score { float: right; }
+    .status-발견 { background: #6c757d; }
+    .status-조사 { background: #0dcaf0; }
+    .status-관심 { background: #ffc107; color: #000 !important; }
+    .status-방문예정 { background: #0d6efd; }
+    .status-방문완료 { background: #198754; }
+    .status-결정 { background: #dc3545; }
+    .priority-1 { border-left: 3px solid #dc3545; }
+    .priority-2 { border-left: 3px solid #fd7e14; }
+    .priority-3 { border-left: 3px solid #ffc107; }
+    .priority-4 { border-left: 3px solid #0dcaf0; }
+    .priority-5 { border-left: 3px solid #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4><i class="bi bi-kanban"></i> 후보 파이프라인</h4>
+        <div>
+            <button class="btn btn-outline-primary btn-sm" onclick="refreshPipeline()">
+                <i class="bi bi-arrow-clockwise"></i> 새로고침
+            </button>
+            <a href="/comparison" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-layout-split"></i> 비교하기
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="kanban-board" id="kanbanBoard">
+    <div class="kanban-column" data-status="발견">
+        <h6 class="status-발견">발견 <span class="badge bg-light text-dark" id="count-발견">0</span></h6>
+        <div class="kanban-cards" id="cards-발견"></div>
+    </div>
+    <div class="kanban-column" data-status="조사">
+        <h6 class="status-조사">조사 <span class="badge bg-light text-dark" id="count-조사">0</span></h6>
+        <div class="kanban-cards" id="cards-조사"></div>
+    </div>
+    <div class="kanban-column" data-status="관심">
+        <h6 class="status-관심">관심 <span class="badge bg-light text-dark" id="count-관심">0</span></h6>
+        <div class="kanban-cards" id="cards-관심"></div>
+    </div>
+    <div class="kanban-column" data-status="방문예정">
+        <h6 class="status-방문예정">방문예정 <span class="badge bg-light text-dark" id="count-방문예정">0</span></h6>
+        <div class="kanban-cards" id="cards-방문예정"></div>
+    </div>
+    <div class="kanban-column" data-status="방문완료">
+        <h6 class="status-방문완료">방문완료 <span class="badge bg-light text-dark" id="count-방문완료">0</span></h6>
+        <div class="kanban-cards" id="cards-방문완료"></div>
+    </div>
+    <div class="kanban-column" data-status="결정">
+        <h6 class="status-결정">결정 <span class="badge bg-light text-dark" id="count-결정">0</span></h6>
+        <div class="kanban-cards" id="cards-결정"></div>
+    </div>
+</div>
+
+<!-- Status Change Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">상태 변경</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modalCandidateId">
+                <div class="mb-3">
+                    <label class="form-label">새 상태</label>
+                    <select id="modalNewStatus" class="form-select">
+                        <option>발견</option><option>조사</option><option>관심</option>
+                        <option>방문예정</option><option>방문완료</option><option>결정</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">메모</label>
+                    <textarea id="modalNotes" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="mb-3" id="ratingGroup" style="display:none">
+                    <label class="form-label">평점 (1-5)</label>
+                    <select id="modalRating" class="form-select">
+                        <option value="">선택</option>
+                        <option value="1">1 - 나쁨</option>
+                        <option value="2">2 - 보통이하</option>
+                        <option value="3">3 - 보통</option>
+                        <option value="4">4 - 좋음</option>
+                        <option value="5">5 - 매우좋음</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" onclick="updateCandidateStatus()">변경</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API = '/api/v1/candidates';
+
+async function refreshPipeline() {
+    const resp = await fetch(API);
+    const data = await resp.json();
+    const pipeline = data.pipeline || {};
+
+    const statuses = ['발견', '조사', '관심', '방문예정', '방문완료', '결정'];
+    for (const s of statuses) {
+        document.getElementById(`count-${s}`).textContent = pipeline[s] || 0;
+        document.getElementById(`cards-${s}`).innerHTML = '';
+    }
+
+    for (const s of statuses) {
+        const listResp = await fetch(`${API}/list?status=${encodeURIComponent(s)}&size=50`);
+        const listData = await listResp.json();
+        const container = document.getElementById(`cards-${s}`);
+
+        for (const c of (listData.items || [])) {
+            container.innerHTML += `
+                <div class="kanban-card priority-${c.priority || 3}" onclick="showStatusModal(${c.id}, '${s}')">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">#${c.id}</small>
+                        <span class="score badge ${getScoreBadge(c.score_composite)}">${(c.score_composite || 0).toFixed(0)}</span>
+                    </div>
+                    <div class="fw-bold small">${c.address || c.complex_name || '매물 ' + c.property_id}</div>
+                    <div class="price small">${formatPrice(c.price_krw)}</div>
+                    <div class="small text-muted">${c.district || ''} ${c.dong || ''}</div>
+                    ${c.rating ? '<div class="small">⭐'.repeat(c.rating) + '</div>' : ''}
+                </div>`;
+        }
+    }
+}
+
+function getScoreBadge(score) {
+    if (score >= 80) return 'bg-success';
+    if (score >= 60) return 'bg-primary';
+    if (score >= 40) return 'bg-warning text-dark';
+    return 'bg-secondary';
+}
+
+function formatPrice(krw) {
+    if (!krw) return '가격미정';
+    const eok = Math.floor(krw / 100000000);
+    const man = Math.floor((krw % 100000000) / 10000);
+    if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만`;
+    if (eok > 0) return `${eok}억`;
+    return `${man.toLocaleString()}만`;
+}
+
+function showStatusModal(id, currentStatus) {
+    document.getElementById('modalCandidateId').value = id;
+    document.getElementById('modalNewStatus').value = currentStatus;
+    document.getElementById('ratingGroup').style.display =
+        currentStatus === '방문완료' ? 'block' : 'none';
+    new bootstrap.Modal(document.getElementById('statusModal')).show();
+}
+
+document.getElementById('modalNewStatus').addEventListener('change', function() {
+    document.getElementById('ratingGroup').style.display =
+        this.value === '방문완료' ? 'block' : 'none';
+});
+
+async function updateCandidateStatus() {
+    const id = document.getElementById('modalCandidateId').value;
+    const status = document.getElementById('modalNewStatus').value;
+    const notes = document.getElementById('modalNotes').value;
+    const rating = document.getElementById('modalRating').value;
+
+    await fetch(`${API}/${id}/status`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({status})
+    });
+
+    if (notes) {
+        await fetch(`${API}/${id}/notes`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({note_type: 'general', content: notes})
+        });
+    }
+
+    if (rating && status === '방문완료') {
+        await fetch(`${API}/${id}/rate`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({rating: parseInt(rating), notes})
+        });
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
+    refreshPipeline();
+}
+
+refreshPipeline();
+</script>
+{% endblock %}
