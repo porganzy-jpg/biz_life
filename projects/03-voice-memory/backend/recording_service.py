@@ -115,6 +115,42 @@ class RecordingService:
         ).order_by(RecordingSession.session_number).all()
 
     @staticmethod
+    def complete_session(db: Session, session_id: int, duration_seconds: int = 0,
+                         audio_file_path: str = "", transcript: str = "",
+                         status: str = "completed") -> RecordingSession | None:
+        """녹음 세션 완료/업데이트"""
+        session = db.query(RecordingSession).filter(
+            RecordingSession.id == session_id
+        ).first()
+        if not session:
+            return None
+
+        if status:
+            session.status = status
+        if duration_seconds:
+            session.duration_seconds = duration_seconds
+        if audio_file_path:
+            session.audio_file_path = audio_file_path
+        if transcript:
+            session.transcript = transcript
+        if status == "completed":
+            from datetime import datetime
+            session.recorded_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(session)
+        return session
+
+    @staticmethod
+    def delete_person_sessions(db: Session, person_id: int) -> int:
+        """인물의 모든 녹음 세션 삭제 (동의 철회 시)"""
+        count = db.query(RecordingSession).filter(
+            RecordingSession.person_id == person_id
+        ).delete()
+        db.commit()
+        return count
+
+    @staticmethod
     def get_next_topic(db: Session, person_id: int) -> dict:
         """다음 추천 주제"""
         completed = db.query(RecordingSession).filter(

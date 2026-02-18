@@ -52,3 +52,10 @@ class ChatResponse(BaseModel):
 class RecordingSessionCreate(BaseModel):
     person_id: int
     topic: str = ""
+
+
+class RecordingSessionUpdate(BaseModel):
+    status: Optional[str] = None  # "recording", "completed"
+    duration_seconds: Optional[int] = None
+    audio_file_path: Optional[str] = None
+    transcript: Optional[str] = None

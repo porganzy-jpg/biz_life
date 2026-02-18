@@ -15,7 +15,7 @@ import uvicorn
 
 from database import init_db, get_db
 from models import Person, RecordingSession, Conversation, Consent
-from schemas import PersonCreate, ChatRequest, ConsentCreate, RecordingSessionCreate
+from schemas import PersonCreate, ChatRequest, ConsentCreate, RecordingSessionCreate, RecordingSessionUpdate
 from consent_service import ConsentService
 from recording_service import RecordingService
 from persona_chat import PersonaChat
@@ -95,9 +95,10 @@ async def get_required_consents():
 async def grant_consent(data: ConsentCreate, db: Session = Depends(get_db)):
     if data.is_granted:
         ConsentService.grant_consent(db, data.person_id, data.consent_type, notes=data.notes)
+        return {"status": "ok"}
     else:
-        ConsentService.revoke_consent(db, data.person_id, data.consent_type)
-    return {"status": "ok"}
+        result = ConsentService.revoke_consent(db, data.person_id, data.consent_type)
+        return {"status": "ok", "revocation": result}
 
 
 @app.get("/api/consents/{person_id}")
@@ -128,11 +129,30 @@ async def create_recording_session(data: RecordingSessionCreate, db: Session = D
     }
 
 
+@app.put("/api/recording/session/{session_id}")
+async def update_recording_session(session_id: int, data: RecordingSessionUpdate, db: Session = Depends(get_db)):
+    session = RecordingService.complete_session(
+        db, session_id,
+        duration_seconds=data.duration_seconds or 0,
+        audio_file_path=data.audio_file_path or "",
+        transcript=data.transcript or "",
+        status=data.status or "completed",
+    )
+    if not session:
+        return {"error": "Session not found"}
+    return {
+        "id": session.id, "topic": session.topic, "status": session.status,
+        "duration_seconds": session.duration_seconds,
+        "recorded_at": session.recorded_at.isoformat() if session.recorded_at else None,
+    }
+
+
 @app.get("/api/recording/sessions/{person_id}")
 async def get_sessions(person_id: int, db: Session = Depends(get_db)):
     sessions = RecordingService.get_sessions(db, person_id)
     return {"sessions": [
-        {"id": s.id, "topic": s.topic, "status": s.status, "number": s.session_number}
+        {"id": s.id, "topic": s.topic, "status": s.status, "number": s.session_number,
+         "duration_seconds": s.duration_seconds, "has_transcript": bool(s.transcript)}
         for s in sessions
     ]}
 
