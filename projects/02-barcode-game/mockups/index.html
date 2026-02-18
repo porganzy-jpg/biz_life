@@ -2,1583 +2,1897 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>BarcodeQuest - 천국행 버스</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>천국행 버스 - 치유의 여정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --sky1:#e8d5c4;--sky2:#f5e6d3;--sky3:#fdf0e2;
-  --warm:#f4a261;--gold:#e9c46a;--sage:#8fbc8f;
-  --rose:#e8a0bf;--lavender:#c8b6e2;--cream:#faf3e8;
-  --wood:#8b7355;--dark:#3a2e22;--text:#5a4a3a;
-  --heal:#7ec8a0;--grief:#9b8ec4;
-}
-body{
-  font-family:'Noto Sans KR',sans-serif;
-  background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 40%,var(--sky3) 100%);
-  color:var(--text);min-height:100vh;overflow-x:hidden;
-  position:relative;
-}
-.app{max-width:440px;margin:0 auto;min-height:100vh;position:relative;overflow:hidden}
-
-/* ===== AMBIENT PARTICLES (cherry blossoms, stars) ===== */
-canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
-
-/* ===== SCREENS ===== */
-.screen{display:none;flex-direction:column;min-height:calc(100vh - 70px);position:relative;z-index:1;padding-bottom:80px}
-.screen.active{display:flex}
-
-/* ===== TOP BAR ===== */
-.top-bar{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:14px 18px;
-  background:rgba(250,243,232,0.85);backdrop-filter:blur(12px);
-  border-bottom:1px solid rgba(139,115,85,0.15);
-  position:sticky;top:0;z-index:50;
-}
-.top-bar .journey-info{display:flex;align-items:center;gap:8px}
-.top-bar .bus-icon{
-  width:32px;height:32px;background:var(--warm);border-radius:8px;
-  display:flex;align-items:center;justify-content:center;font-size:16px;
-  box-shadow:0 2px 8px rgba(244,162,97,0.3);
-}
-.top-bar .location-name{font-size:0.8rem;font-weight:700;color:var(--dark)}
-.top-bar .location-sub{font-size:0.65rem;color:var(--wood);font-weight:300}
-.top-bar .resources{display:flex;gap:10px;align-items:center}
-.resource-badge{
-  display:flex;align-items:center;gap:3px;
-  background:rgba(139,115,85,0.1);border-radius:14px;
-  padding:4px 10px;font-size:0.7rem;font-weight:600;
-}
-.resource-badge.gold-r{color:#b8860b}
-.resource-badge.supply-r{color:#6b8e6b}
-.resource-badge.soul-r{color:var(--grief)}
-
-/* ===== HOME SCREEN ===== */
-.home-hero{
-  position:relative;padding:20px 18px;text-align:center;
-  background:linear-gradient(180deg,rgba(232,213,196,0) 0%,rgba(232,168,191,0.12) 100%);
-}
-.home-hero h1{
-  font-size:1.6rem;font-weight:900;
-  background:linear-gradient(135deg,var(--warm),var(--rose));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  margin-bottom:4px;letter-spacing:-0.5px;
-}
-.home-hero .subtitle{font-size:0.78rem;color:var(--wood);font-weight:300;line-height:1.5;margin-bottom:16px}
-
-/* Bus cross-section (Fallout Shelter style) */
-.bus-section{
-  position:relative;margin:0 12px 16px;
-  background:linear-gradient(135deg,#f5efe7,#efe5d8);
-  border-radius:20px;border:2px solid rgba(139,115,85,0.2);
-  overflow:hidden;box-shadow:0 8px 32px rgba(58,46,34,0.1);
-}
-.bus-exterior{
-  height:36px;background:linear-gradient(90deg,#d4a574,#c4956a,#d4a574);
-  border-bottom:2px solid rgba(139,115,85,0.3);
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
-}
-.bus-exterior::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:8px;
-  background:linear-gradient(90deg,#e8c9a8,#dbb896,#e8c9a8);
-}
-.bus-exterior .bus-label{
-  font-size:0.6rem;font-weight:700;color:rgba(255,255,255,0.9);
-  letter-spacing:3px;text-shadow:0 1px 3px rgba(0,0,0,0.2);
-}
-.bus-wheels{
-  position:absolute;bottom:-6px;left:0;right:0;
-  display:flex;justify-content:space-around;padding:0 30px;
-}
-.wheel{width:12px;height:12px;background:#4a3a2a;border-radius:50%;border:2px solid #6a5a4a}
-
-.bus-rooms{display:flex;height:140px;position:relative}
-.bus-room{
-  flex:1;border-right:1px solid rgba(139,115,85,0.15);
-  padding:6px;display:flex;flex-direction:column;align-items:center;
-  justify-content:space-between;cursor:pointer;
-  transition:background 0.3s;position:relative;
-}
-.bus-room:last-child{border-right:none}
-.bus-room:hover{background:rgba(244,162,97,0.08)}
-.bus-room.active-room{background:rgba(126,200,160,0.1)}
-
-.room-icon{font-size:20px;margin-top:4px}
-.room-name{font-size:0.55rem;font-weight:600;color:var(--wood);text-align:center}
-.room-char{
-  width:28px;height:28px;border-radius:50%;
-  border:2px solid var(--heal);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;background:rgba(126,200,160,0.15);
-}
-.room-char.empty{border-color:rgba(139,115,85,0.2);background:rgba(139,115,85,0.05);font-size:10px}
-.room-level{
-  position:absolute;top:4px;right:4px;
-  font-size:0.5rem;background:var(--gold);color:var(--dark);
-  border-radius:6px;padding:1px 4px;font-weight:700;
-}
-
-/* Story banner */
-.story-banner{
-  margin:0 18px 16px;padding:16px;
-  background:linear-gradient(135deg,rgba(200,182,226,0.2),rgba(232,160,191,0.15));
-  border-radius:16px;border:1px solid rgba(200,182,226,0.25);
-  position:relative;overflow:hidden;
-}
-.story-banner::before{
-  content:'';position:absolute;top:-20px;right:-20px;
-  width:80px;height:80px;background:radial-gradient(circle,rgba(233,196,106,0.2),transparent);
-  border-radius:50%;
-}
-.story-banner .story-label{font-size:0.6rem;color:var(--grief);font-weight:700;letter-spacing:1px;margin-bottom:6px}
-.story-banner .story-text{font-size:0.82rem;line-height:1.6;color:var(--dark);font-weight:400}
-.story-banner .story-text em{color:var(--rose);font-style:normal;font-weight:600}
-
-/* Action cards */
-.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px;margin-bottom:16px}
-.action-card{
-  background:rgba(250,243,232,0.9);border-radius:16px;
-  padding:14px;text-align:center;cursor:pointer;
-  border:1px solid rgba(139,115,85,0.12);
-  transition:all 0.3s;position:relative;overflow:hidden;
-  box-shadow:0 2px 12px rgba(58,46,34,0.06);
-}
-.action-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(58,46,34,0.1)}
-.action-card:active{transform:scale(0.97)}
-.action-card .card-icon{font-size:28px;margin-bottom:6px;display:block}
-.action-card .card-title{font-size:0.78rem;font-weight:700;color:var(--dark);margin-bottom:2px}
-.action-card .card-desc{font-size:0.62rem;color:var(--wood);font-weight:300}
-.action-card.scan-card{
-  background:linear-gradient(135deg,rgba(244,162,97,0.15),rgba(233,196,106,0.1));
-  border-color:rgba(244,162,97,0.25);
-}
-.action-card.quest-card{
-  background:linear-gradient(135deg,rgba(126,200,160,0.12),rgba(143,188,143,0.08));
-  border-color:rgba(126,200,160,0.2);
-}
-.action-card .notif-dot{
-  position:absolute;top:8px;right:8px;
-  width:8px;height:8px;background:#e06060;border-radius:50%;
-  animation:pulse 2s infinite;
-}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(1.3)}}
-
-/* ===== SCAN SCREEN ===== */
-.scan-container{padding:20px 18px;display:flex;flex-direction:column;align-items:center}
-.scan-title{font-size:1.1rem;font-weight:700;color:var(--dark);margin-bottom:4px}
-.scan-subtitle{font-size:0.75rem;color:var(--wood);margin-bottom:20px;text-align:center;line-height:1.5}
-
-.scan-frame{
-  width:260px;height:260px;position:relative;
-  background:rgba(250,243,232,0.5);
-  border-radius:24px;border:2px solid rgba(139,115,85,0.2);
-  display:flex;align-items:center;justify-content:center;
-  overflow:hidden;margin-bottom:16px;
-  box-shadow:0 8px 32px rgba(58,46,34,0.08);
-}
-.scan-corner{
-  position:absolute;width:28px;height:28px;
-  border:3px solid var(--warm);
-}
-.scan-corner.tl{top:12px;left:12px;border-right:none;border-bottom:none;border-radius:6px 0 0 0}
-.scan-corner.tr{top:12px;right:12px;border-left:none;border-bottom:none;border-radius:0 6px 0 0}
-.scan-corner.bl{bottom:12px;left:12px;border-right:none;border-top:none;border-radius:0 0 0 6px}
-.scan-corner.br{bottom:12px;right:12px;border-left:none;border-top:none;border-radius:0 0 6px 0}
-
-.scan-beam{
-  position:absolute;width:80%;height:2px;
-  background:linear-gradient(90deg,transparent,var(--warm),transparent);
-  animation:scanBeam 2.5s ease-in-out infinite;
-  box-shadow:0 0 12px rgba(244,162,97,0.4);
-}
-@keyframes scanBeam{0%,100%{top:15%}50%{top:80%}}
-
-.scan-center-icon{text-align:center}
-.scan-center-icon .icon{font-size:44px;opacity:0.6;margin-bottom:8px;display:block}
-.scan-center-icon .text{font-size:0.75rem;color:var(--wood);font-weight:400}
-
-.scan-btn{
-  background:linear-gradient(135deg,var(--warm),#e8956a);
-  color:white;border:none;border-radius:28px;
-  padding:14px 44px;font-size:0.95rem;font-weight:700;
-  cursor:pointer;letter-spacing:0.5px;
-  box-shadow:0 4px 16px rgba(244,162,97,0.35);
-  transition:all 0.3s;
-}
-.scan-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(244,162,97,0.45)}
-.scan-btn:active{transform:scale(0.97)}
-.scan-hint{font-size:0.65rem;color:rgba(139,115,85,0.5);margin-top:10px}
-
-/* ===== DISCOVERY SCREEN ===== */
-.discovery-overlay{
-  display:none;position:fixed;inset:0;z-index:200;
-  background:rgba(58,46,34,0.6);backdrop-filter:blur(8px);
-  align-items:center;justify-content:center;
-}
-.discovery-overlay.active{display:flex}
-
-.discovery-card{
-  width:92%;max-width:380px;
-  background:linear-gradient(135deg,var(--cream),#f5efe7);
-  border-radius:24px;padding:0;overflow:hidden;
-  box-shadow:0 20px 60px rgba(58,46,34,0.3);
-  animation:discoverIn 0.6s cubic-bezier(0.34,1.56,0.64,1);
-  max-height:90vh;overflow-y:auto;
-}
-@keyframes discoverIn{
-  from{opacity:0;transform:scale(0.7) translateY(30px)}
-  to{opacity:1;transform:scale(1) translateY(0)}
-}
-
-.discover-header{
-  padding:20px 20px 16px;text-align:center;
-  background:linear-gradient(135deg,rgba(233,196,106,0.2),rgba(244,162,97,0.15));
-  position:relative;
-}
-.discover-label{
-  font-size:0.65rem;font-weight:700;letter-spacing:2px;
-  color:var(--warm);margin-bottom:8px;
-}
-.discover-sprite{
-  width:120px;height:120px;margin:0 auto 8px;
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
-}
-.discover-sprite svg{width:100%;height:100%}
-.discover-sprite .glow{
-  position:absolute;inset:-10px;
-  background:radial-gradient(circle,rgba(233,196,106,0.3),transparent 70%);
-  border-radius:50%;animation:glowPulse 3s ease-in-out infinite;
-}
-@keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
-
-.discover-name{font-size:1.3rem;font-weight:900;color:var(--dark);margin-bottom:2px}
-.discover-rarity{
-  display:inline-block;padding:3px 12px;border-radius:10px;
-  font-size:0.6rem;font-weight:700;letter-spacing:1px;
-}
-.rarity-common{background:rgba(139,115,85,0.15);color:var(--wood)}
-.rarity-uncommon{background:rgba(126,200,160,0.2);color:#4a8a6a}
-.rarity-rare{background:rgba(100,149,237,0.2);color:#4a6ab0}
-.rarity-epic{background:rgba(200,182,226,0.3);color:#7a6aa0}
-.rarity-legendary{background:linear-gradient(135deg,rgba(233,196,106,0.3),rgba(244,162,97,0.3));color:#b8860b}
-
-.discover-story{
-  padding:14px 20px;margin:0 16px;
-  background:rgba(200,182,226,0.1);border-radius:12px;
-  border-left:3px solid var(--lavender);
-}
-.discover-story .story-icon{font-size:0.65rem;color:var(--grief);font-weight:600;margin-bottom:4px}
-.discover-story p{font-size:0.78rem;line-height:1.7;color:var(--text);font-weight:300}
-.discover-story p em{color:var(--rose);font-style:normal;font-weight:500}
-
-.discover-stats{
-  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
-  padding:14px 20px;
-}
-.stat-item{text-align:center}
-.stat-item .stat-label{font-size:0.55rem;color:var(--wood);font-weight:500}
-.stat-item .stat-bar{
-  height:4px;background:rgba(139,115,85,0.1);border-radius:2px;
-  margin:3px 0;overflow:hidden;
-}
-.stat-item .stat-bar .fill{height:100%;border-radius:2px;transition:width 1s ease}
-.stat-item .stat-val{font-size:0.7rem;font-weight:700;color:var(--dark)}
-
-.discover-barcode{
-  padding:10px 20px;margin:0 16px 8px;
-  background:rgba(139,115,85,0.05);border-radius:10px;
-}
-.barcode-row{display:flex;justify-content:space-between;padding:3px 0;font-size:0.7rem}
-.barcode-row .k{color:var(--wood)}
-.barcode-row .v{font-weight:600;color:var(--dark)}
-
-.discover-actions{
-  display:flex;gap:10px;padding:16px 20px;
-}
-.btn{
-  flex:1;border:none;border-radius:14px;padding:12px;
-  font-size:0.82rem;font-weight:700;cursor:pointer;
-  transition:all 0.3s;font-family:inherit;
-}
-.btn-primary{
-  background:linear-gradient(135deg,var(--warm),#e8956a);
-  color:white;box-shadow:0 4px 12px rgba(244,162,97,0.3);
-}
-.btn-secondary{
-  background:rgba(139,115,85,0.08);color:var(--dark);
-  border:1px solid rgba(139,115,85,0.15);
-}
-.btn:hover{transform:translateY(-1px)}
-.btn:active{transform:scale(0.97)}
-
-/* ===== BUS DETAIL SCREEN ===== */
-.bus-detail{padding:16px 18px}
-.bus-detail-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px}
-
-.bus-floor{
-  background:linear-gradient(135deg,#f5efe7,#efe5d8);
-  border-radius:16px;border:2px solid rgba(139,115,85,0.15);
-  overflow:hidden;margin-bottom:12px;
-}
-.floor-label{
-  padding:8px 14px;font-size:0.65rem;font-weight:700;
-  color:var(--wood);letter-spacing:1px;
-  background:rgba(139,115,85,0.06);
-  border-bottom:1px solid rgba(139,115,85,0.1);
-}
-.floor-rooms{display:flex}
-.floor-room{
-  flex:1;padding:12px 8px;text-align:center;
-  border-right:1px solid rgba(139,115,85,0.1);
-  cursor:pointer;transition:background 0.3s;min-height:120px;
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-}
-.floor-room:last-child{border-right:none}
-.floor-room:hover{background:rgba(244,162,97,0.06)}
-
-.floor-room .r-icon{font-size:24px}
-.floor-room .r-name{font-size:0.6rem;font-weight:600;color:var(--dark)}
-.floor-room .r-effect{font-size:0.5rem;color:var(--heal);font-weight:500}
-
-.char-in-room{
-  display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:4px;
-}
-.char-mini{
-  width:22px;height:22px;border-radius:50%;
-  border:1.5px solid var(--heal);font-size:9px;
-  display:flex;align-items:center;justify-content:center;
-  background:rgba(126,200,160,0.1);
-  position:relative;
-}
-.char-mini .heal-ring{
-  position:absolute;inset:-2px;border-radius:50%;
-  border:1.5px solid transparent;
-  border-top-color:var(--heal);
-  animation:healSpin 3s linear infinite;
-}
-@keyframes healSpin{to{transform:rotate(360deg)}}
-
-/* ===== MAP SCREEN ===== */
-.map-container{padding:16px 18px}
-.map-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px}
-
-.world-map{
-  position:relative;height:320px;
-  background:linear-gradient(135deg,#e8ddd0,#f0e8dc);
-  border-radius:20px;border:2px solid rgba(139,115,85,0.15);
-  overflow:hidden;margin-bottom:14px;
-}
-.map-bg{position:absolute;inset:0;overflow:hidden}
-.map-path{
-  position:absolute;
-  border:2px dashed rgba(139,115,85,0.2);
-}
-.map-location{
-  position:absolute;text-align:center;cursor:pointer;
-  transition:transform 0.3s;
-}
-.map-location:hover{transform:scale(1.1)}
-.map-loc-icon{
-  width:44px;height:44px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:20px;margin:0 auto 4px;
-  box-shadow:0 3px 12px rgba(0,0,0,0.1);
-  border:2px solid white;
-}
-.map-loc-name{font-size:0.55rem;font-weight:700;color:var(--dark);white-space:nowrap}
-.map-loc-status{font-size:0.5rem;font-weight:400}
-
-.map-bus-marker{
-  position:absolute;z-index:10;
-  animation:busFloat 4s ease-in-out infinite;
-  text-align:center;
-}
-@keyframes busFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-.map-bus-icon{font-size:28px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.2))}
-.map-bus-label{font-size:0.5rem;font-weight:700;color:var(--warm)}
-
-.destination-cards{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
-.dest-card{
-  min-width:200px;background:rgba(250,243,232,0.95);
-  border-radius:14px;padding:12px;border:1px solid rgba(139,115,85,0.1);
-  flex-shrink:0;cursor:pointer;transition:all 0.3s;
-}
-.dest-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.06)}
-.dest-card .dest-icon{font-size:28px;margin-bottom:6px}
-.dest-card .dest-name{font-size:0.8rem;font-weight:700;color:var(--dark)}
-.dest-card .dest-desc{font-size:0.65rem;color:var(--wood);line-height:1.4;margin-top:4px}
-.dest-card .dest-dist{
-  margin-top:6px;font-size:0.6rem;color:var(--warm);font-weight:600;
-}
-
-/* ===== QUEST SCREEN ===== */
-.quest-container{padding:16px 18px}
-.quest-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:4px}
-.quest-village{font-size:0.72rem;color:var(--wood);margin-bottom:14px}
-
-.quest-card{
-  background:rgba(250,243,232,0.95);border-radius:16px;
-  padding:14px;margin-bottom:10px;
-  border:1px solid rgba(139,115,85,0.1);
-  cursor:pointer;transition:all 0.3s;
-  box-shadow:0 2px 8px rgba(0,0,0,0.03);
-}
-.quest-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.06)}
-.quest-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.quest-npc{
-  width:36px;height:36px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;border:2px solid var(--lavender);
-  background:rgba(200,182,226,0.1);
-}
-.quest-info{flex:1}
-.quest-name{font-size:0.82rem;font-weight:700;color:var(--dark)}
-.quest-giver{font-size:0.6rem;color:var(--grief)}
-.quest-type-badge{
-  font-size:0.5rem;font-weight:700;padding:2px 8px;
-  border-radius:8px;letter-spacing:0.5px;
-}
-.qt-gather{background:rgba(126,200,160,0.15);color:#4a8a6a}
-.qt-comfort{background:rgba(232,160,191,0.15);color:#b06888}
-.qt-memory{background:rgba(200,182,226,0.2);color:#7a6aa0}
-.qt-deliver{background:rgba(233,196,106,0.2);color:#8a7a30}
-
-.quest-desc{font-size:0.72rem;color:var(--text);line-height:1.5;margin-bottom:8px}
-.quest-reward{
-  display:flex;gap:8px;padding-top:8px;
-  border-top:1px solid rgba(139,115,85,0.08);
-}
-.reward-item{
-  font-size:0.6rem;padding:3px 8px;border-radius:8px;
-  background:rgba(233,196,106,0.12);color:#8a7a30;font-weight:600;
-}
-
-/* ===== COLLECTION / CHARACTERS SCREEN ===== */
-.collection-container{padding:16px 18px}
-.collection-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:4px}
-.collection-count{font-size:0.72rem;color:var(--wood);margin-bottom:14px}
-
-.char-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.char-card{
-  background:rgba(250,243,232,0.95);border-radius:16px;
-  padding:12px;text-align:center;cursor:pointer;
-  border:1px solid rgba(139,115,85,0.1);
-  transition:all 0.3s;position:relative;overflow:hidden;
-}
-.char-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.06)}
-.char-card .char-sprite{
-  width:64px;height:64px;margin:0 auto 6px;
-  display:flex;align-items:center;justify-content:center;
-}
-.char-card .char-sprite svg{width:100%;height:100%}
-.char-card .char-name{font-size:0.78rem;font-weight:700;color:var(--dark)}
-.char-card .char-type{font-size:0.6rem;color:var(--wood)}
-.char-card .char-rarity{
-  position:absolute;top:6px;right:6px;
-  font-size:0.5rem;padding:2px 6px;border-radius:6px;font-weight:700;
-}
-
-.heal-progress{
-  margin-top:6px;height:4px;background:rgba(139,115,85,0.1);
-  border-radius:2px;overflow:hidden;
-}
-.heal-progress .heal-fill{
-  height:100%;background:linear-gradient(90deg,var(--grief),var(--heal));
-  border-radius:2px;transition:width 1.5s ease;
-}
-.heal-label{font-size:0.5rem;color:var(--heal);font-weight:500;margin-top:2px}
-
-/* Character detail modal */
-.char-modal{
-  display:none;position:fixed;inset:0;z-index:200;
-  background:rgba(58,46,34,0.5);backdrop-filter:blur(6px);
-  align-items:flex-end;justify-content:center;
-}
-.char-modal.active{display:flex}
-.char-modal-content{
-  width:100%;max-width:440px;
-  background:var(--cream);border-radius:24px 24px 0 0;
-  padding:24px 20px 40px;max-height:85vh;overflow-y:auto;
-  animation:slideUp 0.4s ease;
-}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-
-.char-detail-sprite{
-  width:100px;height:100px;margin:0 auto 12px;
-  display:flex;align-items:center;justify-content:center;
-}
-.char-detail-sprite svg{width:100%;height:100%}
-.char-detail-name{text-align:center;font-size:1.2rem;font-weight:900;color:var(--dark)}
-.char-detail-type{text-align:center;font-size:0.72rem;color:var(--wood);margin-bottom:12px}
-
-.char-memory{
-  background:rgba(200,182,226,0.1);border-radius:14px;
-  padding:14px;margin-bottom:12px;
-  border-left:3px solid var(--grief);
-}
-.char-memory .mem-title{font-size:0.65rem;font-weight:700;color:var(--grief);margin-bottom:6px}
-.char-memory .mem-text{font-size:0.78rem;line-height:1.7;color:var(--text)}
-
-.char-longing{
-  background:rgba(232,160,191,0.08);border-radius:14px;
-  padding:14px;margin-bottom:12px;
-  border-left:3px solid var(--rose);
-}
-.char-longing .long-title{font-size:0.65rem;font-weight:700;color:var(--rose);margin-bottom:6px}
-.char-longing .long-text{font-size:0.78rem;line-height:1.7;color:var(--text)}
-
-.char-heal-section{
-  background:rgba(126,200,160,0.08);border-radius:14px;
-  padding:14px;
-}
-.char-heal-section .heal-title{font-size:0.65rem;font-weight:700;color:var(--heal);margin-bottom:8px}
-.char-heal-bar{
-  height:8px;background:rgba(139,115,85,0.1);border-radius:4px;
-  overflow:hidden;margin-bottom:4px;
-}
-.char-heal-bar .fill{
-  height:100%;background:linear-gradient(90deg,var(--grief),var(--heal));
-  border-radius:4px;transition:width 2s ease;
-}
-.char-heal-stages{
-  display:flex;justify-content:space-between;margin-top:6px;
-}
-.heal-stage{
-  font-size:0.6rem;color:var(--wood);text-align:center;
-  opacity:0.4;
-}
-.heal-stage.reached{opacity:1;color:var(--heal);font-weight:600}
-
-/* ===== BOTTOM NAV ===== */
-.bottom-nav{
-  position:fixed;bottom:0;left:0;right:0;
-  background:rgba(250,243,232,0.95);backdrop-filter:blur(12px);
-  border-top:1px solid rgba(139,115,85,0.12);
-  display:flex;justify-content:space-around;
-  padding:8px 0 max(20px, env(safe-area-inset-bottom));
-  z-index:100;
-}
-.nav-item{
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  font-size:0.55rem;color:var(--wood);cursor:pointer;
-  transition:color 0.3s;padding:4px 8px;border-radius:10px;
-  font-weight:500;position:relative;
-}
-.nav-item.active{color:var(--warm);font-weight:700}
-.nav-item .nav-icon{font-size:20px}
-.nav-item .nav-active-dot{
-  position:absolute;bottom:-2px;
-  width:4px;height:4px;border-radius:50%;
-  background:var(--warm);display:none;
-}
-.nav-item.active .nav-active-dot{display:block}
-
-/* ===== UTILITY ===== */
-.back-btn{
-  display:inline-flex;align-items:center;gap:4px;
-  background:none;border:none;color:var(--wood);
-  font-size:0.78rem;cursor:pointer;padding:8px 0;
-  font-family:inherit;font-weight:500;
-}
-.back-btn:hover{color:var(--dark)}
-
-/* Loading shimmer */
-@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-.shimmer{
-  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.3) 50%,transparent 100%);
-  background-size:200% 100%;animation:shimmer 2s infinite;
-}
+--bg-morning:linear-gradient(180deg,#ffe8d6 0%,#fff5ee 100%);
+--bg-afternoon:linear-gradient(180deg,#e0f0ff 0%,#f8fcff 100%);
+--bg-evening:linear-gradient(180deg,#ff9a56 0%,#ffcba4 50%,#ffe8d6 100%);
+--bg-night:linear-gradient(180deg,#1a1a3e 0%,#2d2b55 50%,#3b3870 100%);
+--bg:var(--bg-afternoon);
+--text:#2c2c2c;--text-light:#666;
+--primary:#6c5ce7;--primary-light:#a29bfe;--primary-dark:#5a4bd1;
+--accent:#fd79a8;--accent2:#00cec9;--accent3:#fdcb6e;
+--card:#fff;--card-border:#eee;--card-shadow:0 2px 12px rgba(0,0,0,.08);
+--nav-bg:rgba(255,255,255,.95);--nav-height:64px;
+--gold-color:#f9ca24;--heal:#00b894;--energy:#e17055;
+--fab-size:56px;--max-w:440px;--radius:16px;--radius-sm:10px;
+}
+.night-mode{--text:#e8e8ff;--text-light:#b8b8d0;--card:rgba(40,38,70,.9);--card-border:rgba(100,100,160,.3);--card-shadow:0 2px 12px rgba(0,0,0,.3);--nav-bg:rgba(30,28,60,.95);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;-webkit-tap-highlight-color:transparent;}
+body{display:flex;justify-content:center;background:#1a1a2e;}
+#app{position:relative;width:100%;max-width:var(--max-w);height:100%;overflow:hidden;background:var(--bg);color:var(--text);transition:background .8s;}
+#splash{position:absolute;inset:0;z-index:9999;background:linear-gradient(135deg,#6c5ce7,#a29bfe,#fd79a8);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:1;transition:opacity .8s;}
+#splash.hide{opacity:0;pointer-events:none;}
+#splash .bus-sil{width:120px;height:50px;position:relative;animation:busDrive 2s ease-in-out forwards;opacity:0;}
+@keyframes busDrive{0%{transform:translateX(-200px);opacity:0}30%{opacity:1}70%{opacity:1}100%{transform:translateX(200px);opacity:0}}
+#splash h1{color:#fff;font-size:2rem;font-weight:900;margin-top:20px;opacity:0;animation:fadeUp .8s .5s forwards;}
+#splash p{color:rgba(255,255,255,.8);font-size:.9rem;margin-top:8px;opacity:0;animation:fadeUp .8s .8s forwards;}
+@keyframes fadeUp{to{opacity:1;transform:translateY(0)}from{opacity:0;transform:translateY(10px)}}
+#topbar{position:absolute;top:0;left:0;right:0;z-index:100;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,0,0,.05);min-height:48px;transition:background .5s;}
+.night-mode #topbar{background:rgba(30,28,60,.75);}
+#topbar .left{display:flex;align-items:center;gap:6px;}
+#topbar .right{display:flex;align-items:center;gap:8px;}
+.energy-bar{display:flex;gap:2px;}
+.energy-bar .heart{font-size:15px;transition:all .3s;}
+.energy-bar .heart.empty{opacity:.25;filter:grayscale(1);}
+.gold-display{display:flex;align-items:center;gap:4px;font-weight:700;font-size:.8rem;color:#b8860b;background:rgba(249,202,36,.15);padding:3px 10px;border-radius:20px;}
+.weather-badge,.time-badge{font-size:.7rem;padding:2px 8px;border-radius:12px;background:rgba(108,92,231,.1);color:var(--primary);}
+.night-mode .weather-badge,.night-mode .time-badge{background:rgba(162,155,254,.2);color:var(--primary-light);}
+.settings-btn{background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.screen{position:absolute;top:48px;left:0;width:100%;height:calc(100% - 48px - var(--nav-height));overflow-y:auto;overflow-x:hidden;opacity:0;pointer-events:none;transform:translateX(30px);transition:opacity .3s,transform .3s;-webkit-overflow-scrolling:touch;contain:layout style;}
+.screen.active{opacity:1;pointer-events:auto;transform:translateX(0);}
+.screen.slide-left{transform:translateX(-30px);}
+.scr-pad{padding:16px 16px 24px;}
+.story-banner{background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:var(--radius);padding:16px;color:#fff;margin-bottom:14px;position:relative;overflow:hidden;min-height:90px;}
+.story-banner h3{font-size:.8rem;font-weight:500;opacity:.85;margin-bottom:4px;}
+.story-banner p{font-size:.78rem;line-height:1.6;opacity:.9;}
+.travel-bar{background:var(--card);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.travel-bar .route{font-size:.72rem;color:var(--text-light);margin-bottom:6px;}
+.travel-bar .bar-track{height:8px;background:#eee;border-radius:4px;overflow:hidden;}
+.travel-bar .bar-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:4px;transition:width 1s;position:relative;}
+.travel-bar .eta{font-size:.68rem;color:var(--text-light);margin-top:4px;text-align:right;}
+.bus-preview{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.bus-preview h3{font-size:.85rem;font-weight:700;margin-bottom:8px;}
+.bus-mini{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;}
+.bus-mini .room-mini{flex:0 0 68px;height:52px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.58rem;color:#fff;font-weight:500;position:relative;}
+.bus-mini .room-mini .occ{position:absolute;top:2px;right:4px;font-size:.5rem;background:rgba(0,0,0,.3);border-radius:8px;padding:1px 4px;}
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.action-card{background:var(--card);border-radius:var(--radius-sm);padding:14px 8px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .15s;position:relative;overflow:hidden;}
+.action-card:active{transform:scale(.95);}
+.action-card .icon{font-size:1.4rem;margin-bottom:4px;}
+.action-card .label{font-size:.68rem;font-weight:500;}
+.action-card .badge{position:absolute;top:5px;right:5px;background:var(--accent);color:#fff;border-radius:10px;font-size:.5rem;padding:1px 5px;font-weight:700;}
+.heal-timer{font-size:.72rem;color:var(--heal);text-align:center;margin-bottom:10px;font-weight:500;}
+.scan-area{padding:16px;}
+.scan-viewport{width:100%;aspect-ratio:1/1;background:#111;border-radius:var(--radius);position:relative;overflow:hidden;margin-bottom:14px;}
+.scan-viewport .line{position:absolute;left:10%;right:10%;height:2px;background:linear-gradient(90deg,transparent,#0f0,transparent);top:50%;animation:scanLine 2s ease-in-out infinite;}
+@keyframes scanLine{0%,100%{top:20%}50%{top:80%}}
+.scan-viewport .corners{position:absolute;inset:15%;border:2px solid rgba(0,255,0,.5);border-radius:4px;}
+.scan-btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .15s;min-height:48px;}
+.scan-btn:active{transform:scale(.97);}
+.manual-input{margin-top:10px;}
+.manual-input input{width:100%;padding:12px;border:2px solid var(--card-border);border-radius:var(--radius-sm);font-family:inherit;font-size:1rem;text-align:center;letter-spacing:2px;background:var(--card);color:var(--text);}
+.manual-input input:focus{border-color:var(--primary);outline:none;}
+.manual-toggle{background:none;border:1px solid var(--card-border);border-radius:8px;padding:8px;width:100%;margin-top:8px;font-family:inherit;font-size:.75rem;cursor:pointer;color:var(--text-light);min-height:44px;}
+.bus-detail{padding:16px;}
+.bus-header{border-radius:var(--radius);padding:16px;color:#fff;margin-bottom:14px;text-align:center;transition:background .3s;}
+.bus-color-sel{display:flex;gap:8px;justify-content:center;margin-top:10px;}
+.bus-color-sel .cdot{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.4);cursor:pointer;transition:transform .15s;}
+.bus-color-sel .cdot.active{border-color:#fff;transform:scale(1.2);}
+.floor-label{font-size:.72rem;font-weight:700;color:var(--text-light);margin:10px 0 6px;text-transform:uppercase;letter-spacing:1px;}
+.room-card{background:var(--card);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .15s;position:relative;overflow:hidden;}
+.room-card:active{transform:scale(.98);}
+.room-card .rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.room-card .rn{font-weight:700;font-size:.82rem;}
+.room-card .rl{font-size:.65rem;color:var(--primary);background:rgba(108,92,231,.1);padding:2px 8px;border-radius:10px;}
+.room-card .rd{font-size:.68rem;color:var(--text-light);margin-bottom:6px;}
+.room-card .rc{display:flex;gap:6px;flex-wrap:wrap;}
+.room-card .ca{width:34px;height:34px;border-radius:50%;background:rgba(108,92,231,.1);display:flex;align-items:center;justify-content:center;font-size:.9rem;position:relative;}
+.room-card .ca .mood{position:absolute;bottom:-2px;right:-2px;font-size:.55rem;}
+.room-card .ranim{position:absolute;top:0;right:0;bottom:0;width:50px;overflow:hidden;opacity:.25;pointer-events:none;}
+.room-card .prod{font-size:.62rem;color:var(--accent2);margin-top:6px;}
+.room-card .ubtn{position:absolute;bottom:8px;right:8px;background:var(--gold-color);color:#333;border:none;border-radius:8px;padding:4px 10px;font-size:.62rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:28px;}
+@keyframes steam{0%{transform:translateY(0) scale(1);opacity:.6}100%{transform:translateY(-20px) scale(1.5);opacity:0}}
+@keyframes musicNote{0%{transform:translateY(0) rotate(0);opacity:.8}100%{transform:translateY(-25px) rotate(20deg);opacity:0}}
+@keyframes sparkle{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+@keyframes pageTurn{0%,100%{transform:rotateY(0)}50%{transform:rotateY(20deg)}}
+@keyframes starTwinkle{0%,100%{opacity:.2}50%{opacity:1}}
+.steam-p{position:absolute;width:6px;height:6px;background:rgba(200,200,200,.5);border-radius:50%;animation:steam 2s infinite;pointer-events:none;}
+.note-p{position:absolute;font-size:10px;animation:musicNote 2.5s infinite;pointer-events:none;}
+.sparkle-p{position:absolute;width:5px;height:5px;background:var(--gold-color);border-radius:50%;animation:sparkle 1.5s infinite;pointer-events:none;}
+.page-p{position:absolute;width:8px;height:10px;background:rgba(200,180,150,.6);animation:pageTurn 3s infinite;pointer-events:none;}
+.star-p{position:absolute;width:3px;height:3px;background:#fff;border-radius:50%;animation:starTwinkle 2s infinite;pointer-events:none;}
+.map-content{padding:16px;}
+.dest-card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .15s,opacity .5s;position:relative;overflow:hidden;}
+.dest-card:active{transform:scale(.98);}
+.dest-card.locked{opacity:.45;filter:grayscale(.5);}
+.dest-card .lock-ov{position:absolute;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:1.3rem;border-radius:var(--radius);gap:4px;}
+.dest-card .lock-ov span{font-size:.65rem;color:#fff;font-weight:500;}
+.dest-card .di{font-size:1.8rem;margin-bottom:6px;}
+.dest-card h3{font-size:.85rem;font-weight:700;margin-bottom:3px;}
+.dest-card p{font-size:.7rem;color:var(--text-light);line-height:1.4;margin-bottom:8px;}
+.dest-card .dbtn{display:flex;gap:6px;}
+.dest-card .dbtn button{border:none;border-radius:8px;padding:6px 12px;font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit;min-height:32px;}
+.photo-btn{background:var(--accent);color:#fff;}
+.travel-btn{background:var(--primary);color:#fff;}
+.quest-content{padding:16px;}
+.quest-card{background:var(--card);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);position:relative;}
+.quest-card .diff{position:absolute;top:10px;right:10px;font-size:.68rem;color:#b8860b;}
+.quest-card h4{font-size:.82rem;font-weight:700;margin-bottom:3px;}
+.quest-card .qd{font-size:.7rem;color:var(--text-light);margin-bottom:6px;}
+.quest-card .qr{font-size:.68rem;color:#b8860b;font-weight:600;margin-bottom:6px;}
+.quest-card .qp .chk{font-size:.68rem;color:var(--text-light);display:block;margin:2px 0;}
+.quest-card .qp .chk.done{color:var(--heal);text-decoration:line-through;}
+.quest-card .abtn{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;width:100%;min-height:40px;margin-top:6px;}
+.quest-card .abtn.accepted{background:var(--heal);}
+.quest-card .abtn:disabled{background:#ccc;cursor:default;}
+.collection-content{padding:16px;}
+.coll-tabs{display:flex;gap:0;margin-bottom:14px;background:rgba(108,92,231,.1);border-radius:var(--radius-sm);overflow:hidden;}
+.coll-tabs .tab{flex:1;padding:10px;text-align:center;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text-light);min-height:44px;display:flex;align-items:center;justify-content:center;}
+.coll-tabs .tab.active{background:var(--primary);color:#fff;}
+.char-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.char-card{background:var(--card);border-radius:var(--radius-sm);padding:12px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .2s,opacity .5s;position:relative;overflow:hidden;}
+.char-card:active{transform:scale(.97);}
+.char-card.undiscovered{opacity:.35;filter:grayscale(.8);}
+.char-card .pa{width:48px;height:48px;margin:0 auto 6px;image-rendering:pixelated;}
+.char-card .cn{font-size:.78rem;font-weight:700;margin-bottom:2px;}
+.char-card .ct{font-size:.58rem;color:var(--text-light);margin-bottom:4px;}
+.char-card .hb{height:4px;background:#eee;border-radius:2px;overflow:hidden;margin-top:4px;}
+.char-card .hf{height:100%;background:linear-gradient(90deg,var(--heal),var(--accent2));border-radius:2px;transition:width .5s;}
+.char-card .fr{font-size:.58rem;color:var(--accent);margin-top:4px;}
+.char-card .mi{position:absolute;top:5px;right:5px;font-size:.65rem;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-light);}
+.empty-state .ei{font-size:2.5rem;margin-bottom:10px;opacity:.5;}
+.empty-state p{font-size:.82rem;}
+.inv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.inv-item{background:var(--card);border-radius:8px;padding:10px 4px;text-align:center;border:1px solid var(--card-border);font-size:.58rem;cursor:pointer;min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.inv-item .ii{font-size:1.2rem;margin-bottom:3px;}
+.inv-item .ic{font-size:.52rem;color:var(--primary);font-weight:700;}
+.craft-area{margin-top:14px;background:var(--card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--card-border);}
+.craft-area h4{font-size:.78rem;font-weight:700;margin-bottom:8px;text-align:center;}
+.craft-slots{display:flex;gap:8px;justify-content:center;margin-bottom:10px;align-items:center;}
+.craft-slot{width:46px;height:46px;border:2px dashed var(--card-border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.craft-btn{width:100%;padding:10px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-family:inherit;font-weight:600;font-size:.78rem;cursor:pointer;min-height:40px;}
+.compare-panel{background:var(--card);border-radius:var(--radius);padding:14px;margin-top:14px;border:1px solid var(--card-border);}
+.compare-panel h4{font-size:.82rem;font-weight:700;margin-bottom:10px;text-align:center;}
+.cmp-row{display:flex;align-items:center;gap:6px;margin:5px 0;font-size:.68rem;}
+.cmp-row .bar{flex:1;height:7px;background:#eee;border-radius:4px;overflow:hidden;}
+.cmp-row .bi{height:100%;border-radius:4px;}
+.modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:600;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:flex-end;justify-content:center;}
+.modal-backdrop.show{opacity:1;pointer-events:auto;}
+.modal{background:var(--card);color:var(--text);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-height:80vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s;padding:20px 16px 30px;position:relative;}
+.modal-backdrop.show .modal{transform:translateY(0);}
+.modal h2{font-size:1.05rem;font-weight:700;margin-bottom:10px;}
+.modal .cbtn{position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-light);min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.discovery-overlay{position:absolute;inset:0;z-index:700;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s;}
+.discovery-overlay.show{opacity:1;pointer-events:auto;}
+.discovery-overlay .glow{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(253,121,168,.35),transparent);display:flex;align-items:center;justify-content:center;animation:dpulse 1.5s infinite;}
+@keyframes dpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.discovery-overlay .pa{width:72px;height:72px;image-rendering:pixelated;}
+.discovery-overlay h2{color:#fff;margin-top:14px;font-size:1.15rem;}
+.discovery-overlay .sub{color:rgba(255,255,255,.65);font-size:.78rem;margin-top:4px;}
+.discovery-overlay .rar{padding:4px 16px;border-radius:20px;font-size:.72rem;font-weight:700;margin-top:8px;}
+.rar-common{background:rgba(200,200,200,.3);color:#ddd;}
+.rar-uncommon{background:rgba(0,206,201,.3);color:#00cec9;}
+.rar-rare{background:rgba(108,92,231,.3);color:#a29bfe;}
+.rar-epic{background:rgba(253,121,168,.3);color:#fd79a8;}
+.discovery-overlay .okbtn{margin-top:18px;padding:12px 30px;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border:none;border-radius:var(--radius-sm);font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px;}
+.char-detail .pa-lg{width:72px;height:72px;margin:0 auto 10px;image-rendering:pixelated;}
+.char-detail .sr{display:flex;justify-content:space-between;align-items:center;margin:5px 0;font-size:.72rem;}
+.char-detail .sb{flex:0 0 58%;height:7px;background:#eee;border-radius:4px;overflow:hidden;}
+.char-detail .sf{height:100%;border-radius:4px;transition:width .8s;}
+.char-detail .je{background:rgba(108,92,231,.05);border-radius:8px;padding:8px 10px;margin:5px 0;font-size:.7rem;line-height:1.5;border-left:3px solid var(--primary-light);}
+.char-detail .abts{display:flex;gap:8px;margin-top:10px;}
+.char-detail .abts button{flex:1;padding:10px;border:none;border-radius:8px;font-family:inherit;font-weight:600;font-size:.72rem;cursor:pointer;min-height:44px;}
+.dream-screen{position:absolute;inset:0;z-index:650;background:linear-gradient(180deg,#0a0a2e,#1a1a4e);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .5s;}
+.dream-screen.show{opacity:1;pointer-events:auto;}
+.dream-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.5));pointer-events:none;}
+.dream-ct{max-width:340px;text-align:center;color:rgba(255,255,255,.9);z-index:1;position:relative;}
+.dream-ct h3{font-size:.95rem;margin-bottom:14px;color:var(--primary-light);}
+.dream-ct p{font-size:.8rem;line-height:1.8;opacity:.85;}
+.dream-ct .cd{margin-top:18px;padding:10px 22px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:20px;cursor:pointer;font-family:inherit;font-size:.78rem;}
+.letter-area{padding:16px;}
+.letter-area textarea{width:100%;height:90px;border:1px solid var(--card-border);border-radius:8px;padding:10px;font-family:inherit;font-size:.78rem;resize:none;background:var(--card);color:var(--text);}
+.letter-area textarea:focus{border-color:var(--primary);outline:none;}
+.letter-presets{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;}
+.letter-presets button{padding:5px 10px;border:1px solid var(--card-border);border-radius:16px;background:var(--card);font-size:.68rem;cursor:pointer;font-family:inherit;color:var(--text);min-height:30px;}
+.shop-content{padding:16px;}
+.shop-item{background:var(--card);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;display:flex;align-items:center;gap:12px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.shop-item .si{font-size:1.6rem;flex:0 0 44px;text-align:center;}
+.shop-item .sinfo{flex:1;}
+.shop-item .sinfo h4{font-size:.78rem;font-weight:700;margin-bottom:2px;}
+.shop-item .sinfo p{font-size:.62rem;color:var(--text-light);}
+.shop-item .bbtn{background:var(--gold-color);color:#333;border:none;border-radius:8px;padding:8px 12px;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:36px;}
+.ach-content{padding:16px;}
+.ach-card{background:var(--card);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);transition:opacity .3s;}
+.ach-card.locked{opacity:.4;}
+.ach-card .ai{font-size:1.3rem;flex:0 0 36px;text-align:center;}
+.ach-card .ainfo h4{font-size:.78rem;font-weight:700;margin-bottom:1px;}
+.ach-card .ainfo p{font-size:.62rem;color:var(--text-light);}
+.ach-card .ack{font-size:.9rem;color:var(--heal);margin-left:auto;}
+.settings-content{padding:16px;}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--card-border);font-size:.8rem;}
+.toggle{width:44px;height:26px;background:#ccc;border-radius:13px;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
+.toggle.on{background:var(--primary);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .3s;}
+.toggle.on::after{transform:translateX(18px);}
+.memory-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.mem-item{background:var(--card);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--card-border);font-size:.58rem;}
+.mem-item .mi2{font-size:1.4rem;margin-bottom:3px;}
+.daily-modal .rg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0;}
+.daily-modal .day{text-align:center;padding:7px 2px;border-radius:8px;background:rgba(108,92,231,.08);font-size:.58rem;border:1px solid transparent;}
+.daily-modal .day.today{border-color:var(--primary);background:rgba(108,92,231,.18);}
+.daily-modal .day.claimed{background:var(--primary);color:#fff;}
+.daily-modal .day .amt{font-weight:700;font-size:.65rem;display:block;margin-top:2px;}
+#navbar{position:absolute;bottom:0;left:0;right:0;height:var(--nav-height);background:var(--nav-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid rgba(0,0,0,.08);display:flex;justify-content:space-around;align-items:center;z-index:200;transition:background .5s;}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:6px 10px;border-radius:12px;transition:all .15s;min-width:44px;min-height:44px;justify-content:center;}
+.nav-item.active{color:var(--primary);}
+.nav-item .ni{font-size:1.2rem;}
+.nav-item .nl{font-size:.58rem;font-weight:500;}
+#fab-scan{position:absolute;bottom:calc(var(--nav-height) + 10px);right:14px;width:var(--fab-size);height:var(--fab-size);border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border:none;font-size:1.3rem;cursor:pointer;z-index:201;box-shadow:0 4px 20px rgba(108,92,231,.4);display:flex;align-items:center;justify-content:center;animation:fabPulse 2s infinite;}
+@keyframes fabPulse{0%,100%{box-shadow:0 4px 20px rgba(108,92,231,.4)}50%{box-shadow:0 4px 30px rgba(108,92,231,.7),0 0 0 8px rgba(108,92,231,.08)}}
+#toast-container{position:absolute;top:52px;left:14px;right:14px;z-index:500;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.toast{background:var(--card);border-radius:var(--radius-sm);padding:10px 12px;box-shadow:0 4px 20px rgba(0,0,0,.12);transform:translateY(-20px);opacity:0;transition:all .35s;font-size:.75rem;line-height:1.4;pointer-events:auto;border-left:3px solid var(--primary);}
+.toast.show{transform:translateY(0);opacity:1;}
+#confetti-canvas{position:absolute;inset:0;z-index:9000;pointer-events:none;}
+canvas#particles{position:absolute;inset:0;pointer-events:none;z-index:50;}
+.shimmer{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;min-height:60px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.ripple-effect{position:absolute;border-radius:50%;background:rgba(108,92,231,.15);transform:scale(0);animation:rippleAnim .6s linear;pointer-events:none;}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+.scroll-reveal{opacity:0;transform:translateY(18px);transition:opacity .5s,transform .5s;}
+.scroll-reveal.visible{opacity:1;transform:translateY(0);}
+.pull-ind{text-align:center;padding:6px;font-size:.68rem;color:var(--text-light);opacity:.4;}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+@media(max-width:440px){#app{max-width:100%;}}
 </style>
 </head>
 <body>
+<div id="app">
+<canvas id="confetti-canvas"></canvas>
 <canvas id="particles"></canvas>
 
-<div class="app">
-  <!-- Top Bar -->
-  <div class="top-bar">
-    <div class="journey-info">
-      <div class="bus-icon">🚌</div>
-      <div>
-        <div class="location-name" id="currentLocation">기억의 숲 마을</div>
-        <div class="location-sub">천국행 버스 · 3일째 여행중</div>
-      </div>
-    </div>
-    <div class="resources">
-      <div class="resource-badge gold-r">✦ 1,250</div>
-      <div class="resource-badge supply-r">📦 38</div>
-      <div class="resource-badge soul-r">💜 6</div>
-    </div>
+<!-- SPLASH -->
+<div id="splash">
+  <div class="bus-sil">
+    <svg viewBox="0 0 120 50" fill="white"><rect x="5" y="10" width="110" height="30" rx="8"/><rect x="10" y="5" width="95" height="10" rx="4"/><circle cx="30" cy="42" r="6" fill="#ddd"/><circle cx="90" cy="42" r="6" fill="#ddd"/><rect x="15" y="15" width="12" height="10" rx="2" fill="#aaa" opacity=".5"/><rect x="32" y="15" width="12" height="10" rx="2" fill="#aaa" opacity=".5"/><rect x="49" y="15" width="12" height="10" rx="2" fill="#aaa" opacity=".5"/><rect x="66" y="15" width="12" height="10" rx="2" fill="#aaa" opacity=".5"/></svg>
   </div>
+  <h1>천국행 버스</h1>
+  <p>치유의 여정이 시작됩니다</p>
+</div>
 
-  <!-- HOME SCREEN -->
-  <div class="screen active" id="screenHome">
-    <div class="home-hero">
-      <h1>천국행 버스</h1>
-      <p class="subtitle">현실에서 아팠던 영혼들이, 가보고 싶었던 곳으로<br>함께 떠나는 치유의 여정</p>
-    </div>
-
-    <!-- Bus Cross-Section -->
-    <div class="bus-section" onclick="navTo('bus')">
-      <div class="bus-exterior">
-        <span class="bus-label">HEAVEN BOUND EXPRESS</span>
-      </div>
-      <div class="bus-rooms" id="busPreview">
-        <div class="bus-room active-room">
-          <div class="room-level">Lv.3</div>
-          <div class="room-icon">🌿</div>
-          <div class="room-name">정원</div>
-          <div class="room-char"><span>🐱</span></div>
-        </div>
-        <div class="bus-room">
-          <div class="room-level">Lv.2</div>
-          <div class="room-icon">📚</div>
-          <div class="room-name">도서관</div>
-          <div class="room-char"><span>🐕</span></div>
-        </div>
-        <div class="bus-room">
-          <div class="room-level">Lv.2</div>
-          <div class="room-icon">🍳</div>
-          <div class="room-name">주방</div>
-          <div class="room-char"><span>🐰</span></div>
-        </div>
-        <div class="bus-room">
-          <div class="room-level">Lv.1</div>
-          <div class="room-icon">🔭</div>
-          <div class="room-name">전망대</div>
-          <div class="room-char empty"><span>+</span></div>
-        </div>
-        <div class="bus-room">
-          <div class="room-level">Lv.1</div>
-          <div class="room-icon">🛏️</div>
-          <div class="room-name">휴식실</div>
-          <div class="room-char"><span>🦊</span></div>
-        </div>
-      </div>
-      <div class="bus-wheels">
-        <div class="wheel"></div><div class="wheel"></div>
-        <div class="wheel"></div><div class="wheel"></div>
-      </div>
-    </div>
-
-    <!-- Story Banner -->
-    <div class="story-banner">
-      <div class="story-label">📖 오늘의 이야기</div>
-      <div class="story-text">
-        고양이 <em>나비</em>가 정원에서 처음으로 웃었습니다.<br>
-        "여기 꽃들... 예전에 창밖으로 보던 그 꽃이랑 닮았어요."
-      </div>
-    </div>
-
-    <!-- Action Grid -->
-    <div class="action-grid">
-      <div class="action-card scan-card" onclick="navTo('scan')">
-        <span class="card-icon">📱</span>
-        <div class="card-title">바코드 스캔</div>
-        <div class="card-desc">새로운 영혼을 만나세요</div>
-      </div>
-      <div class="action-card quest-card" onclick="navTo('quest')">
-        <div class="notif-dot"></div>
-        <span class="card-icon">📜</span>
-        <div class="card-title">마을 퀘스트</div>
-        <div class="card-desc">2개의 새로운 의뢰</div>
-      </div>
-      <div class="action-card" onclick="navTo('map')">
-        <span class="card-icon">🗺️</span>
-        <div class="card-title">여행 지도</div>
-        <div class="card-desc">다음 목적지를 선택</div>
-      </div>
-      <div class="action-card" onclick="navTo('collection')">
-        <span class="card-icon">💫</span>
-        <div class="card-title">영혼 도감</div>
-        <div class="card-desc">6/30 영혼 만남</div>
-      </div>
-    </div>
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="left">
+    <span class="time-badge" id="time-badge">🌤️ 오후</span>
+    <span class="weather-badge" id="weather-badge">☀️ 맑음</span>
   </div>
-
-  <!-- SCAN SCREEN -->
-  <div class="screen" id="screenScan">
-    <div class="scan-container">
-      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
-      <div class="scan-title">새로운 영혼을 만나세요</div>
-      <div class="scan-subtitle">상품의 바코드를 스캔하면<br>그 안에 깃든 영혼이 깨어납니다</div>
-      <div class="scan-frame">
-        <div class="scan-corner tl"></div>
-        <div class="scan-corner tr"></div>
-        <div class="scan-corner bl"></div>
-        <div class="scan-corner br"></div>
-        <div class="scan-beam"></div>
-        <div class="scan-center-icon">
-          <span class="icon">📷</span>
-          <div class="text">바코드에 카메라를 향하세요</div>
-        </div>
-      </div>
-      <button class="scan-btn" onclick="doScan()">스캔하기</button>
-      <div class="scan-hint">데모: 클릭하면 바코드 스캔을 시뮬레이션합니다</div>
-    </div>
+  <div class="right">
+    <div class="energy-bar" id="energy-bar"></div>
+    <div class="gold-display">💰 <span id="gold-display">0</span></div>
+    <button class="settings-btn" onclick="navTo('settings')" aria-label="설정">⚙️</button>
   </div>
+</div>
 
-  <!-- BUS DETAIL SCREEN -->
-  <div class="screen" id="screenBus">
-    <div class="bus-detail">
-      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
-      <div class="bus-detail-title">🚌 천국행 버스 관리</div>
+<!-- TOAST -->
+<div id="toast-container"></div>
 
-      <div class="bus-floor">
-        <div class="floor-label">▲ 3층 · 전망대 & 특수시설</div>
-        <div class="floor-rooms">
-          <div class="floor-room" onclick="showRoomDetail('observatory')">
-            <div class="r-icon">🔭</div>
-            <div class="r-name">전망대</div>
-            <div class="r-effect">+그리움 치유</div>
-            <div class="char-in-room">
-              <div class="char-mini empty">+</div>
-            </div>
-          </div>
-          <div class="floor-room" onclick="showRoomDetail('music')">
-            <div class="r-icon">🎵</div>
-            <div class="r-name">음악실</div>
-            <div class="r-effect">+감정 해소</div>
-            <div class="char-in-room">
-              <div class="char-mini">🐦<div class="heal-ring"></div></div>
-            </div>
-          </div>
-          <div class="floor-room" onclick="showRoomDetail('art')">
-            <div class="r-icon">🎨</div>
-            <div class="r-name">아틀리에</div>
-            <div class="r-effect">+추억 복원</div>
-            <div class="char-in-room">
-              <div class="char-mini empty">+</div>
-            </div>
-          </div>
-        </div>
-      </div>
+<!-- SCREENS -->
 
-      <div class="bus-floor">
-        <div class="floor-label">▲ 2층 · 생활 공간</div>
-        <div class="floor-rooms">
-          <div class="floor-room" onclick="showRoomDetail('library')">
-            <div class="r-icon">📚</div>
-            <div class="r-name">도서관</div>
-            <div class="r-effect">+지혜 축적</div>
-            <div class="char-in-room">
-              <div class="char-mini">🐕<div class="heal-ring"></div></div>
-            </div>
-          </div>
-          <div class="floor-room" onclick="showRoomDetail('kitchen')">
-            <div class="r-icon">🍳</div>
-            <div class="r-name">주방</div>
-            <div class="r-effect">+활력 회복</div>
-            <div class="char-in-room">
-              <div class="char-mini">🐰<div class="heal-ring"></div></div>
-            </div>
-          </div>
-          <div class="floor-room" onclick="showRoomDetail('rest')">
-            <div class="r-icon">🛏️</div>
-            <div class="r-name">휴식실</div>
-            <div class="r-effect">+평온 회복</div>
-            <div class="char-in-room">
-              <div class="char-mini">🦊<div class="heal-ring"></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="bus-floor">
-        <div class="floor-label">▲ 1층 · 기초 시설</div>
-        <div class="floor-rooms">
-          <div class="floor-room" onclick="showRoomDetail('garden')">
-            <div class="r-icon">🌿</div>
-            <div class="r-name">정원</div>
-            <div class="r-effect">+자연 치유</div>
-            <div class="char-in-room">
-              <div class="char-mini">🐱<div class="heal-ring"></div></div>
-              <div class="char-mini">🐢<div class="heal-ring"></div></div>
-            </div>
-          </div>
-          <div class="floor-room" onclick="showRoomDetail('storage')">
-            <div class="r-icon">📦</div>
-            <div class="r-name">창고</div>
-            <div class="r-effect">물자 보관</div>
-            <div class="char-in-room"></div>
-          </div>
-          <div class="floor-room" onclick="showRoomDetail('engine')">
-            <div class="r-icon">⚙️</div>
-            <div class="r-name">엔진실</div>
-            <div class="r-effect">여행 속도</div>
-            <div class="char-in-room">
-              <div class="char-mini empty">+</div>
-            </div>
-          </div>
-        </div>
-      </div>
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="scr-pad">
+    <div class="story-banner" id="story-banner">
+      <h3>📖 오늘의 이야기</h3>
+      <p id="story-text"></p>
     </div>
-  </div>
-
-  <!-- MAP SCREEN -->
-  <div class="screen" id="screenMap">
-    <div class="map-container">
-      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
-      <div class="map-title">🗺️ 천국의 여행 지도</div>
-
-      <div class="world-map">
-        <div class="map-bg">
-          <svg width="100%" height="100%" viewBox="0 0 400 320">
-            <!-- Stylized map background -->
-            <defs>
-              <radialGradient id="glow1" cx="50%" cy="50%"><stop offset="0%" stop-color="#e9c46a" stop-opacity="0.3"/><stop offset="100%" stop-color="#e9c46a" stop-opacity="0"/></radialGradient>
-              <radialGradient id="glow2" cx="50%" cy="50%"><stop offset="0%" stop-color="#7ec8a0" stop-opacity="0.3"/><stop offset="100%" stop-color="#7ec8a0" stop-opacity="0"/></radialGradient>
-              <radialGradient id="glow3" cx="50%" cy="50%"><stop offset="0%" stop-color="#c8b6e2" stop-opacity="0.3"/><stop offset="100%" stop-color="#c8b6e2" stop-opacity="0"/></radialGradient>
-              <radialGradient id="glow4" cx="50%" cy="50%"><stop offset="0%" stop-color="#e8a0bf" stop-opacity="0.3"/><stop offset="100%" stop-color="#e8a0bf" stop-opacity="0"/></radialGradient>
-            </defs>
-            <!-- Terrain shapes -->
-            <ellipse cx="80" cy="80" rx="60" ry="50" fill="#c8dcc0" opacity="0.4"/>
-            <ellipse cx="320" cy="90" rx="55" ry="45" fill="#b8cce0" opacity="0.3"/>
-            <ellipse cx="200" cy="240" rx="70" ry="55" fill="#d8c8e0" opacity="0.3"/>
-            <ellipse cx="100" cy="250" rx="40" ry="35" fill="#e0d0c0" opacity="0.3"/>
-            <!-- Paths -->
-            <path d="M80,80 Q140,50 200,100 Q260,70 320,90" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
-            <path d="M80,80 Q60,160 100,250" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
-            <path d="M320,90 Q280,160 200,240" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
-            <path d="M100,250 Q150,260 200,240" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
-            <!-- Location glows -->
-            <circle cx="80" cy="80" r="30" fill="url(#glow2)"/>
-            <circle cx="320" cy="90" r="28" fill="url(#glow1)"/>
-            <circle cx="200" cy="240" r="32" fill="url(#glow3)"/>
-            <circle cx="100" cy="250" r="22" fill="url(#glow4)"/>
-            <!-- Decorative elements -->
-            <text x="160" y="160" font-size="10" fill="#8b7355" opacity="0.15" font-weight="700">천국의 대지</text>
-            <!-- Small trees -->
-            <text x="120" y="60" font-size="8" opacity="0.3">🌲</text>
-            <text x="50" y="110" font-size="8" opacity="0.3">🌲</text>
-            <text x="100" y="95" font-size="6" opacity="0.25">🌲</text>
-            <text x="280" y="120" font-size="8" opacity="0.3">🌊</text>
-            <text x="340" y="110" font-size="6" opacity="0.25">🌊</text>
-            <text x="180" y="270" font-size="8" opacity="0.3">⭐</text>
-            <text x="220" y="220" font-size="6" opacity="0.25">⭐</text>
-            <text x="80" y="270" font-size="8" opacity="0.3">🌸</text>
-          </svg>
-        </div>
-
-        <!-- Map locations -->
-        <div class="map-location" style="left:12%;top:15%">
-          <div class="map-loc-icon" style="background:linear-gradient(135deg,#c8dcc0,#a8c8a0)">🌳</div>
-          <div class="map-loc-name">기억의 숲</div>
-          <div class="map-loc-status" style="color:var(--heal)">● 현재 위치</div>
-        </div>
-        <div class="map-location" style="left:68%;top:16%">
-          <div class="map-loc-icon" style="background:linear-gradient(135deg,#b8cce0,#90b8d8)">🌊</div>
-          <div class="map-loc-name">꿈의 바다</div>
-          <div class="map-loc-status" style="color:var(--warm)">2일 거리</div>
-        </div>
-        <div class="map-location" style="left:40%;top:62%">
-          <div class="map-loc-icon" style="background:linear-gradient(135deg,#d8c8e0,#c0a8d0)">⭐</div>
-          <div class="map-loc-name">별빛 봉우리</div>
-          <div class="map-loc-status" style="color:var(--wood)">4일 거리</div>
-        </div>
-        <div class="map-location" style="left:14%;top:68%">
-          <div class="map-loc-icon" style="background:linear-gradient(135deg,#e8d0d8,#d8b0c0)">🌸</div>
-          <div class="map-loc-name">마음의 정원</div>
-          <div class="map-loc-status" style="color:var(--wood)">3일 거리</div>
-        </div>
-
-        <!-- Bus marker -->
-        <div class="map-bus-marker" style="left:17%;top:6%">
-          <div class="map-bus-icon">🚌</div>
-          <div class="map-bus-label">우리 버스</div>
-        </div>
-      </div>
-
-      <!-- Destination cards -->
-      <div class="destination-cards">
-        <div class="dest-card" style="border-left:3px solid #a8c8a0">
-          <div class="dest-icon">🌳</div>
-          <div class="dest-name">기억의 숲</div>
-          <div class="dest-desc">잊혀진 추억들이 나뭇잎처럼 흩날리는 곳. 이곳에서 영혼들은 소중했던 기억을 되찾습니다.</div>
-          <div class="dest-dist">● 현재 위치</div>
-        </div>
-        <div class="dest-card" style="border-left:3px solid #90b8d8">
-          <div class="dest-icon">🌊</div>
-          <div class="dest-name">꿈의 바다</div>
-          <div class="dest-desc">눈물이 모여 만든 바다. 파도 소리에 슬픔이 씻겨 내려갑니다.</div>
-          <div class="dest-dist">🚌 2일 거리</div>
-        </div>
-        <div class="dest-card" style="border-left:3px solid #c0a8d0">
-          <div class="dest-icon">⭐</div>
-          <div class="dest-name">별빛 봉우리</div>
-          <div class="dest-desc">밤하늘에 가장 가까운 산. 이곳에서 보내지 못한 말들을 별에게 전합니다.</div>
-          <div class="dest-dist">🚌 4일 거리</div>
-        </div>
-        <div class="dest-card" style="border-left:3px solid #d8b0c0">
-          <div class="dest-icon">🌸</div>
-          <div class="dest-name">마음의 정원</div>
-          <div class="dest-desc">영원히 피어나는 꽃밭. 사랑했던 이에게 보내는 편지가 꽃이 됩니다.</div>
-          <div class="dest-dist">🚌 3일 거리</div>
-        </div>
-      </div>
+    <div class="travel-bar" id="travel-bar">
+      <div class="route" id="travel-route"></div>
+      <div class="bar-track"><div class="bar-fill" id="travel-fill" style="width:0%"></div></div>
+      <div class="eta" id="travel-eta"></div>
     </div>
-  </div>
-
-  <!-- QUEST SCREEN -->
-  <div class="screen" id="screenQuest">
-    <div class="quest-container">
-      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
-      <div class="quest-title">📜 기억의 숲 마을 의뢰</div>
-      <div class="quest-village">마을 주민들이 도움을 필요로 합니다</div>
-
-      <div class="quest-card" onclick="acceptQuest(0)">
-        <div class="quest-header">
-          <div class="quest-npc">🦉</div>
-          <div class="quest-info">
-            <div class="quest-name">잃어버린 자장가</div>
-            <div class="quest-giver">올빼미 할아버지 · 숲의 현자</div>
-          </div>
-          <span class="quest-type-badge qt-memory">추억</span>
-        </div>
-        <div class="quest-desc">"어린 시절 어머니가 불러주시던 자장가가 있었는데... 가사가 기억나지 않아요. 숲 깊은 곳에 떨어진 기억 조각들을 모아주실 수 있나요?"</div>
-        <div class="quest-reward">
-          <span class="reward-item">✦ 300 골드</span>
-          <span class="reward-item">📦 기억의 오르골</span>
-          <span class="reward-item">💜 치유 +15</span>
-        </div>
-      </div>
-
-      <div class="quest-card" onclick="acceptQuest(1)">
-        <div class="quest-header">
-          <div class="quest-npc">🐿️</div>
-          <div class="quest-info">
-            <div class="quest-name">따뜻한 수프 한 그릇</div>
-            <div class="quest-giver">다람쥐 코코 · 마을 식당 주인</div>
-          </div>
-          <span class="quest-type-badge qt-gather">수집</span>
-        </div>
-        <div class="quest-desc">"추운 날에 길을 잃은 영혼들에게 수프를 끓여주고 싶어요. 바코드 스캔으로 재료를 3개만 모아주세요!"</div>
-        <div class="quest-reward">
-          <span class="reward-item">✦ 200 골드</span>
-          <span class="reward-item">📦 수프 레시피</span>
-          <span class="reward-item">🍳 주방 경험치</span>
-        </div>
-      </div>
-
-      <div class="quest-card" onclick="acceptQuest(2)">
-        <div class="quest-header">
-          <div class="quest-npc">🌸</div>
-          <div class="quest-info">
-            <div class="quest-name">벚꽃 편지</div>
-            <div class="quest-giver">벚꽃 정령 하나 · 숲의 수호자</div>
-          </div>
-          <span class="quest-type-badge qt-comfort">위로</span>
-        </div>
-        <div class="quest-desc">"버스에 탄 영혼 중 아직 울고 있는 친구가 있나요? 이 벚꽃잎에 따뜻한 말을 적어서 전해주세요."</div>
-        <div class="quest-reward">
-          <span class="reward-item">✦ 150 골드</span>
-          <span class="reward-item">🌸 벚꽃 장식</span>
-          <span class="reward-item">💜 위로 치유 +20</span>
-        </div>
-      </div>
-
-      <div class="quest-card" onclick="acceptQuest(3)">
-        <div class="quest-header">
-          <div class="quest-npc">📮</div>
-          <div class="quest-info">
-            <div class="quest-name">보내지 못한 편지</div>
-            <div class="quest-giver">우체통 할머니 · 마음 배달부</div>
-          </div>
-          <span class="quest-type-badge qt-deliver">전달</span>
-        </div>
-        <div class="quest-desc">"이 편지들은 세상을 떠나기 전에 보내지 못한 것들이에요. 별빛 봉우리까지 가면 하늘로 보낼 수 있답니다."</div>
-        <div class="quest-reward">
-          <span class="reward-item">✦ 500 골드</span>
-          <span class="reward-item">💌 은빛 편지지</span>
-          <span class="reward-item">💜 치유 +30</span>
-        </div>
-      </div>
+    <div class="heal-timer" id="heal-timer"></div>
+    <div class="bus-preview">
+      <h3>🚌 우리 버스</h3>
+      <div class="bus-mini" id="bus-mini"></div>
     </div>
+    <div class="action-grid" id="action-grid"></div>
   </div>
+</div>
 
-  <!-- COLLECTION SCREEN -->
-  <div class="screen" id="screenCollection">
-    <div class="collection-container">
-      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
-      <div class="collection-title">💫 함께하는 영혼들</div>
-      <div class="collection-count">6마리의 영혼과 여행 중</div>
-
-      <div class="char-grid" id="charGrid">
-        <!-- Characters will be rendered by JS -->
-      </div>
+<!-- SCAN -->
+<div class="screen" id="screen-scan">
+  <div class="scan-area">
+    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">🔍 영혼 스캔</h2>
+    <div class="scan-viewport">
+      <div class="line"></div>
+      <div class="corners"></div>
     </div>
-  </div>
-
-  <!-- Discovery Overlay -->
-  <div class="discovery-overlay" id="discoveryOverlay">
-    <div class="discovery-card">
-      <div class="discover-header">
-        <div class="discover-label">✨ 새로운 영혼을 만났습니다</div>
-        <div class="discover-sprite">
-          <div class="glow"></div>
-          <div id="discoverSpriteContainer"></div>
-        </div>
-        <div class="discover-name" id="discoverName">-</div>
-        <div class="discover-rarity" id="discoverRarity">-</div>
-      </div>
-      <div class="discover-story" id="discoverStory">
-        <div class="story-icon">📖 이 영혼의 이야기</div>
-        <p id="discoverStoryText">-</p>
-      </div>
-      <div class="discover-stats" id="discoverStats"></div>
-      <div class="discover-barcode" id="discoverBarcode"></div>
-      <div class="discover-actions">
-        <button class="btn btn-secondary" onclick="closeDiscovery()">닫기</button>
-        <button class="btn btn-primary" onclick="welcomeSoul()">버스에 태우기 💛</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Character Detail Modal -->
-  <div class="char-modal" id="charModal">
-    <div class="char-modal-content" id="charModalContent">
-      <!-- Filled by JS -->
+    <button class="scan-btn" onclick="doScan()">바코드 스캔하기</button>
+    <button class="manual-toggle" onclick="toggleManual()">직접 입력하기</button>
+    <div class="manual-input" id="manual-input" style="display:none;">
+      <input type="text" id="barcode-input" maxlength="13" placeholder="13자리 바코드 입력" inputmode="numeric">
+      <button class="scan-btn" style="margin-top:8px;" onclick="doManualScan()">입력 스캔</button>
     </div>
   </div>
 </div>
 
-<!-- Bottom Nav -->
-<div class="bottom-nav">
-  <div class="nav-item active" onclick="navTo('home')" data-screen="home">
-    <span class="nav-icon">🏠</span><span>홈</span>
-    <div class="nav-active-dot"></div>
-  </div>
-  <div class="nav-item" onclick="navTo('scan')" data-screen="scan">
-    <span class="nav-icon">📱</span><span>스캔</span>
-    <div class="nav-active-dot"></div>
-  </div>
-  <div class="nav-item" onclick="navTo('bus')" data-screen="bus">
-    <span class="nav-icon">🚌</span><span>버스</span>
-    <div class="nav-active-dot"></div>
-  </div>
-  <div class="nav-item" onclick="navTo('map')" data-screen="map">
-    <span class="nav-icon">🗺️</span><span>지도</span>
-    <div class="nav-active-dot"></div>
-  </div>
-  <div class="nav-item" onclick="navTo('collection')" data-screen="collection">
-    <span class="nav-icon">💫</span><span>도감</span>
-    <div class="nav-active-dot"></div>
+<!-- BUS DETAIL -->
+<div class="screen" id="screen-bus">
+  <div class="bus-detail">
+    <div class="bus-header" id="bus-header">
+      <h2 style="font-size:1.1rem;">🚌 천국행 버스</h2>
+      <p style="font-size:.72rem;opacity:.8;">3층 마법 버스 - 치유의 공간</p>
+      <div class="bus-color-sel" id="bus-color-sel"></div>
+    </div>
+    <div id="bus-rooms"></div>
   </div>
 </div>
+
+<!-- MAP -->
+<div class="screen" id="screen-map">
+  <div class="map-content">
+    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">🗺️ 여행 지도</h2>
+    <div id="map-destinations"></div>
+  </div>
+</div>
+
+<!-- QUEST -->
+<div class="screen" id="screen-quest">
+  <div class="quest-content">
+    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">📋 퀘스트</h2>
+    <div id="quest-list"></div>
+  </div>
+</div>
+
+<!-- COLLECTION -->
+<div class="screen" id="screen-collection">
+  <div class="collection-content">
+    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">📚 도감</h2>
+    <div class="coll-tabs">
+      <div class="tab active" onclick="switchCollTab('chars')">캐릭터</div>
+      <div class="tab" onclick="switchCollTab('inventory')">인벤토리</div>
+      <div class="tab" onclick="switchCollTab('memory')">기억앨범</div>
+    </div>
+    <div id="coll-chars"></div>
+    <div id="coll-inventory" style="display:none;"></div>
+    <div id="coll-memory" style="display:none;"></div>
+    <div id="compare-area" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div class="screen" id="screen-shop">
+  <div class="shop-content">
+    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">🏪 마을 상점</h2>
+    <div id="shop-list"></div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div class="screen" id="screen-achievements">
+  <div class="ach-content">
+    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">🏆 업적</h2>
+    <div id="ach-list"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <div class="settings-content">
+    <h2 style="margin-bottom:14px;font-size:1rem;">⚙️ 설정</h2>
+    <div id="settings-list"></div>
+    <div style="margin-top:20px;text-align:center;font-size:.7rem;color:var(--text-light);">
+      <p>천국행 버스 v2.0</p>
+      <p style="margin-top:4px;">치유의 여정 - 모든 영혼에게 평화를</p>
+    </div>
+  </div>
+</div>
+
+<!-- DISCOVERY OVERLAY -->
+<div class="discovery-overlay" id="discovery-overlay">
+  <div class="glow"><img class="pa" id="disc-img"></div>
+  <h2 id="disc-name"></h2>
+  <div class="sub" id="disc-sub"></div>
+  <div class="rar" id="disc-rar"></div>
+  <button class="okbtn" onclick="closeDiscovery()">함께하기 💕</button>
+</div>
+
+<!-- DREAM SCREEN -->
+<div class="dream-screen" id="dream-screen">
+  <div class="dream-ct">
+    <h3 id="dream-title"></h3>
+    <p id="dream-text"></p>
+    <button class="cd" onclick="closeDream()">꿈에서 깨어나기</button>
+  </div>
+</div>
+
+<!-- MODAL BACKDROP -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="closeModalBackdrop(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- FAB -->
+<button id="fab-scan" onclick="navTo('scan')" aria-label="스캔">📷</button>
+
+<!-- NAVBAR -->
+<div id="navbar">
+  <div class="nav-item active" onclick="navTo('home')" data-screen="home"><div class="ni">🏠</div><div class="nl">홈</div></div>
+  <div class="nav-item" onclick="navTo('scan')" data-screen="scan"><div class="ni">🔍</div><div class="nl">스캔</div></div>
+  <div class="nav-item" onclick="navTo('bus')" data-screen="bus"><div class="ni">🚌</div><div class="nl">버스</div></div>
+  <div class="nav-item" onclick="navTo('map')" data-screen="map"><div class="ni">🗺️</div><div class="nl">지도</div></div>
+  <div class="nav-item" onclick="navTo('collection')" data-screen="collection"><div class="ni">📚</div><div class="nl">도감</div></div>
+</div>
+
+</div><!-- end #app -->
 
 <script>
-// ========================================
-// PIXEL ART SVG GENERATOR (detailed sprites)
-// ========================================
-const PIXEL = 4; // pixel size for detailed sprites
-const GRID = 24; // 24x24 grid = 96px sprites
+"use strict";
+// ============================================================
+// GAME DATA
+// ============================================================
+const PIXEL_ART = {
+  nabi: [
+    "0000066660000000","0000666666000000","0006666666600000","0066166616600000",
+    "0066666666600000","0066611166600000","0006666666000000","00066fff66000000",
+    "0006fffff6000000","000fffafff000000","000fffafff000000","0000ffffff000000",
+    "0000ffff00000000","00000ff000000000","00000ff000000000","0000f00f00000000"
+  ],
+  haru: [
+    "0000088880000000","0000888888000000","0008888888800000","0088188818800000",
+    "0088888888800000","0088811188800000","0008888888000000","000887a788000000",
+    "00087aaaa7000000","0008aaaaaa000000","000aaaaaaa000000","0000aaaaaa000000",
+    "00000aaaa0000000","000000aa00000000","000000aa00000000","00000a00a0000000"
+  ],
+  pori: [
+    "00000cccc0000000","0000cccccc000000","000ccc11ccc00000","000cc1cc1cc00000",
+    "000cccccccc00000","000ccc66ccc00000","0000cccccc000000","000cceeeec000000",
+    "00cceeeeecc00000","00ceeeaeee000000","00ceeeaeee000000","000eeeeee0000000",
+    "0000eeee00000000","00000ee000000000","00000ee000000000","0000e00e00000000"
+  ],
+  miru: [
+    "00000dddd0000000","0000dddddd000000","000ddddddd000000","000dd1dd1dd00000",
+    "000dddddddd00000","000ddd66ddd00000","0000dddddd000000","00ddd55ddd000000",
+    "0ddd555555d00000","0d5555a555000000","0d5555a555000000","00555555500d0000",
+    "000555550ddd0000","0000555ddd000000","00000550d0000000","0000050050000000"
+  ],
+  ggomi: [
+    "0000033330000000","0000333333000000","0003333333300000","0033133313300000",
+    "0033333333300000","0033311133300000","0003333333000000","00033bbb33000000",
+    "0003bbbbb3000000","000bbbabbb000000","000bbbabbb000000","0000bbbbbb000000",
+    "0000bbbb00000000","00000bb000000000","00000bb000000000","0000b00b00000000"
+  ],
+  rang: [
+    "0000099990000000","0000999999000000","0009999999900000","0099199919900000",
+    "0099999999900000","0099911199900000","0009999999000000","00099eee99000000",
+    "0009eeeee9000000","000eeeaeee000000","000eeeaeee000000","0000eeeeee000000",
+    "0000eeee00000000","00000ee000000000","00000ee000000000","0000e00e00000000"
+  ],
+  byeori: [
+    "0000044440000000","0000444444000000","0004444444400000","0044144414400000",
+    "0044444444400000","0044411144400000","0004444444000000","0000477740000000",
+    "0000477740000000","0000077700000000","0000077700000000","0000007000000000",
+    "0000007000000000","0000007000000000","0000070700000000","0000000000000000"
+  ],
+  gureum: [
+    "00000aaaa0000000","000aa0000aa00000","00a00aaaa00a0000","00a0aaaaaa0a0000",
+    "0a0aa1aa1aa00000","0a0aaaaaaaa00000","0a0aaa66aaa00000","00a0aaaaaa000000",
+    "00aa0aaaa0a00000","000aaa77aaa00000","00007777770a0000","000077a7770a0000",
+    "0000777777000000","00000777700a0000","000000770000a000","0000007007000000"
+  ],
+  dari: [
+    "00000bbbb0000000","000bb0000bb00000","00b00bbbb00b0000","00b0bb11bb0b0000",
+    "0b0bb1bb1bb00000","0b0bbbbbbbb00000","0b0bbb66bbb00000","00b0bbbbbb000000",
+    "0bb888888800b000","b8888888888b0000","0888888a888b0000","00088888880b0000",
+    "0000888880000000","0000088800000000","0000008000000000","0000080800000000"
+  ],
+  sori: [
+    "0000033330000000","0003300003300000","0030033300300000","0030333330300000",
+    "0003331333000000","0003333333000000","0003336633000000","0000333330000000",
+    "0000999990000000","0009999999000000","0009999a99000000","0009999a99000000",
+    "0000999990000000","0000099900000000","0000009000000000","0000090900000000"
+  ]
+};
+const PALETTES = {
+  '0':'transparent','1':'#111','2':'#555','3':'#8BC34A','4':'#FFB74D','5':'#7E57C2',
+  '6':'#E91E63','7':'#FFC107','8':'#42A5F5','9':'#FF7043','a':'#FFCDD2',
+  'b':'#795548','c':'#26C6DA','d':'#78909C','e':'#FFF9C4','f':'#F48FB1'
+};
 
-function createPixelArt(grid, palette) {
-  const size = grid.length;
-  const px = PIXEL;
+function makePixelArtSVG(id, size) {
+  const rows = PIXEL_ART[id];
+  if (!rows) return '';
   let rects = '';
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const c = grid[y][x];
-      if (c !== 0 && palette[c]) {
-        rects += `<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${palette[c]}"/>`;
+  for (let y = 0; y < rows.length; y++) {
+    for (let x = 0; x < rows[y].length; x++) {
+      const c = rows[y][x];
+      if (c !== '0') {
+        rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${PALETTES[c]||'#888'}"/>`;
       }
     }
   }
-  return `<svg viewBox="0 0 ${size*px} ${size*px}" xmlns="http://www.w3.org/2000/svg">${rects}</svg>`;
+  return `<svg viewBox="0 0 16 16" width="${size}" height="${size}" style="image-rendering:pixelated">${rects}</svg>`;
 }
 
-// ========================================
-// CHARACTER DATA (with backstories & healing)
-// ========================================
-const characters = [
-  {
-    id:'nabi', name:'나비', species:'고양이', type:'자연',
-    rarity:'rare', emoji:'🐱',
-    barcode:'8801062-871247', country:'880 (한국)', mfg:'롯데', product:'초코파이',
-    stats:{hp:156, atk:89, def:72, spd:95, spc:110},
-    room:'garden', healProgress:65,
-    memory:'창밖으로만 세상을 보던 집고양이였어요. 비 오는 날 창가에서 듣던 빗소리가 가장 좋았죠.',
-    longing:'한 번도 밟아보지 못한 풀밭 위를 맨발로 걸어보고 싶었어요. 바람에 흔들리는 꽃들 사이를 뛰어다니고 싶었죠.',
-    story:'아파트 14층에서 태어나 한 번도 밖에 나가본 적 없는 고양이. 창밖의 새들과 나비를 바라보며 평생을 보냈습니다.',
-    pixel:[
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0],
-      [0,0,0,1,2,2,1,0,0,0,0,0,0,0,0,0,0,1,2,2,1,0,0,0],
-      [0,0,0,1,2,3,2,1,0,0,0,0,0,0,0,0,1,2,3,2,1,0,0,0],
-      [0,0,0,0,1,2,2,2,1,1,1,1,1,1,1,1,2,2,2,1,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,1,2,4,4,2,2,2,2,2,4,4,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,1,2,5,4,2,2,2,2,2,4,5,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,2,6,2,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,7,7,7,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,1,2,2,2,2,2,1,1,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,3,3,1,0,0,8,0,0,1,3,3,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,1,0,0,8,8,8,0,0,1,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0],
-    ],
-    palette:{1:'#5a4a3a',2:'#f5deb3',3:'#ffe4c4',4:'#4a7a4a',5:'#1a1a1a',6:'#e8a0bf',7:'#e8a0bf',8:'#f5deb3'}
-  },
-  {
-    id:'haru', name:'하루', species:'강아지', type:'빛',
-    rarity:'epic', emoji:'🐕',
-    barcode:'8801043-150842', country:'880 (한국)', mfg:'농심', product:'신라면',
-    stats:{hp:210, atk:120, def:95, spd:130, spc:85},
-    room:'library', healProgress:40,
-    memory:'매일 문 앞에서 주인을 기다렸어요. 주인이 돌아오지 않는 날이 점점 많아졌죠.',
-    longing:'주인과 함께 넓은 들판을 뛰어다니고 싶었어요. 공을 던져주면 신나게 물어오던 그 시절로...',
-    story:'유기견 보호소에서 3년을 보낸 강아지. 매일 입구를 바라보며 주인이 돌아오기를 기다렸습니다.',
-    pixel:[
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
-      [0,0,1,2,2,2,1,0,0,0,0,0,0,0,0,0,0,1,2,2,2,1,0,0],
-      [0,0,1,2,3,2,1,0,0,0,0,0,0,0,0,0,0,1,2,3,2,1,0,0],
-      [0,0,0,1,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,2,1,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,4,4,2,2,2,2,2,4,4,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,5,4,2,2,2,2,2,4,5,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,6,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,7,7,7,7,7,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0],
-      [0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0],
-      [0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0],
-      [0,0,0,0,1,2,2,1,0,0,0,0,0,0,0,1,2,2,1,0,0,0,0,0],
-      [0,0,0,0,1,2,2,1,0,0,0,0,0,0,0,1,2,2,1,0,0,0,0,0],
-      [0,0,0,0,1,3,3,1,0,0,0,0,0,0,0,1,3,3,1,0,0,0,0,0],
-      [0,0,0,0,0,1,1,0,0,0,8,8,8,0,0,0,1,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,8,2,8,0,0,0,0,0,0,0,0,0,0,0],
-    ],
-    palette:{1:'#6a5a4a',2:'#deb887',3:'#f5deb3',4:'#5a3a1a',5:'#1a1a1a',6:'#3a2a1a',7:'#deb887',8:'#c4956a'}
-  },
-  {
-    id:'mochi', name:'모찌', species:'토끼', type:'음식',
-    rarity:'common', emoji:'🐰',
-    barcode:'4902105-231456', country:'490 (일본)', mfg:'글리코', product:'포키',
-    stats:{hp:98, atk:65, def:45, spd:140, spc:88},
-    room:'kitchen', healProgress:80,
-    memory:'실험실에서 태어났어요. 하얀 벽과 형광등만 아는 세상이었죠.',
-    longing:'드넓은 초원에서 맘껏 뛰어다니고 싶었어요. 흙 냄새, 풀 냄새를 맡아보고 싶었죠.',
-    story:'실험실에서 태어나 자연을 한 번도 본 적 없는 토끼. 유리벽 너머로 본 하늘빛을 잊지 못합니다.',
-    pixel:[
-      [0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,1,0,0,1,2,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,3,1,0,0,1,3,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,3,1,0,0,1,3,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,1,0,0,1,2,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,2,2,1,1,2,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,4,4,2,2,2,4,4,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,5,4,2,2,2,4,5,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,6,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,7,2,7,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,1,0,0,0,0,1,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,1,0,0,0,0,1,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,3,1,0,0,0,0,1,3,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    ],
-    palette:{1:'#8a7a6a',2:'#ffffff',3:'#ffcccc',4:'#cc4444',5:'#1a1a1a',6:'#ffaaaa',7:'#ffaaaa',8:'#ffffff'}
-  },
-  {
-    id:'tori', name:'토리', species:'참새', type:'바람',
-    rarity:'uncommon', emoji:'🐦',
-    barcode:'8801115-114505', country:'880 (한국)', mfg:'서울우유', product:'신선우유',
-    stats:{hp:78, atk:95, def:50, spd:170, spc:105},
-    room:'music', healProgress:55,
-    memory:'날개를 다쳐 날 수 없었어요. 전깃줄에 앉아 다른 새들이 하늘을 나는 걸 바라보았죠.',
-    longing:'구름 위를 날아보고 싶었어요. 석양 빛 속을 미끄러지듯 날아가는 게 꿈이었어요.',
-    story:'다친 날개로 평생을 땅 위에서 보낸 참새. 하늘을 나는 꿈을 매일 밤 꾸었습니다.',
-    pixel:[
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,4,2,2,2,4,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,5,2,2,2,5,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,2,6,6,2,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,1,2,2,2,1,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,1,1,1,0,0,1,2,2,2,2,2,1,0,0,1,1,1,0,0,0,0],
-      [0,0,1,3,3,3,1,1,2,2,2,2,2,2,2,1,1,3,3,3,1,0,0,0],
-      [0,1,3,3,3,3,3,2,2,2,2,2,2,2,2,2,3,3,3,3,3,1,0,0],
-      [1,3,3,7,3,3,3,2,2,2,2,2,2,2,2,2,3,3,3,7,3,3,1,0],
-      [0,1,3,3,3,3,1,2,2,2,2,2,2,2,2,2,1,3,3,3,3,1,0,0],
-      [0,0,1,3,3,1,0,1,2,2,2,2,2,2,2,1,0,1,3,3,1,0,0,0],
-      [0,0,0,1,1,0,0,0,1,2,2,2,2,2,1,0,0,0,1,1,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,1,2,2,2,1,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,1,2,0,2,1,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,1,8,0,8,1,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    ],
-    palette:{1:'#6a5a4a',2:'#c4956a',3:'#8a7050',4:'#2a2a2a',5:'#1a1a1a',6:'#e8a020',7:'#ffffff',8:'#e8a020'}
-  },
-  {
-    id:'komi', name:'꼬미', species:'거북이', type:'대지',
-    rarity:'legendary', emoji:'🐢',
-    barcode:'8809876-543210', country:'880 (한국)', mfg:'오리온', product:'다이제',
-    stats:{hp:280, atk:65, def:200, spd:30, spc:160},
-    room:'garden', healProgress:25,
-    memory:'100년을 혼자 살았어요. 같이 놀아줄 친구가 한 명도 없었죠. 연못 위의 달만이 유일한 벗이었어요.',
-    longing:'누군가와 나란히 걸어보고 싶었어요. 천천히, 아주 천천히... 같은 속도로 함께.',
-    story:'외딴 연못에서 100년을 홀로 살았던 거북이. 사람들은 모두 거북이를 두고 떠났습니다.',
-    pixel:[
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,3,3,3,3,2,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,3,3,3,3,3,3,3,3,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,3,4,3,3,3,4,3,3,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,3,3,3,3,3,3,3,3,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,3,3,5,3,3,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,2,3,3,3,2,1,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,6,6,7,7,6,6,6,7,7,6,6,6,1,0,0,0,0,0],
-      [0,0,0,0,1,6,7,7,6,6,7,7,7,6,6,7,7,6,6,1,0,0,0,0],
-      [0,0,0,1,6,6,7,6,6,6,6,7,6,6,6,6,7,6,6,6,1,0,0,0],
-      [0,0,0,1,6,7,7,6,6,7,7,7,7,7,6,6,7,7,6,6,1,0,0,0],
-      [0,0,0,0,1,6,6,7,7,6,6,6,6,6,7,7,6,6,6,1,0,0,0,0],
-      [0,0,0,0,0,1,6,6,6,6,6,6,6,6,6,6,6,6,1,0,0,0,0,0],
-      [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,0,1,2,2,1,0,0,0,0,0],
-      [0,0,0,0,1,2,3,2,1,0,0,0,0,0,0,1,2,3,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,1,0,0,0,8,0,0,0,0,1,2,2,1,0,0,0,0],
-      [0,0,0,0,0,1,1,0,0,0,8,8,8,0,0,0,0,1,1,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    ],
-    palette:{1:'#4a6a3a',2:'#5a8a4a',3:'#7aba6a',4:'#1a1a1a',5:'#4a6a3a',6:'#6a8a50',7:'#8aaa68',8:'#5a8a4a'}
-  },
-  {
-    id:'yuki', name:'유키', species:'여우', type:'영혼',
-    rarity:'epic', emoji:'🦊',
-    barcode:'4901234-567890', country:'490 (일본)', mfg:'메이지', product:'아폴로',
-    stats:{hp:145, atk:110, def:80, spd:155, spc:140},
-    room:'rest', healProgress:35,
-    memory:'산에서 사람들에게 쫓기며 살았어요. 믿을 수 있는 곳이 아무 데도 없었죠.',
-    longing:'두려움 없이 잠들어보고 싶었어요. 따뜻한 곳에서 아무 걱정 없이...',
-    story:'산림 개발로 서식지를 잃고, 사냥꾼들에게 쫓기며 평생을 도망치며 살았던 여우.',
-    pixel:[
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0],
-      [0,0,1,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,1,0,0],
-      [0,0,1,2,3,2,1,0,0,0,0,0,0,0,0,0,0,1,2,3,2,1,0,0],
-      [0,0,0,1,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,2,1,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,3,2,2,2,2,2,3,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,4,4,2,2,2,2,2,4,4,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,5,4,2,2,2,2,2,4,5,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,6,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,3,3,3,3,3,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,3,3,3,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
-      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
-      [0,0,0,0,0,1,3,3,1,0,0,0,0,0,1,3,3,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,1,0,0,8,8,0,0,0,1,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,8,2,2,8,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,8,8,0,0,0,0,0,0,0,0,0,0,0,0],
-    ],
-    palette:{1:'#8a5a2a',2:'#e8a040',3:'#ffffff',4:'#4a8a4a',5:'#1a1a1a',6:'#2a1a0a',7:'#e8a040',8:'#e8a040'}
-  },
+const CHARACTERS = [
+  {id:'nabi',name:'나비',species:'나비',type:'자연',rarity:'rare',emoji:'🦋',
+   backstory:'정원에서 태어나 아름다운 날개를 펼쳤지만, 농약에 날개가 상해 더 이상 날 수 없게 된 나비. 천국행 버스에서 다시 날 수 있게 되었어요.',
+   heal:65,peace:50,vitality:70,room:'garden',
+   dreams:'끝없이 펼쳐진 꽃밭 위를 자유롭게 날아다니는 꿈을 꿔요. 바람이 부드럽게 날개를 감싸고, 모든 꽃들이 인사해요.',
+   journal:['오늘 처음으로 날개를 펴봤어요. 조금 아팠지만 기분이 좋았어요.','정원에서 친구들과 함께 꽃잎 위에 앉았어요. 향기가 참 좋아요.','언젠가 다시 하늘을 날 수 있을까요? 그 날을 꿈꿔요.']},
+  {id:'haru',name:'하루',species:'강아지',type:'불',rarity:'common',emoji:'🐕',
+   backstory:'매일 주인을 기다리며 골목에서 꼬리를 흔들었지만, 끝내 돌아오지 않은 주인. 이제 천국행 버스에서 따뜻한 친구들과 함께해요.',
+   heal:40,peace:35,vitality:55,room:'kitchen',
+   dreams:'주인과 함께 넓은 들판을 뛰어다니는 꿈이에요. 주인이 이름을 불러주면 꼬리가 절로 흔들려요.',
+   journal:['오늘 주방에서 맛있는 냄새가 났어요. 코를 킁킁거렸더니 모두 웃었어요.','새 친구 꼬미가 제 옆에서 잠들었어요. 따뜻해요.','가끔 옛날 골목이 생각나요. 하지만 여기가 더 좋아요.']},
+  {id:'pori',name:'포리',species:'앵무새',type:'바람',rarity:'uncommon',emoji:'🦜',
+   backstory:'좁은 새장에서 평생을 보내며 창밖 하늘만 바라보던 앵무새. 천국행 버스의 음악실에서 자유로운 노래를 부를 수 있게 되었어요.',
+   heal:55,peace:60,vitality:45,room:'music',
+   dreams:'구름 위에서 노래를 부르는 꿈이에요. 목소리가 하늘 끝까지 퍼져나가고, 모든 새들이 함께 합창해요.',
+   journal:['오늘 음악실에서 새 노래를 배웠어요! 멜로디가 마음을 따뜻하게 해요.','창밖을 보니 넓은 하늘이 보여요. 이제 두렵지 않아요.','나비랑 같이 정원에서 놀았어요. 나비가 제 노래를 좋아하는 것 같아요.']},
+  {id:'miru',name:'미루',species:'고양이',type:'물',rarity:'epic',emoji:'🐱',
+   backstory:'비 오는 날 버려진 고양이. 차가운 빗속에서 떨며 따뜻한 곳을 찾아 헤매다 천국행 버스를 만났어요.',
+   heal:30,peace:45,vitality:40,room:'library',
+   dreams:'비가 그친 뒤 무지개가 뜨는 꿈이에요. 무지개 다리를 건너면 따뜻한 햇살이 기다리고 있어요.',
+   journal:['도서관 창가에 앉아 비 내리는 풍경을 봤어요. 이제 춥지 않아요.','책 속 이야기에 빠져들었어요. 모험 이야기가 좋아요.','미루는 아직 사람이 무서워요. 하지만 조금씩 다가가고 있어요.']},
+  {id:'ggomi',name:'꼬미',species:'토끼',type:'자연',rarity:'common',emoji:'🐰',
+   backstory:'실험실에서 태어나 한 번도 풀밭을 밟아본 적 없는 토끼. 천국행 버스의 정원에서 처음으로 흙을 밟았어요.',
+   heal:50,peace:55,vitality:60,room:'garden',
+   dreams:'끝없는 초원에서 마음껏 뛰어노는 꿈이에요. 부드러운 풀이 발을 간질이고 바람이 귀를 스쳐요.',
+   journal:['오늘 처음으로 흙을 밟았어요! 부드럽고 따뜻했어요.','당근을 먹었어요. 이렇게 맛있는 건 처음이에요.','나비 언니가 꽃잎을 선물해줬어요. 보물함에 넣었어요.']},
+  {id:'rang',name:'랑이',species:'여우',type:'영혼',rarity:'rare',emoji:'🦊',
+   backstory:'산에서 홀로 살던 여우. 사람들의 덫에 다리를 다쳐 더 이상 뛸 수 없게 되었지만, 천국행 버스의 전망대에서 별을 보며 위안을 찾아요.',
+   heal:45,peace:70,vitality:35,room:'observatory',
+   dreams:'밤하늘의 별들 사이를 거니는 꿈이에요. 은하수가 길을 밝혀주고, 달님이 자장가를 불러줘요.',
+   journal:['전망대에서 별을 세었어요. 17개까지 셌다가 잠들었어요.','다리가 아직 아프지만, 별을 보면 잊을 수 있어요.','하루가 다가와서 옆에 누웠어요. 따뜻한 친구예요.']},
+  {id:'byeori',name:'별이',species:'햄스터',type:'물',rarity:'uncommon',emoji:'🐹',
+   backstory:'애완동물 가게에서 아무도 데려가지 않았던 햄스터. 유리 너머로 지나가는 사람들만 바라보다 천국행 버스를 타게 되었어요.',
+   heal:35,peace:40,vitality:50,room:null,
+   dreams:'작은 집에서 누군가 이름을 불러주는 꿈이에요. "별이야!"하고 부르면 쳇바퀴에서 내려와 달려가요.',
+   journal:['여기는 유리벽이 없어요. 자유롭게 돌아다닐 수 있어요!','해바라기 씨를 먹었어요. 볼주머니가 빵빵해요.','누군가 제 이름을 불러줬어요. 처음으로요. 눈물이 났어요.']},
+  {id:'gureum',name:'구름',species:'고양이',type:'영혼',rarity:'rare',emoji:'🐈',
+   backstory:'할머니와 함께 살던 늙은 고양이. 할머니가 돌아가신 뒤 빈 집에서 혼자 기다리다 천국행 버스를 만났어요.',
+   heal:25,peace:60,vitality:30,room:null,
+   dreams:'할머니의 무릎 위에서 곤히 잠드는 꿈이에요. 할머니가 부드럽게 머리를 쓸어주시고, 옛 노래를 불러주셔요.',
+   journal:['할머니 냄새가 나는 것 같았어요. 아마 꿈이었겠죠.','미루를 만났어요. 같은 고양이인데 저보다 젊어요. 잘 지내자고 했어요.','오늘은 해가 따뜻했어요. 할머니도 이런 날을 좋아하셨어요.']},
+  {id:'dari',name:'달이',species:'부엉이',type:'바람',rarity:'epic',emoji:'🦉',
+   backstory:'공해로 한쪽 눈을 잃은 부엉이. 밤하늘을 날며 세상을 보던 눈이 흐려졌지만, 천국행 버스에서 다른 방식으로 세상을 봐요.',
+   heal:20,peace:50,vitality:45,room:null,
+   dreams:'두 눈으로 선명하게 밤하늘을 보는 꿈이에요. 별 하나하나의 색깔까지 또렷하게 보여요.',
+   journal:['한쪽 눈이 안 보여도 마음으로 볼 수 있어요.','랑이와 전망대에서 별 이야기를 나눴어요. 랑이가 제 눈이 되어줬어요.','밤이 되면 아직도 하늘을 올려다봐요. 습관이에요.']},
+  {id:'sori',name:'솔이',species:'고슴도치',type:'자연',rarity:'common',emoji:'🦔',
+   backstory:'공사장 때문에 집을 잃은 고슴도치. 굴이 파괴되어 갈 곳 없이 헤매다 천국행 버스에 올라탔어요.',
+   heal:45,peace:35,vitality:55,room:null,
+   dreams:'조용한 숲속 나만의 굴에서 편안히 쉬는 꿈이에요. 낙엽이 이불이 되고, 벌레 친구들이 놀러 와요.',
+   journal:['여기에는 공사 소리가 없어요. 조용해서 좋아요.','가시가 있어서 친구를 만들기 어려웠는데, 여기선 모두 괜찮다고 해요.','작은 화분에 씨앗을 심었어요. 싹이 나면 좋겠어요.']}
 ];
 
-// ========================================
+const ROOMS = [
+  {id:'garden',name:'🌿 치유의 정원',floor:1,desc:'아픈 영혼들이 자연 속에서 치유되는 공간',level:1,animType:'sparkle',production:'허브',prodRate:2,color:'#00b894'},
+  {id:'kitchen',name:'🍳 따뜻한 주방',floor:1,desc:'맛있는 음식으로 마음을 채우는 곳',level:1,animType:'steam',production:'음식',prodRate:2,color:'#e17055'},
+  {id:'music',name:'🎵 음악실',floor:2,desc:'음악으로 상처를 어루만지는 공간',level:1,animType:'note',production:'하모니',prodRate:1,color:'#6c5ce7'},
+  {id:'library',name:'📚 기억의 도서관',floor:2,desc:'이야기 속에서 평안을 찾는 곳',level:1,animType:'page',production:'지혜',prodRate:1,color:'#0984e3'},
+  {id:'observatory',name:'🔭 별빛 전망대',floor:3,desc:'별을 보며 꿈을 꾸는 곳',level:1,animType:'star',production:'별먼지',prodRate:1,color:'#2d3436'}
+];
+
+const DESTINATIONS = [
+  {id:'forest',name:'기억의 숲',icon:'🌳',desc:'잃어버린 기억이 나뭇잎처럼 떨어지는 곳. 지나간 행복한 순간들을 다시 만날 수 있어요.',unlocked:true,visited:true,healBonus:10,
+   photo:'숲속 빛이 쏟아지는 곳에서 모두 함께 사진을 찍었어요. 나비가 나뭇잎 위에, 하루가 앞발을 들고 웃었어요.'},
+  {id:'sea',name:'꿈의 바다',icon:'🌊',desc:'모든 눈물이 모여 만들어진 바다. 파도 소리가 마음의 상처를 씻어줘요.',unlocked:true,visited:false,healBonus:15,
+   photo:'해변에서 발자국을 남기며 걸었어요. 포리가 파도 소리에 맞춰 노래를 불렀어요.'},
+  {id:'sky',name:'무지개 하늘',icon:'🌈',desc:'무지개 너머에 있는 하늘. 모든 색이 조화롭게 빛나는 평화로운 곳이에요.',unlocked:false,visited:false,healBonus:20,
+   photo:'무지개 위에 앉아 구름 솜사탕을 먹었어요. 모두의 눈이 반짝였어요.'},
+  {id:'star',name:'별의 정원',icon:'⭐',desc:'밤하늘에 피어난 정원. 소원을 빌면 별이 되어 영원히 빛나요.',unlocked:false,visited:false,healBonus:25,
+   photo:'별이 쏟아지는 정원에서 모두 소원을 빌었어요. 랑이의 눈에 별이 담겼어요.'}
+];
+
+const QUESTS = [
+  {id:'q1',title:'기억 조각 모으기',desc:'숲에서 흩어진 기억의 조각 3개를 모아주세요.',reward:200,difficulty:1,steps:['기억 조각 1/3','기억 조각 2/3','기억 조각 3/3'],progress:0,accepted:false,completed:false},
+  {id:'q2',title:'따뜻한 식사 준비',desc:'주방에서 모든 영혼을 위한 특별한 식사를 준비하세요.',reward:300,difficulty:2,steps:['재료 수집','요리하기','상 차리기'],progress:0,accepted:false,completed:false},
+  {id:'q3',title:'잃어버린 멜로디',desc:'음악실에서 잊혀진 노래의 악보를 완성하세요.',reward:400,difficulty:2,steps:['첫 번째 악절','두 번째 악절','마지막 악절','합주하기'],progress:0,accepted:false,completed:false},
+  {id:'q4',title:'별의 지도 완성',desc:'전망대에서 별자리를 관찰하고 별의 지도를 완성하세요.',reward:500,difficulty:3,steps:['북쪽 별자리','동쪽 별자리','남쪽 별자리','서쪽 별자리','지도 완성'],progress:0,accepted:false,completed:false}
+];
+
+const SHOP_ITEMS = [
+  {id:'s1',name:'꽃 씨앗',icon:'🌱',price:100,desc:'정원에 심으면 아름다운 꽃이 피어요. 치유+5',effect:'heal',amount:5},
+  {id:'s2',name:'따뜻한 양말',icon:'🧦',price:200,desc:'추운 밤에도 발이 따뜻해요. 평온+10',effect:'peace',amount:10},
+  {id:'s3',name:'별빛 오르골',icon:'🎶',price:500,desc:'잠들기 전 별빛 선율이 흘러나와요. 활력+15',effect:'vitality',amount:15},
+  {id:'s4',name:'무지개 우산',icon:'🌂',price:800,desc:'비가 와도 마음은 무지개빛이에요. 모든 능력+10',effect:'all',amount:10}
+];
+
+const ACHIEVEMENTS = [
+  {id:'a1',name:'첫 만남',icon:'👋',desc:'처음으로 영혼을 스캔했어요',condition:()=>GS.discovered.length>=1},
+  {id:'a2',name:'치유사',icon:'💚',desc:'영혼의 치유도가 50%를 넘었어요',condition:()=>CHARACTERS.some(c=>GS.discovered.includes(c.id)&&c.heal>=50)},
+  {id:'a3',name:'여행가',icon:'🧳',desc:'2곳 이상의 장소를 방문했어요',condition:()=>DESTINATIONS.filter(d=>d.visited).length>=2},
+  {id:'a4',name:'요리사',icon:'👨‍🍳',desc:'주방을 레벨 3으로 업그레이드했어요',condition:()=>(ROOMS.find(r=>r.id==='kitchen')?.level||0)>=3},
+  {id:'a5',name:'수집가',icon:'📦',desc:'인벤토리에 아이템 5개 이상 모았어요',condition:()=>GS.inventory.length>=5},
+  {id:'a6',name:'편지꾼',icon:'💌',desc:'편지를 3번 이상 보냈어요',condition:()=>(GS.lettersSent||0)>=3},
+  {id:'a7',name:'탐험가',icon:'🔭',desc:'모든 캐릭터를 발견했어요',condition:()=>GS.discovered.length>=10},
+  {id:'a8',name:'부자',icon:'💰',desc:'골드를 5000 이상 모았어요',condition:()=>GS.gold>=5000}
+];
+
+const MEMORIES = [
+  {id:'m1',icon:'🌸',name:'첫 번째 꽃잎',desc:'천국행 버스에서 처음 본 벚꽃'},
+  {id:'m2',icon:'🌙',name:'달빛 이야기',desc:'전망대에서 들은 랑이의 이야기'},
+  {id:'m3',icon:'🎵',name:'포리의 노래',desc:'음악실에서 울려 퍼진 첫 멜로디'},
+  {id:'m4',icon:'📖',name:'잊혀진 책',desc:'도서관에서 발견한 오래된 이야기'},
+  {id:'m5',icon:'🍪',name:'첫 쿠키',desc:'하루가 만든 서툴지만 따뜻한 쿠키'},
+  {id:'m6',icon:'⭐',name:'소원의 별',desc:'별의 정원에서 주운 작은 별조각'},
+  {id:'m7',icon:'🌈',name:'무지개 조각',desc:'비 온 뒤 나타난 작은 무지개'},
+  {id:'m8',icon:'🍃',name:'바람의 편지',desc:'바람이 전해준 누군가의 편지'},
+  {id:'m9',icon:'💧',name:'치유의 이슬',desc:'아침 정원에서 모은 빛나는 이슬'}
+];
+
+const INVENTORY_ITEMS = [
+  {id:'i1',icon:'🌿',name:'허브잎',type:'재료'},
+  {id:'i2',icon:'🥕',name:'당근',type:'재료'},
+  {id:'i3',icon:'🌾',name:'밀가루',type:'재료'},
+  {id:'i4',icon:'🍯',name:'꿀',type:'재료'},
+  {id:'i5',icon:'✨',name:'별먼지',type:'재료'},
+  {id:'i6',icon:'🌸',name:'꽃잎',type:'장식'},
+  {id:'i7',icon:'🕯️',name:'양초',type:'장식'},
+  {id:'i8',icon:'📜',name:'기억 조각',type:'기억'}
+];
+
+const CRAFTING = [
+  {name:'꽃다발',icon:'💐',ingredients:['🌸','🌿','✨'],effect:'치유+10',stat:'heal',amount:10},
+  {name:'따뜻한 담요',icon:'🧶',ingredients:['🌾','🍯','🕯️'],effect:'평온+15',stat:'peace',amount:15},
+  {name:'맛있는 쿠키',icon:'🍪',ingredients:['🥕','🌾','🍯'],effect:'활력+10',stat:'vitality',amount:10}
+];
+
+const STORIES = [
+  '나비가 정원에서 처음으로 날개를 펼쳤어요. 아직 서툴지만, 바람이 부드럽게 감싸주었어요. "다시 날 수 있을 거야" 꼬미가 속삭였어요.',
+  '하루가 주방에서 쿠키를 구웠어요. 모양은 삐뚤빼뚤했지만, 모두의 입에서 미소가 피어났어요. "맛있어!" 꼬미가 볼을 부풀리며 말했어요.',
+  '포리가 음악실에서 새로운 노래를 불렀어요. 그 노래는 창밖까지 퍼져나가 구름도 잠시 멈춰 들었어요.',
+  '미루가 도서관에서 오래된 이야기책을 발견했어요. 페이지마다 따뜻한 이야기가 담겨 있었고, 미루는 처음으로 눈물을 멈췄어요.',
+  '랑이가 전망대에서 별똥별을 봤어요. "소원을 빌어!" 달이가 외쳤고, 랑이는 조용히 눈을 감았어요. "다시 뛰고 싶어요."',
+  '별이가 처음으로 이름을 불린 날이에요. "별이야, 이리 와!" 그 한마디에 작은 햄스터의 눈에 별이 가득 담겼어요.'
+];
+
+const TOAST_MSGS = [
+  '나비가 정원에서 미소짓고 있어요 🦋','하루가 주방에서 꼬리를 흔들고 있어요 🐕',
+  '포리가 새 노래를 연습 중이에요 🎵','미루가 도서관에서 책을 읽고 있어요 📖',
+  '꼬미가 당근을 아삭아삭 먹고 있어요 🥕','랑이가 별을 세고 있어요 ⭐',
+  '별이가 쳇바퀴를 신나게 돌리고 있어요 🐹','구름이가 창가에서 졸고 있어요 😴',
+  '달이가 밤하늘을 바라보고 있어요 🌙','솔이가 조용히 산책하고 있어요 🦔',
+  '버스가 아름다운 풍경을 지나가고 있어요 🚌','반딧불이가 창가에 모여들었어요 ✨'
+];
+
+const WEATHERS = [
+  {emoji:'☀️',name:'맑음',particle:'petal'},
+  {emoji:'🌧️',name:'비',particle:'rain'},
+  {emoji:'☁️',name:'흐림',particle:'petal'},
+  {emoji:'❄️',name:'눈',particle:'snow'}
+];
+
+const BUS_COLORS = [
+  {name:'보라',gradient:'linear-gradient(135deg,#6c5ce7,#a29bfe)'},
+  {name:'분홍',gradient:'linear-gradient(135deg,#fd79a8,#fab1a0)'},
+  {name:'하늘',gradient:'linear-gradient(135deg,#0984e3,#74b9ff)'},
+  {name:'초록',gradient:'linear-gradient(135deg,#00b894,#55efc4)'},
+  {name:'주황',gradient:'linear-gradient(135deg,#e17055,#fab1a0)'}
+];
+
+const DAILY_REWARDS = [50,100,150,200,300,500,1000];
+
+const ENCOUNTER_EVENTS = [
+  {msg:'길에서 반딧불이 떼를 만났어요!',type:'gold',amount:50},
+  {msg:'아름다운 무지개를 봤어요!',type:'heal',amount:5},
+  {msg:'이슬 맺힌 꽃잎을 발견했어요!',type:'gold',amount:30},
+  {msg:'별똥별이 지나갔어요!',type:'gold',amount:80},
+  {msg:'따뜻한 바람이 불어왔어요!',type:'heal',amount:3},
+  {msg:'길가에 작은 샘물을 발견했어요!',type:'gold',amount:40}
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let GS;
+function defaultState(){
+  return {
+    gold:500,energy:5,maxEnergy:5,
+    discovered:['nabi','haru','pori','miru','ggomi','rang'],
+    inventory:['i1','i2','i3','i6','i8'],
+    memories:['m1','m3','m5'],
+    achievementsUnlocked:[],
+    questStates:{},
+    roomLevels:{garden:1,kitchen:1,music:1,library:1,observatory:1},
+    busColor:0,
+    dayStreak:1,lastLogin:null,lastDailyReward:null,
+    travelDest:'sea',travelProgress:40,travelStart:Date.now()-3600000,
+    lettersSent:0,
+    settings:{particles:true,notifications:true,autoTravel:true},
+    storyIndex:0,storyTyped:false,
+    weatherIndex:0,
+    lastEnergyRegen:Date.now(),
+    lastAutoHeal:Date.now(),
+    friendships:{},
+    compareChars:[],
+    collTab:'chars'
+  };
+}
+function loadState(){
+  try{
+    const s=localStorage.getItem('hbus_state');
+    if(s){GS=Object.assign(defaultState(),JSON.parse(s));}
+    else{GS=defaultState();}
+  }catch(e){GS=defaultState();}
+}
+function saveState(){
+  try{localStorage.setItem('hbus_state',JSON.stringify(GS));}catch(e){}
+}
+
+// ============================================================
 // NAVIGATION
-// ========================================
-function navTo(screenName) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const target = document.getElementById('screen' + screenName.charAt(0).toUpperCase() + screenName.slice(1));
-  if (target) {
-    target.classList.add('active');
-    target.style.animation = 'none';
-    target.offsetHeight;
-    target.style.animation = 'fadeIn 0.3s ease';
+// ============================================================
+let currentScreen='home';
+let screenHistory=['home'];
+
+function navTo(id){
+  if(id===currentScreen)return;
+  const prev=document.getElementById('screen-'+currentScreen);
+  const next=document.getElementById('screen-'+id);
+  if(!next)return;
+  // determine direction
+  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings'];
+  const pi=navOrder.indexOf(currentScreen),ni=navOrder.indexOf(id);
+  const forward=ni>=pi||ni<0;
+  if(prev){
+    prev.classList.remove('active');
+    prev.style.transform=forward?'translateX(-30px)':'translateX(30px)';
+    prev.style.opacity='0';
+    prev.style.pointerEvents='none';
   }
-  document.querySelectorAll('.nav-item').forEach(n => {
-    n.classList.toggle('active', n.dataset.screen === screenName);
+  next.style.transform=forward?'translateX(30px)':'translateX(-30px)';
+  requestAnimationFrame(()=>{
+    next.classList.add('active');
+    next.style.transform='translateX(0)';
+    next.style.opacity='1';
+    next.style.pointerEvents='auto';
   });
-  if (screenName === 'collection') renderCollection();
+  currentScreen=id;
+  screenHistory.push(id);
+  // Update nav highlights
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.classList.toggle('active',n.dataset.screen===id);
+  });
+  // Render screen content
+  renderScreen(id);
+  // Scroll reveal
+  setTimeout(()=>initScrollReveal(next),100);
 }
 
-// ========================================
-// SCAN SYSTEM
-// ========================================
-let scanIndex = 0;
-function doScan() {
-  const char = characters[scanIndex % characters.length];
-  scanIndex++;
-  showDiscovery(char);
+function renderScreen(id){
+  switch(id){
+    case'home':renderHome();break;
+    case'scan':break;
+    case'bus':renderBus();break;
+    case'map':renderMap();break;
+    case'quest':renderQuests();break;
+    case'collection':renderCollection();break;
+    case'shop':renderShop();break;
+    case'achievements':renderAchievements();break;
+    case'settings':renderSettings();break;
+  }
 }
 
-function showDiscovery(char) {
-  document.getElementById('discoverName').textContent = char.name;
-  const rarityEl = document.getElementById('discoverRarity');
-  const rarityNames = {common:'평범',uncommon:'특별',rare:'희귀',epic:'전설적',legendary:'신화'};
-  rarityEl.textContent = rarityNames[char.rarity] || char.rarity;
-  rarityEl.className = 'discover-rarity rarity-' + char.rarity;
-  document.getElementById('discoverStoryText').innerHTML =
-    `<em>${char.name}</em>은(는) ${char.species}였습니다. ${char.story}`;
-  // Sprite
-  const spriteContainer = document.getElementById('discoverSpriteContainer');
-  spriteContainer.innerHTML = createPixelArt(char.pixel, char.palette);
-  // Stats
-  const statsEl = document.getElementById('discoverStats');
-  const statNames = {hp:'생명력',atk:'공격',def:'방어',spd:'속도',spc:'특수'};
-  const statColors = {hp:'#e06060',atk:'#e08040',def:'#6090c0',spd:'#60b060',spc:'#a070c0'};
-  statsEl.innerHTML = Object.entries(char.stats).map(([k,v]) => {
-    const pct = Math.min(100, v / 2.8);
-    return `<div class="stat-item">
-      <div class="stat-label">${statNames[k]}</div>
-      <div class="stat-bar"><div class="fill" style="width:${pct}%;background:${statColors[k]}"></div></div>
-      <div class="stat-val">${v}</div>
+// ============================================================
+// RENDER FUNCTIONS
+// ============================================================
+function renderHome(){
+  // Story with typewriter
+  const si=GS.storyIndex % STORIES.length;
+  const stEl=document.getElementById('story-text');
+  if(stEl && !GS.storyTyped){
+    stEl.textContent='';
+    typeWriter(stEl, STORIES[si], 0);
+    GS.storyTyped=true;
+  } else if(stEl){
+    stEl.textContent=STORIES[si];
+  }
+  // Travel bar
+  const dest=DESTINATIONS.find(d=>d.id===GS.travelDest);
+  const fromDest=DESTINATIONS.find(d=>d.visited)||DESTINATIONS[0];
+  if(dest){
+    document.getElementById('travel-route').textContent=`${fromDest.icon} ${fromDest.name} → ${dest.icon} ${dest.name}`;
+    document.getElementById('travel-fill').style.width=GS.travelProgress+'%';
+    const remain=Math.max(0,((100-GS.travelProgress)/100*2)).toFixed(1);
+    document.getElementById('travel-eta').textContent=`${GS.travelProgress}% 완료 (약 ${remain}일 남음)`;
+  }
+  // Heal timer
+  const elapsed=Date.now()-GS.lastAutoHeal;
+  const remaining=Math.max(0,180000-elapsed);
+  const rm=Math.floor(remaining/60000), rs=Math.floor((remaining%60000)/1000);
+  document.getElementById('heal-timer').textContent=`🌿 다음 치유까지 ${rm}:${String(rs).padStart(2,'0')}`;
+  // Bus mini
+  const bmEl=document.getElementById('bus-mini');
+  bmEl.innerHTML=ROOMS.map(r=>{
+    const chars=CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id));
+    return `<div class="room-mini" style="background:${r.color}"><span>${r.name.split(' ')[0]}</span><span class="occ">${chars.length}</span></div>`;
+  }).join('');
+  // Action grid
+  const actions=[
+    {icon:'🏪',label:'상점',screen:'shop',badge:''},
+    {icon:'🏆',label:'업적',screen:'achievements',badge:checkNewAchievements()?'!':''},
+    {icon:'📋',label:'퀘스트',screen:'quest',badge:''},
+    {icon:'🗺️',label:'지도',screen:'map',badge:''},
+    {icon:'🚌',label:'버스',screen:'bus',badge:''},
+    {icon:'📚',label:'도감',screen:'collection',badge:''}
+  ];
+  document.getElementById('action-grid').innerHTML=actions.map(a=>
+    `<div class="action-card ripple" onclick="navTo('${a.screen}')">
+      <div class="icon">${a.icon}</div><div class="label">${a.label}</div>
+      ${a.badge?`<div class="badge">${a.badge}</div>`:''}
+    </div>`
+  ).join('');
+}
+
+function renderBus(){
+  // Header with color
+  const bh=document.getElementById('bus-header');
+  bh.style.background=BUS_COLORS[GS.busColor].gradient;
+  // Color selector
+  document.getElementById('bus-color-sel').innerHTML=BUS_COLORS.map((c,i)=>
+    `<div class="cdot${i===GS.busColor?' active':''}" style="background:${c.gradient}" onclick="setBusColor(${i})"></div>`
+  ).join('');
+  // Rooms by floor
+  const el=document.getElementById('bus-rooms');
+  let html='';
+  [3,2,1].forEach(floor=>{
+    html+=`<div class="floor-label">${floor}층</div>`;
+    ROOMS.filter(r=>r.floor===floor).forEach(r=>{
+      const chars=CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id));
+      const lv=GS.roomLevels[r.id]||1;
+      const upgradeCost=[0,500,1500,3000][lv]||null;
+      const animParticles=makeRoomAnim(r.animType);
+      html+=`<div class="room-card scroll-reveal ripple" onclick="showRoomDetail('${r.id}')">
+        <div class="rh"><span class="rn">${r.name}</span><span class="rl">Lv.${lv}</span></div>
+        <div class="rd">${r.desc}</div>
+        <div class="rc">${chars.map(c=>`<div class="ca" title="${c.name}">${c.emoji}<span class="mood">${getMood(c)}</span></div>`).join('')}${chars.length===0?'<span style="font-size:.65rem;color:var(--text-light)">비어있음</span>':''}</div>
+        <div class="prod">⚡ ${r.production} +${r.prodRate*lv}/시간</div>
+        <div class="ranim">${animParticles}</div>
+        ${upgradeCost?`<button class="ubtn" onclick="event.stopPropagation();upgradeRoom('${r.id}')">⬆️ ${upgradeCost}G</button>`:''}
+      </div>`;
+    });
+  });
+  el.innerHTML=html;
+}
+
+function makeRoomAnim(type){
+  let h='';
+  for(let i=0;i<4;i++){
+    const top=Math.random()*80, left=Math.random()*40;
+    const delay=(Math.random()*2).toFixed(1);
+    switch(type){
+      case'steam':h+=`<div class="steam-p" style="top:${top}%;left:${left}px;animation-delay:${delay}s"></div>`;break;
+      case'note':h+=`<div class="note-p" style="top:${top}%;left:${left}px;animation-delay:${delay}s">${['♪','♫','♬'][i%3]}</div>`;break;
+      case'sparkle':h+=`<div class="sparkle-p" style="top:${top}%;left:${left}px;animation-delay:${delay}s"></div>`;break;
+      case'page':h+=`<div class="page-p" style="top:${top}%;left:${left}px;animation-delay:${delay}s"></div>`;break;
+      case'star':h+=`<div class="star-p" style="top:${top}%;left:${left}px;animation-delay:${delay}s"></div>`;break;
+    }
+  }
+  return h;
+}
+
+function renderMap(){
+  const el=document.getElementById('map-destinations');
+  el.innerHTML=DESTINATIONS.map(d=>{
+    const locked=!d.unlocked;
+    return `<div class="dest-card scroll-reveal${locked?' locked':''}" style="transform:translateY(0)">
+      ${locked?`<div class="lock-ov">🔒<span>미발견 지역</span></div>`:''}
+      <div class="di">${d.icon}</div>
+      <h3>${d.name}</h3>
+      <p>${d.desc}</p>
+      ${!locked?`<div class="dbtn">
+        <button class="photo-btn" onclick="event.stopPropagation();takePhoto('${d.id}')">📸 기념사진</button>
+        <button class="travel-btn" onclick="event.stopPropagation();startTravel('${d.id}')">🚌 여행하기</button>
+      </div>`:''}
     </div>`;
   }).join('');
-  // Barcode info
-  document.getElementById('discoverBarcode').innerHTML = `
-    <div class="barcode-row"><span class="k">바코드</span><span class="v">${char.barcode}</span></div>
-    <div class="barcode-row"><span class="k">원산지</span><span class="v">${char.country}</span></div>
-    <div class="barcode-row"><span class="k">제조사</span><span class="v">${char.mfg}</span></div>
-    <div class="barcode-row"><span class="k">제품</span><span class="v">${char.product}</span></div>
-  `;
-  document.getElementById('discoveryOverlay').classList.add('active');
-  // Animate stat bars after a short delay
-  setTimeout(() => {
-    document.querySelectorAll('#discoverStats .fill').forEach(f => {
-      f.style.width = f.style.width; // trigger reflow
-    });
-  }, 100);
 }
 
-function closeDiscovery() {
-  document.getElementById('discoveryOverlay').classList.remove('active');
+function renderQuests(){
+  const el=document.getElementById('quest-list');
+  el.innerHTML=QUESTS.map(q=>{
+    const state=GS.questStates[q.id]||{accepted:false,progress:0,completed:false};
+    const stars='★'.repeat(q.difficulty)+'☆'.repeat(3-q.difficulty);
+    return `<div class="quest-card scroll-reveal">
+      <div class="diff">${stars}</div>
+      <h4>${q.title}</h4>
+      <div class="qd">${q.desc}</div>
+      <div class="qr">💰 보상: ${q.reward}G</div>
+      ${state.accepted?`<div class="qp">${q.steps.map((s,i)=>
+        `<span class="chk${i<state.progress?' done':''}">
+          ${i<state.progress?'☑':'☐'} ${s}
+        </span>`
+      ).join('')}</div>`:''}
+      <button class="abtn${state.accepted?' accepted':''}"
+        ${state.completed?'disabled':''}
+        onclick="handleQuest('${q.id}')">
+        ${state.completed?'✅ 완료됨':state.accepted?`진행중 (${state.progress}/${q.steps.length})`:'수락하기'}
+      </button>
+    </div>`;
+  }).join('');
 }
-function welcomeSoul() {
-  closeDiscovery();
+
+function renderCollection(){
+  const tab=GS.collTab||'chars';
+  document.querySelectorAll('.coll-tabs .tab').forEach(t=>{
+    t.classList.toggle('active',t.textContent.includes(
+      tab==='chars'?'캐릭터':tab==='inventory'?'인벤토리':'기억'
+    ));
+  });
+  document.getElementById('coll-chars').style.display=tab==='chars'?'':'none';
+  document.getElementById('coll-inventory').style.display=tab==='inventory'?'':'none';
+  document.getElementById('coll-memory').style.display=tab==='memory'?'':'none';
+  document.getElementById('compare-area').style.display=tab==='chars'&&GS.compareChars.length===2?'':'none';
+
+  if(tab==='chars') renderChars();
+  else if(tab==='inventory') renderInventory();
+  else renderMemories();
+}
+
+function renderChars(){
+  const el=document.getElementById('coll-chars');
+  if(GS.discovered.length===0){
+    el.innerHTML=`<div class="empty-state"><div class="ei">🔍</div><p>아직 만난 영혼이 없어요</p><p style="font-size:.72rem;margin-top:6px;">스캔을 통해 영혼을 만나보세요!</p></div>`;
+    return;
+  }
+  let html=`<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+    <button style="font-size:.65rem;border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;background:var(--card);cursor:pointer;font-family:inherit;color:var(--text);min-height:30px;" onclick="toggleCompare()">
+      ${GS.compareChars.length>0?'비교 취소':'🔄 비교하기'}
+    </button>
+  </div>`;
+  html+=`<div class="char-grid">`;
+  CHARACTERS.forEach(c=>{
+    const disc=GS.discovered.includes(c.id);
+    const sel=GS.compareChars.includes(c.id);
+    html+=`<div class="char-card scroll-reveal${disc?'':' undiscovered'}${sel?' selected':''}"
+      onclick="${disc?`showCharDetail('${c.id}')`:''}">
+      <div class="mi">${disc?getMood(c):'?'}</div>
+      <div class="pa">${disc?makePixelArtSVG(c.id,48):''}</div>
+      <div class="cn">${disc?c.name:'???'}</div>
+      <div class="ct">${disc?c.species+' · '+c.type:'미발견'}</div>
+      ${disc?`<div class="hb"><div class="hf" style="width:${c.heal}%"></div></div>
+      <div class="fr">${getFriendship(c.id)}</div>`:''}
+    </div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+  // Comparison
+  if(GS.compareChars.length===2) renderCompare();
+}
+
+function renderInventory(){
+  const el=document.getElementById('coll-inventory');
+  const items=GS.inventory.map(id=>INVENTORY_ITEMS.find(i=>i.id===id)).filter(Boolean);
+  // Count duplicates
+  const counts={};
+  items.forEach(i=>{counts[i.id]=(counts[i.id]||0)+1;});
+  const unique=Object.keys(counts).map(id=>({item:INVENTORY_ITEMS.find(i=>i.id===id),count:counts[id]}));
+
+  let html=`<div class="inv-grid">`;
+  unique.forEach(({item,count})=>{
+    html+=`<div class="inv-item"><div class="ii">${item.icon}</div><div>${item.name}</div><div class="ic">x${count}</div></div>`;
+  });
+  if(unique.length===0){
+    html+=`<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-light);font-size:.8rem;">아이템이 없어요</div>`;
+  }
+  html+=`</div>`;
+  // Crafting
+  html+=`<div class="craft-area"><h4>🔨 제작하기</h4>`;
+  CRAFTING.forEach((cr,ci)=>{
+    html+=`<div style="margin:8px 0;padding:8px;background:rgba(108,92,231,.04);border-radius:8px;">
+      <div style="font-size:.75rem;font-weight:600;margin-bottom:4px;">${cr.icon} ${cr.name} <span style="color:var(--heal);font-size:.65rem;">(${cr.effect})</span></div>
+      <div class="craft-slots">${cr.ingredients.map(i=>`<div class="craft-slot">${i}</div>`).join('<span style="font-size:.8rem;">+</span>')}<span style="font-size:.8rem;">→</span><div class="craft-slot">${cr.icon}</div></div>
+      <button class="craft-btn" onclick="doCraft(${ci})">제작하기</button>
+    </div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+function renderMemories(){
+  const el=document.getElementById('coll-memory');
+  let html=`<div style="text-align:center;font-size:.72rem;color:var(--text-light);margin-bottom:10px;">${GS.memories.length}/${MEMORIES.length} 수집됨</div>`;
+  html+=`<div class="memory-grid">`;
+  MEMORIES.forEach(m=>{
+    const has=GS.memories.includes(m.id);
+    html+=`<div class="mem-item" style="${has?'':'opacity:.35;filter:grayscale(.8);'}">
+      <div class="mi2">${has?m.icon:'❓'}</div>
+      <div>${has?m.name:'???'}</div>
+    </div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+function renderCompare(){
+  const [id1,id2]=GS.compareChars;
+  const c1=CHARACTERS.find(c=>c.id===id1), c2=CHARACTERS.find(c=>c.id===id2);
+  if(!c1||!c2)return;
+  const el=document.getElementById('compare-area');
+  el.style.display='';
+  const stats=[
+    {name:'치유',k:'heal',color:'var(--heal)'},
+    {name:'평온',k:'peace',color:'var(--primary)'},
+    {name:'활력',k:'vitality',color:'var(--accent)'}
+  ];
+  let html=`<div class="compare-panel"><h4>${c1.emoji} ${c1.name} vs ${c2.emoji} ${c2.name}</h4>`;
+  stats.forEach(s=>{
+    html+=`<div class="cmp-row"><span style="width:40px;">${s.name}</span>
+      <div class="bar"><div class="bi" style="width:${c1[s.k]}%;background:${s.color}"></div></div>
+      <span style="width:24px;text-align:center;font-size:.6rem;">${c1[s.k]}</span>
+      <span style="width:10px;text-align:center;">|</span>
+      <span style="width:24px;text-align:center;font-size:.6rem;">${c2[s.k]}</span>
+      <div class="bar"><div class="bi" style="width:${c2[s.k]}%;background:${s.color}"></div></div>
+    </div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+function renderShop(){
+  const el=document.getElementById('shop-list');
+  el.innerHTML=SHOP_ITEMS.map(s=>
+    `<div class="shop-item scroll-reveal">
+      <div class="si">${s.icon}</div>
+      <div class="sinfo"><h4>${s.name}</h4><p>${s.desc}</p></div>
+      <button class="bbtn" onclick="buyItem('${s.id}')" ${GS.gold<s.price?'disabled style="opacity:.5"':''}>💰 ${s.price}</button>
+    </div>`
+  ).join('');
+}
+
+function renderAchievements(){
+  const el=document.getElementById('ach-list');
+  el.innerHTML=ACHIEVEMENTS.map(a=>{
+    const unlocked=GS.achievementsUnlocked.includes(a.id);
+    return `<div class="ach-card scroll-reveal${unlocked?'':' locked'}">
+      <div class="ai">${a.icon}</div>
+      <div class="ainfo"><h4>${a.name}</h4><p>${a.desc}</p></div>
+      ${unlocked?'<div class="ack">✅</div>':''}
+    </div>`;
+  }).join('');
+}
+
+function renderSettings(){
+  const el=document.getElementById('settings-list');
+  const settings=[
+    {key:'particles',label:'파티클 효과'},
+    {key:'notifications',label:'알림 표시'},
+    {key:'autoTravel',label:'자동 여행'}
+  ];
+  el.innerHTML=settings.map(s=>
+    `<div class="setting-row">${s.label}<div class="toggle${GS.settings[s.key]?' on':''}" onclick="toggleSetting('${s.key}',this)"></div></div>`
+  ).join('');
+}
+
+function switchCollTab(tab){
+  GS.collTab=tab;
+  renderCollection();
+}
+
+// ============================================================
+// GAME MECHANICS
+// ============================================================
+function getMood(c){
+  if(!GS.discovered.includes(c.id)) return '❓';
+  if(c.heal>=70) return '😊';
+  if(c.room==='garden') return '😊';
+  if(c.room==='library') return '😌';
+  if(c.room==='music') return '🎵';
+  if(!c.room) return '😢';
+  if(c.heal<30) return '😢';
+  if(c.heal<50) return '😐';
+  return '😊';
+}
+
+function getFriendship(id){
+  const c=CHARACTERS.find(ch=>ch.id===id);
+  if(!c||!c.room) return '';
+  const roommates=CHARACTERS.filter(ch=>ch.id!==id&&ch.room===c.room&&GS.discovered.includes(ch.id));
+  if(roommates.length===0) return '';
+  const hearts=Math.min(3,roommates.length);
+  return '♡'.repeat(hearts)+' '+roommates.map(r=>r.name).join(',');
+}
+
+function doScan(){
+  if(GS.energy<=0){
+    showToast('💔 에너지가 부족해요! 잠시 기다려주세요.');
+    return;
+  }
+  GS.energy--;
+  updateEnergyUI();
+  saveState();
+  // Pick a random undiscovered character, or random if all discovered
+  const undiscovered=CHARACTERS.filter(c=>!GS.discovered.includes(c.id));
+  let char;
+  if(undiscovered.length>0){
+    char=undiscovered[Math.floor(Math.random()*undiscovered.length)];
+  } else {
+    char=CHARACTERS[Math.floor(Math.random()*CHARACTERS.length)];
+    showToast(`${char.emoji} ${char.name}를 다시 만났어요! 치유+5`);
+    char.heal=Math.min(100,char.heal+5);
+    addGold(50);
+    saveState();
+    return;
+  }
+  // Discover
+  GS.discovered.push(char.id);
+  // Assign to a room if there's space
+  if(!char.room){
+    const emptyRooms=ROOMS.filter(r=>CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id)).length<3);
+    if(emptyRooms.length>0) char.room=emptyRooms[0].id;
+  }
+  // Random inventory item
+  const randItem=INVENTORY_ITEMS[Math.floor(Math.random()*INVENTORY_ITEMS.length)];
+  GS.inventory.push(randItem.id);
+  addGold(100);
+  saveState();
+  // Show discovery
+  showDiscovery(char);
+  checkAchievements();
+}
+
+function doManualScan(){
+  const input=document.getElementById('barcode-input');
+  if(!input.value||input.value.length<4){
+    showToast('바코드를 입력해주세요');
+    return;
+  }
+  doScan();
+  input.value='';
+}
+
+function toggleManual(){
+  const el=document.getElementById('manual-input');
+  el.style.display=el.style.display==='none'?'':'none';
+}
+
+function showDiscovery(char){
+  const ov=document.getElementById('discovery-overlay');
+  document.getElementById('disc-img').outerHTML=`<div class="pa" id="disc-img">${makePixelArtSVG(char.id,72)}</div>`;
+  document.getElementById('disc-name').textContent=char.name;
+  document.getElementById('disc-sub').textContent=`${char.species} · ${char.type} 타입`;
+  const rarEl=document.getElementById('disc-rar');
+  rarEl.textContent={common:'일반',uncommon:'고급',rare:'희귀',epic:'전설'}[char.rarity];
+  rarEl.className='rar rar-'+char.rarity;
+  ov.classList.add('show');
+}
+
+function closeDiscovery(){
+  document.getElementById('discovery-overlay').classList.remove('show');
+}
+
+function showCharDetail(id){
+  // If in compare mode, handle selection
+  if(GS.compareChars.length>0 && GS.compareChars.length<2 && !GS.compareChars.includes(id)){
+    GS.compareChars.push(id);
+    renderCollection();
+    return;
+  }
+  const c=CHARACTERS.find(ch=>ch.id===id);
+  if(!c)return;
+  const stats=[
+    {name:'치유',val:c.heal,color:'var(--heal)'},
+    {name:'평온',val:c.peace,color:'var(--primary)'},
+    {name:'활력',val:c.vitality,color:'var(--accent)'}
+  ];
+  let html=`<div class="char-detail"><button class="cbtn" onclick="closeModal()">✕</button>`;
+  html+=`<div style="text-align:center;"><div class="pa-lg">${makePixelArtSVG(c.id,72)}</div>`;
+  html+=`<h2 style="margin-bottom:2px;">${c.emoji} ${c.name}</h2>`;
+  html+=`<div style="font-size:.7rem;color:var(--text-light);margin-bottom:10px;">${c.species} · ${c.type} 타입 · <span class="rar rar-${c.rarity}" style="font-size:.65rem;padding:2px 8px;">${{common:'일반',uncommon:'고급',rare:'희귀',epic:'전설'}[c.rarity]}</span></div></div>`;
+  html+=`<p style="font-size:.75rem;line-height:1.6;margin-bottom:12px;color:var(--text-light);">${c.backstory}</p>`;
+  stats.forEach(s=>{
+    html+=`<div class="sr"><span>${s.name}</span><div class="sb"><div class="sf" style="width:${s.val}%;background:${s.color}"></div></div><span style="font-size:.65rem;">${s.val}%</span></div>`;
+  });
+  // Journal
+  if(c.journal){
+    html+=`<h3 style="font-size:.82rem;margin:12px 0 6px;">📔 일지</h3>`;
+    c.journal.forEach(j=>{html+=`<div class="je">${j}</div>`;});
+  }
+  // Action buttons
+  html+=`<div class="abts">
+    <button style="background:var(--primary);color:#fff;" onclick="closeModal();showDream('${c.id}')">💭 꿈 보기</button>
+    <button style="background:var(--accent);color:#fff;" onclick="closeModal();showLetterUI('${c.id}')">💌 편지 쓰기</button>
+  </div>`;
+  html+=`</div>`;
+  showModal(html);
+}
+
+function showRoomDetail(roomId){
+  const r=ROOMS.find(rm=>rm.id===roomId);
+  if(!r)return;
+  const lv=GS.roomLevels[r.id]||1;
+  const chars=CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id));
+  const upgradeCost=[0,500,1500,3000][lv]||null;
+  let html=`<button class="cbtn" onclick="closeModal()">✕</button>`;
+  html+=`<h2>${r.name}</h2>`;
+  html+=`<p style="font-size:.75rem;color:var(--text-light);margin-bottom:10px;">${r.desc}</p>`;
+  html+=`<div style="display:flex;gap:10px;margin-bottom:10px;">
+    <div style="font-size:.72rem;"><strong>레벨:</strong> ${lv}/4</div>
+    <div style="font-size:.72rem;"><strong>생산:</strong> ${r.production} +${r.prodRate*lv}/시간</div>
+  </div>`;
+  html+=`<h3 style="font-size:.8rem;margin-bottom:6px;">거주 영혼</h3>`;
+  if(chars.length===0){
+    html+=`<p style="font-size:.72rem;color:var(--text-light);">아직 아무도 없어요</p>`;
+  } else {
+    chars.forEach(c=>{
+      html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--card-border);">
+        <div>${makePixelArtSVG(c.id,32)}</div>
+        <div><div style="font-size:.75rem;font-weight:600;">${c.emoji} ${c.name} ${getMood(c)}</div>
+        <div style="font-size:.62rem;color:var(--text-light);">치유 ${c.heal}%</div></div>
+      </div>`;
+    });
+  }
+  if(upgradeCost){
+    html+=`<button style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:8px;background:var(--gold-color);color:#333;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer;min-height:44px;" onclick="closeModal();upgradeRoom('${r.id}')">⬆️ 업그레이드 (${upgradeCost}G)</button>`;
+  }
+  showModal(html);
+}
+
+function upgradeRoom(roomId){
+  const r=ROOMS.find(rm=>rm.id===roomId);
+  if(!r)return;
+  const lv=GS.roomLevels[r.id]||1;
+  if(lv>=4){showToast('이미 최대 레벨이에요!');return;}
+  const cost=[0,500,1500,3000][lv];
+  if(GS.gold<cost){showToast('골드가 부족해요!');return;}
+  GS.gold-=cost;
+  GS.roomLevels[r.id]=lv+1;
+  updateGoldUI();
+  saveState();
+  showToast(`${r.name} 레벨 ${lv+1}로 업그레이드! 🎉`);
+  checkAchievements();
+  renderBus();
+}
+
+function setBusColor(i){
+  GS.busColor=i;
+  saveState();
+  renderBus();
+}
+
+function handleQuest(qid){
+  const q=QUESTS.find(qu=>qu.id===qid);
+  if(!q)return;
+  let state=GS.questStates[q.id];
+  if(!state){state={accepted:false,progress:0,completed:false};GS.questStates[q.id]=state;}
+  if(state.completed)return;
+  if(!state.accepted){
+    state.accepted=true;
+    showToast(`📋 "${q.title}" 퀘스트를 수락했어요!`);
+  } else if(state.progress<q.steps.length){
+    state.progress++;
+    if(state.progress>=q.steps.length){
+      state.completed=true;
+      addGold(q.reward);
+      showToast(`🎉 "${q.title}" 퀘스트 완료! +${q.reward}G`);
+      // Give a random memory
+      const unownedMem=MEMORIES.filter(m=>!GS.memories.includes(m.id));
+      if(unownedMem.length>0) GS.memories.push(unownedMem[Math.floor(Math.random()*unownedMem.length)].id);
+    } else {
+      showToast(`📋 진행: ${state.progress}/${q.steps.length}`);
+    }
+  }
+  saveState();
+  renderQuests();
+  checkAchievements();
+}
+
+function buyItem(sid){
+  const item=SHOP_ITEMS.find(s=>s.id===sid);
+  if(!item)return;
+  if(GS.gold<item.price){showToast('골드가 부족해요!');return;}
+  GS.gold-=item.price;
+  updateGoldUI();
+  // Apply effect
+  if(item.effect==='heal'){
+    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.heal=Math.min(100,c.heal+item.amount);});
+    showToast(`${item.icon} ${item.name} 사용! 모든 영혼 치유+${item.amount}`);
+  } else if(item.effect==='peace'){
+    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.peace=Math.min(100,c.peace+item.amount);});
+    showToast(`${item.icon} ${item.name} 사용! 모든 영혼 평온+${item.amount}`);
+  } else if(item.effect==='vitality'){
+    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.vitality=Math.min(100,c.vitality+item.amount);});
+    showToast(`${item.icon} ${item.name} 사용! 모든 영혼 활력+${item.amount}`);
+  } else if(item.effect==='all'){
+    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c){c.heal=Math.min(100,c.heal+item.amount);c.peace=Math.min(100,c.peace+item.amount);c.vitality=Math.min(100,c.vitality+item.amount);}});
+    showToast(`${item.icon} ${item.name} 사용! 모든 능력+${item.amount}`);
+  }
+  saveState();
+  renderShop();
+}
+
+function doCraft(idx){
+  const recipe=CRAFTING[idx];
+  // Check ingredients (simplified: just costs some gold)
+  if(GS.gold<150){showToast('재료(골드 150)가 부족해요!');return;}
+  GS.gold-=150;
+  // Apply effect
+  GS.discovered.forEach(id=>{
+    const c=CHARACTERS.find(ch=>ch.id===id);
+    if(c) c[recipe.stat]=Math.min(100,c[recipe.stat]+recipe.amount);
+  });
+  updateGoldUI();
+  showToast(`${recipe.icon} ${recipe.name} 제작 완료! ${recipe.effect}`);
+  saveState();
+  renderCollection();
+}
+
+function startTravel(destId){
+  const dest=DESTINATIONS.find(d=>d.id===destId);
+  if(!dest||!dest.unlocked){showToast('아직 갈 수 없는 곳이에요');return;}
+  GS.travelDest=destId;
+  GS.travelProgress=0;
+  GS.travelStart=Date.now();
+  saveState();
+  showToast(`🚌 ${dest.name}(으)로 여행을 시작합니다!`);
   navTo('home');
 }
 
-// ========================================
-// COLLECTION RENDERING
-// ========================================
-function renderCollection() {
-  const grid = document.getElementById('charGrid');
-  grid.innerHTML = characters.map(c => `
-    <div class="char-card" onclick="showCharDetail('${c.id}')">
-      <span class="char-rarity rarity-${c.rarity}">${
-        {common:'평범',uncommon:'특별',rare:'희귀',epic:'전설적',legendary:'신화'}[c.rarity]
-      }</span>
-      <div class="char-sprite">${createPixelArt(c.pixel, c.palette)}</div>
-      <div class="char-name">${c.name}</div>
-      <div class="char-type">${c.species} · ${c.type} 타입</div>
-      <div class="heal-progress"><div class="heal-fill" style="width:${c.healProgress}%"></div></div>
-      <div class="heal-label">치유 ${c.healProgress}%</div>
-    </div>
-  `).join('');
+function takePhoto(destId){
+  const dest=DESTINATIONS.find(d=>d.id===destId);
+  if(!dest)return;
+  showToast(`📸 ${dest.name}에서 기념사진을 찍었어요!`);
+  // Give heal bonus
+  GS.discovered.forEach(id=>{
+    const c=CHARACTERS.find(ch=>ch.id===id);
+    if(c) c.heal=Math.min(100,c.heal+dest.healBonus);
+  });
+  // Show photo description
+  let html=`<button class="cbtn" onclick="closeModal()">✕</button>`;
+  html+=`<h2>📸 기념사진</h2>`;
+  html+=`<div style="text-align:center;font-size:2rem;margin:16px 0;">${dest.icon}</div>`;
+  html+=`<p style="font-size:.8rem;line-height:1.6;text-align:center;color:var(--text-light);">${dest.photo}</p>`;
+  html+=`<p style="text-align:center;margin-top:10px;font-size:.72rem;color:var(--heal);">모든 영혼 치유+${dest.healBonus} 🌿</p>`;
+  showModal(html);
+  saveState();
 }
 
-// ========================================
-// CHARACTER DETAIL
-// ========================================
-function showCharDetail(id) {
-  const c = characters.find(ch => ch.id === id);
-  if (!c) return;
-  const content = document.getElementById('charModalContent');
-  const stages = [
-    {name:'슬픔',pct:0},{name:'수용',pct:25},{name:'평온',pct:50},{name:'미소',pct:75},{name:'치유',pct:100}
-  ];
-  content.innerHTML = `
-    <button class="back-btn" onclick="closeCharModal()" style="margin-bottom:12px">← 닫기</button>
-    <div class="char-detail-sprite">${createPixelArt(c.pixel, c.palette)}</div>
-    <div class="char-detail-name">${c.name}</div>
-    <div class="char-detail-type">${c.species} · ${c.type} 타입 · ${
-      {common:'평범',uncommon:'특별',rare:'희귀',epic:'전설적',legendary:'신화'}[c.rarity]
-    }</div>
-    <div class="char-memory">
-      <div class="mem-title">📖 생전의 기억</div>
-      <div class="mem-text">${c.memory}</div>
-    </div>
-    <div class="char-longing">
-      <div class="long-title">💭 그리움</div>
-      <div class="long-text">${c.longing}</div>
-    </div>
-    <div class="char-heal-section">
-      <div class="heal-title">💚 치유 여정 (${c.healProgress}%)</div>
-      <div class="char-heal-bar"><div class="fill" style="width:${c.healProgress}%"></div></div>
-      <div class="char-heal-stages">
-        ${stages.map(s => `<div class="heal-stage ${c.healProgress >= s.pct ? 'reached' : ''}">${s.name}</div>`).join('')}
-      </div>
-    </div>
-    <div style="margin-top:14px">
-      <div style="font-size:0.7rem;font-weight:600;color:var(--wood);margin-bottom:6px">현재 배치: ${
-        {garden:'정원',library:'도서관',kitchen:'주방',music:'음악실',rest:'휴식실',observatory:'전망대'}[c.room] || c.room
-      }</div>
-      <div class="discover-stats">${
-        Object.entries(c.stats).map(([k,v]) => {
-          const pct = Math.min(100, v / 2.8);
-          const statNames = {hp:'생명력',atk:'공격',def:'방어',spd:'속도',spc:'특수'};
-          const statColors = {hp:'#e06060',atk:'#e08040',def:'#6090c0',spd:'#60b060',spc:'#a070c0'};
-          return `<div class="stat-item">
-            <div class="stat-label">${statNames[k]}</div>
-            <div class="stat-bar"><div class="fill" style="width:${pct}%;background:${statColors[k]}"></div></div>
-            <div class="stat-val">${v}</div>
-          </div>`;
-        }).join('')
-      }</div>
-    </div>
-  `;
-  document.getElementById('charModal').classList.add('active');
-}
-function closeCharModal() {
-  document.getElementById('charModal').classList.remove('active');
+function showDream(charId){
+  const c=CHARACTERS.find(ch=>ch.id===charId);
+  if(!c)return;
+  document.getElementById('dream-title').textContent=`💭 ${c.name}의 꿈`;
+  document.getElementById('dream-text').textContent=c.dreams;
+  document.getElementById('dream-screen').classList.add('show');
 }
 
-// ========================================
-// QUEST SYSTEM
-// ========================================
-function acceptQuest(idx) {
-  const card = document.querySelectorAll('.quest-card')[idx];
-  if (card) {
-    card.style.borderColor = 'var(--heal)';
-    card.style.background = 'rgba(126,200,160,0.08)';
-    const btn = document.createElement('div');
-    btn.style.cssText = 'text-align:center;margin-top:8px;padding:8px;background:var(--heal);color:white;border-radius:10px;font-size:0.75rem;font-weight:700';
-    btn.textContent = '✓ 수락 완료';
-    if (!card.querySelector('[style*="수락"]')) card.appendChild(btn);
+function closeDream(){
+  document.getElementById('dream-screen').classList.remove('show');
+}
+
+function showLetterUI(charId){
+  const c=CHARACTERS.find(ch=>ch.id===charId);
+  if(!c)return;
+  const presets=['힘내, 괜찮아질 거야!','넌 소중한 존재야','여기서 행복하게 지내자','사랑해, 항상 응원할게','함께라서 다행이야'];
+  let html=`<button class="cbtn" onclick="closeModal()">✕</button>`;
+  html+=`<h2>💌 ${c.name}에게 편지</h2>`;
+  html+=`<div class="letter-area">`;
+  html+=`<textarea id="letter-text" placeholder="${c.name}에게 따뜻한 말을 전해주세요..."></textarea>`;
+  html+=`<div class="letter-presets">${presets.map(p=>`<button onclick="document.getElementById('letter-text').value='${p}'">${p}</button>`).join('')}</div>`;
+  html+=`<button style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;min-height:44px;margin-top:8px;" onclick="sendLetter('${c.id}')">편지 보내기 💕</button>`;
+  html+=`</div>`;
+  showModal(html);
+}
+
+function sendLetter(charId){
+  const c=CHARACTERS.find(ch=>ch.id===charId);
+  if(!c)return;
+  c.heal=Math.min(100,c.heal+5);
+  c.peace=Math.min(100,c.peace+5);
+  GS.lettersSent=(GS.lettersSent||0)+1;
+  closeModal();
+  showToast(`💌 ${c.name}에게 편지를 보냈어요! 치유+5, 평온+5`);
+  saveState();
+  checkAchievements();
+}
+
+function toggleCompare(){
+  if(GS.compareChars.length>0){
+    GS.compareChars=[];
+    renderCollection();
+    return;
+  }
+  GS.compareChars=[];
+  showToast('비교할 캐릭터 2명을 선택하세요');
+  // Next 2 clicks on char cards will add to compare
+  GS.compareChars=['_selecting'];
+  renderCollection();
+  // Reset after render - the click handler in showCharDetail handles it
+  GS.compareChars=[];
+}
+
+function toggleSetting(key,el){
+  GS.settings[key]=!GS.settings[key];
+  el.classList.toggle('on',GS.settings[key]);
+  saveState();
+  if(key==='particles'){
+    // Toggle particle system
   }
 }
 
-function showRoomDetail(room) {
-  // Simple alert for demo - in full version this would open a room management panel
+// ============================================================
+// UI SYSTEMS
+// ============================================================
+function showModal(html){
+  document.getElementById('modal-content').innerHTML=html;
+  document.getElementById('modal-backdrop').classList.add('show');
 }
 
-// ========================================
-// PARTICLE SYSTEM (cherry blossoms + light orbs)
-// ========================================
-const canvas = document.getElementById('particles');
-const ctx = canvas.getContext('2d');
-let particles = [];
-
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+function closeModal(){
+  document.getElementById('modal-backdrop').classList.remove('show');
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
 
-class Petal {
-  constructor() {
-    this.reset();
+function closeModalBackdrop(e){
+  if(e.target===document.getElementById('modal-backdrop')) closeModal();
+}
+
+function showToast(msg){
+  if(!GS.settings.notifications)return;
+  const container=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast';
+  t.textContent=msg;
+  container.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3000);
+}
+
+function addGold(amount){
+  GS.gold+=amount;
+  updateGoldUI();
+}
+
+function updateGoldUI(){
+  const el=document.getElementById('gold-display');
+  const target=GS.gold;
+  const current=parseInt(el.textContent)||0;
+  animateCount(el,current,target,500);
+}
+
+function updateEnergyUI(){
+  const el=document.getElementById('energy-bar');
+  let html='';
+  for(let i=0;i<GS.maxEnergy;i++){
+    html+=`<span class="heart${i<GS.energy?'':' empty'}">❤️</span>`;
   }
-  reset() {
-    this.x = Math.random() * canvas.width;
-    this.y = -10;
-    this.size = 3 + Math.random() * 5;
-    this.speedY = 0.3 + Math.random() * 0.8;
-    this.speedX = (Math.random() - 0.5) * 0.6;
-    this.rotation = Math.random() * Math.PI * 2;
-    this.rotSpeed = (Math.random() - 0.5) * 0.02;
-    this.opacity = 0.15 + Math.random() * 0.25;
-    this.wobble = Math.random() * Math.PI * 2;
-    this.wobbleSpeed = 0.01 + Math.random() * 0.02;
-    const types = ['petal','orb'];
-    this.type = types[Math.floor(Math.random() * types.length)];
-    if (this.type === 'petal') {
-      const petalColors = ['#e8a0bf','#f0c8d8','#d8a0c0','#e0b8c8','#f5d0e0'];
-      this.color = petalColors[Math.floor(Math.random() * petalColors.length)];
-    } else {
-      const orbColors = ['#e9c46a','#f4d48a','#ffeaa0','#c8b6e2','#7ec8a0'];
-      this.color = orbColors[Math.floor(Math.random() * orbColors.length)];
-      this.size = 2 + Math.random() * 3;
-      this.speedY = 0.1 + Math.random() * 0.3;
-      this.opacity = 0.1 + Math.random() * 0.15;
+  el.innerHTML=html;
+}
+
+function animateCount(el,from,to,duration){
+  const start=performance.now();
+  const diff=to-from;
+  function step(now){
+    const elapsed=now-start;
+    const progress=Math.min(elapsed/duration,1);
+    const eased=1-(1-progress)*(1-progress); // ease out
+    el.textContent=Math.round(from+diff*eased);
+    if(progress<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function typeWriter(el,text,i){
+  if(i<text.length){
+    el.textContent+=text.charAt(i);
+    setTimeout(()=>typeWriter(el,text,i+1),30);
+  }
+}
+
+// ============================================================
+// DAY/NIGHT CYCLE
+// ============================================================
+function updateDayNight(){
+  const h=new Date().getHours();
+  let phase,bg;
+  if(h>=6&&h<11){phase='🌅 아침';bg=getComputedStyle(document.documentElement).getPropertyValue('--bg-morning');}
+  else if(h>=11&&h<17){phase='🌤️ 오후';bg=getComputedStyle(document.documentElement).getPropertyValue('--bg-afternoon');}
+  else if(h>=17&&h<20){phase='🌇 저녁';bg=getComputedStyle(document.documentElement).getPropertyValue('--bg-evening');}
+  else{phase='🌙 밤';bg=getComputedStyle(document.documentElement).getPropertyValue('--bg-night');}
+  document.getElementById('time-badge').textContent=phase;
+  const app=document.getElementById('app');
+  if(h>=20||h<6){
+    app.classList.add('night-mode');
+    app.style.background='linear-gradient(180deg,#1a1a3e 0%,#2d2b55 50%,#3b3870 100%)';
+  } else if(h>=6&&h<11){
+    app.classList.remove('night-mode');
+    app.style.background='linear-gradient(180deg,#ffe8d6 0%,#fff5ee 100%)';
+  } else if(h>=17&&h<20){
+    app.classList.remove('night-mode');
+    app.style.background='linear-gradient(180deg,#ff9a56 0%,#ffcba4 50%,#ffe8d6 100%)';
+  } else {
+    app.classList.remove('night-mode');
+    app.style.background='linear-gradient(180deg,#e0f0ff 0%,#f8fcff 100%)';
+  }
+}
+
+// ============================================================
+// WEATHER
+// ============================================================
+function updateWeather(){
+  const w=WEATHERS[GS.weatherIndex % WEATHERS.length];
+  document.getElementById('weather-badge').textContent=w.emoji+' '+w.name;
+}
+
+function rotateWeather(){
+  GS.weatherIndex=(GS.weatherIndex+1)%WEATHERS.length;
+  updateWeather();
+  saveState();
+}
+
+// ============================================================
+// SEASONAL PARTICLES
+// ============================================================
+function getSeasonParticle(){
+  const m=new Date().getMonth()+1;
+  if(m>=3&&m<=5) return 'petal';
+  if(m>=6&&m<=8) return 'firefly';
+  if(m>=9&&m<=11) return 'leaf';
+  return 'snow';
+}
+
+// ============================================================
+// PARTICLE SYSTEM (Canvas)
+// ============================================================
+let particles=[];
+let particleCanvas,particleCtx;
+
+function initParticles(){
+  particleCanvas=document.getElementById('particles');
+  particleCtx=particleCanvas.getContext('2d');
+  resizeParticleCanvas();
+  window.addEventListener('resize',resizeParticleCanvas,{passive:true});
+  for(let i=0;i<30;i++) particles.push(createParticle());
+  animateParticles();
+}
+
+function resizeParticleCanvas(){
+  const app=document.getElementById('app');
+  particleCanvas.width=app.offsetWidth;
+  particleCanvas.height=app.offsetHeight;
+}
+
+function createParticle(){
+  const w=WEATHERS[GS.weatherIndex%WEATHERS.length];
+  const season=getSeasonParticle();
+  const type=w.particle==='rain'?'rain':w.particle==='snow'?'snow':season;
+  return {
+    x:Math.random()*particleCanvas.width,
+    y:Math.random()*particleCanvas.height,
+    size:Math.random()*4+2,
+    speedX:(Math.random()-.5)*0.5,
+    speedY:type==='rain'?Math.random()*4+2:Math.random()*1+0.3,
+    opacity:Math.random()*0.5+0.3,
+    type:type,
+    rotation:Math.random()*360,
+    rotSpeed:(Math.random()-.5)*2
+  };
+}
+
+function animateParticles(){
+  if(!GS.settings.particles){
+    requestAnimationFrame(animateParticles);
+    return;
+  }
+  particleCtx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
+  particles.forEach(p=>{
+    p.x+=p.speedX;
+    p.y+=p.speedY;
+    p.rotation+=p.rotSpeed;
+    if(p.y>particleCanvas.height+10){p.y=-10;p.x=Math.random()*particleCanvas.width;}
+    if(p.x<-10)p.x=particleCanvas.width+10;
+    if(p.x>particleCanvas.width+10)p.x=-10;
+    particleCtx.save();
+    particleCtx.translate(p.x,p.y);
+    particleCtx.rotate(p.rotation*Math.PI/180);
+    particleCtx.globalAlpha=p.opacity;
+    switch(p.type){
+      case'petal':
+        particleCtx.fillStyle='#ffb7c5';
+        particleCtx.beginPath();
+        particleCtx.ellipse(0,0,p.size,p.size*0.6,0,0,Math.PI*2);
+        particleCtx.fill();
+        break;
+      case'rain':
+        particleCtx.strokeStyle='rgba(100,180,255,0.4)';
+        particleCtx.lineWidth=1;
+        particleCtx.beginPath();
+        particleCtx.moveTo(0,0);
+        particleCtx.lineTo(0,p.size*3);
+        particleCtx.stroke();
+        break;
+      case'snow':
+        particleCtx.fillStyle='rgba(255,255,255,0.8)';
+        particleCtx.beginPath();
+        particleCtx.arc(0,0,p.size*0.8,0,Math.PI*2);
+        particleCtx.fill();
+        break;
+      case'firefly':
+        particleCtx.fillStyle=`rgba(255,255,100,${0.3+Math.sin(Date.now()/500+p.x)*0.3})`;
+        particleCtx.beginPath();
+        particleCtx.arc(0,0,p.size*0.5,0,Math.PI*2);
+        particleCtx.fill();
+        break;
+      case'leaf':
+        particleCtx.fillStyle='#e67e22';
+        particleCtx.beginPath();
+        particleCtx.ellipse(0,0,p.size,p.size*0.4,0,0,Math.PI*2);
+        particleCtx.fill();
+        break;
     }
-  }
-  update() {
-    this.wobble += this.wobbleSpeed;
-    this.x += this.speedX + Math.sin(this.wobble) * 0.3;
-    this.y += this.speedY;
-    this.rotation += this.rotSpeed;
-    if (this.y > canvas.height + 10) this.reset();
-  }
-  draw() {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.rotation);
-    ctx.globalAlpha = this.opacity;
-    if (this.type === 'petal') {
-      ctx.fillStyle = this.color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(this.size * 0.3, -this.size * 0.2, this.size * 0.7, this.size * 0.4, 0.5, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = this.color;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(0, 0, this.size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-}
-
-for (let i = 0; i < 35; i++) {
-  const p = new Petal();
-  p.y = Math.random() * canvas.height;
-  particles.push(p);
-}
-
-function animateParticles() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  particles.forEach(p => { p.update(); p.draw(); });
+    particleCtx.restore();
+  });
   requestAnimationFrame(animateParticles);
 }
-animateParticles();
 
-// ========================================
-// INIT
-// ========================================
-renderCollection();
+// ============================================================
+// CONFETTI
+// ============================================================
+let confettiPieces=[];
+function fireConfetti(){
+  const canvas=document.getElementById('confetti-canvas');
+  const ctx=canvas.getContext('2d');
+  const app=document.getElementById('app');
+  canvas.width=app.offsetWidth;
+  canvas.height=app.offsetHeight;
+  confettiPieces=[];
+  const colors=['#6c5ce7','#fd79a8','#00cec9','#fdcb6e','#e17055','#00b894'];
+  for(let i=0;i<80;i++){
+    confettiPieces.push({
+      x:canvas.width/2+Math.random()*100-50,
+      y:canvas.height/2,
+      vx:(Math.random()-.5)*12,
+      vy:Math.random()*-10-5,
+      size:Math.random()*6+3,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      rotation:Math.random()*360,
+      rv:(Math.random()-.5)*10,
+      gravity:0.3
+    });
+  }
+  function animConfetti(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive=false;
+    confettiPieces.forEach(p=>{
+      p.x+=p.vx;
+      p.y+=p.vy;
+      p.vy+=p.gravity;
+      p.rotation+=p.rv;
+      p.vx*=0.99;
+      if(p.y<canvas.height+20) alive=true;
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rotation*Math.PI/180);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+      ctx.restore();
+    });
+    if(alive) requestAnimationFrame(animConfetti);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  requestAnimationFrame(animConfetti);
+}
+
+// ============================================================
+// ACHIEVEMENTS
+// ============================================================
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(!GS.achievementsUnlocked.includes(a.id) && a.condition()){
+      GS.achievementsUnlocked.push(a.id);
+      showToast(`🏆 업적 달성: ${a.name}!`);
+      fireConfetti();
+      saveState();
+    }
+  });
+}
+
+function checkNewAchievements(){
+  return ACHIEVEMENTS.some(a=>!GS.achievementsUnlocked.includes(a.id)&&a.condition());
+}
+
+// ============================================================
+// ENERGY REGEN
+// ============================================================
+function regenEnergy(){
+  const now=Date.now();
+  const elapsed=now-GS.lastEnergyRegen;
+  const regained=Math.floor(elapsed/60000); // 1 per minute
+  if(regained>0&&GS.energy<GS.maxEnergy){
+    GS.energy=Math.min(GS.maxEnergy,GS.energy+regained);
+    GS.lastEnergyRegen=now;
+    updateEnergyUI();
+    saveState();
+  }
+}
+
+// ============================================================
+// AUTO HEAL
+// ============================================================
+function autoHeal(){
+  const now=Date.now();
+  if(now-GS.lastAutoHeal>=180000){ // 3 minutes
+    GS.lastAutoHeal=now;
+    CHARACTERS.forEach(c=>{
+      if(c.room&&GS.discovered.includes(c.id)){
+        const lv=GS.roomLevels[c.room]||1;
+        c.heal=Math.min(100,c.heal+2*lv);
+      }
+    });
+    showToast('🌿 치유 시간! 방에 있는 영혼들이 치유되었어요.');
+    saveState();
+    checkAchievements();
+  }
+}
+
+// ============================================================
+// TRAVEL PROGRESS
+// ============================================================
+function updateTravel(){
+  if(GS.settings.autoTravel && GS.travelProgress<100){
+    const elapsed=Date.now()-GS.travelStart;
+    GS.travelProgress=Math.min(100,Math.floor(elapsed/1728000*100)); // ~2 days for full
+    if(GS.travelProgress>=100){
+      const dest=DESTINATIONS.find(d=>d.id===GS.travelDest);
+      if(dest){
+        dest.visited=true;
+        showToast(`🎉 ${dest.name}에 도착했어요!`);
+        // Unlock next destination
+        const idx=DESTINATIONS.indexOf(dest);
+        if(idx<DESTINATIONS.length-1) DESTINATIONS[idx+1].unlocked=true;
+      }
+    }
+    saveState();
+  }
+}
+
+// ============================================================
+// RANDOM ENCOUNTER
+// ============================================================
+function randomEncounter(){
+  if(Math.random()<0.4){ // 40% chance
+    const evt=ENCOUNTER_EVENTS[Math.floor(Math.random()*ENCOUNTER_EVENTS.length)];
+    if(evt.type==='gold'){
+      addGold(evt.amount);
+      showToast(`${evt.msg} ✦+${evt.amount}G`);
+    } else if(evt.type==='heal'){
+      GS.discovered.forEach(id=>{
+        const c=CHARACTERS.find(ch=>ch.id===id);
+        if(c) c.heal=Math.min(100,c.heal+evt.amount);
+      });
+      showToast(`${evt.msg} 모든 영혼 치유+${evt.amount}`);
+    }
+    saveState();
+  }
+}
+
+// ============================================================
+// DAILY LOGIN
+// ============================================================
+function checkDailyLogin(){
+  const today=new Date().toDateString();
+  if(GS.lastLogin===today) return;
+  const yesterday=new Date(Date.now()-86400000).toDateString();
+  if(GS.lastLogin===yesterday){
+    GS.dayStreak=Math.min(7,GS.dayStreak+1);
+  } else if(GS.lastLogin!==today){
+    GS.dayStreak=1;
+  }
+  GS.lastLogin=today;
+  GS.lastDailyReward=today;
+  const reward=DAILY_REWARDS[GS.dayStreak-1]||50;
+  addGold(reward);
+  saveState();
+  // Show daily reward modal
+  let html=`<div class="daily-modal"><button class="cbtn" onclick="closeModal()">✕</button>`;
+  html+=`<h2>🎁 출석 보상</h2>`;
+  html+=`<p style="font-size:.78rem;color:var(--text-light);margin-bottom:8px;">${GS.dayStreak}일 연속 출석!</p>`;
+  html+=`<div class="rg">`;
+  for(let i=0;i<7;i++){
+    const isClaimed=i<GS.dayStreak;
+    const isToday=i===GS.dayStreak-1;
+    html+=`<div class="day${isClaimed?' claimed':''}${isToday?' today':''}">
+      <div>Day ${i+1}</div><span class="amt">${DAILY_REWARDS[i]}G</span>
+    </div>`;
+  }
+  html+=`</div>`;
+  html+=`<p style="text-align:center;font-size:.85rem;font-weight:700;color:var(--gold-color);">+${reward}G 획득!</p>`;
+  html+=`</div>`;
+  setTimeout(()=>showModal(html),3500); // After splash
+}
+
+// ============================================================
+// SCROLL REVEAL
+// ============================================================
+function initScrollReveal(screen){
+  if(!screen) return;
+  const items=screen.querySelectorAll('.scroll-reveal');
+  const observer=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting) e.target.classList.add('visible');
+    });
+  },{threshold:0.1,root:screen});
+  items.forEach(i=>observer.observe(i));
+}
+
+// ============================================================
+// RIPPLE EFFECT
+// ============================================================
+document.addEventListener('click',(e)=>{
+  const target=e.target.closest('.ripple,.action-card,.room-card,.nav-item');
+  if(!target) return;
+  const rect=target.getBoundingClientRect();
+  const ripple=document.createElement('div');
+  ripple.className='ripple-effect';
+  ripple.style.left=(e.clientX-rect.left)+'px';
+  ripple.style.top=(e.clientY-rect.top)+'px';
+  ripple.style.width=ripple.style.height=Math.max(rect.width,rect.height)+'px';
+  target.style.position='relative';
+  target.style.overflow='hidden';
+  target.appendChild(ripple);
+  setTimeout(()=>ripple.remove(),600);
+},{passive:true});
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+function init(){
+  loadState();
+  // Splash
+  setTimeout(()=>{
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(()=>document.getElementById('splash').style.display='none',800);
+  },3000);
+  // Day/Night
+  updateDayNight();
+  setInterval(updateDayNight,60000);
+  // Weather
+  updateWeather();
+  setInterval(rotateWeather,300000); // every 5 min
+  // UI
+  updateEnergyUI();
+  updateGoldUI();
+  // Render home
+  renderHome();
+  initScrollReveal(document.getElementById('screen-home'));
+  // Particles
+  initParticles();
+  // Timers
+  setInterval(()=>{regenEnergy();autoHeal();updateTravel();},5000);
+  // Toast rotation
+  setInterval(()=>{
+    if(GS.settings.notifications){
+      showToast(TOAST_MSGS[Math.floor(Math.random()*TOAST_MSGS.length)]);
+    }
+  },15000);
+  // Random encounter
+  setInterval(randomEncounter,30000);
+  // Heal timer update
+  setInterval(()=>{
+    if(currentScreen==='home'){
+      const elapsed=Date.now()-GS.lastAutoHeal;
+      const remaining=Math.max(0,180000-elapsed);
+      const rm=Math.floor(remaining/60000),rs=Math.floor((remaining%60000)/1000);
+      const el=document.getElementById('heal-timer');
+      if(el) el.textContent=`🌿 다음 치유까지 ${rm}:${String(rs).padStart(2,'0')}`;
+    }
+  },1000);
+  // Story rotation
+  GS.storyIndex=Math.floor(Date.now()/86400000)%STORIES.length;
+  GS.storyTyped=false;
+  // Daily login
+  checkDailyLogin();
+  // Check achievements
+  setTimeout(checkAchievements,4000);
+}
+
+document.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
 </html>
