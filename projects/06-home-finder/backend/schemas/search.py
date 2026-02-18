@@ -56,6 +56,23 @@ class SearchCriteria(BaseModel):
         None, description="향 목록 (남향, 남동향 등 복수 선택 가능)"
     )
 
+    # 토지 전용 필터
+    property_category: Optional[str] = Field(
+        None, description="매물 분류: 건물, 토지, 또는 None=전체"
+    )
+    land_uses: Optional[List[str]] = Field(
+        None, description="지목 필터 (대, 전, 답, 잡종지 등)"
+    )
+    zoning_types: Optional[List[str]] = Field(
+        None, description="용도지역 필터"
+    )
+    min_bcr: Optional[float] = Field(
+        None, ge=0, description="최소 건폐율 (%)"
+    )
+    min_far: Optional[float] = Field(
+        None, ge=0, description="최소 용적률 (%)"
+    )
+
     # 세대수 필터
     min_total_units: Optional[int] = Field(
         None, ge=0, description="최소 세대수 (단지 기준)"

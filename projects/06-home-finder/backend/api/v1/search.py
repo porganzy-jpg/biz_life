@@ -41,6 +41,13 @@ def _prop_to_brief(p):
         "nearest_subway_distance": p.nearest_subway_distance,
         "lat": p.lat,
         "lng": p.lng,
+        # Land fields
+        "land_use": p.land_use,
+        "zoning_type": p.zoning_type,
+        "building_coverage_ratio": p.building_coverage_ratio,
+        "floor_area_ratio": p.floor_area_ratio,
+        "road_frontage": p.road_frontage,
+        "topography": p.topography,
         "is_active": p.is_active,
         "created_at": p.created_at.isoformat() if p.created_at else None,
     }
@@ -119,6 +126,22 @@ def _execute_search(db: Session, criteria: SearchCriteria) -> dict:
     # Direction filter
     if criteria.directions:
         query = query.filter(Property.direction.in_(criteria.directions))
+
+    # Land / Building category filter
+    if criteria.property_category == "건물":
+        query = query.filter(Property.property_type != "토지")
+    elif criteria.property_category == "토지":
+        query = query.filter(Property.property_type == "토지")
+
+    # Land-specific filters
+    if criteria.land_uses:
+        query = query.filter(Property.land_use.in_(criteria.land_uses))
+    if criteria.zoning_types:
+        query = query.filter(Property.zoning_type.in_(criteria.zoning_types))
+    if criteria.min_bcr is not None:
+        query = query.filter(Property.building_coverage_ratio >= criteria.min_bcr)
+    if criteria.min_far is not None:
+        query = query.filter(Property.floor_area_ratio >= criteria.min_far)
 
     # Total units filter (JOIN Complex)
     if criteria.min_total_units is not None:

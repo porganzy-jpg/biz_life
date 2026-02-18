@@ -23,7 +23,8 @@
                 <span class="badge bg-primary" id="propType">-</span>
             </div>
             <div class="card-body">
-                <div class="row">
+                <!-- 건물 정보 (토지일 때 숨김) -->
+                <div id="buildingInfo" class="row">
                     <div class="col-md-6">
                         <table class="table table-sm">
                             <tr><th>주소</th><td id="propAddress">-</td></tr>
@@ -46,6 +47,29 @@
                             <tr><th>가까운 공원</th><td id="propPark">-</td></tr>
                             <tr><th>한강 거리</th><td id="propRiver">-</td></tr>
                             <tr><th>m2당 가격</th><td id="propPriceM2">-</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <!-- 토지 정보 (건물일 때 숨김) -->
+                <div id="landInfo" style="display:none;" class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr><th>주소</th><td id="landAddress">-</td></tr>
+                            <tr><th>가격</th><td id="landPrice" class="fw-bold text-primary">-</td></tr>
+                            <tr><th>면적</th><td id="landArea">-</td></tr>
+                            <tr><th>지목</th><td id="landUse">-</td></tr>
+                            <tr><th>용도지역</th><td id="landZoning">-</td></tr>
+                            <tr><th>건폐율</th><td id="landBcr">-</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm">
+                            <tr><th>용적률</th><td id="landFar">-</td></tr>
+                            <tr><th>접도</th><td id="landRoad">-</td></tr>
+                            <tr><th>지형</th><td id="landTopo">-</td></tr>
+                            <tr><th>m2당 가격</th><td id="landPriceM2">-</td></tr>
+                            <tr><th>가까운 역</th><td id="landSubway">-</td></tr>
+                            <tr><th>출처</th><td id="landSource">-</td></tr>
                         </table>
                     </div>
                 </div>
@@ -110,25 +134,53 @@ async function loadProperty() {
     if (!resp.ok) { document.getElementById('propName').textContent = '매물을 찾을 수 없습니다'; return; }
     const p = await resp.json();
 
-    document.getElementById('propTitle').textContent = p.complex_name || p.address || `매물 #${p.id}`;
-    document.getElementById('propName').textContent = p.complex_name || p.address || `매물 #${p.id}`;
+    const isLand = p.property_type === '토지';
+    const titleText = p.complex_name || p.address || `매물 #${p.id}`;
+    document.getElementById('propTitle').textContent = titleText;
+    document.getElementById('propName').textContent = titleText;
     document.getElementById('propType').textContent = p.property_type;
-    document.getElementById('propAddress').textContent = `${p.district || ''} ${p.dong || ''} ${p.address || ''}`;
-    document.getElementById('propPrice').textContent = formatPrice(p.price_krw);
-    document.getElementById('propArea').textContent = p.area_m2 ? `${p.area_m2}㎡` : '-';
-    document.getElementById('propFloor').textContent = p.floor ? `${p.floor}층${p.total_floors ? '/'+p.total_floors+'층' : ''}` : '-';
-    document.getElementById('propDirection').textContent = p.direction || '-';
-    document.getElementById('propBuiltYear').textContent = p.built_year || '-';
-    document.getElementById('propMaintenance').textContent = p.maintenance_fee ? `${p.maintenance_fee}만원` : '-';
-    document.getElementById('propRooms').textContent = `${p.rooms || '-'}방 / ${p.bathrooms || '-'}욕실`;
-    document.getElementById('propComplex').textContent = p.complex_name || '-';
-    document.getElementById('propSource').textContent = p.source;
-    document.getElementById('propSubway').textContent = p.nearest_subway_name || '-';
-    document.getElementById('propSubwayDist').textContent = p.nearest_subway_distance ? `${Math.round(p.nearest_subway_distance)}m` : '-';
-    document.getElementById('propLines').textContent = p.nearest_subway_lines || '-';
-    document.getElementById('propPark').textContent = p.nearest_park_name || '-';
-    document.getElementById('propRiver').textContent = p.nearest_river_distance ? `${Math.round(p.nearest_river_distance)}m` : '-';
-    document.getElementById('propPriceM2').textContent = p.price_per_m2 ? `${Math.round(p.price_per_m2/10000)}만/㎡` : '-';
+    if (isLand) document.getElementById('propType').classList.replace('bg-primary', 'bg-success');
+
+    if (isLand) {
+        // 토지: 건물정보 숨기고 토지정보 표시
+        document.getElementById('buildingInfo').style.display = 'none';
+        document.getElementById('landInfo').style.display = 'flex';
+        document.getElementById('landAddress').textContent = `${p.district || ''} ${p.dong || ''} ${p.address || ''}`;
+        document.getElementById('landPrice').textContent = formatPrice(p.price_krw);
+        document.getElementById('landArea').textContent = p.area_m2 ? `${p.area_m2}㎡ (${(p.area_m2/3.3058).toFixed(0)}평)` : '-';
+        document.getElementById('landUse').textContent = p.land_use || '-';
+        document.getElementById('landZoning').textContent = p.zoning_type || '-';
+        document.getElementById('landBcr').textContent = p.building_coverage_ratio != null ? `${p.building_coverage_ratio}%` : '-';
+        document.getElementById('landFar').textContent = p.floor_area_ratio != null ? `${p.floor_area_ratio}%` : '-';
+        document.getElementById('landRoad').textContent = p.road_frontage || '-';
+        document.getElementById('landTopo').textContent = p.topography || '-';
+        document.getElementById('landPriceM2').textContent = p.price_per_m2 ? `${Math.round(p.price_per_m2/10000)}만/㎡` : '-';
+        document.getElementById('landSubway').textContent = p.nearest_subway_name
+            ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance) + 'm' : ''}`
+            : '-';
+        document.getElementById('landSource').textContent = p.source;
+    } else {
+        // 건물: 기존 표시
+        document.getElementById('buildingInfo').style.display = 'flex';
+        document.getElementById('landInfo').style.display = 'none';
+        document.getElementById('propAddress').textContent = `${p.district || ''} ${p.dong || ''} ${p.address || ''}`;
+        document.getElementById('propPrice').textContent = formatPrice(p.price_krw);
+        document.getElementById('propArea').textContent = p.area_m2 ? `${p.area_m2}㎡` : '-';
+        document.getElementById('propFloor').textContent = p.floor ? `${p.floor}층${p.total_floors ? '/'+p.total_floors+'층' : ''}` : '-';
+        document.getElementById('propDirection').textContent = p.direction || '-';
+        document.getElementById('propBuiltYear').textContent = p.built_year || '-';
+        document.getElementById('propMaintenance').textContent = p.maintenance_fee ? `${p.maintenance_fee}만원` : '-';
+        document.getElementById('propRooms').textContent = `${p.rooms || '-'}방 / ${p.bathrooms || '-'}욕실`;
+        document.getElementById('propComplex').textContent = p.complex_name || '-';
+        document.getElementById('propSource').textContent = p.source;
+        document.getElementById('propSubway').textContent = p.nearest_subway_name || '-';
+        document.getElementById('propSubwayDist').textContent = p.nearest_subway_distance ? `${Math.round(p.nearest_subway_distance)}m` : '-';
+        document.getElementById('propLines').textContent = p.nearest_subway_lines || '-';
+        document.getElementById('propPark').textContent = p.nearest_park_name || '-';
+        document.getElementById('propRiver').textContent = p.nearest_river_distance ? `${Math.round(p.nearest_river_distance)}m` : '-';
+        document.getElementById('propPriceM2').textContent = p.price_per_m2 ? `${Math.round(p.price_per_m2/10000)}만/㎡` : '-';
+    }
+
     document.getElementById('propDescription').textContent = p.description || '';
     if (p.source_url) document.getElementById('sourceLink').href = p.source_url;
 
@@ -139,8 +191,19 @@ async function loadProperty() {
     document.getElementById('scoreProperty').textContent = (p.score_property || 0).toFixed(1);
     document.getElementById('scoreArea').textContent = (p.score_area || 0).toFixed(1);
 
+    // 채점 라벨 변경 (토지이면 "토지")
+    const propLabel = isLand ? '토지' : '매물';
+    const scoreRows = document.querySelectorAll('#propertyDetail .card-body table tr');
+    scoreRows.forEach(row => {
+        const td = row.querySelector('td:first-child');
+        if (td && td.textContent.includes('매물')) {
+            td.textContent = td.textContent.replace('매물', propLabel);
+        }
+    });
+
     // Score radar chart
-    renderRadarChart('scoreRadar', ['위치','가격','매물','지역'],
+    const radarLabel = isLand ? '토지' : '매물';
+    renderRadarChart('scoreRadar', ['위치','가격',radarLabel,'지역'],
         [p.score_location||0, p.score_price||0, p.score_property||0, p.score_area||0]);
 }
 

@@ -183,6 +183,65 @@ REAL_APARTMENTS = [
 
 DIRECTIONS = ["남향", "남동향", "남서향", "동향", "서향"]
 
+# ──────────── 실제 서울 토지 데이터 ────────────
+REAL_LAND_PARCELS = [
+    # ── 마포구 ──
+    {"district": "마포구", "dong": "연남동", "lat": 37.5668, "lng": 126.9240,
+     "area": 265, "price_per_pyeong": 5500, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "4~6m", "topo": "평지"},
+    {"district": "마포구", "dong": "망원동", "lat": 37.5562, "lng": 126.9100,
+     "area": 198, "price_per_pyeong": 4800, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "4m미만", "topo": "평지"},
+    # ── 용산구 ──
+    {"district": "용산구", "dong": "한남동", "lat": 37.5355, "lng": 127.0020,
+     "area": 330, "price_per_pyeong": 8000, "land_use": "대", "zoning": "제1종일반주거",
+     "bcr": 50, "far": 150, "road": "6~8m", "topo": "완경사"},
+    {"district": "용산구", "dong": "이태원동", "lat": 37.5345, "lng": 126.9940,
+     "area": 210, "price_per_pyeong": 7000, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "4~6m", "topo": "경사"},
+    # ── 성동구 ──
+    {"district": "성동구", "dong": "금호동", "lat": 37.5540, "lng": 127.0180,
+     "area": 280, "price_per_pyeong": 4200, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "4~6m", "topo": "완경사"},
+    # ── 광진구 ──
+    {"district": "광진구", "dong": "자양동", "lat": 37.5380, "lng": 127.0740,
+     "area": 350, "price_per_pyeong": 3800, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "8m이상", "topo": "평지"},
+    # ── 영등포구 ──
+    {"district": "영등포구", "dong": "문래동", "lat": 37.5170, "lng": 126.8960,
+     "area": 420, "price_per_pyeong": 3500, "land_use": "잡종지", "zoning": "준주거",
+     "bcr": 60, "far": 400, "road": "8m이상", "topo": "평지"},
+    # ── 동작구 ──
+    {"district": "동작구", "dong": "흑석동", "lat": 37.5060, "lng": 126.9590,
+     "area": 230, "price_per_pyeong": 4500, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "4~6m", "topo": "경사"},
+    # ── 강동구 ──
+    {"district": "강동구", "dong": "상일동", "lat": 37.5490, "lng": 127.1680,
+     "area": 310, "price_per_pyeong": 2800, "land_use": "전", "zoning": "제1종일반주거",
+     "bcr": 50, "far": 100, "road": "4m미만", "topo": "평지"},
+    {"district": "강동구", "dong": "강일동", "lat": 37.5560, "lng": 127.1750,
+     "area": 500, "price_per_pyeong": 2500, "land_use": "답", "zoning": "자연녹지",
+     "bcr": 20, "far": 80, "road": "맹지", "topo": "평지"},
+    # ── 은평구 ──
+    {"district": "은평구", "dong": "진관동", "lat": 37.6350, "lng": 126.9250,
+     "area": 380, "price_per_pyeong": 2200, "land_use": "대", "zoning": "제1종일반주거",
+     "bcr": 50, "far": 100, "road": "6~8m", "topo": "완경사"},
+    {"district": "은평구", "dong": "구산동", "lat": 37.6100, "lng": 126.9200,
+     "area": 195, "price_per_pyeong": 3200, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "4~6m", "topo": "평지"},
+    # ── 강서구 ──
+    {"district": "강서구", "dong": "방화동", "lat": 37.5750, "lng": 126.8150,
+     "area": 290, "price_per_pyeong": 2600, "land_use": "대", "zoning": "제1종일반주거",
+     "bcr": 50, "far": 100, "road": "4~6m", "topo": "평지"},
+    # ── 노원구 ──
+    {"district": "노원구", "dong": "공릉동", "lat": 37.6250, "lng": 127.0750,
+     "area": 220, "price_per_pyeong": 2000, "land_use": "대", "zoning": "제2종일반주거",
+     "bcr": 60, "far": 200, "road": "4~6m", "topo": "완경사"},
+    {"district": "노원구", "dong": "월계동", "lat": 37.6200, "lng": 127.0600,
+     "area": 180, "price_per_pyeong": 2300, "land_use": "잡종지", "zoning": "제3종일반주거",
+     "bcr": 50, "far": 250, "road": "8m이상", "topo": "평지"},
+]
+
 
 def generate_properties(db):
     """실제 데이터 기반 매물 생성"""
@@ -244,6 +303,61 @@ def generate_properties(db):
 
     db.commit()
     print(f"  매물 {count}건 생성")
+    return count
+
+
+def generate_land_parcels(db):
+    """토지 매물 데이터 생성"""
+    count = 0
+    for land in REAL_LAND_PARCELS:
+        # 평(坪) → m2 변환: 1평 = 3.3058m2
+        pyeong = land["area"] / 3.3058
+        price_krw = int(land["price_per_pyeong"] * pyeong * 10000)
+        price_per_m2 = int(price_krw / land["area"]) if land["area"] > 0 else 0
+
+        # 좌표 미세 변동
+        lat = land["lat"] + random.uniform(-0.001, 0.001)
+        lng = land["lng"] + random.uniform(-0.001, 0.001)
+
+        prop = Property(
+            source="manual",
+            source_id=f"land_{land['district']}_{land['dong']}_{count}_{random.randint(1000,9999)}",
+            property_type="토지",
+            acquisition_type="매매",
+            city="서울특별시",
+            district=land["district"],
+            dong=land["dong"],
+            address=f"{land['dong']} {random.randint(100, 999)}번지",
+            lat=lat,
+            lng=lng,
+            price_krw=price_krw,
+            price_per_m2=price_per_m2,
+            area_m2=land["area"],
+            # Land-specific fields
+            land_use=land["land_use"],
+            zoning_type=land["zoning"],
+            building_coverage_ratio=land["bcr"],
+            floor_area_ratio=land["far"],
+            road_frontage=land["road"],
+            topography=land["topo"],
+            # No building-specific fields
+            floor=None,
+            total_floors=None,
+            rooms=None,
+            bathrooms=None,
+            direction=None,
+            built_year=None,
+            maintenance_fee=None,
+            complex_name=None,
+            source_url="https://www.eum.go.kr/",
+            description=f"{land['dong']} {land['land_use']} {land['area']}㎡ {land['zoning']} {land['topo']}",
+            is_active=1,
+        )
+        db.add(prop)
+        count += 1
+
+    db.commit()
+    print(f"  토지 {count}건 생성")
     return count
 
 
@@ -488,19 +602,22 @@ if __name__ == "__main__":
         if existing > 0:
             print(f"\n기존 매물 {existing}건이 있습니다. 추가 생성합니다.")
 
-        print("\n[1/5] 매물 데이터 생성...")
+        print("\n[1/6] 매물 데이터 생성...")
         generate_properties(db)
 
-        print("[2/5] 실거래 데이터 생성...")
+        print("[2/6] 토지 데이터 생성...")
+        generate_land_parcels(db)
+
+        print("[3/6] 실거래 데이터 생성...")
         generate_transactions(db)
 
-        print("[3/5] 경매 데이터 생성...")
+        print("[4/6] 경매 데이터 생성...")
         generate_auctions(db)
 
-        print("[4/5] 청약 데이터 생성...")
+        print("[5/6] 청약 데이터 생성...")
         generate_subscriptions(db)
 
-        print("[5/5] 지역분석 데이터 생성...")
+        print("[6/6] 지역분석 데이터 생성...")
         generate_areas(db)
 
         print("\n[채점] 전체 매물 스코어링 중...")
@@ -509,13 +626,15 @@ if __name__ == "__main__":
         # Summary
         print("\n" + "=" * 50)
         props = db.query(Property).count()
+        land_props = db.query(Property).filter(Property.property_type == "토지").count()
+        building_props = props - land_props
         txs = db.query(TransactionHistory).count()
         auctions = db.query(AuctionListing).count()
         subs = db.query(SubscriptionOpportunity).count()
         areas = db.query(Area).count()
         scored = db.query(Property).filter(Property.score_composite.isnot(None)).count()
 
-        print(f"매물:     {props}건")
+        print(f"매물:     {props}건 (건물 {building_props} / 토지 {land_props})")
         print(f"실거래:   {txs}건")
         print(f"경매:     {auctions}건")
         print(f"청약:     {subs}건")

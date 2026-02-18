@@ -6,6 +6,7 @@ import logging
 from scoring.location_scorer import LocationScorer
 from scoring.price_scorer import PriceScorer
 from scoring.property_scorer import PropertyScorer
+from scoring.land_property_scorer import LandPropertyScorer
 from scoring.area_scorer import AreaScorer
 
 logger = logging.getLogger("homefinder.scorer")
@@ -21,6 +22,7 @@ class CompositeScorer:
         self.location_scorer = None  # Set via set_reference_data
         self.price_scorer = PriceScorer(config.BUDGET_MIN_KRW, config.BUDGET_MAX_KRW)
         self.property_scorer = PropertyScorer()
+        self.land_property_scorer = LandPropertyScorer()
         self.area_scorer = AreaScorer()
 
     def set_reference_data(self, subway_stations: list, parks: list, river_points: list):
@@ -62,18 +64,29 @@ class CompositeScorer:
             location_score=loc_result["total"],
         )
 
-        # Property score
-        prop_result = self.property_scorer.score(
-            built_year=get("built_year"),
-            floor=get("floor"),
-            total_floors=get("total_floors"),
-            direction=get("direction"),
-            maintenance_fee=get("maintenance_fee"),
-            rooms=get("rooms"),
-            bathrooms=get("bathrooms"),
-            area_m2=get("area_m2"),
-            area_supply_m2=get("area_supply_m2"),
-        )
+        # Property score (토지/건물 분기)
+        property_type = get("property_type")
+        if property_type == "토지":
+            prop_result = self.land_property_scorer.score(
+                zoning_type=get("zoning_type"),
+                building_coverage_ratio=get("building_coverage_ratio"),
+                floor_area_ratio=get("floor_area_ratio"),
+                road_frontage=get("road_frontage"),
+                topography=get("topography"),
+                area_m2=get("area_m2"),
+            )
+        else:
+            prop_result = self.property_scorer.score(
+                built_year=get("built_year"),
+                floor=get("floor"),
+                total_floors=get("total_floors"),
+                direction=get("direction"),
+                maintenance_fee=get("maintenance_fee"),
+                rooms=get("rooms"),
+                bathrooms=get("bathrooms"),
+                area_m2=get("area_m2"),
+                area_supply_m2=get("area_supply_m2"),
+            )
 
         # Area score
         area_result = self.area_scorer.score(

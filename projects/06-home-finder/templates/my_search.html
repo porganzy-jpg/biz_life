@@ -113,6 +113,16 @@
                 </button>
             </div>
 
+            <!-- Property Category -->
+            <div class="filter-section">
+                <label class="form-label">매물 분류</label>
+                <select id="propertyCategory" class="form-select form-select-sm" onchange="onCategoryChange()">
+                    <option value="">전체</option>
+                    <option value="건물">건물만</option>
+                    <option value="토지">토지만</option>
+                </select>
+            </div>
+
             <!-- Budget -->
             <div class="filter-section">
                 <label class="form-label">예산 범위</label>
@@ -161,8 +171,8 @@
                 </div>
             </div>
 
-            <!-- Building Age -->
-            <div class="filter-section">
+            <!-- Building Age (건물 전용) -->
+            <div class="filter-section building-filter">
                 <label class="form-label">건물 연식: <span id="ageLabel" class="range-display">제한없음</span></label>
                 <input type="range" id="maxAge" class="form-range" min="0" max="40" step="1" value="40">
                 <div class="d-flex justify-content-between">
@@ -171,14 +181,14 @@
                 </div>
             </div>
 
-            <!-- Floor -->
-            <div class="filter-section">
+            <!-- Floor (건물 전용) -->
+            <div class="filter-section building-filter">
                 <label class="form-label">최소 층수</label>
                 <input type="number" id="floorMin" class="form-control form-control-sm" placeholder="예: 3" min="0">
             </div>
 
-            <!-- Direction -->
-            <div class="filter-section">
+            <!-- Direction (건물 전용) -->
+            <div class="filter-section building-filter">
                 <label class="form-label">향</label>
                 <div>
                     {% for dir in ["남향", "남동향", "남서향", "동향", "서향", "북향"] %}
@@ -190,10 +200,44 @@
                 </div>
             </div>
 
-            <!-- Total Units -->
-            <div class="filter-section">
+            <!-- Total Units (건물 전용) -->
+            <div class="filter-section building-filter">
                 <label class="form-label">최소 세대수</label>
                 <input type="number" id="minUnits" class="form-control form-control-sm" placeholder="예: 300" min="0">
+            </div>
+
+            <!-- Land-specific Filters (토지 전용) -->
+            <div id="landFilters" style="display:none;">
+                <div class="filter-section">
+                    <label class="form-label">지목</label>
+                    <div>
+                        {% for lu in ["대", "전", "답", "잡종지"] %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input land-use-cb" type="checkbox" value="{{ lu }}" id="lu-{{ lu }}">
+                            <label class="form-check-label" for="lu-{{ lu }}" style="font-size:0.82rem;">{{ lu }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <label class="form-label">용도지역</label>
+                    <div>
+                        {% for zt in ["제1종일반주거", "제2종일반주거", "제3종일반주거", "준주거"] %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input zoning-cb" type="checkbox" value="{{ zt }}" id="zt-{{ zt }}">
+                            <label class="form-check-label" for="zt-{{ zt }}" style="font-size:0.82rem;">{{ zt }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <label class="form-label">최소 건폐율 (%)</label>
+                    <input type="number" id="minBcr" class="form-control form-control-sm" placeholder="예: 50" min="0" max="100">
+                </div>
+                <div class="filter-section">
+                    <label class="form-label">최소 용적률 (%)</label>
+                    <input type="number" id="minFar" class="form-control form-control-sm" placeholder="예: 150" min="0">
+                </div>
             </div>
 
             <!-- Score -->
@@ -376,6 +420,22 @@ function buildCriteria(page) {
     const scoreMin = parseInt(document.getElementById('scoreMin').value);
     if (scoreMin > 0) c.score_min = scoreMin;
 
+    // Property category & land filters
+    const category = document.getElementById('propertyCategory').value;
+    if (category) c.property_category = category;
+
+    const landUses = [...document.querySelectorAll('.land-use-cb:checked')].map(cb => cb.value);
+    if (landUses.length > 0) c.land_uses = landUses;
+
+    const zonings = [...document.querySelectorAll('.zoning-cb:checked')].map(cb => cb.value);
+    if (zonings.length > 0) c.zoning_types = zonings;
+
+    const minBcr = parseFloat(document.getElementById('minBcr').value);
+    if (minBcr) c.min_bcr = minBcr;
+
+    const minFar = parseFloat(document.getElementById('minFar').value);
+    if (minFar) c.min_far = minFar;
+
     c.sort = document.getElementById('sortOrder').value;
     return c;
 }
@@ -449,10 +509,36 @@ function renderResults(items) {
         const sPrice = p.score_price || 0;
         const sProp = p.score_property || 0;
         const sArea = p.score_area || 0;
-        const age = p.built_year ? (new Date().getFullYear() - p.built_year) + '년' : '-';
-        const subwayInfo = p.nearest_subway_name
-            ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance) + 'm' : ''}`
-            : '-';
+        const isLand = p.property_type === '토지';
+        const typeBadge = isLand
+            ? '<span class="badge bg-success ms-1" style="font-size:0.7rem;">토지</span>'
+            : `<span class="badge bg-secondary ms-1" style="font-size:0.7rem;">${p.property_type || ''}</span>`;
+
+        let detailRow = '';
+        if (isLand) {
+            const subwayInfo = p.nearest_subway_name
+                ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance) + 'm' : ''}`
+                : '-';
+            detailRow = `
+                <span><i class="bi bi-signpost-split"></i> ${p.land_use || '-'}</span>
+                <span><i class="bi bi-building-gear"></i> ${p.zoning_type || '-'}</span>
+                <span><i class="bi bi-bounding-box"></i> 건폐${p.building_coverage_ratio || '-'}%/용적${p.floor_area_ratio || '-'}%</span>
+                <span><i class="bi bi-signpost"></i> ${p.road_frontage || '-'}</span>
+                <span><i class="bi bi-train-front"></i> ${subwayInfo}</span>`;
+        } else {
+            const age = p.built_year ? (new Date().getFullYear() - p.built_year) + '년' : '-';
+            const subwayInfo = p.nearest_subway_name
+                ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance) + 'm' : ''}`
+                : '-';
+            detailRow = `
+                <span><i class="bi bi-train-front"></i> ${subwayInfo}</span>
+                <span><i class="bi bi-layers"></i> ${p.floor ? p.floor + '층' : '-'}</span>
+                <span><i class="bi bi-calendar3"></i> ${age}</span>
+                <span><i class="bi bi-compass"></i> ${p.direction || '-'}</span>
+                <span><i class="bi bi-door-open"></i> ${p.rooms ? p.rooms + '룸' : '-'}</span>`;
+        }
+
+        const propLabel = isLand ? '토지' : '매물';
 
         return `
         <div class="result-card" onclick="onCardClick(${p.id}, ${p.lat || 'null'}, ${p.lng || 'null'})">
@@ -463,8 +549,8 @@ function renderResults(items) {
                 <div class="col">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h6 class="mb-1">${p.complex_name || p.address || '매물 #' + p.id}</h6>
-                            <small class="text-muted">${p.district || ''} ${p.dong || ''} · ${p.property_type || ''}</small>
+                            <h6 class="mb-1">${p.complex_name || p.address || '매물 #' + p.id} ${typeBadge}</h6>
+                            <small class="text-muted">${p.district || ''} ${p.dong || ''}</small>
                         </div>
                         <div class="text-end">
                             <div class="fw-bold text-primary">${krwToEok(p.price_krw)}</div>
@@ -472,11 +558,7 @@ function renderResults(items) {
                         </div>
                     </div>
                     <div class="d-flex flex-wrap gap-3 mt-2 small text-muted">
-                        <span><i class="bi bi-train-front"></i> ${subwayInfo}</span>
-                        <span><i class="bi bi-layers"></i> ${p.floor ? p.floor + '층' : '-'}</span>
-                        <span><i class="bi bi-calendar3"></i> ${age}</span>
-                        <span><i class="bi bi-compass"></i> ${p.direction || '-'}</span>
-                        <span><i class="bi bi-door-open"></i> ${p.rooms ? p.rooms + '룸' : '-'}</span>
+                        ${detailRow}
                     </div>
                     <!-- Sub-scores -->
                     <div class="row mt-2 gx-2" style="max-width:400px;">
@@ -490,7 +572,7 @@ function renderResults(items) {
                         </div>
                         <div class="col-3">
                             <div class="sub-score-bar"><div class="sub-score-fill" style="width:${sProp}%;background:${subScoreColor(sProp)}"></div></div>
-                            <div style="font-size:0.65rem;color:#888;">매물 ${sProp.toFixed(0)}</div>
+                            <div style="font-size:0.65rem;color:#888;">${propLabel} ${sProp.toFixed(0)}</div>
                         </div>
                         <div class="col-3">
                             <div class="sub-score-bar"><div class="sub-score-fill" style="width:${sArea}%;background:${subScoreColor(sArea)}"></div></div>
@@ -703,7 +785,24 @@ function toggleAllDistricts(checked) {
     document.querySelectorAll('.district-cb').forEach(cb => cb.checked = checked);
 }
 
+function onCategoryChange() {
+    const cat = document.getElementById('propertyCategory').value;
+    const landFilters = document.getElementById('landFilters');
+    const buildingFilters = document.querySelectorAll('.building-filter');
+    if (cat === '토지') {
+        landFilters.style.display = 'block';
+        buildingFilters.forEach(el => el.style.display = 'none');
+    } else if (cat === '건물') {
+        landFilters.style.display = 'none';
+        buildingFilters.forEach(el => el.style.display = 'block');
+    } else {
+        landFilters.style.display = 'none';
+        buildingFilters.forEach(el => el.style.display = 'block');
+    }
+}
+
 function resetFilters() {
+    document.getElementById('propertyCategory').value = '';
     document.getElementById('priceMin').value = '';
     document.getElementById('priceMax').value = '';
     document.querySelectorAll('.district-cb').forEach(cb => cb.checked = false);
@@ -714,12 +813,17 @@ function resetFilters() {
     document.getElementById('floorMin').value = '';
     document.querySelectorAll('.direction-cb').forEach(cb => cb.checked = false);
     document.getElementById('minUnits').value = '';
+    document.querySelectorAll('.land-use-cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.zoning-cb').forEach(cb => cb.checked = false);
+    document.getElementById('minBcr').value = '';
+    document.getElementById('minFar').value = '';
     document.getElementById('scoreMin').value = 0;
     document.getElementById('sortOrder').value = 'score_desc';
     updateSubwayLabel();
     updateAgeLabel();
     updateScoreLabel();
     document.getElementById('priceDisplay').textContent = '';
+    onCategoryChange();
 }
 
 function updatePriceDisplay() {
@@ -812,18 +916,46 @@ function updateMapMarkers(items) {
     const bounds = new kakao.maps.LatLngBounds();
     const kakaoMarkers = [];
 
+    // Land marker SVG (green flag)
+    const LAND_MARKER_SVG = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">' +
+        '<path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.3 21.7 0 14 0z" fill="#198754"/>' +
+        '<circle cx="14" cy="14" r="8" fill="white"/>' +
+        '<text x="14" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#198754">T</text>' +
+        '</svg>'
+    );
+
     for (const p of items) {
         if (!p.lat || !p.lng) continue;
         const pos = new kakao.maps.LatLng(p.lat, p.lng);
         bounds.extend(pos);
 
-        const marker = new kakao.maps.Marker({ position: pos });
+        const isLand = p.property_type === '토지';
+        let markerOpts = { position: pos };
+        if (isLand) {
+            const imgSize = new kakao.maps.Size(28, 40);
+            const imgOption = { offset: new kakao.maps.Point(14, 40) };
+            markerOpts.image = new kakao.maps.MarkerImage(LAND_MARKER_SVG, imgSize, imgOption);
+        }
+        const marker = new kakao.maps.Marker(markerOpts);
 
         kakao.maps.event.addListener(marker, 'click', (function(prop) {
             return function() {
                 const score = (prop.score_composite || 0).toFixed(0);
                 const scoreColor = prop.score_composite >= 70 ? '#198754' : prop.score_composite >= 45 ? '#0d6efd' : '#6c757d';
-                const content = `
+                let infoContent = '';
+                if (prop.property_type === '토지') {
+                    infoContent = `
+                    <div style="padding:12px;min-width:220px;font-size:13px;line-height:1.6">
+                        <strong style="color:#198754">[토지]</strong> ${prop.address || '매물 #' + prop.id}<br>
+                        <span style="color:#0d6efd;font-weight:700">${krwToEok(prop.price_krw)}</span>
+                        <span style="margin-left:8px;color:${scoreColor};font-weight:600">점수 ${score}</span><br>
+                        <small>${prop.area_m2 ? prop.area_m2 + '㎡' : ''} · ${prop.land_use || ''} · ${prop.zoning_type || ''}</small><br>
+                        <small>건폐${prop.building_coverage_ratio || '-'}% / 용적${prop.floor_area_ratio || '-'}%</small><br>
+                        <a href="/property/${prop.id}" style="font-size:12px">상세보기 →</a>
+                    </div>`;
+                } else {
+                    infoContent = `
                     <div style="padding:12px;min-width:220px;font-size:13px;line-height:1.6">
                         <strong>${prop.complex_name || prop.address || '매물 #' + prop.id}</strong><br>
                         <span style="color:#0d6efd;font-weight:700">${krwToEok(prop.price_krw)}</span>
@@ -831,7 +963,8 @@ function updateMapMarkers(items) {
                         <small>${prop.district || ''} ${prop.dong || ''} · ${prop.area_m2 ? prop.area_m2 + '㎡' : ''}</small><br>
                         <a href="/property/${prop.id}" style="font-size:12px">상세보기 →</a>
                     </div>`;
-                sInfowindow.setContent(content);
+                }
+                sInfowindow.setContent(infoContent);
                 sInfowindow.open(sMap, marker);
             };
         })(p));

@@ -75,7 +75,7 @@ WATCHLIST = [
 
 # === 대시보드 ===
 DASHBOARD_HOST = "0.0.0.0"
-DASHBOARD_PORT = 8081
+DASHBOARD_PORT = 8082
 
 # === 텔레그램 ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")

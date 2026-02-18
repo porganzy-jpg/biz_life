@@ -40,6 +40,14 @@ class Property(Base):
     complex_name = Column(String(100))
     complex_id = Column(Integer)
 
+    # Land-specific (토지 전용, nullable)
+    land_use = Column(String(30))           # 지목: 대, 전, 답, 임야, 잡종지
+    zoning_type = Column(String(50))        # 용도지역: 제1종일반주거, 제2종일반주거, ...
+    building_coverage_ratio = Column(Float) # 건폐율 (%)
+    floor_area_ratio = Column(Float)        # 용적률 (%)
+    road_frontage = Column(String(50))      # 접도: 맹지, 4m미만, 4~6m, 6~8m, 8m이상
+    topography = Column(String(30))         # 지형: 평지, 완경사, 경사
+
     # Scoring
     score_location = Column(Float)
     score_price = Column(Float)
@@ -71,4 +79,6 @@ class Property(Base):
         Index("ix_prop_price", "price_krw"),
         Index("ix_prop_score", "score_composite"),
         Index("ix_prop_source_id", "source", "source_id", unique=True),
+        Index("ix_prop_land_use", "land_use"),
+        Index("ix_prop_zoning", "zoning_type"),
     )

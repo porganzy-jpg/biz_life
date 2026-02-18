@@ -10,6 +10,7 @@ class PropertyType(str, Enum):
     전원주택 = "전원주택"
     타운하우스 = "타운하우스"
     오피스텔 = "오피스텔"
+    토지 = "토지"
 
 
 class AcquisitionType(str, Enum):

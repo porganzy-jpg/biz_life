@@ -44,6 +44,14 @@ class PropertyCreate(BaseModel):
     complex_name: Optional[str] = Field(None, max_length=100, description="단지명")
     complex_id: Optional[int] = Field(None, description="단지 ID")
 
+    # 토지 전용
+    land_use: Optional[str] = Field(None, max_length=30, description="지목 (대, 전, 답, 임야, 잡종지)")
+    zoning_type: Optional[str] = Field(None, max_length=50, description="용도지역")
+    building_coverage_ratio: Optional[float] = Field(None, ge=0, le=100, description="건폐율 (%)")
+    floor_area_ratio: Optional[float] = Field(None, ge=0, description="용적률 (%)")
+    road_frontage: Optional[str] = Field(None, max_length=50, description="접도 상태")
+    topography: Optional[str] = Field(None, max_length=30, description="지형")
+
     # 메타
     source_url: Optional[str] = Field(None, max_length=500, description="원본 URL")
     source_id: Optional[str] = Field(None, max_length=100, description="소스 고유 ID")
@@ -79,6 +87,14 @@ class PropertyUpdate(BaseModel):
 
     complex_name: Optional[str] = Field(None, max_length=100, description="단지명")
     complex_id: Optional[int] = Field(None, description="단지 ID")
+
+    # 토지 전용
+    land_use: Optional[str] = Field(None, max_length=30, description="지목")
+    zoning_type: Optional[str] = Field(None, max_length=50, description="용도지역")
+    building_coverage_ratio: Optional[float] = Field(None, ge=0, le=100, description="건폐율 (%)")
+    floor_area_ratio: Optional[float] = Field(None, ge=0, description="용적률 (%)")
+    road_frontage: Optional[str] = Field(None, max_length=50, description="접도 상태")
+    topography: Optional[str] = Field(None, max_length=30, description="지형")
 
     source_url: Optional[str] = Field(None, max_length=500, description="원본 URL")
     description: Optional[str] = Field(None, description="매물 설명")
@@ -122,6 +138,14 @@ class PropertyResponse(BaseModel):
     # 단지 정보
     complex_name: Optional[str] = Field(None, description="단지명")
     complex_id: Optional[int] = Field(None, description="단지 ID")
+
+    # 토지 전용
+    land_use: Optional[str] = Field(None, description="지목")
+    zoning_type: Optional[str] = Field(None, description="용도지역")
+    building_coverage_ratio: Optional[float] = Field(None, description="건폐율 (%)")
+    floor_area_ratio: Optional[float] = Field(None, description="용적률 (%)")
+    road_frontage: Optional[str] = Field(None, description="접도 상태")
+    topography: Optional[str] = Field(None, description="지형")
 
     # 스코어
     score_location: Optional[float] = Field(None, description="입지 점수")
@@ -168,5 +192,12 @@ class PropertyBrief(BaseModel):
     score_composite: Optional[float] = Field(None, description="종합 점수")
     nearest_subway_name: Optional[str] = Field(None, description="최근접 지하철역")
     nearest_subway_distance: Optional[float] = Field(None, description="지하철역 거리 (m)")
+    # 토지 전용
+    land_use: Optional[str] = Field(None, description="지목")
+    zoning_type: Optional[str] = Field(None, description="용도지역")
+    building_coverage_ratio: Optional[float] = Field(None, description="건폐율 (%)")
+    floor_area_ratio: Optional[float] = Field(None, description="용적률 (%)")
+    road_frontage: Optional[str] = Field(None, description="접도 상태")
+    topography: Optional[str] = Field(None, description="지형")
     is_active: Optional[int] = Field(None, description="활성 여부")
     created_at: Optional[datetime] = Field(None, description="등록일시")

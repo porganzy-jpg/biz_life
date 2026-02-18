@@ -41,6 +41,13 @@ def _prop_to_dict(p):
         "maintenance_fee": p.maintenance_fee,
         "complex_name": p.complex_name,
         "complex_id": p.complex_id,
+        # Land fields
+        "land_use": p.land_use,
+        "zoning_type": p.zoning_type,
+        "building_coverage_ratio": p.building_coverage_ratio,
+        "floor_area_ratio": p.floor_area_ratio,
+        "road_frontage": p.road_frontage,
+        "topography": p.topography,
         "score_location": p.score_location,
         "score_price": p.score_price,
         "score_property": p.score_property,
@@ -79,6 +86,13 @@ def _prop_to_brief(p):
         "score_composite": p.score_composite,
         "nearest_subway_name": p.nearest_subway_name,
         "nearest_subway_distance": p.nearest_subway_distance,
+        # Land fields
+        "land_use": p.land_use,
+        "zoning_type": p.zoning_type,
+        "building_coverage_ratio": p.building_coverage_ratio,
+        "floor_area_ratio": p.floor_area_ratio,
+        "road_frontage": p.road_frontage,
+        "topography": p.topography,
         "is_active": p.is_active,
         "created_at": p.created_at.isoformat() if p.created_at else None,
     }

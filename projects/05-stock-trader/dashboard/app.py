@@ -17,7 +17,7 @@ from trader import StockTrader
 from config import DASHBOARD_HOST, DASHBOARD_PORT, WATCHLIST
 
 app = FastAPI(title="StockBot v2.0 Dashboard")
-trader = StockTrader(paper_trading=True)
+trader = StockTrader(paper_trading=False)
 
 
 @app.get("/", response_class=HTMLResponse)

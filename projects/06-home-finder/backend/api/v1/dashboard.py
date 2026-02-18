@@ -39,6 +39,10 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     # Property counts
     total_properties = db.query(Property).count()
     active_properties = db.query(Property).filter(Property.is_active == 1).count()
+    land_count = db.query(Property).filter(
+        Property.is_active == 1, Property.property_type == "토지"
+    ).count()
+    building_count = active_properties - land_count
 
     # Auction counts
     total_auctions = db.query(AuctionListing).count()
@@ -122,6 +126,8 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     return {
         "total_properties": total_properties,
         "active_properties": active_properties,
+        "building_count": building_count,
+        "land_count": land_count,
         "total_auctions": total_auctions,
         "active_auctions": active_auctions,
         "total_subscriptions": total_subscriptions,
@@ -164,12 +170,18 @@ def get_map_markers(db: Session = Depends(get_db)):
             "lat": p.lat,
             "lng": p.lng,
             "price_krw": p.price_krw,
+            "area_m2": p.area_m2,
             "score_composite": p.score_composite,
             "color": _score_to_color(p.score_composite),
             "label": p.complex_name or p.address or f"매물 {p.id}",
             "property_type": p.property_type,
             "acquisition_type": p.acquisition_type,
             "is_candidate": p.id in candidate_prop_ids,
+            # Land fields
+            "land_use": p.land_use,
+            "zoning_type": p.zoning_type,
+            "building_coverage_ratio": p.building_coverage_ratio,
+            "floor_area_ratio": p.floor_area_ratio,
         })
 
     return {"markers": markers, "count": len(markers)}

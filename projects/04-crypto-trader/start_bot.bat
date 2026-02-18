@@ -1,16 +1,11 @@
 @echo off
 title CryptoBot Scalper (24/7)
-cd /d "C:\Users\user\Desktop\biz_life\projects\04-crypto-trader"
+cd /d "C:\Users\itzia\biz_life\projects\04-crypto-trader"
 
-set PYTHON=C:\Users\user\AppData\Local\Programs\Python\Python313\python.exe
-set CLOUDFLARED=C:\Users\user\AppData\Local\Microsoft\WinGet\Packages\Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe\cloudflared.exe
-set LOG_DIR=C:\Users\user\Desktop\biz_life\projects\04-crypto-trader\logs
+set PYTHON=C:\Users\itzia\biz_life\projects\04-crypto-trader\.venv\Scripts\python.exe
+set LOG_DIR=C:\Users\itzia\biz_life\projects\04-crypto-trader\logs
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
-
-:: Start Cloudflare Tunnel in background
-echo [%date% %time%] Starting Cloudflare Tunnel... >> "%LOG_DIR%\restart.log"
-start "Cloudflare Tunnel" /min "%CLOUDFLARED%" tunnel --url http://localhost:8081
 
 :loop
 echo [%date% %time%] Starting bot... >> "%LOG_DIR%\restart.log"

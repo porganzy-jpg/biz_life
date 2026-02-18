@@ -2,14 +2,15 @@
 HomeFinder DB 설정 (SQLite)
 """
 import os
+from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 if not DATABASE_URL:
-    DB_DIR = os.path.dirname(__file__)
-    DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'homefinder.db')}"
+    _db_path = Path(__file__).resolve().parent / "homefinder.db"
+    DATABASE_URL = f"sqlite:///{_db_path}"
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)

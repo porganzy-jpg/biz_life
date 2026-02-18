@@ -16,6 +16,11 @@ async function loadDashboardSummary() {
 
         document.getElementById('totalProperties').textContent =
             (data.active_properties || 0).toLocaleString();
+        // 건물/토지 카운트 서브텍스트
+        const subEl = document.getElementById('propertySub');
+        if (subEl && data.building_count != null && data.land_count != null) {
+            subEl.textContent = `건물 ${data.building_count}건 / 토지 ${data.land_count}건`;
+        }
         document.getElementById('totalCandidates').textContent =
             (data.pipeline?.total || 0).toLocaleString();
         document.getElementById('weeklyAuctions').textContent =

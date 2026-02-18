@@ -380,7 +380,7 @@ def main():
     print("  8전략 앙상블 + 뉴스감성 + 서킷브레이커")
     print("=" * 60)
 
-    trader = StockTrader(paper_trading=True)
+    trader = StockTrader(paper_trading=False)
     print(f"\n관심종목: {len(WATCHLIST)}개")
     print(f"매매 간격: {STOCK_TRADING_CONFIG['trade_interval_minutes']}분")
     print(f"손절: {STOCK_TRADING_CONFIG['stop_loss_pct']}% | 익절: {STOCK_TRADING_CONFIG['take_profit_pct']}%")
