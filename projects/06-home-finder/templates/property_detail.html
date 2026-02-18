@@ -18,9 +18,13 @@
     <!-- Left: Info -->
     <div class="col-md-8">
         <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between">
-                <h5 id="propName">-</h5>
-                <span class="badge bg-primary" id="propType">-</span>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 id="propName" class="mb-0">-</h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge bg-primary" id="propType">-</span>
+                    <a id="editBtn" href="#" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i> 수정</a>
+                    <button id="deleteBtn" class="btn btn-sm btn-outline-danger" onclick="deleteProperty()"><i class="bi bi-trash"></i></button>
+                </div>
             </div>
             <div class="card-body">
                 <!-- 건물 정보 (토지일 때 숨김) -->
@@ -141,6 +145,9 @@ async function loadProperty() {
     document.getElementById('propType').textContent = p.property_type;
     if (isLand) document.getElementById('propType').classList.replace('bg-primary', 'bg-success');
 
+    // 수정 버튼 링크 설정
+    document.getElementById('editBtn').href = `/property/${p.id}/edit`;
+
     if (isLand) {
         // 토지: 건물정보 숨기고 토지정보 표시
         document.getElementById('buildingInfo').style.display = 'none';
@@ -229,6 +236,17 @@ async function addToCandidate() {
 async function rescoreProperty() {
     await fetch(`/api/v1/properties/${propId}/score`, {method: 'POST'});
     loadProperty();
+}
+
+async function deleteProperty() {
+    if (!confirm('이 매물을 삭제(비활성화)하시겠습니까?')) return;
+    const resp = await fetch(`/api/v1/properties/${propId}`, {method: 'DELETE'});
+    if (resp.ok) {
+        alert('삭제되었습니다.');
+        window.location.href = '/search';
+    } else {
+        alert('삭제 실패');
+    }
 }
 
 loadProperty();

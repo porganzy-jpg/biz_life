@@ -134,6 +134,26 @@ async def page_property_detail(request: Request, property_id: int):
     })
 
 
+@app.get("/property/new/land", include_in_schema=False)
+async def page_create_land(request: Request):
+    return templates.TemplateResponse("land_form.html", {
+        "request": request,
+        "mode": "create",
+        "property_id": None,
+        "target_districts": settings.TARGET_DISTRICTS,
+    })
+
+
+@app.get("/property/{property_id}/edit", include_in_schema=False)
+async def page_edit_property(request: Request, property_id: int):
+    return templates.TemplateResponse("land_form.html", {
+        "request": request,
+        "mode": "edit",
+        "property_id": property_id,
+        "target_districts": settings.TARGET_DISTRICTS,
+    })
+
+
 # ──────────────── Run ────────────────
 
 if __name__ == "__main__":

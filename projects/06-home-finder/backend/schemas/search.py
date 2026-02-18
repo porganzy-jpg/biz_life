@@ -72,6 +72,12 @@ class SearchCriteria(BaseModel):
     min_far: Optional[float] = Field(
         None, ge=0, description="최소 용적률 (%)"
     )
+    road_frontage_types: Optional[List[str]] = Field(
+        None, description="접도 상태 필터 (맹지, 4m미만, 4~6m, 6~8m, 8m이상)"
+    )
+    topography_types: Optional[List[str]] = Field(
+        None, description="지형 필터 (평지, 완경사, 경사)"
+    )
 
     # 세대수 필터
     min_total_units: Optional[int] = Field(

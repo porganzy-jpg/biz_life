@@ -142,6 +142,10 @@ def _execute_search(db: Session, criteria: SearchCriteria) -> dict:
         query = query.filter(Property.building_coverage_ratio >= criteria.min_bcr)
     if criteria.min_far is not None:
         query = query.filter(Property.floor_area_ratio >= criteria.min_far)
+    if criteria.road_frontage_types:
+        query = query.filter(Property.road_frontage.in_(criteria.road_frontage_types))
+    if criteria.topography_types:
+        query = query.filter(Property.topography.in_(criteria.topography_types))
 
     # Total units filter (JOIN Complex)
     if criteria.min_total_units is not None:

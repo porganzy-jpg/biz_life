@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'create' %}토지 매물 등록{% else %}매물 수정{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-geo-fill"></i>
+                        {% if mode == 'create' %}토지 매물 등록{% else %}매물 수정{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="landForm" onsubmit="return false;">
+                        <!-- 매물 분류 -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">매물 유형 *</label>
+                                <select id="propertyType" class="form-select" required onchange="toggleFormSections()">
+                                    <option value="토지" selected>토지</option>
+                                    <option value="아파트">아파트</option>
+                                    <option value="빌라">빌라</option>
+                                    <option value="오피스텔">오피스텔</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">취득 방법</label>
+                                <select id="acquisitionType" class="form-select">
+                                    <option value="매매" selected>매매</option>
+                                    <option value="경매">경매</option>
+                                    <option value="청약">청약</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">데이터 소스</label>
+                                <select id="source" class="form-select">
+                                    <option value="manual" selected>직접 입력</option>
+                                    <option value="naver">네이버 부동산</option>
+                                    <option value="gov_trade">국토부 실거래</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 위치 정보 -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-pin-map"></i> 위치 정보</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">시/도</label>
+                                <input type="text" id="city" class="form-control" value="서울특별시">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">구 *</label>
+                                <select id="district" class="form-select" required>
+                                    <option value="">선택</option>
+                                    {% for d in target_districts %}
+                                    <option value="{{ d }}">{{ d }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">동</label>
+                                <input type="text" id="dong" class="form-control" placeholder="예: 합정동">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">상세주소</label>
+                                <input type="text" id="detailAddress" class="form-control" placeholder="지번">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">주소</label>
+                                <input type="text" id="address" class="form-control" placeholder="서울시 마포구 합정동 123-4">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">위도</label>
+                                <input type="number" id="lat" class="form-control" step="0.000001" placeholder="37.5xxx">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">경도</label>
+                                <input type="number" id="lng" class="form-control" step="0.000001" placeholder="126.9xxx">
+                            </div>
+                        </div>
+
+                        <!-- 가격 + 면적 -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-currency-exchange"></i> 가격 & 면적</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">매매가 (만원) *</label>
+                                <input type="number" id="priceManwon" class="form-control" required placeholder="예: 50000" min="0">
+                                <small class="text-muted" id="priceDisplay"></small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">면적 (m2) *</label>
+                                <input type="number" id="areaM2" class="form-control" required step="0.01" placeholder="예: 330" min="0">
+                                <small class="text-muted" id="pyeongDisplay"></small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">단지명/필지명</label>
+                                <input type="text" id="complexName" class="form-control" placeholder="토지: 지번명, 건물: 단지명">
+                            </div>
+                        </div>
+
+                        <!-- 토지 전용 필드 -->
+                        <div id="landFields">
+                            <h6 class="border-bottom pb-2 mb-3 text-success"><i class="bi bi-tree"></i> 토지 정보</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">지목 *</label>
+                                    <select id="landUse" class="form-select">
+                                        <option value="">선택</option>
+                                        <option value="대">대</option>
+                                        <option value="전">전</option>
+                                        <option value="답">답</option>
+                                        <option value="임야">임야</option>
+                                        <option value="잡종지">잡종지</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">용도지역 *</label>
+                                    <select id="zoningType" class="form-select">
+                                        <option value="">선택</option>
+                                        <option value="제1종전용주거">제1종전용주거</option>
+                                        <option value="제2종전용주거">제2종전용주거</option>
+                                        <option value="제1종일반주거">제1종일반주거</option>
+                                        <option value="제2종일반주거">제2종일반주거</option>
+                                        <option value="제3종일반주거">제3종일반주거</option>
+                                        <option value="준주거">준주거</option>
+                                        <option value="일반상업">일반상업</option>
+                                        <option value="근린상업">근린상업</option>
+                                        <option value="준공업">준공업</option>
+                                        <option value="자연녹지">자연녹지</option>
+                                        <option value="생산녹지">생산녹지</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">접도 상태</label>
+                                    <select id="roadFrontage" class="form-select">
+                                        <option value="">선택</option>
+                                        <option value="8m이상">8m이상</option>
+                                        <option value="6~8m">6~8m</option>
+                                        <option value="4~6m">4~6m</option>
+                                        <option value="4m미만">4m미만</option>
+                                        <option value="맹지">맹지</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">건폐율 (%)</label>
+                                    <input type="number" id="bcr" class="form-control" step="0.1" min="0" max="100" placeholder="예: 60">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">용적률 (%)</label>
+                                    <input type="number" id="far" class="form-control" step="0.1" min="0" placeholder="예: 200">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">지형</label>
+                                    <select id="topography" class="form-select">
+                                        <option value="">선택</option>
+                                        <option value="평지">평지</option>
+                                        <option value="완경사">완경사</option>
+                                        <option value="경사">경사</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 건물 전용 필드 -->
+                        <div id="buildingFields" style="display:none;">
+                            <h6 class="border-bottom pb-2 mb-3 text-primary"><i class="bi bi-building"></i> 건물 정보</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">층</label>
+                                    <input type="number" id="floor" class="form-control" placeholder="예: 12">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">총 층수</label>
+                                    <input type="number" id="totalFloors" class="form-control" min="1" placeholder="예: 25">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">방 수</label>
+                                    <input type="number" id="rooms" class="form-control" min="0" placeholder="예: 3">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">화장실</label>
+                                    <input type="number" id="bathrooms" class="form-control" min="0" placeholder="예: 2">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">향</label>
+                                    <select id="direction" class="form-select">
+                                        <option value="">선택</option>
+                                        <option value="남향">남향</option>
+                                        <option value="남동향">남동향</option>
+                                        <option value="남서향">남서향</option>
+                                        <option value="동향">동향</option>
+                                        <option value="서향">서향</option>
+                                        <option value="북향">북향</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">건축년도</label>
+                                    <input type="number" id="builtYear" class="form-control" min="1950" placeholder="예: 2020">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">관리비 (만원)</label>
+                                    <input type="number" id="maintenanceFee" class="form-control" min="0" placeholder="예: 30">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">공급면적 (m2)</label>
+                                    <input type="number" id="areaSupply" class="form-control" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 설명 -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-card-text"></i> 추가 정보</h6>
+                        <div class="mb-3">
+                            <label class="form-label">설명</label>
+                            <textarea id="description" class="form-control" rows="3" placeholder="매물에 대한 추가 설명"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">원본 URL</label>
+                            <input type="url" id="sourceUrl" class="form-control" placeholder="https://...">
+                        </div>
+
+                        <!-- 제출 버튼 -->
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-success flex-fill" onclick="submitForm()">
+                                <i class="bi bi-check-lg"></i>
+                                {% if mode == 'create' %}등록{% else %}수정{% endif %}
+                            </button>
+                            <a href="/search" class="btn btn-secondary">취소</a>
+                        </div>
+                    </form>
+
+                    <!-- 결과 메시지 -->
+                    <div id="resultMsg" class="mt-3" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MODE = '{{ mode }}';
+const PROPERTY_ID = {{ property_id|default('null') }};
+const API_BASE = '/api/v1/properties';
+
+// 면적 표시
+document.getElementById('areaM2').addEventListener('input', function() {
+    const m2 = parseFloat(this.value);
+    if (m2) {
+        document.getElementById('pyeongDisplay').textContent = `약 ${(m2 / 3.3058).toFixed(1)}평`;
+    } else {
+        document.getElementById('pyeongDisplay').textContent = '';
+    }
+});
+
+// 가격 표시
+document.getElementById('priceManwon').addEventListener('input', function() {
+    const manwon = parseInt(this.value);
+    if (manwon) {
+        const eok = (manwon / 10000).toFixed(1);
+        document.getElementById('priceDisplay').textContent = `${eok}억원`;
+    } else {
+        document.getElementById('priceDisplay').textContent = '';
+    }
+});
+
+// 매물 유형 전환
+function toggleFormSections() {
+    const type = document.getElementById('propertyType').value;
+    const isLand = type === '토지';
+    document.getElementById('landFields').style.display = isLand ? '' : 'none';
+    document.getElementById('buildingFields').style.display = isLand ? 'none' : '';
+}
+
+// 폼 데이터 수집
+function collectFormData() {
+    const type = document.getElementById('propertyType').value;
+    const isLand = type === '토지';
+    const priceManwon = parseInt(document.getElementById('priceManwon').value) || 0;
+    const areaM2 = parseFloat(document.getElementById('areaM2').value) || 0;
+
+    const data = {
+        source: document.getElementById('source').value,
+        property_type: type,
+        acquisition_type: document.getElementById('acquisitionType').value,
+        city: document.getElementById('city').value || null,
+        district: document.getElementById('district').value || null,
+        dong: document.getElementById('dong').value || null,
+        address: document.getElementById('address').value || null,
+        detail_address: document.getElementById('detailAddress').value || null,
+        lat: parseFloat(document.getElementById('lat').value) || null,
+        lng: parseFloat(document.getElementById('lng').value) || null,
+        price_krw: priceManwon * 10000,
+        price_per_m2: areaM2 > 0 ? Math.round(priceManwon * 10000 / areaM2) : null,
+        area_m2: areaM2 || null,
+        complex_name: document.getElementById('complexName').value || null,
+        description: document.getElementById('description').value || null,
+        source_url: document.getElementById('sourceUrl').value || null,
+    };
+
+    if (isLand) {
+        data.land_use = document.getElementById('landUse').value || null;
+        data.zoning_type = document.getElementById('zoningType').value || null;
+        data.road_frontage = document.getElementById('roadFrontage').value || null;
+        data.topography = document.getElementById('topography').value || null;
+        const bcr = parseFloat(document.getElementById('bcr').value);
+        if (!isNaN(bcr)) data.building_coverage_ratio = bcr;
+        const far = parseFloat(document.getElementById('far').value);
+        if (!isNaN(far)) data.floor_area_ratio = far;
+    } else {
+        data.floor = parseInt(document.getElementById('floor').value) || null;
+        data.total_floors = parseInt(document.getElementById('totalFloors').value) || null;
+        data.rooms = parseInt(document.getElementById('rooms').value) || null;
+        data.bathrooms = parseInt(document.getElementById('bathrooms').value) || null;
+        data.direction = document.getElementById('direction').value || null;
+        data.built_year = parseInt(document.getElementById('builtYear').value) || null;
+        data.maintenance_fee = parseInt(document.getElementById('maintenanceFee').value) || null;
+        const supplyArea = parseFloat(document.getElementById('areaSupply').value);
+        if (!isNaN(supplyArea)) data.area_supply_m2 = supplyArea;
+    }
+
+    // null 값 제거
+    Object.keys(data).forEach(k => { if (data[k] === null) delete data[k]; });
+    return data;
+}
+
+// 제출
+async function submitForm() {
+    const data = collectFormData();
+    const msg = document.getElementById('resultMsg');
+
+    try {
+        let url, method;
+        if (MODE === 'create') {
+            url = API_BASE + '/';
+            method = 'POST';
+        } else {
+            url = API_BASE + '/' + PROPERTY_ID;
+            method = 'PUT';
+        }
+
+        const resp = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data),
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.detail || '요청 실패');
+        }
+
+        const result = await resp.json();
+        msg.style.display = '';
+        msg.className = 'mt-3 alert alert-success';
+        msg.innerHTML = `${MODE === 'create' ? '등록' : '수정'} 완료! (ID: ${result.id}) <a href="/property/${result.id}" class="alert-link">상세 보기</a>`;
+
+        // 채점 요청
+        await fetch(API_BASE + '/' + result.id + '/score', {method: 'POST'});
+    } catch(e) {
+        msg.style.display = '';
+        msg.className = 'mt-3 alert alert-danger';
+        msg.textContent = '오류: ' + e.message;
+    }
+}
+
+// 수정 모드: 기존 데이터 로드
+if (MODE === 'edit' && PROPERTY_ID) {
+    fetch(API_BASE + '/' + PROPERTY_ID)
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('propertyType').value = data.property_type || '토지';
+            document.getElementById('acquisitionType').value = data.acquisition_type || '매매';
+            document.getElementById('source').value = data.source || 'manual';
+            document.getElementById('city').value = data.city || '';
+            document.getElementById('district').value = data.district || '';
+            document.getElementById('dong').value = data.dong || '';
+            document.getElementById('address').value = data.address || '';
+            document.getElementById('detailAddress').value = data.detail_address || '';
+            document.getElementById('lat').value = data.lat || '';
+            document.getElementById('lng').value = data.lng || '';
+            if (data.price_krw) document.getElementById('priceManwon').value = Math.round(data.price_krw / 10000);
+            document.getElementById('areaM2').value = data.area_m2 || '';
+            document.getElementById('complexName').value = data.complex_name || '';
+            document.getElementById('description').value = data.description || '';
+            document.getElementById('sourceUrl').value = data.source_url || '';
+
+            // Land fields
+            if (data.land_use) document.getElementById('landUse').value = data.land_use;
+            if (data.zoning_type) document.getElementById('zoningType').value = data.zoning_type;
+            if (data.road_frontage) document.getElementById('roadFrontage').value = data.road_frontage;
+            if (data.topography) document.getElementById('topography').value = data.topography;
+            if (data.building_coverage_ratio != null) document.getElementById('bcr').value = data.building_coverage_ratio;
+            if (data.floor_area_ratio != null) document.getElementById('far').value = data.floor_area_ratio;
+
+            // Building fields
+            if (data.floor) document.getElementById('floor').value = data.floor;
+            if (data.total_floors) document.getElementById('totalFloors').value = data.total_floors;
+            if (data.rooms) document.getElementById('rooms').value = data.rooms;
+            if (data.bathrooms) document.getElementById('bathrooms').value = data.bathrooms;
+            if (data.direction) document.getElementById('direction').value = data.direction;
+            if (data.built_year) document.getElementById('builtYear').value = data.built_year;
+            if (data.maintenance_fee) document.getElementById('maintenanceFee').value = data.maintenance_fee;
+            if (data.area_supply_m2) document.getElementById('areaSupply').value = data.area_supply_m2;
+
+            toggleFormSections();
+            // Trigger display updates
+            document.getElementById('areaM2').dispatchEvent(new Event('input'));
+            document.getElementById('priceManwon').dispatchEvent(new Event('input'));
+        });
+}
+</script>
+{% endblock %}

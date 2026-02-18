@@ -238,6 +238,28 @@
                     <label class="form-label">최소 용적률 (%)</label>
                     <input type="number" id="minFar" class="form-control form-control-sm" placeholder="예: 150" min="0">
                 </div>
+                <div class="filter-section">
+                    <label class="form-label">접도 상태</label>
+                    <div>
+                        {% for rf in ["8m이상", "6~8m", "4~6m", "4m미만", "맹지"] %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input road-cb" type="checkbox" value="{{ rf }}" id="rf-{{ rf }}">
+                            <label class="form-check-label" for="rf-{{ rf }}" style="font-size:0.82rem;">{{ rf }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <label class="form-label">지형</label>
+                    <div>
+                        {% for tp in ["평지", "완경사", "경사"] %}
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input topo-cb" type="checkbox" value="{{ tp }}" id="tp-{{ tp }}">
+                            <label class="form-check-label" for="tp-{{ tp }}" style="font-size:0.82rem;">{{ tp }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
 
             <!-- Score -->
@@ -435,6 +457,12 @@ function buildCriteria(page) {
 
     const minFar = parseFloat(document.getElementById('minFar').value);
     if (minFar) c.min_far = minFar;
+
+    const roads = [...document.querySelectorAll('.road-cb:checked')].map(cb => cb.value);
+    if (roads.length > 0) c.road_frontage_types = roads;
+
+    const topos = [...document.querySelectorAll('.topo-cb:checked')].map(cb => cb.value);
+    if (topos.length > 0) c.topography_types = topos;
 
     c.sort = document.getElementById('sortOrder').value;
     return c;
