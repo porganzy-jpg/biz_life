@@ -1,477 +1,1584 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BarcodeQuest - Scan & Discover!</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, 'Malgun Gothic', sans-serif;
-            background: #1a1a2e;
-            color: #eee;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-        .app {
-            max-width: 420px;
-            margin: 0 auto;
-            min-height: 100vh;
-            position: relative;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BarcodeQuest - 천국행 버스</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --sky1:#e8d5c4;--sky2:#f5e6d3;--sky3:#fdf0e2;
+  --warm:#f4a261;--gold:#e9c46a;--sage:#8fbc8f;
+  --rose:#e8a0bf;--lavender:#c8b6e2;--cream:#faf3e8;
+  --wood:#8b7355;--dark:#3a2e22;--text:#5a4a3a;
+  --heal:#7ec8a0;--grief:#9b8ec4;
+}
+body{
+  font-family:'Noto Sans KR',sans-serif;
+  background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 40%,var(--sky3) 100%);
+  color:var(--text);min-height:100vh;overflow-x:hidden;
+  position:relative;
+}
+.app{max-width:440px;margin:0 auto;min-height:100vh;position:relative;overflow:hidden}
 
-        /* 상단 HUD */
-        .hud {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: rgba(0,0,0,0.5);
-        }
-        .hud .level {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-            font-size: 1rem;
-        }
-        .hud .coins {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: rgba(255,215,0,0.2);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 700;
-            color: #FFD700;
-        }
-        .hud .pokedex-count {
-            color: #7ee8fa;
-            font-weight: 600;
-        }
+/* ===== AMBIENT PARTICLES (cherry blossoms, stars) ===== */
+canvas#particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
 
-        /* 메인 화면 - 스캔 영역 */
-        .scan-area {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 30px 20px;
-        }
-        .scan-frame {
-            width: 280px;
-            height: 280px;
-            border: 3px solid rgba(126,232,250,0.5);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            background: rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-        }
-        .scan-frame .corner {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border: 3px solid #7ee8fa;
-        }
-        .scan-frame .corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
-        .scan-frame .corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
-        .scan-frame .corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
-        .scan-frame .corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+/* ===== SCREENS ===== */
+.screen{display:none;flex-direction:column;min-height:calc(100vh - 70px);position:relative;z-index:1;padding-bottom:80px}
+.screen.active{display:flex}
 
-        .scan-line {
-            position: absolute;
-            width: 90%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #7ee8fa, transparent);
-            animation: scanMove 2s ease-in-out infinite;
-        }
-        @keyframes scanMove {
-            0%, 100% { top: 10%; }
-            50% { top: 85%; }
-        }
+/* ===== TOP BAR ===== */
+.top-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 18px;
+  background:rgba(250,243,232,0.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(139,115,85,0.15);
+  position:sticky;top:0;z-index:50;
+}
+.top-bar .journey-info{display:flex;align-items:center;gap:8px}
+.top-bar .bus-icon{
+  width:32px;height:32px;background:var(--warm);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 2px 8px rgba(244,162,97,0.3);
+}
+.top-bar .location-name{font-size:0.8rem;font-weight:700;color:var(--dark)}
+.top-bar .location-sub{font-size:0.65rem;color:var(--wood);font-weight:300}
+.top-bar .resources{display:flex;gap:10px;align-items:center}
+.resource-badge{
+  display:flex;align-items:center;gap:3px;
+  background:rgba(139,115,85,0.1);border-radius:14px;
+  padding:4px 10px;font-size:0.7rem;font-weight:600;
+}
+.resource-badge.gold-r{color:#b8860b}
+.resource-badge.supply-r{color:#6b8e6b}
+.resource-badge.soul-r{color:var(--grief)}
 
-        .scan-text {
-            color: #7ee8fa;
-            font-size: 1rem;
-            font-weight: 600;
-            text-align: center;
-        }
-        .scan-btn {
-            background: linear-gradient(135deg, #7ee8fa, #80ff72);
-            color: #1a1a2e;
-            border: none;
-            border-radius: 30px;
-            padding: 14px 40px;
-            font-size: 1.1rem;
-            font-weight: 800;
-            cursor: pointer;
-            margin-top: 16px;
-            letter-spacing: 1px;
-        }
+/* ===== HOME SCREEN ===== */
+.home-hero{
+  position:relative;padding:20px 18px;text-align:center;
+  background:linear-gradient(180deg,rgba(232,213,196,0) 0%,rgba(232,168,191,0.12) 100%);
+}
+.home-hero h1{
+  font-size:1.6rem;font-weight:900;
+  background:linear-gradient(135deg,var(--warm),var(--rose));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:4px;letter-spacing:-0.5px;
+}
+.home-hero .subtitle{font-size:0.78rem;color:var(--wood);font-weight:300;line-height:1.5;margin-bottom:16px}
 
-        /* 몬스터 결과 화면 */
-        .result-screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            animation: fadeIn 0.5s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.8); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .result-screen.active {
-            display: flex;
-        }
+/* Bus cross-section (Fallout Shelter style) */
+.bus-section{
+  position:relative;margin:0 12px 16px;
+  background:linear-gradient(135deg,#f5efe7,#efe5d8);
+  border-radius:20px;border:2px solid rgba(139,115,85,0.2);
+  overflow:hidden;box-shadow:0 8px 32px rgba(58,46,34,0.1);
+}
+.bus-exterior{
+  height:36px;background:linear-gradient(90deg,#d4a574,#c4956a,#d4a574);
+  border-bottom:2px solid rgba(139,115,85,0.3);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.bus-exterior::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:8px;
+  background:linear-gradient(90deg,#e8c9a8,#dbb896,#e8c9a8);
+}
+.bus-exterior .bus-label{
+  font-size:0.6rem;font-weight:700;color:rgba(255,255,255,0.9);
+  letter-spacing:3px;text-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+.bus-wheels{
+  position:absolute;bottom:-6px;left:0;right:0;
+  display:flex;justify-content:space-around;padding:0 30px;
+}
+.wheel{width:12px;height:12px;background:#4a3a2a;border-radius:50%;border:2px solid #6a5a4a}
 
-        .monster-card {
-            background: linear-gradient(135deg, #16213e, #0f3460);
-            border: 2px solid #533483;
-            border-radius: 20px;
-            padding: 24px;
-            width: 100%;
-            max-width: 340px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        .rarity-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 800;
-        }
-        .rarity-common { background: #6c757d; }
-        .rarity-rare { background: #0d6efd; }
-        .rarity-epic { background: #6f42c1; }
-        .rarity-legendary { background: linear-gradient(135deg, #FFD700, #FF6B35); }
+.bus-rooms{display:flex;height:140px;position:relative}
+.bus-room{
+  flex:1;border-right:1px solid rgba(139,115,85,0.15);
+  padding:6px;display:flex;flex-direction:column;align-items:center;
+  justify-content:space-between;cursor:pointer;
+  transition:background 0.3s;position:relative;
+}
+.bus-room:last-child{border-right:none}
+.bus-room:hover{background:rgba(244,162,97,0.08)}
+.bus-room.active-room{background:rgba(126,200,160,0.1)}
 
-        .monster-sprite {
-            width: 160px;
-            height: 160px;
-            margin: 16px auto;
-            background: radial-gradient(circle, rgba(126,232,250,0.2), transparent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 80px;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
+.room-icon{font-size:20px;margin-top:4px}
+.room-name{font-size:0.55rem;font-weight:600;color:var(--wood);text-align:center}
+.room-char{
+  width:28px;height:28px;border-radius:50%;
+  border:2px solid var(--heal);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;background:rgba(126,200,160,0.15);
+}
+.room-char.empty{border-color:rgba(139,115,85,0.2);background:rgba(139,115,85,0.05);font-size:10px}
+.room-level{
+  position:absolute;top:4px;right:4px;
+  font-size:0.5rem;background:var(--gold);color:var(--dark);
+  border-radius:6px;padding:1px 4px;font-weight:700;
+}
 
-        .monster-name {
-            font-size: 1.5rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #7ee8fa, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 8px 0;
-        }
-        .monster-type {
-            color: #999;
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-top: 12px;
-        }
-        .stat-box {
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-            padding: 8px;
-        }
-        .stat-label {
-            color: #888;
-            font-size: 0.7rem;
-        }
-        .stat-value {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #7ee8fa;
-        }
+/* Story banner */
+.story-banner{
+  margin:0 18px 16px;padding:16px;
+  background:linear-gradient(135deg,rgba(200,182,226,0.2),rgba(232,160,191,0.15));
+  border-radius:16px;border:1px solid rgba(200,182,226,0.25);
+  position:relative;overflow:hidden;
+}
+.story-banner::before{
+  content:'';position:absolute;top:-20px;right:-20px;
+  width:80px;height:80px;background:radial-gradient(circle,rgba(233,196,106,0.2),transparent);
+  border-radius:50%;
+}
+.story-banner .story-label{font-size:0.6rem;color:var(--grief);font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.story-banner .story-text{font-size:0.82rem;line-height:1.6;color:var(--dark);font-weight:400}
+.story-banner .story-text em{color:var(--rose);font-style:normal;font-weight:600}
 
-        .barcode-info {
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 16px;
-            width: 100%;
-            max-width: 340px;
-        }
-        .barcode-info h3 {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 8px;
-        }
-        .barcode-detail {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            font-size: 0.8rem;
-        }
-        .barcode-detail .key { color: #999; }
-        .barcode-detail .val { color: #7ee8fa; font-weight: 600; }
+/* Action cards */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px;margin-bottom:16px}
+.action-card{
+  background:rgba(250,243,232,0.9);border-radius:16px;
+  padding:14px;text-align:center;cursor:pointer;
+  border:1px solid rgba(139,115,85,0.12);
+  transition:all 0.3s;position:relative;overflow:hidden;
+  box-shadow:0 2px 12px rgba(58,46,34,0.06);
+}
+.action-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(58,46,34,0.1)}
+.action-card:active{transform:scale(0.97)}
+.action-card .card-icon{font-size:28px;margin-bottom:6px;display:block}
+.action-card .card-title{font-size:0.78rem;font-weight:700;color:var(--dark);margin-bottom:2px}
+.action-card .card-desc{font-size:0.62rem;color:var(--wood);font-weight:300}
+.action-card.scan-card{
+  background:linear-gradient(135deg,rgba(244,162,97,0.15),rgba(233,196,106,0.1));
+  border-color:rgba(244,162,97,0.25);
+}
+.action-card.quest-card{
+  background:linear-gradient(135deg,rgba(126,200,160,0.12),rgba(143,188,143,0.08));
+  border-color:rgba(126,200,160,0.2);
+}
+.action-card .notif-dot{
+  position:absolute;top:8px;right:8px;
+  width:8px;height:8px;background:#e06060;border-radius:50%;
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(1.3)}}
 
-        .location-bonus {
-            background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,107,53,0.05));
-            border: 1px solid rgba(255,107,53,0.3);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 12px;
-            width: 100%;
-            max-width: 340px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .location-bonus .bonus-icon { font-size: 1.5rem; }
-        .location-bonus .bonus-text {
-            font-size: 0.85rem;
-            color: #FF6B35;
-            font-weight: 600;
-        }
+/* ===== SCAN SCREEN ===== */
+.scan-container{padding:20px 18px;display:flex;flex-direction:column;align-items:center}
+.scan-title{font-size:1.1rem;font-weight:700;color:var(--dark);margin-bottom:4px}
+.scan-subtitle{font-size:0.75rem;color:var(--wood);margin-bottom:20px;text-align:center;line-height:1.5}
 
-        .action-btns {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-        .btn-again {
-            background: rgba(126,232,250,0.2);
-            border: 1px solid #7ee8fa;
-            color: #7ee8fa;
-            border-radius: 25px;
-            padding: 12px 24px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .btn-collection {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-            border: none;
-            color: white;
-            border-radius: 25px;
-            padding: 12px 24px;
-            font-weight: 700;
-            cursor: pointer;
-        }
+.scan-frame{
+  width:260px;height:260px;position:relative;
+  background:rgba(250,243,232,0.5);
+  border-radius:24px;border:2px solid rgba(139,115,85,0.2);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;margin-bottom:16px;
+  box-shadow:0 8px 32px rgba(58,46,34,0.08);
+}
+.scan-corner{
+  position:absolute;width:28px;height:28px;
+  border:3px solid var(--warm);
+}
+.scan-corner.tl{top:12px;left:12px;border-right:none;border-bottom:none;border-radius:6px 0 0 0}
+.scan-corner.tr{top:12px;right:12px;border-left:none;border-bottom:none;border-radius:0 6px 0 0}
+.scan-corner.bl{bottom:12px;left:12px;border-right:none;border-top:none;border-radius:0 0 0 6px}
+.scan-corner.br{bottom:12px;right:12px;border-left:none;border-top:none;border-radius:0 0 6px 0}
 
-        /* 하단 네비 */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: rgba(26,26,46,0.95);
-            border-top: 1px solid #333;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0 24px;
-            z-index: 100;
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            font-size: 0.65rem;
-            color: #666;
-            cursor: pointer;
-        }
-        .nav-item.active { color: #7ee8fa; }
-        .nav-item .icon { font-size: 1.3rem; }
-    </style>
+.scan-beam{
+  position:absolute;width:80%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--warm),transparent);
+  animation:scanBeam 2.5s ease-in-out infinite;
+  box-shadow:0 0 12px rgba(244,162,97,0.4);
+}
+@keyframes scanBeam{0%,100%{top:15%}50%{top:80%}}
+
+.scan-center-icon{text-align:center}
+.scan-center-icon .icon{font-size:44px;opacity:0.6;margin-bottom:8px;display:block}
+.scan-center-icon .text{font-size:0.75rem;color:var(--wood);font-weight:400}
+
+.scan-btn{
+  background:linear-gradient(135deg,var(--warm),#e8956a);
+  color:white;border:none;border-radius:28px;
+  padding:14px 44px;font-size:0.95rem;font-weight:700;
+  cursor:pointer;letter-spacing:0.5px;
+  box-shadow:0 4px 16px rgba(244,162,97,0.35);
+  transition:all 0.3s;
+}
+.scan-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(244,162,97,0.45)}
+.scan-btn:active{transform:scale(0.97)}
+.scan-hint{font-size:0.65rem;color:rgba(139,115,85,0.5);margin-top:10px}
+
+/* ===== DISCOVERY SCREEN ===== */
+.discovery-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(58,46,34,0.6);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+}
+.discovery-overlay.active{display:flex}
+
+.discovery-card{
+  width:92%;max-width:380px;
+  background:linear-gradient(135deg,var(--cream),#f5efe7);
+  border-radius:24px;padding:0;overflow:hidden;
+  box-shadow:0 20px 60px rgba(58,46,34,0.3);
+  animation:discoverIn 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  max-height:90vh;overflow-y:auto;
+}
+@keyframes discoverIn{
+  from{opacity:0;transform:scale(0.7) translateY(30px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+
+.discover-header{
+  padding:20px 20px 16px;text-align:center;
+  background:linear-gradient(135deg,rgba(233,196,106,0.2),rgba(244,162,97,0.15));
+  position:relative;
+}
+.discover-label{
+  font-size:0.65rem;font-weight:700;letter-spacing:2px;
+  color:var(--warm);margin-bottom:8px;
+}
+.discover-sprite{
+  width:120px;height:120px;margin:0 auto 8px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.discover-sprite svg{width:100%;height:100%}
+.discover-sprite .glow{
+  position:absolute;inset:-10px;
+  background:radial-gradient(circle,rgba(233,196,106,0.3),transparent 70%);
+  border-radius:50%;animation:glowPulse 3s ease-in-out infinite;
+}
+@keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+
+.discover-name{font-size:1.3rem;font-weight:900;color:var(--dark);margin-bottom:2px}
+.discover-rarity{
+  display:inline-block;padding:3px 12px;border-radius:10px;
+  font-size:0.6rem;font-weight:700;letter-spacing:1px;
+}
+.rarity-common{background:rgba(139,115,85,0.15);color:var(--wood)}
+.rarity-uncommon{background:rgba(126,200,160,0.2);color:#4a8a6a}
+.rarity-rare{background:rgba(100,149,237,0.2);color:#4a6ab0}
+.rarity-epic{background:rgba(200,182,226,0.3);color:#7a6aa0}
+.rarity-legendary{background:linear-gradient(135deg,rgba(233,196,106,0.3),rgba(244,162,97,0.3));color:#b8860b}
+
+.discover-story{
+  padding:14px 20px;margin:0 16px;
+  background:rgba(200,182,226,0.1);border-radius:12px;
+  border-left:3px solid var(--lavender);
+}
+.discover-story .story-icon{font-size:0.65rem;color:var(--grief);font-weight:600;margin-bottom:4px}
+.discover-story p{font-size:0.78rem;line-height:1.7;color:var(--text);font-weight:300}
+.discover-story p em{color:var(--rose);font-style:normal;font-weight:500}
+
+.discover-stats{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:6px;
+  padding:14px 20px;
+}
+.stat-item{text-align:center}
+.stat-item .stat-label{font-size:0.55rem;color:var(--wood);font-weight:500}
+.stat-item .stat-bar{
+  height:4px;background:rgba(139,115,85,0.1);border-radius:2px;
+  margin:3px 0;overflow:hidden;
+}
+.stat-item .stat-bar .fill{height:100%;border-radius:2px;transition:width 1s ease}
+.stat-item .stat-val{font-size:0.7rem;font-weight:700;color:var(--dark)}
+
+.discover-barcode{
+  padding:10px 20px;margin:0 16px 8px;
+  background:rgba(139,115,85,0.05);border-radius:10px;
+}
+.barcode-row{display:flex;justify-content:space-between;padding:3px 0;font-size:0.7rem}
+.barcode-row .k{color:var(--wood)}
+.barcode-row .v{font-weight:600;color:var(--dark)}
+
+.discover-actions{
+  display:flex;gap:10px;padding:16px 20px;
+}
+.btn{
+  flex:1;border:none;border-radius:14px;padding:12px;
+  font-size:0.82rem;font-weight:700;cursor:pointer;
+  transition:all 0.3s;font-family:inherit;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--warm),#e8956a);
+  color:white;box-shadow:0 4px 12px rgba(244,162,97,0.3);
+}
+.btn-secondary{
+  background:rgba(139,115,85,0.08);color:var(--dark);
+  border:1px solid rgba(139,115,85,0.15);
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:scale(0.97)}
+
+/* ===== BUS DETAIL SCREEN ===== */
+.bus-detail{padding:16px 18px}
+.bus-detail-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px}
+
+.bus-floor{
+  background:linear-gradient(135deg,#f5efe7,#efe5d8);
+  border-radius:16px;border:2px solid rgba(139,115,85,0.15);
+  overflow:hidden;margin-bottom:12px;
+}
+.floor-label{
+  padding:8px 14px;font-size:0.65rem;font-weight:700;
+  color:var(--wood);letter-spacing:1px;
+  background:rgba(139,115,85,0.06);
+  border-bottom:1px solid rgba(139,115,85,0.1);
+}
+.floor-rooms{display:flex}
+.floor-room{
+  flex:1;padding:12px 8px;text-align:center;
+  border-right:1px solid rgba(139,115,85,0.1);
+  cursor:pointer;transition:background 0.3s;min-height:120px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.floor-room:last-child{border-right:none}
+.floor-room:hover{background:rgba(244,162,97,0.06)}
+
+.floor-room .r-icon{font-size:24px}
+.floor-room .r-name{font-size:0.6rem;font-weight:600;color:var(--dark)}
+.floor-room .r-effect{font-size:0.5rem;color:var(--heal);font-weight:500}
+
+.char-in-room{
+  display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:4px;
+}
+.char-mini{
+  width:22px;height:22px;border-radius:50%;
+  border:1.5px solid var(--heal);font-size:9px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(126,200,160,0.1);
+  position:relative;
+}
+.char-mini .heal-ring{
+  position:absolute;inset:-2px;border-radius:50%;
+  border:1.5px solid transparent;
+  border-top-color:var(--heal);
+  animation:healSpin 3s linear infinite;
+}
+@keyframes healSpin{to{transform:rotate(360deg)}}
+
+/* ===== MAP SCREEN ===== */
+.map-container{padding:16px 18px}
+.map-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px}
+
+.world-map{
+  position:relative;height:320px;
+  background:linear-gradient(135deg,#e8ddd0,#f0e8dc);
+  border-radius:20px;border:2px solid rgba(139,115,85,0.15);
+  overflow:hidden;margin-bottom:14px;
+}
+.map-bg{position:absolute;inset:0;overflow:hidden}
+.map-path{
+  position:absolute;
+  border:2px dashed rgba(139,115,85,0.2);
+}
+.map-location{
+  position:absolute;text-align:center;cursor:pointer;
+  transition:transform 0.3s;
+}
+.map-location:hover{transform:scale(1.1)}
+.map-loc-icon{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;margin:0 auto 4px;
+  box-shadow:0 3px 12px rgba(0,0,0,0.1);
+  border:2px solid white;
+}
+.map-loc-name{font-size:0.55rem;font-weight:700;color:var(--dark);white-space:nowrap}
+.map-loc-status{font-size:0.5rem;font-weight:400}
+
+.map-bus-marker{
+  position:absolute;z-index:10;
+  animation:busFloat 4s ease-in-out infinite;
+  text-align:center;
+}
+@keyframes busFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.map-bus-icon{font-size:28px;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.2))}
+.map-bus-label{font-size:0.5rem;font-weight:700;color:var(--warm)}
+
+.destination-cards{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
+.dest-card{
+  min-width:200px;background:rgba(250,243,232,0.95);
+  border-radius:14px;padding:12px;border:1px solid rgba(139,115,85,0.1);
+  flex-shrink:0;cursor:pointer;transition:all 0.3s;
+}
+.dest-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+.dest-card .dest-icon{font-size:28px;margin-bottom:6px}
+.dest-card .dest-name{font-size:0.8rem;font-weight:700;color:var(--dark)}
+.dest-card .dest-desc{font-size:0.65rem;color:var(--wood);line-height:1.4;margin-top:4px}
+.dest-card .dest-dist{
+  margin-top:6px;font-size:0.6rem;color:var(--warm);font-weight:600;
+}
+
+/* ===== QUEST SCREEN ===== */
+.quest-container{padding:16px 18px}
+.quest-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:4px}
+.quest-village{font-size:0.72rem;color:var(--wood);margin-bottom:14px}
+
+.quest-card{
+  background:rgba(250,243,232,0.95);border-radius:16px;
+  padding:14px;margin-bottom:10px;
+  border:1px solid rgba(139,115,85,0.1);
+  cursor:pointer;transition:all 0.3s;
+  box-shadow:0 2px 8px rgba(0,0,0,0.03);
+}
+.quest-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.06)}
+.quest-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.quest-npc{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;border:2px solid var(--lavender);
+  background:rgba(200,182,226,0.1);
+}
+.quest-info{flex:1}
+.quest-name{font-size:0.82rem;font-weight:700;color:var(--dark)}
+.quest-giver{font-size:0.6rem;color:var(--grief)}
+.quest-type-badge{
+  font-size:0.5rem;font-weight:700;padding:2px 8px;
+  border-radius:8px;letter-spacing:0.5px;
+}
+.qt-gather{background:rgba(126,200,160,0.15);color:#4a8a6a}
+.qt-comfort{background:rgba(232,160,191,0.15);color:#b06888}
+.qt-memory{background:rgba(200,182,226,0.2);color:#7a6aa0}
+.qt-deliver{background:rgba(233,196,106,0.2);color:#8a7a30}
+
+.quest-desc{font-size:0.72rem;color:var(--text);line-height:1.5;margin-bottom:8px}
+.quest-reward{
+  display:flex;gap:8px;padding-top:8px;
+  border-top:1px solid rgba(139,115,85,0.08);
+}
+.reward-item{
+  font-size:0.6rem;padding:3px 8px;border-radius:8px;
+  background:rgba(233,196,106,0.12);color:#8a7a30;font-weight:600;
+}
+
+/* ===== COLLECTION / CHARACTERS SCREEN ===== */
+.collection-container{padding:16px 18px}
+.collection-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:4px}
+.collection-count{font-size:0.72rem;color:var(--wood);margin-bottom:14px}
+
+.char-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.char-card{
+  background:rgba(250,243,232,0.95);border-radius:16px;
+  padding:12px;text-align:center;cursor:pointer;
+  border:1px solid rgba(139,115,85,0.1);
+  transition:all 0.3s;position:relative;overflow:hidden;
+}
+.char-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.06)}
+.char-card .char-sprite{
+  width:64px;height:64px;margin:0 auto 6px;
+  display:flex;align-items:center;justify-content:center;
+}
+.char-card .char-sprite svg{width:100%;height:100%}
+.char-card .char-name{font-size:0.78rem;font-weight:700;color:var(--dark)}
+.char-card .char-type{font-size:0.6rem;color:var(--wood)}
+.char-card .char-rarity{
+  position:absolute;top:6px;right:6px;
+  font-size:0.5rem;padding:2px 6px;border-radius:6px;font-weight:700;
+}
+
+.heal-progress{
+  margin-top:6px;height:4px;background:rgba(139,115,85,0.1);
+  border-radius:2px;overflow:hidden;
+}
+.heal-progress .heal-fill{
+  height:100%;background:linear-gradient(90deg,var(--grief),var(--heal));
+  border-radius:2px;transition:width 1.5s ease;
+}
+.heal-label{font-size:0.5rem;color:var(--heal);font-weight:500;margin-top:2px}
+
+/* Character detail modal */
+.char-modal{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(58,46,34,0.5);backdrop-filter:blur(6px);
+  align-items:flex-end;justify-content:center;
+}
+.char-modal.active{display:flex}
+.char-modal-content{
+  width:100%;max-width:440px;
+  background:var(--cream);border-radius:24px 24px 0 0;
+  padding:24px 20px 40px;max-height:85vh;overflow-y:auto;
+  animation:slideUp 0.4s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+.char-detail-sprite{
+  width:100px;height:100px;margin:0 auto 12px;
+  display:flex;align-items:center;justify-content:center;
+}
+.char-detail-sprite svg{width:100%;height:100%}
+.char-detail-name{text-align:center;font-size:1.2rem;font-weight:900;color:var(--dark)}
+.char-detail-type{text-align:center;font-size:0.72rem;color:var(--wood);margin-bottom:12px}
+
+.char-memory{
+  background:rgba(200,182,226,0.1);border-radius:14px;
+  padding:14px;margin-bottom:12px;
+  border-left:3px solid var(--grief);
+}
+.char-memory .mem-title{font-size:0.65rem;font-weight:700;color:var(--grief);margin-bottom:6px}
+.char-memory .mem-text{font-size:0.78rem;line-height:1.7;color:var(--text)}
+
+.char-longing{
+  background:rgba(232,160,191,0.08);border-radius:14px;
+  padding:14px;margin-bottom:12px;
+  border-left:3px solid var(--rose);
+}
+.char-longing .long-title{font-size:0.65rem;font-weight:700;color:var(--rose);margin-bottom:6px}
+.char-longing .long-text{font-size:0.78rem;line-height:1.7;color:var(--text)}
+
+.char-heal-section{
+  background:rgba(126,200,160,0.08);border-radius:14px;
+  padding:14px;
+}
+.char-heal-section .heal-title{font-size:0.65rem;font-weight:700;color:var(--heal);margin-bottom:8px}
+.char-heal-bar{
+  height:8px;background:rgba(139,115,85,0.1);border-radius:4px;
+  overflow:hidden;margin-bottom:4px;
+}
+.char-heal-bar .fill{
+  height:100%;background:linear-gradient(90deg,var(--grief),var(--heal));
+  border-radius:4px;transition:width 2s ease;
+}
+.char-heal-stages{
+  display:flex;justify-content:space-between;margin-top:6px;
+}
+.heal-stage{
+  font-size:0.6rem;color:var(--wood);text-align:center;
+  opacity:0.4;
+}
+.heal-stage.reached{opacity:1;color:var(--heal);font-weight:600}
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(250,243,232,0.95);backdrop-filter:blur(12px);
+  border-top:1px solid rgba(139,115,85,0.12);
+  display:flex;justify-content:space-around;
+  padding:8px 0 max(20px, env(safe-area-inset-bottom));
+  z-index:100;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:0.55rem;color:var(--wood);cursor:pointer;
+  transition:color 0.3s;padding:4px 8px;border-radius:10px;
+  font-weight:500;position:relative;
+}
+.nav-item.active{color:var(--warm);font-weight:700}
+.nav-item .nav-icon{font-size:20px}
+.nav-item .nav-active-dot{
+  position:absolute;bottom:-2px;
+  width:4px;height:4px;border-radius:50%;
+  background:var(--warm);display:none;
+}
+.nav-item.active .nav-active-dot{display:block}
+
+/* ===== UTILITY ===== */
+.back-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  background:none;border:none;color:var(--wood);
+  font-size:0.78rem;cursor:pointer;padding:8px 0;
+  font-family:inherit;font-weight:500;
+}
+.back-btn:hover{color:var(--dark)}
+
+/* Loading shimmer */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.shimmer{
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.3) 50%,transparent 100%);
+  background-size:200% 100%;animation:shimmer 2s infinite;
+}
+</style>
 </head>
 <body>
-    <div class="app">
-        <!-- HUD -->
-        <div class="hud">
-            <div class="level">Lv.7 Explorer</div>
-            <div class="coins">G 1,250</div>
-            <div class="pokedex-count">23/150</div>
-        </div>
+<canvas id="particles"></canvas>
 
-        <!-- 스캔 화면 -->
-        <div class="scan-area" id="scanScreen">
-            <h2 style="color: #7ee8fa; margin-bottom: 8px; font-size: 1.2rem;">Scan a Barcode!</h2>
-            <p style="color: #888; font-size: 0.85rem; margin-bottom: 20px; text-align: center">
-                Find any product barcode and scan it<br>to discover a monster!
-            </p>
-            <div class="scan-frame">
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-                <div class="scan-line"></div>
-                <div style="text-align: center">
-                    <div style="font-size: 3rem; margin-bottom: 8px">&#x1F4F7;</div>
-                    <p class="scan-text">Point camera at barcode</p>
-                </div>
-            </div>
-            <button class="scan-btn" onclick="simulateScan()">SCAN NOW</button>
-            <p style="color: #555; font-size: 0.75rem; margin-top: 12px">Demo: Click to simulate barcode scan</p>
-        </div>
+<div class="app">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="journey-info">
+      <div class="bus-icon">🚌</div>
+      <div>
+        <div class="location-name" id="currentLocation">기억의 숲 마을</div>
+        <div class="location-sub">천국행 버스 · 3일째 여행중</div>
+      </div>
+    </div>
+    <div class="resources">
+      <div class="resource-badge gold-r">✦ 1,250</div>
+      <div class="resource-badge supply-r">📦 38</div>
+      <div class="resource-badge soul-r">💜 6</div>
+    </div>
+  </div>
 
-        <!-- 결과 화면 -->
-        <div class="result-screen" id="resultScreen">
-            <div style="color: #FFD700; font-weight: 800; font-size: 1.2rem; margin-bottom: 4px">
-                NEW DISCOVERY!
-            </div>
-
-            <div class="monster-card">
-                <div class="rarity-badge rarity-rare">RARE</div>
-                <div class="monster-sprite" id="monsterSprite">&#x1F409;</div>
-                <div class="monster-name" id="monsterName">Choco Drake</div>
-                <div class="monster-type" id="monsterType">Type: Food Dragon | Origin: Korea</div>
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <div class="stat-label">HP</div>
-                        <div class="stat-value" id="statHp">156</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">ATK</div>
-                        <div class="stat-value" id="statAtk">89</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">DEF</div>
-                        <div class="stat-value" id="statDef">72</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="barcode-info">
-                <h3>Barcode Analysis</h3>
-                <div class="barcode-detail">
-                    <span class="key">Barcode</span>
-                    <span class="val" id="barcodeNum">8801062-871247</span>
-                </div>
-                <div class="barcode-detail">
-                    <span class="key">Country</span>
-                    <span class="val" id="barcodeCountry">880 (Korea)</span>
-                </div>
-                <div class="barcode-detail">
-                    <span class="key">Manufacturer</span>
-                    <span class="val" id="barcodeMfg">1062 (Lotte)</span>
-                </div>
-                <div class="barcode-detail">
-                    <span class="key">Product</span>
-                    <span class="val" id="barcodeProd">Choco Pie</span>
-                </div>
-            </div>
-
-            <div class="location-bonus">
-                <div class="bonus-icon">&#x1F4CD;</div>
-                <div>
-                    <div class="bonus-text">Location Bonus: Gangnam +15% Stats!</div>
-                    <div style="color: #999; font-size: 0.75rem">First scan in this area</div>
-                </div>
-            </div>
-
-            <div class="action-btns">
-                <button class="btn-again" onclick="goBack()">Scan More</button>
-                <button class="btn-collection">View Collection</button>
-            </div>
-        </div>
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screenHome">
+    <div class="home-hero">
+      <h1>천국행 버스</h1>
+      <p class="subtitle">현실에서 아팠던 영혼들이, 가보고 싶었던 곳으로<br>함께 떠나는 치유의 여정</p>
     </div>
 
-    <!-- 하단 네비 -->
-    <div class="bottom-nav">
-        <div class="nav-item active">
-            <span class="icon">&#x1F50D;</span>
-            <span>Scan</span>
+    <!-- Bus Cross-Section -->
+    <div class="bus-section" onclick="navTo('bus')">
+      <div class="bus-exterior">
+        <span class="bus-label">HEAVEN BOUND EXPRESS</span>
+      </div>
+      <div class="bus-rooms" id="busPreview">
+        <div class="bus-room active-room">
+          <div class="room-level">Lv.3</div>
+          <div class="room-icon">🌿</div>
+          <div class="room-name">정원</div>
+          <div class="room-char"><span>🐱</span></div>
         </div>
-        <div class="nav-item">
-            <span class="icon">&#x1F4D6;</span>
-            <span>Collection</span>
+        <div class="bus-room">
+          <div class="room-level">Lv.2</div>
+          <div class="room-icon">📚</div>
+          <div class="room-name">도서관</div>
+          <div class="room-char"><span>🐕</span></div>
         </div>
-        <div class="nav-item">
-            <span class="icon">&#x1F5FA;</span>
-            <span>Map</span>
+        <div class="bus-room">
+          <div class="room-level">Lv.2</div>
+          <div class="room-icon">🍳</div>
+          <div class="room-name">주방</div>
+          <div class="room-char"><span>🐰</span></div>
         </div>
-        <div class="nav-item">
-            <span class="icon">&#x2694;</span>
-            <span>Battle</span>
+        <div class="bus-room">
+          <div class="room-level">Lv.1</div>
+          <div class="room-icon">🔭</div>
+          <div class="room-name">전망대</div>
+          <div class="room-char empty"><span>+</span></div>
         </div>
-        <div class="nav-item">
-            <span class="icon">&#x1F464;</span>
-            <span>Profile</span>
+        <div class="bus-room">
+          <div class="room-level">Lv.1</div>
+          <div class="room-icon">🛏️</div>
+          <div class="room-name">휴식실</div>
+          <div class="room-char"><span>🦊</span></div>
         </div>
+      </div>
+      <div class="bus-wheels">
+        <div class="wheel"></div><div class="wheel"></div>
+        <div class="wheel"></div><div class="wheel"></div>
+      </div>
     </div>
 
-    <script>
-        const monsters = [
-            {
-                emoji: '&#x1F409;', name: 'Choco Drake', type: 'Food Dragon | Origin: Korea',
-                rarity: 'rare', hp: 156, atk: 89, def: 72,
-                barcode: '8801062-871247', country: '880 (Korea)',
-                mfg: '1062 (Lotte)', product: 'Choco Pie',
-                location: 'Gangnam +15% Stats!'
-            },
-            {
-                emoji: '&#x1F98A;', name: 'Noodle Fox', type: 'Instant Spirit | Origin: Korea',
-                rarity: 'common', hp: 98, atk: 65, def: 45,
-                barcode: '8801043-150842', country: '880 (Korea)',
-                mfg: '1043 (Nongshim)', product: 'Shin Ramyun',
-                location: 'Convenience Store +10% ATK!'
-            },
-            {
-                emoji: '&#x1F432;', name: 'Milk Guardian', type: 'Dairy Titan | Origin: Korea',
-                rarity: 'epic', hp: 210, atk: 120, def: 95,
-                barcode: '8801115-114505', country: '880 (Korea)',
-                mfg: '1115 (Seoul Milk)', product: 'Fresh Milk',
-                location: 'Supermarket +20% DEF!'
-            },
-            {
-                emoji: '&#x1F47E;', name: 'Wasabi Phantom', type: 'Spice Ghost | Origin: Japan',
-                rarity: 'legendary', hp: 280, atk: 165, def: 130,
-                barcode: '4902105-231456', country: '490 (Japan)',
-                mfg: '2105 (Glico)', product: 'Pocky',
-                location: 'Import Store +25% ALL!'
-            },
-        ];
+    <!-- Story Banner -->
+    <div class="story-banner">
+      <div class="story-label">📖 오늘의 이야기</div>
+      <div class="story-text">
+        고양이 <em>나비</em>가 정원에서 처음으로 웃었습니다.<br>
+        "여기 꽃들... 예전에 창밖으로 보던 그 꽃이랑 닮았어요."
+      </div>
+    </div>
 
-        let currentMonster = 0;
+    <!-- Action Grid -->
+    <div class="action-grid">
+      <div class="action-card scan-card" onclick="navTo('scan')">
+        <span class="card-icon">📱</span>
+        <div class="card-title">바코드 스캔</div>
+        <div class="card-desc">새로운 영혼을 만나세요</div>
+      </div>
+      <div class="action-card quest-card" onclick="navTo('quest')">
+        <div class="notif-dot"></div>
+        <span class="card-icon">📜</span>
+        <div class="card-title">마을 퀘스트</div>
+        <div class="card-desc">2개의 새로운 의뢰</div>
+      </div>
+      <div class="action-card" onclick="navTo('map')">
+        <span class="card-icon">🗺️</span>
+        <div class="card-title">여행 지도</div>
+        <div class="card-desc">다음 목적지를 선택</div>
+      </div>
+      <div class="action-card" onclick="navTo('collection')">
+        <span class="card-icon">💫</span>
+        <div class="card-title">영혼 도감</div>
+        <div class="card-desc">6/30 영혼 만남</div>
+      </div>
+    </div>
+  </div>
 
-        function simulateScan() {
-            const m = monsters[currentMonster % monsters.length];
-            currentMonster++;
+  <!-- SCAN SCREEN -->
+  <div class="screen" id="screenScan">
+    <div class="scan-container">
+      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
+      <div class="scan-title">새로운 영혼을 만나세요</div>
+      <div class="scan-subtitle">상품의 바코드를 스캔하면<br>그 안에 깃든 영혼이 깨어납니다</div>
+      <div class="scan-frame">
+        <div class="scan-corner tl"></div>
+        <div class="scan-corner tr"></div>
+        <div class="scan-corner bl"></div>
+        <div class="scan-corner br"></div>
+        <div class="scan-beam"></div>
+        <div class="scan-center-icon">
+          <span class="icon">📷</span>
+          <div class="text">바코드에 카메라를 향하세요</div>
+        </div>
+      </div>
+      <button class="scan-btn" onclick="doScan()">스캔하기</button>
+      <div class="scan-hint">데모: 클릭하면 바코드 스캔을 시뮬레이션합니다</div>
+    </div>
+  </div>
 
-            document.getElementById('monsterSprite').innerHTML = m.emoji;
-            document.getElementById('monsterName').textContent = m.name;
-            document.getElementById('monsterType').textContent = 'Type: ' + m.type;
-            document.getElementById('statHp').textContent = m.hp;
-            document.getElementById('statAtk').textContent = m.atk;
-            document.getElementById('statDef').textContent = m.def;
-            document.getElementById('barcodeNum').textContent = m.barcode;
-            document.getElementById('barcodeCountry').textContent = m.country;
-            document.getElementById('barcodeMfg').textContent = m.mfg;
-            document.getElementById('barcodeProd').textContent = m.product;
+  <!-- BUS DETAIL SCREEN -->
+  <div class="screen" id="screenBus">
+    <div class="bus-detail">
+      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
+      <div class="bus-detail-title">🚌 천국행 버스 관리</div>
 
-            const badge = document.querySelector('.rarity-badge');
-            badge.textContent = m.rarity.toUpperCase();
-            badge.className = 'rarity-badge rarity-' + m.rarity;
+      <div class="bus-floor">
+        <div class="floor-label">▲ 3층 · 전망대 & 특수시설</div>
+        <div class="floor-rooms">
+          <div class="floor-room" onclick="showRoomDetail('observatory')">
+            <div class="r-icon">🔭</div>
+            <div class="r-name">전망대</div>
+            <div class="r-effect">+그리움 치유</div>
+            <div class="char-in-room">
+              <div class="char-mini empty">+</div>
+            </div>
+          </div>
+          <div class="floor-room" onclick="showRoomDetail('music')">
+            <div class="r-icon">🎵</div>
+            <div class="r-name">음악실</div>
+            <div class="r-effect">+감정 해소</div>
+            <div class="char-in-room">
+              <div class="char-mini">🐦<div class="heal-ring"></div></div>
+            </div>
+          </div>
+          <div class="floor-room" onclick="showRoomDetail('art')">
+            <div class="r-icon">🎨</div>
+            <div class="r-name">아틀리에</div>
+            <div class="r-effect">+추억 복원</div>
+            <div class="char-in-room">
+              <div class="char-mini empty">+</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            document.querySelector('.location-bonus .bonus-text').textContent =
-                'Location Bonus: ' + m.location;
+      <div class="bus-floor">
+        <div class="floor-label">▲ 2층 · 생활 공간</div>
+        <div class="floor-rooms">
+          <div class="floor-room" onclick="showRoomDetail('library')">
+            <div class="r-icon">📚</div>
+            <div class="r-name">도서관</div>
+            <div class="r-effect">+지혜 축적</div>
+            <div class="char-in-room">
+              <div class="char-mini">🐕<div class="heal-ring"></div></div>
+            </div>
+          </div>
+          <div class="floor-room" onclick="showRoomDetail('kitchen')">
+            <div class="r-icon">🍳</div>
+            <div class="r-name">주방</div>
+            <div class="r-effect">+활력 회복</div>
+            <div class="char-in-room">
+              <div class="char-mini">🐰<div class="heal-ring"></div></div>
+            </div>
+          </div>
+          <div class="floor-room" onclick="showRoomDetail('rest')">
+            <div class="r-icon">🛏️</div>
+            <div class="r-name">휴식실</div>
+            <div class="r-effect">+평온 회복</div>
+            <div class="char-in-room">
+              <div class="char-mini">🦊<div class="heal-ring"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            document.getElementById('scanScreen').style.display = 'none';
-            document.getElementById('resultScreen').classList.add('active');
-        }
+      <div class="bus-floor">
+        <div class="floor-label">▲ 1층 · 기초 시설</div>
+        <div class="floor-rooms">
+          <div class="floor-room" onclick="showRoomDetail('garden')">
+            <div class="r-icon">🌿</div>
+            <div class="r-name">정원</div>
+            <div class="r-effect">+자연 치유</div>
+            <div class="char-in-room">
+              <div class="char-mini">🐱<div class="heal-ring"></div></div>
+              <div class="char-mini">🐢<div class="heal-ring"></div></div>
+            </div>
+          </div>
+          <div class="floor-room" onclick="showRoomDetail('storage')">
+            <div class="r-icon">📦</div>
+            <div class="r-name">창고</div>
+            <div class="r-effect">물자 보관</div>
+            <div class="char-in-room"></div>
+          </div>
+          <div class="floor-room" onclick="showRoomDetail('engine')">
+            <div class="r-icon">⚙️</div>
+            <div class="r-name">엔진실</div>
+            <div class="r-effect">여행 속도</div>
+            <div class="char-in-room">
+              <div class="char-mini empty">+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        function goBack() {
-            document.getElementById('scanScreen').style.display = 'flex';
-            document.getElementById('resultScreen').classList.remove('active');
-        }
-    </script>
+  <!-- MAP SCREEN -->
+  <div class="screen" id="screenMap">
+    <div class="map-container">
+      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
+      <div class="map-title">🗺️ 천국의 여행 지도</div>
+
+      <div class="world-map">
+        <div class="map-bg">
+          <svg width="100%" height="100%" viewBox="0 0 400 320">
+            <!-- Stylized map background -->
+            <defs>
+              <radialGradient id="glow1" cx="50%" cy="50%"><stop offset="0%" stop-color="#e9c46a" stop-opacity="0.3"/><stop offset="100%" stop-color="#e9c46a" stop-opacity="0"/></radialGradient>
+              <radialGradient id="glow2" cx="50%" cy="50%"><stop offset="0%" stop-color="#7ec8a0" stop-opacity="0.3"/><stop offset="100%" stop-color="#7ec8a0" stop-opacity="0"/></radialGradient>
+              <radialGradient id="glow3" cx="50%" cy="50%"><stop offset="0%" stop-color="#c8b6e2" stop-opacity="0.3"/><stop offset="100%" stop-color="#c8b6e2" stop-opacity="0"/></radialGradient>
+              <radialGradient id="glow4" cx="50%" cy="50%"><stop offset="0%" stop-color="#e8a0bf" stop-opacity="0.3"/><stop offset="100%" stop-color="#e8a0bf" stop-opacity="0"/></radialGradient>
+            </defs>
+            <!-- Terrain shapes -->
+            <ellipse cx="80" cy="80" rx="60" ry="50" fill="#c8dcc0" opacity="0.4"/>
+            <ellipse cx="320" cy="90" rx="55" ry="45" fill="#b8cce0" opacity="0.3"/>
+            <ellipse cx="200" cy="240" rx="70" ry="55" fill="#d8c8e0" opacity="0.3"/>
+            <ellipse cx="100" cy="250" rx="40" ry="35" fill="#e0d0c0" opacity="0.3"/>
+            <!-- Paths -->
+            <path d="M80,80 Q140,50 200,100 Q260,70 320,90" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
+            <path d="M80,80 Q60,160 100,250" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
+            <path d="M320,90 Q280,160 200,240" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
+            <path d="M100,250 Q150,260 200,240" stroke="#8b7355" stroke-width="1.5" fill="none" stroke-dasharray="4,4" opacity="0.3"/>
+            <!-- Location glows -->
+            <circle cx="80" cy="80" r="30" fill="url(#glow2)"/>
+            <circle cx="320" cy="90" r="28" fill="url(#glow1)"/>
+            <circle cx="200" cy="240" r="32" fill="url(#glow3)"/>
+            <circle cx="100" cy="250" r="22" fill="url(#glow4)"/>
+            <!-- Decorative elements -->
+            <text x="160" y="160" font-size="10" fill="#8b7355" opacity="0.15" font-weight="700">천국의 대지</text>
+            <!-- Small trees -->
+            <text x="120" y="60" font-size="8" opacity="0.3">🌲</text>
+            <text x="50" y="110" font-size="8" opacity="0.3">🌲</text>
+            <text x="100" y="95" font-size="6" opacity="0.25">🌲</text>
+            <text x="280" y="120" font-size="8" opacity="0.3">🌊</text>
+            <text x="340" y="110" font-size="6" opacity="0.25">🌊</text>
+            <text x="180" y="270" font-size="8" opacity="0.3">⭐</text>
+            <text x="220" y="220" font-size="6" opacity="0.25">⭐</text>
+            <text x="80" y="270" font-size="8" opacity="0.3">🌸</text>
+          </svg>
+        </div>
+
+        <!-- Map locations -->
+        <div class="map-location" style="left:12%;top:15%">
+          <div class="map-loc-icon" style="background:linear-gradient(135deg,#c8dcc0,#a8c8a0)">🌳</div>
+          <div class="map-loc-name">기억의 숲</div>
+          <div class="map-loc-status" style="color:var(--heal)">● 현재 위치</div>
+        </div>
+        <div class="map-location" style="left:68%;top:16%">
+          <div class="map-loc-icon" style="background:linear-gradient(135deg,#b8cce0,#90b8d8)">🌊</div>
+          <div class="map-loc-name">꿈의 바다</div>
+          <div class="map-loc-status" style="color:var(--warm)">2일 거리</div>
+        </div>
+        <div class="map-location" style="left:40%;top:62%">
+          <div class="map-loc-icon" style="background:linear-gradient(135deg,#d8c8e0,#c0a8d0)">⭐</div>
+          <div class="map-loc-name">별빛 봉우리</div>
+          <div class="map-loc-status" style="color:var(--wood)">4일 거리</div>
+        </div>
+        <div class="map-location" style="left:14%;top:68%">
+          <div class="map-loc-icon" style="background:linear-gradient(135deg,#e8d0d8,#d8b0c0)">🌸</div>
+          <div class="map-loc-name">마음의 정원</div>
+          <div class="map-loc-status" style="color:var(--wood)">3일 거리</div>
+        </div>
+
+        <!-- Bus marker -->
+        <div class="map-bus-marker" style="left:17%;top:6%">
+          <div class="map-bus-icon">🚌</div>
+          <div class="map-bus-label">우리 버스</div>
+        </div>
+      </div>
+
+      <!-- Destination cards -->
+      <div class="destination-cards">
+        <div class="dest-card" style="border-left:3px solid #a8c8a0">
+          <div class="dest-icon">🌳</div>
+          <div class="dest-name">기억의 숲</div>
+          <div class="dest-desc">잊혀진 추억들이 나뭇잎처럼 흩날리는 곳. 이곳에서 영혼들은 소중했던 기억을 되찾습니다.</div>
+          <div class="dest-dist">● 현재 위치</div>
+        </div>
+        <div class="dest-card" style="border-left:3px solid #90b8d8">
+          <div class="dest-icon">🌊</div>
+          <div class="dest-name">꿈의 바다</div>
+          <div class="dest-desc">눈물이 모여 만든 바다. 파도 소리에 슬픔이 씻겨 내려갑니다.</div>
+          <div class="dest-dist">🚌 2일 거리</div>
+        </div>
+        <div class="dest-card" style="border-left:3px solid #c0a8d0">
+          <div class="dest-icon">⭐</div>
+          <div class="dest-name">별빛 봉우리</div>
+          <div class="dest-desc">밤하늘에 가장 가까운 산. 이곳에서 보내지 못한 말들을 별에게 전합니다.</div>
+          <div class="dest-dist">🚌 4일 거리</div>
+        </div>
+        <div class="dest-card" style="border-left:3px solid #d8b0c0">
+          <div class="dest-icon">🌸</div>
+          <div class="dest-name">마음의 정원</div>
+          <div class="dest-desc">영원히 피어나는 꽃밭. 사랑했던 이에게 보내는 편지가 꽃이 됩니다.</div>
+          <div class="dest-dist">🚌 3일 거리</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUEST SCREEN -->
+  <div class="screen" id="screenQuest">
+    <div class="quest-container">
+      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
+      <div class="quest-title">📜 기억의 숲 마을 의뢰</div>
+      <div class="quest-village">마을 주민들이 도움을 필요로 합니다</div>
+
+      <div class="quest-card" onclick="acceptQuest(0)">
+        <div class="quest-header">
+          <div class="quest-npc">🦉</div>
+          <div class="quest-info">
+            <div class="quest-name">잃어버린 자장가</div>
+            <div class="quest-giver">올빼미 할아버지 · 숲의 현자</div>
+          </div>
+          <span class="quest-type-badge qt-memory">추억</span>
+        </div>
+        <div class="quest-desc">"어린 시절 어머니가 불러주시던 자장가가 있었는데... 가사가 기억나지 않아요. 숲 깊은 곳에 떨어진 기억 조각들을 모아주실 수 있나요?"</div>
+        <div class="quest-reward">
+          <span class="reward-item">✦ 300 골드</span>
+          <span class="reward-item">📦 기억의 오르골</span>
+          <span class="reward-item">💜 치유 +15</span>
+        </div>
+      </div>
+
+      <div class="quest-card" onclick="acceptQuest(1)">
+        <div class="quest-header">
+          <div class="quest-npc">🐿️</div>
+          <div class="quest-info">
+            <div class="quest-name">따뜻한 수프 한 그릇</div>
+            <div class="quest-giver">다람쥐 코코 · 마을 식당 주인</div>
+          </div>
+          <span class="quest-type-badge qt-gather">수집</span>
+        </div>
+        <div class="quest-desc">"추운 날에 길을 잃은 영혼들에게 수프를 끓여주고 싶어요. 바코드 스캔으로 재료를 3개만 모아주세요!"</div>
+        <div class="quest-reward">
+          <span class="reward-item">✦ 200 골드</span>
+          <span class="reward-item">📦 수프 레시피</span>
+          <span class="reward-item">🍳 주방 경험치</span>
+        </div>
+      </div>
+
+      <div class="quest-card" onclick="acceptQuest(2)">
+        <div class="quest-header">
+          <div class="quest-npc">🌸</div>
+          <div class="quest-info">
+            <div class="quest-name">벚꽃 편지</div>
+            <div class="quest-giver">벚꽃 정령 하나 · 숲의 수호자</div>
+          </div>
+          <span class="quest-type-badge qt-comfort">위로</span>
+        </div>
+        <div class="quest-desc">"버스에 탄 영혼 중 아직 울고 있는 친구가 있나요? 이 벚꽃잎에 따뜻한 말을 적어서 전해주세요."</div>
+        <div class="quest-reward">
+          <span class="reward-item">✦ 150 골드</span>
+          <span class="reward-item">🌸 벚꽃 장식</span>
+          <span class="reward-item">💜 위로 치유 +20</span>
+        </div>
+      </div>
+
+      <div class="quest-card" onclick="acceptQuest(3)">
+        <div class="quest-header">
+          <div class="quest-npc">📮</div>
+          <div class="quest-info">
+            <div class="quest-name">보내지 못한 편지</div>
+            <div class="quest-giver">우체통 할머니 · 마음 배달부</div>
+          </div>
+          <span class="quest-type-badge qt-deliver">전달</span>
+        </div>
+        <div class="quest-desc">"이 편지들은 세상을 떠나기 전에 보내지 못한 것들이에요. 별빛 봉우리까지 가면 하늘로 보낼 수 있답니다."</div>
+        <div class="quest-reward">
+          <span class="reward-item">✦ 500 골드</span>
+          <span class="reward-item">💌 은빛 편지지</span>
+          <span class="reward-item">💜 치유 +30</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLLECTION SCREEN -->
+  <div class="screen" id="screenCollection">
+    <div class="collection-container">
+      <button class="back-btn" onclick="navTo('home')">← 돌아가기</button>
+      <div class="collection-title">💫 함께하는 영혼들</div>
+      <div class="collection-count">6마리의 영혼과 여행 중</div>
+
+      <div class="char-grid" id="charGrid">
+        <!-- Characters will be rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Discovery Overlay -->
+  <div class="discovery-overlay" id="discoveryOverlay">
+    <div class="discovery-card">
+      <div class="discover-header">
+        <div class="discover-label">✨ 새로운 영혼을 만났습니다</div>
+        <div class="discover-sprite">
+          <div class="glow"></div>
+          <div id="discoverSpriteContainer"></div>
+        </div>
+        <div class="discover-name" id="discoverName">-</div>
+        <div class="discover-rarity" id="discoverRarity">-</div>
+      </div>
+      <div class="discover-story" id="discoverStory">
+        <div class="story-icon">📖 이 영혼의 이야기</div>
+        <p id="discoverStoryText">-</p>
+      </div>
+      <div class="discover-stats" id="discoverStats"></div>
+      <div class="discover-barcode" id="discoverBarcode"></div>
+      <div class="discover-actions">
+        <button class="btn btn-secondary" onclick="closeDiscovery()">닫기</button>
+        <button class="btn btn-primary" onclick="welcomeSoul()">버스에 태우기 💛</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Character Detail Modal -->
+  <div class="char-modal" id="charModal">
+    <div class="char-modal-content" id="charModalContent">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="navTo('home')" data-screen="home">
+    <span class="nav-icon">🏠</span><span>홈</span>
+    <div class="nav-active-dot"></div>
+  </div>
+  <div class="nav-item" onclick="navTo('scan')" data-screen="scan">
+    <span class="nav-icon">📱</span><span>스캔</span>
+    <div class="nav-active-dot"></div>
+  </div>
+  <div class="nav-item" onclick="navTo('bus')" data-screen="bus">
+    <span class="nav-icon">🚌</span><span>버스</span>
+    <div class="nav-active-dot"></div>
+  </div>
+  <div class="nav-item" onclick="navTo('map')" data-screen="map">
+    <span class="nav-icon">🗺️</span><span>지도</span>
+    <div class="nav-active-dot"></div>
+  </div>
+  <div class="nav-item" onclick="navTo('collection')" data-screen="collection">
+    <span class="nav-icon">💫</span><span>도감</span>
+    <div class="nav-active-dot"></div>
+  </div>
+</div>
+
+<script>
+// ========================================
+// PIXEL ART SVG GENERATOR (detailed sprites)
+// ========================================
+const PIXEL = 4; // pixel size for detailed sprites
+const GRID = 24; // 24x24 grid = 96px sprites
+
+function createPixelArt(grid, palette) {
+  const size = grid.length;
+  const px = PIXEL;
+  let rects = '';
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const c = grid[y][x];
+      if (c !== 0 && palette[c]) {
+        rects += `<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${palette[c]}"/>`;
+      }
+    }
+  }
+  return `<svg viewBox="0 0 ${size*px} ${size*px}" xmlns="http://www.w3.org/2000/svg">${rects}</svg>`;
+}
+
+// ========================================
+// CHARACTER DATA (with backstories & healing)
+// ========================================
+const characters = [
+  {
+    id:'nabi', name:'나비', species:'고양이', type:'자연',
+    rarity:'rare', emoji:'🐱',
+    barcode:'8801062-871247', country:'880 (한국)', mfg:'롯데', product:'초코파이',
+    stats:{hp:156, atk:89, def:72, spd:95, spc:110},
+    room:'garden', healProgress:65,
+    memory:'창밖으로만 세상을 보던 집고양이였어요. 비 오는 날 창가에서 듣던 빗소리가 가장 좋았죠.',
+    longing:'한 번도 밟아보지 못한 풀밭 위를 맨발로 걸어보고 싶었어요. 바람에 흔들리는 꽃들 사이를 뛰어다니고 싶었죠.',
+    story:'아파트 14층에서 태어나 한 번도 밖에 나가본 적 없는 고양이. 창밖의 새들과 나비를 바라보며 평생을 보냈습니다.',
+    pixel:[
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0],
+      [0,0,0,1,2,2,1,0,0,0,0,0,0,0,0,0,0,1,2,2,1,0,0,0],
+      [0,0,0,1,2,3,2,1,0,0,0,0,0,0,0,0,1,2,3,2,1,0,0,0],
+      [0,0,0,0,1,2,2,2,1,1,1,1,1,1,1,1,2,2,2,1,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,1,2,4,4,2,2,2,2,2,4,4,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,1,2,5,4,2,2,2,2,2,4,5,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,2,6,2,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,7,7,7,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,1,2,2,2,2,2,1,1,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,3,3,1,0,0,8,0,0,1,3,3,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,1,0,0,8,8,8,0,0,1,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0],
+    ],
+    palette:{1:'#5a4a3a',2:'#f5deb3',3:'#ffe4c4',4:'#4a7a4a',5:'#1a1a1a',6:'#e8a0bf',7:'#e8a0bf',8:'#f5deb3'}
+  },
+  {
+    id:'haru', name:'하루', species:'강아지', type:'빛',
+    rarity:'epic', emoji:'🐕',
+    barcode:'8801043-150842', country:'880 (한국)', mfg:'농심', product:'신라면',
+    stats:{hp:210, atk:120, def:95, spd:130, spc:85},
+    room:'library', healProgress:40,
+    memory:'매일 문 앞에서 주인을 기다렸어요. 주인이 돌아오지 않는 날이 점점 많아졌죠.',
+    longing:'주인과 함께 넓은 들판을 뛰어다니고 싶었어요. 공을 던져주면 신나게 물어오던 그 시절로...',
+    story:'유기견 보호소에서 3년을 보낸 강아지. 매일 입구를 바라보며 주인이 돌아오기를 기다렸습니다.',
+    pixel:[
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0],
+      [0,0,1,2,2,2,1,0,0,0,0,0,0,0,0,0,0,1,2,2,2,1,0,0],
+      [0,0,1,2,3,2,1,0,0,0,0,0,0,0,0,0,0,1,2,3,2,1,0,0],
+      [0,0,0,1,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,2,1,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,4,4,2,2,2,2,2,4,4,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,5,4,2,2,2,2,2,4,5,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,6,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,7,7,7,7,7,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0],
+      [0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0],
+      [0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0],
+      [0,0,0,0,1,2,2,1,0,0,0,0,0,0,0,1,2,2,1,0,0,0,0,0],
+      [0,0,0,0,1,2,2,1,0,0,0,0,0,0,0,1,2,2,1,0,0,0,0,0],
+      [0,0,0,0,1,3,3,1,0,0,0,0,0,0,0,1,3,3,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,8,8,8,0,0,0,1,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,8,2,8,0,0,0,0,0,0,0,0,0,0,0],
+    ],
+    palette:{1:'#6a5a4a',2:'#deb887',3:'#f5deb3',4:'#5a3a1a',5:'#1a1a1a',6:'#3a2a1a',7:'#deb887',8:'#c4956a'}
+  },
+  {
+    id:'mochi', name:'모찌', species:'토끼', type:'음식',
+    rarity:'common', emoji:'🐰',
+    barcode:'4902105-231456', country:'490 (일본)', mfg:'글리코', product:'포키',
+    stats:{hp:98, atk:65, def:45, spd:140, spc:88},
+    room:'kitchen', healProgress:80,
+    memory:'실험실에서 태어났어요. 하얀 벽과 형광등만 아는 세상이었죠.',
+    longing:'드넓은 초원에서 맘껏 뛰어다니고 싶었어요. 흙 냄새, 풀 냄새를 맡아보고 싶었죠.',
+    story:'실험실에서 태어나 자연을 한 번도 본 적 없는 토끼. 유리벽 너머로 본 하늘빛을 잊지 못합니다.',
+    pixel:[
+      [0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,1,0,0,1,2,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,3,1,0,0,1,3,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,3,1,0,0,1,3,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,1,0,0,1,2,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,1,2,2,1,1,2,2,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,4,4,2,2,2,4,4,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,5,4,2,2,2,4,5,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,6,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,7,2,7,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,1,0,0,0,0,1,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,1,0,0,0,0,1,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,3,1,0,0,0,0,1,3,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    ],
+    palette:{1:'#8a7a6a',2:'#ffffff',3:'#ffcccc',4:'#cc4444',5:'#1a1a1a',6:'#ffaaaa',7:'#ffaaaa',8:'#ffffff'}
+  },
+  {
+    id:'tori', name:'토리', species:'참새', type:'바람',
+    rarity:'uncommon', emoji:'🐦',
+    barcode:'8801115-114505', country:'880 (한국)', mfg:'서울우유', product:'신선우유',
+    stats:{hp:78, atk:95, def:50, spd:170, spc:105},
+    room:'music', healProgress:55,
+    memory:'날개를 다쳐 날 수 없었어요. 전깃줄에 앉아 다른 새들이 하늘을 나는 걸 바라보았죠.',
+    longing:'구름 위를 날아보고 싶었어요. 석양 빛 속을 미끄러지듯 날아가는 게 꿈이었어요.',
+    story:'다친 날개로 평생을 땅 위에서 보낸 참새. 하늘을 나는 꿈을 매일 밤 꾸었습니다.',
+    pixel:[
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,4,2,2,2,4,2,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,5,2,2,2,5,2,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,2,6,6,2,2,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,1,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,1,2,2,2,1,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,1,1,1,0,0,1,2,2,2,2,2,1,0,0,1,1,1,0,0,0,0],
+      [0,0,1,3,3,3,1,1,2,2,2,2,2,2,2,1,1,3,3,3,1,0,0,0],
+      [0,1,3,3,3,3,3,2,2,2,2,2,2,2,2,2,3,3,3,3,3,1,0,0],
+      [1,3,3,7,3,3,3,2,2,2,2,2,2,2,2,2,3,3,3,7,3,3,1,0],
+      [0,1,3,3,3,3,1,2,2,2,2,2,2,2,2,2,1,3,3,3,3,1,0,0],
+      [0,0,1,3,3,1,0,1,2,2,2,2,2,2,2,1,0,1,3,3,1,0,0,0],
+      [0,0,0,1,1,0,0,0,1,2,2,2,2,2,1,0,0,0,1,1,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,1,2,2,2,1,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,1,2,0,2,1,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,1,8,0,8,1,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    ],
+    palette:{1:'#6a5a4a',2:'#c4956a',3:'#8a7050',4:'#2a2a2a',5:'#1a1a1a',6:'#e8a020',7:'#ffffff',8:'#e8a020'}
+  },
+  {
+    id:'komi', name:'꼬미', species:'거북이', type:'대지',
+    rarity:'legendary', emoji:'🐢',
+    barcode:'8809876-543210', country:'880 (한국)', mfg:'오리온', product:'다이제',
+    stats:{hp:280, atk:65, def:200, spd:30, spc:160},
+    room:'garden', healProgress:25,
+    memory:'100년을 혼자 살았어요. 같이 놀아줄 친구가 한 명도 없었죠. 연못 위의 달만이 유일한 벗이었어요.',
+    longing:'누군가와 나란히 걸어보고 싶었어요. 천천히, 아주 천천히... 같은 속도로 함께.',
+    story:'외딴 연못에서 100년을 홀로 살았던 거북이. 사람들은 모두 거북이를 두고 떠났습니다.',
+    pixel:[
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,3,3,3,3,2,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,3,3,3,3,3,3,3,3,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,3,4,3,3,3,4,3,3,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,3,3,3,3,3,3,3,3,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,3,3,5,3,3,2,1,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,1,2,3,3,3,2,1,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,6,6,7,7,6,6,6,7,7,6,6,6,1,0,0,0,0,0],
+      [0,0,0,0,1,6,7,7,6,6,7,7,7,6,6,7,7,6,6,1,0,0,0,0],
+      [0,0,0,1,6,6,7,6,6,6,6,7,6,6,6,6,7,6,6,6,1,0,0,0],
+      [0,0,0,1,6,7,7,6,6,7,7,7,7,7,6,6,7,7,6,6,1,0,0,0],
+      [0,0,0,0,1,6,6,7,7,6,6,6,6,6,7,7,6,6,6,1,0,0,0,0],
+      [0,0,0,0,0,1,6,6,6,6,6,6,6,6,6,6,6,6,1,0,0,0,0,0],
+      [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,0,1,2,2,1,0,0,0,0,0],
+      [0,0,0,0,1,2,3,2,1,0,0,0,0,0,0,1,2,3,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,1,0,0,0,8,0,0,0,0,1,2,2,1,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,8,8,8,0,0,0,0,1,1,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    ],
+    palette:{1:'#4a6a3a',2:'#5a8a4a',3:'#7aba6a',4:'#1a1a1a',5:'#4a6a3a',6:'#6a8a50',7:'#8aaa68',8:'#5a8a4a'}
+  },
+  {
+    id:'yuki', name:'유키', species:'여우', type:'영혼',
+    rarity:'epic', emoji:'🦊',
+    barcode:'4901234-567890', country:'490 (일본)', mfg:'메이지', product:'아폴로',
+    stats:{hp:145, atk:110, def:80, spd:155, spc:140},
+    room:'rest', healProgress:35,
+    memory:'산에서 사람들에게 쫓기며 살았어요. 믿을 수 있는 곳이 아무 데도 없었죠.',
+    longing:'두려움 없이 잠들어보고 싶었어요. 따뜻한 곳에서 아무 걱정 없이...',
+    story:'산림 개발로 서식지를 잃고, 사냥꾼들에게 쫓기며 평생을 도망치며 살았던 여우.',
+    pixel:[
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0],
+      [0,0,1,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,1,0,0],
+      [0,0,1,2,3,2,1,0,0,0,0,0,0,0,0,0,0,1,2,3,2,1,0,0],
+      [0,0,0,1,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,2,1,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,3,2,2,2,2,2,3,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,4,4,2,2,2,2,2,4,4,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,5,4,2,2,2,2,2,4,5,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,6,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,3,3,3,3,3,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,3,3,3,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,0,0],
+      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,3,3,1,0,0,0,0,0,1,3,3,1,0,0,0,0,0,0],
+      [0,0,0,0,0,0,1,1,0,0,8,8,0,0,0,1,1,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,8,2,2,8,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,8,8,0,0,0,0,0,0,0,0,0,0,0,0],
+    ],
+    palette:{1:'#8a5a2a',2:'#e8a040',3:'#ffffff',4:'#4a8a4a',5:'#1a1a1a',6:'#2a1a0a',7:'#e8a040',8:'#e8a040'}
+  },
+];
+
+// ========================================
+// NAVIGATION
+// ========================================
+function navTo(screenName) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen' + screenName.charAt(0).toUpperCase() + screenName.slice(1));
+  if (target) {
+    target.classList.add('active');
+    target.style.animation = 'none';
+    target.offsetHeight;
+    target.style.animation = 'fadeIn 0.3s ease';
+  }
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.screen === screenName);
+  });
+  if (screenName === 'collection') renderCollection();
+}
+
+// ========================================
+// SCAN SYSTEM
+// ========================================
+let scanIndex = 0;
+function doScan() {
+  const char = characters[scanIndex % characters.length];
+  scanIndex++;
+  showDiscovery(char);
+}
+
+function showDiscovery(char) {
+  document.getElementById('discoverName').textContent = char.name;
+  const rarityEl = document.getElementById('discoverRarity');
+  const rarityNames = {common:'평범',uncommon:'특별',rare:'희귀',epic:'전설적',legendary:'신화'};
+  rarityEl.textContent = rarityNames[char.rarity] || char.rarity;
+  rarityEl.className = 'discover-rarity rarity-' + char.rarity;
+  document.getElementById('discoverStoryText').innerHTML =
+    `<em>${char.name}</em>은(는) ${char.species}였습니다. ${char.story}`;
+  // Sprite
+  const spriteContainer = document.getElementById('discoverSpriteContainer');
+  spriteContainer.innerHTML = createPixelArt(char.pixel, char.palette);
+  // Stats
+  const statsEl = document.getElementById('discoverStats');
+  const statNames = {hp:'생명력',atk:'공격',def:'방어',spd:'속도',spc:'특수'};
+  const statColors = {hp:'#e06060',atk:'#e08040',def:'#6090c0',spd:'#60b060',spc:'#a070c0'};
+  statsEl.innerHTML = Object.entries(char.stats).map(([k,v]) => {
+    const pct = Math.min(100, v / 2.8);
+    return `<div class="stat-item">
+      <div class="stat-label">${statNames[k]}</div>
+      <div class="stat-bar"><div class="fill" style="width:${pct}%;background:${statColors[k]}"></div></div>
+      <div class="stat-val">${v}</div>
+    </div>`;
+  }).join('');
+  // Barcode info
+  document.getElementById('discoverBarcode').innerHTML = `
+    <div class="barcode-row"><span class="k">바코드</span><span class="v">${char.barcode}</span></div>
+    <div class="barcode-row"><span class="k">원산지</span><span class="v">${char.country}</span></div>
+    <div class="barcode-row"><span class="k">제조사</span><span class="v">${char.mfg}</span></div>
+    <div class="barcode-row"><span class="k">제품</span><span class="v">${char.product}</span></div>
+  `;
+  document.getElementById('discoveryOverlay').classList.add('active');
+  // Animate stat bars after a short delay
+  setTimeout(() => {
+    document.querySelectorAll('#discoverStats .fill').forEach(f => {
+      f.style.width = f.style.width; // trigger reflow
+    });
+  }, 100);
+}
+
+function closeDiscovery() {
+  document.getElementById('discoveryOverlay').classList.remove('active');
+}
+function welcomeSoul() {
+  closeDiscovery();
+  navTo('home');
+}
+
+// ========================================
+// COLLECTION RENDERING
+// ========================================
+function renderCollection() {
+  const grid = document.getElementById('charGrid');
+  grid.innerHTML = characters.map(c => `
+    <div class="char-card" onclick="showCharDetail('${c.id}')">
+      <span class="char-rarity rarity-${c.rarity}">${
+        {common:'평범',uncommon:'특별',rare:'희귀',epic:'전설적',legendary:'신화'}[c.rarity]
+      }</span>
+      <div class="char-sprite">${createPixelArt(c.pixel, c.palette)}</div>
+      <div class="char-name">${c.name}</div>
+      <div class="char-type">${c.species} · ${c.type} 타입</div>
+      <div class="heal-progress"><div class="heal-fill" style="width:${c.healProgress}%"></div></div>
+      <div class="heal-label">치유 ${c.healProgress}%</div>
+    </div>
+  `).join('');
+}
+
+// ========================================
+// CHARACTER DETAIL
+// ========================================
+function showCharDetail(id) {
+  const c = characters.find(ch => ch.id === id);
+  if (!c) return;
+  const content = document.getElementById('charModalContent');
+  const stages = [
+    {name:'슬픔',pct:0},{name:'수용',pct:25},{name:'평온',pct:50},{name:'미소',pct:75},{name:'치유',pct:100}
+  ];
+  content.innerHTML = `
+    <button class="back-btn" onclick="closeCharModal()" style="margin-bottom:12px">← 닫기</button>
+    <div class="char-detail-sprite">${createPixelArt(c.pixel, c.palette)}</div>
+    <div class="char-detail-name">${c.name}</div>
+    <div class="char-detail-type">${c.species} · ${c.type} 타입 · ${
+      {common:'평범',uncommon:'특별',rare:'희귀',epic:'전설적',legendary:'신화'}[c.rarity]
+    }</div>
+    <div class="char-memory">
+      <div class="mem-title">📖 생전의 기억</div>
+      <div class="mem-text">${c.memory}</div>
+    </div>
+    <div class="char-longing">
+      <div class="long-title">💭 그리움</div>
+      <div class="long-text">${c.longing}</div>
+    </div>
+    <div class="char-heal-section">
+      <div class="heal-title">💚 치유 여정 (${c.healProgress}%)</div>
+      <div class="char-heal-bar"><div class="fill" style="width:${c.healProgress}%"></div></div>
+      <div class="char-heal-stages">
+        ${stages.map(s => `<div class="heal-stage ${c.healProgress >= s.pct ? 'reached' : ''}">${s.name}</div>`).join('')}
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <div style="font-size:0.7rem;font-weight:600;color:var(--wood);margin-bottom:6px">현재 배치: ${
+        {garden:'정원',library:'도서관',kitchen:'주방',music:'음악실',rest:'휴식실',observatory:'전망대'}[c.room] || c.room
+      }</div>
+      <div class="discover-stats">${
+        Object.entries(c.stats).map(([k,v]) => {
+          const pct = Math.min(100, v / 2.8);
+          const statNames = {hp:'생명력',atk:'공격',def:'방어',spd:'속도',spc:'특수'};
+          const statColors = {hp:'#e06060',atk:'#e08040',def:'#6090c0',spd:'#60b060',spc:'#a070c0'};
+          return `<div class="stat-item">
+            <div class="stat-label">${statNames[k]}</div>
+            <div class="stat-bar"><div class="fill" style="width:${pct}%;background:${statColors[k]}"></div></div>
+            <div class="stat-val">${v}</div>
+          </div>`;
+        }).join('')
+      }</div>
+    </div>
+  `;
+  document.getElementById('charModal').classList.add('active');
+}
+function closeCharModal() {
+  document.getElementById('charModal').classList.remove('active');
+}
+
+// ========================================
+// QUEST SYSTEM
+// ========================================
+function acceptQuest(idx) {
+  const card = document.querySelectorAll('.quest-card')[idx];
+  if (card) {
+    card.style.borderColor = 'var(--heal)';
+    card.style.background = 'rgba(126,200,160,0.08)';
+    const btn = document.createElement('div');
+    btn.style.cssText = 'text-align:center;margin-top:8px;padding:8px;background:var(--heal);color:white;border-radius:10px;font-size:0.75rem;font-weight:700';
+    btn.textContent = '✓ 수락 완료';
+    if (!card.querySelector('[style*="수락"]')) card.appendChild(btn);
+  }
+}
+
+function showRoomDetail(room) {
+  // Simple alert for demo - in full version this would open a room management panel
+}
+
+// ========================================
+// PARTICLE SYSTEM (cherry blossoms + light orbs)
+// ========================================
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Petal {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = -10;
+    this.size = 3 + Math.random() * 5;
+    this.speedY = 0.3 + Math.random() * 0.8;
+    this.speedX = (Math.random() - 0.5) * 0.6;
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 0.02;
+    this.opacity = 0.15 + Math.random() * 0.25;
+    this.wobble = Math.random() * Math.PI * 2;
+    this.wobbleSpeed = 0.01 + Math.random() * 0.02;
+    const types = ['petal','orb'];
+    this.type = types[Math.floor(Math.random() * types.length)];
+    if (this.type === 'petal') {
+      const petalColors = ['#e8a0bf','#f0c8d8','#d8a0c0','#e0b8c8','#f5d0e0'];
+      this.color = petalColors[Math.floor(Math.random() * petalColors.length)];
+    } else {
+      const orbColors = ['#e9c46a','#f4d48a','#ffeaa0','#c8b6e2','#7ec8a0'];
+      this.color = orbColors[Math.floor(Math.random() * orbColors.length)];
+      this.size = 2 + Math.random() * 3;
+      this.speedY = 0.1 + Math.random() * 0.3;
+      this.opacity = 0.1 + Math.random() * 0.15;
+    }
+  }
+  update() {
+    this.wobble += this.wobbleSpeed;
+    this.x += this.speedX + Math.sin(this.wobble) * 0.3;
+    this.y += this.speedY;
+    this.rotation += this.rotSpeed;
+    if (this.y > canvas.height + 10) this.reset();
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.globalAlpha = this.opacity;
+    if (this.type === 'petal') {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(this.size * 0.3, -this.size * 0.2, this.size * 0.7, this.size * 0.4, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+for (let i = 0; i < 35; i++) {
+  const p = new Petal();
+  p.y = Math.random() * canvas.height;
+  particles.push(p);
+}
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ========================================
+// INIT
+// ========================================
+renderCollection();
+</script>
 </body>
 </html>
