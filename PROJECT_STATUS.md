@@ -57,11 +57,15 @@ startup_all.bat
 
 | 프로젝트 | 변경 내용 |
 |---------|----------|
-| **00-ServerMonitor** | v2.1 - 안정화 (CREATE_NO_WINDOW + 재시도제한3회 + 중복프로세스정리) + 노트북서버화 (전원설정+자동시작) |
-| **01-PromoMap** | Python 3.9→3.13 업그레이드 (bcrypt DLL + 문법 호환 해결) |
-| **06-HomeFinder** | v2.0 - 토지 등록/수정 UI + 검색필터 강화 (건물/토지 분류별 동적 전환) |
+| **00-ServerMonitor** | v2.1 - 시작검증 + 안전재시작 + CREATE_NO_WINDOW + 재시도제한3회 |
+| **01-PromoMap** | Python 3.13 업그레이드 + N+1 쿼리 수정 + FK 인덱스 추가 |
+| **02-BarcodeQuest** | 몬스터 레벨링 시스템 + 파티 관리 API |
+| **03-VoiceMemory** | 세션 완료 API + 동의 철회 연쇄 삭제 (개인정보보호법) |
+| **04-CryptoBot** | 가격 캐시 (API 60%↓) + 조기 손실 매도 신호 |
+| **05-StockBot** | 섹터 한도 정상화 + 매매 건너뜀 로깅 |
+| **06-HomeFinder** | v2.0 토지 CRUD + N+1 쿼리 수정 + 검색 쿼리 중복 제거 |
 | **07-자유투(소설)** | 전체 퇴고 완료 + GitHub 저장소(free-throw-novel) 생성 |
-| **인프라** | Python 3.13 설치, gh CLI 설치+인증, Tailscale 연결 확인, 보안 점검 |
+| **인프라** | Python 3.13 전체 업그레이드, gh CLI, Tailscale, 보안 점검, 노트북 서버화 |
 
 ## 2026-02-17 변경사항
 

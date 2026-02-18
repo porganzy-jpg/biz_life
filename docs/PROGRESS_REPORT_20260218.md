@@ -180,14 +180,56 @@ ServerMonitor v2.1 안정화 + 노트북 서버화 + 텔레그램 원격제어 �
 
 ---
 
+## Python 3.13 전체 업그레이드
+
+### 작업
+- 7개 프로젝트 모두 Python 3.9.1 → 3.13.12 업그레이드
+- venv 재생성 + 패키지 재설치
+- numpy/pandas 상한 제약 제거 (04, 05 프로젝트)
+
+---
+
+## 프로젝트별 성능 개선 (v2.1 라운드)
+
+### 00-server-monitor
+- 프로젝트 시작 시 포트 응답 확인 (3초 검증)
+- 재시작 시 포트 해제 대기 (경쟁 상태 방지)
+
+### 01-promo-map
+- N+1 쿼리 수정: 주변 매장 할인 정보 일괄 조회 (100+ → 2 쿼리)
+- FK 인덱스 추가: store_id, company_id
+
+### 02-barcode-game
+- 몬스터 레벨링 시스템 (경험치 + 스탯 성장)
+- 파티 관리 API (파티 ↔ 보관함 교체)
+
+### 03-voice-memory
+- 녹음 세션 완료 API (PUT /api/recording/session/{id})
+- 동의 철회 시 데이터 연쇄 삭제 (개인정보보호법 준수)
+
+### 04-crypto-trader
+- 가격 캐시: 분석 사이클 가격 재사용 (~60% API 호출 감소)
+- 조기 신호 매도: -0.5% 손실 시 앙상블 SELL 신호 즉시 반영
+
+### 05-stock-trader
+- 포지션 데이터에 섹터 정보 포함 → 섹터 한도 정상 작동
+- 매매 건너뜀 로깅 (가격 데이터 없음 / 수량 부족 경고)
+
+### 06-home-finder
+- score_all() N+1 쿼리 수정: 지역 정보 사전 캐시 (95%+ 쿼리 감소)
+- 검색 쿼리 중복 제거: search_with_count() 단일 필터 구성
+
+---
+
 ## 통계
 
 | 항목 | 수치 |
 |------|------|
-| 변경된 파일 | 15개+ |
-| ServerMonitor 변경 | bot.py, monitor.py (CREATE_NO_WINDOW + 재시도 제한) |
-| PromoMap 변경 | venv 재생성 (Python 3.9→3.13) |
-| HomeFinder 변경 | 5개+ 파일 (API + 템플릿 + JS) |
+| 변경된 파일 | 30개+ |
+| ServerMonitor 변경 | bot.py, monitor.py, app.py (CREATE_NO_WINDOW + 재시도 제한 + 시작 검증) |
+| PromoMap 변경 | venv 재생성 + N+1 쿼리 수정 + FK 인덱스 |
+| HomeFinder 변경 | 5개+ 파일 (API + 템플릿 + JS + 쿼리 최적화) |
 | 소설 퇴고 | 55개+ 파일 리뷰, 2개 파일 3건 수정 |
 | GitHub 저장소 | biz_life (기존) + free-throw-novel (신규) |
 | 총 프로젝트 | 8개 (6개 사업 + 서버모니터 + 소설) |
+| 커밋 수 (당일) | 10+ |
