@@ -845,6 +845,78 @@ GAME_HTML = """
         .scan-divider { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
         .scan-divider hr { flex: 1; border: none; border-top: 1px solid #333; }
         .scan-divider span { font-size: 0.75rem; color: #555; }
+        /* === HERO WELCOME SECTION === */
+        .hero-section { position: relative; text-align: center; padding: 28px 16px 20px; overflow: hidden; border-radius: 16px; margin-bottom: 16px; background: radial-gradient(ellipse at 50% 0%, rgba(233,69,96,0.12) 0%, transparent 60%); }
+        .hero-logo { font-size: 2.2rem; font-weight: 800; margin-bottom: 2px; background: linear-gradient(135deg, #e94560, #f093fb, #4ecdc4, #f093fb, #e94560); background-size: 300% 300%; animation: heroGrad 5s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; position: relative; z-index: 2; }
+        @keyframes heroGrad { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .hero-tagline { font-size: 0.82rem; color: #8a8aaa; margin-bottom: 16px; font-weight: 400; letter-spacing: 0.5px; }
+        .hero-tagline em { color: #f093fb; font-style: normal; font-weight: 600; }
+        .hero-creatures { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .hero-creature { position: absolute; opacity: 0.08; filter: blur(0.5px); animation: heroFloat 8s ease-in-out infinite; }
+        .hero-creature:nth-child(1) { left: 5%; top: 15%; animation-delay: 0s; animation-duration: 7s; }
+        .hero-creature:nth-child(2) { right: 8%; top: 10%; animation-delay: -2s; animation-duration: 9s; }
+        .hero-creature:nth-child(3) { left: 15%; bottom: 10%; animation-delay: -4s; animation-duration: 6s; }
+        .hero-creature:nth-child(4) { right: 12%; bottom: 15%; animation-delay: -1s; animation-duration: 8s; }
+        .hero-creature:nth-child(5) { left: 50%; top: 5%; animation-delay: -3s; animation-duration: 10s; transform: translateX(-50%); }
+        @keyframes heroFloat { 0%,100% { transform: translateY(0) rotate(0deg); } 25% { transform: translateY(-12px) rotate(3deg); } 75% { transform: translateY(8px) rotate(-3deg); } }
+        /* Quick stats row */
+        .hero-stats { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; position: relative; z-index: 2; }
+        .hero-stat { background: rgba(22,33,62,0.8); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px; text-align: center; min-width: 80px; transition: all 0.3s; }
+        .hero-stat:hover { border-color: rgba(233,69,96,0.3); transform: translateY(-2px); }
+        .hero-stat .hs-num { font-size: 1.3rem; font-weight: 800; display: block; }
+        .hero-stat .hs-num.gold { color: #f59e0b; }
+        .hero-stat .hs-num.energy { color: #4ecdc4; }
+        .hero-stat .hs-num.collection { color: #f093fb; }
+        .hero-stat .hs-num.level { color: #e94560; }
+        .hero-stat .hs-label { font-size: 0.62rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        /* Recent catches carousel */
+        .recent-catches { position: relative; z-index: 2; margin-bottom: 14px; }
+        .recent-catches-title { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+        .recent-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .recent-row::-webkit-scrollbar { display: none; }
+        .recent-mini { flex-shrink: 0; width: 72px; background: rgba(22,33,62,0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 8px 4px; text-align: center; cursor: pointer; transition: all 0.25s; }
+        .recent-mini:hover { border-color: #e94560; transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+        .recent-mini.r-Legendary { border-color: rgba(245,158,11,0.4); box-shadow: 0 0 12px rgba(245,158,11,0.15); }
+        .recent-mini.r-Epic { border-color: rgba(168,85,247,0.3); }
+        .recent-mini.r-Rare { border-color: rgba(59,130,246,0.25); }
+        .recent-mini .rm-svg { margin-bottom: 2px; }
+        .recent-mini .rm-name { font-size: 0.55rem; font-weight: 600; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .recent-mini .rm-rarity { font-size: 0.48rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .recent-empty { color: #444; font-size: 0.78rem; padding: 16px; background: rgba(22,33,62,0.4); border: 1px dashed #333; border-radius: 12px; }
+        /* Scan portal visual */
+        .scan-portal { position: relative; margin: 0 auto 16px; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
+        .scan-portal-ring { position: absolute; border: 2px solid rgba(233,69,96,0.15); border-radius: 50%; animation: portalSpin 12s linear infinite; }
+        .scan-portal-ring:nth-child(1) { width: 200px; height: 200px; border-color: rgba(233,69,96,0.12); animation-duration: 12s; }
+        .scan-portal-ring:nth-child(2) { width: 160px; height: 160px; border-color: rgba(240,147,251,0.12); animation-duration: 8s; animation-direction: reverse; }
+        .scan-portal-ring:nth-child(3) { width: 120px; height: 120px; border-color: rgba(78,205,196,0.15); animation-duration: 6s; border-style: dashed; }
+        @keyframes portalSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .scan-portal-center { position: relative; z-index: 2; font-size: 3.2rem; animation: portalPulse 3s ease-in-out infinite; filter: drop-shadow(0 0 20px rgba(233,69,96,0.3)); }
+        @keyframes portalPulse { 0%,100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(233,69,96,0.3)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 35px rgba(240,147,251,0.5)); } }
+        .scan-portal-dots { position: absolute; width: 100%; height: 100%; }
+        .scan-portal-dot { position: absolute; width: 4px; height: 4px; background: #e94560; border-radius: 50%; opacity: 0; animation: portalDot 4s ease-in-out infinite; }
+        .scan-portal-dot:nth-child(1) { top: 10%; left: 50%; animation-delay: 0s; }
+        .scan-portal-dot:nth-child(2) { top: 50%; right: 5%; animation-delay: -1s; }
+        .scan-portal-dot:nth-child(3) { bottom: 8%; left: 50%; animation-delay: -2s; }
+        .scan-portal-dot:nth-child(4) { top: 50%; left: 5%; animation-delay: -3s; }
+        .scan-portal-dot:nth-child(5) { top: 20%; right: 15%; animation-delay: -0.5s; background: #f093fb; }
+        .scan-portal-dot:nth-child(6) { bottom: 20%; left: 15%; animation-delay: -2.5s; background: #4ecdc4; }
+        @keyframes portalDot { 0%,100% { opacity: 0; transform: scale(0); } 50% { opacity: 0.8; transform: scale(1.5); } }
+        /* Improved sample buttons */
+        .sample-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; position: relative; z-index: 2; }
+        .sample-item { background: rgba(22,33,62,0.8); border: 1px solid #2a2a44; border-radius: 10px; padding: 8px 4px; text-align: center; cursor: pointer; transition: all 0.25s; }
+        .sample-item:hover { border-color: #e94560; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(233,69,96,0.2); background: rgba(233,69,96,0.08); }
+        .sample-item .si-flag { font-size: 1.2rem; display: block; margin-bottom: 2px; }
+        .sample-item .si-name { font-size: 0.58rem; color: #aaa; font-weight: 600; display: block; line-height: 1.2; }
+        .sample-item .si-code { font-size: 0.48rem; color: #555; display: block; margin-top: 2px; font-family: monospace; }
+        /* Scan section improvements */
+        .scan-section-title { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+        .scan-input-group { position: relative; margin-bottom: 12px; }
+        .scan-input-group .barcode-input { padding-right: 50px; }
+        .scan-input-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; opacity: 0.4; pointer-events: none; }
+        /* Welcome tip */
+        .welcome-tip { background: linear-gradient(135deg, rgba(233,69,96,0.08), rgba(240,147,251,0.06)); border: 1px solid rgba(233,69,96,0.15); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 0.78rem; color: #aaa; line-height: 1.6; position: relative; z-index: 2; }
+        .welcome-tip strong { color: #e94560; }
+        .welcome-tip .tip-dismiss { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #555; cursor: pointer; font-size: 0.9rem; }
         /* NEW discovery effect */
         .new-discovery { color: #f59e0b; font-size: 1.2rem; font-weight: 700; margin: 8px; animation: pulse 1s ease-in-out infinite; }
         @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
@@ -978,24 +1050,112 @@ GAME_HTML = """
 
         <!-- SCAN TAB -->
         <div class="panel active" id="panel-scan">
-            <div class="scan-area">
-                <div style="margin-bottom:8px">
-                    <div class="energy-bar"><div class="energy-fill" id="energyBar" style="width:100%"></div></div>
-                    <span style="font-size:0.75rem;color:#888" id="energyText">Energy: 100/100</span>
+            <!-- Hero Welcome Section -->
+            <div class="hero-section" id="heroSection">
+                <div class="hero-creatures">
+                    <div class="hero-creature" style="font-size:2.5rem">🐉</div>
+                    <div class="hero-creature" style="font-size:2rem">🦊</div>
+                    <div class="hero-creature" style="font-size:1.8rem">🐦</div>
+                    <div class="hero-creature" style="font-size:2.2rem">🐺</div>
+                    <div class="hero-creature" style="font-size:1.5rem">🐱</div>
                 </div>
+                <div class="hero-logo">BarcodeQuest</div>
+                <div class="hero-tagline">바코드를 스캔하면 <em>크리처</em>가 태어납니다</div>
+
+                <!-- Quick Stats -->
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <span class="hs-num level" id="hsLevel">1</span>
+                        <span class="hs-label">Level</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hs-num collection" id="hsCollection">0</span>
+                        <span class="hs-label">Collected</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hs-num gold" id="hsGold">1,000</span>
+                        <span class="hs-label">Gold</span>
+                    </div>
+                    <div class="hero-stat">
+                        <span class="hs-num energy" id="hsEnergy">100</span>
+                        <span class="hs-label">Energy</span>
+                    </div>
+                </div>
+
+                <!-- Recent Catches -->
+                <div class="recent-catches" id="recentCatches">
+                    <div class="recent-catches-title">Recent Catches</div>
+                    <div class="recent-row" id="recentRow">
+                        <div class="recent-empty">아직 크리처가 없습니다. 첫 바코드를 스캔해보세요!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Welcome Tip (dismissible) -->
+            <div class="welcome-tip" id="welcomeTip">
+                <button class="tip-dismiss" onclick="document.getElementById('welcomeTip').style.display='none'">✕</button>
+                <strong>Tip:</strong> 주변 상품의 바코드를 스캔하면 각 바코드마다 고유한 크리처가 생성됩니다. 같은 바코드는 항상 같은 크리처! 카메라로 스캔하거나 직접 입력해보세요.
+            </div>
+
+            <!-- Scan Portal Area -->
+            <div class="scan-area">
+                <div class="scan-portal">
+                    <div class="scan-portal-ring"></div>
+                    <div class="scan-portal-ring"></div>
+                    <div class="scan-portal-ring"></div>
+                    <div class="scan-portal-dots">
+                        <div class="scan-portal-dot"></div>
+                        <div class="scan-portal-dot"></div>
+                        <div class="scan-portal-dot"></div>
+                        <div class="scan-portal-dot"></div>
+                        <div class="scan-portal-dot"></div>
+                        <div class="scan-portal-dot"></div>
+                    </div>
+                    <div class="scan-portal-center">🔮</div>
+                </div>
+
+                <div style="margin-bottom:10px">
+                    <div class="energy-bar"><div class="energy-fill" id="energyBar" style="width:100%"></div></div>
+                    <span style="font-size:0.72rem;color:#666" id="energyText">Energy: 100/100</span>
+                </div>
+
                 <button class="camera-toggle" id="cameraToggle" onclick="toggleCamera()">📸 카메라로 바코드 스캔</button>
                 <div id="cameraPreview"></div>
                 <div id="cameraStatus"></div>
                 <div class="scan-divider"><hr><span>또는 직접 입력</span><hr></div>
-                <input class="barcode-input" id="barcodeInput" placeholder="바코드 13자리 입력" maxlength="13" />
-                <button class="scan-btn" id="scanBtn" onclick="scanBarcode()">SCAN!</button>
-                <div class="sample-codes">
-                    <span style="font-size:0.75rem;color:#666">샘플:</span>
-                    <button onclick="fillBarcode('8801062871247')">초코파이</button>
-                    <button onclick="fillBarcode('8801043150842')">신라면</button>
-                    <button onclick="fillBarcode('4902105231456')">Pocky</button>
-                    <button onclick="fillBarcode('0012345678905')">US Snack</button>
-                    <button onclick="fillBarcode('8801115114505')">서울우유</button>
+                <div class="scan-input-group">
+                    <input class="barcode-input" id="barcodeInput" placeholder="바코드 13자리 입력" maxlength="13" />
+                    <span class="scan-input-icon">📦</span>
+                </div>
+                <button class="scan-btn" id="scanBtn" onclick="scanBarcode()">✨ SCAN !</button>
+
+                <div class="scan-section-title" style="margin-top:16px">샘플 바코드</div>
+                <div class="sample-grid">
+                    <div class="sample-item" onclick="fillBarcode('8801062871247')">
+                        <span class="si-flag">🇰🇷</span>
+                        <span class="si-name">초코파이</span>
+                        <span class="si-code">880...1247</span>
+                    </div>
+                    <div class="sample-item" onclick="fillBarcode('8801043150842')">
+                        <span class="si-flag">🇰🇷</span>
+                        <span class="si-name">신라면</span>
+                        <span class="si-code">880...0842</span>
+                    </div>
+                    <div class="sample-item" onclick="fillBarcode('4902105231456')">
+                        <span class="si-flag">🇯🇵</span>
+                        <span class="si-name">Pocky</span>
+                        <span class="si-code">490...1456</span>
+                    </div>
+                    <div class="sample-item" onclick="fillBarcode('0012345678905')">
+                        <span class="si-flag">🇺🇸</span>
+                        <span class="si-name">US Snack</span>
+                        <span class="si-code">001...8905</span>
+                    </div>
+                    <div class="sample-item" onclick="fillBarcode('8801115114505')">
+                        <span class="si-flag">🇰🇷</span>
+                        <span class="si-name">서울우유</span>
+                        <span class="si-code">880...4505</span>
+                    </div>
                 </div>
             </div>
             <div id="scanResult"></div>
@@ -1203,6 +1363,58 @@ GAME_HTML = """
             const pct = (p.energy/p.max_energy*100);
             document.getElementById('energyBar').style.width = pct+'%';
             document.getElementById('energyText').textContent = `Energy: ${p.energy}/${p.max_energy}`;
+            // Hero stats
+            const hsL = document.getElementById('hsLevel');
+            if (hsL) { hsL.textContent = p.level; }
+            const hsG = document.getElementById('hsGold');
+            if (hsG) { hsG.textContent = p.gold.toLocaleString(); }
+            const hsE = document.getElementById('hsEnergy');
+            if (hsE) { hsE.textContent = p.energy; }
+            const hsC = document.getElementById('hsCollection');
+            if (hsC) { hsC.textContent = p.total_scans || 0; }
+        }
+
+        // Recent catches list (kept in memory)
+        let recentCatchesList = [];
+
+        function addRecentCatch(monster) {
+            recentCatchesList.unshift(monster);
+            if (recentCatchesList.length > 10) recentCatchesList.pop();
+            renderRecentCatches();
+        }
+
+        function renderRecentCatches() {
+            const row = document.getElementById('recentRow');
+            if (!row) return;
+            if (recentCatchesList.length === 0) {
+                row.innerHTML = '<div class="recent-empty">아직 크리처가 없습니다. 첫 바코드를 스캔해보세요!</div>';
+                return;
+            }
+            row.innerHTML = recentCatchesList.map(m => {
+                const colorHex = getMonsterColorHex(m.color);
+                const svg = generateMonsterSVG(m.body_shape, colorHex, m.rarity);
+                const rarClass = `r-${m.rarity}`;
+                return `<div class="recent-mini ${rarClass}" onclick="showMonsterDetail(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+                    <div class="rm-svg">${svg.replace(/width="\d+"/, 'width="36"').replace(/height="\d+"/, 'height="36"')}</div>
+                    <div class="rm-name">${m.name}</div>
+                    <div class="rm-rarity" style="color:${getRarityColor(m.rarity)}">${m.rarity}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function getRarityColor(r) {
+            return { Common:'#888', Uncommon:'#4ecdc4', Rare:'#3b82f6', Epic:'#a855f7', Legendary:'#f59e0b' }[r] || '#888';
+        }
+
+        function loadRecentFromCollection() {
+            fetch('/api/collection?session=default').then(r=>r.json()).then(d => {
+                if (d.monsters && d.monsters.length > 0) {
+                    recentCatchesList = d.monsters.slice(-10).reverse();
+                    renderRecentCatches();
+                    const hsC = document.getElementById('hsCollection');
+                    if (hsC) hsC.textContent = d.total || d.monsters.length;
+                }
+            }).catch(()=>{});
         }
 
         function renderMonsterCard(m, opts) {
@@ -2023,10 +2235,13 @@ GAME_HTML = """
             if (questUpdates && questUpdates.length > 0) {
                 questUpdates.forEach(q => showToast('Quest: ' + q.title));
             }
+            // Add to recent catches
+            addRecentCatch(monsterData);
         }
 
         // 초기 로드
         fetch('/api/player?session=default').then(r=>r.json()).then(d=>updatePlayerUI(d.player));
+        loadRecentFromCollection();
     </script>
 </body>
 </html>
