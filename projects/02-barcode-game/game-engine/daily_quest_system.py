@@ -121,6 +121,40 @@ QUEST_POOL = [
         "reward_exp": 50,
         "reward_item": "lucky_clover",
     },
+    # --- 버스 퀘스트 ---
+    {
+        "id": "bus_assign",
+        "title": "버스 승무원",
+        "description": "버스 방에 몬스터를 1마리 배치하세요",
+        "emoji": "🚌",
+        "category": "bus",
+        "target": 1,
+        "reward_gold": 150,
+        "reward_exp": 40,
+        "reward_item": None,
+    },
+    {
+        "id": "bus_collect",
+        "title": "자원 수령",
+        "description": "버스 자원을 1번 수령하세요",
+        "emoji": "📦",
+        "category": "bus",
+        "target": 1,
+        "reward_gold": 200,
+        "reward_exp": 50,
+        "reward_item": "exp_candy_s",
+    },
+    {
+        "id": "bus_build",
+        "title": "건축가",
+        "description": "버스에 방을 1개 건설하세요",
+        "emoji": "🔨",
+        "category": "bus",
+        "target": 1,
+        "reward_gold": 300,
+        "reward_exp": 80,
+        "reward_item": None,
+    },
     # --- 일일 특별 ---
     {
         "id": "daily_login",
@@ -269,6 +303,12 @@ class DailyQuestSystem:
                 match = quest.quest_id == "expedition_start"
             elif quest.category == "expedition" and category == "expedition_collect":
                 match = quest.quest_id == "expedition_collect"
+            elif quest.category == "bus" and category == "bus_assign":
+                match = quest.quest_id == "bus_assign"
+            elif quest.category == "bus" and category == "bus_collect":
+                match = quest.quest_id == "bus_collect"
+            elif quest.category == "bus" and category == "bus_build":
+                match = quest.quest_id == "bus_build"
 
             if match:
                 quest.current = min(quest.current + amount, quest.target)
