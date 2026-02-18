@@ -58,7 +58,7 @@ def start_project(name: str) -> str:
     with open(log_dir / "server.log", "a", encoding="utf-8") as lf:
         subprocess.Popen(
             cmd, cwd=str(work_dir), stdout=lf, stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
     return f"시작됨 (포트 {proj['port']})"
 

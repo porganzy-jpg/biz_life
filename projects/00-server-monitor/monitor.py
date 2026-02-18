@@ -32,6 +32,8 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 _last_alerts: dict[str, float] = {}  # 알림 쿨다운 추적
+_restart_failures: dict[str, int] = {}  # 재시작 실패 횟수 추적
+MAX_RESTART_ATTEMPTS = 3  # 최대 재시작 시도 (초과 시 포기)
 
 
 # === 텔레그램 알림 ===
@@ -91,7 +93,7 @@ def start_project(name: str) -> str:
     with open(log_dir / "server.log", "a", encoding="utf-8") as lf:
         subprocess.Popen(
             cmd, cwd=str(work_dir), stdout=lf, stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
     return f"시작됨 (포트 {proj['port']})"
 
@@ -105,10 +107,21 @@ async def health_check_loop():
         try:
             for name, proj in PROJECTS.items():
                 alive = await check_port(proj["port"])
-                if not alive and AUTO_RESTART_ENABLED:
+                if alive:
+                    # 살아있으면 실패 카운터 초기화
+                    _restart_failures.pop(name, None)
+                elif AUTO_RESTART_ENABLED:
+                    failures = _restart_failures.get(name, 0)
+                    if failures >= MAX_RESTART_ATTEMPTS:
+                        # 최대 시도 초과 → 재시작 포기, 30분 후 리셋
+                        if _can_alert(f"giveup_{name}"):
+                            msg = f"⛔ {name}: {MAX_RESTART_ATTEMPTS}회 재시작 실패, 자동 재시작 중단"
+                            logger.error(msg)
+                            await send_telegram(msg)
+                        continue
+
                     pid = find_pid_by_port(proj["port"])
                     if pid:
-                        # 포트는 안 응답하는데 프로세스는 있음 → 좀비
                         try:
                             proc = psutil.Process(pid)
                             for child in proc.children(recursive=True):
@@ -118,10 +131,10 @@ async def health_check_loop():
                         except Exception:
                             pass
 
-                    # 재시작
                     result = start_project(name)
+                    _restart_failures[name] = failures + 1
                     ts = datetime.now().strftime("%H:%M:%S")
-                    msg = f"🔄 자동 재시작: {name}\n시간: {ts}\n결과: {result}"
+                    msg = f"🔄 자동 재시작: {name} ({failures+1}/{MAX_RESTART_ATTEMPTS})\n시간: {ts}\n결과: {result}"
                     logger.warning(msg)
                     if _can_alert(f"restart_{name}"):
                         await send_telegram(msg)

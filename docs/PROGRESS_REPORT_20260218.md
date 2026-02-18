@@ -1,7 +1,7 @@
 # 진행 보고서 - 2026-02-18
 
 ## 요약
-ServerMonitor v2.0 고도화 + HomeFinder v2.0 CRUD UI 강화 + 자유투 소설 전체 퇴고 완료
+ServerMonitor v2.1 안정화 + 노트북 서버화 + 텔레그램 원격제어 완성 + HomeFinder v2.0 CRUD UI 강화 + PromoMap Python 3.13 업그레이드 + 자유투 소설 전체 퇴고 완료 + GitHub 저장소 구축
 
 ---
 
@@ -94,12 +94,100 @@ ServerMonitor v2.0 고도화 + HomeFinder v2.0 CRUD UI 강화 + 자유투 소설
 
 ---
 
+## 노트북 서버화 설정
+
+### Windows 전원 설정 (powercfg)
+- 덮개 닫기: 아무 작업 안 함 (AC/DC 모두)
+- 절전 모드: 비활성화 (AC/DC 모두)
+- 최대 절전 모드: 비활성화 (AC/DC 모두)
+- 디스플레이: AC 10분 / DC 5분 후 끄기
+
+### Windows 자동시작
+- `biz_life_startup.lnk` → Startup 폴더 등록 완료
+- 부팅 시 `startup_all.bat`이 자동 실행 → 7개 프로젝트 전체 시작
+
+### Tailscale VPN
+- 노트북 (100.71.68.15) ↔ 핸드폰 (100.103.229.103) 연결
+- 외부에서 Tailscale IP로 각 프로젝트 대시보드 직접 접속 가능
+
+---
+
+## ServerMonitor v2.0 → v2.1 안정화
+
+### 추가 변경
+1. **중복 프로세스 정리** — `server-monitor` (구 폴더) 프로세스 종료, `00-server-monitor`로 통합
+2. **CMD 창 깜빡임 방지** — `subprocess.CREATE_NO_WINDOW` 플래그 적용 (bot.py, monitor.py)
+3. **재시작 시도 제한 (3회)** — 계속 실패하는 프로젝트 무한 재시작 방지 + 텔레그램 포기 알림
+
+---
+
+## 01-PromoMap: Python 3.9 → 3.13 업그레이드
+
+### 배경
+- Python 3.9.1에서 bcrypt DLL 로드 실패 + `User | None` 문법 비호환
+- 헬스체크 자동 재시작 무한 루프 발생
+
+### 작업
+- Python 3.13.12 설치 (winget)
+- venv 재생성 + 패키지 전체 재설치
+- 서버 정상 기동 확인 (포트 8000)
+
+---
+
+## GitHub 저장소 구축
+
+### gh CLI 설치 및 인증
+- GitHub CLI v2.86.0 설치 (winget)
+- `gh auth login` 웹 인증 완료 (porganzy-jpg)
+
+### 자유투 소설 저장소 생성
+- `~/자유투/` Git 초기화 + 55개 파일 커밋
+- `free-throw-novel` private 저장소 생성 및 푸시
+
+---
+
+## 보안 점검 결과
+
+### 현재 상태
+| 항목 | 상태 |
+|------|------|
+| .env gitignore | 정상 (커밋 안 됨) |
+| API 키 코드 하드코딩 | 없음 (os.getenv 사용) |
+| Windows 방화벽 | 3개 프로필 모두 활성 |
+| Tailscale VPN | 정상 연결 |
+| 텔레그램 봇 Chat ID 제한 | 정상 |
+
+### 개선 필요
+| 항목 | 위험도 | 설명 |
+|------|--------|------|
+| 서비스 0.0.0.0 바인딩 | 높음 | 같은 WiFi에서 접속 가능 |
+| 4/6 대시보드 인증 없음 | 높음 | 서버모니터, CryptoBot, StockBot, HomeFinder |
+| python.exe 방화벽 허용 | 중간 | Private+Public 모두 허용 |
+
+---
+
+## 전체 프로젝트 헬스체크 결과
+
+| 프로젝트 | 포트 | 상태 | 비고 |
+|----------|------|------|------|
+| 00-server-monitor | :9000 | 정상 | 대시보드+봇+모니터링 통합 실행 |
+| 01-promo-map | :8000 | 정상 | Python 3.13 업그레이드 완료 |
+| 02-barcode-game | :8001 | 정상 | - |
+| 03-voice-memory | :8002 | 정상 | - |
+| 04-crypto-trader | :8081 | 경고 | pyupbit DLL 미호환 (Python 3.9) |
+| 05-stock-trader | :8082 | 정상 | - |
+| 06-home-finder | :8006 | 정상 | - |
+
+---
+
 ## 통계
 
 | 항목 | 수치 |
 |------|------|
-| 변경된 파일 | 10개+ |
-| ServerMonitor 신규 파일 | 3개 (main.py, monitor.py, install_autostart.bat) |
+| 변경된 파일 | 15개+ |
+| ServerMonitor 변경 | bot.py, monitor.py (CREATE_NO_WINDOW + 재시도 제한) |
+| PromoMap 변경 | venv 재생성 (Python 3.9→3.13) |
 | HomeFinder 변경 | 5개+ 파일 (API + 템플릿 + JS) |
 | 소설 퇴고 | 55개+ 파일 리뷰, 2개 파일 3건 수정 |
+| GitHub 저장소 | biz_life (기존) + free-throw-novel (신규) |
 | 총 프로젝트 | 8개 (6개 사업 + 서버모니터 + 소설) |

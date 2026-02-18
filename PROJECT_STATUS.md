@@ -6,7 +6,7 @@
 
 | # | 프로젝트 | 포트 | 파일수 | API | 상태 |
 |---|---------|------|--------|-----|------|
-| 0 | **ServerMonitor** (통합 모니터링) | :9000 | 6 | 6개 | v2.0 통합런처+자동복구+리소스알림 |
+| 0 | **ServerMonitor** (통합 모니터링) | :9000 | 6 | 6개 | v2.1 안정화+재시도제한+CMD깜빡임수정 |
 | 1 | **PromoMap** (위치기반 할인) | :8000 | 57 | 20개+ | v2.0 리팩토링 완료 |
 | 2 | **BarcodeQuest** (바코드 몬스터) | :8001 | 9 | 7개 | 전체 통과 |
 | 3 | **VoiceMemory** (AI 음성 보존) | :8002 | 11 | 13개 | 전체 통과 |
@@ -28,9 +28,8 @@
 
 ## 빠른 실행 가이드
 ```bash
-# 0. ServerMonitor (통합 관리 + 텔레그램 봇)
-cd projects/00-server-monitor && python app.py       # http://localhost:9000
-cd projects/00-server-monitor && python bot.py       # 텔레그램 봇
+# 0. ServerMonitor (통합 런처: 대시보드 + 봇 + 모니터링)
+cd projects/00-server-monitor && python main.py      # http://localhost:9000
 
 # 1. PromoMap
 cd projects/01-promo-map/backend && python main.py   # http://localhost:8000
@@ -58,9 +57,11 @@ startup_all.bat
 
 | 프로젝트 | 변경 내용 |
 |---------|----------|
-| **00-ServerMonitor** | v2.0 - 통합 런처(3-in-1) + 자동 재시작 + 리소스 임계치 알림 + Windows 부팅 자동시작 |
+| **00-ServerMonitor** | v2.1 - 안정화 (CREATE_NO_WINDOW + 재시도제한3회 + 중복프로세스정리) + 노트북서버화 (전원설정+자동시작) |
+| **01-PromoMap** | Python 3.9→3.13 업그레이드 (bcrypt DLL + 문법 호환 해결) |
 | **06-HomeFinder** | v2.0 - 토지 등록/수정 UI + 검색필터 강화 (건물/토지 분류별 동적 전환) |
-| **07-자유투(소설)** | 전체 퇴고 완료 - 27장+프롤로그+27편 형의글 크로스체크, 3건 수정 (Ch7 복선 강화, Ch25 화자 시점 보정) |
+| **07-자유투(소설)** | 전체 퇴고 완료 + GitHub 저장소(free-throw-novel) 생성 |
+| **인프라** | Python 3.13 설치, gh CLI 설치+인증, Tailscale 연결 확인, 보안 점검 |
 
 ## 2026-02-17 변경사항
 
