@@ -9,7 +9,7 @@ echo.
 set BASE=C:\Users\itzia\biz_life\projects
 
 :: Create log directories
-for %%P in (01-promo-map 02-barcode-game 03-voice-memory 04-crypto-trader 05-stock-trader 06-home-finder server-monitor) do (
+for %%P in (00-server-monitor 01-promo-map 02-barcode-game 03-voice-memory 04-crypto-trader 05-stock-trader 06-home-finder) do (
     if not exist "%BASE%\%%P\logs" mkdir "%BASE%\%%P\logs"
 )
 
@@ -43,14 +43,9 @@ cd /d "%BASE%\06-home-finder"
 start "06-home-finder" /min cmd /c ""%BASE%\06-home-finder\.venv\Scripts\python.exe" main.py >> "%BASE%\06-home-finder\logs\server.log" 2>&1"
 timeout /t 2 /nobreak >nul
 
-echo [7/8] Starting server-monitor (port 9000)...
-cd /d "%BASE%\server-monitor"
-start "server-monitor" /min cmd /c ""%BASE%\server-monitor\.venv\Scripts\python.exe" app.py >> "%BASE%\server-monitor\logs\server.log" 2>&1"
-timeout /t 2 /nobreak >nul
-
-echo [8/8] Starting telegram bot...
-cd /d "%BASE%\server-monitor"
-start "telegram-bot" /min cmd /c ""%BASE%\server-monitor\.venv\Scripts\python.exe" bot.py >> "%BASE%\server-monitor\logs\bot.log" 2>&1"
+echo [7/7] Starting 00-server-monitor (port 9000 + telegram bot + monitoring)...
+cd /d "%BASE%\00-server-monitor"
+start "00-server-monitor" /min cmd /c ""%BASE%\00-server-monitor\.venv\Scripts\python.exe" main.py >> "%BASE%\00-server-monitor\logs\main.log" 2>&1"
 timeout /t 2 /nobreak >nul
 
 echo.

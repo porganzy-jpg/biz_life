@@ -7,6 +7,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 
 import psutil
 from dotenv import load_dotenv
@@ -100,14 +101,18 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update):
         return
     await update.message.reply_text(
-        "서버 관리 봇\n\n"
-        "/status - 전체 상태\n"
-        "/start <프로젝트> - 시작\n"
-        "/stop <프로젝트> - 중지\n"
-        "/restart <프로젝트> - 재시작\n"
-        "/logs <프로젝트> - 최근 로그\n"
-        "/system - 시스템 리소스\n"
-        "/panel - 제어 패널"
+        "🖥️ 서버 관리 봇\n\n"
+        "/status - 전체 프로젝트 상태\n"
+        "/system - 시스템 리소스 (CPU/RAM/Disk)\n"
+        "/report - 서버 일일 리포트\n"
+        "/panel - 인라인 제어 패널\n\n"
+        "프로젝트 제어:\n"
+        "/begin <이름> - 시작\n"
+        "/stop <이름> - 중지\n"
+        "/restart <이름> - 재시작\n"
+        "/logs <이름> - 최근 로그\n"
+        "/startall - 전체 시작\n"
+        "/stopall - 전체 중지"
     )
 
 
@@ -184,6 +189,67 @@ async def cmd_logs(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     logs = get_recent_logs(name)
     await update.message.reply_text(f"📋 {name} 로그:\n\n{logs[:3500]}")
+
+
+async def cmd_report(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """일일 서버 리포트"""
+    if not is_authorized(update):
+        return
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage("C:\\")
+    cpu = psutil.cpu_percent(interval=1)
+
+    alive_count = 0
+    dead_list = []
+    for name, proj in PROJECTS.items():
+        if check_port_sync(proj["port"]):
+            alive_count += 1
+        else:
+            dead_list.append(name)
+
+    total = len(PROJECTS)
+    uptime_sec = time.time() - psutil.boot_time()
+    days = int(uptime_sec // 86400)
+    hours = int((uptime_sec % 86400) // 3600)
+
+    text = (
+        f"📊 서버 일일 리포트\n\n"
+        f"프로젝트: {alive_count}/{total} 실행 중\n"
+    )
+    if dead_list:
+        text += f"중지됨: {', '.join(dead_list)}\n"
+    text += (
+        f"\nCPU: {cpu}% ({psutil.cpu_count()} cores)\n"
+        f"RAM: {mem.used // (1024**3)}/{mem.total // (1024**3)} GB ({mem.percent}%)\n"
+        f"Disk: {disk.used // (1024**3)}/{disk.total // (1024**3)} GB ({round(disk.percent, 1)}%)\n"
+        f"Uptime: {days}일 {hours}시간"
+    )
+    await update.message.reply_text(text)
+
+
+async def cmd_startall(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """전체 프로젝트 시작"""
+    if not is_authorized(update):
+        return
+    results = []
+    for name, proj in PROJECTS.items():
+        if not find_pid_by_port(proj["port"]):
+            result = start_project(name)
+            results.append(f"▶️ {name}: {result}")
+        else:
+            results.append(f"✅ {name}: 이미 실행 중")
+    await update.message.reply_text("\n".join(results))
+
+
+async def cmd_stopall(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """전체 프로젝트 중지"""
+    if not is_authorized(update):
+        return
+    results = []
+    for name in PROJECTS:
+        result = stop_project(name)
+        results.append(f"⏹️ {name}: {result}")
+    await update.message.reply_text("\n".join(results))
 
 
 async def cmd_panel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -280,10 +346,13 @@ def main():
     app.add_handler(CommandHandler("start", cmd_start_bot))
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("system", cmd_system))
+    app.add_handler(CommandHandler("report", cmd_report))
     app.add_handler(CommandHandler("begin", cmd_project_start))  # /start은 봇 시작에 예약됨
     app.add_handler(CommandHandler("stop", cmd_project_stop))
     app.add_handler(CommandHandler("restart", cmd_project_restart))
     app.add_handler(CommandHandler("logs", cmd_logs))
+    app.add_handler(CommandHandler("startall", cmd_startall))
+    app.add_handler(CommandHandler("stopall", cmd_stopall))
     app.add_handler(CommandHandler("panel", cmd_panel))
     app.add_handler(CallbackQueryHandler(button_handler))
 
