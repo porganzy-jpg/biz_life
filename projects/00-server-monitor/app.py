@@ -72,7 +72,7 @@ def get_system_info() -> dict:
 
 # === 프로젝트 제어 ===
 
-def start_project(name: str) -> dict:
+def start_project(name: str, verify: bool = True) -> dict:
     if name not in PROJECTS:
         return {"ok": False, "msg": f"알 수 없는 프로젝트: {name}"}
 
@@ -84,7 +84,6 @@ def start_project(name: str) -> dict:
     project_dir = PROJECTS_DIR / name
     work_dir = project_dir / proj["cwd"]
 
-    # .venv 경로는 항상 프로젝트 루트 기준
     cmd = list(proj["cmd"])
     cmd[0] = str(project_dir / cmd[0])
 
@@ -98,8 +97,17 @@ def start_project(name: str) -> dict:
             cwd=str(work_dir),
             stdout=lf,
             stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
+
+    if verify:
+        import time
+        for _ in range(6):
+            time.sleep(0.5)
+            if find_pid_by_port(proj["port"]):
+                return {"ok": True, "msg": f"{name} 시작 확인됨 (포트 {proj['port']})"}
+        return {"ok": False, "msg": f"{name} 시작 실패 — 포트 {proj['port']} 응답 없음"}
+
     return {"ok": True, "msg": f"{name} 시작됨 (포트 {proj['port']})"}
 
 
@@ -127,9 +135,14 @@ def stop_project(name: str) -> dict:
 
 
 def restart_project(name: str) -> dict:
-    stop_result = stop_project(name)
     import time
-    time.sleep(2)
+    stop_result = stop_project(name)
+    proj = PROJECTS.get(name)
+    if proj:
+        for _ in range(20):
+            time.sleep(0.5)
+            if not find_pid_by_port(proj["port"]):
+                break
     start_result = start_project(name)
     return {"ok": start_result["ok"], "msg": f"중지: {stop_result['msg']} → 시작: {start_result['msg']}"}
 

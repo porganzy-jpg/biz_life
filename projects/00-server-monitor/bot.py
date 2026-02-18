@@ -60,7 +60,12 @@ def start_project(name: str) -> str:
             cmd, cwd=str(work_dir), stdout=lf, stderr=subprocess.STDOUT,
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
-    return f"시작됨 (포트 {proj['port']})"
+
+    for _ in range(6):
+        time.sleep(0.5)
+        if find_pid_by_port(proj["port"]):
+            return f"시작 확인됨 (포트 {proj['port']})"
+    return f"시작 실패 — 포트 {proj['port']} 응답 없음"
 
 
 def stop_project(name: str) -> str:
@@ -172,7 +177,12 @@ async def cmd_project_restart(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     name = ctx.args[0]
     stop_msg = stop_project(name)
-    await asyncio.sleep(2)
+    proj = PROJECTS.get(name)
+    if proj:
+        for _ in range(20):
+            await asyncio.sleep(0.5)
+            if not find_pid_by_port(proj["port"]):
+                break
     start_msg = start_project(name)
     await update.message.reply_text(f"🔄 {name}\n중지: {stop_msg}\n시작: {start_msg}")
 
