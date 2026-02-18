@@ -672,30 +672,31 @@ GAME_HTML = """
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Poppins', 'Segoe UI', sans-serif; background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #0f0c29); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: #eee; min-height: 100vh; }
+        body { font-family: 'Poppins', 'Segoe UI', sans-serif; background: linear-gradient(160deg, #1a1432, #1e1a3a, #1a2038, #1a1432); background-size: 400% 400%; animation: gradientBG 20s ease infinite; color: #e8e8f0; min-height: 100vh; }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        .header { background: linear-gradient(135deg, #16213e, #0f3460); padding: 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; overflow: hidden; }
-        .header::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: headerShimmer 4s linear infinite; }
+        .header { background: rgba(20,18,40,0.85); backdrop-filter: blur(12px); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .header::after { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent); animation: headerShimmer 5s linear infinite; }
         @keyframes headerShimmer { 0% { left: -100%; } 100% { left: 200%; } }
-        .header h1 { font-size: 1.3rem; background: linear-gradient(135deg, #e94560, #f093fb, #4ecdc4); background-size: 200% 200%; animation: titleGradient 3s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header h1 { font-size: 1.2rem; background: linear-gradient(135deg, #ff6b8a, #c084fc, #67e8f9); background-size: 200% 200%; animation: titleGradient 4s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: -0.5px; }
         @keyframes titleGradient { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-        .player-info { display: flex; gap: 8px; font-size: 0.75rem; }
-        .player-info span { background: #16213e; padding: 4px 8px; border-radius: 8px; }
+        .player-info { display: flex; gap: 6px; font-size: 0.72rem; }
+        .player-info span { background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 20px; color: #b0b0cc; }
         .container { max-width: 600px; margin: 0 auto; padding: 12px; }
-        .tabs { display: flex; gap: 3px; margin-bottom: 12px; }
-        .tab { flex: 1; padding: 8px 4px; text-align: center; background: #16213e; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.72rem; transition: all 0.25s ease; }
-        .tab.active { background: linear-gradient(135deg, #e94560, #c23152); box-shadow: 0 4px 15px rgba(233,69,96,0.4); }
-        .tab:hover { transform: translateY(-2px); background: #1a2744; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .tabs { display: flex; gap: 4px; margin-bottom: 14px; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 3px; }
+        .tab { flex: 1; padding: 8px 4px; text-align: center; background: transparent; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.72rem; transition: all 0.25s ease; color: #888; }
+        .tab.active { background: linear-gradient(135deg, #ff6b8a, #e05577); color: #fff; box-shadow: 0 4px 15px rgba(255,107,138,0.3); }
+        .tab:hover:not(.active) { background: rgba(255,255,255,0.05); color: #bbb; }
         .panel { display: none; }
         .panel.active { display: block; animation: panelFadeIn 0.35s ease-out; }
         @keyframes panelFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         /* Scan Panel */
         .scan-area { text-align: center; padding: 20px 0; }
-        .barcode-input { width: 100%; padding: 14px; border: 2px solid #e94560; border-radius: 12px; background: #16213e; color: white; font-size: 1.1rem; text-align: center; letter-spacing: 3px; margin-bottom: 12px; outline: none; }
-        .barcode-input:focus { border-color: #f093fb; box-shadow: 0 0 12px rgba(233,69,96,0.3); }
-        .scan-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #e94560, #c23152); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+        .barcode-input { width: 100%; padding: 14px; border: 1.5px solid rgba(255,107,138,0.3); border-radius: 14px; background: rgba(255,255,255,0.05); color: #e8e8f0; font-size: 1.1rem; text-align: center; letter-spacing: 3px; margin-bottom: 12px; outline: none; transition: all 0.3s; }
+        .barcode-input:focus { border-color: #c084fc; box-shadow: 0 0 20px rgba(192,132,252,0.15); background: rgba(255,255,255,0.07); }
+        .barcode-input::placeholder { color: #555; }
+        .scan-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #ff6b8a, #e05577); color: white; border: none; border-radius: 14px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; letter-spacing: 1px; }
         .scan-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transition: left 0.5s ease; }
-        .scan-btn:hover { transform: scale(1.03); box-shadow: 0 6px 20px rgba(233,69,96,0.4); }
+        .scan-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,107,138,0.35); }
         .scan-btn:hover::before { left: 100%; }
         .scan-btn:active { transform: scale(0.98); }
         .scan-btn:disabled { background: #333; cursor: not-allowed; transform: none; box-shadow: none; }
@@ -845,9 +846,9 @@ GAME_HTML = """
         .bus-suggestion { background: #16213e; border: 1px solid #4ecdc4; border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 0.78rem; }
         .bus-suggestion .bs-label { color: #4ecdc4; font-weight: 600; }
         /* Camera Scanner */
-        .camera-toggle { width: 100%; padding: 12px; background: linear-gradient(135deg, #0f3460, #16213e); color: #4ecdc4; border: 2px solid #4ecdc4; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-bottom: 12px; transition: all 0.2s; }
-        .camera-toggle:hover { background: #4ecdc4; color: #1a1a2e; }
-        .camera-toggle.active { background: #4ecdc4; color: #1a1a2e; border-color: #4ecdc4; }
+        .camera-toggle { width: 100%; padding: 12px; background: rgba(103,232,249,0.06); color: #67e8f9; border: 1.5px solid rgba(103,232,249,0.25); border-radius: 14px; font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-bottom: 12px; transition: all 0.25s; }
+        .camera-toggle:hover { background: rgba(103,232,249,0.12); border-color: rgba(103,232,249,0.5); transform: translateY(-1px); }
+        .camera-toggle.active { background: #67e8f9; color: #1a1a2e; border-color: #67e8f9; }
         #cameraPreview { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 12px; display: none; }
         #cameraPreview video { border-radius: 12px; }
         .camera-status { font-size: 0.8rem; color: #4ecdc4; margin-bottom: 8px; animation: pulse 1.5s ease-in-out infinite; }
@@ -855,82 +856,79 @@ GAME_HTML = """
         .scan-divider hr { flex: 1; border: none; border-top: 1px solid #333; }
         .scan-divider span { font-size: 0.75rem; color: #555; }
         /* === HERO WELCOME SECTION === */
-        .hero-section { position: relative; text-align: center; padding: 32px 16px 24px; overflow: hidden; border-radius: 20px; margin-bottom: 18px; background: radial-gradient(ellipse at 50% 20%, rgba(233,69,96,0.15) 0%, rgba(240,147,251,0.06) 40%, transparent 70%); border: 1px solid rgba(255,255,255,0.04); }
+        .hero-section { position: relative; text-align: center; padding: 30px 16px 22px; overflow: hidden; border-radius: 20px; margin-bottom: 16px; background: linear-gradient(180deg, rgba(255,107,138,0.06) 0%, rgba(192,132,252,0.04) 50%, transparent 100%); border: 1px solid rgba(255,255,255,0.05); }
         /* Ambient floating particles */
         .hero-particles { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 0; overflow: hidden; }
         .hero-particle { position: absolute; border-radius: 50%; opacity: 0; animation: ambientParticle linear infinite; }
-        @keyframes ambientParticle { 0% { opacity: 0; transform: translateY(100%) scale(0); } 20% { opacity: 0.6; } 80% { opacity: 0.3; } 100% { opacity: 0; transform: translateY(-100vh) scale(1); } }
+        @keyframes ambientParticle { 0% { opacity: 0; transform: translateY(100%) scale(0); } 20% { opacity: 0.5; } 80% { opacity: 0.2; } 100% { opacity: 0; transform: translateY(-100vh) scale(1); } }
+        /* Animated SVG creatures */
+        .hero-creature-stage { position: relative; z-index: 2; height: 80px; margin-bottom: 8px; display: flex; justify-content: center; align-items: flex-end; gap: 0; }
+        .hero-creature-slot { display: inline-block; opacity: 0.85; }
+        .hero-creature-slot:nth-child(1) { animation: creatureBob1 3s ease-in-out infinite; }
+        .hero-creature-slot:nth-child(2) { animation: creatureBob2 3.5s ease-in-out infinite; }
+        .hero-creature-slot:nth-child(3) { animation: creatureBob3 2.8s ease-in-out infinite; margin: 0 -4px; transform-origin: bottom center; }
+        .hero-creature-slot:nth-child(4) { animation: creatureBob2 3.2s ease-in-out infinite reverse; }
+        .hero-creature-slot:nth-child(5) { animation: creatureBob1 3.7s ease-in-out infinite reverse; }
+        @keyframes creatureBob1 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes creatureBob2 { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-12px) rotate(3deg); } }
+        @keyframes creatureBob3 { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-14px) scale(1.04); } }
+        .hero-creature-shadow { width: 30px; height: 6px; background: radial-gradient(ellipse, rgba(0,0,0,0.2) 0%, transparent 70%); border-radius: 50%; margin: 2px auto 0; animation: shadowPulse 3s ease-in-out infinite; }
+        @keyframes shadowPulse { 0%,100% { transform: scaleX(1); opacity: 0.3; } 50% { transform: scaleX(0.7); opacity: 0.15; } }
         /* Logo */
-        .hero-logo-wrap { position: relative; z-index: 2; margin-bottom: 6px; }
-        .hero-logo { font-size: 2.6rem; font-weight: 800; background: linear-gradient(135deg, #e94560, #f093fb, #4ecdc4, #f093fb, #e94560); background-size: 300% 300%; animation: heroGrad 5s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; text-shadow: none; }
-        .hero-logo-sub { font-size: 0.65rem; color: #555; letter-spacing: 6px; text-transform: uppercase; margin-top: -2px; }
+        .hero-logo-wrap { position: relative; z-index: 2; margin-bottom: 4px; }
+        .hero-logo { font-size: 2.4rem; font-weight: 800; background: linear-gradient(135deg, #ff6b8a, #c084fc, #67e8f9, #c084fc, #ff6b8a); background-size: 300% 300%; animation: heroGrad 6s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+        .hero-logo-sub { font-size: 0.6rem; color: #666; letter-spacing: 5px; text-transform: uppercase; margin-top: 0; }
         @keyframes heroGrad { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
         /* Lore tagline */
-        .hero-lore { position: relative; z-index: 2; margin-bottom: 20px; }
-        .hero-tagline { font-size: 0.9rem; color: #9a9abb; font-weight: 400; letter-spacing: 0.3px; line-height: 1.6; }
-        .hero-tagline em { color: #f093fb; font-style: normal; font-weight: 600; }
-        .hero-tagline .lore-glow { color: #e94560; font-weight: 700; text-shadow: 0 0 12px rgba(233,69,96,0.4); }
-        .hero-lore-divider { width: 40px; height: 2px; background: linear-gradient(90deg, transparent, #e94560, transparent); margin: 10px auto 0; border-radius: 1px; }
-        /* Creature showcase - animated silhouettes */
-        .hero-creatures { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1; overflow: hidden; }
-        .hero-creature { position: absolute; opacity: 0.06; filter: blur(0.5px); }
-        .hero-creature:nth-child(1) { left: 3%; top: 12%; animation: hcFloat1 8s ease-in-out infinite; }
-        .hero-creature:nth-child(2) { right: 3%; top: 8%; animation: hcFloat2 10s ease-in-out infinite; }
-        .hero-creature:nth-child(3) { left: 12%; bottom: 8%; animation: hcFloat3 7s ease-in-out infinite; }
-        .hero-creature:nth-child(4) { right: 10%; bottom: 12%; animation: hcFloat1 9s ease-in-out infinite reverse; }
-        @keyframes hcFloat1 { 0%,100% { transform: translateY(0) scale(1); opacity: 0.06; } 50% { transform: translateY(-15px) scale(1.05); opacity: 0.1; } }
-        @keyframes hcFloat2 { 0%,100% { transform: translateY(0) rotate(0deg); opacity: 0.05; } 50% { transform: translateY(-10px) rotate(5deg); opacity: 0.09; } }
-        @keyframes hcFloat3 { 0%,100% { transform: translateX(0); opacity: 0.06; } 50% { transform: translateX(8px); opacity: 0.1; } }
+        .hero-lore { position: relative; z-index: 2; margin-bottom: 18px; }
+        .hero-tagline { font-size: 0.85rem; color: #a0a0c0; font-weight: 400; letter-spacing: 0.3px; line-height: 1.7; }
+        .hero-tagline em { color: #c084fc; font-style: normal; font-weight: 600; }
+        .hero-tagline .lore-glow { color: #ff6b8a; font-weight: 700; }
+        .hero-lore-divider { width: 50px; height: 1px; background: linear-gradient(90deg, transparent, rgba(192,132,252,0.4), transparent); margin: 12px auto 0; }
+        /* Legacy creature silhouettes hidden */
+        .hero-creatures { display: none; }
         /* Quick stats row */
         .hero-stats { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; position: relative; z-index: 2; }
-        .hero-stat { background: rgba(15,20,40,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 10px 0; text-align: center; flex: 1; max-width: 90px; transition: all 0.3s; position: relative; overflow: hidden; }
-        .hero-stat::after { content: ''; position: absolute; bottom: 0; left: 10%; right: 10%; height: 2px; border-radius: 1px; transition: all 0.3s; opacity: 0; }
-        .hero-stat:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
-        .hero-stat:hover::after { opacity: 1; }
-        .hero-stat:nth-child(1)::after { background: #e94560; }
-        .hero-stat:nth-child(2)::after { background: #f093fb; }
-        .hero-stat:nth-child(3)::after { background: #f59e0b; }
-        .hero-stat:nth-child(4)::after { background: #4ecdc4; }
-        .hero-stat .hs-icon { font-size: 1rem; display: block; margin-bottom: 2px; }
-        .hero-stat .hs-num { font-size: 1.2rem; font-weight: 800; display: block; line-height: 1.2; }
-        .hero-stat .hs-num.gold { color: #f59e0b; }
-        .hero-stat .hs-num.energy { color: #4ecdc4; }
-        .hero-stat .hs-num.collection { color: #f093fb; }
-        .hero-stat .hs-num.level { color: #e94560; }
-        .hero-stat .hs-label { font-size: 0.55rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+        .hero-stat { background: rgba(255,255,255,0.04); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 8px 0; text-align: center; flex: 1; max-width: 85px; transition: all 0.3s; }
+        .hero-stat:hover { background: rgba(255,255,255,0.07); transform: translateY(-2px); }
+        .hero-stat .hs-icon { font-size: 0.85rem; display: block; margin-bottom: 1px; }
+        .hero-stat .hs-num { font-size: 1.1rem; font-weight: 800; display: block; line-height: 1.2; }
+        .hero-stat .hs-num.gold { color: #fbbf24; }
+        .hero-stat .hs-num.energy { color: #67e8f9; }
+        .hero-stat .hs-num.collection { color: #c084fc; }
+        .hero-stat .hs-num.level { color: #ff6b8a; }
+        .hero-stat .hs-label { font-size: 0.52rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
         /* Recent catches carousel */
-        .recent-catches { position: relative; z-index: 2; margin-bottom: 4px; }
-        .recent-catches-title { font-size: 0.68rem; color: #444; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; justify-content: center; }
-        .recent-catches-title::before, .recent-catches-title::after { content: ''; width: 20px; height: 1px; background: linear-gradient(90deg, transparent, #444); }
-        .recent-catches-title::after { background: linear-gradient(90deg, #444, transparent); }
-        .recent-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px; scrollbar-width: none; }
+        .recent-catches { position: relative; z-index: 2; }
+        .recent-catches-title { font-size: 0.62rem; color: #555; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px; text-align: center; }
+        .recent-row { display: flex; gap: 7px; overflow-x: auto; padding: 4px 2px; scrollbar-width: none; }
         .recent-row::-webkit-scrollbar { display: none; }
-        .recent-mini { flex-shrink: 0; width: 70px; background: rgba(15,20,40,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 8px 4px 6px; text-align: center; cursor: pointer; transition: all 0.3s; }
-        .recent-mini:hover { border-color: rgba(233,69,96,0.5); transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
-        .recent-mini.r-Legendary { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.05); box-shadow: 0 0 15px rgba(245,158,11,0.1); }
-        .recent-mini.r-Epic { border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.04); }
-        .recent-mini.r-Rare { border-color: rgba(59,130,246,0.25); background: rgba(59,130,246,0.03); }
+        .recent-mini { flex-shrink: 0; width: 68px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 8px 4px 6px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .recent-mini:hover { border-color: rgba(255,107,138,0.4); transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+        .recent-mini.r-Legendary { border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.05); }
+        .recent-mini.r-Epic { border-color: rgba(192,132,252,0.3); background: rgba(192,132,252,0.04); }
+        .recent-mini.r-Rare { border-color: rgba(96,165,250,0.25); background: rgba(96,165,250,0.03); }
         .recent-mini .rm-svg { margin-bottom: 3px; }
         .recent-mini .rm-name { font-size: 0.52rem; font-weight: 600; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .recent-mini .rm-rarity { font-size: 0.45rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-        .recent-empty { color: #3a3a5a; font-size: 0.8rem; padding: 20px 16px; background: rgba(15,20,40,0.4); border: 1px dashed rgba(255,255,255,0.06); border-radius: 14px; line-height: 1.6; }
-        .recent-empty .re-icon { font-size: 1.8rem; display: block; margin-bottom: 6px; opacity: 0.5; animation: reEmptyPulse 3s ease-in-out infinite; }
-        @keyframes reEmptyPulse { 0%,100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.1); opacity: 0.7; } }
-        .recent-empty .re-hint { font-size: 0.7rem; color: #555; }
+        .recent-empty { color: #555; font-size: 0.78rem; padding: 18px 16px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.08); border-radius: 14px; line-height: 1.6; }
+        .recent-empty .re-icon { font-size: 1.6rem; display: block; margin-bottom: 6px; opacity: 0.6; animation: reEmptyPulse 3s ease-in-out infinite; }
+        @keyframes reEmptyPulse { 0%,100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.08); opacity: 0.8; } }
+        .recent-empty .re-hint { font-size: 0.68rem; color: #555; }
         /* === SCAN PORTAL === */
-        .summon-section { position: relative; text-align: center; padding: 0 0 8px; }
-        .summon-label { font-size: 0.68rem; color: #444; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 12px; position: relative; z-index: 2; }
-        .scan-portal { position: relative; margin: 0 auto 12px; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
-        .scan-portal-bg { position: absolute; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(233,69,96,0.08) 0%, rgba(240,147,251,0.04) 50%, transparent 70%); animation: portalBgPulse 4s ease-in-out infinite; }
-        @keyframes portalBgPulse { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.15); opacity: 1; } }
+        .summon-section { position: relative; text-align: center; padding: 0 0 4px; }
+        .summon-label { font-size: 0.6rem; color: #555; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 8px; position: relative; z-index: 2; }
+        .scan-portal { position: relative; margin: 0 auto 8px; width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; }
+        .scan-portal-bg { position: absolute; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, rgba(192,132,252,0.08) 0%, rgba(255,107,138,0.04) 50%, transparent 70%); animation: portalBgPulse 4s ease-in-out infinite; }
+        @keyframes portalBgPulse { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.12); opacity: 1; } }
         .scan-portal-ring { position: absolute; border: 2px solid rgba(233,69,96,0.15); border-radius: 50%; }
-        .scan-portal-ring:nth-child(2) { width: 210px; height: 210px; border-color: rgba(233,69,96,0.08); animation: portalSpin 20s linear infinite; border-width: 1px; border-style: dotted; }
-        .scan-portal-ring:nth-child(3) { width: 170px; height: 170px; border-color: rgba(240,147,251,0.12); animation: portalSpin 12s linear infinite reverse; }
-        .scan-portal-ring:nth-child(4) { width: 130px; height: 130px; border-color: rgba(78,205,196,0.15); animation: portalSpin 8s linear infinite; border-style: dashed; }
-        .scan-portal-ring:nth-child(5) { width: 90px; height: 90px; border-color: rgba(245,158,11,0.1); animation: portalSpin 5s linear infinite reverse; border-width: 1px; }
+        .scan-portal-ring:nth-child(2) { width: 170px; height: 170px; border-color: rgba(255,107,138,0.08); animation: portalSpin 20s linear infinite; border-width: 1px; border-style: dotted; }
+        .scan-portal-ring:nth-child(3) { width: 140px; height: 140px; border-color: rgba(192,132,252,0.1); animation: portalSpin 12s linear infinite reverse; }
+        .scan-portal-ring:nth-child(4) { width: 110px; height: 110px; border-color: rgba(103,232,249,0.12); animation: portalSpin 8s linear infinite; border-style: dashed; }
+        .scan-portal-ring:nth-child(5) { width: 80px; height: 80px; border-color: rgba(251,191,36,0.08); animation: portalSpin 5s linear infinite reverse; border-width: 1px; }
         @keyframes portalSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .scan-portal-runes { position: absolute; width: 195px; height: 195px; animation: portalSpin 30s linear infinite; }
-        .scan-portal-rune { position: absolute; font-size: 0.7rem; opacity: 0.15; color: #f093fb; }
+        .scan-portal-runes { position: absolute; width: 160px; height: 160px; animation: portalSpin 30s linear infinite; }
+        .scan-portal-rune { position: absolute; font-size: 0.6rem; opacity: 0.12; color: #c084fc; }
         .scan-portal-rune:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }
         .scan-portal-rune:nth-child(2) { top: 25%; right: 2%; }
         .scan-portal-rune:nth-child(3) { bottom: 25%; right: 2%; }
@@ -938,50 +936,46 @@ GAME_HTML = """
         .scan-portal-rune:nth-child(5) { bottom: 25%; left: 2%; }
         .scan-portal-rune:nth-child(6) { top: 25%; left: 2%; }
         .scan-portal-center { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; }
-        .scan-portal-orb { font-size: 3.5rem; animation: orbFloat 4s ease-in-out infinite; filter: drop-shadow(0 0 25px rgba(233,69,96,0.4)); }
-        @keyframes orbFloat { 0%,100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 25px rgba(233,69,96,0.3)); } 50% { transform: translateY(-8px) scale(1.06); filter: drop-shadow(0 0 40px rgba(240,147,251,0.6)); } }
-        .scan-portal-text { font-size: 0.6rem; color: #666; letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
+        .scan-portal-orb { font-size: 2.8rem; animation: orbFloat 4s ease-in-out infinite; filter: drop-shadow(0 0 20px rgba(192,132,252,0.35)); }
+        @keyframes orbFloat { 0%,100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 20px rgba(192,132,252,0.3)); } 50% { transform: translateY(-6px) scale(1.05); filter: drop-shadow(0 0 30px rgba(255,107,138,0.4)); } }
+        .scan-portal-text { font-size: 0.55rem; color: #666; letter-spacing: 3px; text-transform: uppercase; margin-top: 2px; }
         .scan-portal-dots { position: absolute; width: 100%; height: 100%; }
-        .scan-portal-dot { position: absolute; width: 3px; height: 3px; background: #e94560; border-radius: 50%; opacity: 0; animation: portalDot 5s ease-in-out infinite; }
+        .scan-portal-dot { position: absolute; width: 3px; height: 3px; background: #ff6b8a; border-radius: 50%; opacity: 0; animation: portalDot 5s ease-in-out infinite; }
         .scan-portal-dot:nth-child(1) { top: 5%; left: 50%; animation-delay: 0s; }
-        .scan-portal-dot:nth-child(2) { top: 50%; right: 2%; animation-delay: -1s; background: #f093fb; }
+        .scan-portal-dot:nth-child(2) { top: 50%; right: 2%; animation-delay: -1s; background: #c084fc; }
         .scan-portal-dot:nth-child(3) { bottom: 5%; left: 50%; animation-delay: -2s; }
-        .scan-portal-dot:nth-child(4) { top: 50%; left: 2%; animation-delay: -3s; background: #4ecdc4; }
-        .scan-portal-dot:nth-child(5) { top: 15%; right: 12%; animation-delay: -0.7s; background: #f093fb; width: 2px; height: 2px; }
-        .scan-portal-dot:nth-child(6) { bottom: 15%; left: 12%; animation-delay: -2.7s; background: #4ecdc4; width: 2px; height: 2px; }
-        .scan-portal-dot:nth-child(7) { top: 30%; left: 8%; animation-delay: -4s; background: #f59e0b; width: 2px; height: 2px; }
+        .scan-portal-dot:nth-child(4) { top: 50%; left: 2%; animation-delay: -3s; background: #67e8f9; }
+        .scan-portal-dot:nth-child(5) { top: 15%; right: 12%; animation-delay: -0.7s; background: #c084fc; width: 2px; height: 2px; }
+        .scan-portal-dot:nth-child(6) { bottom: 15%; left: 12%; animation-delay: -2.7s; background: #67e8f9; width: 2px; height: 2px; }
+        .scan-portal-dot:nth-child(7) { top: 30%; left: 8%; animation-delay: -4s; background: #fbbf24; width: 2px; height: 2px; }
         .scan-portal-dot:nth-child(8) { bottom: 30%; right: 8%; animation-delay: -1.5s; width: 2px; height: 2px; }
         @keyframes portalDot { 0%,100% { opacity: 0; transform: scale(0); } 50% { opacity: 0.7; transform: scale(2); } }
         /* Energy bar compact */
-        .energy-compact { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 0 10px; }
-        .energy-compact .energy-bar { flex: 1; height: 5px; }
-        .energy-compact .ec-text { font-size: 0.68rem; color: #555; white-space: nowrap; min-width: 70px; text-align: right; }
+        .energy-compact { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 0 10px; }
+        .energy-compact .energy-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.06); }
+        .energy-compact .ec-text { font-size: 0.65rem; color: #666; white-space: nowrap; min-width: 65px; text-align: right; }
         /* Scan action area */
-        .scan-actions { background: rgba(15,20,40,0.5); border: 1px solid rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
-        .scan-actions-title { font-size: 0.65rem; color: #444; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 12px; text-align: center; }
+        .scan-actions { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+        .scan-actions-title { font-size: 0.6rem; color: #555; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 12px; text-align: center; }
         /* Improved sample buttons */
         .sample-section { margin-top: 6px; }
         .sample-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; position: relative; z-index: 2; }
-        .sample-item { background: rgba(15,20,40,0.7); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 10px 4px 8px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
-        .sample-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #e94560, transparent); opacity: 0; transition: opacity 0.3s; }
-        .sample-item:hover { border-color: rgba(233,69,96,0.3); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(233,69,96,0.15); }
-        .sample-item:hover::before { opacity: 1; }
-        .sample-item .si-flag { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+        .sample-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 4px 8px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .sample-item:hover { border-color: rgba(255,107,138,0.3); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(255,107,138,0.1); background: rgba(255,107,138,0.04); }
+        .sample-item .si-flag { font-size: 1.2rem; display: block; margin-bottom: 3px; }
         .sample-item .si-name { font-size: 0.58rem; color: #999; font-weight: 600; display: block; line-height: 1.2; }
-        .sample-item .si-code { font-size: 0.45rem; color: #444; display: block; margin-top: 3px; font-family: monospace; letter-spacing: 0.5px; }
+        .sample-item .si-code { font-size: 0.45rem; color: #555; display: block; margin-top: 3px; font-family: monospace; letter-spacing: 0.5px; }
         /* Scan section improvements */
         .scan-section-title { font-size: 0.65rem; color: #444; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; text-align: center; }
         .scan-input-group { position: relative; margin-bottom: 12px; }
         .scan-input-group .barcode-input { padding-right: 50px; }
         .scan-input-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; opacity: 0.3; pointer-events: none; }
-        /* Welcome tip - more immersive */
-        .welcome-tip { background: linear-gradient(135deg, rgba(15,12,41,0.8), rgba(48,43,99,0.4)); border: 1px solid rgba(240,147,251,0.1); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; font-size: 0.78rem; color: #888; line-height: 1.7; position: relative; z-index: 2; overflow: hidden; }
-        .welcome-tip::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(240,147,251,0.03), transparent); animation: tipShimmer 6s linear infinite; }
-        @keyframes tipShimmer { 0% { left: -100%; } 100% { left: 200%; } }
-        .welcome-tip strong { color: #f093fb; }
-        .welcome-tip .tip-dismiss { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #444; cursor: pointer; font-size: 0.9rem; transition: color 0.2s; }
-        .welcome-tip .tip-dismiss:hover { color: #888; }
-        .welcome-tip .tip-flavor { color: #666; font-style: italic; font-size: 0.72rem; display: block; margin-top: 6px; }
+        /* Welcome tip */
+        .welcome-tip { background: rgba(255,255,255,0.03); border: 1px solid rgba(192,132,252,0.1); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; font-size: 0.76rem; color: #888; line-height: 1.7; position: relative; z-index: 2; }
+        .welcome-tip strong { color: #c084fc; }
+        .welcome-tip .tip-dismiss { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #555; cursor: pointer; font-size: 0.85rem; transition: color 0.2s; }
+        .welcome-tip .tip-dismiss:hover { color: #aaa; }
+        .welcome-tip .tip-flavor { color: #777; font-style: italic; font-size: 0.7rem; display: block; margin-top: 6px; }
         /* NEW discovery effect */
         .new-discovery { color: #f59e0b; font-size: 1.2rem; font-weight: 700; margin: 8px; animation: pulse 1s ease-in-out infinite; }
         @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
@@ -1118,12 +1112,8 @@ GAME_HTML = """
             <!-- Hero Welcome Section -->
             <div class="hero-section" id="heroSection">
                 <div class="hero-particles" id="heroParticles"></div>
-                <div class="hero-creatures">
-                    <div class="hero-creature" style="font-size:2.8rem">🐉</div>
-                    <div class="hero-creature" style="font-size:2.2rem">🦊</div>
-                    <div class="hero-creature" style="font-size:2rem">🐺</div>
-                    <div class="hero-creature" style="font-size:1.8rem">🐱</div>
-                </div>
+                <!-- Animated SVG creatures -->
+                <div class="hero-creature-stage" id="heroCreatureStage"></div>
 
                 <div class="hero-logo-wrap">
                     <div class="hero-logo">BarcodeQuest</div>
@@ -1523,20 +1513,41 @@ GAME_HTML = """
         function initHeroParticles() {
             const container = document.getElementById('heroParticles');
             if (!container) return;
-            const colors = ['#e94560','#f093fb','#4ecdc4','#f59e0b','#3b82f6','#a855f7'];
-            for (let i = 0; i < 20; i++) {
+            const colors = ['#ff6b8a','#c084fc','#67e8f9','#fbbf24','#60a5fa','#a78bfa'];
+            for (let i = 0; i < 15; i++) {
                 const p = document.createElement('div');
                 p.className = 'hero-particle';
-                const size = 2 + Math.random() * 3;
+                const size = 2 + Math.random() * 2;
                 p.style.width = size + 'px';
                 p.style.height = size + 'px';
                 p.style.left = Math.random() * 100 + '%';
                 p.style.bottom = '-5%';
                 p.style.background = colors[Math.floor(Math.random() * colors.length)];
-                p.style.animationDuration = (8 + Math.random() * 12) + 's';
-                p.style.animationDelay = -(Math.random() * 20) + 's';
+                p.style.animationDuration = (10 + Math.random() * 15) + 's';
+                p.style.animationDelay = -(Math.random() * 25) + 's';
                 container.appendChild(p);
             }
+        }
+
+        // Animated SVG creatures on hero
+        function initHeroCreatures() {
+            const stage = document.getElementById('heroCreatureStage');
+            if (!stage) return;
+            const creatures = [
+                { shape: 'Fox', color: '#ff6b8a', size: 38 },
+                { shape: 'Bird', color: '#67e8f9', size: 34 },
+                { shape: 'Dragon', color: '#c084fc', size: 48 },
+                { shape: 'Cat', color: '#fbbf24', size: 34 },
+                { shape: 'Wolf', color: '#60a5fa', size: 38 },
+            ];
+            creatures.forEach(c => {
+                const slot = document.createElement('div');
+                slot.className = 'hero-creature-slot';
+                const svg = generateMonsterSVG(c.shape, c.color, 'Rare');
+                const sized = svg.replace(/width="\d+"/, `width="${c.size}"`).replace(/height="\d+"/, `height="${c.size}"`);
+                slot.innerHTML = sized + '<div class="hero-creature-shadow" style="width:'+Math.round(c.size*0.6)+'px"></div>';
+                stage.appendChild(slot);
+            });
         }
 
         function renderMonsterCard(m, opts) {
@@ -2375,6 +2386,7 @@ GAME_HTML = """
         fetch('/api/player?session=default').then(r=>r.json()).then(d=>updatePlayerUI(d.player));
         loadRecentFromCollection();
         initHeroParticles();
+        initHeroCreatures();
     </script>
 </body>
 </html>
