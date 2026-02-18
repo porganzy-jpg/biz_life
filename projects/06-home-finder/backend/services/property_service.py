@@ -35,7 +35,7 @@ class PropertyService:
     ) -> dict:
         """매물 다건 검색 (페이지네이션)"""
         offset = (page - 1) * size
-        items = self.repo.search(
+        items, total = self.repo.search_with_count(
             district=district,
             property_type=property_type,
             price_min=price_min,
@@ -46,24 +46,6 @@ class PropertyService:
             offset=offset,
             limit=size,
         )
-        # Total count with same filters
-        query = self.db.query(Property).filter(Property.is_active == 1)
-        if district:
-            query = query.filter(Property.district == district)
-        if property_type:
-            query = query.filter(Property.property_type == property_type)
-        if price_min is not None:
-            query = query.filter(Property.price_krw >= price_min)
-        if price_max is not None:
-            query = query.filter(Property.price_krw <= price_max)
-        if area_min is not None:
-            query = query.filter(Property.area_m2 >= area_min)
-        if area_max is not None:
-            query = query.filter(Property.area_m2 <= area_max)
-        if score_min is not None:
-            query = query.filter(Property.score_composite >= score_min)
-        total = query.count()
-
         return {"items": items, "total": total}
 
     def create_property(self, data: dict) -> Property:

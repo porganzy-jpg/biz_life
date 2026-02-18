@@ -66,10 +66,16 @@ class ScoringService:
             .all()
         )
 
+        # Pre-fetch area info by district to avoid N+1 queries
+        districts = {p.district for p in properties if p.district}
+        area_cache = {}
+        for district in districts:
+            area_cache[district] = self._get_area_info(district)
+
         scored_count = 0
         for prop in properties:
             try:
-                area_info = self._get_area_info(prop.district)
+                area_info = area_cache.get(prop.district, {}) if prop.district else {}
                 result = self.scorer.score_property(prop, area_info)
                 loc = result.get("location", {})
 
