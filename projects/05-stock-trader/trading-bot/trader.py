@@ -238,16 +238,18 @@ class StockTrader:
 
             current_price = result.get("current_price", 0)
             if current_price <= 0:
+                logger.warning(f"가격 데이터 없음 [{result.get('name', symbol)}]: price={current_price} - 매수 건너뜀")
                 continue
 
             qty = int(amount / current_price)
             if qty <= 0:
+                logger.warning(f"수량 부족 [{result.get('name', symbol)}]: amount={amount:,.0f}, price={current_price:,.0f} - 매수 건너뜀")
                 continue
 
             buy_result = self.client.buy(symbol, result["name"], qty)
             if buy_result:
                 cash -= qty * current_price
-                positions[symbol] = {"qty": qty, "avg_price": current_price}
+                positions[symbol] = {"qty": qty, "avg_price": current_price, "sector": sector, "name": result["name"]}
                 self._record_trade("BUY", symbol, result["name"], qty,
                                    current_price, 0, 0,
                                    result.get("score", 0), confidence,
