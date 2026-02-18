@@ -1086,9 +1086,473 @@ GAME_HTML = """
         .scan-barcode-info { background: #16213e; border-radius: 12px; padding: 12px; margin-top: 8px; }
         .monster-card { cursor: pointer; }
         .monster-card:hover { filter: brightness(1.05); }
+
+        /* === NEW UI FLAG === */
+        .old-tabs-hidden .tabs { display: none !important; }
+        .old-tabs-hidden .header { display: none !important; }
+
+        /* === LANDSCAPE VIEW === */
+        #landscape-view {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200;
+            overflow: hidden; transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        #landscape-view.hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
+        .sky-layer {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, #87CEEB 0%, #B0E0F0 40%, #E8F4E8 70%, #C8E6C8 100%);
+            animation: dayCycle 120s ease-in-out infinite;
+        }
+        @keyframes dayCycle {
+            0%,100% { background: linear-gradient(180deg, #87CEEB 0%, #B0E0F0 40%, #E8F4E8 70%, #C8E6C8 100%); }
+            25% { background: linear-gradient(180deg, #FFB347 0%, #FF8C5A 30%, #FFD194 55%, #E8DCC8 100%); }
+            40% { background: linear-gradient(180deg, #1a1a3e 0%, #2C3E6B 35%, #0A1428 70%, #0A1020 100%); }
+            60% { background: linear-gradient(180deg, #1a1a3e 0%, #2C3E6B 35%, #0A1428 70%, #0A1020 100%); }
+            75% { background: linear-gradient(180deg, #FFB5C2 0%, #FFD194 35%, #B0E0F0 70%, #E8F4E8 100%); }
+        }
+        /* Sun/Moon */
+        .celestial-body {
+            position: absolute; width: 60px; height: 60px; border-radius: 50%;
+            top: 12%; left: 15%; z-index: 1;
+            background: radial-gradient(circle, #FFFDE7 30%, #FFD54F 70%, transparent 100%);
+            box-shadow: 0 0 40px rgba(255,213,79,0.5), 0 0 80px rgba(255,213,79,0.2);
+            animation: celestialFloat 8s ease-in-out infinite;
+        }
+        @keyframes celestialFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        /* Clouds */
+        .cloud {
+            position: absolute; z-index: 2;
+            background: rgba(255,255,255,0.85);
+            border-radius: 50px;
+        }
+        .cloud::before, .cloud::after {
+            content: ''; position: absolute; background: inherit; border-radius: 50%;
+        }
+        .cloud-1 { width: 80px; height: 28px; top: 8%; animation: cloudDrift 60s linear infinite; }
+        .cloud-1::before { width: 40px; height: 40px; top: -20px; left: 12px; }
+        .cloud-1::after { width: 30px; height: 30px; top: -12px; right: 10px; }
+        .cloud-2 { width: 60px; height: 22px; top: 14%; animation: cloudDrift 45s linear infinite; animation-delay: -15s; }
+        .cloud-2::before { width: 32px; height: 32px; top: -16px; left: 8px; }
+        .cloud-2::after { width: 22px; height: 22px; top: -8px; right: 6px; }
+        .cloud-3 { width: 90px; height: 30px; top: 6%; animation: cloudDrift 80s linear infinite; animation-delay: -30s; }
+        .cloud-3::before { width: 46px; height: 46px; top: -24px; left: 16px; }
+        .cloud-3::after { width: 34px; height: 34px; top: -14px; right: 12px; }
+        @keyframes cloudDrift { 0% { left: -20%; } 100% { left: 110%; } }
+        /* Mountains */
+        .mountain-layer { position: absolute; bottom: 30%; left: 0; right: 0; height: 35%; z-index: 3; }
+        .mountain-far { position: absolute; bottom: 0; width: 100%; }
+        .mountain-near { position: absolute; bottom: -5%; width: 100%; }
+        /* Midground trees */
+        .midground { position: absolute; bottom: 22%; left: 0; right: 0; height: 20%; z-index: 4; }
+        /* Road */
+        .road-layer {
+            position: absolute; bottom: 8%; left: 0; right: 0; height: 22%; z-index: 5;
+            background: linear-gradient(180deg, #7BC67E 0%, #6ab86a 30%, #8B7355 40%, #9A8866 45%, #8B7355 50%, #7BC67E 52%, #5da55d 100%);
+        }
+        .road-line {
+            position: absolute; top: 44%; left: 0; right: 0; height: 3px;
+            background: repeating-linear-gradient(90deg, #FFD54F 0, #FFD54F 20px, transparent 20px, transparent 40px);
+            opacity: 0.6;
+        }
+        /* Bus Exterior */
+        .bus-exterior {
+            position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%);
+            z-index: 10; cursor: pointer; transition: transform 0.3s ease;
+            animation: busIdle 4s ease-in-out infinite;
+        }
+        .bus-exterior:hover { transform: translateX(-50%) scale(1.03); }
+        .bus-exterior:active { transform: translateX(-50%) scale(0.98); }
+        @keyframes busIdle { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
+        .bus-exterior svg { filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3)); }
+        /* Bus entrance animation */
+        @keyframes busEnter { 0% { left: -30%; opacity: 0; } 60% { opacity: 1; } 100% { left: 50%; } }
+        .bus-entering { animation: busEnter 1.5s ease-out forwards !important; }
+        /* Foreground */
+        .foreground { position: absolute; bottom: 0; left: 0; right: 0; height: 12%; z-index: 11; pointer-events: none; }
+        /* Landscape creatures */
+        .landscape-creatures { position: absolute; bottom: 20%; left: 0; right: 0; height: 10%; z-index: 9; pointer-events: none; }
+        .landscape-creature {
+            position: absolute; animation: creatureWander 6s ease-in-out infinite alternate;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        @keyframes creatureWander { 0% { transform: translateY(0) translateX(0); } 100% { transform: translateY(-6px) translateX(10px); } }
+        /* Landscape UI overlay */
+        .landscape-ui {
+            position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+            padding: 16px; display: flex; flex-direction: column; align-items: center;
+        }
+        .ls-title {
+            font-size: 2rem; font-weight: 800;
+            background: linear-gradient(135deg, #fff, #FFD194, #fff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: none; letter-spacing: -0.5px; margin-bottom: 4px;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+        }
+        .ls-subtitle { font-size: 0.65rem; color: rgba(255,255,255,0.7); letter-spacing: 4px; text-transform: uppercase; }
+        .ls-stats {
+            display: flex; gap: 8px; margin-top: 12px;
+        }
+        .ls-stat {
+            background: rgba(0,0,0,0.25); backdrop-filter: blur(8px);
+            padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ls-stat .stat-val { font-weight: 700; }
+        .ls-bottom-hint {
+            position: absolute; bottom: 3%; left: 50%; transform: translateX(-50%);
+            z-index: 20; text-align: center;
+        }
+        .ls-tap-hint {
+            font-size: 0.7rem; color: rgba(255,255,255,0.6);
+            animation: hintPulse 2s ease-in-out infinite;
+            background: rgba(0,0,0,0.2); padding: 6px 16px; border-radius: 20px;
+            backdrop-filter: blur(4px);
+        }
+        @keyframes hintPulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+        /* Smoke particles */
+        .smoke-particle {
+            position: absolute; width: 8px; height: 8px; border-radius: 50%;
+            background: rgba(200,200,200,0.5); animation: smokeRise 3s ease-out infinite;
+        }
+        @keyframes smokeRise {
+            0% { transform: translateY(0) scale(1); opacity: 0.5; }
+            100% { transform: translateY(-40px) translateX(10px) scale(2.5); opacity: 0; }
+        }
+        /* Wheel animation */
+        @keyframes wheelSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        /* Stars (night) */
+        .stars-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 50%; z-index: 1; pointer-events: none; }
+        .star {
+            position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%;
+            animation: starTwinkle 3s ease-in-out infinite;
+        }
+        @keyframes starTwinkle { 0%,100% { opacity: 0.2; } 50% { opacity: 0.8; } }
+
+        /* === BUS INTERIOR VIEW === */
+        #bus-interior-view {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200;
+            background: linear-gradient(180deg, #87CEEB 0%, #B0D8F0 30%, #DDD0B8 50%, #D4C4A8 100%);
+            display: none; flex-direction: column; overflow: hidden;
+        }
+        #bus-interior-view.active { display: flex; animation: viewFadeIn 0.5s ease-out; }
+        @keyframes viewFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .bi-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: rgba(20,18,40,0.85);
+            backdrop-filter: blur(12px); z-index: 10;
+        }
+        .bi-back-btn {
+            background: none; border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .bi-back-btn:hover { border-color: #fff; color: #fff; }
+        .bi-title { font-size: 1rem; font-weight: 700; color: #e8e8f0; }
+        .bi-collect-btn {
+            padding: 6px 14px; background: linear-gradient(135deg, #4ecdc4, #2ab7a9);
+            color: #1a1a2e; border: none; border-radius: 8px; font-size: 0.75rem;
+            font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .bi-collect-btn:hover { transform: scale(1.05); box-shadow: 0 2px 10px rgba(78,205,196,0.3); }
+        /* Cross Section Container */
+        .bus-cross-section {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 10px 16px; overflow-y: auto;
+        }
+        .cs-bus-body {
+            width: 100%; max-width: 380px; position: relative;
+        }
+        /* Roof */
+        .cs-roof {
+            background: linear-gradient(180deg, #C0704A, #E8734A);
+            height: 20px; border-radius: 30px 30px 0 0; position: relative;
+            border: 2px solid #9A5A3A; border-bottom: none;
+        }
+        .cs-chimney {
+            position: absolute; top: -16px; right: 25%; width: 14px; height: 16px;
+            background: #666; border-radius: 2px 2px 0 0;
+        }
+        /* Floor containers */
+        .cs-floor {
+            background: linear-gradient(180deg, #E8DCC8, #DDD0B8);
+            border-left: 3px solid #9A7A50; border-right: 3px solid #9A7A50;
+            padding: 6px 8px; position: relative;
+        }
+        .cs-floor:last-of-type { border-bottom: 3px solid #9A7A50; }
+        .cs-floor-label {
+            position: absolute; left: -28px; top: 50%; transform: translateY(-50%);
+            font-size: 0.65rem; font-weight: 700; color: #9A7A50;
+            background: rgba(255,255,255,0.7); padding: 2px 4px; border-radius: 4px;
+        }
+        .cs-floor-divider {
+            height: 2px; background: linear-gradient(90deg, #9A7A50, #C4A878, #9A7A50);
+        }
+        .cs-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        /* Individual slot */
+        .cs-slot {
+            background: rgba(255,255,255,0.4); border: 2px dashed rgba(154,122,80,0.4);
+            border-radius: 8px; padding: 8px 4px; text-align: center; min-height: 90px;
+            cursor: pointer; transition: all 0.25s; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; position: relative;
+        }
+        .cs-slot:hover { background: rgba(255,255,255,0.6); border-color: #E8734A; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .cs-slot.has-room {
+            border-style: solid; border-color: rgba(154,122,80,0.6);
+            background: rgba(255,255,255,0.5);
+        }
+        .cs-slot .cs-room-emoji { font-size: 1.3rem; }
+        .cs-slot .cs-room-name { font-size: 0.65rem; font-weight: 600; color: #5A4A30; margin-top: 2px; }
+        .cs-slot .cs-room-level { font-size: 0.55rem; color: #9A7A50; }
+        .cs-slot .cs-creature-mini { margin-top: 3px; }
+        .cs-slot .cs-creature-mini svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
+        .cs-slot .cs-affinity {
+            font-size: 0.5rem; padding: 1px 5px; border-radius: 3px;
+            display: inline-block; margin-top: 2px;
+        }
+        .cs-slot .cs-affinity.grade-S { background: linear-gradient(135deg, #d97706, #fbbf24); color: #fff; }
+        .cs-slot .cs-affinity.grade-A { background: #7c3aed; color: #fff; }
+        .cs-slot .cs-affinity.grade-B { background: #1d4ed8; color: #fff; }
+        .cs-slot .cs-affinity.grade-C { background: #888; color: #fff; }
+        .cs-slot .cs-prod { font-size: 0.5rem; color: #B8860B; margin-top: 1px; }
+        .cs-slot .cs-empty { font-size: 0.7rem; color: #9A7A50; }
+        .cs-slot .cs-empty-plus { font-size: 1.5rem; color: #C4A878; line-height: 1; }
+        /* Room type backgrounds */
+        .cs-slot.room-gold_mine { background: linear-gradient(180deg, rgba(255,215,0,0.15), rgba(255,255,255,0.4)); }
+        .cs-slot.room-energy_gen { background: linear-gradient(180deg, rgba(0,206,209,0.15), rgba(255,255,255,0.4)); }
+        .cs-slot.room-exp_library { background: linear-gradient(180deg, rgba(168,85,247,0.1), rgba(255,255,255,0.4)); }
+        .cs-slot.room-training { background: linear-gradient(180deg, rgba(233,69,96,0.1), rgba(255,255,255,0.4)); }
+        .cs-slot.room-arena { background: linear-gradient(180deg, rgba(255,107,138,0.12), rgba(255,255,255,0.4)); }
+        .cs-slot.room-evo_lab { background: linear-gradient(180deg, rgba(126,232,250,0.12), rgba(255,255,255,0.4)); }
+        .cs-slot.room-radar { background: linear-gradient(180deg, rgba(59,130,246,0.1), rgba(255,255,255,0.4)); }
+        .cs-slot.room-expedition_base { background: linear-gradient(180deg, rgba(123,198,126,0.15), rgba(255,255,255,0.4)); }
+        .cs-slot.room-warehouse { background: linear-gradient(180deg, rgba(205,127,50,0.1), rgba(255,255,255,0.4)); }
+        /* Locked floor */
+        .cs-floor.locked {
+            opacity: 0.5; position: relative;
+        }
+        .cs-floor.locked::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.3); border-radius: 4px; z-index: 1;
+        }
+        .cs-lock-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            z-index: 2; text-align: center; color: #fff;
+        }
+        .cs-lock-overlay .lock-icon { font-size: 1.5rem; }
+        .cs-lock-overlay .lock-text { font-size: 0.65rem; }
+        /* Wheels */
+        .cs-wheels {
+            display: flex; justify-content: space-around; padding: 0 20%;
+            margin-top: -2px; position: relative; z-index: 2;
+        }
+        .cs-wheel {
+            width: 28px; height: 28px; background: #333;
+            border: 3px solid #555; border-radius: 50%;
+            position: relative;
+        }
+        .cs-wheel::after {
+            content: '+'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%); color: #888; font-size: 0.7rem; font-weight: 700;
+        }
+        /* Resource bar */
+        .bi-resource-bar {
+            display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+            padding: 8px 16px; background: rgba(0,0,0,0.15);
+            font-size: 0.75rem;
+        }
+        .bi-res-item { color: #FFD54F; font-weight: 600; }
+        .bi-res-time { color: rgba(255,255,255,0.5); font-size: 0.65rem; }
+
+        /* === BOTTOM NAV === */
+        .bottom-nav {
+            display: flex; background: rgba(20,18,40,0.92);
+            backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.05);
+            z-index: 10; padding: 4px 0;
+        }
+        .bottom-nav .bn-item {
+            flex: 1; text-align: center; padding: 8px 4px; cursor: pointer;
+            transition: all 0.2s; color: #888;
+        }
+        .bottom-nav .bn-item:hover { color: #ccc; }
+        .bottom-nav .bn-item.active { color: #ff6b8a; }
+        .bottom-nav .bn-icon { font-size: 1.1rem; display: block; }
+        .bottom-nav .bn-label { font-size: 0.55rem; display: block; margin-top: 2px; letter-spacing: 0.5px; }
+
+        /* === FEATURE OVERLAY === */
+        .feature-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300;
+            background: rgba(26,20,50,0.97); display: none;
+            flex-direction: column; overflow: hidden;
+            transform: translateY(100%); transition: transform 0.35s ease-out;
+        }
+        .feature-overlay.active { display: flex; transform: translateY(0); animation: featureSlideUp 0.35s ease-out; }
+        @keyframes featureSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .fo-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .fo-close {
+            background: none; border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .fo-close:hover { border-color: #fff; color: #fff; }
+        .fo-title { font-size: 1rem; font-weight: 700; color: #e8e8f0; }
+        .fo-body { flex: 1; overflow-y: auto; padding: 12px; }
+
+        /* Upgrade floor button in cross section */
+        .cs-upgrade-floor {
+            text-align: center; margin-top: 8px;
+        }
+        .cs-upgrade-floor button {
+            padding: 8px 20px; background: linear-gradient(135deg, #f093fb, #e94560);
+            color: white; border: none; border-radius: 8px; font-size: 0.78rem;
+            font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .cs-upgrade-floor button:hover { transform: scale(1.05); box-shadow: 0 4px 14px rgba(240,147,251,0.3); }
     </style>
 </head>
-<body>
+<body class="old-tabs-hidden">
+    <!-- === LANDSCAPE VIEW === -->
+    <div id="landscape-view">
+        <div class="sky-layer">
+            <div class="celestial-body"></div>
+            <div class="stars-layer" id="starsLayer"></div>
+        </div>
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+        <div class="mountain-layer">
+            <svg class="mountain-far" viewBox="0 0 800 200" preserveAspectRatio="none" style="height:100%;opacity:0.7">
+                <polygon points="0,200 100,60 200,140 300,30 450,120 550,50 700,130 800,70 800,200" fill="#4A5868"/>
+                <polygon points="0,200 50,100 180,160 280,80 400,150 520,70 650,140 750,90 800,200" fill="#5A6878" opacity="0.7"/>
+            </svg>
+            <svg class="mountain-near" viewBox="0 0 800 180" preserveAspectRatio="none" style="height:90%">
+                <polygon points="0,180 80,50 160,110 260,20 380,90 480,40 600,100 700,30 800,80 800,180" fill="#5A7A5A"/>
+                <polygon points="0,180 120,70 220,130 340,50 460,110 580,60 680,120 800,50 800,180" fill="#6A8A6A" opacity="0.8"/>
+            </svg>
+        </div>
+        <div class="midground" id="midgroundTrees"></div>
+        <div class="road-layer"><div class="road-line"></div></div>
+        <div class="bus-exterior" id="busExterior" onclick="enterBus()">
+            <svg viewBox="0 0 240 160" width="200" height="133" xmlns="http://www.w3.org/2000/svg">
+                <!-- Bus body -->
+                <rect x="20" y="20" width="200" height="120" rx="12" fill="#E8734A"/>
+                <rect x="20" y="20" width="200" height="120" rx="12" fill="url(#busShine)" opacity="0.3"/>
+                <defs>
+                    <linearGradient id="busShine" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#fff" stop-opacity="0.3"/>
+                        <stop offset="100%" stop-color="#000" stop-opacity="0.1"/>
+                    </linearGradient>
+                </defs>
+                <!-- Floor lines -->
+                <line x1="25" y1="62" x2="215" y2="62" stroke="#C0604A" stroke-width="1.5"/>
+                <line x1="25" y1="98" x2="215" y2="98" stroke="#C0604A" stroke-width="1.5"/>
+                <!-- 3F windows -->
+                <rect x="35" y="28" width="28" height="26" rx="4" fill="#87CEEB" opacity="0.7"/>
+                <rect x="70" y="28" width="28" height="26" rx="4" fill="#87CEEB" opacity="0.7"/>
+                <rect x="105" y="28" width="28" height="26" rx="4" fill="#87CEEB" opacity="0.7"/>
+                <rect x="145" y="28" width="50" height="26" rx="4" fill="#87CEEB" opacity="0.6"/>
+                <!-- 2F windows -->
+                <rect x="35" y="68" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.65"/>
+                <rect x="70" y="68" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.65"/>
+                <rect x="105" y="68" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.65"/>
+                <rect x="145" y="68" width="50" height="24" rx="4" fill="#87CEEB" opacity="0.55"/>
+                <!-- 1F windows -->
+                <rect x="35" y="104" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.6"/>
+                <rect x="70" y="104" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.6"/>
+                <rect x="105" y="104" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.6"/>
+                <!-- Door -->
+                <rect x="150" y="100" width="40" height="36" rx="4" fill="#C0604A"/>
+                <rect x="154" y="104" width="32" height="28" rx="3" fill="#A0D8EF" opacity="0.5"/>
+                <!-- Roof details -->
+                <rect x="18" y="16" width="204" height="8" rx="4" fill="#C0604A"/>
+                <!-- Chimney -->
+                <rect x="175" y="2" width="12" height="18" rx="2" fill="#666"/>
+                <g id="busSmoke"></g>
+                <!-- Wheels -->
+                <circle cx="60" cy="142" r="14" fill="#333" stroke="#555" stroke-width="3"/>
+                <circle cx="60" cy="142" r="4" fill="#888"/>
+                <circle cx="180" cy="142" r="14" fill="#333" stroke="#555" stroke-width="3"/>
+                <circle cx="180" cy="142" r="4" fill="#888"/>
+                <!-- Headlight -->
+                <ellipse cx="222" cy="118" rx="5" ry="8" fill="#FFD54F" opacity="0.8"/>
+                <!-- BarcodeQuest sign -->
+                <rect x="55" y="5" width="80" height="14" rx="3" fill="rgba(0,0,0,0.3)"/>
+                <text x="95" y="15" text-anchor="middle" fill="#FFD194" font-size="8" font-weight="700" font-family="Poppins,sans-serif">TRAVEL BUS</text>
+            </svg>
+        </div>
+        <div class="landscape-creatures" id="landscapeCreatures"></div>
+        <div class="foreground" id="foregroundLayer"></div>
+        <!-- UI Overlay -->
+        <div class="landscape-ui">
+            <div class="ls-title">BarcodeQuest</div>
+            <div class="ls-subtitle">Travel Bus Adventure</div>
+            <div class="ls-stats">
+                <div class="ls-stat"><span class="stat-val" id="lsLevel">Lv.1</span></div>
+                <div class="ls-stat"><span class="stat-val" id="lsGold">1,000G</span></div>
+                <div class="ls-stat"><span class="stat-val" id="lsEnergy">100E</span></div>
+            </div>
+        </div>
+        <div class="ls-bottom-hint">
+            <div class="ls-tap-hint">Tap the bus to board</div>
+        </div>
+    </div>
+
+    <!-- === BUS INTERIOR VIEW === -->
+    <div id="bus-interior-view">
+        <div class="bi-header">
+            <button class="bi-back-btn" onclick="exitBus()">&#8592; Exit</button>
+            <span class="bi-title">Travel Bus</span>
+            <button class="bi-collect-btn" onclick="busCollect()">Collect</button>
+        </div>
+        <div class="bi-resource-bar" id="biResourceBar">
+            <span class="bi-res-item">Loading...</span>
+        </div>
+        <div class="bus-cross-section">
+            <div class="cs-bus-body">
+                <div class="cs-roof"><div class="cs-chimney"></div></div>
+                <div class="cs-floor" id="csFloor3" style="display:none">
+                    <span class="cs-floor-label">3F</span>
+                    <div class="cs-slots" id="csSlots3"></div>
+                </div>
+                <div class="cs-floor-divider" id="csDivider23" style="display:none"></div>
+                <div class="cs-floor" id="csFloor2" style="display:none">
+                    <span class="cs-floor-label">2F</span>
+                    <div class="cs-slots" id="csSlots2"></div>
+                </div>
+                <div class="cs-floor-divider" id="csDivider12" style="display:none"></div>
+                <div class="cs-floor" id="csFloor1">
+                    <span class="cs-floor-label">1F</span>
+                    <div class="cs-slots" id="csSlots1"></div>
+                </div>
+                <div class="cs-wheels">
+                    <div class="cs-wheel"></div>
+                    <div class="cs-wheel"></div>
+                    <div class="cs-wheel"></div>
+                    <div class="cs-wheel"></div>
+                </div>
+                <div class="cs-upgrade-floor" id="csUpgradeFloor"></div>
+            </div>
+        </div>
+        <div class="bottom-nav">
+            <div class="bn-item" onclick="openFeature('scan')"><span class="bn-icon">&#x1F4F7;</span><span class="bn-label">Scan</span></div>
+            <div class="bn-item" onclick="openFeature('battle')"><span class="bn-icon">&#x2694;</span><span class="bn-label">Battle</span></div>
+            <div class="bn-item" onclick="openFeature('expedition')"><span class="bn-icon">&#x1F30D;</span><span class="bn-label">Explore</span></div>
+            <div class="bn-item" onclick="openFeature('collection')"><span class="bn-icon">&#x1F4D6;</span><span class="bn-label">Dex</span></div>
+            <div class="bn-item" onclick="openFeature('quest')"><span class="bn-icon">&#x1F4DC;</span><span class="bn-label">Quest</span></div>
+        </div>
+    </div>
+
+    <!-- === FEATURE OVERLAY === -->
+    <div id="featureOverlay" class="feature-overlay">
+        <div class="fo-header">
+            <button class="fo-close" onclick="closeFeature()">&#8592; Back</button>
+            <span class="fo-title" id="foTitle">Feature</span>
+            <div style="width:60px"></div>
+        </div>
+        <div class="fo-body" id="foBody"></div>
+    </div>
+
     <div class="header">
         <h1>BarcodeQuest</h1>
         <div class="player-info">
@@ -1300,22 +1764,6 @@ GAME_HTML = """
             <div id="busAccumulated" style="margin-bottom:10px"></div>
             <div id="busFloors"></div>
             <div id="busUpgradeFloor" style="margin-top:12px"></div>
-            <!-- Build Modal -->
-            <div id="busBuildModal" class="bus-modal" style="display:none">
-                <div class="bus-modal-content">
-                    <h4 style="margin-bottom:10px">방 건설</h4>
-                    <div id="busBuildList"></div>
-                    <button class="bus-modal-close" onclick="closeBusModal()">닫기</button>
-                </div>
-            </div>
-            <!-- Assign Modal -->
-            <div id="busAssignModal" class="bus-modal" style="display:none">
-                <div class="bus-modal-content">
-                    <h4 style="margin-bottom:10px">몬스터 배치</h4>
-                    <div id="busAssignList"></div>
-                    <button class="bus-modal-close" onclick="closeBusAssignModal()">닫기</button>
-                </div>
-            </div>
         </div>
 
         <!-- QUEST TAB -->
@@ -1325,14 +1773,130 @@ GAME_HTML = """
             <div id="questList"></div>
         </div>
     </div>
+    <!-- Bus Build Modal (global) -->
+    <div id="busBuildModal" class="bus-modal" style="display:none;z-index:1000">
+        <div class="bus-modal-content">
+            <h4 style="margin-bottom:10px">방 건설</h4>
+            <div id="busBuildList"></div>
+            <button class="bus-modal-close" onclick="closeBusModal()">닫기</button>
+        </div>
+    </div>
+    <!-- Bus Assign Modal (global) -->
+    <div id="busAssignModal" class="bus-modal" style="display:none;z-index:1000">
+        <div class="bus-modal-content">
+            <h4 style="margin-bottom:10px">몬스터 배치</h4>
+            <div id="busAssignList"></div>
+            <button class="bus-modal-close" onclick="closeBusAssignModal()">닫기</button>
+        </div>
+    </div>
     <!-- Monster Detail Modal -->
     <div id="monsterDetailOverlay" class="detail-overlay" style="display:none" onclick="if(event.target===this)closeMonsterDetail()">
         <div class="detail-panel" id="monsterDetailPanel"></div>
     </div>
 
     <script>
+        const USE_NEW_UI = true;
         const TABS = ['scan','battle','expedition','collection','quest','bus'];
         const shapes = {Dragon:'&#x1F432;',Fox:'&#x1F98A;',Bear:'&#x1F43B;',Bird:'&#x1F426;',Slime:'&#x1F47E;',Golem:'&#x1F5FF;',Ghost:'&#x1F47B;',Cat:'&#x1F431;',Wolf:'&#x1F43A;',Turtle:'&#x1F422;'};
+
+        // === VIEW STATE SYSTEM ===
+        let currentView = 'LANDSCAPE'; // LANDSCAPE | BUS_INTERIOR | FEATURE
+
+        function switchView(view) {
+            const landscape = document.getElementById('landscape-view');
+            const busInterior = document.getElementById('bus-interior-view');
+            const featureOverlay = document.getElementById('featureOverlay');
+
+            landscape.classList.add('hidden');
+            busInterior.classList.remove('active');
+            featureOverlay.classList.remove('active');
+
+            if (view === 'LANDSCAPE') {
+                landscape.classList.remove('hidden');
+            } else if (view === 'BUS_INTERIOR') {
+                busInterior.classList.add('active');
+            }
+            currentView = view;
+        }
+
+        function enterBus() {
+            const busEl = document.getElementById('busExterior');
+            busEl.style.transition = 'transform 0.6s ease-in';
+            busEl.style.transform = 'translateX(-50%) scale(3)';
+            busEl.style.opacity = '0';
+            setTimeout(() => {
+                switchView('BUS_INTERIOR');
+                loadBus();
+                // Reset bus exterior for when we return
+                busEl.style.transition = 'none';
+                busEl.style.transform = '';
+                busEl.style.opacity = '';
+                setTimeout(() => { busEl.style.transition = ''; }, 50);
+            }, 500);
+        }
+
+        function exitBus() {
+            switchView('LANDSCAPE');
+        }
+
+        let activeFeatureTab = null;
+        function openFeature(tab) {
+            const overlay = document.getElementById('featureOverlay');
+            const foBody = document.getElementById('foBody');
+            const foTitle = document.getElementById('foTitle');
+            const titles = {scan:'Scan',battle:'Battle',expedition:'Explore',collection:'Dex',quest:'Quest'};
+            foTitle.textContent = titles[tab] || tab;
+
+            // Return any previously moved panel
+            if (activeFeatureTab) {
+                const prevPanel = document.getElementById('panel-' + activeFeatureTab);
+                if (prevPanel && prevPanel.parentNode === foBody) {
+                    document.querySelector('.container').appendChild(prevPanel);
+                }
+            }
+
+            // Move the actual panel DOM node into the overlay (preserves event handlers)
+            const panel = document.getElementById('panel-' + tab);
+            if (panel) {
+                foBody.innerHTML = '';
+                foBody.appendChild(panel);
+                panel.classList.add('active');
+                panel.style.display = 'block';
+            }
+            activeFeatureTab = tab;
+            overlay.classList.add('active');
+            overlay.style.display = 'flex';
+
+            // Trigger data loading
+            if (tab === 'collection') loadCollection();
+            if (tab === 'expedition') loadExpedition();
+            if (tab === 'quest') loadQuests();
+
+            // Highlight bottom nav
+            document.querySelectorAll('.bn-item').forEach(item => {
+                const onclick = item.getAttribute('onclick') || '';
+                item.classList.toggle('active', onclick.includes(tab));
+            });
+            currentView = 'FEATURE';
+        }
+
+        function closeFeature() {
+            const overlay = document.getElementById('featureOverlay');
+            overlay.classList.remove('active');
+            overlay.style.display = 'none';
+            // Return panel back to container
+            if (activeFeatureTab) {
+                const panel = document.getElementById('panel-' + activeFeatureTab);
+                if (panel) {
+                    panel.classList.remove('active');
+                    panel.style.display = '';
+                    document.querySelector('.container').appendChild(panel);
+                }
+                activeFeatureTab = null;
+            }
+            document.querySelectorAll('.bn-item').forEach(item => item.classList.remove('active'));
+            currentView = 'BUS_INTERIOR';
+        }
 
         function showTab(name) {
             document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', TABS[i]===name));
@@ -1342,6 +1906,243 @@ GAME_HTML = """
             if (name==='expedition') loadExpedition();
             if (name==='quest') loadQuests();
             if (name==='bus') loadBus();
+        }
+
+        // === LANDSCAPE INITIALIZATION ===
+        function initLandscape() {
+            initLandscapeTrees();
+            initLandscapeFlowers();
+            initLandscapeCreatures();
+            initLandscapeStars();
+            initParallax();
+            // Bus entrance animation on load
+            const busEl = document.getElementById('busExterior');
+            busEl.classList.add('bus-entering');
+            setTimeout(() => busEl.classList.remove('bus-entering'), 1600);
+        }
+
+        function initLandscapeTrees() {
+            const container = document.getElementById('midgroundTrees');
+            if (!container) return;
+            const treeColors = ['#5A8A5A','#4A7A4A','#6B9B6B','#3A6A3A','#7BC67E'];
+            let treesHtml = '<svg viewBox="0 0 800 160" preserveAspectRatio="none" style="width:100%;height:100%">';
+            for (let i = 0; i < 12; i++) {
+                const x = 30 + Math.random() * 740;
+                const h = 40 + Math.random() * 80;
+                const w = 15 + Math.random() * 25;
+                const color = treeColors[Math.floor(Math.random() * treeColors.length)];
+                const ty = 160 - h;
+                treesHtml += '<rect x="' + (x-2) + '" y="' + (ty+h*0.6) + '" width="4" height="' + (h*0.4) + '" fill="#8B6B4A"/>';
+                treesHtml += '<ellipse cx="' + x + '" cy="' + (ty+h*0.35) + '" rx="' + w + '" ry="' + (h*0.45) + '" fill="' + color + '"/>';
+                treesHtml += '<ellipse cx="' + (x-w*0.3) + '" cy="' + (ty+h*0.25) + '" rx="' + (w*0.6) + '" ry="' + (h*0.3) + '" fill="' + color + '" opacity="0.7"/>';
+            }
+            treesHtml += '</svg>';
+            container.innerHTML = treesHtml;
+        }
+
+        function initLandscapeFlowers() {
+            const fg = document.getElementById('foregroundLayer');
+            if (!fg) return;
+            let html = '<svg viewBox="0 0 800 80" preserveAspectRatio="none" style="width:100%;height:100%">';
+            // Grass base
+            html += '<rect x="0" y="20" width="800" height="60" fill="#7BC67E"/>';
+            html += '<rect x="0" y="15" width="800" height="15" fill="#8BD68D"/>';
+            // Flowers
+            const flowerColors = ['#FF6B8A','#FFD54F','#FF8C5A','#C084FC','#67E8F9','#FFFFFF'];
+            for (let i = 0; i < 25; i++) {
+                const x = Math.random() * 800;
+                const y = 12 + Math.random() * 20;
+                const color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+                const size = 2 + Math.random() * 3;
+                html += '<line x1="' + x + '" y1="' + (y+8) + '" x2="' + x + '" y2="' + (y+size+8) + '" stroke="#5A9A5A" stroke-width="1"/>';
+                html += '<circle cx="' + x + '" cy="' + y + '" r="' + size + '" fill="' + color + '" opacity="0.8"/>';
+            }
+            html += '</svg>';
+            fg.innerHTML = html;
+        }
+
+        function initLandscapeCreatures() {
+            const container = document.getElementById('landscapeCreatures');
+            if (!container) return;
+            // Show 2-3 creatures from party if available
+            fetch('/api/party?session=default').then(r => r.json()).then(d => {
+                const party = d.party || [];
+                const count = Math.min(3, party.length);
+                if (count === 0) {
+                    // Show default creatures
+                    const defaults = [
+                        {shape:'Fox', color:'#ff6b8a', x:15},
+                        {shape:'Bird', color:'#67e8f9', x:75}
+                    ];
+                    defaults.forEach(c => {
+                        const svg = generateMonsterSVG(c.shape, c.color, 'Rare');
+                        const el = document.createElement('div');
+                        el.className = 'landscape-creature';
+                        el.style.left = c.x + '%';
+                        el.style.bottom = Math.random() * 40 + '%';
+                        el.innerHTML = svg.replace(/width="\\d+"/g, 'width="32"').replace(/height="\\d+"/g, 'height="32"');
+                        el.style.animationDelay = (Math.random() * 3) + 's';
+                        container.appendChild(el);
+                    });
+                } else {
+                    for (let i = 0; i < count; i++) {
+                        const m = party[i];
+                        const colorHex = getMonsterColorHex(m.color);
+                        const svg = generateMonsterSVG(m.body_shape, colorHex, m.rarity);
+                        const el = document.createElement('div');
+                        el.className = 'landscape-creature';
+                        el.style.left = (15 + i * 30) + '%';
+                        el.style.bottom = (10 + Math.random() * 50) + '%';
+                        el.innerHTML = svg.replace(/width="\\d+"/g, 'width="32"').replace(/height="\\d+"/g, 'height="32"');
+                        el.style.animationDelay = (i * 1.2) + 's';
+                        container.appendChild(el);
+                    }
+                }
+            }).catch(() => {});
+        }
+
+        function initLandscapeStars() {
+            const container = document.getElementById('starsLayer');
+            if (!container) return;
+            for (let i = 0; i < 30; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = (Math.random() * 5) + 's';
+                star.style.animationDuration = (2 + Math.random() * 3) + 's';
+                const size = 1 + Math.random() * 2;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                container.appendChild(star);
+            }
+        }
+
+        function initParallax() {
+            const landscape = document.getElementById('landscape-view');
+            if (!landscape) return;
+            let ticking = false;
+            landscape.addEventListener('mousemove', (e) => {
+                if (ticking) return;
+                ticking = true;
+                requestAnimationFrame(() => {
+                    const x = (e.clientX / window.innerWidth - 0.5) * 2;
+                    const y = (e.clientY / window.innerHeight - 0.5) * 2;
+                    const mountains = document.querySelector('.mountain-layer');
+                    const midground = document.getElementById('midgroundTrees');
+                    const bus = document.getElementById('busExterior');
+                    const clouds = document.querySelectorAll('.cloud');
+                    if (mountains) mountains.style.transform = 'translateX(' + (x * -3) + 'px)';
+                    if (midground) midground.style.transform = 'translateX(' + (x * -6) + 'px)';
+                    clouds.forEach((c, i) => { c.style.marginTop = (y * (2 + i)) + 'px'; });
+                    ticking = false;
+                });
+            });
+            // Device orientation for mobile
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', (e) => {
+                    if (!e.gamma || !e.beta) return;
+                    const x = e.gamma / 45;
+                    const y = (e.beta - 45) / 45;
+                    const mountains = document.querySelector('.mountain-layer');
+                    const midground = document.getElementById('midgroundTrees');
+                    if (mountains) mountains.style.transform = 'translateX(' + (x * -5) + 'px)';
+                    if (midground) midground.style.transform = 'translateX(' + (x * -10) + 'px)';
+                });
+            }
+        }
+
+        // === BUS CROSS-SECTION RENDERER ===
+        function renderBusCrossSection() {
+            if (!busState) return;
+            const d = busState;
+
+            // Resource bar
+            const resBar = document.getElementById('biResourceBar');
+            const accItems = [];
+            if (d.total_accumulated.gold) accItems.push('<span class="bi-res-item">+' + Math.floor(d.total_accumulated.gold) + 'G</span>');
+            if (d.total_accumulated.exp) accItems.push('<span class="bi-res-item">+' + Math.floor(d.total_accumulated.exp) + 'EXP</span>');
+            if (d.total_accumulated.energy) accItems.push('<span class="bi-res-item">+' + Math.floor(d.total_accumulated.energy) + 'E</span>');
+            if (accItems.length > 0) {
+                resBar.innerHTML = accItems.join(' ') + ' <span class="bi-res-time">(' + d.elapsed_hours.toFixed(1) + 'h)</span>';
+            } else {
+                resBar.innerHTML = '<span style="color:rgba(255,255,255,0.4)">No production yet</span>';
+            }
+
+            // Render each floor
+            for (let floorNum = 1; floorNum <= 3; floorNum++) {
+                const floorEl = document.getElementById('csFloor' + floorNum);
+                const slotsEl = document.getElementById('csSlots' + floorNum);
+                const divAbove = document.getElementById('csDivider' + (floorNum-1) + '' + floorNum) || document.getElementById('csDivider' + floorNum + '' + (floorNum+1));
+
+                if (floorNum > d.max_floor) {
+                    floorEl.style.display = 'none';
+                    if (floorNum === 2) { document.getElementById('csDivider12').style.display = 'none'; }
+                    if (floorNum === 3) { document.getElementById('csDivider23').style.display = 'none'; }
+                    continue;
+                }
+
+                floorEl.style.display = '';
+                if (floorNum === 2) document.getElementById('csDivider12').style.display = '';
+                if (floorNum === 3) document.getElementById('csDivider23').style.display = '';
+
+                const floorData = d.floors.find(f => f.floor === floorNum);
+                if (!floorData) continue;
+
+                slotsEl.innerHTML = floorData.slots.map((s, si) => {
+                    if (!s.room_type) {
+                        return '<div class="cs-slot" onclick="openBuildModal(' + floorNum + ',' + si + ')">' +
+                            '<div class="cs-empty-plus">+</div>' +
+                            '<div class="cs-empty">Build</div>' +
+                            '</div>';
+                    }
+                    let creatureHtml = '';
+                    let affHtml = '';
+                    let prodHtml = '';
+                    const roomClass = 'room-' + s.room_type;
+                    if (s.monster) {
+                        const typeColorMap = {Fire:'#DC143C',Water:'#007FFF',Nature:'#50C878',Earth:'#CD7F32',Wind:'#67E8F9',Tech:'#C0C0C0',Dark:'#36454F',Light:'#FFD700',Spirit:'#8B5CF6',Food:'#FF7F50'};
+                        const colorHex = typeColorMap[s.monster.primary_type] || '#e94560';
+                        const shapeKeys = Object.keys(shapes);
+                        const nameHash = (s.monster.name || '').split('').reduce(function(a,c){ return a + c.charCodeAt(0); }, 0);
+                        const bodyShape = shapeKeys[nameHash % shapeKeys.length];
+                        const svg = generateMonsterSVG(bodyShape, colorHex, s.monster.rarity || 'Common');
+                        creatureHtml = '<div class="cs-creature-mini">' + svg.replace(/width="\\d+"/g, 'width="28"').replace(/height="\\d+"/g, 'height="28"') + '</div>';
+                        if (s.affinity) {
+                            affHtml = '<span class="cs-affinity grade-' + s.affinity.grade + '">' + s.affinity.grade + '</span>';
+                        }
+                        const prods = Object.entries(s.production_per_hour || {}).map(function(e) { return e[1] + e[0].substring(0,3) + '/h'; }).join(' ');
+                        if (prods) prodHtml = '<div class="cs-prod">' + prods + '</div>';
+                    } else {
+                        creatureHtml = '<div style="font-size:0.55rem;color:#9A7A50;cursor:pointer;margin-top:3px" onclick="event.stopPropagation();openAssignModal(' + floorNum + ',' + si + ')">+ Assign</div>';
+                    }
+                    return '<div class="cs-slot has-room ' + roomClass + '" onclick="busSlotAction(' + floorNum + ',' + si + ')">' +
+                        '<div class="cs-room-emoji">' + (s.room_emoji || '') + '</div>' +
+                        '<div class="cs-room-name">' + (s.room_name || '') + '</div>' +
+                        '<div class="cs-room-level">Lv.' + s.room_level + '</div>' +
+                        creatureHtml + affHtml + prodHtml +
+                        '</div>';
+                }).join('');
+            }
+
+            // Next floor unlock
+            const ufEl = document.getElementById('csUpgradeFloor');
+            if (d.next_floor_unlock) {
+                const nf = d.next_floor_unlock;
+                ufEl.innerHTML = '<button onclick="busUpgradeFloor()">' + nf.floor + 'F Unlock (' + nf.cost.toLocaleString() + 'G / Lv.' + nf.required_level + ')</button>';
+            } else {
+                ufEl.innerHTML = '<div style="font-size:0.7rem;color:#4A7A4A;padding:4px">All floors unlocked!</div>';
+            }
+        }
+
+        // Update landscape stats
+        function updateLandscapeUI(p) {
+            const lsLevel = document.getElementById('lsLevel');
+            const lsGold = document.getElementById('lsGold');
+            const lsEnergy = document.getElementById('lsEnergy');
+            if (lsLevel) lsLevel.textContent = 'Lv.' + p.level;
+            if (lsGold) lsGold.textContent = p.gold.toLocaleString() + 'G';
+            if (lsEnergy) lsEnergy.textContent = p.energy + 'E';
         }
 
         function fillBarcode(code) { document.getElementById('barcodeInput').value = code; }
@@ -1464,6 +2265,8 @@ GAME_HTML = """
             if (hsE) { hsE.textContent = p.energy; }
             const hsC = document.getElementById('hsCollection');
             if (hsC) { hsC.textContent = p.total_scans || 0; }
+            // Landscape stats
+            if (USE_NEW_UI) updateLandscapeUI(p);
         }
 
         // Recent catches list (kept in memory)
@@ -1756,6 +2559,8 @@ GAME_HTML = """
 
         function renderBus() {
             if (!busState) return;
+            // Also render cross-section in new UI
+            if (USE_NEW_UI) renderBusCrossSection();
             const d = busState;
 
             // Accumulated resources
@@ -2387,6 +3192,16 @@ GAME_HTML = """
         loadRecentFromCollection();
         initHeroParticles();
         initHeroCreatures();
+
+        // New UI initialization
+        if (USE_NEW_UI) {
+            initLandscape();
+            switchView('LANDSCAPE');
+        } else {
+            document.body.classList.remove('old-tabs-hidden');
+            const lv = document.getElementById('landscape-view');
+            if (lv) lv.style.display = 'none';
+        }
     </script>
 </body>
 </html>
