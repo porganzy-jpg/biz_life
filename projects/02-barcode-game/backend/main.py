@@ -42,6 +42,7 @@ bus_system = BusSystem()
 players = {}       # session_id → Player
 collections = {}   # session_id → MonsterCollection
 inventories = {}   # session_id → ItemInventory
+scanned_barcodes = {}  # session_id → set of barcodes already scanned
 
 
 def get_or_create_player(session_id: str = "default") -> tuple:
@@ -49,6 +50,7 @@ def get_or_create_player(session_id: str = "default") -> tuple:
         players[session_id] = Player(name="Trainer", player_id=session_id)
         collections[session_id] = MonsterCollection()
         inventories[session_id] = ItemInventory()
+        scanned_barcodes[session_id] = set()
     return players[session_id], collections[session_id]
 
 
@@ -93,10 +95,17 @@ async def scan_barcode(
     """바코드 스캔 → 몬스터 생성"""
     player, collection = get_or_create_player(session)
 
+    # 중복 바코드 체크 — 동일 바코드는 한 번만 크리처 획득 가능
+    if session not in scanned_barcodes:
+        scanned_barcodes[session] = set()
+    if barcode in scanned_barcodes[session]:
+        return {"error": "duplicate", "message": "이미 스캔한 바코드입니다! 다른 바코드를 스캔해보세요.", "barcode": barcode}
+
     if not player.use_energy(10):
         return {"error": "에너지 부족! 잠시 후 다시 시도하세요.", "energy": player.energy}
 
     player.total_scans += 1
+    scanned_barcodes[session].add(barcode)
 
     monster = generator.generate_monster(barcode, lat, lon, hour)
     monster_dict = monster.to_dict()
@@ -1465,7 +1474,17 @@ GAME_HTML = """
                 const barcodeInfoPromise = fetchBarcodeInfo(code);
 
                 const [d, bcInfo] = await Promise.all([fetchPromise, barcodeInfoPromise]);
-                if (d.error) { alert(d.error); return; }
+                if (d.error) {
+                    if (d.error === 'duplicate') {
+                        document.getElementById('scanResult').innerHTML = `<div style="text-align:center;padding:24px 16px;background:rgba(22,33,62,0.6);border:1px solid #e94560;border-radius:14px;margin:16px 0">
+                            <div style="font-size:2.5rem;margin-bottom:8px">🚫</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:#e94560;margin-bottom:6px">이미 스캔한 바코드!</div>
+                            <div style="font-size:0.82rem;color:#888;line-height:1.5">${d.message}</div>
+                            <div style="font-size:0.72rem;color:#555;margin-top:10px;font-family:monospace;letter-spacing:2px">${d.barcode}</div>
+                        </div>`;
+                    } else { alert(d.error); }
+                    return;
+                }
                 updatePlayerUI(d.player);
                 lastScannedMonster = d.monster;
                 lastBarcodeInfo = bcInfo;
