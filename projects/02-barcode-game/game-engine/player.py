@@ -42,12 +42,35 @@ class Player:
         else:
             return {"location": "full", "message": "파티와 보관함이 가득 찼습니다!"}
 
-    def swap_party_member(self, party_idx: int, inventory_idx: int):
+    def swap_party_member(self, party_idx: int, inventory_idx: int) -> dict:
         """파티 ↔ 보관함 교체"""
-        if 0 <= party_idx < len(self.party) and 0 <= inventory_idx < len(self.inventory):
-            self.party[party_idx], self.inventory[inventory_idx] = (
-                self.inventory[inventory_idx], self.party[party_idx]
-            )
+        if not (0 <= party_idx < len(self.party)):
+            return {"ok": False, "msg": f"잘못된 파티 인덱스: {party_idx}"}
+        if not (0 <= inventory_idx < len(self.inventory)):
+            return {"ok": False, "msg": f"잘못된 보관함 인덱스: {inventory_idx}"}
+        self.party[party_idx], self.inventory[inventory_idx] = (
+            self.inventory[inventory_idx], self.party[party_idx]
+        )
+        return {"ok": True, "msg": f"교체 완료: 파티[{party_idx}] ↔ 보관함[{inventory_idx}]"}
+
+    @staticmethod
+    def gain_monster_exp(monster: dict, exp: int) -> dict:
+        """몬스터 경험치 획득 + 레벨업"""
+        monster.setdefault("exp", 0)
+        monster.setdefault("level", 1)
+        monster["exp"] += exp
+        leveled_up = False
+        needed = monster["level"] * 50
+        while monster["exp"] >= needed:
+            monster["exp"] -= needed
+            monster["level"] += 1
+            # 레벨업 시 스탯 성장 (+2~3%)
+            for stat in ("hp", "attack", "defense", "speed", "special"):
+                if stat in monster.get("stats", {}):
+                    monster["stats"][stat] = int(monster["stats"][stat] * 1.03)
+            leveled_up = True
+            needed = monster["level"] * 50
+        return {"leveled_up": leveled_up, "monster_level": monster["level"], "monster_exp": monster["exp"]}
 
     def use_energy(self, amount: int = 10) -> bool:
         """에너지 소비 (스캔 시)"""

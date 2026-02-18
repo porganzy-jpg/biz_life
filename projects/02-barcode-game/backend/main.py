@@ -181,21 +181,28 @@ async def start_battle(
     # 일일 퀘스트: 배틀
     quest_updates = daily_quest_system.update_progress(session, "battle")
 
+    monster_level_result = None
     if is_player_win:
         player.total_wins += 1
         rewards = battle_system.get_battle_reward(p1, p2)
         exp_result = player.gain_exp(rewards["exp"])
         player.gain_gold(rewards["gold"])
+        # 참전 몬스터도 경험치 획득
+        monster_exp = 10 + p2.level * 3
+        monster_level_result = player.gain_monster_exp(player_monster_data, monster_exp)
+        rewards["monster_exp"] = monster_exp
         quest_updates += daily_quest_system.update_progress(session, "battle_win")
     else:
         player.gain_exp(5)  # 패배해도 소량 경험치
+        player.gain_monster_exp(player_monster_data, 3)  # 몬스터도 소량
 
     return {
         "result": "WIN" if is_player_win else "LOSE",
-        "player_monster": {"name": player_monster_data["name"], "final_hp": p1.current_hp, "max_hp": p1.max_hp},
+        "player_monster": {"name": player_monster_data["name"], "level": player_monster_data.get("level", 1), "final_hp": p1.current_hp, "max_hp": p1.max_hp},
         "opponent": {"name": opponent_dict["name"], "rarity": opponent_dict["rarity"], "final_hp": p2.current_hp, "max_hp": p2.max_hp},
         "battle_log": battle_log,
         "rewards": rewards,
+        "monster_level": monster_level_result,
         "player": player.to_dict(),
         "quest_updates": quest_updates,
     }
@@ -218,6 +225,34 @@ async def recover_energy(session: str = "default"):
     player, _ = get_or_create_player(session)
     player.recover_energy(20)
     return {"energy": player.energy, "max_energy": player.max_energy}
+
+
+# =====================================================
+#  파티 관리 API
+# =====================================================
+
+@app.post("/api/party/swap")
+async def swap_party_member(
+    party_idx: int = Query(..., description="파티 슬롯 인덱스"),
+    inventory_idx: int = Query(..., description="보관함 슬롯 인덱스"),
+    session: str = Query("default"),
+):
+    """파티 ↔ 보관함 몬스터 교체"""
+    player, _ = get_or_create_player(session)
+    result = player.swap_party_member(party_idx, inventory_idx)
+    return {**result, "party": player.party, "inventory_size": len(player.inventory)}
+
+
+@app.get("/api/party")
+async def get_party(session: str = "default"):
+    """파티 + 보관함 전체 조회"""
+    player, _ = get_or_create_player(session)
+    return {
+        "party": player.party,
+        "inventory": player.inventory,
+        "party_max": player.MAX_PARTY_SIZE,
+        "inventory_max": player.MAX_INVENTORY_SIZE,
+    }
 
 
 # =====================================================
