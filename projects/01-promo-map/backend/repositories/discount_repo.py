@@ -33,5 +33,24 @@ class DiscountRepository(BaseRepository):
             .all()
         )
 
+    def get_active_by_store_ids(self, store_ids: list) -> dict:
+        """Batch fetch active discounts for multiple stores at once."""
+        if not store_ids:
+            return {}
+        now = datetime.utcnow()
+        discounts = (
+            self.db.query(Discount)
+            .filter(
+                Discount.store_id.in_(store_ids),
+                Discount.is_active == True,
+                (Discount.valid_until == None) | (Discount.valid_until >= now),
+            )
+            .all()
+        )
+        result: dict[int, list] = {}
+        for d in discounts:
+            result.setdefault(d.store_id, []).append(d)
+        return result
+
     def get_all_with_relations(self, offset: int = 0, limit: int = 20):
         return self.db.query(Discount).offset(offset).limit(limit).all()

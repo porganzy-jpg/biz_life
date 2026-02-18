@@ -23,9 +23,13 @@ def get_nearby_stores(db: Session, lat: float, lon: float, radius: float = 100.0
 
     nearby = find_nearby_stores(lat, lon, stores, radius)
 
+    # Batch fetch discounts for all nearby stores (avoids N+1 queries)
+    store_ids = [store.id for store, _ in nearby]
+    discounts_map = discount_repo.get_active_by_store_ids(store_ids)
+
     results = []
     for store, distance in nearby:
-        discounts = discount_repo.get_active_by_store(store.id)
+        discounts = discounts_map.get(store.id, [])
         results.append({
             "id": store.id,
             "name": store.name,

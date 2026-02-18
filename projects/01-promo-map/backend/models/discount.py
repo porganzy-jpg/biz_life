@@ -23,6 +23,8 @@ class Discount(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
+        Index("idx_discount_store_id", "store_id"),
+        Index("idx_discount_company_id", "company_id"),
         Index("idx_discount_validity", "valid_from", "valid_until", "is_active"),
     )
 
