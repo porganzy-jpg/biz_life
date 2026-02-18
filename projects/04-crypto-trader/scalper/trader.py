@@ -89,6 +89,7 @@ class ScalpTrader:
         self.total_fees_krw = 0.0
         self.today_trades = 0
         self._last_market_analysis: dict[str, dict] = {}  # market -> analysis cache
+        self._last_prices: dict[str, float] = {}  # market -> latest close price cache
         self._ws_callback = None
         self._prev_can_trade = True
 
@@ -214,8 +215,9 @@ class ScalpTrader:
 
         signal = self.ensemble.analyze(df, market=market, bar_index=self.cycle_count)
 
-        # Cache analysis for dashboard market watch
+        # Cache price + analysis for dashboard market watch
         current_price = float(df["close"].iloc[-1])
+        self._last_prices[market] = current_price
         trend = self.ensemble._get_trend(df)
         strategy_signals = []
         if "signals" in signal.metadata:
@@ -311,9 +313,11 @@ class ScalpTrader:
         if not pos:
             return
 
-        current_price = self.client.get_current_price(market)
+        # Use cached price from latest analysis cycle, fallback to API
+        current_price = self._last_prices.get(market)
         if current_price is None:
-            # Fallback
+            current_price = self.client.get_current_price(market)
+        if current_price is None:
             df = self.client.get_ohlcv(market, count=2)
             if df is not None and len(df) > 0:
                 current_price = float(df["close"].iloc[-1])
@@ -330,12 +334,15 @@ class ScalpTrader:
             time_held = time.time() - pos.entry_time
             pnl_pct = (current_price - pos.entry_price) / pos.entry_price
             bars_held = int(time_held / 60)
-            if bars_held >= config.SIGNAL_EXIT_MIN_BARS and pnl_pct >= config.SIGNAL_EXIT_MIN_PROFIT:
+            # Normal signal exit OR early exit on significant loss (-0.5%+)
+            normal_check = bars_held >= config.SIGNAL_EXIT_MIN_BARS and pnl_pct >= config.SIGNAL_EXIT_MIN_PROFIT
+            early_loss_exit = pnl_pct < -0.005
+            if normal_check or early_loss_exit:
                 df = self.client.get_ohlcv(market, config.CANDLE_INTERVAL, config.CANDLE_COUNT)
                 if df is not None:
                     signal = self.ensemble.analyze(df, market=market, bar_index=self.cycle_count)
                     if signal.signal == SignalType.SELL:
-                        exit_type = "signal_sell"
+                        exit_type = "signal_sell_early" if early_loss_exit else "signal_sell"
 
         if exit_type:
             self._execute_sell(market, current_price, exit_type)
