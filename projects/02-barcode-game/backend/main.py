@@ -855,77 +855,133 @@ GAME_HTML = """
         .scan-divider hr { flex: 1; border: none; border-top: 1px solid #333; }
         .scan-divider span { font-size: 0.75rem; color: #555; }
         /* === HERO WELCOME SECTION === */
-        .hero-section { position: relative; text-align: center; padding: 28px 16px 20px; overflow: hidden; border-radius: 16px; margin-bottom: 16px; background: radial-gradient(ellipse at 50% 0%, rgba(233,69,96,0.12) 0%, transparent 60%); }
-        .hero-logo { font-size: 2.2rem; font-weight: 800; margin-bottom: 2px; background: linear-gradient(135deg, #e94560, #f093fb, #4ecdc4, #f093fb, #e94560); background-size: 300% 300%; animation: heroGrad 5s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; position: relative; z-index: 2; }
+        .hero-section { position: relative; text-align: center; padding: 32px 16px 24px; overflow: hidden; border-radius: 20px; margin-bottom: 18px; background: radial-gradient(ellipse at 50% 20%, rgba(233,69,96,0.15) 0%, rgba(240,147,251,0.06) 40%, transparent 70%); border: 1px solid rgba(255,255,255,0.04); }
+        /* Ambient floating particles */
+        .hero-particles { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        .hero-particle { position: absolute; border-radius: 50%; opacity: 0; animation: ambientParticle linear infinite; }
+        @keyframes ambientParticle { 0% { opacity: 0; transform: translateY(100%) scale(0); } 20% { opacity: 0.6; } 80% { opacity: 0.3; } 100% { opacity: 0; transform: translateY(-100vh) scale(1); } }
+        /* Logo */
+        .hero-logo-wrap { position: relative; z-index: 2; margin-bottom: 6px; }
+        .hero-logo { font-size: 2.6rem; font-weight: 800; background: linear-gradient(135deg, #e94560, #f093fb, #4ecdc4, #f093fb, #e94560); background-size: 300% 300%; animation: heroGrad 5s ease infinite; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; text-shadow: none; }
+        .hero-logo-sub { font-size: 0.65rem; color: #555; letter-spacing: 6px; text-transform: uppercase; margin-top: -2px; }
         @keyframes heroGrad { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-        .hero-tagline { font-size: 0.82rem; color: #8a8aaa; margin-bottom: 16px; font-weight: 400; letter-spacing: 0.5px; }
+        /* Lore tagline */
+        .hero-lore { position: relative; z-index: 2; margin-bottom: 20px; }
+        .hero-tagline { font-size: 0.9rem; color: #9a9abb; font-weight: 400; letter-spacing: 0.3px; line-height: 1.6; }
         .hero-tagline em { color: #f093fb; font-style: normal; font-weight: 600; }
-        .hero-creatures { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-        .hero-creature { position: absolute; opacity: 0.08; filter: blur(0.5px); animation: heroFloat 8s ease-in-out infinite; }
-        .hero-creature:nth-child(1) { left: 5%; top: 15%; animation-delay: 0s; animation-duration: 7s; }
-        .hero-creature:nth-child(2) { right: 8%; top: 10%; animation-delay: -2s; animation-duration: 9s; }
-        .hero-creature:nth-child(3) { left: 15%; bottom: 10%; animation-delay: -4s; animation-duration: 6s; }
-        .hero-creature:nth-child(4) { right: 12%; bottom: 15%; animation-delay: -1s; animation-duration: 8s; }
-        .hero-creature:nth-child(5) { left: 50%; top: 5%; animation-delay: -3s; animation-duration: 10s; transform: translateX(-50%); }
-        @keyframes heroFloat { 0%,100% { transform: translateY(0) rotate(0deg); } 25% { transform: translateY(-12px) rotate(3deg); } 75% { transform: translateY(8px) rotate(-3deg); } }
+        .hero-tagline .lore-glow { color: #e94560; font-weight: 700; text-shadow: 0 0 12px rgba(233,69,96,0.4); }
+        .hero-lore-divider { width: 40px; height: 2px; background: linear-gradient(90deg, transparent, #e94560, transparent); margin: 10px auto 0; border-radius: 1px; }
+        /* Creature showcase - animated silhouettes */
+        .hero-creatures { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+        .hero-creature { position: absolute; opacity: 0.06; filter: blur(0.5px); }
+        .hero-creature:nth-child(1) { left: 3%; top: 12%; animation: hcFloat1 8s ease-in-out infinite; }
+        .hero-creature:nth-child(2) { right: 3%; top: 8%; animation: hcFloat2 10s ease-in-out infinite; }
+        .hero-creature:nth-child(3) { left: 12%; bottom: 8%; animation: hcFloat3 7s ease-in-out infinite; }
+        .hero-creature:nth-child(4) { right: 10%; bottom: 12%; animation: hcFloat1 9s ease-in-out infinite reverse; }
+        @keyframes hcFloat1 { 0%,100% { transform: translateY(0) scale(1); opacity: 0.06; } 50% { transform: translateY(-15px) scale(1.05); opacity: 0.1; } }
+        @keyframes hcFloat2 { 0%,100% { transform: translateY(0) rotate(0deg); opacity: 0.05; } 50% { transform: translateY(-10px) rotate(5deg); opacity: 0.09; } }
+        @keyframes hcFloat3 { 0%,100% { transform: translateX(0); opacity: 0.06; } 50% { transform: translateX(8px); opacity: 0.1; } }
         /* Quick stats row */
-        .hero-stats { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; position: relative; z-index: 2; }
-        .hero-stat { background: rgba(22,33,62,0.8); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px; text-align: center; min-width: 80px; transition: all 0.3s; }
-        .hero-stat:hover { border-color: rgba(233,69,96,0.3); transform: translateY(-2px); }
-        .hero-stat .hs-num { font-size: 1.3rem; font-weight: 800; display: block; }
+        .hero-stats { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; position: relative; z-index: 2; }
+        .hero-stat { background: rgba(15,20,40,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 10px 0; text-align: center; flex: 1; max-width: 90px; transition: all 0.3s; position: relative; overflow: hidden; }
+        .hero-stat::after { content: ''; position: absolute; bottom: 0; left: 10%; right: 10%; height: 2px; border-radius: 1px; transition: all 0.3s; opacity: 0; }
+        .hero-stat:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+        .hero-stat:hover::after { opacity: 1; }
+        .hero-stat:nth-child(1)::after { background: #e94560; }
+        .hero-stat:nth-child(2)::after { background: #f093fb; }
+        .hero-stat:nth-child(3)::after { background: #f59e0b; }
+        .hero-stat:nth-child(4)::after { background: #4ecdc4; }
+        .hero-stat .hs-icon { font-size: 1rem; display: block; margin-bottom: 2px; }
+        .hero-stat .hs-num { font-size: 1.2rem; font-weight: 800; display: block; line-height: 1.2; }
         .hero-stat .hs-num.gold { color: #f59e0b; }
         .hero-stat .hs-num.energy { color: #4ecdc4; }
         .hero-stat .hs-num.collection { color: #f093fb; }
         .hero-stat .hs-num.level { color: #e94560; }
-        .hero-stat .hs-label { font-size: 0.62rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .hero-stat .hs-label { font-size: 0.55rem; color: #555; text-transform: uppercase; letter-spacing: 1px; }
         /* Recent catches carousel */
-        .recent-catches { position: relative; z-index: 2; margin-bottom: 14px; }
-        .recent-catches-title { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
-        .recent-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .recent-catches { position: relative; z-index: 2; margin-bottom: 4px; }
+        .recent-catches-title { font-size: 0.68rem; color: #444; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .recent-catches-title::before, .recent-catches-title::after { content: ''; width: 20px; height: 1px; background: linear-gradient(90deg, transparent, #444); }
+        .recent-catches-title::after { background: linear-gradient(90deg, #444, transparent); }
+        .recent-row { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px; scrollbar-width: none; }
         .recent-row::-webkit-scrollbar { display: none; }
-        .recent-mini { flex-shrink: 0; width: 72px; background: rgba(22,33,62,0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 8px 4px; text-align: center; cursor: pointer; transition: all 0.25s; }
-        .recent-mini:hover { border-color: #e94560; transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
-        .recent-mini.r-Legendary { border-color: rgba(245,158,11,0.4); box-shadow: 0 0 12px rgba(245,158,11,0.15); }
-        .recent-mini.r-Epic { border-color: rgba(168,85,247,0.3); }
-        .recent-mini.r-Rare { border-color: rgba(59,130,246,0.25); }
-        .recent-mini .rm-svg { margin-bottom: 2px; }
-        .recent-mini .rm-name { font-size: 0.55rem; font-weight: 600; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .recent-mini .rm-rarity { font-size: 0.48rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .recent-empty { color: #444; font-size: 0.78rem; padding: 16px; background: rgba(22,33,62,0.4); border: 1px dashed #333; border-radius: 12px; }
-        /* Scan portal visual */
-        .scan-portal { position: relative; margin: 0 auto 16px; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
-        .scan-portal-ring { position: absolute; border: 2px solid rgba(233,69,96,0.15); border-radius: 50%; animation: portalSpin 12s linear infinite; }
-        .scan-portal-ring:nth-child(1) { width: 200px; height: 200px; border-color: rgba(233,69,96,0.12); animation-duration: 12s; }
-        .scan-portal-ring:nth-child(2) { width: 160px; height: 160px; border-color: rgba(240,147,251,0.12); animation-duration: 8s; animation-direction: reverse; }
-        .scan-portal-ring:nth-child(3) { width: 120px; height: 120px; border-color: rgba(78,205,196,0.15); animation-duration: 6s; border-style: dashed; }
+        .recent-mini { flex-shrink: 0; width: 70px; background: rgba(15,20,40,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 8px 4px 6px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .recent-mini:hover { border-color: rgba(233,69,96,0.5); transform: translateY(-4px) scale(1.02); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+        .recent-mini.r-Legendary { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.05); box-shadow: 0 0 15px rgba(245,158,11,0.1); }
+        .recent-mini.r-Epic { border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.04); }
+        .recent-mini.r-Rare { border-color: rgba(59,130,246,0.25); background: rgba(59,130,246,0.03); }
+        .recent-mini .rm-svg { margin-bottom: 3px; }
+        .recent-mini .rm-name { font-size: 0.52rem; font-weight: 600; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .recent-mini .rm-rarity { font-size: 0.45rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+        .recent-empty { color: #3a3a5a; font-size: 0.8rem; padding: 20px 16px; background: rgba(15,20,40,0.4); border: 1px dashed rgba(255,255,255,0.06); border-radius: 14px; line-height: 1.6; }
+        .recent-empty .re-icon { font-size: 1.8rem; display: block; margin-bottom: 6px; opacity: 0.5; animation: reEmptyPulse 3s ease-in-out infinite; }
+        @keyframes reEmptyPulse { 0%,100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.1); opacity: 0.7; } }
+        .recent-empty .re-hint { font-size: 0.7rem; color: #555; }
+        /* === SCAN PORTAL === */
+        .summon-section { position: relative; text-align: center; padding: 0 0 8px; }
+        .summon-label { font-size: 0.68rem; color: #444; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 12px; position: relative; z-index: 2; }
+        .scan-portal { position: relative; margin: 0 auto 12px; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
+        .scan-portal-bg { position: absolute; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(233,69,96,0.08) 0%, rgba(240,147,251,0.04) 50%, transparent 70%); animation: portalBgPulse 4s ease-in-out infinite; }
+        @keyframes portalBgPulse { 0%,100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.15); opacity: 1; } }
+        .scan-portal-ring { position: absolute; border: 2px solid rgba(233,69,96,0.15); border-radius: 50%; }
+        .scan-portal-ring:nth-child(2) { width: 210px; height: 210px; border-color: rgba(233,69,96,0.08); animation: portalSpin 20s linear infinite; border-width: 1px; border-style: dotted; }
+        .scan-portal-ring:nth-child(3) { width: 170px; height: 170px; border-color: rgba(240,147,251,0.12); animation: portalSpin 12s linear infinite reverse; }
+        .scan-portal-ring:nth-child(4) { width: 130px; height: 130px; border-color: rgba(78,205,196,0.15); animation: portalSpin 8s linear infinite; border-style: dashed; }
+        .scan-portal-ring:nth-child(5) { width: 90px; height: 90px; border-color: rgba(245,158,11,0.1); animation: portalSpin 5s linear infinite reverse; border-width: 1px; }
         @keyframes portalSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .scan-portal-center { position: relative; z-index: 2; font-size: 3.2rem; animation: portalPulse 3s ease-in-out infinite; filter: drop-shadow(0 0 20px rgba(233,69,96,0.3)); }
-        @keyframes portalPulse { 0%,100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(233,69,96,0.3)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 35px rgba(240,147,251,0.5)); } }
+        .scan-portal-runes { position: absolute; width: 195px; height: 195px; animation: portalSpin 30s linear infinite; }
+        .scan-portal-rune { position: absolute; font-size: 0.7rem; opacity: 0.15; color: #f093fb; }
+        .scan-portal-rune:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }
+        .scan-portal-rune:nth-child(2) { top: 25%; right: 2%; }
+        .scan-portal-rune:nth-child(3) { bottom: 25%; right: 2%; }
+        .scan-portal-rune:nth-child(4) { bottom: 0; left: 50%; transform: translateX(-50%); }
+        .scan-portal-rune:nth-child(5) { bottom: 25%; left: 2%; }
+        .scan-portal-rune:nth-child(6) { top: 25%; left: 2%; }
+        .scan-portal-center { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; }
+        .scan-portal-orb { font-size: 3.5rem; animation: orbFloat 4s ease-in-out infinite; filter: drop-shadow(0 0 25px rgba(233,69,96,0.4)); }
+        @keyframes orbFloat { 0%,100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 25px rgba(233,69,96,0.3)); } 50% { transform: translateY(-8px) scale(1.06); filter: drop-shadow(0 0 40px rgba(240,147,251,0.6)); } }
+        .scan-portal-text { font-size: 0.6rem; color: #666; letter-spacing: 3px; text-transform: uppercase; margin-top: 4px; }
         .scan-portal-dots { position: absolute; width: 100%; height: 100%; }
-        .scan-portal-dot { position: absolute; width: 4px; height: 4px; background: #e94560; border-radius: 50%; opacity: 0; animation: portalDot 4s ease-in-out infinite; }
-        .scan-portal-dot:nth-child(1) { top: 10%; left: 50%; animation-delay: 0s; }
-        .scan-portal-dot:nth-child(2) { top: 50%; right: 5%; animation-delay: -1s; }
-        .scan-portal-dot:nth-child(3) { bottom: 8%; left: 50%; animation-delay: -2s; }
-        .scan-portal-dot:nth-child(4) { top: 50%; left: 5%; animation-delay: -3s; }
-        .scan-portal-dot:nth-child(5) { top: 20%; right: 15%; animation-delay: -0.5s; background: #f093fb; }
-        .scan-portal-dot:nth-child(6) { bottom: 20%; left: 15%; animation-delay: -2.5s; background: #4ecdc4; }
-        @keyframes portalDot { 0%,100% { opacity: 0; transform: scale(0); } 50% { opacity: 0.8; transform: scale(1.5); } }
+        .scan-portal-dot { position: absolute; width: 3px; height: 3px; background: #e94560; border-radius: 50%; opacity: 0; animation: portalDot 5s ease-in-out infinite; }
+        .scan-portal-dot:nth-child(1) { top: 5%; left: 50%; animation-delay: 0s; }
+        .scan-portal-dot:nth-child(2) { top: 50%; right: 2%; animation-delay: -1s; background: #f093fb; }
+        .scan-portal-dot:nth-child(3) { bottom: 5%; left: 50%; animation-delay: -2s; }
+        .scan-portal-dot:nth-child(4) { top: 50%; left: 2%; animation-delay: -3s; background: #4ecdc4; }
+        .scan-portal-dot:nth-child(5) { top: 15%; right: 12%; animation-delay: -0.7s; background: #f093fb; width: 2px; height: 2px; }
+        .scan-portal-dot:nth-child(6) { bottom: 15%; left: 12%; animation-delay: -2.7s; background: #4ecdc4; width: 2px; height: 2px; }
+        .scan-portal-dot:nth-child(7) { top: 30%; left: 8%; animation-delay: -4s; background: #f59e0b; width: 2px; height: 2px; }
+        .scan-portal-dot:nth-child(8) { bottom: 30%; right: 8%; animation-delay: -1.5s; width: 2px; height: 2px; }
+        @keyframes portalDot { 0%,100% { opacity: 0; transform: scale(0); } 50% { opacity: 0.7; transform: scale(2); } }
+        /* Energy bar compact */
+        .energy-compact { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 0 10px; }
+        .energy-compact .energy-bar { flex: 1; height: 5px; }
+        .energy-compact .ec-text { font-size: 0.68rem; color: #555; white-space: nowrap; min-width: 70px; text-align: right; }
+        /* Scan action area */
+        .scan-actions { background: rgba(15,20,40,0.5); border: 1px solid rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+        .scan-actions-title { font-size: 0.65rem; color: #444; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 12px; text-align: center; }
         /* Improved sample buttons */
-        .sample-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; position: relative; z-index: 2; }
-        .sample-item { background: rgba(22,33,62,0.8); border: 1px solid #2a2a44; border-radius: 10px; padding: 8px 4px; text-align: center; cursor: pointer; transition: all 0.25s; }
-        .sample-item:hover { border-color: #e94560; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(233,69,96,0.2); background: rgba(233,69,96,0.08); }
-        .sample-item .si-flag { font-size: 1.2rem; display: block; margin-bottom: 2px; }
-        .sample-item .si-name { font-size: 0.58rem; color: #aaa; font-weight: 600; display: block; line-height: 1.2; }
-        .sample-item .si-code { font-size: 0.48rem; color: #555; display: block; margin-top: 2px; font-family: monospace; }
+        .sample-section { margin-top: 6px; }
+        .sample-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; position: relative; z-index: 2; }
+        .sample-item { background: rgba(15,20,40,0.7); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 10px 4px 8px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
+        .sample-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #e94560, transparent); opacity: 0; transition: opacity 0.3s; }
+        .sample-item:hover { border-color: rgba(233,69,96,0.3); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(233,69,96,0.15); }
+        .sample-item:hover::before { opacity: 1; }
+        .sample-item .si-flag { font-size: 1.3rem; display: block; margin-bottom: 3px; }
+        .sample-item .si-name { font-size: 0.58rem; color: #999; font-weight: 600; display: block; line-height: 1.2; }
+        .sample-item .si-code { font-size: 0.45rem; color: #444; display: block; margin-top: 3px; font-family: monospace; letter-spacing: 0.5px; }
         /* Scan section improvements */
-        .scan-section-title { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+        .scan-section-title { font-size: 0.65rem; color: #444; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; text-align: center; }
         .scan-input-group { position: relative; margin-bottom: 12px; }
         .scan-input-group .barcode-input { padding-right: 50px; }
-        .scan-input-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; opacity: 0.4; pointer-events: none; }
-        /* Welcome tip */
-        .welcome-tip { background: linear-gradient(135deg, rgba(233,69,96,0.08), rgba(240,147,251,0.06)); border: 1px solid rgba(233,69,96,0.15); border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; font-size: 0.78rem; color: #aaa; line-height: 1.6; position: relative; z-index: 2; }
-        .welcome-tip strong { color: #e94560; }
-        .welcome-tip .tip-dismiss { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #555; cursor: pointer; font-size: 0.9rem; }
+        .scan-input-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; opacity: 0.3; pointer-events: none; }
+        /* Welcome tip - more immersive */
+        .welcome-tip { background: linear-gradient(135deg, rgba(15,12,41,0.8), rgba(48,43,99,0.4)); border: 1px solid rgba(240,147,251,0.1); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; font-size: 0.78rem; color: #888; line-height: 1.7; position: relative; z-index: 2; overflow: hidden; }
+        .welcome-tip::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(240,147,251,0.03), transparent); animation: tipShimmer 6s linear infinite; }
+        @keyframes tipShimmer { 0% { left: -100%; } 100% { left: 200%; } }
+        .welcome-tip strong { color: #f093fb; }
+        .welcome-tip .tip-dismiss { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #444; cursor: pointer; font-size: 0.9rem; transition: color 0.2s; }
+        .welcome-tip .tip-dismiss:hover { color: #888; }
+        .welcome-tip .tip-flavor { color: #666; font-style: italic; font-size: 0.72rem; display: block; margin-top: 6px; }
         /* NEW discovery effect */
         .new-discovery { color: #f59e0b; font-size: 1.2rem; font-weight: 700; margin: 8px; animation: pulse 1s ease-in-out infinite; }
         @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
@@ -1061,31 +1117,43 @@ GAME_HTML = """
         <div class="panel active" id="panel-scan">
             <!-- Hero Welcome Section -->
             <div class="hero-section" id="heroSection">
+                <div class="hero-particles" id="heroParticles"></div>
                 <div class="hero-creatures">
-                    <div class="hero-creature" style="font-size:2.5rem">🐉</div>
-                    <div class="hero-creature" style="font-size:2rem">🦊</div>
-                    <div class="hero-creature" style="font-size:1.8rem">🐦</div>
-                    <div class="hero-creature" style="font-size:2.2rem">🐺</div>
-                    <div class="hero-creature" style="font-size:1.5rem">🐱</div>
+                    <div class="hero-creature" style="font-size:2.8rem">🐉</div>
+                    <div class="hero-creature" style="font-size:2.2rem">🦊</div>
+                    <div class="hero-creature" style="font-size:2rem">🐺</div>
+                    <div class="hero-creature" style="font-size:1.8rem">🐱</div>
                 </div>
-                <div class="hero-logo">BarcodeQuest</div>
-                <div class="hero-tagline">바코드를 스캔하면 <em>크리처</em>가 태어납니다</div>
+
+                <div class="hero-logo-wrap">
+                    <div class="hero-logo">BarcodeQuest</div>
+                    <div class="hero-logo-sub">Creature Collection RPG</div>
+                </div>
+
+                <div class="hero-lore">
+                    <div class="hero-tagline">모든 상품에는 잠든 <em>크리처</em>가 숨어있습니다<br><span class="lore-glow">바코드를 스캔</span>하여 그들을 깨워주세요</div>
+                    <div class="hero-lore-divider"></div>
+                </div>
 
                 <!-- Quick Stats -->
                 <div class="hero-stats">
                     <div class="hero-stat">
+                        <span class="hs-icon">⚔️</span>
                         <span class="hs-num level" id="hsLevel">1</span>
                         <span class="hs-label">Level</span>
                     </div>
                     <div class="hero-stat">
+                        <span class="hs-icon">📖</span>
                         <span class="hs-num collection" id="hsCollection">0</span>
-                        <span class="hs-label">Collected</span>
+                        <span class="hs-label">Dex</span>
                     </div>
                     <div class="hero-stat">
+                        <span class="hs-icon">💰</span>
                         <span class="hs-num gold" id="hsGold">1,000</span>
                         <span class="hs-label">Gold</span>
                     </div>
                     <div class="hero-stat">
+                        <span class="hs-icon">⚡</span>
                         <span class="hs-num energy" id="hsEnergy">100</span>
                         <span class="hs-label">Energy</span>
                     </div>
@@ -1095,23 +1163,28 @@ GAME_HTML = """
                 <div class="recent-catches" id="recentCatches">
                     <div class="recent-catches-title">Recent Catches</div>
                     <div class="recent-row" id="recentRow">
-                        <div class="recent-empty">아직 크리처가 없습니다. 첫 바코드를 스캔해보세요!</div>
+                        <div class="recent-empty"><span class="re-icon">🥚</span>아직 깨어난 크리처가 없습니다<div class="re-hint">아래 포탈에서 첫 바코드를 스캔해보세요</div></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Welcome Tip (dismissible) -->
-            <div class="welcome-tip" id="welcomeTip">
-                <button class="tip-dismiss" onclick="document.getElementById('welcomeTip').style.display='none'">✕</button>
-                <strong>Tip:</strong> 주변 상품의 바코드를 스캔하면 각 바코드마다 고유한 크리처가 생성됩니다. 같은 바코드는 항상 같은 크리처! 카메라로 스캔하거나 직접 입력해보세요.
-            </div>
-
-            <!-- Scan Portal Area -->
-            <div class="scan-area">
+            <!-- Summoning Portal -->
+            <div class="summon-section">
+                <div class="summon-label">Summoning Portal</div>
                 <div class="scan-portal">
+                    <div class="scan-portal-bg"></div>
                     <div class="scan-portal-ring"></div>
                     <div class="scan-portal-ring"></div>
                     <div class="scan-portal-ring"></div>
+                    <div class="scan-portal-ring"></div>
+                    <div class="scan-portal-runes">
+                        <div class="scan-portal-rune">◆</div>
+                        <div class="scan-portal-rune">✦</div>
+                        <div class="scan-portal-rune">◇</div>
+                        <div class="scan-portal-rune">✧</div>
+                        <div class="scan-portal-rune">◈</div>
+                        <div class="scan-portal-rune">✦</div>
+                    </div>
                     <div class="scan-portal-dots">
                         <div class="scan-portal-dot"></div>
                         <div class="scan-portal-dot"></div>
@@ -1119,15 +1192,24 @@ GAME_HTML = """
                         <div class="scan-portal-dot"></div>
                         <div class="scan-portal-dot"></div>
                         <div class="scan-portal-dot"></div>
+                        <div class="scan-portal-dot"></div>
+                        <div class="scan-portal-dot"></div>
                     </div>
-                    <div class="scan-portal-center">🔮</div>
+                    <div class="scan-portal-center">
+                        <div class="scan-portal-orb">🔮</div>
+                        <div class="scan-portal-text">Touch to Scan</div>
+                    </div>
                 </div>
 
-                <div style="margin-bottom:10px">
+                <div class="energy-compact">
                     <div class="energy-bar"><div class="energy-fill" id="energyBar" style="width:100%"></div></div>
-                    <span style="font-size:0.72rem;color:#666" id="energyText">Energy: 100/100</span>
+                    <span class="ec-text" id="energyText">⚡ 100/100</span>
                 </div>
+            </div>
 
+            <!-- Scan Actions -->
+            <div class="scan-actions">
+                <div class="scan-actions-title">Barcode Scan</div>
                 <button class="camera-toggle" id="cameraToggle" onclick="toggleCamera()">📸 카메라로 바코드 스캔</button>
                 <div id="cameraPreview"></div>
                 <div id="cameraStatus"></div>
@@ -1136,9 +1218,12 @@ GAME_HTML = """
                     <input class="barcode-input" id="barcodeInput" placeholder="바코드 13자리 입력" maxlength="13" />
                     <span class="scan-input-icon">📦</span>
                 </div>
-                <button class="scan-btn" id="scanBtn" onclick="scanBarcode()">✨ SCAN !</button>
+                <button class="scan-btn" id="scanBtn" onclick="scanBarcode()">✨ SUMMON !</button>
+            </div>
 
-                <div class="scan-section-title" style="margin-top:16px">샘플 바코드</div>
+            <!-- Sample Barcodes -->
+            <div class="sample-section">
+                <div class="scan-section-title">샘플 바코드</div>
                 <div class="sample-grid">
                     <div class="sample-item" onclick="fillBarcode('8801062871247')">
                         <span class="si-flag">🇰🇷</span>
@@ -1167,6 +1252,14 @@ GAME_HTML = """
                     </div>
                 </div>
             </div>
+
+            <!-- Welcome Tip (dismissible) -->
+            <div class="welcome-tip" id="welcomeTip">
+                <button class="tip-dismiss" onclick="document.getElementById('welcomeTip').style.display='none'">✕</button>
+                <strong>모든 바코드에는 고유한 크리처가 잠들어 있습니다.</strong> 같은 바코드는 항상 같은 크리처를 깨웁니다. 카메라로 스캔하거나, 바코드 번호를 직접 입력하세요.
+                <span class="tip-flavor">"수천 개의 상품 속에, 수천 개의 생명이 당신을 기다립니다."</span>
+            </div>
+
             <div id="scanResult"></div>
             <!-- Gacha Scan Overlay -->
             <div id="scanOverlay" class="scan-overlay" style="display:none">
@@ -1371,7 +1464,7 @@ GAME_HTML = """
             document.getElementById('pEnergy').textContent = `${p.energy}E`;
             const pct = (p.energy/p.max_energy*100);
             document.getElementById('energyBar').style.width = pct+'%';
-            document.getElementById('energyText').textContent = `Energy: ${p.energy}/${p.max_energy}`;
+            document.getElementById('energyText').textContent = `⚡ ${p.energy}/${p.max_energy}`;
             // Hero stats
             const hsL = document.getElementById('hsLevel');
             if (hsL) { hsL.textContent = p.level; }
@@ -1396,7 +1489,7 @@ GAME_HTML = """
             const row = document.getElementById('recentRow');
             if (!row) return;
             if (recentCatchesList.length === 0) {
-                row.innerHTML = '<div class="recent-empty">아직 크리처가 없습니다. 첫 바코드를 스캔해보세요!</div>';
+                row.innerHTML = '<div class="recent-empty"><span class="re-icon">🥚</span>아직 깨어난 크리처가 없습니다<div class="re-hint">아래 포탈에서 첫 바코드를 스캔해보세요</div></div>';
                 return;
             }
             row.innerHTML = recentCatchesList.map(m => {
@@ -1424,6 +1517,26 @@ GAME_HTML = """
                     if (hsC) hsC.textContent = d.total || d.monsters.length;
                 }
             }).catch(()=>{});
+        }
+
+        // Ambient particles for hero section
+        function initHeroParticles() {
+            const container = document.getElementById('heroParticles');
+            if (!container) return;
+            const colors = ['#e94560','#f093fb','#4ecdc4','#f59e0b','#3b82f6','#a855f7'];
+            for (let i = 0; i < 20; i++) {
+                const p = document.createElement('div');
+                p.className = 'hero-particle';
+                const size = 2 + Math.random() * 3;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.bottom = '-5%';
+                p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                p.style.animationDuration = (8 + Math.random() * 12) + 's';
+                p.style.animationDelay = -(Math.random() * 20) + 's';
+                container.appendChild(p);
+            }
         }
 
         function renderMonsterCard(m, opts) {
@@ -2261,6 +2374,7 @@ GAME_HTML = """
         // 초기 로드
         fetch('/api/player?session=default').then(r=>r.json()).then(d=>updatePlayerUI(d.player));
         loadRecentFromCollection();
+        initHeroParticles();
     </script>
 </body>
 </html>
