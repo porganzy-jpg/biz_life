@@ -50,6 +50,9 @@ scalp_trades.json
 *.ipa
 *.aab
 
+# Duplicate/temp directories
+projects/server-monitor/
+
 # Jupyter
 .ipynb_checkpoints/
 
