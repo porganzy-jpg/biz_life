@@ -1097,84 +1097,119 @@ GAME_HTML = """
             overflow: hidden; transition: opacity 0.6s ease, transform 0.6s ease;
         }
         #landscape-view.hidden { opacity: 0; pointer-events: none; transform: scale(1.1); }
-        .sky-layer {
+        /* === AERIAL BIRD'S-EYE VIEW === */
+        .aerial-scene {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(180deg, #87CEEB 0%, #B0E0F0 40%, #E8F4E8 70%, #C8E6C8 100%);
-            animation: dayCycle 120s ease-in-out infinite;
+            background: #B8D8A0; overflow: hidden;
+            animation: aerialDayCycle 120s ease-in-out infinite;
         }
-        @keyframes dayCycle {
-            0%,100% { background: linear-gradient(180deg, #87CEEB 0%, #B0E0F0 40%, #E8F4E8 70%, #C8E6C8 100%); }
-            25% { background: linear-gradient(180deg, #FFB347 0%, #FF8C5A 30%, #FFD194 55%, #E8DCC8 100%); }
-            40% { background: linear-gradient(180deg, #1a1a3e 0%, #2C3E6B 35%, #0A1428 70%, #0A1020 100%); }
-            60% { background: linear-gradient(180deg, #1a1a3e 0%, #2C3E6B 35%, #0A1428 70%, #0A1020 100%); }
-            75% { background: linear-gradient(180deg, #FFB5C2 0%, #FFD194 35%, #B0E0F0 70%, #E8F4E8 100%); }
+        @keyframes aerialDayCycle {
+            0%,100% { filter: brightness(1) saturate(1); }
+            25% { filter: brightness(1.1) saturate(1.15); }
+            40% { filter: brightness(0.35) saturate(0.6); }
+            60% { filter: brightness(0.35) saturate(0.6); }
+            75% { filter: brightness(1.05) saturate(1.1); }
         }
-        /* Sun/Moon */
-        .celestial-body {
-            position: absolute; width: 60px; height: 60px; border-radius: 50%;
-            top: 12%; left: 15%; z-index: 1;
-            background: radial-gradient(circle, #FFFDE7 30%, #FFD54F 70%, transparent 100%);
-            box-shadow: 0 0 40px rgba(255,213,79,0.5), 0 0 80px rgba(255,213,79,0.2);
-            animation: celestialFloat 8s ease-in-out infinite;
+        .aerial-atmosphere {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 15;
+            background: radial-gradient(ellipse at 40% 30%, rgba(255,248,220,0.15) 0%, transparent 70%);
+            pointer-events: none; animation: atmospherePulse 8s ease-in-out infinite;
         }
-        @keyframes celestialFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        /* Clouds */
-        .cloud {
-            position: absolute; z-index: 2;
-            background: rgba(255,255,255,0.85);
-            border-radius: 50px;
+        @keyframes atmospherePulse { 0%,100% { opacity: 0.8; } 50% { opacity: 1; } }
+        .aerial-mist {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 16;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(180,210,160,0.4) 100%);
+            pointer-events: none;
         }
-        .cloud::before, .cloud::after {
-            content: ''; position: absolute; background: inherit; border-radius: 50%;
+        .aerial-scenery {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1;
         }
-        .cloud-1 { width: 80px; height: 28px; top: 8%; animation: cloudDrift 60s linear infinite; }
-        .cloud-1::before { width: 40px; height: 40px; top: -20px; left: 12px; }
-        .cloud-1::after { width: 30px; height: 30px; top: -12px; right: 10px; }
-        .cloud-2 { width: 60px; height: 22px; top: 14%; animation: cloudDrift 45s linear infinite; animation-delay: -15s; }
-        .cloud-2::before { width: 32px; height: 32px; top: -16px; left: 8px; }
-        .cloud-2::after { width: 22px; height: 22px; top: -8px; right: 6px; }
-        .cloud-3 { width: 90px; height: 30px; top: 6%; animation: cloudDrift 80s linear infinite; animation-delay: -30s; }
-        .cloud-3::before { width: 46px; height: 46px; top: -24px; left: 16px; }
-        .cloud-3::after { width: 34px; height: 34px; top: -14px; right: 12px; }
-        @keyframes cloudDrift { 0% { left: -20%; } 100% { left: 110%; } }
-        /* Mountains */
-        .mountain-layer { position: absolute; bottom: 30%; left: 0; right: 0; height: 35%; z-index: 3; }
-        .mountain-far { position: absolute; bottom: 0; width: 100%; }
-        .mountain-near { position: absolute; bottom: -5%; width: 100%; }
-        /* Midground trees */
-        .midground { position: absolute; bottom: 22%; left: 0; right: 0; height: 20%; z-index: 4; }
-        /* Road */
-        .road-layer {
-            position: absolute; bottom: 8%; left: 0; right: 0; height: 22%; z-index: 5;
-            background: linear-gradient(180deg, #7BC67E 0%, #6ab86a 30%, #8B7355 40%, #9A8866 45%, #8B7355 50%, #7BC67E 52%, #5da55d 100%);
+        .aerial-scene, .aerial-scene * { shape-rendering: crispEdges; }
+        .aerial-scenery svg, .aerial-river svg, .aerial-road-layer svg, .aerial-bridge svg {
+            width: 100%; height: 100%;
         }
-        .road-line {
-            position: absolute; top: 44%; left: 0; right: 0; height: 3px;
-            background: repeating-linear-gradient(90deg, #FFD54F 0, #FFD54F 20px, transparent 20px, transparent 40px);
-            opacity: 0.6;
+        .aerial-river {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 2;
         }
-        /* Bus Exterior */
-        .bus-exterior {
-            position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%);
-            z-index: 10; cursor: pointer; transition: transform 0.3s ease;
-            animation: busIdle 4s ease-in-out infinite;
+        .aerial-road-layer {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 3;
         }
-        .bus-exterior:hover { transform: translateX(-50%) scale(1.03); }
-        .bus-exterior:active { transform: translateX(-50%) scale(0.98); }
-        @keyframes busIdle { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
-        .bus-exterior svg { filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3)); }
-        /* Bus entrance animation */
-        @keyframes busEnter { 0% { left: -30%; opacity: 0; } 60% { opacity: 1; } 100% { left: 50%; } }
-        .bus-entering { animation: busEnter 1.5s ease-out forwards !important; }
-        /* Foreground */
-        .foreground { position: absolute; bottom: 0; left: 0; right: 0; height: 12%; z-index: 11; pointer-events: none; }
-        /* Landscape creatures */
-        .landscape-creatures { position: absolute; bottom: 20%; left: 0; right: 0; height: 10%; z-index: 9; pointer-events: none; }
-        .landscape-creature {
-            position: absolute; animation: creatureWander 6s ease-in-out infinite alternate;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        .aerial-bridge {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 4;
+            pointer-events: none;
         }
-        @keyframes creatureWander { 0% { transform: translateY(0) translateX(0); } 100% { transform: translateY(-6px) translateX(10px); } }
+        .aerial-bus {
+            position: absolute; z-index: 10; cursor: pointer;
+            transition: filter 0.3s ease;
+            animation: aerialBusIdle 3s ease-in-out infinite;
+        }
+        .aerial-bus:hover { filter: drop-shadow(0 0 14px rgba(255,200,100,0.7)) brightness(1.1); }
+        .aerial-bus:active { filter: drop-shadow(0 0 8px rgba(255,200,100,0.4)) brightness(0.95); }
+        @keyframes aerialBusIdle { 0%,100% { margin-top: 0; } 50% { margin-top: -3px; } }
+        .aerial-bus svg { filter: drop-shadow(3px 6px 10px rgba(0,0,0,0.35)); }
+        .aerial-bus .bus-wheel { animation: isoWheelSpin 2s linear infinite; transform-origin: center; }
+        @keyframes isoWheelSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .aerial-animals {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 6;
+            pointer-events: none;
+        }
+        .aerial-animal {
+            position: absolute;
+            transition: left 8s ease-in-out, top 8s ease-in-out;
+            filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.2));
+        }
+        .aerial-petals {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 14;
+            pointer-events: none; overflow: hidden;
+        }
+        .petal {
+            position: absolute; width: 6px; height: 6px;
+            background: var(--petal-color, #FFB5C2); border-radius: 0;
+            opacity: 0.7;
+            animation: petalDrift var(--petal-duration, 12s) linear infinite;
+            animation-delay: var(--petal-delay, 0s);
+            left: var(--petal-x, 50%);
+            top: -20px;
+        }
+        @keyframes petalDrift {
+            0% { transform: translateY(0) translateX(0) rotate(0deg) scale(var(--petal-scale, 1)); opacity: 0; }
+            10% { opacity: 0.7; }
+            90% { opacity: 0.5; }
+            100% { transform: translateY(calc(100vh + 40px)) translateX(var(--petal-drift-x, 30px)) rotate(var(--petal-rotate, 360deg)) scale(var(--petal-scale, 1)); opacity: 0; }
+        }
+        .aerial-fireflies {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 13;
+            pointer-events: none; opacity: 0; transition: opacity 3s ease;
+        }
+        .aerial-fireflies.visible { opacity: 1; }
+        .firefly {
+            position: absolute; width: 3px; height: 3px;
+            background: #FFFDE7; border-radius: 0;
+            box-shadow: 0 0 4px 2px rgba(255,253,231,0.5), 0 0 8px 3px rgba(255,213,79,0.2);
+            animation: fireflyGlow var(--ff-glow-dur, 3s) ease-in-out infinite,
+                       fireflyFloat var(--ff-float-dur, 6s) ease-in-out infinite;
+            animation-delay: var(--ff-delay, 0s);
+        }
+        @keyframes fireflyGlow { 0%,100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+        @keyframes fireflyFloat {
+            0%,100% { transform: translate(0, 0); }
+            25% { transform: translate(var(--ff-dx, 10px), var(--ff-dy, -8px)); }
+            50% { transform: translate(calc(var(--ff-dx, 10px) * -0.5), calc(var(--ff-dy, -8px) * 1.5)); }
+            75% { transform: translate(calc(var(--ff-dx, 10px) * 0.8), calc(var(--ff-dy, -8px) * -0.5)); }
+        }
+        /* Bus entrance glow for aerial */
+        .aerial-bus.entering {
+            animation: aerialBusGlow 0.8s ease-out forwards;
+        }
+        @keyframes aerialBusGlow {
+            0% { filter: drop-shadow(0 0 0 transparent); }
+            50% { filter: drop-shadow(0 0 30px rgba(255,213,79,0.8)) brightness(1.3); }
+            100% { filter: drop-shadow(0 0 50px rgba(255,213,79,1)) brightness(1.5); }
+        }
+        .aerial-scene.zoom-out {
+            transition: transform 0.6s ease-in, filter 0.6s ease-in;
+            transform: scale(1.5); filter: blur(8px) brightness(1.5);
+        }
         /* Landscape UI overlay */
         .landscape-ui {
             position: absolute; top: 0; left: 0; right: 0; z-index: 20;
@@ -1187,7 +1222,7 @@ GAME_HTML = """
             text-shadow: none; letter-spacing: -0.5px; margin-bottom: 4px;
             filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
         }
-        .ls-subtitle { font-size: 0.65rem; color: rgba(255,255,255,0.7); letter-spacing: 4px; text-transform: uppercase; }
+        .ls-subtitle { font-size: 0.65rem; color: rgba(255,255,255,0.85); letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
         .ls-stats {
             display: flex; gap: 8px; margin-top: 12px;
         }
@@ -1208,24 +1243,6 @@ GAME_HTML = """
             backdrop-filter: blur(4px);
         }
         @keyframes hintPulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
-        /* Smoke particles */
-        .smoke-particle {
-            position: absolute; width: 8px; height: 8px; border-radius: 50%;
-            background: rgba(200,200,200,0.5); animation: smokeRise 3s ease-out infinite;
-        }
-        @keyframes smokeRise {
-            0% { transform: translateY(0) scale(1); opacity: 0.5; }
-            100% { transform: translateY(-40px) translateX(10px) scale(2.5); opacity: 0; }
-        }
-        /* Wheel animation */
-        @keyframes wheelSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        /* Stars (night) */
-        .stars-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 50%; z-index: 1; pointer-events: none; }
-        .star {
-            position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%;
-            animation: starTwinkle 3s ease-in-out infinite;
-        }
-        @keyframes starTwinkle { 0%,100% { opacity: 0.2; } 50% { opacity: 0.8; } }
 
         /* === BUS INTERIOR VIEW === */
         #bus-interior-view {
@@ -1312,7 +1329,7 @@ GAME_HTML = """
         .cs-slot .cs-affinity.grade-A { background: #7c3aed; color: #fff; }
         .cs-slot .cs-affinity.grade-B { background: #1d4ed8; color: #fff; }
         .cs-slot .cs-affinity.grade-C { background: #888; color: #fff; }
-        .cs-slot .cs-prod { font-size: 0.5rem; color: #B8860B; margin-top: 1px; }
+        .cs-slot .cs-prod { font-size: 0.6rem; color: #B8860B; margin-top: 2px; font-weight: 500; }
         .cs-slot .cs-empty { font-size: 0.7rem; color: #9A7A50; }
         .cs-slot .cs-empty-plus { font-size: 1.5rem; color: #C4A878; line-height: 1; }
         /* Room type backgrounds */
@@ -1409,84 +1426,260 @@ GAME_HTML = """
             font-weight: 700; cursor: pointer; transition: all 0.2s;
         }
         .cs-upgrade-floor button:hover { transform: scale(1.05); box-shadow: 0 4px 14px rgba(240,147,251,0.3); }
+
+
+        /* === CROSS-SECTION CREATURE BOUNCE === */
+        .cs-creature-mini {
+            margin-top: 3px;
+            animation: csBounce 2s ease-in-out infinite;
+        }
+        @keyframes csBounce {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        .cs-slot:hover .cs-creature-mini { animation-duration: 0.6s; }
+        .cs-slot:hover .cs-room-emoji { transform: scale(1.15); transition: transform 0.2s; }
+
+        /* === MOBILE RESPONSIVENESS === */
+        @media (max-width: 480px) {
+            .cs-bus-body { max-width: 100%; }
+            .cs-slots { gap: 4px; }
+            .cs-slot { min-height: 80px; padding: 6px 3px; }
+            .cs-slot .cs-room-emoji { font-size: 1.1rem; }
+            .cs-slot .cs-room-name { font-size: 0.6rem; }
+            .cs-slot .cs-creature-mini svg { width: 32px !important; height: 32px !important; }
+            .cs-slot .cs-prod { font-size: 0.6rem; }
+            .cs-floor-label { left: -22px; font-size: 0.55rem; }
+            .ls-title { font-size: 1.5rem; }
+            .ls-stats { gap: 4px; }
+            .ls-stat { padding: 4px 10px; font-size: 0.7rem; }
+            .aerial-bus svg { width: 64px; height: auto; }
+            .aerial-road-layer svg path { stroke-width: 18; }
+            .bi-header { padding: 10px 12px; }
+            .bottom-nav .bn-icon { font-size: 1rem; }
+            .bottom-nav .bn-label { font-size: 0.5rem; }
+            .fo-body { padding: 8px; }
+        }
+        @media (min-width: 481px) and (max-width: 768px) {
+            .cs-bus-body { max-width: 420px; }
+            .cs-slot .cs-creature-mini svg { width: 34px !important; height: 34px !important; }
+            .aerial-bus svg { width: 80px; height: auto; }
+        }
+        @media (min-width: 769px) {
+            .cs-bus-body { max-width: 480px; }
+            .cs-slot { min-height: 100px; }
+            .cs-slot .cs-creature-mini svg { width: 36px !important; height: 36px !important; }
+            .cs-slot .cs-prod { font-size: 0.65rem; }
+            .aerial-bus svg { width: 96px; height: auto; }
+        }
     </style>
 </head>
 <body class="old-tabs-hidden">
-    <!-- === LANDSCAPE VIEW === -->
+    <!-- === LANDSCAPE VIEW (AERIAL BIRD'S-EYE) === -->
     <div id="landscape-view">
-        <div class="sky-layer">
-            <div class="celestial-body"></div>
-            <div class="stars-layer" id="starsLayer"></div>
+        <div class="aerial-scene" id="aerialScene">
+            <!-- Pixel art scenery -->
+            <div class="aerial-scenery">
+                <svg viewBox="0 0 120 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Grass variation (lighter patches) -->
+                    <rect x="18" y="30" width="16" height="10" fill="#A8D090"/>
+                    <rect x="80" y="60" width="14" height="8" fill="#C0E0A0"/>
+                    <rect x="50" y="140" width="20" height="12" fill="#A0C888"/>
+                    <rect x="8" y="110" width="10" height="8" fill="#B0D898"/>
+                    <!-- Pixel tree cluster 1 (top-left forest) -->
+                    <rect x="10" y="14" width="4" height="6" fill="#5A4A2A"/>
+                    <rect x="8" y="10" width="8" height="6" fill="#4A7A4A"/>
+                    <rect x="6" y="8" width="4" height="4" fill="#5A8A5A"/>
+                    <rect x="12" y="8" width="4" height="4" fill="#5A8A5A"/>
+                    <rect x="20" y="12" width="4" height="6" fill="#5A4A2A"/>
+                    <rect x="18" y="8" width="8" height="6" fill="#3A6A3A"/>
+                    <rect x="16" y="6" width="4" height="4" fill="#4A7A4A"/>
+                    <rect x="14" y="18" width="4" height="4" fill="#5A4A2A"/>
+                    <rect x="12" y="14" width="8" height="6" fill="#5A8A5A"/>
+                    <!-- Pixel tree cluster 2 (right-mid forest) -->
+                    <rect x="98" y="104" width="4" height="6" fill="#5A4A2A"/>
+                    <rect x="96" y="100" width="8" height="6" fill="#4A7A4A"/>
+                    <rect x="94" y="98" width="4" height="4" fill="#3A6A3A"/>
+                    <rect x="104" y="102" width="4" height="6" fill="#5A4A2A"/>
+                    <rect x="102" y="98" width="8" height="6" fill="#5A8A5A"/>
+                    <rect x="108" y="106" width="4" height="4" fill="#5A4A2A"/>
+                    <rect x="106" y="102" width="8" height="6" fill="#4A7A4A"/>
+                    <!-- Cherry blossom grove 1 (top-right) - pixel pink trees -->
+                    <rect x="88" y="18" width="4" height="4" fill="#6B4B2B"/>
+                    <rect x="86" y="14" width="8" height="6" fill="#FFB5C2"/>
+                    <rect x="84" y="12" width="4" height="4" fill="#FFC4D0"/>
+                    <rect x="96" y="16" width="4" height="4" fill="#6B4B2B"/>
+                    <rect x="94" y="12" width="8" height="6" fill="#FFC4D0"/>
+                    <rect x="92" y="10" width="4" height="4" fill="#FFB5C2"/>
+                    <rect x="100" y="22" width="4" height="4" fill="#6B4B2B"/>
+                    <rect x="98" y="18" width="8" height="6" fill="#FFB5C2"/>
+                    <!-- Cherry blossom grove 2 (bottom-left) -->
+                    <rect x="16" y="136" width="4" height="4" fill="#6B4B2B"/>
+                    <rect x="14" y="132" width="8" height="6" fill="#FFB5C2"/>
+                    <rect x="22" y="134" width="4" height="4" fill="#6B4B2B"/>
+                    <rect x="20" y="130" width="8" height="6" fill="#FFC4D0"/>
+                    <rect x="10" y="140" width="4" height="4" fill="#6B4B2B"/>
+                    <rect x="8" y="136" width="8" height="6" fill="#FFC4D0"/>
+                    <!-- Pixel flowers: lavender field -->
+                    <rect x="34" y="52" width="2" height="2" fill="#D4A0C0"/>
+                    <rect x="38" y="50" width="2" height="2" fill="#E0B8D4"/>
+                    <rect x="36" y="54" width="2" height="2" fill="#D4A0C0"/>
+                    <rect x="40" y="56" width="2" height="2" fill="#E0B8D4"/>
+                    <rect x="42" y="52" width="2" height="2" fill="#D4A0C0"/>
+                    <rect x="32" y="56" width="2" height="2" fill="#D4A0C0"/>
+                    <!-- Pixel flowers: sunflowers -->
+                    <rect x="76" y="130" width="2" height="3" fill="#5A9A5A"/>
+                    <rect x="75" y="128" width="4" height="3" fill="#FFE066"/>
+                    <rect x="76" y="127" width="2" height="2" fill="#C8A030"/>
+                    <rect x="82" y="132" width="2" height="3" fill="#5A9A5A"/>
+                    <rect x="81" y="130" width="4" height="3" fill="#FFE066"/>
+                    <rect x="82" y="129" width="2" height="2" fill="#C8A030"/>
+                    <rect x="78" y="135" width="2" height="3" fill="#5A9A5A"/>
+                    <rect x="77" y="133" width="4" height="3" fill="#FFE066"/>
+                    <!-- Pixel wildflowers (scattered) -->
+                    <rect x="62" y="36" width="2" height="2" fill="#FFB380"/>
+                    <rect x="68" y="40" width="2" height="2" fill="#FF9966"/>
+                    <rect x="56" y="38" width="2" height="2" fill="#FFB380"/>
+                    <rect x="46" y="82" width="2" height="2" fill="#FF6B8A"/>
+                    <rect x="72" y="90" width="2" height="2" fill="#C084FC"/>
+                    <rect x="30" y="100" width="2" height="2" fill="#67E8F9"/>
+                    <!-- Pixel stones -->
+                    <rect x="44" y="92" width="4" height="2" fill="#A0A0A0"/>
+                    <rect x="45" y="91" width="2" height="2" fill="#B0B0B0"/>
+                    <rect x="82" y="78" width="3" height="2" fill="#909090"/>
+                    <!-- Pixel bench -->
+                    <rect x="58" y="116" width="8" height="2" fill="#8B6B4A"/>
+                    <rect x="58" y="118" width="2" height="2" fill="#6B4B2A"/>
+                    <rect x="64" y="118" width="2" height="2" fill="#6B4B2A"/>
+                </svg>
+            </div>
+            <!-- Pixel art river -->
+            <div class="aerial-river">
+                <svg viewBox="0 0 120 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Stepped pixel river -->
+                    <rect x="0" y="62" width="14" height="6" fill="#7EC8E3"/>
+                    <rect x="12" y="64" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="22" y="66" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="32" y="64" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="42" y="62" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="52" y="64" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="62" y="66" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="72" y="68" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="82" y="66" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="92" y="64" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="102" y="62" width="12" height="6" fill="#7EC8E3"/>
+                    <rect x="112" y="64" width="10" height="6" fill="#7EC8E3"/>
+                    <!-- River highlights -->
+                    <rect x="8" y="64" width="4" height="2" fill="#9AD8F0"/>
+                    <rect x="36" y="66" width="4" height="2" fill="#9AD8F0"/>
+                    <rect x="66" y="68" width="4" height="2" fill="#9AD8F0"/>
+                    <rect x="96" y="64" width="4" height="2" fill="#9AD8F0"/>
+                </svg>
+            </div>
+            <!-- Pixel art road (S-curve, kept as path for bus positioning) -->
+            <div class="aerial-road-layer">
+                <svg viewBox="0 0 120 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <path id="aerialRoadEdge" d="M60,0 C60,16 96,24 96,40 C96,56 24,64 24,84 C24,104 100,108 96,128 C92,148 36,144 40,164 C44,184 60,180 60,192"
+                          stroke="#B09870" stroke-width="7" fill="none"/>
+                    <path id="aerialRoadPath" d="M60,0 C60,16 96,24 96,40 C96,56 24,64 24,84 C24,104 100,108 96,128 C92,148 36,144 40,164 C44,184 60,180 60,192"
+                          stroke="#C4A87C" stroke-width="5" fill="none"/>
+                    <path d="M60,0 C60,16 96,24 96,40 C96,56 24,64 24,84 C24,104 100,108 96,128 C92,148 36,144 40,164 C44,184 60,180 60,192"
+                          stroke="#D4B88C" stroke-width="1" fill="none" stroke-dasharray="2,3"/>
+                </svg>
+            </div>
+            <!-- Pixel art bridge -->
+            <div class="aerial-bridge">
+                <svg viewBox="0 0 120 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="50" y="63" width="14" height="8" fill="#A0845A"/>
+                    <rect x="52" y="64" width="10" height="2" fill="#8B7040"/>
+                    <rect x="52" y="67" width="10" height="2" fill="#8B7040"/>
+                    <rect x="50" y="63" width="2" height="8" fill="#6B5030"/>
+                    <rect x="62" y="63" width="2" height="8" fill="#6B5030"/>
+                </svg>
+            </div>
+            <!-- Pixel art isometric bus -->
+            <div class="aerial-bus" id="aerialBus" onclick="enterBus()">
+                <svg viewBox="0 0 36 40" width="90" height="100" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated">
+                    <!-- Shadow -->
+                    <rect x="4" y="37" width="28" height="2" fill="rgba(0,0,0,0.1)"/>
+                    <!-- Wheels -->
+                    <rect x="6" y="34" width="4" height="2" fill="#2A2A2A"/>
+                    <rect x="7" y="34" width="2" height="2" fill="#444"/>
+                    <g class="bus-wheel"><rect x="7" y="34" width="2" height="1" fill="#666"/></g>
+                    <rect x="26" y="34" width="4" height="2" fill="#2A2A2A"/>
+                    <rect x="27" y="34" width="2" height="2" fill="#444"/>
+                    <g class="bus-wheel"><rect x="27" y="34" width="2" height="1" fill="#666"/></g>
+                    <!-- Bus body - right side -->
+                    <rect x="18" y="10" width="14" height="24" fill="#E8734A"/>
+                    <!-- Bus body - left side (darker) -->
+                    <rect x="4" y="10" width="14" height="24" fill="#D06030"/>
+                    <!-- Front edge (bottom) -->
+                    <rect x="4" y="34" width="28" height="1" fill="#B85030"/>
+                    <!-- Roof (top face) -->
+                    <rect x="4" y="6" width="28" height="4" fill="#8B7050"/>
+                    <rect x="6" y="7" width="24" height="2" fill="#7A6040"/>
+                    <!-- 3F windows - right -->
+                    <rect x="20" y="12" width="3" height="3" fill="#87CEEB"/>
+                    <rect x="25" y="12" width="3" height="3" fill="#87CEEB"/>
+                    <!-- 3F windows - left -->
+                    <rect x="8" y="12" width="3" height="3" fill="#70B8D8"/>
+                    <rect x="13" y="12" width="3" height="3" fill="#70B8D8"/>
+                    <!-- Floor separator -->
+                    <rect x="4" y="18" width="28" height="1" fill="#C06038"/>
+                    <!-- 2F windows - right -->
+                    <rect x="20" y="20" width="3" height="3" fill="#87CEEB"/>
+                    <rect x="25" y="20" width="3" height="3" fill="#87CEEB"/>
+                    <!-- 2F windows - left -->
+                    <rect x="8" y="20" width="3" height="3" fill="#70B8D8"/>
+                    <rect x="13" y="20" width="3" height="3" fill="#70B8D8"/>
+                    <!-- Floor separator -->
+                    <rect x="4" y="26" width="28" height="1" fill="#C06038"/>
+                    <!-- 1F windows - right -->
+                    <rect x="20" y="28" width="3" height="3" fill="#87CEEB"/>
+                    <!-- 1F window - left -->
+                    <rect x="8" y="28" width="3" height="3" fill="#70B8D8"/>
+                    <!-- Door (right 1F) -->
+                    <rect x="25" y="28" width="4" height="5" fill="#C05030"/>
+                    <rect x="26" y="29" width="2" height="3" fill="#80B8D0"/>
+                    <!-- Door (left 1F) -->
+                    <rect x="13" y="28" width="3" height="5" fill="#B04828"/>
+                    <rect x="14" y="29" width="1" height="3" fill="#6898A8"/>
+                    <!-- Headlights -->
+                    <rect x="5" y="33" width="2" height="1" fill="#FFD54F"/>
+                    <rect x="29" y="33" width="2" height="1" fill="#FFD54F"/>
+                    <!-- Rooftop garden pixels -->
+                    <rect x="8" y="5" width="2" height="2" fill="#4A7A4A"/>
+                    <rect x="9" y="4" width="1" height="1" fill="#FF8A9A"/>
+                    <rect x="14" y="5" width="2" height="2" fill="#5A8A3A"/>
+                    <rect x="15" y="4" width="1" height="1" fill="#FFE066"/>
+                    <rect x="22" y="5" width="2" height="2" fill="#3A6A3A"/>
+                    <rect x="23" y="4" width="1" height="1" fill="#FFB5C2"/>
+                    <!-- Chimney -->
+                    <rect x="27" y="3" width="2" height="4" fill="#6A5040"/>
+                    <rect x="27" y="2" width="2" height="1" fill="#7A6050"/>
+                    <!-- String lights on roof -->
+                    <rect x="6" y="9" width="1" height="1" fill="#FFD090"/>
+                    <rect x="12" y="9" width="1" height="1" fill="#FFC080"/>
+                    <rect x="18" y="9" width="1" height="1" fill="#FFD090"/>
+                    <rect x="24" y="9" width="1" height="1" fill="#FFC080"/>
+                    <rect x="29" y="9" width="1" height="1" fill="#FFD090"/>
+                    <!-- BQ sign -->
+                    <rect x="12" y="6" width="6" height="3" fill="rgba(0,0,0,0.3)"/>
+                    <text x="15" y="8.5" text-anchor="middle" fill="#FFD194" font-size="2.5" font-weight="700" font-family="monospace">BQ</text>
+                </svg>
+            </div>
+            <!-- Dynamic containers (JS-populated) -->
+            <div class="aerial-animals" id="aerialAnimals"></div>
+            <div class="aerial-petals" id="aerialPetals"></div>
+            <div class="aerial-fireflies" id="aerialFireflies"></div>
+            <!-- Atmosphere overlays -->
+            <div class="aerial-atmosphere"></div>
+            <div class="aerial-mist"></div>
         </div>
-        <div class="cloud cloud-1"></div>
-        <div class="cloud cloud-2"></div>
-        <div class="cloud cloud-3"></div>
-        <div class="mountain-layer">
-            <svg class="mountain-far" viewBox="0 0 800 200" preserveAspectRatio="none" style="height:100%;opacity:0.7">
-                <polygon points="0,200 100,60 200,140 300,30 450,120 550,50 700,130 800,70 800,200" fill="#4A5868"/>
-                <polygon points="0,200 50,100 180,160 280,80 400,150 520,70 650,140 750,90 800,200" fill="#5A6878" opacity="0.7"/>
-            </svg>
-            <svg class="mountain-near" viewBox="0 0 800 180" preserveAspectRatio="none" style="height:90%">
-                <polygon points="0,180 80,50 160,110 260,20 380,90 480,40 600,100 700,30 800,80 800,180" fill="#5A7A5A"/>
-                <polygon points="0,180 120,70 220,130 340,50 460,110 580,60 680,120 800,50 800,180" fill="#6A8A6A" opacity="0.8"/>
-            </svg>
-        </div>
-        <div class="midground" id="midgroundTrees"></div>
-        <div class="road-layer"><div class="road-line"></div></div>
-        <div class="bus-exterior" id="busExterior" onclick="enterBus()">
-            <svg viewBox="0 0 240 160" width="200" height="133" xmlns="http://www.w3.org/2000/svg">
-                <!-- Bus body -->
-                <rect x="20" y="20" width="200" height="120" rx="12" fill="#E8734A"/>
-                <rect x="20" y="20" width="200" height="120" rx="12" fill="url(#busShine)" opacity="0.3"/>
-                <defs>
-                    <linearGradient id="busShine" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#fff" stop-opacity="0.3"/>
-                        <stop offset="100%" stop-color="#000" stop-opacity="0.1"/>
-                    </linearGradient>
-                </defs>
-                <!-- Floor lines -->
-                <line x1="25" y1="62" x2="215" y2="62" stroke="#C0604A" stroke-width="1.5"/>
-                <line x1="25" y1="98" x2="215" y2="98" stroke="#C0604A" stroke-width="1.5"/>
-                <!-- 3F windows -->
-                <rect x="35" y="28" width="28" height="26" rx="4" fill="#87CEEB" opacity="0.7"/>
-                <rect x="70" y="28" width="28" height="26" rx="4" fill="#87CEEB" opacity="0.7"/>
-                <rect x="105" y="28" width="28" height="26" rx="4" fill="#87CEEB" opacity="0.7"/>
-                <rect x="145" y="28" width="50" height="26" rx="4" fill="#87CEEB" opacity="0.6"/>
-                <!-- 2F windows -->
-                <rect x="35" y="68" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.65"/>
-                <rect x="70" y="68" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.65"/>
-                <rect x="105" y="68" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.65"/>
-                <rect x="145" y="68" width="50" height="24" rx="4" fill="#87CEEB" opacity="0.55"/>
-                <!-- 1F windows -->
-                <rect x="35" y="104" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.6"/>
-                <rect x="70" y="104" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.6"/>
-                <rect x="105" y="104" width="28" height="24" rx="4" fill="#87CEEB" opacity="0.6"/>
-                <!-- Door -->
-                <rect x="150" y="100" width="40" height="36" rx="4" fill="#C0604A"/>
-                <rect x="154" y="104" width="32" height="28" rx="3" fill="#A0D8EF" opacity="0.5"/>
-                <!-- Roof details -->
-                <rect x="18" y="16" width="204" height="8" rx="4" fill="#C0604A"/>
-                <!-- Chimney -->
-                <rect x="175" y="2" width="12" height="18" rx="2" fill="#666"/>
-                <g id="busSmoke"></g>
-                <!-- Wheels -->
-                <circle cx="60" cy="142" r="14" fill="#333" stroke="#555" stroke-width="3"/>
-                <circle cx="60" cy="142" r="4" fill="#888"/>
-                <circle cx="180" cy="142" r="14" fill="#333" stroke="#555" stroke-width="3"/>
-                <circle cx="180" cy="142" r="4" fill="#888"/>
-                <!-- Headlight -->
-                <ellipse cx="222" cy="118" rx="5" ry="8" fill="#FFD54F" opacity="0.8"/>
-                <!-- BarcodeQuest sign -->
-                <rect x="55" y="5" width="80" height="14" rx="3" fill="rgba(0,0,0,0.3)"/>
-                <text x="95" y="15" text-anchor="middle" fill="#FFD194" font-size="8" font-weight="700" font-family="Poppins,sans-serif">TRAVEL BUS</text>
-            </svg>
-        </div>
-        <div class="landscape-creatures" id="landscapeCreatures"></div>
-        <div class="foreground" id="foregroundLayer"></div>
-        <!-- UI Overlay -->
+        <!-- UI Overlay (preserved) -->
         <div class="landscape-ui">
             <div class="ls-title">BarcodeQuest</div>
-            <div class="ls-subtitle">Travel Bus Adventure</div>
+            <div class="ls-subtitle">A Journey to Remembered Places</div>
             <div class="ls-stats">
                 <div class="ls-stat"><span class="stat-val" id="lsLevel">Lv.1</span></div>
                 <div class="ls-stat"><span class="stat-val" id="lsGold">1,000G</span></div>
@@ -1561,7 +1754,7 @@ GAME_HTML = """
             <span id="pEnergy">100E</span>
         </div>
     </div>
-    <div class="container">
+    <div class="container" id="panelContainer">
         <div class="tabs">
             <div class="tab active" onclick="showTab('scan')">Scan</div>
             <div class="tab" onclick="showTab('battle')">Battle</div>
@@ -1715,11 +1908,6 @@ GAME_HTML = """
             </div>
 
             <div id="scanResult"></div>
-            <!-- Gacha Scan Overlay -->
-            <div id="scanOverlay" class="scan-overlay" style="display:none">
-                <div id="scanStageContent"></div>
-                <button class="skip-btn" onclick="skipScanAnimation()">SKIP</button>
-            </div>
         </div>
 
         <!-- BATTLE TAB -->
@@ -1773,6 +1961,11 @@ GAME_HTML = """
             <div id="questList"></div>
         </div>
     </div>
+    <!-- Gacha Scan Overlay (global, z-index 1000) -->
+    <div id="scanOverlay" class="scan-overlay" style="display:none">
+        <div id="scanStageContent"></div>
+        <button class="skip-btn" onclick="skipScanAnimation()">SKIP</button>
+    </div>
     <!-- Bus Build Modal (global) -->
     <div id="busBuildModal" class="bus-modal" style="display:none;z-index:1000">
         <div class="bus-modal-content">
@@ -1820,19 +2013,19 @@ GAME_HTML = """
         }
 
         function enterBus() {
-            const busEl = document.getElementById('busExterior');
-            busEl.style.transition = 'transform 0.6s ease-in';
-            busEl.style.transform = 'translateX(-50%) scale(3)';
-            busEl.style.opacity = '0';
+            const busEl = document.getElementById('aerialBus');
+            const scene = document.getElementById('aerialScene');
+            // Glow effect on bus
+            busEl.classList.add('entering');
+            // Zoom + blur the whole scene
+            scene.classList.add('zoom-out');
             setTimeout(() => {
                 switchView('BUS_INTERIOR');
                 loadBus();
-                // Reset bus exterior for when we return
-                busEl.style.transition = 'none';
-                busEl.style.transform = '';
-                busEl.style.opacity = '';
-                setTimeout(() => { busEl.style.transition = ''; }, 50);
-            }, 500);
+                // Reset for return
+                busEl.classList.remove('entering');
+                scene.classList.remove('zoom-out');
+            }, 700);
         }
 
         function exitBus() {
@@ -1851,7 +2044,9 @@ GAME_HTML = """
             if (activeFeatureTab) {
                 const prevPanel = document.getElementById('panel-' + activeFeatureTab);
                 if (prevPanel && prevPanel.parentNode === foBody) {
-                    document.querySelector('.container').appendChild(prevPanel);
+                    prevPanel.classList.remove('active');
+                    prevPanel.style.display = '';
+                    document.getElementById('panelContainer').appendChild(prevPanel);
                 }
             }
 
@@ -1890,7 +2085,7 @@ GAME_HTML = """
                 if (panel) {
                     panel.classList.remove('active');
                     panel.style.display = '';
-                    document.querySelector('.container').appendChild(panel);
+                    document.getElementById('panelContainer').appendChild(panel);
                 }
                 activeFeatureTab = null;
             }
@@ -1908,133 +2103,155 @@ GAME_HTML = """
             if (name==='bus') loadBus();
         }
 
-        // === LANDSCAPE INITIALIZATION ===
+        // === AERIAL LANDSCAPE INITIALIZATION ===
+        let aerialBusAnimId = null;
+        let aerialDayNightInterval = null;
+        let aerialAnimalInterval = null;
+
         function initLandscape() {
-            initLandscapeTrees();
-            initLandscapeFlowers();
-            initLandscapeCreatures();
-            initLandscapeStars();
-            initParallax();
-            // Bus entrance animation on load
-            const busEl = document.getElementById('busExterior');
-            busEl.classList.add('bus-entering');
-            setTimeout(() => busEl.classList.remove('bus-entering'), 1600);
+            initAerialBusPath();
+            initAerialAnimals();
+            initAerialPetals();
+            initAerialFireflies();
+            initAerialDayNight();
+            initAerialParallax();
         }
 
-        function initLandscapeTrees() {
-            const container = document.getElementById('midgroundTrees');
+        function initAerialBusPath() {
+            // Place bus stationary on the road at ~45% of path length
+            const roadSvg = document.querySelector('.aerial-road-layer svg');
+            const busEl = document.getElementById('aerialBus');
+            if (!roadSvg || !busEl) return;
+            const path = roadSvg.getElementById('aerialRoadPath');
+            if (!path) return;
+
+            function placeBus() {
+                const totalLength = path.getTotalLength();
+                const pt = path.getPointAtLength(totalLength * 0.45);
+                // Get road angle at this point for bus rotation
+                const ahead = path.getPointAtLength(totalLength * 0.455);
+                const dx = ahead.x - pt.x;
+                const dy = ahead.y - pt.y;
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI - 90;
+
+                // Convert SVG viewBox coords to screen %
+                const container = roadSvg.closest('.aerial-scene');
+                if (!container) return;
+                const rect = container.getBoundingClientRect();
+                const svgW = 120, svgH = 180;
+                const scaleX = rect.width / svgW;
+                const scaleY = rect.height / svgH;
+                const scale = Math.max(scaleX, scaleY);
+                const offsetX = (rect.width - svgW * scale) / 2;
+                const offsetY = (rect.height - svgH * scale) / 2;
+
+                busEl.style.left = (pt.x * scale + offsetX) + 'px';
+                busEl.style.top = (pt.y * scale + offsetY) + 'px';
+                busEl.style.transform = 'translate(-50%, -50%) rotate(' + angle + 'deg)';
+            }
+            placeBus();
+            window.addEventListener('resize', placeBus);
+        }
+
+        function initAerialAnimals() {
+            const container = document.getElementById('aerialAnimals');
             if (!container) return;
-            const treeColors = ['#5A8A5A','#4A7A4A','#6B9B6B','#3A6A3A','#7BC67E'];
-            let treesHtml = '<svg viewBox="0 0 800 160" preserveAspectRatio="none" style="width:100%;height:100%">';
+            // 6 pixel art animal sprites
+            const animalSVGs = [
+                // Pixel Cat (orange tabby, curled)
+                '<svg viewBox="0 0 10 10" width="20" height="20" style="image-rendering:pixelated"><rect x="2" y="3" width="1" height="1" fill="#C0A060"/><rect x="4" y="3" width="1" height="1" fill="#C0A060"/><rect x="2" y="4" width="4" height="1" fill="#D4A860"/><rect x="1" y="5" width="5" height="2" fill="#D4A860"/><rect x="5" y="6" width="3" height="1" fill="#D4A860"/><rect x="7" y="5" width="1" height="1" fill="#D4A860"/><rect x="3" y="5" width="1" height="1" fill="#333"/><rect x="5" y="5" width="1" height="1" fill="#333"/><rect x="1" y="7" width="5" height="1" fill="#C09850"/></svg>',
+                // Pixel Dog (brown, lying)
+                '<svg viewBox="0 0 12 10" width="24" height="20" style="image-rendering:pixelated"><rect x="1" y="3" width="2" height="1" fill="#B08040"/><rect x="5" y="3" width="2" height="1" fill="#B08040"/><rect x="1" y="4" width="7" height="2" fill="#C09050"/><rect x="7" y="5" width="3" height="1" fill="#C09050"/><rect x="9" y="4" width="2" height="1" fill="#C09050"/><rect x="3" y="4" width="1" height="1" fill="#333"/><rect x="5" y="4" width="1" height="1" fill="#333"/><rect x="4" y="5" width="1" height="1" fill="#222"/><rect x="1" y="6" width="7" height="1" fill="#A07838"/></svg>',
+                // Pixel Rabbit (white)
+                '<svg viewBox="0 0 8 10" width="16" height="20" style="image-rendering:pixelated"><rect x="2" y="0" width="1" height="3" fill="#F0E8E0"/><rect x="5" y="0" width="1" height="3" fill="#F0E8E0"/><rect x="2" y="1" width="1" height="1" fill="#FFB0B0"/><rect x="5" y="1" width="1" height="1" fill="#FFB0B0"/><rect x="1" y="3" width="6" height="2" fill="#E8E0D8"/><rect x="3" y="3" width="1" height="1" fill="#E06080"/><rect x="5" y="3" width="1" height="1" fill="#E06080"/><rect x="4" y="4" width="1" height="1" fill="#FFB0B0"/><rect x="1" y="5" width="6" height="3" fill="#E8E0D8"/><rect x="1" y="8" width="2" height="1" fill="#F0E8E0"/><rect x="5" y="8" width="2" height="1" fill="#F0E8E0"/></svg>',
+                // Pixel Bird (blue)
+                '<svg viewBox="0 0 8 8" width="16" height="16" style="image-rendering:pixelated"><rect x="3" y="1" width="2" height="2" fill="#67C8D9"/><rect x="4" y="1" width="1" height="1" fill="#333"/><rect x="5" y="2" width="1" height="1" fill="#FFB060"/><rect x="2" y="3" width="4" height="2" fill="#5AB8C8"/><rect x="1" y="4" width="2" height="1" fill="#4AA0B0"/><rect x="5" y="4" width="2" height="1" fill="#4AA0B0"/><rect x="3" y="5" width="2" height="1" fill="#67C8D9"/><rect x="3" y="6" width="1" height="1" fill="#FFB060"/><rect x="4" y="6" width="1" height="1" fill="#FFB060"/></svg>',
+                // Pixel Deer (brown with antlers)
+                '<svg viewBox="0 0 10 12" width="20" height="24" style="image-rendering:pixelated"><rect x="2" y="0" width="1" height="1" fill="#8B6B4A"/><rect x="1" y="1" width="1" height="1" fill="#8B6B4A"/><rect x="3" y="1" width="1" height="1" fill="#8B6B4A"/><rect x="7" y="0" width="1" height="1" fill="#8B6B4A"/><rect x="6" y="1" width="1" height="1" fill="#8B6B4A"/><rect x="8" y="1" width="1" height="1" fill="#8B6B4A"/><rect x="3" y="2" width="4" height="2" fill="#C8A070"/><rect x="4" y="2" width="1" height="1" fill="#333"/><rect x="6" y="2" width="1" height="1" fill="#333"/><rect x="3" y="4" width="4" height="4" fill="#C8A070"/><rect x="2" y="5" width="1" height="2" fill="#C8A070"/><rect x="7" y="5" width="1" height="2" fill="#C8A070"/><rect x="4" y="4" width="2" height="1" fill="#E8D0A0"/><rect x="3" y="8" width="1" height="2" fill="#A08060"/><rect x="6" y="8" width="1" height="2" fill="#A08060"/></svg>',
+                // Pixel Hamster (round, golden)
+                '<svg viewBox="0 0 8 8" width="16" height="16" style="image-rendering:pixelated"><rect x="2" y="1" width="4" height="2" fill="#E8C898"/><rect x="1" y="1" width="1" height="1" fill="#F0D8B0"/><rect x="6" y="1" width="1" height="1" fill="#F0D8B0"/><rect x="3" y="1" width="1" height="1" fill="#333"/><rect x="5" y="1" width="1" height="1" fill="#333"/><rect x="4" y="2" width="1" height="1" fill="#FFB0B0"/><rect x="1" y="3" width="6" height="3" fill="#E8C898"/><rect x="2" y="3" width="1" height="1" fill="#F0C0A0"/><rect x="5" y="3" width="1" height="1" fill="#F0C0A0"/><rect x="2" y="6" width="1" height="1" fill="#D8B888"/><rect x="5" y="6" width="1" height="1" fill="#D8B888"/></svg>'
+            ];
+            const count = 4 + Math.floor(Math.random() * 3); // 4-6 animals
+            for (let i = 0; i < count; i++) {
+                const el = document.createElement('div');
+                el.className = 'aerial-animal';
+                el.innerHTML = animalSVGs[i % animalSVGs.length];
+                // Random position in safe area (avoid road center)
+                el.style.left = (5 + Math.random() * 85) + '%';
+                el.style.top = (10 + Math.random() * 75) + '%';
+                container.appendChild(el);
+            }
+            // Gentle movement every 8 seconds
+            aerialAnimalInterval = setInterval(() => {
+                const animals = container.querySelectorAll('.aerial-animal');
+                animals.forEach(a => {
+                    const newX = 5 + Math.random() * 85;
+                    const newY = 10 + Math.random() * 75;
+                    a.style.left = newX + '%';
+                    a.style.top = newY + '%';
+                });
+            }, 8000);
+        }
+
+        function initAerialPetals() {
+            const container = document.getElementById('aerialPetals');
+            if (!container) return;
+            const petalColors = ['#FFB5C2', '#FFC4D0', '#FFD0DA', '#FFAAB8'];
+            for (let i = 0; i < 18; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                petal.style.setProperty('--petal-color', petalColors[i % petalColors.length]);
+                petal.style.setProperty('--petal-x', (Math.random() * 100) + '%');
+                petal.style.setProperty('--petal-duration', (10 + Math.random() * 8) + 's');
+                petal.style.setProperty('--petal-delay', (Math.random() * 12) + 's');
+                petal.style.setProperty('--petal-drift-x', (-30 + Math.random() * 60) + 'px');
+                petal.style.setProperty('--petal-rotate', (180 + Math.random() * 360) + 'deg');
+                petal.style.setProperty('--petal-scale', (0.6 + Math.random() * 0.8).toFixed(2));
+                container.appendChild(petal);
+            }
+        }
+
+        function initAerialFireflies() {
+            const container = document.getElementById('aerialFireflies');
+            if (!container) return;
             for (let i = 0; i < 12; i++) {
-                const x = 30 + Math.random() * 740;
-                const h = 40 + Math.random() * 80;
-                const w = 15 + Math.random() * 25;
-                const color = treeColors[Math.floor(Math.random() * treeColors.length)];
-                const ty = 160 - h;
-                treesHtml += '<rect x="' + (x-2) + '" y="' + (ty+h*0.6) + '" width="4" height="' + (h*0.4) + '" fill="#8B6B4A"/>';
-                treesHtml += '<ellipse cx="' + x + '" cy="' + (ty+h*0.35) + '" rx="' + w + '" ry="' + (h*0.45) + '" fill="' + color + '"/>';
-                treesHtml += '<ellipse cx="' + (x-w*0.3) + '" cy="' + (ty+h*0.25) + '" rx="' + (w*0.6) + '" ry="' + (h*0.3) + '" fill="' + color + '" opacity="0.7"/>';
-            }
-            treesHtml += '</svg>';
-            container.innerHTML = treesHtml;
-        }
-
-        function initLandscapeFlowers() {
-            const fg = document.getElementById('foregroundLayer');
-            if (!fg) return;
-            let html = '<svg viewBox="0 0 800 80" preserveAspectRatio="none" style="width:100%;height:100%">';
-            // Grass base
-            html += '<rect x="0" y="20" width="800" height="60" fill="#7BC67E"/>';
-            html += '<rect x="0" y="15" width="800" height="15" fill="#8BD68D"/>';
-            // Flowers
-            const flowerColors = ['#FF6B8A','#FFD54F','#FF8C5A','#C084FC','#67E8F9','#FFFFFF'];
-            for (let i = 0; i < 25; i++) {
-                const x = Math.random() * 800;
-                const y = 12 + Math.random() * 20;
-                const color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
-                const size = 2 + Math.random() * 3;
-                html += '<line x1="' + x + '" y1="' + (y+8) + '" x2="' + x + '" y2="' + (y+size+8) + '" stroke="#5A9A5A" stroke-width="1"/>';
-                html += '<circle cx="' + x + '" cy="' + y + '" r="' + size + '" fill="' + color + '" opacity="0.8"/>';
-            }
-            html += '</svg>';
-            fg.innerHTML = html;
-        }
-
-        function initLandscapeCreatures() {
-            const container = document.getElementById('landscapeCreatures');
-            if (!container) return;
-            // Show 2-3 creatures from party if available
-            fetch('/api/party?session=default').then(r => r.json()).then(d => {
-                const party = d.party || [];
-                const count = Math.min(3, party.length);
-                if (count === 0) {
-                    // Show default creatures
-                    const defaults = [
-                        {shape:'Fox', color:'#ff6b8a', x:15},
-                        {shape:'Bird', color:'#67e8f9', x:75}
-                    ];
-                    defaults.forEach(c => {
-                        const svg = generateMonsterSVG(c.shape, c.color, 'Rare');
-                        const el = document.createElement('div');
-                        el.className = 'landscape-creature';
-                        el.style.left = c.x + '%';
-                        el.style.bottom = Math.random() * 40 + '%';
-                        el.innerHTML = svg.replace(/width="\\d+"/g, 'width="32"').replace(/height="\\d+"/g, 'height="32"');
-                        el.style.animationDelay = (Math.random() * 3) + 's';
-                        container.appendChild(el);
-                    });
-                } else {
-                    for (let i = 0; i < count; i++) {
-                        const m = party[i];
-                        const colorHex = getMonsterColorHex(m.color);
-                        const svg = generateMonsterSVG(m.body_shape, colorHex, m.rarity);
-                        const el = document.createElement('div');
-                        el.className = 'landscape-creature';
-                        el.style.left = (15 + i * 30) + '%';
-                        el.style.bottom = (10 + Math.random() * 50) + '%';
-                        el.innerHTML = svg.replace(/width="\\d+"/g, 'width="32"').replace(/height="\\d+"/g, 'height="32"');
-                        el.style.animationDelay = (i * 1.2) + 's';
-                        container.appendChild(el);
-                    }
-                }
-            }).catch(() => {});
-        }
-
-        function initLandscapeStars() {
-            const container = document.getElementById('starsLayer');
-            if (!container) return;
-            for (let i = 0; i < 30; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                star.style.animationDelay = (Math.random() * 5) + 's';
-                star.style.animationDuration = (2 + Math.random() * 3) + 's';
-                const size = 1 + Math.random() * 2;
-                star.style.width = size + 'px';
-                star.style.height = size + 'px';
-                container.appendChild(star);
+                const ff = document.createElement('div');
+                ff.className = 'firefly';
+                ff.style.left = (10 + Math.random() * 80) + '%';
+                ff.style.top = (10 + Math.random() * 80) + '%';
+                ff.style.setProperty('--ff-glow-dur', (2 + Math.random() * 3) + 's');
+                ff.style.setProperty('--ff-float-dur', (5 + Math.random() * 5) + 's');
+                ff.style.setProperty('--ff-delay', (Math.random() * 5) + 's');
+                ff.style.setProperty('--ff-dx', (-15 + Math.random() * 30) + 'px');
+                ff.style.setProperty('--ff-dy', (-15 + Math.random() * 30) + 'px');
+                container.appendChild(ff);
             }
         }
 
-        function initParallax() {
-            const landscape = document.getElementById('landscape-view');
-            if (!landscape) return;
+        function initAerialDayNight() {
+            const fireflies = document.getElementById('aerialFireflies');
+            if (!fireflies) return;
+            const startTime = Date.now();
+            aerialDayNightInterval = setInterval(() => {
+                const elapsed = ((Date.now() - startTime) / 1000) % 120;
+                // Night phase: 40-60% of 120s = 48-72s
+                const isNight = elapsed > 45 && elapsed < 75;
+                fireflies.classList.toggle('visible', isNight);
+            }, 2000);
+        }
+
+        function initAerialParallax() {
+            const scene = document.getElementById('aerialScene');
+            if (!scene) return;
             let ticking = false;
+            const landscape = document.getElementById('landscape-view');
             landscape.addEventListener('mousemove', (e) => {
                 if (ticking) return;
                 ticking = true;
                 requestAnimationFrame(() => {
                     const x = (e.clientX / window.innerWidth - 0.5) * 2;
                     const y = (e.clientY / window.innerHeight - 0.5) * 2;
-                    const mountains = document.querySelector('.mountain-layer');
-                    const midground = document.getElementById('midgroundTrees');
-                    const bus = document.getElementById('busExterior');
-                    const clouds = document.querySelectorAll('.cloud');
-                    if (mountains) mountains.style.transform = 'translateX(' + (x * -3) + 'px)';
-                    if (midground) midground.style.transform = 'translateX(' + (x * -6) + 'px)';
-                    clouds.forEach((c, i) => { c.style.marginTop = (y * (2 + i)) + 'px'; });
+                    scene.style.transform = 'translate(' + (x * -4) + 'px, ' + (y * -4) + 'px)';
                     ticking = false;
                 });
             });
@@ -2044,10 +2261,7 @@ GAME_HTML = """
                     if (!e.gamma || !e.beta) return;
                     const x = e.gamma / 45;
                     const y = (e.beta - 45) / 45;
-                    const mountains = document.querySelector('.mountain-layer');
-                    const midground = document.getElementById('midgroundTrees');
-                    if (mountains) mountains.style.transform = 'translateX(' + (x * -5) + 'px)';
-                    if (midground) midground.style.transform = 'translateX(' + (x * -10) + 'px)';
+                    scene.style.transform = 'translate(' + (x * -6) + 'px, ' + (y * -6) + 'px)';
                 });
             }
         }
@@ -2073,7 +2287,6 @@ GAME_HTML = """
             for (let floorNum = 1; floorNum <= 3; floorNum++) {
                 const floorEl = document.getElementById('csFloor' + floorNum);
                 const slotsEl = document.getElementById('csSlots' + floorNum);
-                const divAbove = document.getElementById('csDivider' + (floorNum-1) + '' + floorNum) || document.getElementById('csDivider' + floorNum + '' + (floorNum+1));
 
                 if (floorNum > d.max_floor) {
                     floorEl.style.display = 'none';
@@ -2107,7 +2320,7 @@ GAME_HTML = """
                         const nameHash = (s.monster.name || '').split('').reduce(function(a,c){ return a + c.charCodeAt(0); }, 0);
                         const bodyShape = shapeKeys[nameHash % shapeKeys.length];
                         const svg = generateMonsterSVG(bodyShape, colorHex, s.monster.rarity || 'Common');
-                        creatureHtml = '<div class="cs-creature-mini">' + svg.replace(/width="\\d+"/g, 'width="28"').replace(/height="\\d+"/g, 'height="28"') + '</div>';
+                        creatureHtml = '<div class="cs-creature-mini">' + svg.replace(/width="\\d+"/g, 'width="36"').replace(/height="\\d+"/g, 'height="36"') + '</div>';
                         if (s.affinity) {
                             affHtml = '<span class="cs-affinity grade-' + s.affinity.grade + '">' + s.affinity.grade + '</span>';
                         }
