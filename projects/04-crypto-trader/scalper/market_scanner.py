@@ -78,8 +78,9 @@ class MarketScanner:
             logger.warning("Scanner: no tickers returned")
             return
 
-        # Fetch 24h volume for each ticker
+        # Fetch 24h volume + volatility for each ticker
         volumes: dict[str, float] = {}
+        volatilities: dict[str, float] = {}  # ticker -> (high-low)/close
         for ticker in tickers:
             try:
                 df = pyupbit.get_ohlcv(ticker, interval="day", count=1)
@@ -91,6 +92,10 @@ class MarketScanner:
                         # Fallback: close * volume
                         vol_krw = float(df["close"].iloc[-1] * df["volume"].iloc[-1])
                     volumes[ticker] = vol_krw
+                    # 24h 변동성: (고가-저가)/종가
+                    close = float(df["close"].iloc[-1])
+                    if close > 0:
+                        volatilities[ticker] = (float(df["high"].iloc[-1]) - float(df["low"].iloc[-1])) / close
                 time.sleep(0.1)  # Rate limit: 10 req/sec for Upbit
             except Exception as e:
                 logger.debug(f"Scanner: failed to get volume for {ticker}: {e}")
@@ -100,9 +105,16 @@ class MarketScanner:
             logger.warning("Scanner: no volume data retrieved")
             return
 
-        # Filter by minimum volume and sort
+        # Filter by minimum volume, then score by volume * volatility
         qualified = {k: v for k, v in volumes.items() if v >= self._min_volume}
-        sorted_markets = sorted(qualified.items(), key=lambda x: x[1], reverse=True)
+        # Combined score: volume_rank * volatility -> favors liquid + volatile coins
+        scores = {}
+        for ticker, vol in qualified.items():
+            vol_pct = volatilities.get(ticker, 0.0)
+            # Score = volume * (1 + volatility*10): volatile coins boosted
+            scores[ticker] = vol * (1 + vol_pct * 10)
+
+        sorted_markets = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         top_markets = [m for m, _ in sorted_markets[:self._top_n]]
 
         # Always include default markets (BTC, ETH etc.) even if scanner missed them

@@ -69,6 +69,7 @@ class EnsembleStrategy:
                 metadata=sig_meta,
             )
 
+
         buy_weight = 0.0
         sell_weight = 0.0
         buy_count = 0
@@ -91,18 +92,9 @@ class EnsembleStrategy:
         # 추세 필터: EMA 기울기로 역추세 진입 방지
         trend = self._get_trend(df)
 
-        # BUY 조건: 동의 수 + 신뢰도 문턱 + 추세 필터
-        # 단일 전략은 높은 신뢰도 필요, 복수 전략은 낮은 문턱 허용
-        single_strategy_min = getattr(config, 'SINGLE_STRATEGY_MIN_CONFIDENCE', 0.50)
+        # BUY 조건: 최소 2전략 합의 + 신뢰도 문턱 + 추세 필터
         if buy_count >= config.MIN_AGREEMENT and buy_weight > sell_weight:
-            # 신뢰도 체크: 단일 전략 시 더 높은 문턱 적용
-            if buy_count == 1 and buy_weight < single_strategy_min:
-                return ScalpSignal(
-                    signal=SignalType.HOLD, strategy_name="ensemble",
-                    reason=f"Single strategy BUY confidence too low ({buy_weight:.2f}<{single_strategy_min})",
-                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
-                )
-            if buy_count >= 2 and buy_weight < config.MIN_ENSEMBLE_CONFIDENCE:
+            if buy_weight < config.MIN_ENSEMBLE_CONFIDENCE:
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"BUY confidence too low ({buy_weight:.2f}<{config.MIN_ENSEMBLE_CONFIDENCE})",
@@ -131,15 +123,9 @@ class EnsembleStrategy:
                           "buy_count": buy_count},
             )
 
-        # SELL 조건: 단일 전략 허용 + 상승추세에서만 매도 차단
+        # SELL 조건: 최소 2전략 합의 + 상승추세에서만 매도 차단
         if sell_count >= config.MIN_AGREEMENT and sell_weight > buy_weight:
-            if sell_count == 1 and sell_weight < single_strategy_min:
-                return ScalpSignal(
-                    signal=SignalType.HOLD, strategy_name="ensemble",
-                    reason=f"Single strategy SELL confidence too low ({sell_weight:.2f}<{single_strategy_min})",
-                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
-                )
-            if sell_count >= 2 and sell_weight < config.MIN_ENSEMBLE_CONFIDENCE:
+            if sell_weight < config.MIN_ENSEMBLE_CONFIDENCE:
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"SELL confidence too low ({sell_weight:.2f}<{config.MIN_ENSEMBLE_CONFIDENCE})",

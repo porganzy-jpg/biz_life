@@ -1,13 +1,13 @@
 """
-Upbit Scalping Bot Configuration - v5.0
+Upbit Scalping Bot Configuration - v6.3
 
-v5 changes:
-- 3분봉 → 15분봉 (노이즈 감소, 안정적 신호)
-- SL/TP 대폭 확대 (0.7% → 2.0% SL, 0.8% → 2.0% TP)
-- 진입 조건 완화 (단일 전략 허용, 신뢰도 문턱 하향)
-- 대형 코인만 거래 (최소 거래대금 500억)
-- 시그널 매도는 수익 중일 때만
-- bars_held 계산 버그 수정용 CANDLE_INTERVAL_SEC 추가
+v6 changes (from v5):
+- ATR 적응형 SL: 코인 변동성에 비례하는 손절 (하드캡 1.2%→3.0%)
+- ATR SL=1.5x, TP=4.0x: 변동성 높은 코인에서 자연스러운 R:R
+- 트레일링 개선: 0.8% 활성화, 0.3% 추적 (수익 조기 확보)
+- Breakeven 지연: 16봉→48봉 (12시간, 조기 탈출 방지)
+- 진입 강화: 최소 2전략 합의, 추세 위치 필터 활성화
+- 스캐너 변동성 가중: 거래대금 * 변동성 복합 점수로 마켓 선정
 """
 import os
 from dotenv import load_dotenv
@@ -64,9 +64,8 @@ DEFAULT_WEIGHTS = {
     "stoch_rsi": 0.25,
     "ema_cross": 0.20,
 }
-MIN_AGREEMENT = 1             # 단일 전략도 허용 (2 → 1, 높은 신뢰도 시)
-MIN_ENSEMBLE_CONFIDENCE = 0.20  # 신뢰도 문턱 하향 (0.35 → 0.20)
-SINGLE_STRATEGY_MIN_CONFIDENCE = 0.50  # 단일 전략 시 최소 신뢰도
+MIN_AGREEMENT = 2             # 최소 2전략 합의 필수 (1 → 2, 진입 품질 향상)
+MIN_ENSEMBLE_CONFIDENCE = 0.25  # 2전략 이상 합산 신뢰도 문턱 (0.20 → 0.25)
 WEIGHT_EMA_ALPHA = 0.1
 ENTRY_COOLDOWN_BARS = 3       # 15분봉 기준 3봉 = 45분 대기 (5 → 3)
 
@@ -77,7 +76,7 @@ SIGNAL_EXIT_MIN_PROFIT = 0.003  # 수익 +0.3% 이상일 때만 시그널 매도
 # === Trend Filter (앙상블 레벨) ===
 TREND_EMA_PERIOD = 50         # 장기 추세 판단
 TREND_LOOKBACK = 10           # 기울기 측정 구간
-TREND_POSITION_FILTER = False # 비활성화 (True → False): 과도한 필터링 방지
+TREND_POSITION_FILTER = True  # 활성화: 가격이 EMA50 위에서만 매수 (하락세 진입 차단)
 
 # === Volatility Regime Filter ===
 VOL_ATR_LOOKBACK = 60         # ATR 분포 계산 기간
@@ -85,19 +84,19 @@ VOL_LOW_PERCENTILE = 0.10     # 횡보장 허용 폭 확대 (0.2 → 0.10)
 VOL_HIGH_PERCENTILE = 0.95    # 극단적 변동성만 제외 (0.9 → 0.95)
 
 # === Risk Management ===
-RISK_PER_TRADE = 0.02         # 잔고 2.0% 리스크 (1% → 2%)
+RISK_PER_TRADE = 0.02         # 잔고 2.0% 리스크
 ATR_PERIOD = 14               # 유지
-ATR_STOP_MULTIPLIER = 1.5     # 15분봉 ATR 비례 (2.0 → 1.5)
-ATR_TP_MULTIPLIER = 3.0       # 15분봉 ATR 비례 (3.5 → 3.0)
-STOP_LOSS_MIN_PCT = 0.008     # 0.8% 최소 스탑 (0.3% → 0.8%)
-STOP_LOSS_HARD_CAP = 0.020    # 2.0% 하드캡 (0.7% → 2.0%)
-TAKE_PROFIT_PCT = 0.020       # 2.0% 익절 (0.8% → 2.0%)
-TAKE_PROFIT_MIN = 0.012       # 1.2% 최소 TP (0.6% → 1.2%)
-TRAILING_ACTIVATE_PCT = 0.010 # 1.0% 수익 시 트레일링 (0.4% → 1.0%)
-TRAILING_STOP_PCT = 0.005     # 0.5% 추적 (0.2% → 0.5%)
+ATR_STOP_MULTIPLIER = 1.5     # ATR 비례 SL: 코인 변동성에 적응 (1.0 → 1.5)
+ATR_TP_MULTIPLIER = 4.0       # ATR 비례 TP (4.5 → 4.0)
+STOP_LOSS_MIN_PCT = 0.005     # 0.5% 최소 스탑
+STOP_LOSS_HARD_CAP = 0.030    # 3.0% 하드캡 (1.2% → 3.0%): ATR 우선, 안전망만
+TAKE_PROFIT_PCT = 0.030       # 3.0% 최소 TP 목표
+TAKE_PROFIT_MIN = 0.020       # 2.0% 최소 TP
+TRAILING_ACTIVATE_PCT = 0.008 # 0.8% 수익 시 트레일링 (1.0% → 0.8%): 빨리 활성화
+TRAILING_STOP_PCT = 0.003     # 0.3% 추적 (0.5% → 0.3%): 타이트한 추적
 
 # === Breakeven Stop ===
-BREAKEVEN_AFTER_BARS = 16     # 15분봉 16봉 = 4시간 후 BEP (20 → 16)
+BREAKEVEN_AFTER_BARS = 48     # 15분봉 48봉 = 12시간 후 BEP (16 → 48): 조기 탈출 방지
 BREAKEVEN_BUFFER = 0.002      # 0.2% 버퍼 (0.1% → 0.2%)
 COMMISSION_RATE = 0.0005      # 업비트 편도 0.05%
 ROUND_TRIP_COMMISSION = 0.001 # 왕복 0.1%
