@@ -92,18 +92,27 @@ class EnsembleStrategy:
         trend = self._get_trend(df)
 
         # BUY 조건: 동의 수 + 신뢰도 문턱 + 추세 필터
+        # 단일 전략은 높은 신뢰도 필요, 복수 전략은 낮은 문턱 허용
+        single_strategy_min = getattr(config, 'SINGLE_STRATEGY_MIN_CONFIDENCE', 0.50)
         if buy_count >= config.MIN_AGREEMENT and buy_weight > sell_weight:
-            if buy_weight < config.MIN_ENSEMBLE_CONFIDENCE:
+            # 신뢰도 체크: 단일 전략 시 더 높은 문턱 적용
+            if buy_count == 1 and buy_weight < single_strategy_min:
+                return ScalpSignal(
+                    signal=SignalType.HOLD, strategy_name="ensemble",
+                    reason=f"Single strategy BUY confidence too low ({buy_weight:.2f}<{single_strategy_min})",
+                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
+                )
+            if buy_count >= 2 and buy_weight < config.MIN_ENSEMBLE_CONFIDENCE:
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"BUY confidence too low ({buy_weight:.2f}<{config.MIN_ENSEMBLE_CONFIDENCE})",
                     metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                 )
-            # 상승추세에서만 매수 허용
-            if trend != "up":
+            # 하락추세에서만 매수 차단 (neutral은 허용)
+            if trend == "down":
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
-                    reason=f"BUY blocked: trend={trend} (need 'up'): {reason_str}",
+                    reason=f"BUY blocked: downtrend: {reason_str}",
                     metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                 )
             if getattr(config, 'TREND_POSITION_FILTER', False):
@@ -113,14 +122,6 @@ class EnsembleStrategy:
                         reason=f"BUY blocked: price below EMA({config.TREND_EMA_PERIOD}): {reason_str}",
                         metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                     )
-            # 캔들 확인: 약세봉에서는 매수 차단
-            candle_dir = self._candle_confirmation(df)
-            if candle_dir == "bearish":
-                return ScalpSignal(
-                    signal=SignalType.HOLD, strategy_name="ensemble",
-                    reason=f"BUY blocked: bearish candle confirmation: {reason_str}",
-                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
-                )
             return ScalpSignal(
                 signal=SignalType.BUY,
                 strategy_name="ensemble",
@@ -130,9 +131,15 @@ class EnsembleStrategy:
                           "buy_count": buy_count},
             )
 
-        # SELL 조건
+        # SELL 조건: 단일 전략 허용 + 상승추세에서만 매도 차단
         if sell_count >= config.MIN_AGREEMENT and sell_weight > buy_weight:
-            if sell_weight < config.MIN_ENSEMBLE_CONFIDENCE:
+            if sell_count == 1 and sell_weight < single_strategy_min:
+                return ScalpSignal(
+                    signal=SignalType.HOLD, strategy_name="ensemble",
+                    reason=f"Single strategy SELL confidence too low ({sell_weight:.2f}<{single_strategy_min})",
+                    metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
+                )
+            if sell_count >= 2 and sell_weight < config.MIN_ENSEMBLE_CONFIDENCE:
                 return ScalpSignal(
                     signal=SignalType.HOLD, strategy_name="ensemble",
                     reason=f"SELL confidence too low ({sell_weight:.2f}<{config.MIN_ENSEMBLE_CONFIDENCE})",

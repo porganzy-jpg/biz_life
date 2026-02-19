@@ -21,17 +21,17 @@ logger = logging.getLogger("scalper.optimizer")
 @dataclass
 class ParamProfile:
     """Runtime-overridable parameter snapshot."""
-    candle_interval: str = "minute3"
-    min_ensemble_confidence: float = 0.35
-    entry_cooldown_bars: int = 5
-    risk_per_trade: float = 0.01
-    atr_stop_multiplier: float = 2.0
-    atr_tp_multiplier: float = 3.5
-    stop_loss_hard_cap: float = 0.007
-    take_profit_pct: float = 0.008
-    trailing_activate_pct: float = 0.004
-    trailing_stop_pct: float = 0.002
-    breakeven_after_bars: int = 20
+    candle_interval: str = "minute15"
+    min_ensemble_confidence: float = 0.20
+    entry_cooldown_bars: int = 3
+    risk_per_trade: float = 0.02
+    atr_stop_multiplier: float = 1.5
+    atr_tp_multiplier: float = 3.0
+    stop_loss_hard_cap: float = 0.020
+    take_profit_pct: float = 0.020
+    trailing_activate_pct: float = 0.010
+    trailing_stop_pct: float = 0.005
+    breakeven_after_bars: int = 16
     weights: dict = field(default_factory=lambda: {
         "rsi_bb": 0.30, "vwap_volume": 0.25,
         "stoch_rsi": 0.25, "ema_cross": 0.20,
@@ -103,16 +103,16 @@ def _random_profile(base: ParamProfile) -> ParamProfile:
 
     return ParamProfile(
         candle_interval=base.candle_interval,  # keep candle interval fixed
-        min_ensemble_confidence=round(random.uniform(0.25, 0.50), 3),
-        entry_cooldown_bars=random.randint(3, 8),
-        risk_per_trade=round(random.uniform(0.005, 0.02), 4),
-        atr_stop_multiplier=round(random.uniform(1.5, 3.0), 2),
-        atr_tp_multiplier=round(random.uniform(2.5, 5.0), 2),
-        stop_loss_hard_cap=round(random.uniform(0.004, 0.012), 4),
-        take_profit_pct=round(random.uniform(0.005, 0.015), 4),
-        trailing_activate_pct=round(random.uniform(0.002, 0.008), 4),
-        trailing_stop_pct=round(random.uniform(0.001, 0.004), 4),
-        breakeven_after_bars=random.randint(10, 40),
+        min_ensemble_confidence=round(random.uniform(0.15, 0.35), 3),
+        entry_cooldown_bars=random.randint(2, 6),
+        risk_per_trade=round(random.uniform(0.01, 0.03), 4),
+        atr_stop_multiplier=round(random.uniform(1.0, 2.5), 2),
+        atr_tp_multiplier=round(random.uniform(2.0, 4.0), 2),
+        stop_loss_hard_cap=round(random.uniform(0.010, 0.030), 4),
+        take_profit_pct=round(random.uniform(0.010, 0.030), 4),
+        trailing_activate_pct=round(random.uniform(0.005, 0.015), 4),
+        trailing_stop_pct=round(random.uniform(0.003, 0.008), 4),
+        breakeven_after_bars=random.randint(8, 24),
         weights=weights,
     )
 

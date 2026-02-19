@@ -1,5 +1,13 @@
 """
-Upbit Scalping Bot Configuration
+Upbit Scalping Bot Configuration - v5.0
+
+v5 changes:
+- 3분봉 → 15분봉 (노이즈 감소, 안정적 신호)
+- SL/TP 대폭 확대 (0.7% → 2.0% SL, 0.8% → 2.0% TP)
+- 진입 조건 완화 (단일 전략 허용, 신뢰도 문턱 하향)
+- 대형 코인만 거래 (최소 거래대금 500억)
+- 시그널 매도는 수익 중일 때만
+- bars_held 계산 버그 수정용 CANDLE_INTERVAL_SEC 추가
 """
 import os
 from dotenv import load_dotenv
@@ -15,38 +23,39 @@ PAPER_TRADING = os.getenv("SCALPER_PAPER_TRADING", "true").lower() == "true"
 PAPER_INITIAL_KRW = float(os.getenv("SCALPER_PAPER_KRW", "1000000"))
 
 # === Target Markets ===
-MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP"]
+MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL", "KRW-DOGE"]
 
 # === Timeframe ===
-CANDLE_INTERVAL = "minute3"   # 3분봉: 1분봉 대비 노이즈 대폭 감소
-CANDLE_COUNT = 120            # 6시간 데이터 (3분 × 120 = 360분)
+CANDLE_INTERVAL = "minute15"  # 15분봉: 노이즈 대폭 감소, 안정적 신호
+CANDLE_COUNT = 96             # 24시간 데이터 (15분 × 96 = 1440분)
+CANDLE_INTERVAL_SEC = 900     # 15분 = 900초 (bars_held 계산용)
 
 # === Trading Loop ===
-LOOP_INTERVAL_SEC = 5         # 3분봉에 맞게 조정
-WEIGHT_ADJUST_CYCLE = 300     # 300사이클마다 가중치 조정
+LOOP_INTERVAL_SEC = 10        # 15분봉에 맞게 조정 (5s → 10s)
+WEIGHT_ADJUST_CYCLE = 100     # 가중치 조정 주기 (약 17분)
 
 # === RSI + Bollinger Band Strategy ===
-RSI_PERIOD = 7               # 노이즈 감소
-RSI_OVERSOLD = 30
-RSI_OVERBOUGHT = 70
-BB_PERIOD = 20               # 밴드 안정화
-BB_STD_DEV = 2.0
+RSI_PERIOD = 14               # 표준 RSI 기간 (7 → 14)
+RSI_OVERSOLD = 35             # 약간 완화 (30 → 35)
+RSI_OVERBOUGHT = 65           # 약간 완화 (70 → 65)
+BB_PERIOD = 20                # 유지
+BB_STD_DEV = 2.0              # 유지
 
 # === VWAP + Volume Strategy ===
-VWAP_PERIOD = 14
-VOLUME_SURGE_MULTIPLIER = 1.5
+VWAP_PERIOD = 14              # 유지
+VOLUME_SURGE_MULTIPLIER = 1.3 # 약간 완화 (1.5 → 1.3)
 
 # === Stochastic RSI Strategy ===
-STOCH_RSI_PERIOD = 14
-STOCH_K_PERIOD = 5
-STOCH_D_PERIOD = 3
-STOCH_OVERSOLD = 25
-STOCH_OVERBOUGHT = 75
+STOCH_RSI_PERIOD = 14         # 유지
+STOCH_K_PERIOD = 5            # 유지
+STOCH_D_PERIOD = 3            # 유지
+STOCH_OVERSOLD = 30           # 약간 완화 (25 → 30)
+STOCH_OVERBOUGHT = 70         # 약간 완화 (75 → 70)
 
 # === EMA Crossover Strategy ===
-EMA_FAST = 3
-EMA_SLOW = 8
-EMA_TREND = 21
+EMA_FAST = 5                  # 15분봉에 적합 (3 → 5)
+EMA_SLOW = 13                 # 15분봉에 적합 (8 → 13)
+EMA_TREND = 34                # 15분봉에 적합 (21 → 34)
 
 # === Ensemble Weights ===
 DEFAULT_WEIGHTS = {
@@ -55,48 +64,52 @@ DEFAULT_WEIGHTS = {
     "stoch_rsi": 0.25,
     "ema_cross": 0.20,
 }
-MIN_AGREEMENT = 2            # 최소 2개 전략 동의
-MIN_ENSEMBLE_CONFIDENCE = 0.35  # 신뢰도 문턱 약간 상향
+MIN_AGREEMENT = 1             # 단일 전략도 허용 (2 → 1, 높은 신뢰도 시)
+MIN_ENSEMBLE_CONFIDENCE = 0.20  # 신뢰도 문턱 하향 (0.35 → 0.20)
+SINGLE_STRATEGY_MIN_CONFIDENCE = 0.50  # 단일 전략 시 최소 신뢰도
 WEIGHT_EMA_ALPHA = 0.1
-ENTRY_COOLDOWN_BARS = 5      # 3분봉 기준 5봉 = 15분 대기
+ENTRY_COOLDOWN_BARS = 3       # 15분봉 기준 3봉 = 45분 대기 (5 → 3)
 
 # === Signal Exit Filter ===
-SIGNAL_EXIT_MIN_BARS = 8     # 3분봉 기준 8봉 = 24분 보유 후 시그널 매도 허용
-SIGNAL_EXIT_MIN_PROFIT = -0.001  # 시그널 매도는 -0.1% 이상일 때만
+SIGNAL_EXIT_MIN_BARS = 4      # 15분봉 기준 4봉 = 1시간 후 시그널 매도 허용 (8 → 4)
+SIGNAL_EXIT_MIN_PROFIT = 0.003  # 수익 +0.3% 이상일 때만 시그널 매도 (-0.001 → 0.003)
 
 # === Trend Filter (앙상블 레벨) ===
-TREND_EMA_PERIOD = 50        # 장기 추세 판단
-TREND_LOOKBACK = 10          # 기울기 측정 구간
-TREND_POSITION_FILTER = True # 가격이 장기 EMA 아래면 BUY 차단
+TREND_EMA_PERIOD = 50         # 장기 추세 판단
+TREND_LOOKBACK = 10           # 기울기 측정 구간
+TREND_POSITION_FILTER = False # 비활성화 (True → False): 과도한 필터링 방지
 
 # === Volatility Regime Filter ===
-VOL_ATR_LOOKBACK = 60        # ATR 분포 계산 기간 (60분)
-VOL_LOW_PERCENTILE = 0.2     # 변동성 너무 낮으면 HOLD (횡보장)
-VOL_HIGH_PERCENTILE = 0.9    # 변동성 너무 높으면 HOLD (급변장)
+VOL_ATR_LOOKBACK = 60         # ATR 분포 계산 기간
+VOL_LOW_PERCENTILE = 0.10     # 횡보장 허용 폭 확대 (0.2 → 0.10)
+VOL_HIGH_PERCENTILE = 0.95    # 극단적 변동성만 제외 (0.9 → 0.95)
 
 # === Risk Management ===
-RISK_PER_TRADE = 0.01        # 잔고 1.0% 리스크 (보수적)
-ATR_PERIOD = 14
-ATR_STOP_MULTIPLIER = 2.0    # 3분봉 ATR 더 크므로 축소 (was 4.0)
-ATR_TP_MULTIPLIER = 3.5      # 3분봉 ATR 비례 조정 (was 6.0)
-STOP_LOSS_MIN_PCT = 0.003    # 0.3% 최소 스탑 (was 0.4%)
-STOP_LOSS_HARD_CAP = 0.007   # 0.7% 하드캡 (was 1.2%) ← 핵심 개선
-TAKE_PROFIT_PCT = 0.008      # 0.8% 익절 (was 1.0%)
-TAKE_PROFIT_MIN = 0.006      # 0.6% 최소 TP (was 1.0%)
-TRAILING_ACTIVATE_PCT = 0.004  # 0.4% 수익 시 트레일링 (was 0.5%)
-TRAILING_STOP_PCT = 0.002    # 0.2% 추적 (was 0.3%) ← 수익 더 잡기
+RISK_PER_TRADE = 0.02         # 잔고 2.0% 리스크 (1% → 2%)
+ATR_PERIOD = 14               # 유지
+ATR_STOP_MULTIPLIER = 1.5     # 15분봉 ATR 비례 (2.0 → 1.5)
+ATR_TP_MULTIPLIER = 3.0       # 15분봉 ATR 비례 (3.5 → 3.0)
+STOP_LOSS_MIN_PCT = 0.008     # 0.8% 최소 스탑 (0.3% → 0.8%)
+STOP_LOSS_HARD_CAP = 0.020    # 2.0% 하드캡 (0.7% → 2.0%)
+TAKE_PROFIT_PCT = 0.020       # 2.0% 익절 (0.8% → 2.0%)
+TAKE_PROFIT_MIN = 0.012       # 1.2% 최소 TP (0.6% → 1.2%)
+TRAILING_ACTIVATE_PCT = 0.010 # 1.0% 수익 시 트레일링 (0.4% → 1.0%)
+TRAILING_STOP_PCT = 0.005     # 0.5% 추적 (0.2% → 0.5%)
 
 # === Breakeven Stop ===
-BREAKEVEN_AFTER_BARS = 20    # 3분봉 20봉 = 60분 후 BEP (was 999/비활성)
-BREAKEVEN_BUFFER = 0.001     # 0.1% 버퍼 (was 0.15%)
-COMMISSION_RATE = 0.0005     # 업비트 편도 0.05%
-ROUND_TRIP_COMMISSION = 0.001  # 왕복 0.1%
+BREAKEVEN_AFTER_BARS = 16     # 15분봉 16봉 = 4시간 후 BEP (20 → 16)
+BREAKEVEN_BUFFER = 0.002      # 0.2% 버퍼 (0.1% → 0.2%)
+COMMISSION_RATE = 0.0005      # 업비트 편도 0.05%
+ROUND_TRIP_COMMISSION = 0.001 # 왕복 0.1%
 
 # === Circuit Breaker ===
-DAILY_LOSS_LIMIT = 0.03      # 일일 손실 3%
-MAX_CONSECUTIVE_LOSSES = 4   # 연속 4패 시 쿨다운
-COOLDOWN_MINUTES = 15
-MAX_TRADES_PER_HOUR = 20
+DAILY_LOSS_LIMIT = 0.05       # 일일 손실 5% (3% → 5%: 여유 확대)
+MAX_CONSECUTIVE_LOSSES = 5    # 연속 5패 시 쿨다운 (4 → 5)
+COOLDOWN_MINUTES = 10         # 쿨다운 10분 (15 → 10)
+MAX_TRADES_PER_HOUR = 20      # 유지
+
+# === Position Limits ===
+MAX_OPEN_POSITIONS = 3        # 최대 동시 포지션 수
 
 # === Dashboard ===
 DASHBOARD_PORT = 8081
@@ -107,15 +120,15 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # === Dynamic Market Scanner ===
 DYNAMIC_MARKETS_ENABLED = True
-SCANNER_TOP_N = 5               # 상위 5개 마켓
-SCANNER_INTERVAL_SEC = 3600     # 1시간마다 스캔
-SCANNER_MIN_VOLUME_KRW = 1_000_000_000  # 최소 24h 거래대금 10억원
+SCANNER_TOP_N = 8              # 상위 8개 마켓 (5 → 8)
+SCANNER_INTERVAL_SEC = 3600    # 1시간마다 스캔
+SCANNER_MIN_VOLUME_KRW = 10_000_000_000  # 최소 24h 거래대금 100억원 (10억 → 100억)
 
 # === Walk-Forward Optimizer ===
 OPTIMIZER_ENABLED = True
-OPTIMIZER_INTERVAL_SEC = 7200   # 2시간마다 최적화
-OPTIMIZER_LOOKBACK_DAYS = 3     # 과거 3일 데이터
-OPTIMIZER_N_PROFILES = 12       # 테스트할 프로필 수
+OPTIMIZER_INTERVAL_SEC = 7200  # 2시간마다 최적화
+OPTIMIZER_LOOKBACK_DAYS = 3    # 과거 3일 데이터
+OPTIMIZER_N_PROFILES = 12      # 테스트할 프로필 수
 OPTIMIZER_MARKETS = ["KRW-BTC", "KRW-ETH"]  # 최적화 대상 (고정, 속도)
 
 # === Logging ===

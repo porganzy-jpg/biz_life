@@ -105,6 +105,12 @@ class MarketScanner:
         sorted_markets = sorted(qualified.items(), key=lambda x: x[1], reverse=True)
         top_markets = [m for m, _ in sorted_markets[:self._top_n]]
 
+        # Always include default markets (BTC, ETH etc.) even if scanner missed them
+        for default_market in config.MARKETS:
+            if default_market not in top_markets:
+                top_markets.append(default_market)
+                logger.info(f"Scanner: keeping default market {default_market}")
+
         # Log changes
         with self._lock:
             old_set = set(self._active_markets)

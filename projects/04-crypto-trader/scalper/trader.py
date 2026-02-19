@@ -201,9 +201,13 @@ class ScalpTrader:
 
         markets = (self.scanner.get_markets(self.positions)
                    if self.scanner else config.MARKETS)
+
+        max_positions = getattr(config, 'MAX_OPEN_POSITIONS', 3)
         for market in markets:
             if market in self.positions:
-                continue  # Already have a position
+                continue  # Already have a position in this market
+            if len(self.positions) >= max_positions:
+                break  # Max concurrent positions reached
 
             self._analyze_market(market)
 
@@ -259,7 +263,11 @@ class ScalpTrader:
     def _execute_buy(self, market: str, df, signal):
         """Execute a buy order with risk management."""
         balance = self.client.get_krw_balance()
-        risk_levels = self.risk_mgr.calculate_risk_levels(df, balance, side="buy")
+        # 다중 포지션 시 잔고를 남은 슬롯 수로 나눠서 사용
+        max_pos = getattr(config, 'MAX_OPEN_POSITIONS', 3)
+        remaining_slots = max(1, max_pos - len(self.positions))
+        available_balance = balance * min(1.0, remaining_slots / max_pos)
+        risk_levels = self.risk_mgr.calculate_risk_levels(df, available_balance, side="buy")
 
         if risk_levels is None:
             return
@@ -325,24 +333,21 @@ class ScalpTrader:
                 return
 
         time_held = time.time() - pos.entry_time
-        bars_held = int(time_held / 60)
+        candle_sec = getattr(config, 'CANDLE_INTERVAL_SEC', 900)
+        bars_held = int(time_held / candle_sec)
         exit_type = self.risk_mgr.check_exit(market, pos.entry_price, current_price,
                                              pos.risk_levels, bars_held=bars_held)
 
-        # Also check ensemble for sell signal
+        # Also check ensemble for sell signal (only when profitable)
         if exit_type is None:
-            time_held = time.time() - pos.entry_time
             pnl_pct = (current_price - pos.entry_price) / pos.entry_price
-            bars_held = int(time_held / 60)
-            # Normal signal exit OR early exit on significant loss (-0.5%+)
-            normal_check = bars_held >= config.SIGNAL_EXIT_MIN_BARS and pnl_pct >= config.SIGNAL_EXIT_MIN_PROFIT
-            early_loss_exit = pnl_pct < -0.005
-            if normal_check or early_loss_exit:
+            # Signal exit: only allowed after min bars AND when profitable
+            if bars_held >= config.SIGNAL_EXIT_MIN_BARS and pnl_pct >= config.SIGNAL_EXIT_MIN_PROFIT:
                 df = self.client.get_ohlcv(market, config.CANDLE_INTERVAL, config.CANDLE_COUNT)
                 if df is not None:
                     signal = self.ensemble.analyze(df, market=market, bar_index=self.cycle_count)
                     if signal.signal == SignalType.SELL:
-                        exit_type = "signal_sell_early" if early_loss_exit else "signal_sell"
+                        exit_type = "signal_sell"
 
         if exit_type:
             self._execute_sell(market, current_price, exit_type)
