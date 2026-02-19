@@ -389,14 +389,14 @@ def add_project_section(doc_obj, title, subsections):
 
 add_styled_paragraph(doc, "경력기술서", size=Pt(28), bold=True, color=BLUE_ACCENT,
                     alignment=WD_ALIGN_PARAGRAPH.LEFT, space_before=Pt(40), space_after=Pt(4))
-add_styled_paragraph(doc, "Career Description & Portfolio", size=Pt(14), bold=False,
+add_styled_paragraph(doc, "토스뱅크 — Data Analyst 지원", size=Pt(14), bold=False,
                     color=LIGHT_GRAY, alignment=WD_ALIGN_PARAGRAPH.LEFT,
                     space_before=Pt(0), space_after=Pt(16))
 add_blue_line(doc)
 
 add_styled_paragraph(doc, "연새한솔", size=Pt(24), bold=True, color=DARK_GRAY,
                     space_before=Pt(16), space_after=Pt(4))
-add_styled_paragraph(doc, "Senior Data Analyst & AI Strategy Manager", size=Pt(13),
+add_styled_paragraph(doc, "Senior Data Analyst  |  가설 → 실험 → 검증 → 성장의 전 과정을 주도하는 분석가", size=Pt(13),
                     bold=False, color=BLUE_ACCENT, space_before=Pt(0), space_after=Pt(12))
 
 add_mixed_paragraph(doc, [
@@ -406,7 +406,7 @@ add_mixed_paragraph(doc, [
 ], space_after=Pt(4))
 
 add_mixed_paragraph(doc, [
-    ("15년+ 데이터 전문가", True, Pt(10.5), DARK_GRAY),
+    ("15년+ 데이터 분석 리더", True, Pt(10.5), DARK_GRAY),
     ("  |  ", False, Pt(10.5), LIGHT_GRAY),
     ("E-Land → eBay Korea → Coupang → Tving", False, Pt(10.5), MEDIUM_GRAY),
 ], space_after=Pt(20))
@@ -421,25 +421,22 @@ add_thin_gray_line(doc)
 doc.add_heading("Professional Summary", level=1)
 
 summary_p1 = (
-    "오프라인 리테일(E-Land) → e-Commerce(eBay Korea) → 로켓커머스(Coupang) → OTT(Tving)까지, "
-    "15년간 산업의 디지털 전환 최전방에서 데이터 전략을 설계하고 실행해 온 분석 리더입니다. "
-    "각 회사에서 '데이터로 풀어야 할 가장 중요한 문제'를 정의하고, 분석 체계를 직접 구축하며, "
-    "그 결과를 비즈니스 성과로 연결하는 전 과정을 일관되게 수행해 왔습니다."
+    "비즈니스 문제를 정의하고, 가설을 수립하며, 실험으로 검증하고, 데이터 구조를 설계하여 "
+    "반복 가능한 의사결정 체계를 만드는 것 — 15년간 이 과정을 네 개의 회사에서 반복해 왔습니다. "
+    "토스뱅크 Data Analyst 포지션에서 이 경험을 금융 서비스의 성장에 연결하고 싶습니다."
 )
 summary_p2 = (
-    "커리어 전반에 걸쳐 반복되는 패턴은 '시스템적 문제 해결'입니다. "
-    "eBay Korea에서는 3개 사이트의 데이터 거버넌스가 통일되지 않아 전사 의사결정이 불가능한 상황을 "
-    "행동데이터 수집 시스템 구축과 Standard Query 체계 정립으로 해결했고, "
-    "Coupang에서는 3P Marketplace의 셀러 성장 정체 문제를 AARRR 퍼널 분석과 AB Test를 통해 "
-    "구조적 병목을 찾아내어 해소했습니다. 기술(SQL, Python, Tableau, Airflow)을 도구로 쓰되, "
-    "항상 비즈니스 질문에서 출발하여 실행 가능한 전략으로 귀결시키는 것이 저의 분석 철학입니다."
+    "Coupang에서 5년간 BI Principal로서 AB Test 플랫폼(XPC)을 활용한 실험 설계·검증을 수십 건 수행했고, "
+    "AARRR 퍼널로 셀러 라이프사이클의 구조적 병목을 찾아냈으며, Cohort 분석으로 장기 리텐션의 핵심 동인을 증명했습니다. "
+    "eBay Korea에서는 3개 사이트(Gmarket, Auction, G9)의 행동데이터 수집 시스템을 Owner PM으로 1.5년간 기획하고, "
+    "Standard Query 체계와 데이터 거버넌스를 0에서 구축하여 '재사용 가능한 데이터 구조'의 기반을 만든 경험이 있습니다."
 )
 summary_p3 = (
-    "현재 Tving에서는 이 경험을 AI로 확장하고 있습니다. Tableau 정적 대시보드를 AI가 KPI 이상을 "
-    "자동 감지·분석하는 지능형 시스템으로 전환했고, 구독자·콘텐츠 실적의 Bottom-Up 예측 모델을 "
-    "구축하여 경영진 의사결정의 정량적 근거를 제공하고 있습니다. 나아가 전사 KPI를 조직별 책임 지표로 "
-    "분해하는 OKR 포뮬러를 설계하여, '누가 무엇을 개선해야 하는가'를 데이터가 직접 답하는 체계를 "
-    "만들었습니다."
+    "현재 Tving에서는 AI/LLM을 분석 업무에 직접 적용하고 있습니다. 자연어→SQL 자동 생성 시스템, "
+    "KPI 이상 자동 감지·분석 대시보드, LLM 기반 챗봇을 직접 설계·구축했으며, "
+    "GMM 클러스터링으로 고객 LTV를 산출하고 이탈 위험군을 조기 감지하는 체계를 운영하고 있습니다. "
+    "복잡한 비즈니스 로직을 SQL로 구현하고, Python/R로 깊이 있는 분석을 수행하며, "
+    "그 결과를 이해하기 쉽게 전달하여 의사결정을 이끄는 것이 저의 핵심 역량입니다."
 )
 
 add_styled_paragraph(doc, summary_p1, size=Pt(10.5), line_spacing=1.5,
@@ -449,13 +446,67 @@ add_styled_paragraph(doc, summary_p2, size=Pt(10.5), line_spacing=1.5,
 add_styled_paragraph(doc, summary_p3, size=Pt(10.5), line_spacing=1.5,
                     space_before=Pt(0), space_after=Pt(16))
 
+# ════════════════════════════════════════════════════════════════
+#  SECTION 2.5: 지원 포지션 적합성 매핑
+# ════════════════════════════════════════════════════════════════
+doc.add_heading("지원 포지션 적합성", level=1)
+add_styled_paragraph(doc, "토스뱅크가 찾는 역량 → 제가 증명한 경험",
+                    size=Pt(10), color=MEDIUM_GRAY, space_after=Pt(10))
+
+fit_data = [
+    ["토스뱅크 요구 역량", "보유 경험"],
+    ["문제 정의 → 가설 수립 →\n인과추론 & AB Test 검증",
+     "Coupang: XPC 플랫폼 기반 AB Test 수십 건 설계·실행·통계 검증\n"
+     "(FEP 가격 최적화, MyShop 묶음구매 UX, Auto Price 효과 등)\n"
+     "Tving: '시청시간이 재구독의 선행 지표'임을 통계적으로 검증 → KPI 포뮬러 설계\n"
+     "eBay: Deep Link Gate AB Test, 쿠폰 스펙별 최적 조합 도출"],
+    ["복잡한 비즈니스 로직을\nSQL로 구현",
+     "15년간 Hive, Oracle, MySQL 등 SQL을 핵심 분석 도구로 활용\n"
+     "Coupang: AARRR 퍼널, FEP 전환율, Cohort 리텐션 등 복잡한 비즈니스 로직 SQL 구현\n"
+     "eBay: 3개 사이트 Standard Query 체계 정립 — 8개 핵심 지표 SQL 표준화"],
+    ["재사용 가능한 데이터 구조\n설계 & 정합성 검증",
+     "eBay: Montelena TF (Owner PM, 1.5년) — 행동데이터 수집 + 지표 표준화 + 거버넌스 0에서 구축\n"
+     "Coupang: GA → 내부 DB 연결 ETL 파이프라인 (Airflow) 직접 설계·구축\n"
+     "Tving: 전사 데이터 카탈로그(스키마, 컬럼 정의, 관계 매핑) 구조화"],
+    ["AI / LLM 활용\n업무 효율화 (우대)",
+     "Tving: NL→SQL 자동 생성·실행, AI KPI 자동 모니터링 & 원인 분석 대시보드,\n"
+     "LLM 챗봇 (비분석가도 자연어로 데이터 접근), AI Auto-Retraining 예측 파이프라인\n"
+     "→ 분석가의 반복 업무를 AI가 대체하여 전략적 분석에 집중하는 환경 조성"],
+    ["LTV · AARRR · Cohort ·\nFunnel 분석",
+     "Coupang: 셀러 AARRR (SignUp→Live→Active→GMV) End-to-End 퍼널 + Cohort 리텐션\n"
+     "Tving: GMM 기반 클러스터별 LTV 산출, 이탈 위험군 조기 감지 체계\n"
+     "eBay: Funnel 기반 도메인별 이탈/전환 분석, CRM 세그먼트"],
+    ["커뮤니케이션 & 설득",
+     "Coupang: CPC→FEP 전환을 데이터로 증명 → 3P Sales팀 설득 → 17만+ 상품 전환\n"
+     "eBay: 전사 PM Unit 대상 Tagging System / MKT Deep Link Logic 프레젠테이션\n"
+     "Tving: 경영진 대상 예측 모델링·KPI 포뮬러 의사결정 리포팅"],
+]
+
+fit_table = doc.add_table(rows=len(fit_data), cols=2)
+fit_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+format_table_borders(fit_table, TABLE_BORDER_COLOR)
+for j, header_text in enumerate(fit_data[0]):
+    cell = fit_table.rows[0].cells[j]
+    set_cell_shading(cell, TABLE_HEADER_BG)
+    format_cell_text(cell, header_text, bold=True, size=Pt(10), color=WHITE, alignment=WD_ALIGN_PARAGRAPH.CENTER)
+fit_table.rows[0].cells[0].width = Cm(4.0)
+fit_table.rows[0].cells[1].width = Cm(12.5)
+for i, row_data in enumerate(fit_data[1:], 1):
+    cell_req = fit_table.rows[i].cells[0]
+    cell_exp = fit_table.rows[i].cells[1]
+    cell_req.width = Cm(4.0)
+    cell_exp.width = Cm(12.5)
+    if i % 2 == 0: set_cell_shading(cell_req, TABLE_ALT_BG); set_cell_shading(cell_exp, TABLE_ALT_BG)
+    format_cell_text(cell_req, row_data[0], bold=True, size=Pt(9.5), color=DARK_BLUE, alignment=WD_ALIGN_PARAGRAPH.LEFT)
+    format_cell_text(cell_exp, row_data[1], bold=False, size=Pt(9.5), color=DARK_GRAY)
+
 
 # ════════════════════════════════════════════════════════════════
 #  SECTION 3: CAREER SUMMARY TABLE
 # ════════════════════════════════════════════════════════════════
 
 doc.add_heading("경력 요약", level=1)
-add_styled_paragraph(doc, "총 경력 15년+ | 리테일 → e-Commerce → OTT | 데이터 분석 → AI 전략 리더십",
+add_styled_paragraph(doc, "총 경력 15년+ | 리테일 → e-Commerce → OTT | 가설·실험·검증 · SQL · 데이터 구조 · AI/LLM",
                     size=Pt(10), color=MEDIUM_GRAY, space_after=Pt(10))
 
 career_data = [
@@ -495,14 +546,14 @@ comp_table.alignment = WD_TABLE_ALIGNMENT.CENTER
 format_table_borders(comp_table, TABLE_BORDER_COLOR)
 
 comp_data = [
-    ("Technical Skills", "SQL (Hive/Oracle/MySQL), Tableau, Python, Google Analytics, "
-     "Apache Airflow, ElasticSearch, Kibana, R, D3.js, Bootstrap, Zeplin"),
-    ("Analysis Methods", "AB Testing, Cohort Analysis, AARRR Framework, Funnel Analysis, "
-     "Segmentation, Fraud Detection, CRM Analytics, Data Governance, KPI Design"),
-    ("AI & Automation", "AI 자동화 대시보드, NL→SQL 자동 쿼리, LLM 챗봇, GMM 클러스터링, "
-     "예측 모델링(Bottom-Up), AI 자동 재학습 파이프라인, KPI 포뮬러화(OKR)"),
-    ("Leadership", "Team Managing, Silo Process Design, Cross-functional Collaboration, "
-     "전사 데이터 전략 수립, 교육 및 프레젠테이션"),
+    ("SQL & Data", "SQL (Hive/Oracle/MySQL/Impala) — 복잡한 비즈니스 로직 구현 15년+, "
+     "데이터 마트 설계, Standard Query 체계 정립, 데이터 거버넌스, Tableau, Python (Jupyter)"),
+    ("Experimentation", "AB Testing (Coupang XPC 플랫폼 수십 건), 가설 수립 → 실험 설계 → 통계 검증, "
+     "인과추론, 프로덕트·BM 개선 실험, 의사결정 지원 리포트"),
+    ("Growth Analytics", "AARRR Framework, Funnel Analysis, Cohort Analysis, LTV 분석, "
+     "KPI 정의·설계, 대시보드 구축, 로그 데이터 기반 사용자 행동 분석, CRM 세그먼트"),
+    ("AI / LLM", "NL→SQL 자동 생성·실행, AI KPI 자동 모니터링 대시보드, LLM 챗봇 구축, "
+     "GMM 클러스터링, 예측 모델링(Bottom-Up), AI Auto-Retraining 파이프라인"),
 ]
 for i, (label, desc) in enumerate(comp_data):
     cat_cell = comp_table.rows[i].cells[0]; cat_cell.width = Cm(3.5)
@@ -821,14 +872,18 @@ add_thin_gray_line(doc)
 doc.add_heading("Phase I: Data Insight POD / Data PM (2016.07 ~ 2020.03)", level=3)
 
 add_project_section(doc, "Project 1: Montelena TF — 행동데이터 수집·분석 시스템 구축 (Owner PM, 1.5년)", {
-    "배경": ("Gmarket, Auction, G9가 각각 다른 솔루션으로 데이터를 수집하고, 부서마다 PV, UV 등의 정의가 달라 "
-             "전사 차원의 데이터 비교 자체가 불가능한 상황이었습니다."),
-    "목표": "3개 사이트의 행동데이터 수집 통일 + 지표 표준화(거버넌스) + 분석 서비스 제공까지 End-to-End 구현",
+    "배경": ("Gmarket, Auction, G9가 각각 다른 외부 솔루션과 방식으로 데이터를 수집하고, 부서마다 PV, UV 등의 정의가 달라 "
+             "전사 차원의 데이터 비교 자체가 불가능한 상황이었습니다. 통일된 전략 수립에 큰 낭비가 발생하고 있었습니다."),
+    "목표": "행동데이터 수집 트래킹 시스템 구축 + 지표 표준화(거버넌스) + 분석 서비스까지 완성된 에코시스템 End-to-End 구현",
     "해결 과정": [
-        "[데이터 거버넌스] PGUID↔CUID 연결 체계 설계, PV/UV/Click/Members 등 8개 핵심 지표의 Standard Query 정립 — 이 경험이 이후 Tving AI 쿼리 시스템 설계의 기반",
-        "[태깅 시스템] 웹 컨테이너 자동 태깅을 시도했으나 레거시 시스템 제약으로 수동 태깅으로 전환, 비즈니스 임팩트가 큰 16개 핵심 도메인에 집중",
-        "[도메인 밸류] 행동데이터와 트랜잭션 데이터를 연결하여, 각 도메인(검색, 카테고리, 프로모션 등)의 구매 기여도를 정량적으로 산출",
-        "[전파] 전사 PM Unit 대상 Tagging System 프레젠테이션 진행 — 조직 전체의 데이터 활용도 향상에 기여",
+        "[데이터 거버넌스] PGUID↔CUID 연결 체계 설계, 3개 사이트의 핵심 지표 정의 차이를 통일. "
+         "PV/UV/Click/Members 등 8개 핵심 지표의 Standard Query 정립 및 메타 테이블 기획",
+        "[태깅 시스템] 웹 컨테이너 자동 태깅을 시도했으나 사이트별 레거시 제약으로 자동화 불가 → 수동 태깅으로 전환. "
+         "잦은 업데이트로 인한 누락, 휴먼에러 등 시행착오를 거쳐 비즈니스 임팩트가 큰 16개 핵심 도메인에 범위를 집중",
+        "[도메인 밸류] 행동데이터와 트랜잭션 데이터를 연결하여, 각 도메인(검색, 카테고리, 프로모션 등)의 "
+         "구매 기여도를 정량적으로 산출 — 직접 구매가 발생하지 않는 도메인에 대한 평가 지표 기획",
+        "[온보딩 & 전파] 1년 예정이 1.5년 소요 — 시스템 구축 후 사용자 활용도를 높이기 위해 SQL 분석 예제와 결과물을 함께 제공. "
+         "전사 PM Unit 대상 Tagging System 프레젠테이션 진행 — 조직 전체의 데이터 활용도 향상에 기여",
     ],
     "사용 도구": "Hive SQL, Tableau, ElasticSearch, Python (Py-Hive)",
 })
@@ -836,10 +891,10 @@ add_project_section(doc, "Project 1: Montelena TF — 행동데이터 수집·�
 add_project_image(doc, os.path.join(IMG_DIR, "ebay_dashboard_design.png"),
                   "[그림] 데이터 서비스 플랫폼 설계 — 대시보드 UI/UX 기획 문서")
 
-add_project_section(doc, "Project 2: Deep Link Gate (Main PM)", {
-    "배경": "웹에서 앱으로 이동할 때 데이터 추적이 끊어져, 마케팅 채널별 실제 ROI를 측정할 수 없는 문제",
+add_project_section(doc, "Project 2: Deep Link Gate & Marketing Channel Data 수집 (Owner PM)", {
+    "배경": "웹에서 앱으로 이동할 때 데이터 추적이 끊어져, 마케팅 채널별 실제 ROI를 측정할 수 없는 구조적 문제",
     "과정": [
-        "Web→App 전환 시 사용자 식별이 유지되는 딥링크 게이트 로직을 설계·개발",
+        "Marketing Channel Data 수집 로직 기획 — 웹→앱 전환 시 사용자 식별이 유지되는 중간 게이트웨이 로직 설계·개발",
         "유입 케이스별(직접 접속, 검색, 광고, 푸시) AB Test를 설계·실행하여 최적 전환 경로를 검증",
         "전사 대상 MKT Deep Link Logic 프레젠테이션 진행",
     ],
@@ -873,10 +928,11 @@ add_project_image(doc, os.path.join(IMG_DIR, "ebay_gotham.png"),
 
 add_project_section(doc, "Project 5: 다양한 데이터 분석 및 리포팅", {
     "수행 내용": [
-        "Funnel 기반 Domain별 이탈/전환 분석 (Oracle SQL, Hive, Zeplin)",
-        "Global KPI 'Searched Session Per GMV' 기획 (MySQL, Hive, Tableau, Zeplin)",
-        "Domain Value 지표 기획 — 각 도메인의 매출 기여도 정량 산출 (Hive SQL, Python)",
-        "Session 정합성 관제 리포팅 (ElasticSearch, Kibana, D3.js)",
+        "Funnel 기반 Domain별 Action/Buying 이탈·전환 분석 — User Action Stream 관점의 리소스 우선순위 결정 (Oracle SQL, Hive, Zeplin)",
+        "Global eBay와 동일 Standard의 KPI 'Searched Session Per GMV' 수집 로직 기획·분석 (MySQL, Hive, Tableau, Zeplin)",
+        "Business Unit KPI — User Journey 단위 Domain Value 지표 기획: 직접 구매가 발생하지 않는 도메인의 평가 지표 산출 (Hive SQL, Python)",
+        "Data Session 정합성 관제 리포팅 — 수집 시스템의 정합성 실시간 모니터링 (ElasticSearch, Kibana, D3.js)",
+        "ATO(Account Takeover) 추적분석 — 분석 집단에서의 이상 접근 제외를 위한 ATO 인정기준 수립 (Hive SQL, Tableau)",
     ],
 })
 
@@ -899,13 +955,17 @@ add_thin_gray_line(doc)
 doc.add_heading("Phase III: Sales 전략기획팀 (2014.07 ~ 2016.01)", level=3)
 
 add_project_section(doc, "Sales 전략기획 및 데이터 분석", {
-    "수행 내용": [
-        "상품 Category 재분류를 위한 연관성 분석 — Association Rule 기반 (R, MySQL)",
-        "Super Deal 구좌 분배 최적화 — 노출 대비 전환율을 최대화하는 배분 로직 설계 (Hive SQL, MySQL, Python)",
-        "Membership MKT '취미 연구소' 기획·실행, O2O 스마트 모빌리티 프로젝트 기획/실행",
-        "52주 Seasonal 패턴 분석, 쿠폰 스펙(할인율, 최소 결제금액)과 타겟 그룹별 최적 조합 도출",
+    "Business 의사결정 Data 분석": [
+        "상품 Category 재분류를 위한 연관성 분석 — User 연관구매 상품 Group 단위의 Category 개편 Standard 도출 (R, MySQL)",
+        "Super Deal 구좌 분배 최적화 — 방문·구매·매출 관점에서 최적 효율 Inventory 구성 (Hive SQL, MySQL, Python)",
     ],
-    "핵심 성과": "2015년 eBay Korea 영업BU 최우수 직원상 수상 — 데이터 기반 Sales 전략 기여를 인정",
+    "MKT Target User Data 분석": [
+        "Membership MKT '취미 연구소' 기획·실행 — Push MKT를 위한 User별 관심상품군 Grouping Data 추출. "
+         "2015년 eBay Korea 영업BU 최우수 직원상 수상, BU 직원 대상 실적 우수사례 Case Presentation 진행",
+        "O2O 스마트 모빌리티 프로젝트 기획·실행 — 외부 채널 마케팅 기획, 제휴 업체 선정 및 관리",
+        "52주 Seasonal 패턴 분석 — 시즌 단위 Promotion Schedule 기획 및 MKT Resource 배분",
+        "쿠폰 스펙(할인율, 최소 결제금액)과 타겟 그룹(New/Return Buying)별 최적 조합 도출",
+    ],
 })
 
 add_project_image(doc, os.path.join(IMG_DIR, "ebay_r_analysis.png"),
@@ -1044,11 +1104,9 @@ for i, (period, event, detail) in enumerate(timeline_data, 1):
 add_thin_gray_line(doc)
 
 closing_text = (
-    "오프라인 리테일에서 고객과 재고를 분석하며 데이터의 기본기를 다졌고, "
-    "e-Commerce에서 수집 시스템과 거버넌스를 0에서 구축하며 데이터 인프라의 설계자가 되었고, "
-    "Coupang에서 실험 기반의 전략적 BI를 리드했으며, "
-    "지금은 Tving에서 AI가 스스로 분석하고 답하는 체계를 만들고 있습니다. "
-    "이 여정에서 일관된 것은, 데이터를 '보는 것'에서 '작동하는 것'으로 바꾸는 실행력입니다."
+    "문제를 정의하고, 가설을 세우고, 실험으로 검증하며, 재사용 가능한 데이터 구조를 설계해 온 15년. "
+    "토스뱅크의 스쿼드에서 이 경험을 금융 서비스의 밀도 있는 성장에 연결하고 싶습니다. "
+    "데이터가 의사결정을 직접 견인하는 환경을 함께 만들겠습니다."
 )
 add_styled_paragraph(doc, closing_text, size=Pt(10), color=MEDIUM_GRAY,
                     alignment=WD_ALIGN_PARAGRAPH.CENTER, space_before=Pt(20),
@@ -1063,6 +1121,6 @@ add_styled_paragraph(doc, "연새한솔", size=Pt(14), bold=True, color=DARK_GRA
 # ════════════════════════════════════════════════════════════════
 #  SAVE
 # ════════════════════════════════════════════════════════════════
-output_path = r"C:/Users/itzia/biz_life/이력서/202602_연새한솔_경력기술서_Portfolio.docx"
+output_path = r"C:/Users/itzia/biz_life/이력서/TOSS_BANK_연새한솔_경력기술서_v2.docx"
 doc.save(output_path)
 print(f"Document saved successfully: {output_path}")

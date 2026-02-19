@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>연새한솔 | Data Analytics Dashboard</title>
+<title>연새한솔 | NAVER WEBTOON — Global Webtoon Data Analyst</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
@@ -319,7 +319,7 @@ section{position:relative;z-index:1;padding:80px 0}
 
 /* ===== AWARDS ===== */
 .awards-section{background:linear-gradient(180deg,var(--bg2),var(--bg))}
-.awards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.awards-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 .award-card{background:var(--glass);border:1px solid var(--glass-border);
   border-radius:var(--radius);padding:28px;text-align:center;
   backdrop-filter:blur(10px);transition:.4s}
@@ -421,6 +421,7 @@ section{position:relative;z-index:1;padding:80px 0}
   .hero-right{grid-template-columns:1fr 1fr}
   .kpi-strip{grid-template-columns:1fr 1fr}
   .skills-dash{grid-template-columns:1fr}
+  .skills-dash [style*="grid-column:span 2"]{grid-column:span 1}
   .dash-panel.span2,.dash-panel.span3{grid-column:span 1}
   .projects-grid{grid-template-columns:1fr}
   .awards-grid{grid-template-columns:1fr}
@@ -459,11 +460,11 @@ section{position:relative;z-index:1;padding:80px 0}
 
 <!-- Status Bar -->
 <div class="status-bar">
-  <span><span class="dot"></span> SYSTEM ONLINE</span>
+  <span><span class="dot"></span> NAVER WEBTOON 지원</span>
   <span><i class="fas fa-database" style="margin-right:4px"></i> 15Y+ DATA</span>
-  <span><i class="fas fa-chart-line" style="margin-right:4px"></i> 50+ PROJECTS</span>
-  <span><i class="fas fa-brain" style="margin-right:4px"></i> AI ENABLED</span>
-  <div class="ticker"><span>SQL // Tableau // Python // Airflow // GA // ElasticSearch // Kibana // D3.js // R // AB Test // Cohort // AARRR // Funnel // Fraud Detection // AI Dashboard //</span></div>
+  <span><i class="fas fa-crosshairs" style="margin-right:4px"></i> Global Webtoon Data Analyst</span>
+  <span><i class="fas fa-check-circle" style="margin-right:4px"></i> PERFECT FIT</span>
+  <div class="ticker"><span>KPI Design // AB Testing // Funnel Analysis // Dashboard // SQL // Python // Tableau // Airflow // AARRR // Cohort // Digital Content // Data Infra // Growth //</span></div>
 </div>
 
 <!-- Navigation -->
@@ -476,9 +477,10 @@ section{position:relative;z-index:1;padding:80px 0}
     <button class="nav-toggle" id="navToggle" aria-label="Menu"><i class="fas fa-bars"></i></button>
     <ul class="nav-links" id="navLinks">
       <li><a href="#summary">Overview</a></li>
-      <li><a href="#skills">Skills</a></li>
-      <li><a href="#career">Career</a></li>
+      <li><a href="#fit">Fit</a></li>
       <li><a href="#projects">Projects</a></li>
+      <li><a href="#career">Career</a></li>
+      <li><a href="#skills">Skills</a></li>
       <li><a href="#awards">Awards</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
@@ -490,7 +492,7 @@ section{position:relative;z-index:1;padding:80px 0}
   <div class="container">
     <div class="hero-grid">
       <div class="hero-left">
-        <div class="hero-badge"><span class="pulse"></span> Available for Opportunities</div>
+        <div class="hero-badge"><span class="pulse"></span> NAVER WEBTOON — Global Webtoon Data Analyst 지원</div>
         <h1>연새한솔</h1>
         <p class="hero-role" id="heroRole"></p>
         <div class="hero-contact">
@@ -498,12 +500,12 @@ section{position:relative;z-index:1;padding:80px 0}
           <a href="mailto:itziana@naver.com"><i class="fas fa-envelope"></i> itziana@naver.com</a>
         </div>
         <div class="hero-tags">
-          <span class="hero-tag"># Data Analytics</span>
-          <span class="hero-tag"># AI Integration</span>
-          <span class="hero-tag"># Team Leadership</span>
-          <span class="hero-tag"># BI Architecture</span>
-          <span class="hero-tag"># E-Commerce</span>
+          <span class="hero-tag"># KPI Design</span>
           <span class="hero-tag"># AB Testing</span>
+          <span class="hero-tag"># Funnel Analysis</span>
+          <span class="hero-tag"># Dashboard</span>
+          <span class="hero-tag"># Digital Content</span>
+          <span class="hero-tag"># Data Infra</span>
         </div>
       </div>
       <div class="hero-right">
@@ -563,12 +565,11 @@ section{position:relative;z-index:1;padding:80px 0}
       <h2 class="section-title">Professional Dashboard</h2>
     </div>
     <p class="summary-text reveal">
-      <strong>오프라인 리테일 → e-Commerce → 로켓커머스 → OTT.</strong><br>
-      15년간 산업의 디지털 전환 최전방에서 <span class="highlight">'데이터로 풀어야 할 가장 중요한 문제'</span>를 정의하고,
-      분석 체계를 직접 구축하며, 비즈니스 성과로 연결해 왔습니다.
-      eBay Korea에서 <span class="highlight">데이터 거버넌스를 0에서 구축</span>하고,
-      Coupang에서 <span class="highlight">실험 기반 전략적 BI</span>를 리드했으며,
-      현재 Tving에서는 <strong>AI가 스스로 분석하고 답하는 체계</strong>를 만들고 있습니다.
+      <strong>디지털 콘텐츠 서비스 × 글로벌 스케일 × 실험 기반 성장</strong> <br>
+      Tving(OTT) <span class="highlight">에서 디지털 콘텐츠 KPI를 정의하고 AI 대시보드를 구축</span>하고 있으며,<br>
+      Coupang에서 <span class="highlight">AB Test 플랫폼 기반 실험 설계·검증과 AARRR 퍼널 분석</span>을 리드했고,<br>
+      eBay Korea에서 <span class="highlight">3개 사이트 행동데이터 수집 시스템과 데이터 거버넌스를 구축</span>했습니다.<br>
+      <strong>NAVER WEBTOON의 글로벌 사업 성장을 데이터로 가속화하는 데 함께하고 싶습니다.</strong>
     </p>
     <div class="kpi-strip">
       <div class="kpi-card reveal">
@@ -595,106 +596,325 @@ section{position:relative;z-index:1;padding:80px 0}
   </div>
 </section>
 
-<!-- ===== SKILLS DASHBOARD ===== -->
-<section class="skills-section" id="skills">
+<!-- ===== FIT MAPPING ===== -->
+<section class="skills-section" id="fit" style="padding-bottom:40px">
   <div class="container">
     <div class="section-header reveal">
-      <div class="section-tag"><i class="fas fa-gauge-high"></i> ANALYTICS</div>
-      <h2 class="section-title">Skills Dashboard</h2>
+      <div class="section-tag"><i class="fas fa-crosshairs"></i> FIT MAPPING</div>
+      <h2 class="section-title">지원 포지션 적합성</h2>
+      <p style="color:var(--text2);font-size:0.9rem;margin-top:8px">NAVER WEBTOON이 원하는 역량 → 제가 증명한 경험</p>
     </div>
-
-    <div class="skills-dash">
-      <!-- Tech Skills Panel -->
-      <div class="dash-panel span2 reveal">
-        <div class="panel-header">
-          <div class="panel-title"><i class="fas fa-code"></i> Technical Proficiency</div>
-          <span class="panel-badge">8 Skills</span>
-        </div>
-        <div class="skill-row"><span class="skill-name">SQL (Hive/Oracle/MySQL)</span><div class="skill-track"><div class="skill-fill blue" data-w="95"></div></div><span class="skill-pct">95%</span></div>
-        <div class="skill-row"><span class="skill-name">Tableau</span><div class="skill-track"><div class="skill-fill blue" data-w="92"></div></div><span class="skill-pct">92%</span></div>
-        <div class="skill-row"><span class="skill-name">Google Analytics</span><div class="skill-track"><div class="skill-fill blue" data-w="85"></div></div><span class="skill-pct">85%</span></div>
-        <div class="skill-row"><span class="skill-name">Python</span><div class="skill-track"><div class="skill-fill purple" data-w="78"></div></div><span class="skill-pct">78%</span></div>
-        <div class="skill-row"><span class="skill-name">Airflow / ETL</span><div class="skill-track"><div class="skill-fill purple" data-w="75"></div></div><span class="skill-pct">75%</span></div>
-        <div class="skill-row"><span class="skill-name">ElasticSearch & Kibana</span><div class="skill-track"><div class="skill-fill green" data-w="72"></div></div><span class="skill-pct">72%</span></div>
-        <div class="skill-row"><span class="skill-name">R</span><div class="skill-track"><div class="skill-fill green" data-w="65"></div></div><span class="skill-pct">65%</span></div>
-        <div class="skill-row"><span class="skill-name">D3.js</span><div class="skill-track"><div class="skill-fill green" data-w="62"></div></div><span class="skill-pct">62%</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;margin-top:24px">
+      <div class="dash-panel reveal" style="padding:20px">
+        <div class="panel-header"><i class="fas fa-chart-bar" style="color:var(--accent)"></i> <span>KPI 정의 & 대시보드</span></div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:10px;line-height:1.7">
+          <strong style="color:var(--orange)">Tving:</strong> 핵심 KPI 정의 + AI 자동화 대시보드 구축<br>
+          <strong style="color:var(--accent)">Coupang:</strong> 셀러 GMV, FEP 전환율 등 다차원 KPI 분석<br>
+          <strong style="color:var(--purple)">eBay:</strong> BI 서비스 플랫폼, 검색 키워드·프로모션 분석        </p>
       </div>
-
-      <!-- Radar Chart -->
-      <div class="dash-panel reveal">
-        <div class="panel-header">
-          <div class="panel-title"><i class="fas fa-chart-area"></i> Radar</div>
-        </div>
-        <div class="chart-box"><canvas id="radarChart"></canvas></div>
+      <div class="dash-panel reveal" style="padding:20px">
+        <div class="panel-header"><i class="fas fa-flask" style="color:var(--green)"></i> <span>실험 설계 & 통계 검증</span></div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:10px;line-height:1.7">
+          <strong style="color:var(--accent)">Coupang:</strong> (XPC 플랫폼) AB Test 수십 건 설계·실행·검증<br>
+          FEP최적화, MyShop 묶음구매, Auto Price 효과 검증<br>
+          <strong style="color:var(--purple)">eBay:</strong> Deep Link Gate 유입 케이스별 AB Test 설계
+        </p>
       </div>
-
-      <!-- Analysis Methods -->
-      <div class="dash-panel span2 reveal">
-        <div class="panel-header">
-          <div class="panel-title"><i class="fas fa-flask"></i> Analysis Methodology</div>
-          <span class="panel-badge">9 Methods</span>
-        </div>
-        <div class="method-tags">
-          <div class="method-tag"><i class="fas fa-vials"></i> AB Testing</div>
-          <div class="method-tag"><i class="fas fa-layer-group"></i> Cohort Analysis</div>
-          <div class="method-tag"><i class="fas fa-filter"></i> Funnel Analysis</div>
-          <div class="method-tag"><i class="fas fa-chart-pie"></i> AARRR Framework</div>
-          <div class="method-tag"><i class="fas fa-users-cog"></i> Segmentation</div>
-          <div class="method-tag"><i class="fas fa-shield-halved"></i> Fraud Detection</div>
-          <div class="method-tag"><i class="fas fa-magnifying-glass-chart"></i> CRM Analytics</div>
-          <div class="method-tag"><i class="fas fa-link"></i> Association Analysis</div>
-          <div class="method-tag"><i class="fas fa-database"></i> Data Governance</div>
-        </div>
+      <div class="dash-panel reveal" style="padding:20px">
+        <div class="panel-header"><i class="fas fa-filter" style="color:var(--cyan)"></i> <span>퍼널 분석 (앱/웹 로그)</span></div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:10px;line-height:1.7">
+          <strong style="color:var(--accent)">Coupang:</strong> 셀러 AARRR 퍼널 (SignUp→Live→Active→GMV) End-to-End<br>
+          <strong style="color:var(--orange)">Tving:</strong> 구독 퍼널 + 시청 퍼널 분석, 이탈 최다 단계 식별<br>
+          <strong style="color:var(--purple)">eBay:</strong> Funnel 기반 도메인별 이탈/전환 분석
+        </p>
       </div>
-
-      <!-- AI Panel -->
-      <div class="dash-panel reveal">
-        <div class="panel-header">
-          <div class="panel-title"><i class="fas fa-robot"></i> AI & Modern</div>
-          <span class="panel-badge" style="background:rgba(167,139,250,0.1);color:var(--purple);border-color:rgba(167,139,250,0.2)">NEW</span>
-        </div>
-        <div class="ai-features">
-          <div class="ai-feat"><i class="fas fa-brain"></i><div class="feat-title">KPI 자동 감지</div><div class="feat-desc">AI가 KPI 이상을 감지하고 원인을 자동 분석</div></div>
-          <div class="ai-feat"><i class="fas fa-wand-magic-sparkles"></i><div class="feat-title">NL→SQL 자동화</div><div class="feat-desc">자연어 → SQL 자동 생성·실행 쿼리 시스템</div></div>
-          <div class="ai-feat"><i class="fas fa-chart-line"></i><div class="feat-title">예측 모델링</div><div class="feat-desc">Bottom-Up 예측 + Auto-Retraining 파이프라인</div></div>
-          <div class="ai-feat"><i class="fas fa-gauge-high"></i><div class="feat-title">LLM 챗봇</div><div class="feat-desc">대화형 분석 인터페이스 — 데이터 민주화</div></div>
-        </div>
+      <div class="dash-panel reveal" style="padding:20px">
+        <div class="panel-header"><i class="fas fa-database" style="color:var(--pink)"></i> <span>데이터 구조 & 로그 설계</span></div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:10px;line-height:1.7">
+          <strong style="color:var(--purple)">eBay:</strong> Montelena TF (Owner PM, 1.5년) — 3개 사이트 행동데이터 수집 + 지표 표준화<br>
+          <strong style="color:var(--accent)">Coupang:</strong> GA→내부 DB ETL 파이프라인 설계<br>
+          <strong style="color:var(--orange)">Tving:</strong> AI 쿼리 시스템 위한 전사 데이터 카탈로그 구조화
+        </p>
       </div>
-
-      <!-- Donut + Bar Charts -->
-      <div class="dash-panel reveal">
-        <div class="panel-header">
-          <div class="panel-title"><i class="fas fa-chart-pie"></i> Experience Distribution</div>
-        </div>
-        <div class="chart-box"><canvas id="donutChart"></canvas></div>
+      <div class="dash-panel reveal" style="padding:20px">
+        <div class="panel-header"><i class="fas fa-film" style="color:var(--orange)"></i> <span>디지털 콘텐츠 산업 이해 <span style="font-size:0.7rem;color:var(--green)">(우대)</span></span></div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:10px;line-height:1.7">
+          <strong style="color:var(--orange)">Tving (현재):</strong> OTT 디지털 콘텐츠 서비스 데이터 분석 팀장<br>
+          콘텐츠 실적 예측, 구독자 행동 분석, 시청시간 KPI 설계 직접 수행<br>
+          → 웹툰 콘텐츠 소비 패턴·BM 분석에 직접 전이 가능한 도메인 경험
+        </p>
       </div>
-
-      <!-- Career Bar Chart -->
-      <div class="dash-panel reveal">
-        <div class="panel-header">
-          <div class="panel-title"><i class="fas fa-chart-bar"></i> Career Duration</div>
-        </div>
-        <div class="chart-box"><canvas id="barChart"></canvas></div>
+      <div class="dash-panel reveal" style="padding:20px">
+        <div class="panel-header"><i class="fas fa-rocket" style="color:var(--yellow)"></i> <span>그로스해킹 & CRM <span style="font-size:0.7rem;color:var(--green)">(우대)</span></span></div>
+        <p style="color:var(--text2);font-size:0.85rem;margin-top:10px;line-height:1.7">
+          <strong style="color:var(--accent)">Coupang:</strong> 셀러 성장 전략, 프로모션 최적화, 그로스 분석<br>
+          <strong style="color:var(--green)">E-Land:</strong> 고객 세그먼트 기반 CRM, 타겟 마케팅 전략<br>
+          → 유저 유입·잔존·결제를 데이터로 최적화한 풍부한 경험
+        </p>
       </div>
-
-      <!-- Leadership Panel - full width -->
-      <div class="dash-panel span3 reveal" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px">
-        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.1)">
-          <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-users" style="color:var(--green)"></i></div>
-          <div><div style="font-size:0.8rem;font-weight:700">Team Managing</div><div style="font-size:0.68rem;color:var(--text3)">데이터 팀 팀장</div></div>
+    </div>
+  </div>
+</section>
+<!-- ===== KEY PROJECTS ===== -->
+<section class="projects-section" id="projects">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-tag"><i class="fas fa-folder-open"></i> PORTFOLIO</div>
+      <h2 class="section-title">Key Projects</h2>
+    </div>
+    <div class="projects-grid">
+      <!-- Tving 1: AI 대시보드 자동화 -->
+      <div class="proj-card tving reveal">
+        <div class="proj-badge">Tving</div>
+        <div class="proj-title">AI 자동화 대시보드 — 인사이트 자동 생성 & AI 챗봇</div>
+        <div class="proj-role"><i class="fas fa-user-tie"></i> Team Manager — 기획·설계·개발 총괄</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/tving_ai_dashboard.jpg" alt="AI 지능형 대시보드 — AI-Dave 자동 인사이트 & 챗봇" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.1)">
-          <div style="width:40px;height:40px;border-radius:10px;background:rgba(56,189,248,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-sitemap" style="color:var(--accent)"></i></div>
-          <div><div style="font-size:0.8rem;font-weight:700">Silo Process</div><div style="font-size:0.68rem;color:var(--text3)">업무 프로세스 설계</div></div>
+        <div class="proj-desc">OTT 시장은 월 5~10% 이탈률의 고회전 비즈니스. KPI 이상을 하루라도 늦게 포착하면 대응 시점을 놓기게 됩니다. 기존 Tableau 대시보드는 '지표가 떨어졌다'만 보여줄 뿐, '왜, 누가 무엇을 바꿔야 하는가'까지 도달하려면 분석가의 수동 탐색에 수일이 걸렸습니다. 이를 AI가 자동으로 수행하는 능동형 인사이트 시스템으로 전환했습니다.</div>
+        <div class="proj-detail">
+          <strong>Step 1 — NL→SQL 자동화 쿼리 (기반 인프라)</strong><br>
+          자연어 질문 → SQL 자동 생성·실행. 전사 데이터 카탈로그를 AI 컨텍스트로 주입하여 정확도 확보.<br>
+          eBay Montelena TF에서 3개 사이트 Standard Query를 정립한 경험이 설계의 직접적 기반.<br>
+          이후 모든 AI 기능의 공통 데이터 접근 계층으로 작동.
+          <br><br>
+          <strong>Step 2 — KPI 자동 모니터링 & 원인 분석</strong><br>
+          핵심 KPI를 AI가 상시 트래킹. 이상 감지 시 3단계 자동 분석:<br>
+          &nbsp;&nbsp;① 시계열 분해 &nbsp;② 세그먼트별 기여도 분해 &nbsp;③ 상관 지표 연관 분석<br>
+          '핵심 원인 Top-3 + 차트 + 요약'을 자동 구성하여 인사이트 즉시 제공.
+          <br><br>
+          <strong>Step 3 — OKR 목표 대비 진단</strong><br>
+          마케팅·프로덕트·콘텐츠팀 각각의 책임 KPI 중<br>
+          '어떤 지표가, 얼마나, 왜 부진한지'를 자동 진단. Coupang 퍼널 분석 방법론을 OTT 구독 맥락으로 확장.
+          <br><br>
+          <strong>Step 4 — LLM 챗봇 (데이터 민주화)</strong><br>
+          비분석가도 자연어로 '지난 달 20대 여성의 시청시간 트렌드는?' 질문 → 즉시 분석 결과 확인.<br>
+          Step 1의 쿼리 시스템이 백엔드에서 질문→SQL→실행→해석→시각화를 End-to-End 처리.
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(167,139,250,0.04);border:1px solid rgba(167,139,250,0.1)">
-          <div style="width:40px;height:40px;border-radius:10px;background:rgba(167,139,250,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-arrows-split-up-and-left" style="color:var(--purple)"></i></div>
-          <div><div style="font-size:0.8rem;font-weight:700">Cross-functional</div><div style="font-size:0.68rem;color:var(--text3)">부서 간 협업 리딩</div></div>
+        <div class="proj-tags"><span>AI/LLM</span><span>Auto Query</span><span>Dashboard</span><span>Chatbot</span><span>Anomaly Detection</span><span>Python</span></div>
+        <div class="proj-result"><i class="fas fa-robot"></i> KPI 이상 감지→원인→개선 방향 Lead Time: 수일→실시간 / 분석팀이 전략적 심층 분석에 집중 / 데이터 민주화 실현</div>
+      </div>
+      <!-- Tving 2: 예측 모델링 & KPI 포뮬러화 -->
+      <div class="proj-card tving reveal">
+        <div class="proj-badge">Tving</div>
+        <div class="proj-title">예측 모델링 체계 & KPI 포뮬러화(OKR) 설계</div>
+        <div class="proj-role"><i class="fas fa-user-tie"></i> Team Manager — 모델 설계·KPI 전략 수립</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/tving_kpi_breakdown.jpg" alt="KPI 포뮬러 분해 대시보드 — Watch Hour 분해" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(251,146,60,0.04);border:1px solid rgba(251,146,60,0.1)">
-          <div style="width:40px;height:40px;border-radius:10px;background:rgba(251,146,60,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-book" style="color:var(--orange)"></i></div>
-          <div><div style="font-size:0.8rem;font-weight:700">Data Governance</div><div style="font-size:0.68rem;color:var(--text3)">전사 거버넌스 정의</div></div>
+        <div class="proj-desc">OTT 사업의 핵심 질문 '다음 분기 구독자가 몇 명이고, 어떤 콘텐츠에 투자해야 하는가'에 대해 데이터로 답하는 체계를 구축. GMM 클러스터링으로 '누가 핵심 고객이고 누가 이탈 위험에 있는가'를 정의하고, Bottom-Up 예측으로 '감'이 아닌 정량 근거를 제공하며, OKR 포뮬러로 '누구의 책임인가'를 데이터가 직접 답하도록 설계.</div>
+        <div class="proj-detail">
+          <strong>GMM 클러스터링 & LTV</strong><br>
+          시청 패턴, 구독 이력, 서비스 행태 등 복합 Feature 기반 클러스터링.<br>
+          '누가 핵심 고객이고, 누가 이탈 위험에 있는가'를 정량적으로 정의.<br>
+          고LTV 고객의 공통 행동 패턴 식별, 이탈 위험군 조기 감지 체계 구축. E-Land CRM + Coupang Cohort 경험이 기반.
+          <br><br>
+          <strong>Bottom-Up 예측 (~75%)</strong><br>
+          전체를 한 번에 예측하는 대신, 구성 요소로 분해 후 각각 독립 예측하여 합산.<br>
+          구독자 = 신규유입(채널별) + 재구독(세그먼트별) - 이탈(위험군별)<br>
+          세분화로 집계 수준 노이즈를 제거하여 커버율 ~75%. AI Auto-Retraining으로 시장 변화 자동 적응.
+          <br><br>
+          <strong>KPI OKR 포뮬러</strong><br>
+          구독자 수의 70%+가 재구독자 — 그러나 '마케팅 문제인지, 콘텐츠 문제인지, UX 문제인지' 특정 불가능한 구조.<br>
+          시청시간이 재구독의 최강 선행 지표임을 검증 후:
+          <br><br>
+          <strong style="color:var(--orange)">재구독자 = ① 재방문 인원(MKT) × ② 시청 전환율(Product) × ③ 시청시간(Content)</strong>
+          <br><br>
+          조직 간 '책임 떠넘기기' 해소 → 예: '재방문은 유지되나 전환율 하락' → Product팀이 즉시 원인 파악.<br>
+          Coupang 셀러 퍼널 분해 방법론을 구독 비즈니스에 재설계한 결과.
         </div>
+        <div class="proj-tags"><span>GMM</span><span>Clustering</span><span>LTV</span><span>Predictive Modeling</span><span>OKR</span><span>KPI Design</span><span>Python</span></div>
+        <div class="proj-result"><i class="fas fa-chart-line"></i> 예측 커버율 ~75% — 경영진 의사결정의 정량 근거 / LTV 기반 이탈 조기 감지 / 포뮬러 기반 성과 귀인 체계 확립</div>
+      </div>
+      <!-- Tving 3: 팀 매니징 -->
+      <div class="proj-card tving reveal">
+        <div class="proj-badge">Tving</div>
+        <div class="proj-title">사일로형 분석 프로세스 도입 & 팀 매니징</div>
+        <div class="proj-role"><i class="fas fa-user-tie"></i> Team Manager — 프로세스 설계·팀 운영</div>
+        <div class="proj-desc">팀원별 전문 도메인(콘텐츠, 마케팅, 프로덕트, 커머스)을 명확히 매핑하고 분석 오너십을 부여. 팀장 승인 병목을 해소하여 분석 속도와 팀원 성장을 동시에 확보하는 구조 설계.</div>
+        <div class="proj-detail"><strong>핵심:</strong> 중앙 집중형 분석 요청 구조를 도메인별 자율 의사결정 구조로 전환. 주간 Sync-up(진행 공유) + 월간 Deep Dive(전략적 심층 분석 리뷰) + 지식 공유 세션 정례화.</div>
+        <div class="proj-tags"><span>Team Management</span><span>Process Design</span><span>Silo Process</span><span>AI Planning</span></div>
+      </div>
+      <!-- Coupang FEP -->
+      <div class="proj-card coupang reveal">
+        <div class="proj-badge">Coupang</div>
+        <div class="proj-title">FEP (Free Exposure Promotion) 프로덕트 최적화</div>
+        <div class="proj-role"><i class="fas fa-chart-bar"></i> BI Principal — 분석·AB Test 설계</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/coupang_ab_test.png" alt="AB Experiment Platform" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        </div>
+        <div class="proj-desc">셀러가 경쟁력 있는 가격(CPI 90 미만)을 제시하면 추가 노출을 제공하는 3P Marketplace 핵심 프로모션 서비스. Cohort, AARRR, Funnel 방법론을 종합 적용하여 전환·잔존·매출을 다차원 분석.</div>
+        <div class="proj-detail">
+          <strong>문제:</strong> 2년차 성장 정체를 감지하고 원인 심층 진단에 착수<br><br>
+          <strong>발견:</strong> CPC에 비용을 투입하면서도 실적 저조한 상품군<br>
+          (Unit Sold 5개 이하, CPI 100%+)을 세그먼트 분석으로 식별<br><br>
+          <strong>해결:</strong> FEP의 '판매 시 과금' 구조가 CPC 대비 ROAS에서 구조적 우위가 있음을 데이터로 증명.<br>
+          해당 17만+ 상품의 CPC→FEP 전환 로드맵을 수립, 3P Sales팀과 공동 실행
+        </div>
+        <div class="proj-tags"><span>AB Test (XPC)</span><span>Funnel</span><span>Cohort</span><span>SQL</span><span>Tableau</span></div>
+        <div class="proj-result"><i class="fas fa-chart-line"></i> CPC 대비 FEP ROAS 우위 검증, 17만+ 상품 전환 전략 제안</div>
+      </div>
+      <!-- Coupang AARRR -->
+      <div class="proj-card coupang reveal">
+        <div class="proj-badge">Coupang</div>
+        <div class="proj-title">셀러 AARRR 파이프라인 구축</div>
+        <div class="proj-role"><i class="fas fa-chart-bar"></i> BI Principal — ETL 파이프라인 설계</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/coupang_seller_funnel.png" alt="Seller Funnel Dashboard" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        </div>
+        <div class="proj-desc">3P Marketplace의 성장은 '좋은 셀러를 유입시키고, 빠르게 활성화시키며, 오래 머물게 하는 것'에 달려 있습니다. 셀러 라이프사이클(SignUp→Live→Active→GMV) 전체를 채널별로 측정하는 End-to-End 파이프라인을 구축.</div>
+        <div class="proj-detail">
+          <strong>문제:</strong> GA 외부 데이터와 내부 DB 간 연결 부재<br>
+          → 유입 채널별 전환 퍼널 파악 자체가 불가능<br><br>
+          <strong>해결:</strong> GA→내부 트래커→Airflow ETL→Tableau 리포팅 파이프라인을 직접 설계·구축.<br>
+          이탈 최다 단계(사업자 인증)를 데이터로 식별, 상품등록 직전으로 순서 변경 제안<br><br>
+          <strong>핵심 발견:</strong> 14주 내 150만 GMV 달성 Cohort의 1년 리텐션이 최고<br>
+          — '초기 활성화 속도가 장기 잔존의 핵심 동인'임을 증명. AM 대상 셀러별 컨설팅 대시보드 제공
+        </div>
+        <div class="proj-tags"><span>GA</span><span>Airflow</span><span>AARRR</span><span>Cohort</span><span>Tableau</span><span>SQL</span></div>
+        <div class="proj-result"><i class="fas fa-lightbulb"></i> 퍼널 병목 이동 제안 → 전환율 개선 / '초기 활성화 = 장기 잔존' 증명 → 핵심 KPI로 설정</div>
+      </div>
+      <!-- Coupang MyShop -->
+      <div class="proj-card coupang reveal">
+        <div class="proj-badge">Coupang</div>
+        <div class="proj-title">MyShop 런칭 프로젝트 / Auto Price / Seller Score</div>
+        <div class="proj-role"><i class="fas fa-chart-bar"></i> BI Principal — 성과 검증·로직 구현</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/coupang_gmv_dashboard.png" alt="GMV Performance Dashboard" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        </div>
+        <div class="proj-desc">셀러 브랜드 스토어(MyShop) 런칭 시 AOV 2.4배 상승을 데이터로 검증하여 서비스 확대의 핵심 근거를 제공. Auto Price 효과를 정량 검증하고, 다차원 셀러 평가 스코어 산출 로직을 설계.</div>
+        <div class="proj-detail">
+          <strong>MyShop:</strong> 합배송 효과와 셀러 쿠폰이 객단가에 미치는 영향을 분리 분석.<br>
+          묶음 구매 UX AB Test 설계·실행. 효과가 큰 셀러 세그먼트를 식별하여 단계적 확산 전략 수립<br><br>
+          <strong>Auto Price:</strong> 이용 vs 비이용 셀러 간 매출·전환율·가격 변동 패턴 비교 분석<br>
+          AB Test로 효과 정량 검증<br><br>
+          <strong>Seller Score:</strong> 매출, 별점, 배송 타입, EDD/PDD 등 다차원 종합 평가 스코어 로직 설계·구현.<br>
+          정책 위반 자동 탐지 프로세스
+        </div>
+        <div class="proj-tags"><span>AB Test</span><span>UX Analysis</span><span>SQL</span><span>Tableau</span><span>Query Logic</span></div>
+        <div class="proj-result"><i class="fas fa-arrow-up"></i> MyShop 구매 시 평균 주문단가 2.4x 상승 검증</div>
+      </div>
+      <!-- eBay Montelena -->
+      <div class="proj-card ebay reveal">
+        <div class="proj-badge">eBay Korea</div>
+        <div class="proj-title">Montelena TF — 행동데이터 수집/분석 시스템 (1.5년)</div>
+        <div class="proj-role"><i class="fas fa-database"></i> Owner PM — 프로젝트 총괄 리딩</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/ebay_dashboard_design.png" alt="Dashboard Design Documentation" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        </div>
+        <div class="proj-desc">3개 사이트가 각각 다른 솔루션으로 데이터를 수집하고, 부서마다 PV, UV 등의 정의가 달라 전사 차원의 데이터 비교 자체가 불가능한 상황. '전사적으로 비교 가능한 데이터 기반'을 0에서 구축한 프로젝트. 이 경험이 이후 Tving AI 쿼리 시스템 설계의 직접적 기반.</div>
+        <div class="proj-detail">
+          <strong>도전:</strong> Gmarket, Auction, G9 × 각기 다른 솔루션 × 부서마다 다른 지표 정의<br>
+          → 전사 데이터 비교 자체가 불가능<br><br>
+          <strong>거버넌스:</strong> PGUID↔CUID 연결 체계, 8개 핵심 지표의 Standard Query 정립<br>
+          → 이후 Tving NL→SQL 시스템 설계의 기반<br><br>
+          <strong>태깅:</strong> 웹 컨테이너 자동 태깅 시도 → 레거시 제약으로 수동 태깅 전환.<br>
+          비즈니스 임팩트가 큰 16개 핵심 도메인에 집중.<br>
+          개발자 수동 태깅 시 휴먼 에러 최소화를 위한 Validation Rule·자동 테스트 파이프라인 설계<br><br>
+          <strong>온보딩:</strong> 조직 내 모든 PM·분석가가 데이터를 동일한 정의로 활용할 수 있도록 온보딩 프로그램 설계·진행<br><br>
+          <strong>도메인 밸류:</strong> 행동+트랜잭션 데이터를 연결하여 각 도메인의 구매 기여도를 정량 산출.<br>
+          전사 PM 대상 프레젠테이션 — 조직 전체의 데이터 활용도 향상에 기여
+        </div>
+        <div class="proj-tags"><span>Data Governance</span><span>Tagging</span><span>Hadoop</span><span>Hive SQL</span><span>Tableau</span></div>
+      </div>
+      <!-- eBay BI Platforms -->
+      <div class="proj-card ebay reveal">
+        <div class="proj-badge">eBay Korea</div>
+        <div class="proj-title">BI 서비스 플랫폼 & 데이터 분석 리포팅</div>
+        <div class="proj-role"><i class="fas fa-chart-area"></i> Data PM — 플랫폼 기획·분석</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/ebay_tableau_kpi.png" alt="Tableau KPI Dashboard" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        </div>
+        <div class="proj-desc">검색 키워드 분석 플랫폼, 프로모션 실적 분석 플랫폼 등 데이터 셀프서비스를 위한 BI 서비스 플랫폼을 기획. Funnel 기반 이탈/전환 분석, Global KPI(Searched Session Per GMV), Domain Value 지표 등 다양한 분석 프로젝트를 수행.</div>
+        <div class="proj-detail">
+          <strong>키워드 분석:</strong> 일간/주간/월간 키워드별 검색 정보 + 매출 실적<br>
+          <span style="color:var(--text3);font-size:0.7rem">(Tableau, Hive, Bootstrap)</span><br><br>
+          <strong>프로모션 분석:</strong> 방문 당 실적, UV/PV, 실적 비교<br>
+          <span style="color:var(--text3);font-size:0.7rem">(Tableau, Hive, Bootstrap)</span><br><br>
+          <strong>Global KPI:</strong> Global eBay와 동일 Standard의 'Searched Session Per GMV' 수집 로직 기획·분석<br>
+          <span style="color:var(--text3);font-size:0.7rem">(MySQL, Hive, Tableau, Zeplin)</span><br><br>
+          <strong>Domain Value:</strong> User Journey 단위 Domain Value 지표 기획<br>
+          — 직접 구매가 발생하지 않는 도메인의 평가 지표 산출<br>
+          <span style="color:var(--text3);font-size:0.7rem">(Hive SQL, Python)</span><br><br>
+          <strong>Funnel 분석:</strong> Domain별 Action→Buying→이탈 전환<br>
+          <span style="color:var(--text3);font-size:0.7rem">(Oracle SQL, Hive, Zeplin)</span><br><br>
+          <strong>ATO 추적분석:</strong> 분석 집단에서의 이상 접근 제외를 위한 ATO 인정기준 수립<br>
+          <span style="color:var(--text3);font-size:0.7rem">(Hive SQL, Tableau)</span><br><br>
+          <strong>Session 관제:</strong> Data 정합성 실시간 모니터링<br>
+          <span style="color:var(--text3);font-size:0.7rem">(ElasticSearch, Kibana, D3.js)</span>
+        </div>
+        <div class="proj-tags"><span>Tableau</span><span>Hive SQL</span><span>Bootstrap</span><span>D3.js</span><span>Kibana</span><span>Zeplin</span></div>
+      </div>
+      <!-- eBay Deep Link -->
+      <div class="proj-card ebay reveal">
+        <div class="proj-badge">eBay Korea</div>
+        <div class="proj-title">Deep Link Gate — Web↔APP 데이터 연결</div>
+        <div class="proj-role"><i class="fas fa-link"></i> Owner PM — Marketing Channel Data 수집 로직 기획·개발 총괄</div>
+        <div class="proj-desc">웹→앱 전환 시 데이터 추적이 끊어져 마케팅 채널별 실제 ROI를 측정할 수 없는 문제를 구조적으로 해결. Marketing Channel Data 수집 로직을 기획하고, 유입 케이스별(직접, 검색, 광고, 푸시) AB Test를 설계·실행하여 최적 전환 경로를 검증.</div>
+        <div class="proj-detail">
+          <strong>수집 로직:</strong> Marketing Channel별 유입 경로 데이터 수집 체계를 기획.<br>
+          Web↔App 전환 시 사용자 식별이 유지되는 딥링크 게이트 로직을 설계·개발<br><br>
+          <strong>분석:</strong> Hadoop, Hive SQL, Tableau 기반 채널별 실적 분석 및 ROI 측정 체계 구축<br><br>
+          <strong>공유:</strong> 전사 대상 MKT Deep Link Logic 프레젠테이션 진행
+        </div>
+        <div class="proj-tags"><span>Deep Link</span><span>AB Test</span><span>Hadoop</span><span>Hive SQL</span><span>Tableau</span></div>
+        <div class="proj-result"><i class="fas fa-trophy"></i> 2019 2Q PIC Unit Award 수상 — Web↔App 데이터 추적 체계를 구조적으로 완성한 공로</div>
+      </div>
+      <!-- eBay Gotham -->
+      <div class="proj-card ebay reveal">
+        <div class="proj-badge">eBay Korea</div>
+        <div class="proj-title">Fraud Detection "Gotham" 기획</div>
+        <div class="proj-role"><i class="fas fa-shield-halved"></i> PM — ATO 기준 정의·도구 기획</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/ebay_gotham.png" alt="Gotham Fraud Detection Tool" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        </div>
+        <div class="proj-desc">정상 사용자 행동 패턴을 프로파일링하고, ATO(Account Takeover) 판별 기준을 데이터 기반으로 수립. 비정상 세션을 분석 데이터에서 자동 제외하는 체계와 케이스 관리 도구 'Gotham'을 기획.</div>
+        <div class="proj-detail">
+          <strong>이상 탐지:</strong> IP, Cookie, 접속 시간 패턴(Raw Duration) 등<br>
+          복합 시그널 기반 이상 탐지 로직 개발<br><br>
+          <strong>도구 기획:</strong> 실시간 알림, 사례별 관리 워크플로우, 대응 자동화를 통합한<br>
+          Gotham 웹 애플리케이션 기획
+        </div>
+        <div class="proj-tags"><span>Fraud Detection</span><span>Hive SQL</span><span>Tableau</span><span>Security</span><span>Web App</span></div>
+      </div>
+      <!-- eBay R Analysis -->
+      <div class="proj-card ebay reveal">
+        <div class="proj-badge">eBay Korea</div>
+        <div class="proj-title">Sales 전략기획 — 카테고리 분석·MKT 기획</div>
+        <div class="proj-role"><i class="fas fa-chart-pie"></i> Data Analyst — 전략 기획·분석</div>
+        <div class="proj-img" onclick="openLightbox(this)">
+          <img src="images/ebay_r_analysis.png" alt="R Association Analysis" loading="lazy">
+          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        </div>
+        <div class="proj-desc">Business 의사결정 Data 분석과 MKT Target User Data 분석의 두 축으로, 데이터 기반 Sales 전략 전반을 수행.</div>
+        <div class="proj-detail">
+          <strong>Business 의사결정 분석</strong><br>
+          상품 Category 재분류를 위한 연관성 분석 — User 연관구매 상품 Group 단위의 Category 개편 Standard 도출<br>
+          <span style="color:var(--text3);font-size:0.7rem">(R, MySQL)</span><br>
+          Super Deal 구좌 분배 최적화 — 방문·구매·매출 관점에서 최적 효율 Inventory 구성<br>
+          <span style="color:var(--text3);font-size:0.7rem">(Hive SQL, MySQL, Python)</span>
+          <br><br>
+          <strong>MKT Target User 분석</strong><br>
+          Membership MKT '취미 연구소' 기획·실행 — Push MKT를 위한 User별 관심상품군 Grouping Data 추출.<br>
+          O2O 스마트 모빌리티 프로젝트 기획·실행 — 외부 채널 마케팅 기획, 제휴 업체 선정 및 관리
+          <br><br>
+          <strong>Seasonal·쿠폰</strong><br>
+          52주 Seasonal 패턴 분석 — 시즌 단위 Promotion Schedule 기획 및 MKT Resource 배분.<br>
+          쿠폰 스펙(할인율, 최소 결제금액)과 타겟 그룹(New/Return Buying)별 최적 조합 도출
+          <br><br>
+          <strong>성과:</strong> 2015 eBay Korea 영업BU 최우수 직원상 수상<br>
+          BU 직원 대상 실적 우수사례 Case Presentation 진행
+        </div>
+        <div class="proj-tags"><span>R</span><span>Association Analysis</span><span>Python</span><span>Hive SQL</span><span>CRM</span></div>
+        <div class="proj-result"><i class="fas fa-star"></i> 2015 eBay Korea 영업BU 최우수 직원상 수상</div>
       </div>
     </div>
   </div>
@@ -777,166 +997,83 @@ section{position:relative;z-index:1;padding:80px 0}
   </div>
 </section>
 
-<!-- ===== KEY PROJECTS ===== -->
-<section class="projects-section" id="projects">
+<!-- ===== SKILLS DASHBOARD ===== -->
+<section class="skills-section" id="skills">
   <div class="container">
     <div class="section-header reveal">
-      <div class="section-tag"><i class="fas fa-folder-open"></i> PORTFOLIO</div>
-      <h2 class="section-title">Key Projects</h2>
+      <div class="section-tag"><i class="fas fa-gauge-high"></i> ANALYTICS</div>
+      <h2 class="section-title">Skills Dashboard</h2>
     </div>
-    <div class="projects-grid">
-      <!-- Tving 1: AI 대시보드 자동화 -->
-      <div class="proj-card tving reveal">
-        <div class="proj-badge">Tving</div>
-        <div class="proj-title">AI 자동화 대시보드 — 인사이트 자동 생성 & AI 챗봇</div>
-        <div class="proj-role"><i class="fas fa-user-tie"></i> Team Manager — 기획·설계·개발 총괄</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/tving_ai_dashboard.jpg" alt="AI 지능형 대시보드 — AI-Dave 자동 인사이트 & 챗봇" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+
+    <div class="skills-dash" style="grid-template-columns:1fr 1fr;gap:18px">
+      <!-- Analysis Methods -->
+      <div class="dash-panel reveal">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fas fa-flask"></i> Analysis Methodology</div>
+          <span class="panel-badge">9 Methods</span>
         </div>
-        <div class="proj-desc">OTT 시장은 월 5~10% 이탈률의 고회전 비즈니스. KPI 이상을 하루라도 늦게 포착하면 대응 시점을 놓기게 됩니다. 기존 Tableau 대시보드는 '지표가 떨어졌다'만 보여줄 뿐, '왜, 누가 무엇을 바꿔야 하는가'까지 도달하려면 분석가의 수동 탐색에 수일이 걸렸습니다. 이를 AI가 자동으로 수행하는 능동형 인사이트 시스템으로 전환했습니다.</div>
-        <div class="proj-detail">
-          <strong>Step 1 — NL→SQL 자동화 쿼리 (기반 인프라):</strong> 자연어 질문 → SQL 자동 생성·실행. 전사 데이터 카탈로그를 AI 컨텍스트로 주입하여 정확도 확보. eBay Montelena TF에서 3개 사이트 Standard Query를 정립한 경험이 설계의 직접적 기반. 이후 모든 AI 기능의 공통 데이터 접근 계층으로 작동.<br>
-          <strong>Step 2 — KPI 자동 모니터링 & 원인 분석:</strong> 핵심 KPI를 AI가 상시 트래킹. 이상 감지 시 3단계 자동 분석: ① 시계열 분해 ② 세그먼트별 기여도 분해 ③ 상관 지표 연관 분석. '핵심 원인 Top-3 + 차트 + 요약'을 자동 구성하여 별도 요청 없이 인사이트 즉시 제공.<br>
-          <strong>Step 3 — OKR 목표 대비 진단:</strong> 마케팅·프로덕트·콘텐츠팀 각각의 책임 KPI 중 '어떤 지표가, 얼마나, 왜 부진한지'를 자동 진단. Coupang 셀러 퍼널 분석 방법론을 OTT 구독 맥락으로 확장.<br>
-          <strong>Step 4 — LLM 챗봇 (데이터 민주화):</strong> 비분석가도 자연어로 '지난 달 20대 여성의 시청시간 트렌드는?' 질문 → 즉시 분석 결과 확인. Step 1의 쿼리 시스템이 백엔드에서 질문→SQL→실행→해석→시각화를 End-to-End 처리.
+        <div class="method-tags">
+          <div class="method-tag"><i class="fas fa-vials"></i> AB Testing</div>
+          <div class="method-tag"><i class="fas fa-layer-group"></i> Cohort Analysis</div>
+          <div class="method-tag"><i class="fas fa-filter"></i> Funnel Analysis</div>
+          <div class="method-tag"><i class="fas fa-chart-pie"></i> AARRR Framework</div>
+          <div class="method-tag"><i class="fas fa-users-cog"></i> Segmentation</div>
+          <div class="method-tag"><i class="fas fa-shield-halved"></i> Fraud Detection</div>
+          <div class="method-tag"><i class="fas fa-magnifying-glass-chart"></i> CRM Analytics</div>
+          <div class="method-tag"><i class="fas fa-link"></i> Association Analysis</div>
+          <div class="method-tag"><i class="fas fa-database"></i> Data Governance</div>
         </div>
-        <div class="proj-tags"><span>AI/LLM</span><span>Auto Query</span><span>Dashboard</span><span>Chatbot</span><span>Anomaly Detection</span><span>Python</span></div>
-        <div class="proj-result"><i class="fas fa-robot"></i> KPI 이상 감지→원인→개선 방향 Lead Time: 수일→실시간 / 분석팀이 전략적 심층 분석에 집중 / 데이터 민주화 실현</div>
       </div>
-      <!-- Tving 2: 예측 모델링 & KPI 포뮬러화 -->
-      <div class="proj-card tving reveal">
-        <div class="proj-badge">Tving</div>
-        <div class="proj-title">예측 모델링 체계 & KPI 포뮬러화(OKR) 설계</div>
-        <div class="proj-role"><i class="fas fa-user-tie"></i> Team Manager — 모델 설계·KPI 전략 수립</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/tving_kpi_breakdown.jpg" alt="KPI 포뮬러 분해 대시보드 — Watch Hour 분해" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+
+      <!-- AI Panel -->
+      <div class="dash-panel reveal">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fas fa-robot"></i> AI & Modern</div>
+          <span class="panel-badge" style="background:rgba(167,139,250,0.1);color:var(--purple);border-color:rgba(167,139,250,0.2)">NEW</span>
         </div>
-        <div class="proj-desc">OTT 사업의 핵심 질문 '다음 분기 구독자가 몇 명이고, 어떤 콘텐츠에 투자해야 하는가'에 대해 데이터로 답하는 체계를 구축. GMM 클러스터링으로 '누가 핵심 고객이고 누가 이탈 위험에 있는가'를 정의하고, Bottom-Up 예측으로 '감'이 아닌 정량 근거를 제공하며, OKR 포뮬러로 '누구의 책임인가'를 데이터가 직접 답하도록 설계.</div>
-        <div class="proj-detail">
-          <strong>GMM 클러스터링 & LTV:</strong> 시청 패턴, 구독 이력, 서비스 행태 등 복합 Feature 기반 클러스터링. '누가 핵심 고객이고, 누가 이탈 위험에 있는가'를 정량적으로 정의. 고LTV 고객의 공통 행동 패턴 식별, 이탈 위험군 조기 감지 체계 구축. E-Land CRM + Coupang Cohort 경험이 기반.<br>
-          <strong>Bottom-Up 예측 (~75%):</strong> 전체를 한 번에 예측하는 대신, 구성 요소로 분해 후 각각 독립 예측하여 합산. 구독자 = 신규유입(채널별) + 재구독(세그먼트별) - 이탈(위험군별). 세분화로 집계 수준 노이즈를 제거하여 커버율 ~75%. AI Auto-Retraining 파이프라인으로 시장 변화 자동 적응.<br>
-          <strong>KPI OKR 포뮬러:</strong> 구독자 수의 70%+가 재구독자 — 그러나 '마케팅 문제인지, 콘텐츠 문제인지, UX 문제인지' 특정 불가능한 구조. 시청시간이 재구독의 최강 선행 지표임을 검증 후:<br>
-          <strong style="color:var(--orange)">재구독자 = ① 재방문 인원(MKT) × ② 시청 전환율(Product) × ③ 시청시간(Content)</strong><br>
-          조직 간 '책임 떠넘기기' 해소 → 예: '재방문은 유지되나 전환율 하락' → Product팀이 즉시 원인 파악. Coupang 셀러 퍼널 분해 방법론을 구독 비즈니스에 재설계한 결과.
+        <div class="ai-features">
+          <div class="ai-feat"><i class="fas fa-brain"></i><div class="feat-title">KPI 자동 감지</div><div class="feat-desc">AI가 KPI 이상을 감지하고 원인을 자동 분석</div></div>
+          <div class="ai-feat"><i class="fas fa-wand-magic-sparkles"></i><div class="feat-title">NL→SQL 자동화</div><div class="feat-desc">자연어 → SQL 자동 생성·실행 쿼리 시스템</div></div>
+          <div class="ai-feat"><i class="fas fa-chart-line"></i><div class="feat-title">예측 모델링</div><div class="feat-desc">Bottom-Up 예측 + Auto-Retraining 파이프라인</div></div>
+          <div class="ai-feat"><i class="fas fa-gauge-high"></i><div class="feat-title">LLM 챗봇</div><div class="feat-desc">대화형 분석 인터페이스 — 데이터 민주화</div></div>
         </div>
-        <div class="proj-tags"><span>GMM</span><span>Clustering</span><span>LTV</span><span>Predictive Modeling</span><span>OKR</span><span>KPI Design</span><span>Python</span></div>
-        <div class="proj-result"><i class="fas fa-chart-line"></i> 예측 커버율 ~75% — 경영진 의사결정의 정량 근거 / LTV 기반 이탈 조기 감지 / 포뮬러 기반 성과 귀인 체계 확립</div>
       </div>
-      <!-- Tving 3: 팀 매니징 -->
-      <div class="proj-card tving reveal">
-        <div class="proj-badge">Tving</div>
-        <div class="proj-title">사일로형 분석 프로세스 도입 & 팀 매니징</div>
-        <div class="proj-role"><i class="fas fa-user-tie"></i> Team Manager — 프로세스 설계·팀 운영</div>
-        <div class="proj-desc">팀원별 전문 도메인(콘텐츠, 마케팅, 프로덕트, 커머스)을 명확히 매핑하고 분석 오너십을 부여. 팀장 승인 병목을 해소하여 분석 속도와 팀원 성장을 동시에 확보하는 구조 설계.</div>
-        <div class="proj-detail"><strong>핵심:</strong> 중앙 집중형 분석 요청 구조를 도메인별 자율 의사결정 구조로 전환. 주간 Sync-up(진행 공유) + 월간 Deep Dive(전략적 심층 분석 리뷰) + 지식 공유 세션 정례화.</div>
-        <div class="proj-tags"><span>Team Management</span><span>Process Design</span><span>Silo Process</span><span>AI Planning</span></div>
-      </div>
-      <!-- Coupang FEP -->
-      <div class="proj-card coupang reveal">
-        <div class="proj-badge">Coupang</div>
-        <div class="proj-title">FEP (Free Exposure Promotion) 프로덕트 최적화</div>
-        <div class="proj-role"><i class="fas fa-chart-bar"></i> BI Principal — 분석·AB Test 설계</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/coupang_ab_test.png" alt="AB Experiment Platform" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+
+      <!-- Leadership Panel - full width -->
+      <div class="dash-panel reveal" style="grid-column:span 2;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.1)">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-users" style="color:var(--green)"></i></div>
+          <div><div style="font-size:0.8rem;font-weight:700">Team Managing</div><div style="font-size:0.68rem;color:var(--text3)">데이터 팀 팀장</div></div>
         </div>
-        <div class="proj-desc">셀러가 경쟁력 있는 가격(CPI 90 미만)을 제시하면 추가 노출을 제공하는 3P Marketplace 핵심 프로모션 서비스. Cohort, AARRR, Funnel 방법론을 종합 적용하여 전환·잔존·매출을 다차원 분석.</div>
-        <div class="proj-detail"><strong>문제:</strong> 2년차 성장 정체를 감지하고 원인 심층 진단에 착수<br><strong>발견:</strong> CPC에 비용을 투입하면서도 실적 저조한 상품군(Unit Sold 5개 이하, CPI 100%+)을 세그먼트 분석으로 식별<br><strong>해결:</strong> FEP의 '판매 시 과금' 구조가 CPC 대비 ROAS에서 구조적 우위가 있음을 데이터로 증명. 해당 17만+ 상품의 CPC→FEP 전환 로드맵을 수립, 3P Sales팀과 공동 실행</div>
-        <div class="proj-tags"><span>AB Test (XPC)</span><span>Funnel</span><span>Cohort</span><span>SQL</span><span>Tableau</span></div>
-        <div class="proj-result"><i class="fas fa-chart-line"></i> CPC 대비 FEP ROAS 우위 검증, 17만+ 상품 전환 전략 제안</div>
-      </div>
-      <!-- Coupang AARRR -->
-      <div class="proj-card coupang reveal">
-        <div class="proj-badge">Coupang</div>
-        <div class="proj-title">셀러 AARRR 파이프라인 구축</div>
-        <div class="proj-role"><i class="fas fa-chart-bar"></i> BI Principal — ETL 파이프라인 설계</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/coupang_seller_funnel.png" alt="Seller Funnel Dashboard" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.1)">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(56,189,248,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-sitemap" style="color:var(--accent)"></i></div>
+          <div><div style="font-size:0.8rem;font-weight:700">Silo Process</div><div style="font-size:0.68rem;color:var(--text3)">업무 프로세스 설계</div></div>
         </div>
-        <div class="proj-desc">3P Marketplace의 성장은 '좋은 셀러를 유입시키고, 빠르게 활성화시키며, 오래 머물게 하는 것'에 달려 있습니다. 셀러 라이프사이클(SignUp→Live→Active→GMV) 전체를 채널별로 측정하는 End-to-End 파이프라인을 구축.</div>
-        <div class="proj-detail"><strong>문제:</strong> GA 외부 데이터와 내부 DB 간 연결 부재 → 유입 채널별 전환 퍼널 파악 자체가 불가능<br><strong>해결:</strong> GA→내부 트래커→Airflow ETL→Tableau 리포팅 파이프라인을 직접 설계·구축. 이탈 최다 단계(사업자 인증)를 데이터로 식별, 상품등록 직전으로 순서 변경 제안<br><strong>핵심 발견:</strong> 14주 내 150만 GMV 달성 Cohort의 1년 리텐션이 최고 — '초기 활성화 속도가 장기 잔존의 핵심 동인'임을 증명. AM 대상 셀러별 컨설팅 대시보드 제공</div>
-        <div class="proj-tags"><span>GA</span><span>Airflow</span><span>AARRR</span><span>Cohort</span><span>Tableau</span><span>SQL</span></div>
-        <div class="proj-result"><i class="fas fa-lightbulb"></i> 퍼널 병목 이동 제안 → 전환율 개선 / '초기 활성화 = 장기 잔존' 증명 → 핵심 KPI로 설정</div>
-      </div>
-      <!-- Coupang MyShop -->
-      <div class="proj-card coupang reveal">
-        <div class="proj-badge">Coupang</div>
-        <div class="proj-title">MyShop 런칭 프로젝트 / Auto Price / Seller Score</div>
-        <div class="proj-role"><i class="fas fa-chart-bar"></i> BI Principal — 성과 검증·로직 구현</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/coupang_gmv_dashboard.png" alt="GMV Performance Dashboard" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(167,139,250,0.04);border:1px solid rgba(167,139,250,0.1)">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(167,139,250,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-arrows-split-up-and-left" style="color:var(--purple)"></i></div>
+          <div><div style="font-size:0.8rem;font-weight:700">Cross-functional</div><div style="font-size:0.68rem;color:var(--text3)">부서 간 협업 리딩</div></div>
         </div>
-        <div class="proj-desc">셀러 브랜드 스토어(MyShop) 런칭 시 AOV 2.4배 상승을 데이터로 검증하여 서비스 확대의 핵심 근거를 제공. Auto Price 효과를 정량 검증하고, 다차원 셀러 평가 스코어 산출 로직을 설계.</div>
-        <div class="proj-detail"><strong>MyShop:</strong> 합배송 효과와 셀러 쿠폰이 객단가에 미치는 영향을 분리 분석, 묶음 구매 UX AB Test 설계·실행. 효과가 큰 셀러 세그먼트를 식별하여 단계적 확산 전략 수립<br><strong>Auto Price:</strong> 이용 vs 비이용 셀러 간 매출·전환율·가격 변동 패턴 비교 분석 및 AB Test로 효과 정량 검증<br><strong>Seller Score:</strong> 매출, 별점, 배송 타입, EDD/PDD 등 다차원 종합 평가 스코어 로직 설계·구현. 정책 위반 자동 탐지 프로세스</div>
-        <div class="proj-tags"><span>AB Test</span><span>UX Analysis</span><span>SQL</span><span>Tableau</span><span>Query Logic</span></div>
-        <div class="proj-result"><i class="fas fa-arrow-up"></i> MyShop 구매 시 평균 주문단가 2.4x 상승 검증</div>
-      </div>
-      <!-- eBay Montelena -->
-      <div class="proj-card ebay reveal">
-        <div class="proj-badge">eBay Korea</div>
-        <div class="proj-title">Montelena TF — 행동데이터 수집/분석 시스템 (1.5년)</div>
-        <div class="proj-role"><i class="fas fa-database"></i> Owner PM — 프로젝트 총괄 리딩</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/ebay_dashboard_design.png" alt="Dashboard Design Documentation" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:rgba(251,146,60,0.04);border:1px solid rgba(251,146,60,0.1)">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(251,146,60,0.1);display:flex;align-items:center;justify-content:center"><i class="fas fa-book" style="color:var(--orange)"></i></div>
+          <div><div style="font-size:0.8rem;font-weight:700">Data Governance</div><div style="font-size:0.68rem;color:var(--text3)">전사 거버넌스 정의</div></div>
         </div>
-        <div class="proj-desc">3개 사이트가 각각 다른 솔루션으로 데이터를 수집하고, 부서마다 PV, UV 등의 정의가 달라 전사 차원의 데이터 비교 자체가 불가능한 상황. '전사적으로 비교 가능한 데이터 기반'을 0에서 구축한 프로젝트. 이 경험이 이후 Tving AI 쿼리 시스템 설계의 직접적 기반.</div>
-        <div class="proj-detail"><strong>도전:</strong> Gmarket, Auction, G9 × 각기 다른 솔루션 × 부서마다 다른 지표 정의 → 전사 데이터 비교 자체가 불가능<br><strong>거버넌스:</strong> PGUID↔CUID 연결 체계, 8개 핵심 지표의 Standard Query 정립 → 이후 Tving NL→SQL 시스템 설계의 기반<br><strong>태깅:</strong> 웹 컨테이너 자동 태깅 시도 → 레거시 제약으로 수동 태깅 전환, 비즈니스 임팩트가 큰 16개 핵심 도메인에 집중<br><strong>도메인 밸류:</strong> 행동+트랜잭션 데이터를 연결하여 각 도메인의 구매 기여도를 정량 산출. 전사 PM 대상 프레젠테이션 — 조직 전체의 데이터 활용도 향상에 기여</div>
-        <div class="proj-tags"><span>Data Governance</span><span>Tagging</span><span>Hadoop</span><span>Hive SQL</span><span>Tableau</span></div>
       </div>
-      <!-- eBay BI Platforms -->
-      <div class="proj-card ebay reveal">
-        <div class="proj-badge">eBay Korea</div>
-        <div class="proj-title">BI 서비스 플랫폼 & 데이터 분석 리포팅</div>
-        <div class="proj-role"><i class="fas fa-chart-area"></i> Data PM — 플랫폼 기획·분석</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/ebay_tableau_kpi.png" alt="Tableau KPI Dashboard" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+
+      <!-- Simplified Technical Proficiency -->
+      <div class="dash-panel reveal" style="grid-column:span 2">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fas fa-code"></i> Technical Proficiency</div>
         </div>
-        <div class="proj-desc">검색 키워드 분석 플랫폼, 프로모션 실적 분석 플랫폼 등 데이터 셀프서비스를 위한 BI 서비스 플랫폼을 기획. Funnel 기반 이탈/전환 분석, Global KPI(Searched Session Per GMV), Domain Value 지표 등 다양한 분석 프로젝트를 수행.</div>
-        <div class="proj-detail"><strong>키워드 분석:</strong> 일간/주간/월간 키워드별 검색 정보 + 매출 실적 (Tableau, Hive, Bootstrap)<br><strong>프로모션 분석:</strong> 방문 당 실적, UV/PV, 실적 비교 (Tableau, Hive, Bootstrap)<br><strong>Funnel 분석:</strong> Domain별 Action→Buying→이탈 전환 (Oracle SQL, Hive, Zeplin)<br><strong>Session 관제:</strong> Data 정합성 실시간 모니터링 (ElasticSearch, Kibana, D3.js)</div>
-        <div class="proj-tags"><span>Tableau</span><span>Hive SQL</span><span>Bootstrap</span><span>D3.js</span><span>Kibana</span><span>Zeplin</span></div>
-      </div>
-      <!-- eBay Deep Link -->
-      <div class="proj-card ebay reveal">
-        <div class="proj-badge">eBay Korea</div>
-        <div class="proj-title">Deep Link Gate — Web↔APP 데이터 연결</div>
-        <div class="proj-role"><i class="fas fa-link"></i> Main PM — 개발 총괄</div>
-        <div class="proj-desc">웹→앱 전환 시 데이터 추적이 끊어져 마케팅 채널별 실제 ROI를 측정할 수 없는 문제를 구조적으로 해결. 유입 케이스별(직접, 검색, 광고, 푸시) AB Test를 설계·실행하여 최적 전환 경로를 검증.</div>
-        <div class="proj-detail"><strong>핵심:</strong> Web→App 전환 시 사용자 식별이 유지되는 딥링크 게이트 로직을 설계·개발. Hadoop, Hive SQL, Tableau 기반 실적 분석. 전사 대상 MKT Deep Link Logic 프레젠테이션 진행.</div>
-        <div class="proj-tags"><span>Deep Link</span><span>AB Test</span><span>Hadoop</span><span>Hive SQL</span><span>Tableau</span></div>
-        <div class="proj-result"><i class="fas fa-trophy"></i> 2019 2Q PIC Unit Award 수상 — Web↔App 데이터 추적 체계를 구조적으로 완성한 공로</div>
-      </div>
-      <!-- eBay Gotham -->
-      <div class="proj-card ebay reveal">
-        <div class="proj-badge">eBay Korea</div>
-        <div class="proj-title">Fraud Detection "Gotham" 기획</div>
-        <div class="proj-role"><i class="fas fa-shield-halved"></i> PM — ATO 기준 정의·도구 기획</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/ebay_gotham.png" alt="Gotham Fraud Detection Tool" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
+        <div class="method-tags">
+          <div class="method-tag" style="border-color:rgba(56,189,248,0.25);color:var(--accent)"><i class="fas fa-database"></i> SQL <span style="font-size:0.6rem;margin-left:4px;opacity:0.7">(Expert)</span></div>
+          <div class="method-tag" style="border-color:rgba(56,189,248,0.25);color:var(--accent)"><i class="fas fa-chart-bar"></i> Tableau <span style="font-size:0.6rem;margin-left:4px;opacity:0.7">(Expert)</span></div>
+          <div class="method-tag" style="border-color:rgba(167,139,250,0.25);color:var(--purple)"><i class="fab fa-python"></i> Python</div>
+          <div class="method-tag" style="border-color:rgba(167,139,250,0.25);color:var(--purple)"><i class="fas fa-chart-line"></i> Google Analytics</div>
+          <div class="method-tag" style="border-color:rgba(52,211,153,0.25);color:var(--green)"><i class="fas fa-wind"></i> Airflow / ETL</div>
+          <div class="method-tag" style="border-color:rgba(52,211,153,0.25);color:var(--green)"><i class="fas fa-search"></i> ElasticSearch</div>
+          <div class="method-tag" style="border-color:rgba(52,211,153,0.25);color:var(--green)"><i class="fas fa-r"></i> R</div>
+          <div class="method-tag" style="border-color:rgba(52,211,153,0.25);color:var(--green)"><i class="fas fa-code"></i> D3.js</div>
         </div>
-        <div class="proj-desc">정상 사용자 행동 패턴을 프로파일링하고, ATO(Account Takeover) 판별 기준을 데이터 기반으로 수립. 비정상 세션을 분석 데이터에서 자동 제외하는 체계와 케이스 관리 도구 'Gotham'을 기획.</div>
-        <div class="proj-detail"><strong>이상 탐지:</strong> IP, Cookie, 접속 시간 패턴(Raw Duration) 등 복합 시그널 기반 이상 탐지 로직 개발<br><strong>도구 기획:</strong> 실시간 알림, 사례별 관리 워크플로우, 대응 자동화를 통합한 Gotham 웹 애플리케이션 기획</div>
-        <div class="proj-tags"><span>Fraud Detection</span><span>Hive SQL</span><span>Tableau</span><span>Security</span><span>Web App</span></div>
-      </div>
-      <!-- eBay R Analysis -->
-      <div class="proj-card ebay reveal">
-        <div class="proj-badge">eBay Korea</div>
-        <div class="proj-title">Sales 전략기획 — 카테고리 분석·MKT 기획</div>
-        <div class="proj-role"><i class="fas fa-chart-pie"></i> Data Analyst — 전략 기획·분석</div>
-        <div class="proj-img" onclick="openLightbox(this)">
-          <img src="images/ebay_r_analysis.png" alt="R Association Analysis" loading="lazy">
-          <div class="img-zoom"><i class="fas fa-search-plus"></i></div>
-        </div>
-        <div class="proj-desc">상품 카테고리 재분류를 위한 연관성 분석(R), Super Deal 구좌 노출 대비 전환율 최대화 배분 로직 설계(Python), Membership MKT "취미 연구소" 기획, 52주 Seasonal 패턴 분석 및 쿠폰 스펙별 최적 조합 도출 등 데이터 기반 Sales 전략 전반을 수행.</div>
-        <div class="proj-detail"><strong>연관 분석:</strong> R을 활용한 상품 연관 구매 패턴 분석 → 카테고리 개편 기준 도출<br><strong>구좌 최적화:</strong> 노출 대비 전환율을 최대화하는 인벤토리 배분 로직 설계 (Hive SQL, Python)<br><strong>성과:</strong> "취미 연구소" MKT 기획·실행 → <strong>2015 영업BU 최우수 직원상 수상 — 데이터 기반 Sales 전략 기여를 인정</strong></div>
-        <div class="proj-tags"><span>R</span><span>Association Analysis</span><span>Python</span><span>Hive SQL</span><span>CRM</span></div>
-        <div class="proj-result"><i class="fas fa-star"></i> 2015 eBay Korea 영업BU 최우수 직원상 수상</div>
       </div>
     </div>
   </div>
@@ -1025,7 +1162,7 @@ section{position:relative;z-index:1;padding:80px 0}
       <a href="tel:01068211779"><i class="fas fa-phone"></i> 010-6821-1779</a>
       <a href="mailto:itziana@naver.com"><i class="fas fa-envelope"></i> itziana@naver.com</a>
     </div>
-    <p class="footer-copy">&copy; 2026 연새한솔 — 데이터를 '보는 것'에서 '작동하는 것'으로.</p>
+    <p class="footer-copy">&copy; 2026 연새한솔 — NAVER WEBTOON의 글로벌 성장을 데이터로 가속화하겠습니다.</p>
   </div>
 </footer>
 
@@ -1087,7 +1224,7 @@ section{position:relative;z-index:1;padding:80px 0}
 // ===== TYPING EFFECT =====
 (function(){
   const el=document.getElementById('heroRole');
-  const texts=['Senior Data Analyst & AI Strategy Manager','15년차 데이터 전문가 | 팀 리더','BI Architect · AB Testing Expert','AI-Driven Insight Generator'];
+  const texts=['Global Webtoon Data Analyst 지원','디지털 콘텐츠 × KPI × 실험 설계 × 퍼널 분석','15년+ Data Analyst | 팀 리더','데이터로 글로벌 사업 성장을 가속화합니다'];
   let ti=0,ci=0,del=false;
   function type(){
     const current=texts[ti];
@@ -1126,6 +1263,7 @@ document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el=>reve
 Chart.defaults.color='#64748b';Chart.defaults.borderColor='rgba(148,163,184,0.06)';
 
 // Radar
+if(document.getElementById('radarChart')){
 new Chart(document.getElementById('radarChart'),{type:'radar',data:{
   labels:['SQL/DB','Visualization','Python/R','Data Eng.','Analysis','AI/ML','Leadership','Communication'],
   datasets:[{data:[95,90,75,78,92,70,85,88],
@@ -1135,18 +1273,20 @@ new Chart(document.getElementById('radarChart'),{type:'radar',data:{
     scales:{r:{beginAtZero:true,max:100,ticks:{display:false,stepSize:20},
       grid:{color:'rgba(148,163,184,0.06)'},angleLines:{color:'rgba(148,163,184,0.06)'},
       pointLabels:{color:'#94a3b8',font:{size:10,weight:'600'}}}},
-    plugins:{legend:{display:false}}}});
+    plugins:{legend:{display:false}}}});}
 
-// Donut
+// Donut (hidden in simplified layout)
+if(document.getElementById('donutChart')){
 new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{
   labels:['E-Commerce Analytics','BI & Data Platform','Team & AI','CRM & Marketing'],
   datasets:[{data:[35,30,20,15],
     backgroundColor:['rgba(56,189,248,0.7)','rgba(167,139,250,0.7)','rgba(52,211,153,0.7)','rgba(251,146,60,0.7)'],
     borderColor:'transparent',borderWidth:0,hoverOffset:8}]},
   options:{responsive:true,maintainAspectRatio:true,cutout:'65%',
-    plugins:{legend:{position:'bottom',labels:{padding:12,usePointStyle:true,pointStyle:'circle',font:{size:10}}}}}});
+    plugins:{legend:{position:'bottom',labels:{padding:12,usePointStyle:true,pointStyle:'circle',font:{size:10}}}}}});}
 
-// Bar
+// Bar (hidden in simplified layout)
+if(document.getElementById('barChart')){
 new Chart(document.getElementById('barChart'),{type:'bar',data:{
   labels:['E-Land','eBay Korea','Coupang','Tving'],
   datasets:[{data:[3.67,5.67,5.33,0.58],
@@ -1155,16 +1295,25 @@ new Chart(document.getElementById('barChart'),{type:'bar',data:{
   options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,
     scales:{x:{grid:{color:'rgba(148,163,184,0.04)'},ticks:{callback:v=>v+'Y'}},
       y:{grid:{display:false}}},
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' years'}}}}});
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' years'}}}}});}
 
 // ===== CHATBOT =====
-const RESUME_CONTEXT=`당신은 연새한솔(Hansol Yeon)의 이력서 AI 어시스턴트입니다. 아래 이력서 정보를 바탕으로 질문에 답변하세요. 이력서에 없는 정보는 추측하지 마세요. 한국어로 답변하되, 기술 용어는 영어를 사용해도 됩니다. 친절하고 전문적으로 답변하세요.
+const RESUME_CONTEXT=`당신은 연새한솔(Hansol Yeon)의 이력서 AI 어시스턴트입니다. 이 포트폴리오는 NAVER WEBTOON Global Webtoon Data Analyst 포지션 지원용입니다. 아래 이력서 정보를 바탕으로 질문에 답변하세요. 이력서에 없는 정보는 추측하지 마세요. 한국어로 답변하되, 기술 용어는 영어를 사용해도 됩니다. 친절하고 전문적으로 답변하세요. 특히 지원 포지션과의 적합성(KPI 정의, 실험 설계, 퍼널 분석, 데이터 구조 설계, 디지털 콘텐츠 경험)을 강조해주세요.
 
 === 커리어 핵심 ===
 이름: 연새한솔 | 010-6821-1779 / itziana@naver.com
-경력: 15년+ 데이터 전문가
-커리어 아크: 오프라인 리테일(E-Land) → e-Commerce(eBay Korea) → 로켓커머스(Coupang) → OTT(Tving)
-핵심 패턴: 각 회사에서 '데이터로 풀어야 할 가장 중요한 문제'를 정의하고, 분석 체계를 직접 구축하며, 비즈니스 성과로 연결하는 '시스템적 문제 해결'
+경력: 15년+ 데이터 분석 리더
+지원 포지션: NAVER WEBTOON — Global Webtoon Data Analyst (경력)
+커리어 아크: 오프라인 리테일(E-Land) → e-Commerce(eBay Korea) → 로켓커머스(Coupang) → OTT/디지털 콘텐츠(Tving)
+핵심 패턴: 각 회사에서 KPI를 정의하고, 실험을 설계하며, 퍼널을 분석하고, 데이터 인프라를 구축하여 비즈니스 성장을 데이터로 견인하는 '시스템적 문제 해결'
+
+=== 지원 포지션 적합성 ===
+- KPI 정의 & 대시보드: Tving(AI 대시보드), Coupang(다차원 KPI), eBay(BI 플랫폼)
+- 실험 설계 & AB Test: Coupang XPC 수십 건, eBay Deep Link AB Test
+- 퍼널 분석: Coupang AARRR, Tving 구독 퍼널, eBay Funnel
+- 데이터 구조 설계: eBay Montelena(Owner PM 1.5년), Coupang ETL Airflow
+- 디지털 콘텐츠 이해(우대): Tving OTT 현직 팀장
+- 그로스/CRM(우대): Coupang 셀러 성장, E-Land CRM
 
 [경력1] Tving (2025.07~현재) - Data Analyst Team Manager (팀장)
 
@@ -1212,6 +1361,8 @@ const RESUME_CONTEXT=`당신은 연새한솔(Hansol Yeon)의 이력서 AI 어시
 [AI] NL→SQL 자동화 쿼리, AI 지능형 대시보드(자동 감지/분석/인사이트), LLM 챗봇, GMM 클러스터링, Bottom-Up 예측(~75%), KPI OKR 포뮬러, Auto-Retraining
 [수상] 2023 마켓플레이스 부문 우수자 상금 100만 원 (Coupang), 2019 PIC Unit Award (eBay Korea), 2015 영업BU 최우수 직원상 (eBay Korea)
 `;
+
+
 
 const chatFab=document.getElementById('chatFab');
 const chatPanel=document.getElementById('chatPanel');

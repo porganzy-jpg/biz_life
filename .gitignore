@@ -53,6 +53,9 @@ scalp_trades.json
 # Duplicate/temp directories
 projects/server-monitor/
 
+# Word temp files
+~$*
+
 # Jupyter
 .ipynb_checkpoints/
 
