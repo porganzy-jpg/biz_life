@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}경매 물건{% endblock %}
+
+{% block head %}
+<style>
+    .auction-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .auction-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #ffc107; }
+    .risk-낮음 { color: #198754; }
+    .risk-보통 { color: #fd7e14; }
+    .risk-높음 { color: #dc3545; }
+    .discount-badge {
+        display: inline-block;
+        background: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+    .status-진행중 { background: #e3f2fd; color: #1565c0; }
+    .status-낙찰 { background: #e8f5e9; color: #2e7d32; }
+    .status-유찰 { background: #fff3e0; color: #e65100; }
+    .status-취하 { background: #fce4ec; color: #c62828; }
+    #auctionDetail { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4><i class="bi bi-hammer"></i> 경매 물건</h4>
+        <div class="d-flex gap-2 align-items-center">
+            <select id="auctionDays" class="form-select form-select-sm" style="width:auto;" onchange="loadAuctions()">
+                <option value="7">7일 이내</option>
+                <option value="14">14일 이내</option>
+                <option value="30" selected>30일 이내</option>
+                <option value="90">90일 이내</option>
+            </select>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadAuctions()">
+                <i class="bi bi-arrow-clockwise"></i> 새로고침
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="row mb-3">
+    <div class="col-md-3 col-6 mb-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <small class="text-muted">전체 경매</small>
+                <h4 id="auctionTotal" class="mb-0">-</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <small class="text-muted">알짜 매물 (30%↑할인)</small>
+                <h4 id="auctionDeals" class="mb-0 text-danger">-</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- List -->
+<div id="auctionList">
+    <p class="text-muted text-center py-4">로딩중...</p>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="auctionDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-hammer"></i> 경매 상세</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="auctionDetailBody">
+            </div>
+            <div class="modal-footer">
+                <a id="auctionSourceLink" href="#" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-box-arrow-up-right"></i> 원본 보기
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function formatPrice(krw) {
+    if (!krw) return '가격미정';
+    const eok = Math.floor(krw / 100000000);
+    const man = Math.floor((krw % 100000000) / 10000);
+    if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만`;
+    if (eok > 0) return `${eok}억`;
+    return `${man.toLocaleString()}만`;
+}
+
+function formatDate(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function daysUntil(iso) {
+    if (!iso) return '';
+    const diff = Math.ceil((new Date(iso) - new Date()) / 86400000);
+    if (diff < 0) return `${Math.abs(diff)}일 전`;
+    if (diff === 0) return '오늘';
+    return `${diff}일 후`;
+}
+
+async function loadAuctions() {
+    const days = document.getElementById('auctionDays').value;
+    const container = document.getElementById('auctionList');
+    container.innerHTML = '<p class="text-muted text-center py-4">로딩중...</p>';
+
+    try {
+        const [upResp, dealResp] = await Promise.all([
+            fetch(`/api/v1/auctions/upcoming?days=${days}`),
+            fetch('/api/v1/auctions/deals?min_discount=0.3&limit=50')
+        ]);
+        const upData = await upResp.json();
+        const dealData = await dealResp.json();
+
+        document.getElementById('auctionTotal').textContent = upData.count || 0;
+        document.getElementById('auctionDeals').textContent = dealData.count || 0;
+
+        const items = upData.items || [];
+        if (items.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-hammer" style="font-size:3rem;"></i>
+                    <p class="mt-2">해당 기간 경매 물건이 없습니다.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = items.map(a => {
+            const discount = a.discount_rate ? `${(a.discount_rate * 100).toFixed(0)}%` : '-';
+            const daysLeft = daysUntil(a.auction_date);
+            return `
+            <div class="auction-card" onclick="showAuctionDetail(${a.id})">
+                <div class="row align-items-center">
+                    <div class="col-md-5">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="status-badge status-${a.auction_status || '진행중'}">${a.auction_status || '진행중'}</span>
+                            ${a.discount_rate >= 0.3 ? `<span class="discount-badge">-${discount}</span>` : ''}
+                            <small class="text-muted">${a.case_number || ''}</small>
+                        </div>
+                        <h6 class="mb-1">${a.district || ''} ${a.dong || ''} ${a.address || ''}</h6>
+                        <small class="text-muted">${a.property_type || ''} · ${a.area_m2 ? a.area_m2 + '㎡' : ''} · ${a.court || ''}</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="small text-muted">감정가</div>
+                        <div class="fw-bold">${formatPrice(a.appraisal_price)}</div>
+                        <div class="small text-muted mt-1">최저입찰가</div>
+                        <div class="fw-bold text-primary">${formatPrice(a.minimum_bid)}</div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <div class="small text-muted">경매일</div>
+                        <div class="fw-bold">${formatDate(a.auction_date)}</div>
+                        <small class="text-info">${daysLeft}</small>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <div class="small text-muted">리스크</div>
+                        <div class="fw-bold risk-${a.risk_level || '보통'}">${a.risk_level || '-'}</div>
+                        <small class="text-muted">${a.current_bid_round || 1}회차</small>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = `<div class="alert alert-danger">로딩 오류: ${e.message}</div>`;
+    }
+}
+
+async function showAuctionDetail(id) {
+    try {
+        const resp = await fetch(`/api/v1/auctions/${id}`);
+        if (!resp.ok) { alert('경매 정보를 찾을 수 없습니다'); return; }
+        const a = await resp.json();
+
+        const discount = a.discount_rate ? `${(a.discount_rate * 100).toFixed(0)}%` : '-';
+
+        document.getElementById('auctionDetailBody').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr><th>사건번호</th><td>${a.case_number || '-'}</td></tr>
+                        <tr><th>법원</th><td>${a.court || '-'}</td></tr>
+                        <tr><th>주소</th><td>${a.district || ''} ${a.dong || ''} ${a.address || ''}</td></tr>
+                        <tr><th>매물유형</th><td>${a.property_type || '-'}</td></tr>
+                        <tr><th>면적</th><td>${a.area_m2 ? a.area_m2 + '㎡' : '-'}</td></tr>
+                        <tr><th>층</th><td>${a.floor || '-'}</td></tr>
+                        <tr><th>건축년도</th><td>${a.built_year || '-'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr><th>감정가</th><td class="fw-bold">${formatPrice(a.appraisal_price)}</td></tr>
+                        <tr><th>최저입찰가</th><td class="fw-bold text-primary">${formatPrice(a.minimum_bid)}</td></tr>
+                        <tr><th>할인율</th><td class="text-danger fw-bold">${discount}</td></tr>
+                        <tr><th>입찰회차</th><td>${a.current_bid_round || 1}회차</td></tr>
+                        <tr><th>경매일</th><td>${formatDate(a.auction_date)}</td></tr>
+                        <tr><th>상태</th><td><span class="status-badge status-${a.auction_status || '진행중'}">${a.auction_status || '-'}</span></td></tr>
+                        <tr><th>리스크</th><td class="risk-${a.risk_level || '보통'}">${a.risk_level || '-'}</td></tr>
+                    </table>
+                </div>
+            </div>
+            ${a.occupancy_status ? `<div class="alert alert-warning py-2"><strong>점유현황:</strong> ${a.occupancy_status}</div>` : ''}
+            ${a.risk_notes ? `<div class="alert alert-info py-2"><strong>권리분석:</strong> ${a.risk_notes}</div>` : ''}
+            ${a.description ? `<div class="mt-2 text-muted small">${a.description}</div>` : ''}
+        `;
+
+        const sourceLink = document.getElementById('auctionSourceLink');
+        if (a.source_url) {
+            sourceLink.href = a.source_url;
+            sourceLink.style.display = '';
+        } else {
+            sourceLink.style.display = 'none';
+        }
+
+        new bootstrap.Modal(document.getElementById('auctionDetailModal')).show();
+    } catch (e) {
+        alert('오류: ' + e.message);
+    }
+}
+
+loadAuctions();
+</script>
+{% endblock %}

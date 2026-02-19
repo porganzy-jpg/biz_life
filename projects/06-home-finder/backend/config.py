@@ -37,6 +37,11 @@ class Settings:
         "TARGET_CITIES",
         "서울특별시,하남시,과천시,성남시,광명시,고양시,구리시,남양주시"
     ).split(",")
+    # 경기도 근교 지역 (서울 외곽)
+    TARGET_SUBURBS: list = os.getenv(
+        "TARGET_SUBURBS",
+        "하남시,과천시,성남시 분당구,성남시 수정구,광명시,고양시 일산동구,고양시 일산서구,고양시 덕양구,구리시,남양주시,의정부시,김포시,파주시 운정"
+    ).split(",")
 
     # Scoring weights
     SCORE_WEIGHT_LOCATION: float = float(os.getenv("SCORE_WEIGHT_LOCATION", "0.35"))

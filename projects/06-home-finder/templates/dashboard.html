@@ -6,7 +6,7 @@
 <div class="row mb-4">
     <div class="col-12">
         <h4><i class="bi bi-speedometer2"></i> 대시보드</h4>
-        <p class="text-muted">예산: {{ budget_min }} ~ {{ budget_max }} | 대상: {{ target_districts }}</p>
+        <p class="text-muted">예산: {{ budget_min }} ~ {{ budget_max }} | 서울: {{ target_districts }} | 경기: {{ target_suburbs }}</p>
     </div>
 </div>
 
@@ -90,12 +90,10 @@
             <div class="card-header">
                 <i class="bi bi-graph-up"></i> 가격 추이
                 <select id="priceDistrictSelect" class="form-select form-select-sm d-inline-block w-auto ms-2">
-                    <option value="서울">서울 전체</option>
-                    <option value="마포구">마포구</option>
-                    <option value="용산구">용산구</option>
-                    <option value="성동구">성동구</option>
-                    <option value="영등포구">영등포구</option>
-                    <option value="강동구">강동구</option>
+                    <option value="전체">전체</option>
+                    {% for area in all_areas %}
+                    <option value="{{ area }}">{{ area }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="card-body">

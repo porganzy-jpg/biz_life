@@ -54,9 +54,16 @@
                                 <label class="form-label">구 *</label>
                                 <select id="district" class="form-select" required>
                                     <option value="">선택</option>
+                                    <optgroup label="서울">
                                     {% for d in target_districts %}
                                     <option value="{{ d }}">{{ d }}</option>
                                     {% endfor %}
+                                    </optgroup>
+                                    <optgroup label="경기 근교">
+                                    {% for s in target_suburbs %}
+                                    <option value="{{ s }}">{{ s }}</option>
+                                    {% endfor %}
+                                    </optgroup>
                                 </select>
                             </div>
                             <div class="col-md-3">

@@ -22,6 +22,7 @@
     .priority-3 { border-left: 3px solid #ffc107; }
     .priority-4 { border-left: 3px solid #0dcaf0; }
     .priority-5 { border-left: 3px solid #6c757d; }
+    .kanban-card.selected-compare { outline: 2px solid #0d6efd; background: #e3f2fd; }
 </style>
 {% endblock %}
 
@@ -33,9 +34,9 @@
             <button class="btn btn-outline-primary btn-sm" onclick="refreshPipeline()">
                 <i class="bi bi-arrow-clockwise"></i> 새로고침
             </button>
-            <a href="/comparison" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-layout-split"></i> 비교하기
-            </a>
+            <button class="btn btn-outline-secondary btn-sm" onclick="toggleCompareMode()">
+                <i class="bi bi-layout-split"></i> <span id="compareBtnLabel">비교하기</span>
+            </button>
         </div>
     </div>
 </div>
@@ -112,6 +113,21 @@
 {% block scripts %}
 <script>
 const API = '/api/v1/candidates';
+let compareMode = false;
+let compareList = [];
+
+function toggleCompareMode() {
+    compareMode = !compareMode;
+    const label = document.getElementById('compareBtnLabel');
+    if (compareMode) {
+        label.textContent = '비교 취소';
+        compareList = [];
+    } else {
+        label.textContent = '비교하기';
+        compareList = [];
+        document.querySelectorAll('.kanban-card.selected-compare').forEach(el => el.classList.remove('selected-compare'));
+    }
+}
 
 async function refreshPipeline() {
     const resp = await fetch(API);
@@ -131,7 +147,7 @@ async function refreshPipeline() {
 
         for (const c of (listData.items || [])) {
             container.innerHTML += `
-                <div class="kanban-card priority-${c.priority || 3}" onclick="showStatusModal(${c.id}, '${s}')">
+                <div class="kanban-card priority-${c.priority || 3}" onclick="onCardClick(event, ${c.id}, '${s}', ${c.property_id})">
                     <div class="d-flex justify-content-between">
                         <small class="text-muted">#${c.id}</small>
                         <span class="score badge ${getScoreBadge(c.score_composite)}">${(c.score_composite || 0).toFixed(0)}</span>
@@ -139,9 +155,37 @@ async function refreshPipeline() {
                     <div class="fw-bold small">${c.address || c.complex_name || '매물 ' + c.property_id}</div>
                     <div class="price small">${formatPrice(c.price_krw)}</div>
                     <div class="small text-muted">${c.district || ''} ${c.dong || ''}</div>
-                    ${c.rating ? '<div class="small">⭐'.repeat(c.rating) + '</div>' : ''}
+                    ${c.rating ? '<div class="small">' + '⭐'.repeat(c.rating) + '</div>' : ''}
+                    <div class="d-flex gap-1 mt-1">
+                        <a href="/property/${c.property_id}" class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation()">
+                            <i class="bi bi-eye"></i> 상세
+                        </a>
+                        <button class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showStatusModal(${c.id}, '${s}')">
+                            <i class="bi bi-arrow-right-circle"></i> 이동
+                        </button>
+                    </div>
                 </div>`;
         }
+    }
+}
+
+function onCardClick(event, candidateId, status, propertyId) {
+    if (compareMode) {
+        const card = event.currentTarget;
+        if (compareList.includes(propertyId)) {
+            compareList = compareList.filter(id => id !== propertyId);
+            card.classList.remove('selected-compare');
+        } else {
+            compareList.push(propertyId);
+            card.classList.add('selected-compare');
+        }
+        if (compareList.length >= 2) {
+            // Open first two in new tabs for comparison
+            compareList.slice(0, 2).forEach(pid => window.open(`/property/${pid}`, '_blank'));
+            toggleCompareMode();
+        }
+    } else {
+        window.location.href = `/property/${propertyId}`;
     }
 }
 

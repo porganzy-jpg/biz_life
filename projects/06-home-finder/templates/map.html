@@ -26,16 +26,16 @@
                 <label class="form-label small">지역</label>
                 <select id="filterDistrict" class="form-select form-select-sm">
                     <option value="">전체</option>
-                    <option>마포구</option>
-                    <option>용산구</option>
-                    <option>성동구</option>
-                    <option>광진구</option>
-                    <option>영등포구</option>
-                    <option>동작구</option>
-                    <option>강동구</option>
-                    <option>은평구</option>
-                    <option>강서구</option>
-                    <option>노원구</option>
+                    <optgroup label="서울">
+                    {% for d in target_districts %}
+                        <option>{{ d }}</option>
+                    {% endfor %}
+                    </optgroup>
+                    <optgroup label="경기 근교">
+                    {% for s in target_suburbs %}
+                        <option>{{ s }}</option>
+                    {% endfor %}
+                    </optgroup>
                 </select>
             </div>
             <div class="mb-2">

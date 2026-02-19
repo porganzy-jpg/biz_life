@@ -87,11 +87,14 @@ app.include_router(v1_router)
 async def page_dashboard(request: Request):
     budget_min = f"{settings.BUDGET_MIN_KRW / 100_000_000:.0f}억"
     budget_max = f"{settings.BUDGET_MAX_KRW / 100_000_000:.0f}억"
+    all_areas = settings.TARGET_DISTRICTS + settings.TARGET_SUBURBS
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "budget_min": budget_min,
         "budget_max": budget_max,
         "target_districts": ", ".join(settings.TARGET_DISTRICTS),
+        "target_suburbs": ", ".join(settings.TARGET_SUBURBS),
+        "all_areas": all_areas,
     })
 
 
@@ -100,6 +103,7 @@ async def page_my_search(request: Request):
     return templates.TemplateResponse("my_search.html", {
         "request": request,
         "target_districts": settings.TARGET_DISTRICTS,
+        "target_suburbs": settings.TARGET_SUBURBS,
         "kakao_api_key": settings.KAKAO_REST_API_KEY,
     })
 
@@ -108,6 +112,8 @@ async def page_my_search(request: Request):
 async def page_map(request: Request):
     return templates.TemplateResponse("map.html", {
         "request": request,
+        "target_districts": settings.TARGET_DISTRICTS,
+        "target_suburbs": settings.TARGET_SUBURBS,
         "kakao_api_key": settings.KAKAO_REST_API_KEY,
     })
 
@@ -123,6 +129,8 @@ async def page_candidates(request: Request):
 async def page_areas(request: Request):
     return templates.TemplateResponse("area_analysis.html", {
         "request": request,
+        "target_districts": settings.TARGET_DISTRICTS,
+        "target_suburbs": settings.TARGET_SUBURBS,
     })
 
 
@@ -134,6 +142,20 @@ async def page_property_detail(request: Request, property_id: int):
     })
 
 
+@app.get("/auctions", include_in_schema=False)
+async def page_auctions(request: Request):
+    return templates.TemplateResponse("auctions.html", {
+        "request": request,
+    })
+
+
+@app.get("/subscriptions", include_in_schema=False)
+async def page_subscriptions(request: Request):
+    return templates.TemplateResponse("subscriptions.html", {
+        "request": request,
+    })
+
+
 @app.get("/property/new/land", include_in_schema=False)
 async def page_create_land(request: Request):
     return templates.TemplateResponse("land_form.html", {
@@ -141,6 +163,7 @@ async def page_create_land(request: Request):
         "mode": "create",
         "property_id": None,
         "target_districts": settings.TARGET_DISTRICTS,
+        "target_suburbs": settings.TARGET_SUBURBS,
     })
 
 
@@ -151,6 +174,7 @@ async def page_edit_property(request: Request, property_id: int):
         "mode": "edit",
         "property_id": property_id,
         "target_districts": settings.TARGET_DISTRICTS,
+        "target_suburbs": settings.TARGET_SUBURBS,
     })
 
 

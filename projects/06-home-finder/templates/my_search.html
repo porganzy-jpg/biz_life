@@ -137,6 +137,7 @@
             <!-- Districts -->
             <div class="filter-section">
                 <label class="form-label">대상 지역</label>
+                <div class="mb-1"><small class="text-muted fw-bold">서울</small></div>
                 <div class="district-checks" id="districtChecks">
                     {% for d in target_districts %}
                     <div class="form-check form-check-inline">
@@ -145,9 +146,20 @@
                     </div>
                     {% endfor %}
                 </div>
+                <div class="mt-2 mb-1"><small class="text-muted fw-bold">경기 근교</small></div>
+                <div class="district-checks" id="suburbChecks">
+                    {% for s in target_suburbs %}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input district-cb" type="checkbox" value="{{ s }}" id="dist-{{ s }}">
+                        <label class="form-check-label" for="dist-{{ s }}">{{ s }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
                 <div class="mt-1">
                     <button class="btn btn-sm btn-link p-0" onclick="toggleAllDistricts(true)">전체선택</button>
                     <button class="btn btn-sm btn-link p-0 ms-2" onclick="toggleAllDistricts(false)">해제</button>
+                    <button class="btn btn-sm btn-link p-0 ms-2" onclick="toggleSeoulOnly()">서울만</button>
+                    <button class="btn btn-sm btn-link p-0 ms-2" onclick="toggleSuburbsOnly()">경기만</button>
                 </div>
             </div>
 
@@ -811,6 +823,16 @@ function updateScoreLabel() {
 
 function toggleAllDistricts(checked) {
     document.querySelectorAll('.district-cb').forEach(cb => cb.checked = checked);
+}
+
+function toggleSeoulOnly() {
+    document.querySelectorAll('#districtChecks .district-cb').forEach(cb => cb.checked = true);
+    document.querySelectorAll('#suburbChecks .district-cb').forEach(cb => cb.checked = false);
+}
+
+function toggleSuburbsOnly() {
+    document.querySelectorAll('#districtChecks .district-cb').forEach(cb => cb.checked = false);
+    document.querySelectorAll('#suburbChecks .district-cb').forEach(cb => cb.checked = true);
 }
 
 function onCategoryChange() {

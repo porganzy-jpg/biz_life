@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}청약 정보{% endblock %}
+
+{% block head %}
+<style>
+    .sub-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .sub-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #0dcaf0; }
+    .sub-status {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .sub-접수중 { background: #d1ecf1; color: #0c5460; }
+    .sub-마감 { background: #f8d7da; color: #721c24; }
+    .sub-당첨발표 { background: #d4edda; color: #155724; }
+    .sub-예정 { background: #fff3cd; color: #856404; }
+    .competition-high { color: #dc3545; font-weight: bold; }
+    .competition-mid { color: #fd7e14; font-weight: bold; }
+    .competition-low { color: #198754; font-weight: bold; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h4><i class="bi bi-building-add"></i> 청약 정보</h4>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-info btn-sm" onclick="loadUpcoming()">
+                <i class="bi bi-calendar-event"></i> 예정 청약
+            </button>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadActive()">
+                <i class="bi bi-arrow-clockwise"></i> 접수중
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="row mb-3">
+    <div class="col-md-3 col-6 mb-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <small class="text-muted">접수중</small>
+                <h4 id="subActive" class="mb-0 text-info">-</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-2">
+        <div class="card text-center">
+            <div class="card-body py-2">
+                <small class="text-muted">30일 내 예정</small>
+                <h4 id="subUpcoming" class="mb-0">-</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- List -->
+<div id="subList">
+    <p class="text-muted text-center py-4">로딩중...</p>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="subDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-building-add"></i> 청약 상세</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="subDetailBody">
+            </div>
+            <div class="modal-footer">
+                <a id="subSourceLink" href="#" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-box-arrow-up-right"></i> 원본 보기
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function formatPrice(krw) {
+    if (!krw) return '가격미정';
+    const eok = Math.floor(krw / 100000000);
+    const man = Math.floor((krw % 100000000) / 10000);
+    if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만`;
+    if (eok > 0) return `${eok}억`;
+    return `${man.toLocaleString()}만`;
+}
+
+function formatDate(iso) {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getCompClass(rate) {
+    if (!rate) return '';
+    if (rate >= 50) return 'competition-high';
+    if (rate >= 10) return 'competition-mid';
+    return 'competition-low';
+}
+
+function renderSubList(items) {
+    const container = document.getElementById('subList');
+    if (!items || items.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-building-add" style="font-size:3rem;"></i>
+                <p class="mt-2">청약 정보가 없습니다.</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = items.map(s => {
+        const priceRange = (s.min_price || s.max_price)
+            ? `${formatPrice(s.min_price)} ~ ${formatPrice(s.max_price)}`
+            : '미정';
+        const areaRange = (s.min_area_m2 || s.max_area_m2)
+            ? `${s.min_area_m2 || '?'}~${s.max_area_m2 || '?'}㎡`
+            : '-';
+        const comp = s.competition_rate != null ? `${s.competition_rate.toFixed(1)}:1` : '-';
+
+        return `
+        <div class="sub-card" onclick="showSubDetail(${s.id})">
+            <div class="row align-items-center">
+                <div class="col-md-5">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="sub-status sub-${s.status || '예정'}">${s.status || '예정'}</span>
+                        <span class="badge bg-light text-dark">${s.subscription_type || ''}</span>
+                    </div>
+                    <h6 class="mb-1">${s.name || '미정'}</h6>
+                    <small class="text-muted">${s.district || ''} ${s.dong || ''} · ${s.developer || ''}</small>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="small text-muted">분양가</div>
+                    <div class="fw-bold text-primary" style="font-size:0.9rem;">${priceRange}</div>
+                    <div class="small text-muted mt-1">${areaRange}</div>
+                </div>
+                <div class="col-md-2 text-center">
+                    <div class="small text-muted">접수기간</div>
+                    <div style="font-size:0.85rem;">${formatDate(s.subscription_start)}</div>
+                    <div style="font-size:0.85rem;">~ ${formatDate(s.subscription_end)}</div>
+                </div>
+                <div class="col-md-2 text-center">
+                    <div class="small text-muted">세대수 / 경쟁률</div>
+                    <div class="fw-bold">${s.total_units || '-'}세대</div>
+                    <div class="${getCompClass(s.competition_rate)}">${comp}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function loadActive() {
+    const container = document.getElementById('subList');
+    container.innerHTML = '<p class="text-muted text-center py-4">로딩중...</p>';
+    try {
+        const resp = await fetch('/api/v1/subscriptions/');
+        const data = await resp.json();
+        document.getElementById('subActive').textContent = data.count || 0;
+        renderSubList(data.items || []);
+    } catch (e) {
+        container.innerHTML = `<div class="alert alert-danger">오류: ${e.message}</div>`;
+    }
+}
+
+async function loadUpcoming() {
+    const container = document.getElementById('subList');
+    container.innerHTML = '<p class="text-muted text-center py-4">로딩중...</p>';
+    try {
+        const resp = await fetch('/api/v1/subscriptions/upcoming?days=30');
+        const data = await resp.json();
+        document.getElementById('subUpcoming').textContent = data.count || 0;
+        renderSubList(data.items || []);
+    } catch (e) {
+        container.innerHTML = `<div class="alert alert-danger">오류: ${e.message}</div>`;
+    }
+}
+
+async function showSubDetail(id) {
+    try {
+        const resp = await fetch(`/api/v1/subscriptions/${id}`);
+        if (!resp.ok) { alert('청약 정보를 찾을 수 없습니다'); return; }
+        const s = await resp.json();
+
+        const priceRange = (s.min_price || s.max_price)
+            ? `${formatPrice(s.min_price)} ~ ${formatPrice(s.max_price)}`
+            : '미정';
+        const comp = s.competition_rate != null ? `${s.competition_rate.toFixed(1)}:1` : '-';
+
+        document.getElementById('subDetailBody').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr><th>단지명</th><td class="fw-bold">${s.name || '-'}</td></tr>
+                        <tr><th>위치</th><td>${s.district || ''} ${s.dong || ''} ${s.address || ''}</td></tr>
+                        <tr><th>시행사</th><td>${s.developer || '-'}</td></tr>
+                        <tr><th>총 세대수</th><td>${s.total_units || '-'}세대</td></tr>
+                        <tr><th>청약 세대수</th><td>${s.subscription_units || '-'}세대</td></tr>
+                        <tr><th>청약유형</th><td>${s.subscription_type || '-'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr><th>분양가</th><td class="text-primary fw-bold">${priceRange}</td></tr>
+                        <tr><th>m2당 가격</th><td>${s.avg_price_per_m2 ? Math.round(s.avg_price_per_m2/10000)+'만/㎡' : '-'}</td></tr>
+                        <tr><th>면적 범위</th><td>${s.min_area_m2 || '?'}~${s.max_area_m2 || '?'}㎡</td></tr>
+                        <tr><th>접수기간</th><td>${formatDate(s.subscription_start)} ~ ${formatDate(s.subscription_end)}</td></tr>
+                        <tr><th>당첨발표</th><td>${formatDate(s.announcement_date)}</td></tr>
+                        <tr><th>입주예정</th><td>${formatDate(s.move_in_date)}</td></tr>
+                        <tr><th>경쟁률</th><td class="${getCompClass(s.competition_rate)}">${comp}</td></tr>
+                        <tr><th>상태</th><td><span class="sub-status sub-${s.status || '예정'}">${s.status || '예정'}</span></td></tr>
+                    </table>
+                </div>
+            </div>
+            ${s.description ? `<div class="mt-2 text-muted small">${s.description}</div>` : ''}
+        `;
+
+        const sourceLink = document.getElementById('subSourceLink');
+        if (s.source_url) {
+            sourceLink.href = s.source_url;
+            sourceLink.style.display = '';
+        } else {
+            sourceLink.style.display = 'none';
+        }
+
+        new bootstrap.Modal(document.getElementById('subDetailModal')).show();
+    } catch (e) {
+        alert('오류: ' + e.message);
+    }
+}
+
+// Initial load
+(async function() {
+    try {
+        const [activeResp, upResp] = await Promise.all([
+            fetch('/api/v1/subscriptions/'),
+            fetch('/api/v1/subscriptions/upcoming?days=30')
+        ]);
+        const activeData = await activeResp.json();
+        const upData = await upResp.json();
+        document.getElementById('subActive').textContent = activeData.count || 0;
+        document.getElementById('subUpcoming').textContent = upData.count || 0;
+        renderSubList(activeData.items || []);
+    } catch (e) {
+        document.getElementById('subList').innerHTML = `<div class="alert alert-danger">오류: ${e.message}</div>`;
+    }
+})();
+</script>
+{% endblock %}

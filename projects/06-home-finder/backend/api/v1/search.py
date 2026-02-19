@@ -4,7 +4,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 
 from database import get_db
 from models.property import Property
@@ -93,7 +93,31 @@ def _execute_search(db: Session, criteria: SearchCriteria) -> dict:
     if criteria.city:
         query = query.filter(Property.city == criteria.city)
     if criteria.districts:
-        query = query.filter(Property.district.in_(criteria.districts))
+        # Districts may contain both 구 (district) and 시 (city) names
+        # e.g. ["마포구", "하남시", "성남시 분당구"]
+        district_names = []
+        city_names = []
+        compound_filters = []
+        for d in criteria.districts:
+            if " " in d:
+                # Compound like "성남시 분당구" -> city + district
+                parts = d.split(" ", 1)
+                compound_filters.append(
+                    (Property.city.contains(parts[0])) & (Property.district == parts[1])
+                )
+            elif d.endswith("시"):
+                city_names.append(d)
+            else:
+                district_names.append(d)
+        conditions = []
+        if district_names:
+            conditions.append(Property.district.in_(district_names))
+        if city_names:
+            conditions.append(Property.city.in_(city_names))
+        for cf in compound_filters:
+            conditions.append(cf)
+        if conditions:
+            query = query.filter(or_(*conditions))
     if criteria.dongs:
         query = query.filter(Property.dong.in_(criteria.dongs))
 
