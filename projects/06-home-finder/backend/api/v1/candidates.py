@@ -168,24 +168,41 @@ def list_candidates(
     pagination: dict = Depends(get_pagination),
     db: Session = Depends(get_db),
 ):
-    """후보 매물 목록 조회 (상태별 필터)"""
-    repo = CandidateRepository(db)
+    """후보 매물 목록 조회 (상태별 필터, 매물 정보 포함)"""
+    cand_repo = CandidateRepository(db)
+    prop_repo = PropertyRepository(db)
 
     if status:
-        items = repo.get_by_status(
+        items = cand_repo.get_by_status(
             status=status,
             offset=pagination["offset"],
             limit=pagination["size"],
         )
     else:
-        items = repo.get_all(
+        items = cand_repo.get_all(
             offset=pagination["offset"],
             limit=pagination["size"],
         )
 
+    enriched = []
+    for c in items:
+        entry = _cand_to_dict(c)
+        if c.property_id:
+            prop = prop_repo.get_by_id(c.property_id)
+            if prop:
+                entry["address"] = prop.address
+                entry["complex_name"] = prop.complex_name
+                entry["district"] = prop.district
+                entry["dong"] = prop.dong
+                entry["price_krw"] = prop.price_krw
+                entry["area_m2"] = prop.area_m2
+                entry["score_composite"] = prop.score_composite
+                entry["property_type"] = prop.property_type
+        enriched.append(entry)
+
     return {
-        "items": [_cand_to_dict(c) for c in items],
-        "count": len(items),
+        "items": enriched,
+        "count": len(enriched),
         "page": pagination["page"],
         "page_size": pagination["size"],
     }

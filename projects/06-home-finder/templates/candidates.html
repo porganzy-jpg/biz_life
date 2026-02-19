@@ -132,7 +132,7 @@ function toggleCompareMode() {
 async function refreshPipeline() {
     const resp = await fetch(API);
     const data = await resp.json();
-    const pipeline = data.pipeline || {};
+    const pipeline = data.counts || {};
 
     const statuses = ['발견', '조사', '관심', '방문예정', '방문완료', '결정'];
     for (const s of statuses) {
