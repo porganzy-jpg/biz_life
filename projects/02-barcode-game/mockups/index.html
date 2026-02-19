@@ -287,8 +287,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 <!-- HOME -->
 <div class="screen active" id="screen-home">
   <div class="scr-pad">
-    <div class="story-banner" id="story-banner">
-      <h3>📖 오늘의 이야기</h3>
+    <div class="story-banner" id="story-banner" onclick="nextStory()" style="cursor:pointer;">
+      <h3>📖 오늘의 이야기 <span style="font-size:.6rem;opacity:.6;float:right;">터치해서 새 이야기</span></h3>
       <p id="story-text"></p>
     </div>
     <div class="travel-bar" id="travel-bar">
@@ -308,12 +308,19 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 <!-- SCAN -->
 <div class="screen" id="screen-scan">
   <div class="scan-area">
-    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">🔍 영혼 스캔</h2>
-    <div class="scan-viewport">
+    <h2 style="text-align:center;margin-bottom:6px;font-size:1rem;">🔍 영혼 스캔</h2>
+    <p style="text-align:center;font-size:.68rem;color:var(--text-light);margin-bottom:12px;">바코드를 스캔하면 새로운 영혼을 만날 수 있어요</p>
+    <div class="scan-viewport" id="scan-viewport">
       <div class="line"></div>
       <div class="corners"></div>
+      <div id="scan-result" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.7);z-index:2;border-radius:var(--radius);"></div>
     </div>
-    <button class="scan-btn" onclick="doScan()">바코드 스캔하기</button>
+    <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin:8px 0;font-size:.65rem;color:var(--text-light);">
+      <span>❤️ 에너지: <strong id="scan-energy-display">5</strong></span>
+      <span>·</span>
+      <span>🐾 미발견: <strong id="scan-remaining">0</strong>마리</span>
+    </div>
+    <button class="scan-btn" id="scan-btn-main" onclick="doScan()">바코드 스캔하기</button>
     <button class="manual-toggle" onclick="toggleManual()">직접 입력하기</button>
     <div class="manual-input" id="manual-input" style="display:none;">
       <input type="text" id="barcode-input" maxlength="13" placeholder="13자리 바코드 입력" inputmode="numeric">
@@ -396,7 +403,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
     <h2 style="margin-bottom:14px;font-size:1rem;">⚙️ 설정</h2>
     <div id="settings-list"></div>
     <div style="margin-top:20px;text-align:center;font-size:.7rem;color:var(--text-light);">
-      <p>천국행 버스 v2.0</p>
+      <p>천국행 버스 v3.0</p>
       <p style="margin-top:4px;">치유의 여정 - 모든 영혼에게 평화를</p>
     </div>
   </div>
@@ -621,7 +628,11 @@ const ACHIEVEMENTS = [
   {id:'a5',name:'수집가',icon:'📦',desc:'인벤토리에 아이템 5개 이상 모았어요',condition:()=>GS.inventory.length>=5},
   {id:'a6',name:'편지꾼',icon:'💌',desc:'편지를 3번 이상 보냈어요',condition:()=>(GS.lettersSent||0)>=3},
   {id:'a7',name:'탐험가',icon:'🔭',desc:'모든 캐릭터를 발견했어요',condition:()=>GS.discovered.length>=10},
-  {id:'a8',name:'부자',icon:'💰',desc:'골드를 5000 이상 모았어요',condition:()=>GS.gold>=5000}
+  {id:'a8',name:'부자',icon:'💰',desc:'골드를 5000 이상 모았어요',condition:()=>GS.gold>=5000},
+  {id:'a9',name:'7일 출석',icon:'📅',desc:'7일 연속 출석했어요',condition:()=>GS.dayStreak>=7},
+  {id:'a10',name:'완벽한 치유',icon:'💖',desc:'모든 영혼의 치유도가 80% 이상이에요',condition:()=>GS.discovered.every(id=>{const c=CHARACTERS.find(ch=>ch.id===id);return c&&c.heal>=80;})},
+  {id:'a11',name:'기억 수집가',icon:'🧩',desc:'기억을 6개 이상 모았어요',condition:()=>GS.memories.length>=6},
+  {id:'a12',name:'퀘스트 마스터',icon:'⚔️',desc:'모든 퀘스트를 완료했어요',condition:()=>QUESTS.every(q=>{const s=GS.questStates[q.id];return s&&s.completed;})}
 ];
 
 const MEMORIES = [
@@ -659,7 +670,12 @@ const STORIES = [
   '포리가 음악실에서 새로운 노래를 불렀어요. 그 노래는 창밖까지 퍼져나가 구름도 잠시 멈춰 들었어요.',
   '미루가 도서관에서 오래된 이야기책을 발견했어요. 페이지마다 따뜻한 이야기가 담겨 있었고, 미루는 처음으로 눈물을 멈췄어요.',
   '랑이가 전망대에서 별똥별을 봤어요. "소원을 빌어!" 달이가 외쳤고, 랑이는 조용히 눈을 감았어요. "다시 뛰고 싶어요."',
-  '별이가 처음으로 이름을 불린 날이에요. "별이야, 이리 와!" 그 한마디에 작은 햄스터의 눈에 별이 가득 담겼어요.'
+  '별이가 처음으로 이름을 불린 날이에요. "별이야, 이리 와!" 그 한마디에 작은 햄스터의 눈에 별이 가득 담겼어요.',
+  '구름이가 창가에서 노을을 바라보며 조용히 그르렁거렸어요. "할머니도 이런 노을을 좋아하셨어." 옆에 앉은 미루가 살짝 기대왔어요.',
+  '솔이가 화분에 심은 씨앗에서 작은 새싹이 올라왔어요! "내가 키운 거야!" 작은 가시를 세우며 자랑스러워하는 솔이. 모두가 박수를 쳤어요.',
+  '달이가 보름달이 뜨는 밤에 전망대에서 울었어요. "아직도 날고 싶어." 랑이가 조용히 다가와 어깨를 빌려줬어요.',
+  '꼬미가 정원에서 네잎클로버를 찾았어요! "이걸 누구에게 줄까?" 한참 고민하다 버스 창문에 꽂아두었어요. "모두를 위한 행운이야!"',
+  '비 오는 날, 모두가 도서관에 모여 각자 좋아하는 이야기를 읽었어요. 빗소리와 책장 넘기는 소리만 들리는 평화로운 오후였어요.'
 ];
 
 const TOAST_MSGS = [
@@ -721,7 +737,8 @@ function defaultState(){
     lastAutoHeal:Date.now(),
     friendships:{},
     compareChars:[],
-    collTab:'chars'
+    collTab:'chars',
+    charStats:{}
   };
 }
 function loadState(){
@@ -732,7 +749,18 @@ function loadState(){
   }catch(e){GS=defaultState();}
 }
 function saveState(){
+  // Sync character stats to GS before saving
+  CHARACTERS.forEach(c=>{
+    GS.charStats[c.id]={heal:c.heal,peace:c.peace,vitality:c.vitality,room:c.room};
+  });
   try{localStorage.setItem('hbus_state',JSON.stringify(GS));}catch(e){}
+}
+function restoreCharStats(){
+  if(!GS.charStats)return;
+  CHARACTERS.forEach(c=>{
+    const s=GS.charStats[c.id];
+    if(s){c.heal=s.heal;c.peace=s.peace;c.vitality=s.vitality;c.room=s.room;}
+  });
 }
 
 // ============================================================
@@ -781,7 +809,7 @@ function navTo(id){
 function renderScreen(id){
   switch(id){
     case'home':renderHome();break;
-    case'scan':break;
+    case'scan':renderScan();break;
     case'bus':renderBus();break;
     case'map':renderMap();break;
     case'quest':renderQuests();break;
@@ -843,6 +871,20 @@ function renderHome(){
   ).join('');
 }
 
+function nextStory(){
+  GS.storyIndex=(GS.storyIndex+1)%STORIES.length;
+  GS.storyTyped=false;
+  const stEl=document.getElementById('story-text');
+  if(stEl){stEl.textContent='';typeWriter(stEl,STORIES[GS.storyIndex],0);GS.storyTyped=true;}
+}
+
+function renderScan(){
+  const se=document.getElementById('scan-energy-display');
+  const sr=document.getElementById('scan-remaining');
+  if(se) se.textContent=GS.energy;
+  if(sr) sr.textContent=CHARACTERS.filter(c=>!GS.discovered.includes(c.id)).length;
+}
+
 // ============================================================
 // HOME SCENE - BUS TRAVELING THROUGH LANDSCAPES
 // ============================================================
@@ -880,7 +922,7 @@ function generateSceneElements(){
   sceneElems=[];
   for(let i=0;i<25;i++){
     sceneElems.push({type:'tree',x:Math.random()*600-50,layer:Math.random()>.5?0:1,
-      h:20+Math.random()*25,w:12+Math.random()*10,sway:Math.random()*Math.PI*2});
+      h:20+Math.random()*25,w:12+Math.random()*10,sway:Math.random()*Math.PI*2,ci:Math.random()*4|0});
   }
   for(let i=0;i<15;i++){
     sceneElems.push({type:'flower',x:Math.random()*600-50,
@@ -982,9 +1024,8 @@ function drawHomeScene(){
     if(x<-30||x>W+30)return;
     const sway=Math.sin(sceneTime*.02+e.sway)*2;
     const tc=biome.tColors||['#2e7d32','#388e3c'];
-    ctx.fillStyle=isNight?'#1b5e20':tc[0];
     ctx.fillStyle=isNight?'#33691e':'#5d4037';ctx.fillRect(x+e.w/2-2,gY-e.h*.3,4,e.h*.3+2);
-    ctx.fillStyle=isNight?'#1b5e20':tc[Math.random()*tc.length|0];
+    ctx.fillStyle=isNight?'#1b5e20':tc[e.ci%tc.length];
     ctx.beginPath();ctx.arc(x+e.w/2+sway,gY-e.h*.4,e.w*.7,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.arc(x+e.w/2-3+sway,gY-e.h*.55,e.w*.5,0,Math.PI*2);ctx.fill();
   });
@@ -998,10 +1039,16 @@ function drawHomeScene(){
     if(dest==='star'){ctx.fillStyle=`rgba(255,255,200,${.4+Math.sin(sceneTime*.05+e.sway)*.3})`;}
     ctx.beginPath();ctx.arc(x+sw,gY-e.h-2,3,0,Math.PI*2);ctx.fill();
   });
-  // The BUS
+  // The BUS with gentle tilt and bounce
   const busY=roadY-18;const busX2=120;
   const bounce=Math.sin(sceneTime*.12)*1.2;
+  const tilt=Math.sin(sceneTime*.06)*.008;
+  ctx.save();
+  ctx.translate(busX2+30,busY+11);
+  ctx.rotate(tilt);
+  ctx.translate(-(busX2+30),-(busY+11));
   drawSceneBus(ctx,busX2,busY+bounce);
+  ctx.restore();
   // Foreground trees
   sceneElems.filter(e=>e.type==='tree'&&e.layer===0).forEach(e=>{
     const x=((e.x-scrollX*1.3)%600+600)%600-50;
@@ -1236,7 +1283,16 @@ function drawSky(ctx){
       const tw=.3+Math.sin(Date.now()/700+i)*0.4;ctx.globalAlpha=tw;ctx.beginPath();ctx.arc(sx,sy,1,0,Math.PI*2);ctx.fill();}
     ctx.globalAlpha=1;
   }
+  // Ground with grass detail
   ctx.fillStyle='#66bb6a';ctx.fillRect(0,505,420,35);ctx.fillStyle='#558b2f';ctx.fillRect(0,505,420,4);
+  // Small grass tufts
+  const gt=Date.now()/1200;
+  for(let i=0;i<12;i++){
+    const gx=i*36+8,gy=508;
+    ctx.strokeStyle='#43a047';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(gx,gy+14);ctx.quadraticCurveTo(gx+Math.sin(gt+i)*3,gy+4,gx,gy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(gx+4,gy+14);ctx.quadraticCurveTo(gx+4+Math.sin(gt+i+1)*2,gy+6,gx+6,gy+2);ctx.stroke();
+  }
 }
 function drawBusBody(ctx){
   const L=BUS_LAYOUT;
@@ -1320,6 +1376,11 @@ function drawChar(ctx,id){
     ctx.globalAlpha=1;
   }
   ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(getMood(c),dx+30,dy+6);
+  // Heal progress mini-bar under character
+  const hpW=24,hpH=2.5,hpX=dx+4,hpY=dy+34;
+  ctx.fillStyle='rgba(0,0,0,.15)';rrect(ctx,hpX,hpY,hpW,hpH,1);ctx.fill();
+  ctx.fillStyle=c.heal>=60?'#00b894':c.heal>=30?'#fdcb6e':'#e17055';
+  rrect(ctx,hpX,hpY,hpW*(c.heal/100),hpH,1);ctx.fill();
 }
 function drawPartsOnBus(ctx){
   busParts.forEach(p=>{
@@ -1595,8 +1656,14 @@ function drawWorldMap(){
     if(fi>=0&&ti2>=0&&pts[fi]&&pts[ti2]){
       const a=pts[fi],b=pts[ti2],p=GS.travelProgress/100;
       const bx=a.cx+(b.cx-a.cx)*p,by=a.cy+(b.cy-a.cy)*p;
-      ctx.fillStyle='rgba(108,92,231,.12)';ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fill();
+      // Pulsing bus indicator
+      const pulse=.08+Math.sin(mapTime*.06)*.05;
+      ctx.fillStyle=`rgba(108,92,231,${pulse})`;ctx.beginPath();ctx.arc(bx,by,18+Math.sin(mapTime*.06)*3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(108,92,231,.15)';ctx.beginPath();ctx.arc(bx,by,12,0,Math.PI*2);ctx.fill();
       ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('🚌',bx,by+5);
+      // Progress label
+      ctx.font='bold 7px "Noto Sans KR",sans-serif';ctx.fillStyle='rgba(108,92,231,.7)';
+      ctx.fillText(GS.travelProgress+'%',bx,by-12);
     }
   }
   // Draw regions
@@ -1733,7 +1800,7 @@ function renderChars(){
   }
   let html=`<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
     <button style="font-size:.65rem;border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;background:var(--card);cursor:pointer;font-family:inherit;color:var(--text);min-height:30px;" onclick="toggleCompare()">
-      ${GS.compareChars.length>0?'비교 취소':'🔄 비교하기'}
+      ${compareMode||GS.compareChars.length>0?'비교 취소':'🔄 비교하기'}
     </button>
   </div>`;
   html+=`<div class="char-grid">`;
@@ -1855,9 +1922,81 @@ function renderSettings(){
     {key:'notifications',label:'알림 표시'},
     {key:'autoTravel',label:'자동 여행'}
   ];
-  el.innerHTML=settings.map(s=>
+  let html=settings.map(s=>
     `<div class="setting-row">${s.label}<div class="toggle${GS.settings[s.key]?' on':''}" onclick="toggleSetting('${s.key}',this)"></div></div>`
   ).join('');
+  // Game stats
+  const playDays=GS.dayStreak||1;
+  const totalChars=GS.discovered.length;
+  const totalAch=GS.achievementsUnlocked.length;
+  html+=`<div style="margin-top:18px;padding:14px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--card-border);">
+    <h3 style="font-size:.82rem;margin-bottom:8px;">📊 게임 통계</h3>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:.7rem;">
+      <div>🗓 연속 출석: <strong>${playDays}일</strong></div>
+      <div>🐾 발견 영혼: <strong>${totalChars}/10</strong></div>
+      <div>🏆 달성 업적: <strong>${totalAch}/${ACHIEVEMENTS.length}</strong></div>
+      <div>💰 보유 골드: <strong>${GS.gold}</strong></div>
+      <div>💌 보낸 편지: <strong>${GS.lettersSent||0}</strong></div>
+      <div>📦 인벤토리: <strong>${GS.inventory.length}개</strong></div>
+    </div>
+  </div>`;
+  // Data management
+  html+=`<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+    <button style="padding:12px;border:1px solid var(--card-border);border-radius:8px;background:var(--card);font-family:inherit;font-size:.75rem;cursor:pointer;color:var(--text);min-height:44px;" onclick="exportSave()">📤 세이브 데이터 내보내기</button>
+    <button style="padding:12px;border:1px solid var(--card-border);border-radius:8px;background:var(--card);font-family:inherit;font-size:.75rem;cursor:pointer;color:var(--text);min-height:44px;" onclick="importSave()">📥 세이브 데이터 가져오기</button>
+    <button style="padding:12px;border:1px solid #e74c3c33;border-radius:8px;background:rgba(231,76,60,.06);font-family:inherit;font-size:.75rem;cursor:pointer;color:#e74c3c;min-height:44px;" onclick="resetGame()">🗑️ 게임 초기화</button>
+  </div>`;
+  el.innerHTML=html;
+}
+function exportSave(){
+  saveState();
+  const data=JSON.stringify(GS);
+  const blob=new Blob([data],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='hbus_save_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+  showToast('📤 세이브 데이터를 내보냈어요!');
+}
+function importSave(){
+  const input=document.createElement('input');input.type='file';input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        GS=Object.assign(defaultState(),data);
+        restoreCharStats();saveState();
+        updateEnergyUI();updateGoldUI();updateDayNight();
+        showToast('📥 세이브 데이터를 불러왔어요!');
+        navTo('home');
+      }catch(err){showToast('파일 형식이 올바르지 않아요');}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+function resetGame(){
+  if(!confirm('정말 게임을 초기화하시겠어요?\n모든 진행 상황이 사라집니다.'))return;
+  localStorage.removeItem('hbus_state');
+  GS=defaultState();
+  CHARACTERS.forEach(c=>{
+    const def=[{id:'nabi',heal:65,peace:50,vitality:70,room:'garden'},
+      {id:'haru',heal:40,peace:35,vitality:55,room:'kitchen'},
+      {id:'pori',heal:55,peace:60,vitality:45,room:'music'},
+      {id:'miru',heal:30,peace:45,vitality:40,room:'library'},
+      {id:'ggomi',heal:50,peace:55,vitality:60,room:'garden'},
+      {id:'rang',heal:45,peace:70,vitality:35,room:'observatory'},
+      {id:'byeori',heal:35,peace:40,vitality:50,room:null},
+      {id:'gureum',heal:25,peace:60,vitality:30,room:null},
+      {id:'dari',heal:20,peace:50,vitality:45,room:null},
+      {id:'sori',heal:45,peace:35,vitality:55,room:null}
+    ].find(d=>d.id===c.id);
+    if(def){c.heal=def.heal;c.peace=def.peace;c.vitality=def.vitality;c.room=def.room;}
+  });
+  updateEnergyUI();updateGoldUI();updateDayNight();
+  showToast('🗑️ 게임이 초기화되었어요!');
+  navTo('home');
 }
 
 function switchCollTab(tab){
@@ -1894,37 +2033,53 @@ function doScan(){
     showToast('💔 에너지가 부족해요! 잠시 기다려주세요.');
     return;
   }
+  // Disable button during animation
+  const btn=document.getElementById('scan-btn-main');
+  if(btn){btn.disabled=true;btn.textContent='스캔 중...';}
   GS.energy--;
   updateEnergyUI();
   saveState();
-  // Pick a random undiscovered character, or random if all discovered
-  const undiscovered=CHARACTERS.filter(c=>!GS.discovered.includes(c.id));
-  let char;
-  if(undiscovered.length>0){
-    char=undiscovered[Math.floor(Math.random()*undiscovered.length)];
-  } else {
-    char=CHARACTERS[Math.floor(Math.random()*CHARACTERS.length)];
-    showToast(`${char.emoji} ${char.name}를 다시 만났어요! 치유+5`);
-    char.heal=Math.min(100,char.heal+5);
-    addGold(50);
+  // Show scanning animation in viewport
+  const sr=document.getElementById('scan-result');
+  if(sr){
+    sr.style.display='flex';
+    sr.innerHTML='<div style="color:#0f0;font-size:2rem;animation:dpulse 1s infinite;">🔍</div><div style="color:#fff;font-size:.8rem;margin-top:6px;">영혼을 감지하는 중...</div>';
+  }
+  // Delayed reveal for dramatic effect
+  setTimeout(()=>{
+    if(sr) sr.style.display='none';
+    if(btn){btn.disabled=false;btn.textContent='바코드 스캔하기';}
+    // Pick a random undiscovered character, or random if all discovered
+    const undiscovered=CHARACTERS.filter(c=>!GS.discovered.includes(c.id));
+    let char;
+    if(undiscovered.length>0){
+      char=undiscovered[Math.floor(Math.random()*undiscovered.length)];
+    } else {
+      char=CHARACTERS[Math.floor(Math.random()*CHARACTERS.length)];
+      showToast(`${char.emoji} ${char.name}를 다시 만났어요! 치유+5`);
+      char.heal=Math.min(100,char.heal+5);
+      addGold(50);
+      saveState();
+      renderScan();
+      return;
+    }
+    // Discover
+    GS.discovered.push(char.id);
+    // Assign to a room if there's space
+    if(!char.room){
+      const emptyRooms=ROOMS.filter(r=>CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id)).length<3);
+      if(emptyRooms.length>0) char.room=emptyRooms[0].id;
+    }
+    // Random inventory item
+    const randItem=INVENTORY_ITEMS[Math.floor(Math.random()*INVENTORY_ITEMS.length)];
+    GS.inventory.push(randItem.id);
+    addGold(100);
     saveState();
-    return;
-  }
-  // Discover
-  GS.discovered.push(char.id);
-  // Assign to a room if there's space
-  if(!char.room){
-    const emptyRooms=ROOMS.filter(r=>CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id)).length<3);
-    if(emptyRooms.length>0) char.room=emptyRooms[0].id;
-  }
-  // Random inventory item
-  const randItem=INVENTORY_ITEMS[Math.floor(Math.random()*INVENTORY_ITEMS.length)];
-  GS.inventory.push(randItem.id);
-  addGold(100);
-  saveState();
-  // Show discovery
-  showDiscovery(char);
-  checkAchievements();
+    renderScan();
+    // Show discovery
+    showDiscovery(char);
+    checkAchievements();
+  },1200);
 }
 
 function doManualScan(){
@@ -1959,8 +2114,9 @@ function closeDiscovery(){
 
 function showCharDetail(id){
   // If in compare mode, handle selection
-  if(GS.compareChars.length>0 && GS.compareChars.length<2 && !GS.compareChars.includes(id)){
+  if(compareMode && GS.compareChars.length<2 && !GS.compareChars.includes(id)){
     GS.compareChars.push(id);
+    if(GS.compareChars.length>=2) compareMode=false;
     renderCollection();
     return;
   }
@@ -2060,10 +2216,13 @@ function handleQuest(qid){
     if(state.progress>=q.steps.length){
       state.completed=true;
       addGold(q.reward);
+      fireConfetti();
       showToast(`🎉 "${q.title}" 퀘스트 완료! +${q.reward}G`);
       // Give a random memory
       const unownedMem=MEMORIES.filter(m=>!GS.memories.includes(m.id));
       if(unownedMem.length>0) GS.memories.push(unownedMem[Math.floor(Math.random()*unownedMem.length)].id);
+      // Heal bonus for completing quests
+      GS.discovered.forEach(cid=>{const ch=CHARACTERS.find(cc=>cc.id===cid);if(ch)ch.heal=Math.min(100,ch.heal+q.difficulty*3);});
     } else {
       showToast(`📋 진행: ${state.progress}/${q.steps.length}`);
     }
@@ -2181,19 +2340,18 @@ function sendLetter(charId){
   checkAchievements();
 }
 
+let compareMode=false;
 function toggleCompare(){
-  if(GS.compareChars.length>0){
+  if(compareMode||GS.compareChars.length>0){
+    compareMode=false;
     GS.compareChars=[];
     renderCollection();
     return;
   }
+  compareMode=true;
   GS.compareChars=[];
   showToast('비교할 캐릭터 2명을 선택하세요');
-  // Next 2 clicks on char cards will add to compare
-  GS.compareChars=['_selecting'];
   renderCollection();
-  // Reset after render - the click handler in showCharDetail handles it
-  GS.compareChars=[];
 }
 
 function toggleSetting(key,el){
@@ -2528,12 +2686,15 @@ function updateTravel(){
     GS.travelProgress=Math.min(100,Math.floor(elapsed/1728000*100)); // ~2 days for full
     if(GS.travelProgress>=100){
       const dest=DESTINATIONS.find(d=>d.id===GS.travelDest);
-      if(dest){
+      if(dest&&!dest.visited){
         dest.visited=true;
-        showToast(`🎉 ${dest.name}에 도착했어요!`);
+        fireConfetti();
+        showToast(`🎉 ${dest.name}에 도착했어요! 새로운 세계가 열렸습니다!`);
         // Unlock next destination
         const idx=DESTINATIONS.indexOf(dest);
-        if(idx<DESTINATIONS.length-1) DESTINATIONS[idx+1].unlocked=true;
+        if(idx<DESTINATIONS.length-1){DESTINATIONS[idx+1].unlocked=true;showToast(`🔓 ${DESTINATIONS[idx+1].name}이 해금되었어요!`);}
+        // Heal all characters
+        GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.heal=Math.min(100,c.heal+dest.healBonus);});
       }
     }
     saveState();
@@ -2544,7 +2705,7 @@ function updateTravel(){
 // RANDOM ENCOUNTER
 // ============================================================
 function randomEncounter(){
-  if(Math.random()<0.4){ // 40% chance
+  if(Math.random()<0.25){ // 25% chance
     const evt=ENCOUNTER_EVENTS[Math.floor(Math.random()*ENCOUNTER_EVENTS.length)];
     if(evt.type==='gold'){
       addGold(evt.amount);
@@ -2632,12 +2793,17 @@ document.addEventListener('click',(e)=>{
 // ============================================================
 function init(){
   loadState();
+  restoreCharStats();
   initSpriteCache();
-  // Splash
-  setTimeout(()=>{
+  // Splash (auto 3s or tap to skip)
+  let splashDone=false;
+  function dismissSplash(){
+    if(splashDone)return;splashDone=true;
     document.getElementById('splash').classList.add('hide');
     setTimeout(()=>document.getElementById('splash').style.display='none',800);
-  },3000);
+  }
+  setTimeout(dismissSplash,3000);
+  document.getElementById('splash').addEventListener('click',dismissSplash,{once:true});
   // Day/Night
   updateDayNight();
   setInterval(updateDayNight,60000);
@@ -2654,14 +2820,14 @@ function init(){
   initParticles();
   // Timers
   setInterval(()=>{regenEnergy();autoHeal();updateTravel();},5000);
-  // Toast rotation
+  // Toast rotation (every 45 seconds)
   setInterval(()=>{
     if(GS.settings.notifications){
       showToast(TOAST_MSGS[Math.floor(Math.random()*TOAST_MSGS.length)]);
     }
-  },15000);
-  // Random encounter
-  setInterval(randomEncounter,30000);
+  },45000);
+  // Random encounter (every 90 seconds)
+  setInterval(randomEncounter,90000);
   // Heal timer update
   setInterval(()=>{
     if(currentScreen==='home'){
