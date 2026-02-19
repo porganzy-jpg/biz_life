@@ -1,7 +1,8 @@
 """
-StockBot v2.0 주식 자동매매 트레이더
+StockBot v2.1 주식 자동매매 트레이더
 
 8전략 앙상블 + 뉴스 감성분석 + 서킷브레이커 + DB 영속성 + 스케줄러
++ 시장 국면(Regime) 감지 및 전략 가중치 동적 조정
 """
 import sys
 import os
@@ -19,6 +20,7 @@ from circuit_breaker import CircuitBreaker
 from alert_system import AlertSystem
 from database import TradeDB
 from scheduler import TradingScheduler, is_market_hours
+from regime_detector import RegimeDetector, MarketRegime
 from config import (
     STOCK_TRADING_CONFIG, WATCHLIST, ANALYSIS_CONFIG,
     CIRCUIT_BREAKER_CONFIG,
@@ -48,6 +50,7 @@ class StockTrader:
         self.alert = AlertSystem()
         self.db = TradeDB()
         self.scheduler = TradingScheduler()
+        self.regime_detector = RegimeDetector()
         self.paper_trading = paper_trading
 
         self.trade_history = []
@@ -69,13 +72,25 @@ class StockTrader:
         self.trade_history = list(reversed(trades))
 
     def _on_pre_market(self):
-        """장 시작 전 사전 분석"""
+        """장 시작 전 사전 분석 (시장 국면 감지 포함)"""
         logger.info("=== 사전 분석 시작 (08:30) ===")
+
+        # 시장 국면 감지
+        regime = self._update_regime()
+        regime_status = self.regime_detector.get_status()
+        logger.info(f"사전분석 시장 국면: {regime.value}")
+        self.alert.send(
+            f"[사전분석] 시장 국면: {regime.value}\n"
+            f"ADX: {regime_status['details'].get('adx', '-')}\n"
+            f"변동성: {regime_status['details'].get('recent_volatility', '-')}%\n"
+            f"20일 수익률: {regime_status['details'].get('recent_return_pct', '-')}%"
+        )
+
         scan = self.scan_watchlist()
         buys = [s for s in scan if s.get("action") == "BUY"]
         if buys:
-            msg = "📋 사전 분석 결과:\n" + "\n".join(
-                f"  • {s['name']} ({s['symbol']}) 점수:{s['score']}"
+            msg = "사전 분석 결과:\n" + "\n".join(
+                f"  - {s['name']} ({s['symbol']}) 점수:{s['score']}"
                 for s in buys[:5]
             )
             self.alert.send(msg)
@@ -93,15 +108,36 @@ class StockTrader:
         """장 마감 후 일일 리포트"""
         self._generate_daily_report()
 
+    def _update_regime(self) -> MarketRegime:
+        """
+        워치리스트 종목의 OHLCV를 수집하여 시장 국면을 감지합니다.
+
+        이 메서드는 매매 사이클 시작 시 호출되어 regime_detector 상태를 갱신합니다.
+        """
+        price_data_list = []
+        for stock in WATCHLIST:
+            try:
+                df = self.client.fetch_ohlcv(stock["code"], count=200)
+                if df is not None and len(df) >= 60:
+                    price_data_list.append(df)
+            except Exception as e:
+                logger.debug(f"국면감지 데이터 수집 실패 [{stock['name']}]: {e}")
+
+        regime = self.regime_detector.detect(price_data_list)
+        return regime
+
     def analyze_stock(self, symbol: str, name: str) -> dict:
-        """개별 종목 분석 (퀀트 + 뉴스 감성)"""
+        """개별 종목 분석 (퀀트 + 뉴스 감성 + 시장국면 적응형 가중치)"""
         df = self.client.fetch_ohlcv(symbol, count=200)
         if df is None or df.empty:
             return {"symbol": symbol, "name": name, "action": "HOLD", "score": 0}
 
-        # 퀀트 분석
+        # 퀀트 분석 (시장 국면 가중치 적용)
         selector = _get_stock_selector()
+        regime_weights = self.regime_detector.get_strategy_weights()
+        selector.apply_regime_weights(regime_weights)
         result = selector.evaluate(df, symbol, name)
+        result["regime"] = self.regime_detector.current_regime.value
 
         # 뉴스 감성 분석 (점수에 반영)
         try:
@@ -289,18 +325,26 @@ class StockTrader:
             self.alert.notify_circuit_breaker(self.circuit_breaker.trip_reason)
 
     def run_cycle(self):
-        """1회 매매 사이클"""
+        """1회 매매 사이클 (시장 국면 감지 포함)"""
         logger.info(f"매매 사이클: {datetime.now().strftime('%H:%M:%S')}")
 
         if self.circuit_breaker.is_tripped:
             logger.warning(f"서킷브레이커: {self.circuit_breaker.trip_reason}")
             return {"skipped": True, "reason": self.circuit_breaker.trip_reason}
 
+        # 시장 국면 감지 (전략 가중치 갱신)
+        regime = self._update_regime()
+        logger.info(
+            f"시장 국면: {regime.value} | "
+            f"상세: {self.regime_detector.get_status().get('details', {})}"
+        )
+
         scan_results = self.scan_watchlist()
         self.execute_trades(scan_results)
 
         return {
             "timestamp": datetime.now().isoformat(),
+            "regime": self.regime_detector.get_status(),
             "balance": self.client.get_balance(),
             "positions": self.client.get_positions(),
             "scan_results": scan_results,
@@ -370,6 +414,7 @@ class StockTrader:
             "recent_trades": self.trade_history[-20:],
             "circuit_breaker": self.circuit_breaker.get_status(),
             "scheduler": self.scheduler.get_status(),
+            "regime": self.regime_detector.get_status(),
         }
 
 
@@ -378,8 +423,8 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v2.0 - 주식 자동매매")
-    print("  8전략 앙상블 + 뉴스감성 + 서킷브레이커")
+    print("  StockBot v2.1 - 주식 자동매매")
+    print("  8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 시장국면감지")
     print("=" * 60)
 
     trader = StockTrader(paper_trading=False)

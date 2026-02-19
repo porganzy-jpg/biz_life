@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from repositories.area_repo import AreaRepository
 from exceptions import NotFoundException
+from cache import response_cache, make_cache_key
 
 router = APIRouter()
 
@@ -63,6 +64,13 @@ def compare_districts(
     db: Session = Depends(get_db),
 ):
     """두 지역(구) 비교"""
+    # Check cache first (TTL: 1800s) - use sorted key so order doesn't matter
+    sorted_districts = tuple(sorted([district1, district2]))
+    cache_key = make_cache_key("compare", d1=sorted_districts[0], d2=sorted_districts[1])
+    cached = response_cache.get("area_stats", cache_key)
+    if cached is not None:
+        return cached
+
     repo = AreaRepository(db)
 
     areas1 = repo.get_by_district(district1)
@@ -73,10 +81,14 @@ def compare_districts(
     if not areas2:
         raise HTTPException(status_code=404, detail=f"지역 '{district2}'을(를) 찾을 수 없습니다")
 
-    return {
+    result = {
         "district1": _area_to_comparison(areas1[0]),
         "district2": _area_to_comparison(areas2[0]),
     }
+
+    # Store in cache (1800s TTL)
+    response_cache.set("area_stats", cache_key, result, ttl=1800)
+    return result
 
 
 @router.get("/")
@@ -90,13 +102,23 @@ def list_districts(db: Session = Depends(get_db)):
 @router.get("/{district}")
 def get_area_profile(district: str, db: Session = Depends(get_db)):
     """지역(구) 프로필 조회"""
+    # Check cache first (TTL: 1800s)
+    cache_key = make_cache_key("profile", district=district)
+    cached = response_cache.get("area_stats", cache_key)
+    if cached is not None:
+        return cached
+
     repo = AreaRepository(db)
     areas = repo.get_by_district(district)
     if not areas:
         raise HTTPException(status_code=404, detail=f"지역 '{district}'을(를) 찾을 수 없습니다")
 
-    return {
+    result = {
         "district": district,
         "areas": [_area_to_dict(a) for a in areas],
         "count": len(areas),
     }
+
+    # Store in cache (1800s TTL)
+    response_cache.set("area_stats", cache_key, result, ttl=1800)
+    return result

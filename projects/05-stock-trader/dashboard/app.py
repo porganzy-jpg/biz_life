@@ -1,6 +1,6 @@
 """
-StockBot v2.0 대시보드
-8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 일일성과
+StockBot v2.1 대시보드
+8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 일일성과 + 시장국면감지
 """
 import sys
 import os
@@ -16,7 +16,7 @@ import uvicorn
 from trader import StockTrader
 from config import DASHBOARD_HOST, DASHBOARD_PORT, WATCHLIST
 
-app = FastAPI(title="StockBot v2.0 Dashboard")
+app = FastAPI(title="StockBot v2.1 Dashboard")
 trader = StockTrader(paper_trading=False)
 
 
@@ -82,6 +82,11 @@ async def run_single_cycle():
     return result
 
 
+@app.get("/api/regime")
+async def get_regime():
+    return trader.regime_detector.get_status()
+
+
 @app.post("/api/circuit-breaker/reset")
 async def reset_circuit_breaker():
     trader.circuit_breaker.reset()
@@ -94,7 +99,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockBot v2.0</title>
+    <title>StockBot v2.1</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #0a0e17; color: #c9d1d9; min-height: 100vh; }
@@ -108,6 +113,7 @@ DASHBOARD_HTML = """
         .container { max-width: 1600px; margin: 0 auto; padding: 16px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         .grid-5 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+        .grid-6 { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
         .card { background: #161b28; border: 1px solid #21262d; border-radius: 8px; padding: 14px; }
         .card h2 { color: #58a6ff; font-size: 0.9rem; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #21262d; }
         .stat-card { text-align: center; }
@@ -118,6 +124,7 @@ DASHBOARD_HTML = """
         .neu { color: #8b949e; }
         .accent { color: #58a6ff; }
         .green { color: #3fb950; }
+        .yellow { color: #d29922; }
         table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
         th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #161b28; }
         th { color: #8b949e; font-weight: 600; background: #0d1117; position: sticky; top: 0; }
@@ -125,6 +132,13 @@ DASHBOARD_HTML = """
         .badge-buy { background: #23863633; color: #3fb950; }
         .badge-sell { background: #f8514933; color: #f85149; }
         .badge-hold { background: #21262d; color: #8b949e; }
+        .badge-regime { padding: 3px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.5px; }
+        .regime-bull { background: #23863633; color: #3fb950; border: 1px solid #238636; }
+        .regime-bear { background: #f8514933; color: #f85149; border: 1px solid #f85149; }
+        .regime-sideways { background: #d2992233; color: #d29922; border: 1px solid #d29922; }
+        .regime-panel { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .regime-detail { font-size: 0.75rem; color: #8b949e; }
+        .regime-detail span { color: #c9d1d9; font-weight: 600; }
         .btn { padding: 7px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.82rem; transition: opacity 0.2s; }
         .btn:hover { opacity: 0.85; }
         .btn-start { background: #238636; color: white; }
@@ -139,12 +153,13 @@ DASHBOARD_HTML = """
         .circuit-alert.active { display: flex; align-items: center; gap: 10px; }
         .scroll-table { max-height: 300px; overflow-y: auto; }
         .refresh-info { color: #484f58; font-size: 0.72rem; }
+        .weight-bar { display: inline-block; height: 4px; border-radius: 2px; background: #58a6ff; vertical-align: middle; margin-left: 4px; }
         @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>StockBot v2.0</h1>
+        <h1>StockBot v2.1</h1>
         <div class="header-right">
             <span class="refresh-info" id="lastUpdate">-</span>
             <span class="mode mode-paper" id="modeTag">Loading...</span>
@@ -163,12 +178,25 @@ DASHBOARD_HTML = """
             <button class="btn btn-cycle" onclick="runCycle()">Run 1 Cycle</button>
             <span id="schedInfo" class="refresh-info" style="margin-left:auto"></span>
         </div>
-        <div class="grid-5">
+        <div class="card" style="margin-bottom:12px">
+            <h2>Market Regime</h2>
+            <div class="regime-panel">
+                <span class="badge-regime regime-sideways" id="regimeBadge">SIDEWAYS</span>
+                <div class="regime-detail">ADX: <span id="regimeADX">-</span></div>
+                <div class="regime-detail">Volatility: <span id="regimeVol">-</span></div>
+                <div class="regime-detail">20D Return: <span id="regimeReturn">-</span></div>
+                <div class="regime-detail">MA Diff: <span id="regimeMaDiff">-</span></div>
+                <div class="regime-detail" id="regimeSince" style="margin-left:auto"></div>
+            </div>
+            <div id="regimeWeights" style="margin-top:10px;font-size:0.75rem;color:#8b949e"></div>
+        </div>
+        <div class="grid-6">
             <div class="card stat-card"><div class="label">Total Assets</div><div class="value accent" id="totalAssets">-</div></div>
             <div class="card stat-card"><div class="label">Cash</div><div class="value" id="cash">-</div></div>
             <div class="card stat-card"><div class="label">Total PnL</div><div class="value" id="totalPnl">-</div></div>
             <div class="card stat-card"><div class="label">Positions</div><div class="value" id="posCount">0</div></div>
             <div class="card stat-card"><div class="label">Win Rate (30d)</div><div class="value green" id="winRate">-</div></div>
+            <div class="card stat-card"><div class="label">Regime</div><div class="value" id="regimeStat">-</div></div>
         </div>
         <div class="grid-2">
             <div class="card">
@@ -241,6 +269,29 @@ DASHBOARD_HTML = """
                     const time = new Date(t.timestamp).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
                     return '<tr><td>'+time+'</td><td><span class="badge '+badge+'">'+t.action+'</span></td><td>'+(t.name||t.symbol)+'</td><td>'+(t.qty||'-')+'</td><td>'+fmt(t.price)+'</td><td>'+pnl+'</td></tr>';
                 }).join('');
+                // Regime display
+                const rg = d.regime||{};
+                const rgBadge = document.getElementById('regimeBadge');
+                const rgName = rg.regime||'SIDEWAYS';
+                rgBadge.textContent = rgName;
+                rgBadge.className = 'badge-regime regime-'+rgName.toLowerCase();
+                const rgDet = rg.details||{};
+                document.getElementById('regimeADX').textContent = rgDet.adx!==undefined ? rgDet.adx : '-';
+                document.getElementById('regimeVol').textContent = rgDet.recent_volatility!==undefined ? rgDet.recent_volatility+'%' : '-';
+                document.getElementById('regimeReturn').textContent = rgDet.recent_return_pct!==undefined ? (rgDet.recent_return_pct>=0?'+':'')+rgDet.recent_return_pct+'%' : '-';
+                document.getElementById('regimeMaDiff').textContent = rgDet.ma_diff_pct!==undefined ? (rgDet.ma_diff_pct>=0?'+':'')+rgDet.ma_diff_pct+'%' : '-';
+                document.getElementById('regimeSince').textContent = rg.regime_since ? 'Since: '+new Date(rg.regime_since).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+                const rgStatEl = document.getElementById('regimeStat');
+                rgStatEl.textContent = rgName;
+                rgStatEl.className = 'value '+(rgName==='BULL'?'green':rgName==='BEAR'?'pos':'yellow');
+                // Regime weights
+                const rgw = rg.weights||{};
+                const wHtml = Object.entries(rgw).map(([k,v]) => {
+                    const pct = Math.round(v*100);
+                    return k+': <b>'+pct+'%</b><span class="weight-bar" style="width:'+pct+'px"></span>';
+                }).join(' &nbsp; ');
+                document.getElementById('regimeWeights').innerHTML = 'Active Weights: '+wHtml;
+
                 document.getElementById('lastUpdate').textContent = 'Updated: '+new Date().toLocaleTimeString('ko');
             } catch(e) { console.error(e); }
         }
@@ -303,7 +354,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     print("=" * 50)
-    print(f"  StockBot v2.0 Dashboard")
+    print(f"  StockBot v2.1 Dashboard")
     print(f"  http://localhost:{DASHBOARD_PORT}")
     print("=" * 50)
     uvicorn.run(app, host=DASHBOARD_HOST, port=DASHBOARD_PORT)

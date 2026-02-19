@@ -1,12 +1,23 @@
 """리뷰 서비스"""
+import logging
 from sqlalchemy.orm import Session
 from models import User
 from repositories.review_repo import ReviewRepository
 from repositories.store_repo import StoreRepository
 from exceptions import NotFoundException, BadRequestException
+from cache import store_reviews_cache, invalidate_review
+
+logger = logging.getLogger("promomap.cache")
 
 
 def get_store_reviews(db: Session, store_id: int, page: int = 1, size: int = 20) -> dict:
+    # --- Cache lookup ---
+    cache_key = (store_id, page, size)
+    cached = store_reviews_cache.get(cache_key)
+    if cached is not None:
+        logger.debug("store_reviews cache HIT: %s", cache_key)
+        return cached
+
     store_repo = StoreRepository(db)
     review_repo = ReviewRepository(db)
 
@@ -19,7 +30,7 @@ def get_store_reviews(db: Session, store_id: int, page: int = 1, size: int = 20)
     total = review_repo.count_by_store(store_id)
     avg_rating = review_repo.avg_rating_by_store(store_id)
 
-    return {
+    result = {
         "items": [
             {
                 "id": r.id,
@@ -38,6 +49,10 @@ def get_store_reviews(db: Session, store_id: int, page: int = 1, size: int = 20)
         "size": size,
         "pages": (total + size - 1) // size if total > 0 else 1,
     }
+
+    store_reviews_cache[cache_key] = result
+    logger.debug("store_reviews cache MISS -> stored: %s", cache_key)
+    return result
 
 
 def create_review(db: Session, user: User, store_id: int,
@@ -58,6 +73,10 @@ def create_review(db: Session, user: User, store_id: int,
         rating=rating,
         content=content,
     )
+
+    # Invalidate caches that depend on reviews (reviews list + store detail avg_rating)
+    invalidate_review(store_id)
+
     return {
         "id": review.id,
         "user_id": review.user_id,

@@ -3,148 +3,21 @@
 프로젝트 상태 확인 + 시작/중지/재시작 제어
 """
 import asyncio
-import os
-import subprocess
-import signal
-from pathlib import Path
 
-import httpx
-import psutil
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from config import PROJECTS, PROJECTS_DIR
+from config import PROJECTS
+from services import (
+    check_port,
+    get_recent_logs,
+    get_system_info,
+    start_project,
+    stop_project,
+    restart_project,
+)
 
 app = FastAPI(title="Server Monitor")
-
-
-# === 유틸리티 ===
-
-async def check_port(port: int) -> bool:
-    try:
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            resp = await client.get(f"http://localhost:{port}/")
-            return resp.status_code < 500
-    except Exception:
-        try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                resp = await client.get(f"http://localhost:{port}/health")
-                return resp.status_code < 500
-        except Exception:
-            return False
-
-
-def find_pid_by_port(port: int):
-    for conn in psutil.net_connections(kind="tcp"):
-        if conn.laddr.port == port and conn.status == "LISTEN":
-            return conn.pid
-    return None
-
-
-def get_recent_logs(project_name: str, lines: int = 15) -> str:
-    log_dir = PROJECTS_DIR / project_name / "logs"
-    if not log_dir.exists():
-        return "(로그 폴더 없음)"
-    log_files = sorted(log_dir.glob("*.log"), key=os.path.getmtime, reverse=True)
-    if not log_files:
-        return "(로그 파일 없음)"
-    try:
-        with open(log_files[0], "r", encoding="utf-8", errors="replace") as f:
-            return "".join(f.readlines()[-lines:])
-    except Exception as e:
-        return f"(로그 읽기 실패: {e})"
-
-
-def get_system_info() -> dict:
-    mem = psutil.virtual_memory()
-    disk = psutil.disk_usage("C:\\")
-    return {
-        "cpu_percent": psutil.cpu_percent(interval=0.5),
-        "cpu_count": psutil.cpu_count(),
-        "mem_total_gb": round(mem.total / (1024**3), 1),
-        "mem_used_gb": round(mem.used / (1024**3), 1),
-        "mem_percent": mem.percent,
-        "disk_total_gb": round(disk.total / (1024**3), 1),
-        "disk_used_gb": round(disk.used / (1024**3), 1),
-        "disk_percent": round(disk.percent, 1),
-    }
-
-
-# === 프로젝트 제어 ===
-
-def start_project(name: str, verify: bool = True) -> dict:
-    if name not in PROJECTS:
-        return {"ok": False, "msg": f"알 수 없는 프로젝트: {name}"}
-
-    proj = PROJECTS[name]
-    pid = find_pid_by_port(proj["port"])
-    if pid:
-        return {"ok": False, "msg": f"{name} 이미 실행 중 (PID {pid})"}
-
-    project_dir = PROJECTS_DIR / name
-    work_dir = project_dir / proj["cwd"]
-
-    cmd = list(proj["cmd"])
-    cmd[0] = str(project_dir / cmd[0])
-
-    log_dir = project_dir / "logs"
-    log_dir.mkdir(exist_ok=True)
-    log_file = log_dir / "server.log"
-
-    with open(log_file, "a", encoding="utf-8") as lf:
-        subprocess.Popen(
-            cmd,
-            cwd=str(work_dir),
-            stdout=lf,
-            stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
-
-    if verify:
-        import time
-        for _ in range(6):
-            time.sleep(0.5)
-            if find_pid_by_port(proj["port"]):
-                return {"ok": True, "msg": f"{name} 시작 확인됨 (포트 {proj['port']})"}
-        return {"ok": False, "msg": f"{name} 시작 실패 — 포트 {proj['port']} 응답 없음"}
-
-    return {"ok": True, "msg": f"{name} 시작됨 (포트 {proj['port']})"}
-
-
-def stop_project(name: str) -> dict:
-    if name not in PROJECTS:
-        return {"ok": False, "msg": f"알 수 없는 프로젝트: {name}"}
-
-    proj = PROJECTS[name]
-    pid = find_pid_by_port(proj["port"])
-    if not pid:
-        return {"ok": False, "msg": f"{name} 실행 중이 아님"}
-
-    try:
-        proc = psutil.Process(pid)
-        children = proc.children(recursive=True)
-        for child in children:
-            child.terminate()
-        proc.terminate()
-        proc.wait(timeout=5)
-        return {"ok": True, "msg": f"{name} 중지됨 (PID {pid})"}
-    except psutil.NoSuchProcess:
-        return {"ok": True, "msg": f"{name} 이미 종료됨"}
-    except Exception as e:
-        return {"ok": False, "msg": f"중지 실패: {e}"}
-
-
-def restart_project(name: str) -> dict:
-    import time
-    stop_result = stop_project(name)
-    proj = PROJECTS.get(name)
-    if proj:
-        for _ in range(20):
-            time.sleep(0.5)
-            if not find_pid_by_port(proj["port"]):
-                break
-    start_result = start_project(name)
-    return {"ok": start_result["ok"], "msg": f"중지: {stop_result['msg']} → 시작: {start_result['msg']}"}
 
 
 # === API 엔드포인트 ===

@@ -6,7 +6,6 @@
 import asyncio
 import logging
 import os
-import subprocess
 import time
 from datetime import datetime
 
@@ -14,7 +13,8 @@ import httpx
 import psutil
 from dotenv import load_dotenv
 
-from config import PROJECTS, PROJECTS_DIR
+from config import PROJECTS
+from services import check_port, find_pid_by_port, start_project as _start_project
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -58,46 +58,6 @@ def _can_alert(key: str) -> bool:
     return True
 
 
-# === 프로젝트 헬스체크 ===
-
-async def check_port(port: int) -> bool:
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"http://localhost:{port}/")
-            return resp.status_code < 500
-    except Exception:
-        try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                resp = await client.get(f"http://localhost:{port}/health")
-                return resp.status_code < 500
-        except Exception:
-            return False
-
-
-def find_pid_by_port(port: int):
-    for conn in psutil.net_connections(kind="tcp"):
-        if conn.laddr.port == port and conn.status == "LISTEN":
-            return conn.pid
-    return None
-
-
-def start_project(name: str) -> str:
-    proj = PROJECTS[name]
-    project_dir = PROJECTS_DIR / name
-    work_dir = project_dir / proj["cwd"]
-    cmd = list(proj["cmd"])
-    cmd[0] = str(project_dir / cmd[0])
-
-    log_dir = project_dir / "logs"
-    log_dir.mkdir(exist_ok=True)
-    with open(log_dir / "server.log", "a", encoding="utf-8") as lf:
-        subprocess.Popen(
-            cmd, cwd=str(work_dir), stdout=lf, stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
-    return f"시작됨 (포트 {proj['port']})"
-
-
 async def health_check_loop():
     """30초마다 프로젝트 상태 확인, 죽은 서비스 자동 재시작"""
     logger.info("헬스체크 루프 시작 (간격: %ds)", HEALTH_CHECK_INTERVAL)
@@ -131,7 +91,7 @@ async def health_check_loop():
                         except Exception:
                             pass
 
-                    result = start_project(name)
+                    result = _start_project(name, verify=False)["msg"]
                     _restart_failures[name] = failures + 1
                     ts = datetime.now().strftime("%H:%M:%S")
                     msg = f"🔄 자동 재시작: {name} ({failures+1}/{MAX_RESTART_ATTEMPTS})\n시간: {ts}\n결과: {result}"

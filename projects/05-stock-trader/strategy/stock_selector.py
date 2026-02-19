@@ -1,11 +1,13 @@
 """
-종목 선정 앙상블 v2.0
+종목 선정 앙상블 v2.1
 
 8가지 전략의 가중 합산으로 종합 판단
 기본 5전략 + 모멘텀 + 듀얼모멘텀 + 변동성타겟
++ 시장 국면(Regime) 기반 전략 가중치 동적 조정
 """
 import sys
 import os
+import logging
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -20,9 +22,11 @@ from momentum_strategy import MomentumStrategy
 from dual_momentum import DualMomentumStrategy
 from volatility_target import VolatilityTargetStrategy
 
+logger = logging.getLogger(__name__)
+
 
 class StockSelectorEnsemble:
-    """종목 선정 앙상블 v2.0 (8전략)"""
+    """종목 선정 앙상블 v2.1 (8전략 + 시장국면 적응형 가중치)"""
 
     def __init__(self):
         self.strategies = [
@@ -35,6 +39,22 @@ class StockSelectorEnsemble:
             DualMomentumStrategy(),
             VolatilityTargetStrategy(),
         ]
+
+    def apply_regime_weights(self, regime_weights: dict) -> None:
+        """
+        외부에서 전달받은 국면별 가중치를 전략에 적용합니다.
+
+        Args:
+            regime_weights: {strategy_name: weight, ...}
+        """
+        for strategy in self.strategies:
+            if strategy.name in regime_weights:
+                old_w = strategy.weight
+                strategy.weight = regime_weights[strategy.name]
+                if old_w != strategy.weight:
+                    logger.debug(
+                        f"전략 가중치 변경: {strategy.name} {old_w:.2f} -> {strategy.weight:.2f}"
+                    )
 
     def evaluate(self, df: pd.DataFrame, symbol: str, name: str) -> dict:
         """

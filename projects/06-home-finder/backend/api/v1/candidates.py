@@ -12,6 +12,7 @@ from repositories.candidate_repo import CandidateRepository
 from repositories.property_repo import PropertyRepository
 from models.note import PropertyNote
 from exceptions import NotFoundException
+from cache import response_cache
 
 router = APIRouter()
 
@@ -228,6 +229,10 @@ def add_candidate(body: CandidateAddBody, db: Session = Depends(get_db)):
         priority=body.priority,
         status="발견",
     )
+
+    # Invalidate candidate-dependent caches
+    response_cache.invalidate_on_candidate_change()
+
     return _cand_to_dict(candidate)
 
 
@@ -242,6 +247,10 @@ def update_candidate_status(
     candidate = repo.update_status(candidate_id, body.status)
     if not candidate:
         raise HTTPException(status_code=404, detail=f"후보 ID {candidate_id}을(를) 찾을 수 없습니다")
+
+    # Invalidate candidate-dependent caches
+    response_cache.invalidate_on_candidate_change()
+
     return _cand_to_dict(candidate)
 
 

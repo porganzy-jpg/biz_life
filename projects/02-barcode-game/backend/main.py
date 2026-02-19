@@ -1,11 +1,15 @@
 """
-BarcodeQuest - FastAPI 게임 서버 v2.0
+BarcodeQuest - FastAPI 게임 서버 v2.1
 
-신규 시스템:
+v2.0 시스템:
   - 방치형 탐험 (ExpeditionSystem)
   - 아이템 인벤토리 (ItemInventory)
   - 크리처 진화 (EvolutionSystem)
   - 일일 퀘스트 (DailyQuestSystem)
+
+v2.1 변경:
+  - SQLite-backed persistence (인메모리 dict → DB 저장)
+  - 서버 재시작 후에도 플레이어 진행도 유지
 """
 import sys
 import os
@@ -30,42 +34,83 @@ from evolution_system import EvolutionSystem
 from daily_quest_system import DailyQuestSystem
 from bus_system import BusSystem, calculate_affinity, get_room_suggestion, ROOM_DEFINITIONS
 
-app = FastAPI(title="BarcodeQuest Game Server v2.0")
+import persistence
 
-# 게임 엔진 인스턴스
+app = FastAPI(title="BarcodeQuest Game Server v2.1")
+
+# 게임 엔진 인스턴스 (stateless singletons)
 generator = BarcodeMonsterGenerator()
 battle_system = BattleSystem()
-expedition_system = ExpeditionSystem()
 evolution_system = EvolutionSystem()
+
+# Sub-systems that hold per-session state in memory (loaded from DB on access)
+expedition_system = ExpeditionSystem()
 daily_quest_system = DailyQuestSystem()
 bus_system = BusSystem()
 
-# 플레이어 상태 (인메모리 - 실제 프로덕션에서는 DB 사용)
-players = {}       # session_id → Player
-collections = {}   # session_id → MonsterCollection
-inventories = {}   # session_id → ItemInventory
-scanned_barcodes = {}  # session_id → set of barcodes already scanned
+# In-memory caches (populated lazily from DB, written back after mutations)
+players = {}            # session_id -> Player
+collections = {}        # session_id -> MonsterCollection
+inventories = {}        # session_id -> ItemInventory
+scanned_barcodes = {}   # session_id -> set[str]
 
+
+# =====================================================
+#  Session helpers  (load from DB on first access)
+# =====================================================
 
 def get_or_create_player(session_id: str = "default") -> tuple:
+    """
+    Return (Player, MonsterCollection) for the given session.
+    On first access the state is loaded from the database;
+    if no saved state exists, fresh objects are created and persisted.
+    """
     if session_id not in players:
-        players[session_id] = Player(name="Trainer", player_id=session_id)
-        collections[session_id] = MonsterCollection()
-        inventories[session_id] = ItemInventory()
-        scanned_barcodes[session_id] = set()
+        # Try loading from DB
+        player, collection, inventory, scanned = persistence.load_all_state(
+            session_id, expedition_system, daily_quest_system, bus_system
+        )
+        if player is not None:
+            players[session_id] = player
+            collections[session_id] = collection
+            inventories[session_id] = inventory
+            scanned_barcodes[session_id] = scanned
+        else:
+            # Brand-new session
+            players[session_id] = Player(name="Trainer", player_id=session_id)
+            collections[session_id] = MonsterCollection()
+            inventories[session_id] = ItemInventory()
+            scanned_barcodes[session_id] = set()
+            # Persist the new state immediately
+            persistence.save_player(session_id, players[session_id])
+            persistence.save_collection(session_id, collections[session_id])
+            persistence.save_inventory(session_id, inventories[session_id])
+
     return players[session_id], collections[session_id]
 
 
 def get_inventory(session_id: str = "default") -> ItemInventory:
     if session_id not in inventories:
-        inventories[session_id] = ItemInventory()
+        inv = persistence.load_inventory(session_id)
+        if inv is not None:
+            inventories[session_id] = inv
+        else:
+            inventories[session_id] = ItemInventory()
     return inventories[session_id]
 
+
+# =====================================================
+#  Startup
+# =====================================================
 
 @app.on_event("startup")
 async def startup():
     init_db()
 
+
+# =====================================================
+#  Pages & Health
+# =====================================================
 
 @app.get("/", response_class=HTMLResponse)
 async def game_client():
@@ -80,6 +125,10 @@ async def health():
     return {"status": "ok", "service": "BarcodeQuest"}
 
 
+# =====================================================
+#  Player info
+# =====================================================
+
 @app.get("/api/player")
 async def get_player(session: str = "default"):
     player, collection = get_or_create_player(session)
@@ -89,6 +138,10 @@ async def get_player(session: str = "default"):
     }
 
 
+# =====================================================
+#  Barcode Scan
+# =====================================================
+
 @app.post("/api/scan")
 async def scan_barcode(
     barcode: str = Query(..., min_length=13, max_length=13),
@@ -97,12 +150,12 @@ async def scan_barcode(
     hour: int = Query(12),
     session: str = Query("default"),
 ):
-    """바코드 스캔 → 몬스터 생성"""
+    """바코드 스캔 -> 몬스터 생성"""
     player, collection = get_or_create_player(session)
 
-    # 중복 바코드 체크 — 동일 바코드는 한 번만 크리처 획득 가능
+    # 중복 바코드 체크
     if session not in scanned_barcodes:
-        scanned_barcodes[session] = set()
+        scanned_barcodes[session] = persistence.load_scanned_barcodes(session)
     if barcode in scanned_barcodes[session]:
         return {"error": "duplicate", "message": "이미 스캔한 바코드입니다! 다른 바코드를 스캔해보세요.", "barcode": barcode}
 
@@ -130,6 +183,12 @@ async def scan_barcode(
     # 버스 방 추천
     bus_suggestion = get_room_suggestion(monster_dict)
 
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_collection(session, collection)
+    persistence.save_scanned_barcode(session, barcode)
+    persistence.save_daily_quests(session, daily_quest_system)
+
     return {
         "monster": monster_dict,
         "collection": coll_result,
@@ -139,6 +198,10 @@ async def scan_barcode(
         "bus_suggestion": bus_suggestion,
     }
 
+
+# =====================================================
+#  Battle
+# =====================================================
 
 @app.post("/api/battle")
 async def start_battle(
@@ -158,14 +221,13 @@ async def start_battle(
 
     # 랜덤 상대 생성 (바코드 랜덤)
     random_barcode = f"880{random.randint(1000, 9999)}{random.randint(10000, 99999)}"
-    # 체크디짓 계산
     digits = [int(d) for d in random_barcode]
     check = (10 - sum(d * (3 if i % 2 else 1) for i, d in enumerate(digits)) % 10) % 10
     random_barcode += str(check)
     opponent = generator.generate_monster(random_barcode)
     opponent_dict = opponent.to_dict()
 
-    # 배틀 실행 (자동 5턴)
+    # 배틀 실행 (자동 최대 10턴)
     p1 = BattleMonster(player_monster_data)
     p2 = BattleMonster(opponent_dict)
 
@@ -213,8 +275,12 @@ async def start_battle(
         rewards["monster_exp"] = monster_exp
         quest_updates += daily_quest_system.update_progress(session, "battle_win")
     else:
-        player.gain_exp(5)  # 패배해도 소량 경험치
-        player.gain_monster_exp(player_monster_data, 3)  # 몬스터도 소량
+        player.gain_exp(5)
+        player.gain_monster_exp(player_monster_data, 3)
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_daily_quests(session, daily_quest_system)
 
     return {
         "result": "WIN" if is_player_win else "LOSE",
@@ -228,6 +294,10 @@ async def start_battle(
     }
 
 
+# =====================================================
+#  Collection
+# =====================================================
+
 @app.get("/api/collection")
 async def get_collection(session: str = "default", sort: str = "rarity"):
     player, collection = get_or_create_player(session)
@@ -240,10 +310,18 @@ async def get_collection(session: str = "default", sort: str = "rarity"):
     }
 
 
+# =====================================================
+#  Energy Recovery
+# =====================================================
+
 @app.post("/api/recover")
 async def recover_energy(session: str = "default"):
     player, _ = get_or_create_player(session)
     player.recover_energy(20)
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+
     return {"energy": player.energy, "max_energy": player.max_energy}
 
 
@@ -257,9 +335,13 @@ async def swap_party_member(
     inventory_idx: int = Query(..., description="보관함 슬롯 인덱스"),
     session: str = Query("default"),
 ):
-    """파티 ↔ 보관함 몬스터 교체"""
+    """파티 <-> 보관함 몬스터 교체"""
     player, _ = get_or_create_player(session)
     result = player.swap_party_member(party_idx, inventory_idx)
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+
     return {**result, "party": player.party, "inventory_size": len(player.inventory)}
 
 
@@ -302,6 +384,9 @@ async def start_expedition(
 
     if "error" not in result:
         daily_quest_system.update_progress(session, "expedition")
+        # --- DB Persist ---
+        persistence.save_expedition(session, expedition_system)
+        persistence.save_daily_quests(session, daily_quest_system)
 
     return result
 
@@ -309,6 +394,8 @@ async def start_expedition(
 @app.get("/api/expedition/status")
 async def expedition_status(session: str = "default"):
     """탐험 진행 상태 확인"""
+    # Ensure expedition is loaded from DB
+    get_or_create_player(session)
     status = expedition_system.check_expedition(session)
     if not status:
         return {"active": False, "message": "진행 중인 탐험이 없습니다."}
@@ -339,6 +426,12 @@ async def collect_expedition(session: str = "default"):
 
     # 퀘스트 업데이트
     daily_quest_system.update_progress(session, "expedition_collect")
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_inventory(session, inv)
+    persistence.save_expedition(session, expedition_system)
+    persistence.save_daily_quests(session, daily_quest_system)
 
     return {
         "result": {
@@ -392,7 +485,6 @@ async def use_item(
         player.energy = player.max_energy
         result["new_energy"] = player.energy
     elif result.get("exp_value") and target_monster:
-        # 크리처 EXP는 향후 크리처 레벨업 시스템 연동
         result["applied_to"] = target_monster.get("name", "Unknown")
     elif result.get("stat_value") and target_monster:
         stat = result["stat_name"]
@@ -402,6 +494,11 @@ async def use_item(
         result["applied_to"] = target_monster.get("name", "Unknown")
 
     result["player"] = player.to_dict()
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_inventory(session, inv)
+
     return result
 
 
@@ -439,6 +536,10 @@ async def buy_item(
     if "error" in add_result:
         player.gain_gold(total_price)  # 환불
         return add_result
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_inventory(session, inv)
 
     return {
         "purchased": add_result,
@@ -508,6 +609,11 @@ async def evolve_monster(
     # 도감 업데이트
     collection.add_monster(evolved)
 
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_collection(session, collection)
+    persistence.save_inventory(session, inv)
+
     return {
         "evolved_monster": evolved,
         "cost_paid": {"gold": costs["gold"], "materials": costs["materials"]},
@@ -523,8 +629,14 @@ async def evolve_monster(
 @app.get("/api/daily-quest")
 async def get_daily_quests(session: str = "default"):
     """오늘의 일일 퀘스트 목록"""
+    # Ensure session state is loaded
+    get_or_create_player(session)
     quests = daily_quest_system.get_quests(session)
     summary = daily_quest_system.get_summary(session)
+
+    # Persist (get_quests may have created new daily quests)
+    persistence.save_daily_quests(session, daily_quest_system)
+
     return {"quests": quests, "summary": summary}
 
 
@@ -549,6 +661,11 @@ async def claim_quest_reward(
     if reward["item"]:
         inv.add_item(reward["item"])
 
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_inventory(session, inv)
+    persistence.save_daily_quests(session, daily_quest_system)
+
     return {
         "reward": reward,
         "player": player.to_dict(),
@@ -562,6 +679,8 @@ async def claim_quest_reward(
 @app.get("/api/bus")
 async def get_bus_state(session: str = "default"):
     """버스 전체 상태 조회"""
+    # Ensure session state (including bus) is loaded from DB
+    get_or_create_player(session)
     state = bus_system.get_bus_state(session)
     return state
 
@@ -580,6 +699,12 @@ async def build_bus_room(
         return result
     player.spend_gold(result["cost"])
     daily_quest_system.update_progress(session, "bus_build")
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_bus(session, bus_system)
+    persistence.save_daily_quests(session, daily_quest_system)
+
     return {**result, "player": player.to_dict()}
 
 
@@ -608,6 +733,10 @@ async def assign_bus_monster(
     result = bus_system.assign_monster(session, floor, slot, monster)
     if result.get("ok"):
         daily_quest_system.update_progress(session, "bus_assign")
+        # --- DB Persist ---
+        persistence.save_bus(session, bus_system)
+        persistence.save_daily_quests(session, daily_quest_system)
+
     return result
 
 
@@ -618,7 +747,15 @@ async def unassign_bus_monster(
     session: str = Query("default"),
 ):
     """버스 방에서 몬스터 회수"""
-    return bus_system.unassign_monster(session, floor, slot)
+    # Ensure bus is loaded
+    get_or_create_player(session)
+    result = bus_system.unassign_monster(session, floor, slot)
+
+    if result.get("ok"):
+        # --- DB Persist ---
+        persistence.save_bus(session, bus_system)
+
+    return result
 
 
 @app.post("/api/bus/upgrade-floor")
@@ -629,6 +766,11 @@ async def upgrade_bus_floor(session: str = Query("default")):
     if "error" in result:
         return result
     player.spend_gold(result["cost"])
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_bus(session, bus_system)
+
     return {**result, "player": player.to_dict()}
 
 
@@ -644,6 +786,11 @@ async def upgrade_bus_room(
     if "error" in result:
         return result
     player.spend_gold(result["cost"])
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+    persistence.save_bus(session, bus_system)
+
     return {**result, "player": player.to_dict()}
 
 
@@ -663,8 +810,13 @@ async def collect_bus_resources(session: str = Query("default")):
         if collected:
             daily_quest_system.update_progress(session, "bus_collect")
         result["player"] = player.to_dict()
-    return result
 
+        # --- DB Persist ---
+        persistence.save_player(session, player)
+        persistence.save_bus(session, bus_system)
+        persistence.save_daily_quests(session, daily_quest_system)
+
+    return result
 
 
 if __name__ == "__main__":

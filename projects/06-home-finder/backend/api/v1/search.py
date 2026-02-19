@@ -13,6 +13,7 @@ from repositories.property_repo import PropertyRepository
 from repositories.saved_search_repo import SavedSearchRepository
 from schemas.search import SearchCriteria, SavedSearchCreate
 from schemas.common import SortOrder
+from cache import response_cache, make_cache_key
 
 router = APIRouter()
 
@@ -217,7 +218,17 @@ def _execute_search(db: Session, criteria: SearchCriteria) -> dict:
 @router.post("/query")
 def search_properties(body: SearchCriteria, db: Session = Depends(get_db)):
     """다조건 검색"""
-    return _execute_search(db, body)
+    # Check cache first (TTL: 120s)
+    cache_key = make_cache_key(body)
+    cached = response_cache.get("search_results", cache_key)
+    if cached is not None:
+        return cached
+
+    result = _execute_search(db, body)
+
+    # Store in cache (120s TTL)
+    response_cache.set("search_results", cache_key, result, ttl=120)
+    return result
 
 
 @router.get("/saved")

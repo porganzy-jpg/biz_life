@@ -4,8 +4,19 @@ VoiceMemory 녹음 세션 관리
 가이드 대화 주제를 제공하고, 녹음 세션을 관리합니다.
 50가지 대화 주제로 자연스러운 음성 데이터를 수집합니다.
 """
-from sqlalchemy.orm import Session
+import os
+import uuid
+import wave
+import logging
+from datetime import datetime
+from sqlalchemy.orm import Session as DBSession
 from models import RecordingSession, Person
+
+logger = logging.getLogger(__name__)
+
+# Recordings base directory (project_root/recordings/)
+RECORDINGS_DIR = os.path.join(os.path.dirname(__file__), "..", "recordings")
+os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
 
 # 50가지 가이드 대화 주제
@@ -86,7 +97,7 @@ class RecordingService:
         return GUIDED_TOPICS
 
     @staticmethod
-    def create_session(db: Session, person_id: int, topic_index: int = 0) -> RecordingSession:
+    def create_session(db: DBSession, person_id: int, topic_index: int = 0) -> RecordingSession:
         """녹음 세션 생성"""
         # 세션 번호 산정
         count = db.query(RecordingSession).filter(
@@ -108,14 +119,14 @@ class RecordingService:
         return session
 
     @staticmethod
-    def get_sessions(db: Session, person_id: int) -> list:
+    def get_sessions(db: DBSession, person_id: int) -> list:
         """특정 인물의 녹음 세션 목록"""
         return db.query(RecordingSession).filter(
             RecordingSession.person_id == person_id
         ).order_by(RecordingSession.session_number).all()
 
     @staticmethod
-    def complete_session(db: Session, session_id: int, duration_seconds: int = 0,
+    def complete_session(db: DBSession, session_id: int, duration_seconds: int = 0,
                          audio_file_path: str = "", transcript: str = "",
                          status: str = "completed") -> RecordingSession | None:
         """녹음 세션 완료/업데이트"""
@@ -142,7 +153,7 @@ class RecordingService:
         return session
 
     @staticmethod
-    def delete_person_sessions(db: Session, person_id: int) -> int:
+    def delete_person_sessions(db: DBSession, person_id: int) -> int:
         """인물의 모든 녹음 세션 삭제 (동의 철회 시)"""
         count = db.query(RecordingSession).filter(
             RecordingSession.person_id == person_id
@@ -151,7 +162,7 @@ class RecordingService:
         return count
 
     @staticmethod
-    def get_next_topic(db: Session, person_id: int) -> dict:
+    def get_next_topic(db: DBSession, person_id: int) -> dict:
         """다음 추천 주제"""
         completed = db.query(RecordingSession).filter(
             RecordingSession.person_id == person_id,
@@ -165,3 +176,78 @@ class RecordingService:
             "completed_sessions": completed,
             "total_topics": len(GUIDED_TOPICS),
         }
+
+    @staticmethod
+    def save_audio_file(session_id: int, person_id: int, file_bytes: bytes,
+                        original_filename: str) -> dict:
+        """
+        Save uploaded audio file to disk.
+
+        Returns dict with file_path, filename, size_bytes, format.
+        """
+        # Determine extension from original filename
+        ext = os.path.splitext(original_filename)[1].lower() if original_filename else ".webm"
+        if ext not in (".wav", ".webm", ".ogg", ".mp3", ".m4a"):
+            ext = ".webm"
+
+        # Create person subdirectory
+        person_dir = os.path.join(RECORDINGS_DIR, f"person_{person_id}")
+        os.makedirs(person_dir, exist_ok=True)
+
+        # Generate unique filename
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        unique_id = uuid.uuid4().hex[:8]
+        filename = f"session_{session_id}_{timestamp}_{unique_id}{ext}"
+        file_path = os.path.join(person_dir, filename)
+
+        # Write file
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+
+        size_bytes = len(file_bytes)
+        logger.info(f"Saved audio: {file_path} ({size_bytes} bytes)")
+
+        # Try to get duration for WAV files
+        duration_seconds = 0
+        if ext == ".wav":
+            try:
+                with wave.open(file_path, "rb") as wf:
+                    frames = wf.getnframes()
+                    rate = wf.getframerate()
+                    if rate > 0:
+                        duration_seconds = frames / rate
+            except Exception:
+                pass
+
+        return {
+            "file_path": file_path,
+            "filename": filename,
+            "size_bytes": size_bytes,
+            "format": ext.lstrip("."),
+            "duration_seconds": round(duration_seconds, 2),
+        }
+
+    @staticmethod
+    def get_audio_file_path(db: DBSession, session_id: int) -> str | None:
+        """Get the audio file path for a session, if it exists on disk."""
+        session = db.query(RecordingSession).filter(
+            RecordingSession.id == session_id
+        ).first()
+        if not session or not session.audio_file_path:
+            return None
+        if os.path.exists(session.audio_file_path):
+            return session.audio_file_path
+        return None
+
+    @staticmethod
+    def get_audio_content_type(file_path: str) -> str:
+        """Return the MIME content type based on file extension."""
+        ext = os.path.splitext(file_path)[1].lower()
+        mime_map = {
+            ".wav": "audio/wav",
+            ".webm": "audio/webm",
+            ".ogg": "audio/ogg",
+            ".mp3": "audio/mpeg",
+            ".m4a": "audio/mp4",
+        }
+        return mime_map.get(ext, "application/octet-stream")

@@ -9,6 +9,7 @@ from repositories.company_repo import CompanyRepository
 from repositories.usage_log_repo import UsageLogRepository
 from repositories.admin_log_repo import AdminLogRepository
 from exceptions import NotFoundException
+from cache import invalidate_store, invalidate_discount
 
 
 def get_dashboard_stats(db: Session) -> dict:
@@ -59,6 +60,7 @@ def admin_create_store(db: Session, admin: User, data: dict) -> dict:
     log_repo = AdminLogRepository(db)
     store = store_repo.create(**data)
     log_repo.log_action(admin.id, "CREATE", "store", store.id, f"Created store: {store.name}")
+    invalidate_store(store.id)
     return _store_to_dict(store)
 
 
@@ -70,6 +72,7 @@ def admin_update_store(db: Session, admin: User, store_id: int, data: dict) -> d
         raise NotFoundException("Store not found")
     store = store_repo.update(store, **data)
     log_repo.log_action(admin.id, "UPDATE", "store", store.id, f"Updated store: {store.name}")
+    invalidate_store(store.id)
     return _store_to_dict(store)
 
 
@@ -81,6 +84,7 @@ def admin_delete_store(db: Session, admin: User, store_id: int):
         raise NotFoundException("Store not found")
     store_repo.soft_delete(store)
     log_repo.log_action(admin.id, "DELETE", "store", store.id, f"Deleted store: {store.name}")
+    invalidate_store(store.id)
 
 
 # --- Discount CRUD ---
@@ -107,6 +111,7 @@ def admin_create_discount(db: Session, admin: User, data: dict) -> dict:
 
     discount = discount_repo.create(**data)
     log_repo.log_action(admin.id, "CREATE", "discount", discount.id, f"Created discount: {discount.description}")
+    invalidate_discount(store_id=discount.store_id, company_id=discount.company_id)
     return _discount_to_dict(discount)
 
 
@@ -123,6 +128,7 @@ def admin_update_discount(db: Session, admin: User, discount_id: int, data: dict
 
     discount = discount_repo.update(discount, **data)
     log_repo.log_action(admin.id, "UPDATE", "discount", discount.id, f"Updated discount")
+    invalidate_discount(store_id=discount.store_id, company_id=discount.company_id)
     return _discount_to_dict(discount)
 
 
@@ -132,8 +138,12 @@ def admin_delete_discount(db: Session, admin: User, discount_id: int):
     discount = discount_repo.get_by_id(discount_id)
     if not discount:
         raise NotFoundException("Discount not found")
+    # Capture IDs before deletion
+    store_id = discount.store_id
+    company_id = discount.company_id
     discount_repo.delete(discount)
     log_repo.log_action(admin.id, "DELETE", "discount", discount_id, "Deleted discount")
+    invalidate_discount(store_id=store_id, company_id=company_id)
 
 
 # --- Company CRUD ---

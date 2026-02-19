@@ -11,6 +11,7 @@ from services.scoring_service import ScoringService
 from scoring.composite_scorer import CompositeScorer
 from schemas.property import PropertyCreate, PropertyUpdate
 from exceptions import NotFoundException
+from cache import response_cache, make_cache_key
 
 router = APIRouter()
 
@@ -104,9 +105,19 @@ def get_top_properties(
     db: Session = Depends(get_db),
 ):
     """종합점수 상위 매물 조회"""
+    # Check cache first (TTL: 600s)
+    cache_key = make_cache_key("top", limit=limit)
+    cached = response_cache.get("top_properties", cache_key)
+    if cached is not None:
+        return cached
+
     svc = PropertyService(db)
     items = svc.get_top_scored(limit=limit)
-    return {"items": [_prop_to_brief(p) for p in items], "count": len(items)}
+    result = {"items": [_prop_to_brief(p) for p in items], "count": len(items)}
+
+    # Store in cache (600s TTL)
+    response_cache.set("top_properties", cache_key, result, ttl=600)
+    return result
 
 
 @router.get("/")
@@ -171,6 +182,10 @@ def create_property(body: PropertyCreate, db: Session = Depends(get_db)):
         if key in data and hasattr(data[key], "value"):
             data[key] = data[key].value
     prop = svc.create_property(data)
+
+    # Invalidate property-dependent caches
+    response_cache.invalidate_on_property_change()
+
     return _prop_to_dict(prop)
 
 
@@ -188,6 +203,10 @@ def update_property(
         prop = svc.update_property(property_id, data)
     except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e.detail))
+
+    # Invalidate property-dependent caches
+    response_cache.invalidate_on_property_change()
+
     return _prop_to_dict(prop)
 
 
@@ -199,6 +218,10 @@ def deactivate_property(property_id: int, db: Session = Depends(get_db)):
         svc.deactivate_property(property_id)
     except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e.detail))
+
+    # Invalidate property-dependent caches
+    response_cache.invalidate_on_property_change()
+
     return {"message": f"매물 ID {property_id} 비활성화 완료"}
 
 
@@ -212,6 +235,10 @@ def score_property(property_id: int, db: Session = Depends(get_db)):
         result = svc.score_property(property_id)
     except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e.detail))
+
+    # Invalidate property-dependent caches (scores affect rankings)
+    response_cache.invalidate_on_property_change()
+
     return {
         "property_id": property_id,
         "scores": result,

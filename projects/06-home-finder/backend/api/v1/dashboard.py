@@ -13,6 +13,7 @@ from models.candidate import CandidateProperty
 from models.saved_search import SavedSearch
 from repositories.candidate_repo import CandidateRepository
 from repositories.property_repo import PropertyRepository
+from cache import response_cache
 
 router = APIRouter()
 
@@ -33,6 +34,12 @@ def _score_to_color(score):
 @router.get("/summary")
 def get_dashboard_summary(db: Session = Depends(get_db)):
     """대시보드 종합 요약"""
+    # Check cache first (TTL: 300s)
+    cache_key = "all"
+    cached = response_cache.get("dashboard_summary", cache_key)
+    if cached is not None:
+        return cached
+
     now = datetime.utcnow()
     seven_days_ago = now - timedelta(days=7)
 
@@ -123,7 +130,7 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
                 entry["score_composite"] = prop.score_composite
         top_candidates.append(entry)
 
-    return {
+    result = {
         "total_properties": total_properties,
         "active_properties": active_properties,
         "building_count": building_count,
@@ -143,10 +150,20 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
         "saved_search_count": saved_search_count,
     }
 
+    # Store in cache (300s TTL)
+    response_cache.set("dashboard_summary", cache_key, result, ttl=300)
+    return result
+
 
 @router.get("/map-markers")
 def get_map_markers(db: Session = Depends(get_db)):
     """활성 매물 지도 마커 데이터"""
+    # Check cache first (TTL: 300s)
+    cache_key = "all"
+    cached = response_cache.get("map_markers", cache_key)
+    if cached is not None:
+        return cached
+
     properties = (
         db.query(Property)
         .filter(Property.is_active == 1)
@@ -184,7 +201,11 @@ def get_map_markers(db: Session = Depends(get_db)):
             "floor_area_ratio": p.floor_area_ratio,
         })
 
-    return {"markers": markers, "count": len(markers)}
+    result = {"markers": markers, "count": len(markers)}
+
+    # Store in cache (300s TTL)
+    response_cache.set("map_markers", cache_key, result, ttl=300)
+    return result
 
 
 @router.get("/recent-activity")

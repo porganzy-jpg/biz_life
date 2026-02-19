@@ -44,6 +44,13 @@ ANALYSIS_CONFIG = {
     "weight_momentum": 0.20,
     "weight_fundamental": 0.15,
 
+    # 시장 국면(Regime) 감지
+    "regime_ma_short": 20,
+    "regime_ma_long": 60,
+    "regime_adx_period": 14,
+    "regime_adx_trending": 25.0,
+    "regime_adx_sideways": 20.0,
+
     # 기술적 분석 파라미터
     "bb_period": 20,
     "bb_std": 2.0,

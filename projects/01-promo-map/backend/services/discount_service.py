@@ -1,17 +1,29 @@
 """할인 서비스"""
+import logging
 from sqlalchemy.orm import Session
 from models import User
 from repositories.discount_repo import DiscountRepository
 from repositories.usage_log_repo import UsageLogRepository
+from cache import company_discounts_cache
+
+logger = logging.getLogger("promomap.cache")
 
 
 def get_active_discounts(db: Session, user: User) -> list:
     """사용자 회사의 활성 할인 목록"""
     if not user.company_id:
         return []
+
+    # --- Cache lookup by company_id ---
+    cache_key = user.company_id
+    cached = company_discounts_cache.get(cache_key)
+    if cached is not None:
+        logger.debug("company_discounts cache HIT: company_id=%s", cache_key)
+        return cached
+
     discount_repo = DiscountRepository(db)
     discounts = discount_repo.get_active_by_company(user.company_id)
-    return [
+    result = [
         {
             "id": d.id,
             "store_id": d.store_id,
@@ -24,6 +36,10 @@ def get_active_discounts(db: Session, user: User) -> list:
         }
         for d in discounts
     ]
+
+    company_discounts_cache[cache_key] = result
+    logger.debug("company_discounts cache MISS -> stored: company_id=%s", cache_key)
+    return result
 
 
 def get_my_discount_history(db: Session, user: User, page: int = 1, size: int = 20) -> dict:

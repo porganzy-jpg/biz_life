@@ -5,7 +5,6 @@
 import asyncio
 import logging
 import os
-import subprocess
 import sys
 import time
 
@@ -14,7 +13,14 @@ from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-from config import PROJECTS, PROJECTS_DIR
+from config import PROJECTS
+from services import (
+    find_pid_by_port,
+    check_port_sync,
+    start_project as _start_project,
+    stop_project as _stop_project,
+    get_recent_logs,
+)
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -30,74 +36,14 @@ def is_authorized(update: Update) -> bool:
     return str(update.effective_chat.id) == ALLOWED_CHAT_ID
 
 
-def find_pid_by_port(port: int):
-    for conn in psutil.net_connections(kind="tcp"):
-        if conn.laddr.port == port and conn.status == "LISTEN":
-            return conn.pid
-    return None
-
-
-def check_port_sync(port: int) -> bool:
-    return find_pid_by_port(port) is not None
-
-
 def start_project(name: str) -> str:
-    if name not in PROJECTS:
-        return f"알 수 없는 프로젝트: {name}"
-    proj = PROJECTS[name]
-    if find_pid_by_port(proj["port"]):
-        return f"이미 실행 중 (포트 {proj['port']})"
-
-    project_dir = PROJECTS_DIR / name
-    work_dir = project_dir / proj["cwd"]
-    cmd = list(proj["cmd"])
-    cmd[0] = str(project_dir / cmd[0])
-
-    log_dir = project_dir / "logs"
-    log_dir.mkdir(exist_ok=True)
-    with open(log_dir / "server.log", "a", encoding="utf-8") as lf:
-        subprocess.Popen(
-            cmd, cwd=str(work_dir), stdout=lf, stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
-
-    for _ in range(6):
-        time.sleep(0.5)
-        if find_pid_by_port(proj["port"]):
-            return f"시작 확인됨 (포트 {proj['port']})"
-    return f"시작 실패 — 포트 {proj['port']} 응답 없음"
+    """services.start_project 래퍼 — 봇용 문자열 반환"""
+    return _start_project(name)["msg"]
 
 
 def stop_project(name: str) -> str:
-    if name not in PROJECTS:
-        return f"알 수 없는 프로젝트: {name}"
-    proj = PROJECTS[name]
-    pid = find_pid_by_port(proj["port"])
-    if not pid:
-        return "실행 중이 아님"
-    try:
-        proc = psutil.Process(pid)
-        for child in proc.children(recursive=True):
-            child.terminate()
-        proc.terminate()
-        proc.wait(timeout=5)
-        return f"중지됨 (PID {pid})"
-    except Exception as e:
-        return f"중지 실패: {e}"
-
-
-def get_recent_logs(name: str, lines: int = 10) -> str:
-    log_dir = PROJECTS_DIR / name / "logs"
-    if not log_dir.exists():
-        return "(로그 폴더 없음)"
-    log_files = sorted(log_dir.glob("*.log"), key=os.path.getmtime, reverse=True)
-    if not log_files:
-        return "(로그 파일 없음)"
-    try:
-        with open(log_files[0], "r", encoding="utf-8", errors="replace") as f:
-            return "".join(f.readlines()[-lines:]) or "(빈 로그)"
-    except Exception as e:
-        return f"(읽기 실패: {e})"
+    """services.stop_project 래퍼 — 봇용 문자열 반환"""
+    return _stop_project(name)["msg"]
 
 
 # === 텔레그램 핸들러 ===
