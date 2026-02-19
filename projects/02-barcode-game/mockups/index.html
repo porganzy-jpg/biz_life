@@ -97,6 +97,10 @@ body{display:flex;justify-content:center;background:#1a1a2e;}
 .room-card .ranim{position:absolute;top:0;right:0;bottom:0;width:50px;overflow:hidden;opacity:.25;pointer-events:none;}
 .room-card .prod{font-size:.62rem;color:var(--accent2);margin-top:6px;}
 .room-card .ubtn{position:absolute;bottom:8px;right:8px;background:var(--gold-color);color:#333;border:none;border-radius:8px;padding:4px 10px;font-size:.62rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:28px;}
+#bus-canvas{display:block;margin:0 auto;border-radius:var(--radius);cursor:pointer;touch-action:none;max-width:100%;}
+.bus-legend{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;padding:4px 0;}
+.bus-legend .bl-item{font-size:.58rem;padding:3px 8px;border-radius:10px;color:#fff;font-weight:600;display:flex;align-items:center;gap:3px;}
+.bus-hint{text-align:center;font-size:.58rem;color:var(--text-light);margin-top:4px;opacity:.5;}
 @keyframes steam{0%{transform:translateY(0) scale(1);opacity:.6}100%{transform:translateY(-20px) scale(1.5);opacity:0}}
 @keyframes musicNote{0%{transform:translateY(0) rotate(0);opacity:.8}100%{transform:translateY(-25px) rotate(20deg);opacity:0}}
 @keyframes sparkle{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
@@ -330,7 +334,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
       <p style="font-size:.72rem;opacity:.8;">3층 마법 버스 - 치유의 공간</p>
       <div class="bus-color-sel" id="bus-color-sel"></div>
     </div>
-    <div id="bus-rooms"></div>
+    <canvas id="bus-canvas" width="420" height="540"></canvas>
+    <div class="bus-legend" id="bus-legend"></div>
+    <div class="bus-hint">캐릭터나 방을 터치하면 상세 정보를 볼 수 있어요</div>
   </div>
 </div>
 
@@ -735,6 +741,7 @@ let screenHistory=['home'];
 
 function navTo(id){
   if(id===currentScreen)return;
+  if(currentScreen==='bus')stopBusSimulation();
   const prev=document.getElementById('screen-'+currentScreen);
   const next=document.getElementById('screen-'+id);
   if(!next)return;
@@ -832,35 +839,325 @@ function renderHome(){
   ).join('');
 }
 
+// ============================================================
+// BUS CANVAS SIMULATION ENGINE
+// ============================================================
+const BUS_LAYOUT={
+  W:420,H:540,busX:20,busW:380,roofY:15,
+  floors:[
+    {y:40,h:145,rooms:['observatory']},
+    {y:190,h:140,rooms:['music','library']},
+    {y:335,h:140,rooms:['garden','kitchen']}
+  ],
+  baseY:480,baseH:12,wheelY:494,wheelR:14,wheelX:[90,330]
+};
+const ROOM_VIS={
+  garden:{bg:'#e8f5e9',floor:'#a5d6a7',furni:[
+    {t:'r',x:10,y:100,w:35,h:22,c:'#6d4c41'},{t:'r',x:55,y:108,w:18,h:18,c:'#388e3c'},
+    {t:'r',x:90,y:115,w:8,h:10,c:'#e91e63'},{t:'r',x:110,y:115,w:8,h:10,c:'#fdd835'},
+    {t:'r',x:135,y:112,w:10,h:13,c:'#7b1fa2'},{t:'r',x:48,y:118,w:20,h:5,c:'#795548'}
+  ],speech:['예뻐!','향기 좋다~','싹이 났어!','평화롭다~','꽃이 피었어!']},
+  kitchen:{bg:'#fff3e0',floor:'#ffcc80',furni:[
+    {t:'r',x:8,y:93,w:42,h:32,c:'#5d4037'},{t:'r',x:12,y:88,w:14,h:10,c:'#616161'},
+    {t:'r',x:30,y:88,w:8,h:8,c:'#d32f2f'},{t:'r',x:110,y:98,w:40,h:26,c:'#8d6e63'},
+    {t:'r',x:118,y:93,w:24,h:5,c:'#fff9c4'}
+  ],speech:['냠냠!','맛있다~','뜨거워!','요리 완성!','맛 좀 봐~']},
+  music:{bg:'#f3e5f5',floor:'#ce93d8',furni:[
+    {t:'r',x:12,y:88,w:48,h:32,c:'#263238'},{t:'r',x:14,y:85,w:44,h:6,c:'#37474f'},
+    {t:'r',x:95,y:103,w:6,h:22,c:'#795548'},{t:'r',x:90,y:100,w:16,h:6,c:'#a1887f'},
+    {t:'r',x:130,y:110,w:20,h:10,c:'#5d4037'}
+  ],speech:['랄라~','♪♫~','좋은 멜로디~','노래하자!','아름다워~']},
+  library:{bg:'#e3f2fd',floor:'#90caf9',furni:[
+    {t:'r',x:8,y:18,w:28,h:105,c:'#4e342e'},{t:'bk',x:11,y:22,w:22,rows:5},
+    {t:'r',x:95,y:98,w:38,h:22,c:'#6d4c41'},{t:'r',x:100,y:93,w:12,h:8,c:'#fff9c4'},
+    {t:'r',x:140,y:70,w:18,h:50,c:'#5d4037'}
+  ],speech:['흥미로워...','이 이야기...','조용히...','재밌다!','한 장 더~']},
+  observatory:{bg:'#1a1a3e',floor:'#3b3870',furni:[
+    {t:'r',x:140,y:55,w:8,h:55,c:'#607d8b'},{t:'c',x:147,y:50,r:12,c:'#455a64'},
+    {t:'r',x:25,y:108,w:70,h:5,c:'#37474f'},{t:'r',x:250,y:95,w:30,h:18,c:'#4e342e'}
+  ],speech:['별이다!','아름다워...','저 별은...','소원 빌자!','반짝반짝~']}
+};
+let spriteCache={},spriteFlipCache={};
+function initSpriteCache(){
+  CHARACTERS.forEach(c=>{
+    const rows=PIXEL_ART[c.id];if(!rows)return;
+    const cv=document.createElement('canvas');cv.width=16;cv.height=16;
+    const cx=cv.getContext('2d');
+    for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++){
+      const ch=rows[y][x];if(ch!=='0'){cx.fillStyle=PALETTES[ch]||'#888';cx.fillRect(x,y,1,1);}
+    }
+    spriteCache[c.id]=cv;
+    const fv=document.createElement('canvas');fv.width=16;fv.height=16;
+    const fx=fv.getContext('2d');fx.translate(16,0);fx.scale(-1,1);fx.drawImage(cv,0,0);
+    spriteFlipCache[c.id]=fv;
+  });
+}
+let charSims={};
+function getRoomBounds(roomId){
+  const L=BUS_LAYOUT;
+  for(const fl of L.floors){
+    const idx=fl.rooms.indexOf(roomId);if(idx===-1)continue;
+    const cnt=fl.rooms.length;const gap=cnt>1?5:0;
+    const rw=(L.busW-gap*(cnt-1))/cnt;
+    const rx=L.busX+idx*(rw+gap);
+    return{x:rx+6,y:fl.y+6,w:rw-12,h:fl.h-14,floorY:fl.y+fl.h-10};
+  }
+  return null;
+}
+function initCharSims(){
+  charSims={};
+  CHARACTERS.forEach(c=>{
+    if(!GS.discovered.includes(c.id)||!c.room)return;
+    const rb=getRoomBounds(c.room);if(!rb)return;
+    charSims[c.id]={
+      x:rb.x+15+Math.random()*(rb.w-50),y:rb.floorY-32,
+      state:'idle',timer:60+Math.random()*120|0,
+      tx:0,right:Math.random()>.5,bob:0,bt:Math.random()*100|0,
+      sp:'',spt:0,af:0
+    };
+  });
+}
+let busRunning=false,busRAF=null,busCV,busCX,busWA=0,busParts=[];
+function startBusSimulation(){
+  if(busRunning)return;
+  busCV=document.getElementById('bus-canvas');if(!busCV)return;
+  busCX=busCV.getContext('2d');
+  const cw=Math.min(420,busCV.parentElement.offsetWidth-32);
+  busCV.width=420;busCV.height=540;
+  busCV.style.width=cw+'px';busCV.style.height=Math.round(cw*540/420)+'px';
+  if(!spriteCache.nabi)initSpriteCache();
+  initCharSims();busParts=[];busRunning=true;
+  busCV.onclick=handleBusClick;
+  busCV.ontouchend=function(e){e.preventDefault();const t=e.changedTouches[0];handleBusTap(t.clientX,t.clientY);};
+  busLoop();
+}
+function stopBusSimulation(){busRunning=false;if(busRAF)cancelAnimationFrame(busRAF);busRAF=null;}
+function busLoop(){
+  if(!busRunning)return;
+  updateSims();updateParts();drawBusCanvas();
+  busRAF=requestAnimationFrame(busLoop);
+}
+function updateSims(){
+  Object.keys(charSims).forEach(id=>{
+    const s=charSims[id],c=CHARACTERS.find(ch=>ch.id===id);
+    if(!c||!c.room)return;
+    const rb=getRoomBounds(c.room);if(!rb)return;
+    s.timer--;s.bt++;
+    if(s.spt>0)s.spt--;
+    switch(s.state){
+      case'idle':
+        s.bob=Math.sin(s.bt*.05)*1.5;
+        if(s.timer<=0){
+          if(Math.random()<.6){s.state='walk';s.tx=rb.x+10+Math.random()*(rb.w-40);s.right=s.tx>s.x;s.timer=300;}
+          else{s.state='act';s.timer=120+Math.random()*120|0;s.af=0;
+            if(Math.random()<.4){const v=ROOM_VIS[c.room];if(v){s.sp=v.speech[Math.random()*v.speech.length|0];s.spt=110;}}
+          }
+        }break;
+      case'walk':
+        const dx=s.tx-s.x,spd=.55;
+        if(Math.abs(dx)<spd||s.timer<=0){s.state='idle';s.timer=80+Math.random()*120|0;}
+        else{s.x+=dx>0?spd:-spd;s.right=dx>0;s.bob=Math.sin(s.bt*.15)*2.5;}
+        break;
+      case'act':
+        s.bob=Math.sin(s.bt*.08)*1;s.af++;
+        if(s.timer<=0){s.state='idle';s.timer=80+Math.random()*120|0;}
+        break;
+    }
+    s.x=Math.max(rb.x,Math.min(rb.x+rb.w-32,s.x));
+    s.y=rb.floorY-32;
+  });
+}
+function updateParts(){
+  if(Math.random()<.06){
+    ROOMS.forEach(r=>{
+      if(!GS.discovered.some(id=>{const ch=CHARACTERS.find(c=>c.id===id);return ch&&ch.room===r.id;}))return;
+      const rb=getRoomBounds(r.id);if(!rb)return;
+      busParts.push({x:rb.x+Math.random()*rb.w,y:rb.floorY-8,life:70,ml:70,
+        type:r.animType,sz:2+Math.random()*3,vx:(Math.random()-.5)*.3,vy:-.3-Math.random()*.5});
+    });
+  }
+  busParts=busParts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
+  if(busParts.length>50)busParts=busParts.slice(-50);
+}
+function drawBusCanvas(){
+  const ctx=busCX,L=BUS_LAYOUT;
+  ctx.clearRect(0,0,420,540);
+  drawSky(ctx);drawBusBody(ctx);
+  L.floors.forEach(fl=>fl.rooms.forEach((rid,i)=>drawRoom(ctx,rid,fl,i,fl.rooms.length)));
+  Object.keys(charSims).forEach(id=>drawChar(ctx,id));
+  drawPartsOnBus(ctx);drawFrame(ctx);drawWheels(ctx);
+}
+function drawSky(ctx){
+  const h=new Date().getHours();let g=ctx.createLinearGradient(0,0,0,540);
+  if(h>=20||h<6){g.addColorStop(0,'#0a0a2e');g.addColorStop(1,'#1a1a4e');}
+  else if(h>=17){g.addColorStop(0,'#ff7043');g.addColorStop(1,'#ffcc80');}
+  else if(h>=6&&h<11){g.addColorStop(0,'#87ceeb');g.addColorStop(1,'#fff5ee');}
+  else{g.addColorStop(0,'#87ceeb');g.addColorStop(1,'#e0f0ff');}
+  ctx.fillStyle=g;ctx.fillRect(0,0,420,540);
+  ctx.fillStyle='rgba(255,255,255,.25)';
+  const off=(Date.now()/60)%500;
+  [[0,25,18],[160,45,22],[320,15,16]].forEach(([cx,cy,r])=>{
+    const x=((cx+off)%500)-40;
+    ctx.beginPath();ctx.arc(x,cy,r,0,Math.PI*2);ctx.arc(x+r*.8,cy-r*.4,r*.7,0,Math.PI*2);ctx.arc(x+r*1.5,cy,r*.9,0,Math.PI*2);ctx.fill();
+  });
+  if(h>=20||h<6){ctx.fillStyle='rgba(255,255,200,.6)';
+    for(let i=0;i<20;i++){const sx=Math.sin(i*47.3)*200+210,sy=Math.cos(i*31.7)*30+i*2+5;
+      const tw=.3+Math.sin(Date.now()/700+i)*0.4;ctx.globalAlpha=tw;ctx.beginPath();ctx.arc(sx,sy,1,0,Math.PI*2);ctx.fill();}
+    ctx.globalAlpha=1;
+  }
+  ctx.fillStyle='#66bb6a';ctx.fillRect(0,505,420,35);ctx.fillStyle='#558b2f';ctx.fillRect(0,505,420,4);
+}
+function drawBusBody(ctx){
+  const L=BUS_LAYOUT;
+  ctx.fillStyle='rgba(0,0,0,.08)';rrect(ctx,L.busX+4,L.roofY+4,L.busW,L.baseY-L.roofY+L.baseH,10);ctx.fill();
+  ctx.fillStyle='#eaeaea';rrect(ctx,L.busX,L.roofY,L.busW,L.baseY-L.roofY+L.baseH,10);ctx.fill();
+  ctx.strokeStyle='#bbb';ctx.lineWidth=2;rrect(ctx,L.busX,L.roofY,L.busW,L.baseY-L.roofY+L.baseH,10);ctx.stroke();
+}
+function drawFrame(ctx){
+  const L=BUS_LAYOUT;
+  const colors=['#6c5ce7','#fd79a8','#0984e3','#00b894','#e17055'];
+  ctx.fillStyle=colors[GS.busColor]||colors[0];
+  rrect(ctx,L.busX,L.roofY,L.busW,20,10);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 10px "Noto Sans KR",sans-serif';ctx.textAlign='center';
+  ctx.fillText('✦ 천국행 버스 ✦',L.busX+L.busW/2,L.roofY+14);
+  L.floors.forEach((fl,i)=>{
+    if(i<L.floors.length-1){
+      const y=fl.y+fl.h;ctx.fillStyle='#aaa';ctx.fillRect(L.busX+3,y,L.busW-6,5);
+      ctx.fillStyle='#999';ctx.fillRect(L.busX+3,y,L.busW-6,2);
+      const lx=L.busX+L.busW-28;ctx.fillStyle='#8d6e63';
+      ctx.fillRect(lx,y-18,3,24);ctx.fillRect(lx+14,y-18,3,24);
+      for(let s=0;s<4;s++)ctx.fillRect(lx,y-15+s*6,17,2);
+    }
+    if(fl.rooms.length>1){const dx=L.busX+L.busW/2-1;ctx.fillStyle='#bbb';ctx.fillRect(dx,fl.y,4,fl.h);}
+  });
+  ctx.fillStyle='#777';ctx.fillRect(L.busX,L.baseY,L.busW,L.baseH);
+  ctx.font='bold 9px "Noto Sans KR",sans-serif';ctx.textAlign='left';ctx.fillStyle='rgba(0,0,0,.25)';
+  L.floors.forEach((fl,i)=>ctx.fillText((3-i)+'F',L.busX+6,fl.y+14));
+}
+function drawRoom(ctx,rid,fl,idx,cnt){
+  const v=ROOM_VIS[rid];if(!v)return;
+  const L=BUS_LAYOUT,gap=cnt>1?5:0,rw=(L.busW-gap*(cnt-1))/cnt;
+  const rx=L.busX+idx*(rw+gap),ry=fl.y,rh=fl.h;
+  ctx.fillStyle=v.bg;ctx.fillRect(rx+2,ry+2,rw-4,rh-4);
+  ctx.fillStyle=v.floor;ctx.fillRect(rx+2,ry+rh-10,rw-4,8);
+  if(rid==='observatory'){
+    for(let i=0;i<20;i++){
+      const sx=rx+8+((i*37)%Math.max(1,rw-16)),sy=ry+8+((i*23)%Math.max(1,rh-30));
+      const br=.2+Math.sin(Date.now()/600+i*2)*.45;
+      ctx.fillStyle=`rgba(255,255,200,${br})`;ctx.beginPath();ctx.arc(sx,sy,1+i%2,0,Math.PI*2);ctx.fill();
+    }
+  }
+  v.furni.forEach(f=>{
+    if(f.t==='r'){ctx.fillStyle=f.c;ctx.fillRect(rx+f.x,ry+f.y,f.w,f.h);}
+    else if(f.t==='c'){ctx.fillStyle=f.c;ctx.beginPath();ctx.arc(rx+f.x,ry+f.y,f.r,0,Math.PI*2);ctx.fill();}
+    else if(f.t==='bk'){
+      const bk=['#e53935','#1e88e5','#43a047','#f9a825','#8e24aa','#00897b'];
+      for(let row=0;row<f.rows;row++)for(let b=0;b<4;b++){
+        ctx.fillStyle=bk[(row*4+b)%6];ctx.fillRect(rx+f.x+b*5.5,ry+f.y+row*20,4.5,17);
+      }
+    }
+  });
+  const rm=ROOMS.find(r=>r.id===rid);if(rm){
+    ctx.fillStyle=rid==='observatory'?'rgba(255,255,255,.4)':'rgba(0,0,0,.18)';
+    ctx.font='8px "Noto Sans KR",sans-serif';ctx.textAlign='center';
+    const lv=GS.roomLevels[rid]||1;
+    ctx.fillText(rm.name+' Lv.'+lv,rx+rw/2,ry+rh-13);
+  }
+}
+function drawChar(ctx,id){
+  const s=charSims[id],c=CHARACTERS.find(ch=>ch.id===id);if(!s||!c)return;
+  const spr=s.right?spriteCache[id]:spriteFlipCache[id];if(!spr)return;
+  const dx=Math.round(s.x),dy=Math.round(s.y+s.bob);
+  const hr=c.heal/100,ga=.08+hr*.22,gr=18+hr*12;
+  const ag=ctx.createRadialGradient(dx+16,dy+20,3,dx+16,dy+20,gr);
+  ag.addColorStop(0,`rgba(0,184,148,${ga})`);ag.addColorStop(1,'rgba(0,184,148,0)');
+  ctx.fillStyle=ag;ctx.beginPath();ctx.arc(dx+16,dy+20,gr,0,Math.PI*2);ctx.fill();
+  ctx.imageSmoothingEnabled=false;ctx.drawImage(spr,dx,dy,32,32);ctx.imageSmoothingEnabled=true;
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.font='bold 7px "Noto Sans KR",sans-serif';ctx.textAlign='center';
+  ctx.fillText(c.name,dx+16,dy-4);
+  if(s.state==='act'){
+    const ic={kitchen:'🍳',garden:'🌱',music:'🎵',library:'📖',observatory:'🔭'}[c.room]||'✨';
+    ctx.font='11px sans-serif';ctx.fillText(ic,dx+16,dy-12+Math.sin(s.af*.1)*3);
+  }
+  if(s.spt>0&&s.sp){
+    const al=s.spt<15?s.spt/15:1;ctx.globalAlpha=al;
+    ctx.font='7px "Noto Sans KR",sans-serif';const tw=ctx.measureText(s.sp).width;
+    const bx=dx+16,by=dy-20;
+    ctx.fillStyle='#fff';rrect(ctx,bx-tw/2-5,by-11,tw+10,15,5);ctx.fill();
+    ctx.strokeStyle='#ddd';ctx.lineWidth=.5;rrect(ctx,bx-tw/2-5,by-11,tw+10,15,5);ctx.stroke();
+    ctx.fillStyle='#333';ctx.textAlign='center';ctx.fillText(s.sp,bx,by);
+    ctx.globalAlpha=1;
+  }
+  ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(getMood(c),dx+30,dy+6);
+}
+function drawPartsOnBus(ctx){
+  busParts.forEach(p=>{
+    const a=p.life/p.ml;
+    switch(p.type){
+      case'steam':ctx.fillStyle=`rgba(200,200,200,${a*.5})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,Math.PI*2);ctx.fill();break;
+      case'note':ctx.globalAlpha=a;ctx.font=(p.sz*3)+'px sans-serif';ctx.textAlign='center';ctx.fillText(['♪','♫','♬'][p.x%3|0],p.x,p.y);ctx.globalAlpha=1;break;
+      case'sparkle':ctx.fillStyle=`rgba(255,215,0,${a*.7})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz*.8,0,Math.PI*2);ctx.fill();break;
+      case'page':ctx.fillStyle=`rgba(190,170,140,${a*.5})`;ctx.fillRect(p.x,p.y,p.sz*1.5,p.sz*2);break;
+      case'star':ctx.fillStyle=`rgba(255,255,200,${a*.8})`;ctx.beginPath();ctx.arc(p.x,p.y,p.sz*.6,0,Math.PI*2);ctx.fill();break;
+    }
+  });
+}
+function drawWheels(ctx){
+  const L=BUS_LAYOUT;busWA+=.02;
+  L.wheelX.forEach(wx=>{
+    ctx.fillStyle='#444';ctx.beginPath();ctx.arc(wx,L.wheelY+L.wheelR,L.wheelR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#888';ctx.beginPath();ctx.arc(wx,L.wheelY+L.wheelR,L.wheelR*.45,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#aaa';ctx.lineWidth=1;
+    for(let i=0;i<4;i++){const a=busWA+i*Math.PI/2;
+      ctx.beginPath();ctx.moveTo(wx,L.wheelY+L.wheelR);
+      ctx.lineTo(wx+Math.cos(a)*L.wheelR*.65,L.wheelY+L.wheelR+Math.sin(a)*L.wheelR*.65);ctx.stroke();
+    }
+  });
+}
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+function handleBusClick(e){const r=busCV.getBoundingClientRect();handleBusTap(e.clientX,e.clientY);}
+function handleBusTap(cx,cy){
+  const r=busCV.getBoundingClientRect();
+  const sx=420/r.width,sy=540/r.height;
+  const x=(cx-r.left)*sx,y=(cy-r.top)*sy;
+  for(const id of Object.keys(charSims)){
+    const s=charSims[id];
+    if(x>=s.x-4&&x<=s.x+36&&y>=s.y-8&&y<=s.y+36){showCharDetail(id);return;}
+  }
+  const L=BUS_LAYOUT;
+  for(const fl of L.floors){
+    if(y>=fl.y&&y<=fl.y+fl.h){
+      for(let i=0;i<fl.rooms.length;i++){
+        const cnt=fl.rooms.length,gap=cnt>1?5:0,rw=(L.busW-gap*(cnt-1))/cnt;
+        const rx=L.busX+i*(rw+gap);
+        if(x>=rx&&x<=rx+rw){showRoomDetail(fl.rooms[i]);return;}
+      }
+    }
+  }
+}
+
 function renderBus(){
-  // Header with color
   const bh=document.getElementById('bus-header');
   bh.style.background=BUS_COLORS[GS.busColor].gradient;
-  // Color selector
   document.getElementById('bus-color-sel').innerHTML=BUS_COLORS.map((c,i)=>
     `<div class="cdot${i===GS.busColor?' active':''}" style="background:${c.gradient}" onclick="setBusColor(${i})"></div>`
   ).join('');
-  // Rooms by floor
-  const el=document.getElementById('bus-rooms');
-  let html='';
-  [3,2,1].forEach(floor=>{
-    html+=`<div class="floor-label">${floor}층</div>`;
-    ROOMS.filter(r=>r.floor===floor).forEach(r=>{
+  // Room legend
+  const leg=document.getElementById('bus-legend');
+  if(leg){
+    leg.innerHTML=ROOMS.map(r=>{
       const chars=CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id));
       const lv=GS.roomLevels[r.id]||1;
-      const upgradeCost=[0,500,1500,3000][lv]||null;
-      const animParticles=makeRoomAnim(r.animType);
-      html+=`<div class="room-card scroll-reveal ripple" onclick="showRoomDetail('${r.id}')">
-        <div class="rh"><span class="rn">${r.name}</span><span class="rl">Lv.${lv}</span></div>
-        <div class="rd">${r.desc}</div>
-        <div class="rc">${chars.map(c=>`<div class="ca" title="${c.name}">${c.emoji}<span class="mood">${getMood(c)}</span></div>`).join('')}${chars.length===0?'<span style="font-size:.65rem;color:var(--text-light)">비어있음</span>':''}</div>
-        <div class="prod">⚡ ${r.production} +${r.prodRate*lv}/시간</div>
-        <div class="ranim">${animParticles}</div>
-        ${upgradeCost?`<button class="ubtn" onclick="event.stopPropagation();upgradeRoom('${r.id}')">⬆️ ${upgradeCost}G</button>`:''}
-      </div>`;
-    });
-  });
-  el.innerHTML=html;
+      return `<div class="bl-item" style="background:${r.color}">${r.name.split(' ')[0]} ${chars.length}명 Lv.${lv}</div>`;
+    }).join('');
+  }
+  startBusSimulation();
 }
 
 function makeRoomAnim(type){
