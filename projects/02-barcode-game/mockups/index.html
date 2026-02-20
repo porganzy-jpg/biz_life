@@ -741,8 +741,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   <div class="guild-pad" id="guild-content">
     <!-- Dynamic content rendered by JS -->
     <div class="guild-header">
-      <h2>&#x1F6E1;&#xFE0F; Guild</h2>
-      <div class="guild-sub">Loading...</div>
+      <h2>&#x1F6E1;&#xFE0F; 길드</h2>
+      <div class="guild-sub">로딩 중...</div>
     </div>
   </div>
 </div>
@@ -751,21 +751,21 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 <div class="screen" id="screen-trade">
   <div class="trade-pad">
     <div class="trade-header">
-      <h2>&#x1F4B1; Marketplace</h2>
-      <div class="trade-sub" id="trade-sub-info">Browse and trade monsters</div>
+      <h2>&#x1F4B1; 거래소</h2>
+      <div class="trade-sub" id="trade-sub-info">몬스터를 사고팔아보세요</div>
     </div>
     <div class="trade-tabs">
-      <div class="ttab active" onclick="switchTradeTab('browse')" id="trade-tab-browse">Browse</div>
-      <div class="ttab" onclick="switchTradeTab('sell')" id="trade-tab-sell">Sell</div>
-      <div class="ttab" onclick="switchTradeTab('history')" id="trade-tab-history">History</div>
+      <div class="ttab active" onclick="switchTradeTab('browse')" id="trade-tab-browse">둘러보기</div>
+      <div class="ttab" onclick="switchTradeTab('sell')" id="trade-tab-sell">판매</div>
+      <div class="ttab" onclick="switchTradeTab('history')" id="trade-tab-history">거래 내역</div>
     </div>
     <div id="trade-sort-filters">
       <div class="trade-filters">
-        <div class="trade-filter-btn active" onclick="setTradeSort('newest')">Latest</div>
-        <div class="trade-filter-btn" onclick="setTradeSort('price_low')">Price &#x2191;</div>
-        <div class="trade-filter-btn" onclick="setTradeSort('price_high')">Price &#x2193;</div>
-        <div class="trade-filter-btn" onclick="setTradeSort('level_high')">Level</div>
-        <div class="trade-filter-btn" onclick="setTradeSort('rarity')">Rarity</div>
+        <div class="trade-filter-btn active" onclick="setTradeSort('newest',event)">최신</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('price_low',event)">가격 &#x2191;</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('price_high',event)">가격 &#x2193;</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('level_high',event)">레벨</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('rarity',event)">희귀도</div>
       </div>
     </div>
     <div id="trade-body">
@@ -3577,7 +3577,7 @@ async function apiFetch(url,opts={}){
     return await res.json();
   }catch(e){
     console.error('API error:',e);
-    return {error:'Server connection failed'};
+    return {error:'서버 연결에 실패했습니다'};
   }
 }
 
@@ -3597,9 +3597,13 @@ let guildState={
 
 async function renderGuild(){
   const infoRes=await apiFetch('/api/guild/info?session=default');
-  guildState.info=infoRes;
-
   const container=document.getElementById('guild-content');
+
+  if(infoRes.error){
+    container.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-light);font-size:.78rem;">서버 연결에 실패했습니다.<br><button class="guild-btn create" style="margin-top:12px;" onclick="renderGuild()">다시 시도</button></div>`;
+    return;
+  }
+  guildState.info=infoRes;
 
   if(infoRes.in_guild){
     const g=infoRes.guild;
@@ -3614,36 +3618,36 @@ async function renderGuild(){
       <div class="guild-header">
         <h2>&#x1F6E1;&#xFE0F; ${g.name}</h2>
         <div class="guild-level">Lv.${g.level}</div>
-        <div class="guild-sub">${g.member_count}/${g.max_members} members</div>
+        <div class="guild-sub">${g.member_count}/${g.max_members} 멤버</div>
         <div class="guild-exp-bar"><div class="guild-exp-fill" style="width:${expPct}%"></div></div>
         <div style="font-size:.6rem;opacity:.7;margin-top:4px;">EXP: ${g.exp}/${g.exp_needed}</div>
       </div>
       <div class="guild-stats-row">
-        <div class="guild-stat-card"><div class="sv">${g.level}</div><div class="sl">Level</div></div>
-        <div class="guild-stat-card"><div class="sv">${g.member_count}</div><div class="sl">Members</div></div>
-        <div class="guild-stat-card"><div class="sv">${infoRes.my_contribution||0}</div><div class="sl">My Contrib.</div></div>
+        <div class="guild-stat-card"><div class="sv">${g.level}</div><div class="sl">레벨</div></div>
+        <div class="guild-stat-card"><div class="sv">${g.member_count}</div><div class="sl">멤버</div></div>
+        <div class="guild-stat-card"><div class="sv">${infoRes.my_contribution||0}</div><div class="sl">내 기여도</div></div>
       </div>
       <div class="guild-section">
-        <h3>&#x1F464; Members</h3>
+        <h3>&#x1F464; 멤버</h3>
         <ul class="guild-member-list">
           ${members.map(m=>`
             <li class="guild-member-item">
-              <span class="role-badge ${m.role}">${m.role==='leader'?'Guild Master':m.role==='officer'?'Officer':'Member'}</span>
-              <span>${m.session_id==='default'?'<b>Me</b>':m.session_id.substring(0,10)}</span>
+              <span class="role-badge ${m.role}">${m.role==='leader'?'길드장':m.role==='officer'?'간부':'멤버'}</span>
+              <span>${m.session_id==='default'?'<b>나</b>':m.session_id.substring(0,10)}</span>
               <span class="contrib">&#x2B50; ${m.contribution}</span>
             </li>
           `).join('')}
         </ul>
       </div>
-      <button class="guild-btn boss" onclick="guildBossBattle()">&#x1F409; Guild Boss Battle!</button>
-      <button class="guild-btn leave" onclick="guildLeave()">Leave Guild</button>
+      <button class="guild-btn boss" onclick="guildBossBattle()">&#x1F409; 길드 보스 도전!</button>
+      <button class="guild-btn leave" onclick="guildLeave()">길드 탈퇴</button>
       <div class="guild-section" style="margin-top:14px;">
-        <h3>&#x1F3C6; Guild Ranking</h3>
+        <h3>&#x1F3C6; 길드 랭킹</h3>
         <table class="guild-rank-table">
-          <thead><tr><th>#</th><th>Guild</th><th>Lv</th><th>Members</th></tr></thead>
+          <thead><tr><th>#</th><th>길드</th><th>Lv</th><th>멤버</th></tr></thead>
           <tbody>
             ${guildState.ranking.length===0?
-              '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">No guilds yet</td></tr>':
+              '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">아직 길드가 없습니다</td></tr>':
               guildState.ranking.map(r=>`
                 <tr class="${r.name===g.name?'me':''}">
                   <td><span class="lb-rank ${r.rank<=3?['','gold','silver','bronze'][r.rank]:''}">${r.rank}</span></td>
@@ -3667,40 +3671,40 @@ async function renderGuild(){
 
     container.innerHTML=`
       <div class="guild-header">
-        <h2>&#x1F6E1;&#xFE0F; Guild</h2>
-        <div class="guild-sub">Join or create a guild!</div>
+        <h2>&#x1F6E1;&#xFE0F; 길드</h2>
+        <div class="guild-sub">길드에 가입하거나 새로 만들어보세요!</div>
       </div>
       <div class="guild-no-guild">
-        <p>You are not in a guild. Create one or join an existing guild.</p>
+        <p>소속된 길드가 없습니다. 길드를 만들거나 기존 길드에 가입하세요.</p>
       </div>
       <div class="guild-section">
-        <h3>&#x2728; Create Guild</h3>
+        <h3>&#x2728; 길드 생성</h3>
         <div class="guild-create-form">
-          <input type="text" id="guild-name-input" maxlength="20" placeholder="Guild name (2-20 chars)">
-          <button class="guild-btn create" onclick="guildCreate()">Create Guild (5,000G)</button>
+          <input type="text" id="guild-name-input" maxlength="20" placeholder="길드 이름 (2-20자)">
+          <button class="guild-btn create" onclick="guildCreate()">길드 생성 (5,000G)</button>
         </div>
       </div>
       ${guildState.available.length>0?`
         <div class="guild-section">
-          <h3>&#x1F4CB; Available Guilds</h3>
+          <h3>&#x1F4CB; 가입 가능한 길드</h3>
           ${guildState.available.map(g=>`
             <div class="guild-list-item">
               <div class="gl-info">
                 <div class="gl-name">&#x1F6E1;&#xFE0F; ${g.name}</div>
-                <div class="gl-meta">Lv.${g.level} | ${g.member_count}/${g.max_members} members</div>
+                <div class="gl-meta">Lv.${g.level} | ${g.member_count}/${g.max_members} 멤버</div>
               </div>
-              <button class="gl-join" onclick="guildJoin(${g.guild_id})">Join</button>
+              <button class="gl-join" onclick="guildJoin(${g.guild_id})">가입</button>
             </div>
           `).join('')}
         </div>
       `:''}
       <div class="guild-section">
-        <h3>&#x1F3C6; Guild Ranking</h3>
+        <h3>&#x1F3C6; 길드 랭킹</h3>
         <table class="guild-rank-table">
-          <thead><tr><th>#</th><th>Guild</th><th>Lv</th><th>Members</th></tr></thead>
+          <thead><tr><th>#</th><th>길드</th><th>Lv</th><th>멤버</th></tr></thead>
           <tbody>
             ${guildState.ranking.length===0?
-              '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">No guilds yet</td></tr>':
+              '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">아직 길드가 없습니다</td></tr>':
               guildState.ranking.map(r=>`
                 <tr>
                   <td><span class="lb-rank ${r.rank<=3?['','gold','silver','bronze'][r.rank]:''}">${r.rank}</span></td>
@@ -3721,7 +3725,7 @@ async function guildCreate(){
   const nameInput=document.getElementById('guild-name-input');
   const name=nameInput?nameInput.value.trim():'';
   if(!name||name.length<2){
-    showToast('Guild name must be at least 2 characters.');
+    showToast('길드 이름은 2자 이상이어야 합니다.');
     return;
   }
   const res=await apiFetch(`/api/guild/create?name=${encodeURIComponent(name)}&session=default`,{method:'POST'});
@@ -3729,7 +3733,7 @@ async function guildCreate(){
     showToast(res.error);
     return;
   }
-  showToast(res.message||'Guild created!');
+  showToast(res.message||'길드가 생성되었습니다!');
   if(res.player) updatePlayerUI(res.player);
   await renderGuild();
 }
@@ -3740,26 +3744,26 @@ async function guildJoin(guildId){
     showToast(res.error);
     return;
   }
-  showToast(res.message||'Joined guild!');
+  showToast(res.message||'길드에 가입했습니다!');
   processApiAchievementUnlocks(res);
   await renderGuild();
 }
 
 async function guildLeave(){
-  if(!confirm('Are you sure you want to leave the guild?')) return;
+  if(!confirm('정말 길드를 탈퇴하시겠습니까?')) return;
   const res=await apiFetch('/api/guild/leave?session=default',{method:'POST'});
   if(res.error){
     showToast(res.error);
     return;
   }
-  showToast(res.message||'Left guild.');
+  showToast(res.message||'길드를 탈퇴했습니다.');
   await renderGuild();
 }
 
 async function guildBossBattle(){
   const overlay=document.getElementById('guild-boss-overlay');
   const content=document.getElementById('guild-boss-content');
-  content.innerHTML=`<div style="font-size:2rem;animation:vsPulse 1s infinite;">&#x1F409;</div><p style="margin-top:12px;font-size:.8rem;">Engaging guild boss...</p>`;
+  content.innerHTML=`<div style="font-size:2rem;animation:vsPulse 1s infinite;">&#x1F409;</div><p style="margin-top:12px;font-size:.8rem;">길드 보스 도전 중...</p>`;
   overlay.classList.add('show');
 
   const res=await apiFetch('/api/guild/boss?session=default',{method:'POST'});
@@ -3778,18 +3782,18 @@ async function guildBossBattle(){
 
   content.innerHTML=`
     <div class="guild-boss-result">
-      <h2 style="color:${won?'#00b894':'#d63031'};font-size:1.5rem;">${won?'Boss Defeated!':'Retreated...'}</h2>
+      <h2 style="color:${won?'#00b894':'#d63031'};font-size:1.5rem;">${won?'보스 처치!':'후퇴...'}</h2>
       <p style="font-size:.88rem;margin:8px 0;">${boss.emoji||''} ${boss.name||'???'} Lv.${boss.level||1}</p>
-      <div class="reward-line">Damage: ${res.total_damage||0} (${res.damage_ratio||0}%)</div>
-      <div class="reward-line">&#x1F4B0; ${rewards.gold||0} Gold</div>
-      <div class="reward-line">&#x2B50; ${rewards.exp||0} EXP</div>
-      <div class="reward-line">&#x1F6E1;&#xFE0F; Guild +${rewards.guild_exp||0} EXP</div>
-      ${res.guild_leveled_up?'<div class="reward-line" style="color:#f9ca24;font-weight:700;">Guild Level Up!</div>':''}
+      <div class="reward-line">데미지: ${res.total_damage||0} (${res.damage_ratio||0}%)</div>
+      <div class="reward-line">&#x1F4B0; ${rewards.gold||0} 골드</div>
+      <div class="reward-line">&#x2B50; ${rewards.exp||0} 경험치</div>
+      <div class="reward-line">&#x1F6E1;&#xFE0F; 길드 +${rewards.guild_exp||0} EXP</div>
+      ${res.guild_leveled_up?'<div class="reward-line" style="color:#f9ca24;font-weight:700;">길드 레벨 업!</div>':''}
       ${(res.battle_log||[]).map(l=>`<div class="reward-line" style="font-size:.68rem;color:var(--text-light);">${l.message}</div>`).join('')}
-      <button class="close-btn" onclick="closeGuildBoss()">OK</button>
+      <button class="close-btn" onclick="closeGuildBoss()">확인</button>
     </div>`;
 
-  if(won){try{launchConfetti();}catch(e){}}
+  if(won){try{fireConfetti();}catch(e){}}
   if(res.player) updatePlayerUI(res.player);
   processApiAchievementUnlocks(res);
   await renderGuild();
@@ -3803,6 +3807,9 @@ function updatePlayerUI(p){
   if(!p) return;
   const goldEl=document.getElementById('gold-display');
   if(goldEl) goldEl.textContent=p.gold.toLocaleString();
+  if(typeof p.gold==='number'){ GS.gold=p.gold; }
+  if(typeof p.energy==='number'){ GS.energy=p.energy; updateEnergyUI(); }
+  saveState();
 }
 
 // ============================================================
@@ -3830,15 +3837,20 @@ function switchTradeTab(tab){
   renderTradeBody();
 }
 
-function setTradeSort(sort){
+function setTradeSort(sort,ev){
   tradeState.sort=sort;
   document.querySelectorAll('.trade-filters .trade-filter-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(ev&&ev.target) ev.target.classList.add('active');
   renderTrade();
 }
 
 async function renderTrade(){
   const mpRes=await apiFetch(`/api/trade/marketplace?sort=${tradeState.sort}&filter_type=${tradeState.filterType}&filter_rarity=${tradeState.filterRarity}&session=default`);
+  if(mpRes.error){
+    const body=document.getElementById('trade-body');
+    if(body) body.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-light);font-size:.78rem;">서버 연결에 실패했습니다.<br><button class="trade-list-btn" style="margin-top:12px;" onclick="renderTrade()">다시 시도</button></div>`;
+    return;
+  }
   tradeState.listings=mpRes.listings||[];
   tradeState.myListings=mpRes.my_listings||[];
 
@@ -3854,7 +3866,7 @@ async function renderTradeBody(){
 
   if(tradeState.currentTab==='browse'){
     if(tradeState.listings.length===0){
-      body.innerHTML='<div class="trade-empty">&#x1F4AD; No monsters listed yet. Be the first to list one!</div>';
+      body.innerHTML='<div class="trade-empty">&#x1F4AD; 아직 등록된 몬스터가 없습니다. 첫 번째로 등록해보세요!</div>';
     }else{
       body.innerHTML=`<div class="trade-grid">
         ${tradeState.listings.map(l=>{
@@ -3865,10 +3877,10 @@ async function renderTradeBody(){
             <div class="tc-level">Lv.${l.monster_level}</div>
             <div class="tc-type">${l.monster_type||'???'}</div>
             <div class="tc-price">&#x1F4B0; ${l.price.toLocaleString()}G</div>
-            <div class="tc-seller">${isMine?'My listing':l.seller_id.substring(0,8)}</div>
+            <div class="tc-seller">${isMine?'내 등록':l.seller_id.substring(0,8)}</div>
             ${isMine?
-              `<button class="tc-cancel" onclick="tradeCancelListing(${l.listing_id})">Cancel</button>`:
-              `<button class="tc-buy" onclick="tradeBuy(${l.listing_id})">Buy</button>`
+              `<button class="tc-cancel" onclick="tradeCancelListing(${l.listing_id})">취소</button>`:
+              `<button class="tc-buy" onclick="tradeBuy(${l.listing_id})">구매</button>`
             }
           </div>`;
         }).join('')}
@@ -3887,7 +3899,7 @@ async function renderTradeBody(){
     if(tradeState.myListings.length>0){
       myListingsHtml=`
         <div class="guild-section" style="margin-bottom:14px;">
-          <h3>&#x1F4E6; My Listings (${tradeState.myListings.length}/5)</h3>
+          <h3>&#x1F4E6; 내 등록 (${tradeState.myListings.length}/5)</h3>
           ${tradeState.myListings.map(l=>`
             <div class="trade-history-item">
               <div class="th-detail">
@@ -3895,7 +3907,7 @@ async function renderTradeBody(){
                 <div class="th-meta">Lv.${l.monster_level}</div>
               </div>
               <div class="th-price">&#x1F4B0; ${l.price.toLocaleString()}G</div>
-              <button class="tc-cancel" style="width:auto;margin:0;padding:4px 10px;font-size:.6rem;" onclick="tradeCancelListing(${l.listing_id})">Cancel</button>
+              <button class="tc-cancel" style="width:auto;margin:0;padding:4px 10px;font-size:.6rem;" onclick="tradeCancelListing(${l.listing_id})">취소</button>
             </div>
           `).join('')}
         </div>`;
@@ -3904,13 +3916,13 @@ async function renderTradeBody(){
     body.innerHTML=`
       ${myListingsHtml}
       <div class="trade-list-form">
-        <h3>&#x1F4E4; List a Monster for Sale</h3>
-        ${allMonsters.length===0?'<p style="font-size:.72rem;color:var(--text-light);text-align:center;">No monsters available to sell.</p>':`
+        <h3>&#x1F4E4; 몬스터 판매 등록</h3>
+        ${allMonsters.length===0?'<p style="font-size:.72rem;color:var(--text-light);text-align:center;">판매할 몬스터가 없습니다.</p>':`
           <select id="trade-monster-select">
-            ${allMonsters.map((m,i)=>`<option value="${i}">[${m.source==='party'?'Party':'Inv'}] ${m.name} Lv.${m.level||1} (${m.rarity||'Common'})</option>`).join('')}
+            ${allMonsters.map((m,i)=>`<option value="${i}">[${m.source==='party'?'파티':'보관함'}] ${m.name} Lv.${m.level||1} (${m.rarity||'Common'})</option>`).join('')}
           </select>
-          <input type="number" id="trade-price-input" min="10" max="999999" placeholder="Price (10 ~ 999,999 G)">
-          <button class="trade-list-btn" onclick="tradeListMonster()">List for Sale</button>
+          <input type="number" id="trade-price-input" min="10" max="999999" placeholder="가격 (10 ~ 999,999 G)">
+          <button class="trade-list-btn" onclick="tradeListMonster()">판매 등록</button>
         `}
       </div>`;
 
@@ -3918,14 +3930,14 @@ async function renderTradeBody(){
     window._tradeMonsterList=allMonsters;
   }else if(tradeState.currentTab==='history'){
     if(tradeState.history.length===0){
-      body.innerHTML='<div class="trade-empty">&#x1F4AD; No trade history yet.</div>';
+      body.innerHTML='<div class="trade-empty">&#x1F4AD; 아직 거래 내역이 없습니다.</div>';
     }else{
       body.innerHTML=tradeState.history.map(h=>`
         <div class="trade-history-item">
-          <div class="th-role ${h.role}">${h.role==='seller'?'SOLD':'BOUGHT'}</div>
+          <div class="th-role ${h.role}">${h.role==='seller'?'판매':'구매'}</div>
           <div class="th-detail">
             <div class="th-name">${h.monster_name} <span class="tc-rarity ${h.monster_rarity}" style="font-size:.5rem;">${h.monster_rarity}</span></div>
-            <div class="th-meta">${h.role==='seller'?'to':'from'} ${h.counterpart==='default'?'Me':h.counterpart.substring(0,8)}</div>
+            <div class="th-meta">${h.role==='seller'?'구매자:':'판매자:'} ${h.counterpart==='default'?'나':h.counterpart.substring(0,8)}</div>
           </div>
           <div class="th-price">&#x1F4B0; ${h.price.toLocaleString()}G</div>
         </div>
@@ -3935,26 +3947,26 @@ async function renderTradeBody(){
 }
 
 async function tradeBuy(listingId){
-  if(!confirm('Purchase this monster?')) return;
+  if(!confirm('이 몬스터를 구매하시겠습니까?')) return;
   const res=await apiFetch(`/api/trade/buy/${listingId}?session=default`,{method:'POST'});
   if(res.error){
     showToast(res.error);
     return;
   }
-  showToast(res.message||'Purchase successful!');
+  showToast(res.message||'구매 완료!');
   if(res.player) updatePlayerUI(res.player);
   processApiAchievementUnlocks(res);
   await renderTrade();
 }
 
 async function tradeCancelListing(listingId){
-  if(!confirm('Cancel this listing? Monster will be returned.')) return;
+  if(!confirm('등록을 취소하시겠습니까? 몬스터가 반환됩니다.')) return;
   const res=await apiFetch(`/api/trade/cancel/${listingId}?session=default`,{method:'POST'});
   if(res.error){
     showToast(res.error);
     return;
   }
-  showToast(res.message||'Listing cancelled.');
+  showToast(res.message||'등록이 취소되었습니다.');
   if(res.player) updatePlayerUI(res.player);
   await renderTrade();
 }
@@ -3967,13 +3979,13 @@ async function tradeListMonster(){
   const monsterIdx=parseInt(selectEl.value);
   const price=parseInt(priceEl.value);
   if(isNaN(price)||price<10||price>999999){
-    showToast('Price must be between 10 and 999,999 G.');
+    showToast('가격은 10 ~ 999,999 G 사이여야 합니다.');
     return;
   }
 
   const allMonsters=window._tradeMonsterList||[];
   if(monsterIdx<0||monsterIdx>=allMonsters.length){
-    showToast('Invalid monster selection.');
+    showToast('잘못된 몬스터 선택입니다.');
     return;
   }
 
@@ -3983,7 +3995,7 @@ async function tradeListMonster(){
     showToast(res.error);
     return;
   }
-  showToast(res.message||'Monster listed!');
+  showToast(res.message||'몬스터가 등록되었습니다!');
   if(res.player) updatePlayerUI(res.player);
   await renderTrade();
 }
@@ -4002,6 +4014,10 @@ let dgState={
 
 async function renderDungeon(){
   const res=await apiFetch('/api/dungeon/campaign/default');
+  if(res.error){
+    document.getElementById('dg-main-view').innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-light);font-size:.78rem;">서버 연결에 실패했습니다.<br><button class="dg-mbtn enter" style="margin-top:12px;" onclick="renderDungeon()">다시 시도</button></div>`;
+    return;
+  }
   dgState.campaign=res;
   dgState.selectedChapter=null;
   renderDungeonMain();
@@ -4480,6 +4496,10 @@ function showDungeonResult(res){
     <button class="dg-rbtn" onclick="dgCloseResult()">확인</button>
   `;
   overlay.classList.add('show');
+
+  if(isVictory){try{fireConfetti();}catch(e){}}
+  if(res.player) updatePlayerUI(res.player);
+  processApiAchievementUnlocks(res);
 }
 
 function dgCloseResult(){
@@ -4519,6 +4539,10 @@ let arenaState={
 async function renderArena(){
   // Load stats
   const statsRes=await apiFetch('/api/pvp/stats?session=default');
+  if(statsRes.error){
+    showToast('서버 연결에 실패했습니다.');
+    return;
+  }
   if(statsRes.registered){
     arenaState.registered=true;
     arenaState.stats=statsRes.stats;
@@ -4681,10 +4705,11 @@ async function arenaBattle(){
     </div>`;
 
   if(won){
-    try{launchConfetti();}catch(e){}
+    try{fireConfetti();}catch(e){}
   }
 
   processApiAchievementUnlocks(res);
+  if(res.player) updatePlayerUI(res.player);
   btn.disabled=false;
   btn.textContent='배틀!';
   await renderArena();

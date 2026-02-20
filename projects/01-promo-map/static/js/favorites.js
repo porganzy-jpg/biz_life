@@ -25,12 +25,12 @@ async function loadFavorites() {
 
         container.innerHTML = data.favorites.map(f => {
             const catInfo = getCategoryInfo(f.store_category);
-            return '<div class="store-card">'
+            return '<div class="store-card" onclick="openStoreDetail(' + f.store_id + ')">'
                 + '<div class="card-icon" style="background:' + f.icon_color + '">'
                 + f.icon_letter
                 + '<span class="card-category-icon">' + catInfo.icon + '</span>'
                 + '</div>'
-                + '<div class="card-info" onclick="openStoreDetail(' + f.store_id + ')">'
+                + '<div class="card-info">'
                 + '<div class="card-name">' + f.store_name + '</div>'
                 + '<div class="card-meta">'
                 + '<span class="category-badge">' + catInfo.icon + ' ' + catInfo.label + '</span> '
@@ -38,7 +38,7 @@ async function loadFavorites() {
                 + '</div>'
                 + '</div>'
                 + '<div class="card-actions">'
-                + '<button class="fav-btn active" onclick="removeFavFromList(' + f.store_id + ', this)">\u2665</button>'
+                + '<button class="fav-btn active" onclick="event.stopPropagation();removeFavFromList(' + f.store_id + ', this)">\u2665</button>'
                 + '</div>'
                 + '</div>';
         }).join('');

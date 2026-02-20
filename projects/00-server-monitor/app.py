@@ -32,15 +32,24 @@ app.include_router(deploy_router)
 
 @app.post("/api/start/{name}")
 async def api_start(name: str):
-    return JSONResponse(start_project(name))
+    try:
+        return JSONResponse(start_project(name))
+    except Exception as e:
+        return JSONResponse({"ok": False, "msg": f"시작 오류: {e}"}, status_code=500)
 
 @app.post("/api/stop/{name}")
 async def api_stop(name: str):
-    return JSONResponse(stop_project(name))
+    try:
+        return JSONResponse(stop_project(name))
+    except Exception as e:
+        return JSONResponse({"ok": False, "msg": f"중지 오류: {e}"}, status_code=500)
 
 @app.post("/api/restart/{name}")
 async def api_restart(name: str):
-    return JSONResponse(restart_project(name))
+    try:
+        return JSONResponse(restart_project(name))
+    except Exception as e:
+        return JSONResponse({"ok": False, "msg": f"재시작 오류: {e}"}, status_code=500)
 
 @app.get("/api/status")
 async def api_status():
@@ -158,24 +167,33 @@ async def api_schedule_toggle(schedule_id: str):
 @app.get("/api/health-scores")
 async def api_health_scores():
     """프로젝트별 건강 점수 반환 (캐시 5분)"""
-    engine = get_healing_engine()
-    scorer = engine.health_scorer
-    cached = scorer.get_cached_scores()
-    if cached:
-        return JSONResponse(cached)
-    return JSONResponse(scorer.calculate_all_scores())
+    try:
+        engine = get_healing_engine()
+        scorer = engine.health_scorer
+        cached = scorer.get_cached_scores()
+        if cached:
+            return JSONResponse(cached)
+        return JSONResponse(scorer.calculate_all_scores())
+    except Exception as e:
+        return JSONResponse({"system_score": 0, "alive_count": 0, "total_count": 0, "projects": {}, "error": str(e)}, status_code=500)
 
 @app.get("/api/healing-history")
 async def api_healing_history(limit: int = 50, project: str = None):
     """복구 이력 반환"""
-    return JSONResponse(get_healing_history(limit=limit, project=project))
+    try:
+        return JSONResponse(get_healing_history(limit=limit, project=project))
+    except Exception as e:
+        return JSONResponse([], status_code=500)
 
 @app.post("/api/healing/trigger/{project}")
 async def api_healing_trigger(project: str):
     """수동 복구 트리거"""
-    engine = get_healing_engine()
-    result = engine.manual_heal(project)
-    return JSONResponse(result)
+    try:
+        engine = get_healing_engine()
+        result = engine.manual_heal(project)
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"ok": False, "msg": f"복구 오류: {e}"}, status_code=500)
 
 @app.get("/api/healing/status")
 async def api_healing_status():
@@ -268,7 +286,7 @@ async def dashboard(request: Request):
                 <button class="btn btn-start" onclick="ctrl('{name}','start')" {'disabled' if alive else ''}>시작</button>
                 <button class="btn btn-stop" onclick="ctrl('{name}','stop')" {'disabled' if not alive else ''}>중지</button>
                 <button class="btn btn-restart" onclick="ctrl('{name}','restart')">재시작</button>
-                <a href="http://{{{{host}}}}:{proj['port']}/" target="_blank" class="btn btn-link">열기</a>
+                <a href="http://REPLACE_HOST:{proj['port']}/" target="_blank" class="btn btn-link">열기</a>
             </div>
             <div class="action-msg" id="msg-{name}"></div>
             <details>
@@ -632,6 +650,8 @@ async def dashboard(request: Request):
   .heal-result {{ color: #aaa; flex: 1; }}
   .circuit-breaker-info {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }}
   .cb-badge {{ font-size: 0.68rem; padding: 2px 8px; border-radius: 8px; background: #3a1b1b; color: #f44336; }}
+  .filter-apply:disabled, .sched-add-btn:disabled, .heal-btn:disabled {{ opacity: 0.5; cursor: not-allowed; }}
+  .maint-btn:disabled {{ opacity: 0.5; cursor: not-allowed; }}
 </style>
 </head>
 <body>
@@ -842,20 +862,28 @@ async def dashboard(request: Request):
 /* === 프로젝트 제어 === */
 async function ctrl(name, action) {{
   const msg = document.getElementById('msg-' + name);
+  if (!msg) return;
   msg.textContent = action + ' 중...';
   msg.className = 'action-msg';
+  // 해당 카드의 버튼 비활성화
+  const card = document.getElementById('card-' + name);
+  const btns = card ? card.querySelectorAll('.btn') : [];
+  btns.forEach(b => b.disabled = true);
   try {{
     const res = await fetch('/api/' + action + '/' + name, {{method: 'POST'}});
     const data = await res.json();
-    msg.textContent = data.msg;
+    msg.textContent = data.msg || '완료';
     msg.className = 'action-msg ' + (data.ok ? 'ok' : 'err');
     setTimeout(() => location.reload(), 2000);
   }} catch(e) {{
     msg.textContent = '요청 실패: ' + e;
     msg.className = 'action-msg err';
+    btns.forEach(b => b.disabled = false);
   }}
 }}
 async function ctrlAll(action) {{
+  const allBtns = document.querySelectorAll('.all-controls .btn');
+  allBtns.forEach(b => b.disabled = true);
   const names = {list(PROJECTS.keys())};
   for (const name of names) {{
     ctrl(name, action);
@@ -864,12 +892,13 @@ async function ctrlAll(action) {{
 }}
 async function manualDeploy(project) {{
   const msg = document.getElementById('deploy-msg');
+  if (!msg) return;
   msg.textContent = '배포 중...';
   msg.className = 'action-msg';
   try {{
     const res = await fetch('/api/deploy/manual?project=' + project, {{method: 'POST'}});
     const data = await res.json();
-    msg.textContent = data.msg;
+    msg.textContent = data.msg || '배포 완료';
     msg.className = 'action-msg ' + (data.ok ? 'ok' : 'err');
     setTimeout(() => location.reload(), 3000);
   }} catch(e) {{
@@ -879,12 +908,13 @@ async function manualDeploy(project) {{
 }}
 async function gitPull() {{
   const msg = document.getElementById('deploy-msg');
+  if (!msg) return;
   msg.textContent = 'git pull 중...';
   msg.className = 'action-msg';
   try {{
     const res = await fetch('/api/deploy/pull', {{method: 'POST'}});
     const data = await res.json();
-    msg.textContent = data.msg;
+    msg.textContent = data.msg || 'git pull 완료';
     msg.className = 'action-msg ' + (data.ok ? 'ok' : 'err');
     setTimeout(() => location.reload(), 2000);
   }} catch(e) {{
@@ -941,30 +971,39 @@ function escapeHtml(str) {{
 async function applyFilter() {{
   const project = document.getElementById('filterProject').value;
   const types = Array.from(document.querySelectorAll('.evt-type-cb:checked')).map(cb => cb.value);
+  const totalTypes = document.querySelectorAll('.evt-type-cb').length;
   const btn = document.querySelector('.time-btn.active');
+  const applyBtn = document.querySelector('.filter-apply');
 
   let params = new URLSearchParams();
   if (project) params.set('project', project);
-  if (types.length > 0 && types.length < 7) params.set('event_type', types.join(','));
+  if (types.length > 0 && types.length < totalTypes) params.set('event_type', types.join(','));
   if (btn) {{
     if (btn.dataset.days) params.set('days', btn.dataset.days);
     else if (btn.dataset.hours) params.set('hours', btn.dataset.hours);
   }}
   params.set('limit', '100');
 
+  // 로딩 표시
+  if (applyBtn) {{ applyBtn.disabled = true; applyBtn.textContent = '검색 중...'; }}
+  document.getElementById('eventTimeline').innerHTML = '<div style="color:#888;font-size:0.8rem;padding:8px 0;">검색 중...</div>';
+
   try {{
     const res = await fetch('/api/events/search?' + params.toString());
+    if (!res.ok) throw new Error('서버 응답 오류: ' + res.status);
     const events = await res.json();
     renderTimeline(events);
 
     // 필터 요약
     const parts = [events.length + '개 이벤트'];
     if (project) parts.push('프로젝트: ' + project);
-    if (types.length < 7) parts.push('타입: ' + types.join(', '));
+    if (types.length < totalTypes) parts.push('타입: ' + types.join(', '));
     if (btn) parts.push('기간: ' + btn.textContent);
     document.getElementById('filterSummary').textContent = parts.join(' | ');
   }} catch(e) {{
-    document.getElementById('eventTimeline').innerHTML = '<div style="color:#f44336;font-size:0.8rem">검색 실패: ' + e + '</div>';
+    document.getElementById('eventTimeline').innerHTML = '<div style="color:#f44336;font-size:0.8rem;padding:8px 0;">검색 실패: ' + e + '</div>';
+  }} finally {{
+    if (applyBtn) {{ applyBtn.disabled = false; applyBtn.textContent = '검색'; }}
   }}
 }}
 
@@ -1032,23 +1071,27 @@ if (!autoRefreshPaused) startAutoRefresh();
 /* === 유지보수 윈도우 토글 === */
 async function maintStart() {{
   const msg = document.getElementById('maintMsg');
+  const btn = document.querySelector('.maint-btn.start');
+  if (btn) btn.disabled = true;
   msg.textContent = '시작 중...';
   try {{
     const res = await fetch('/api/maintenance/start', {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify({{hours:2}})}});
     const data = await res.json();
-    msg.textContent = data.msg;
+    msg.textContent = data.msg || '완료';
     setTimeout(() => location.reload(), 1500);
-  }} catch(e) {{ msg.textContent = '실패: ' + e; }}
+  }} catch(e) {{ msg.textContent = '실패: ' + e; if (btn) btn.disabled = false; }}
 }}
 async function maintStop() {{
   const msg = document.getElementById('maintMsg');
+  const btn = document.querySelector('.maint-btn.stop');
+  if (btn) btn.disabled = true;
   msg.textContent = '종료 중...';
   try {{
     const res = await fetch('/api/maintenance/stop', {{method:'POST'}});
     const data = await res.json();
-    msg.textContent = data.msg;
+    msg.textContent = data.msg || '완료';
     setTimeout(() => location.reload(), 1500);
-  }} catch(e) {{ msg.textContent = '실패: ' + e; }}
+  }} catch(e) {{ msg.textContent = '실패: ' + e; if (btn) btn.disabled = false; }}
 }}
 
 /* === 메트릭 스파크라인 === */
@@ -1086,6 +1129,7 @@ function drawSparkline(canvasId, data, color) {{
 (async function() {{
   try {{
     const res = await fetch('/api/metrics/history?minutes=120');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const metrics = await res.json();
     if (metrics && metrics.length > 0) {{
       const cpuData = metrics.map(m => m.cpu_percent || 0);
@@ -1094,8 +1138,29 @@ function drawSparkline(canvasId, data, color) {{
       drawSparkline('sparkCpu', cpuData, '#64b5f6');
       drawSparkline('sparkMem', memData, '#4caf50');
       drawSparkline('sparkDisk', diskData, '#ff9800');
+    }} else {{
+      document.querySelectorAll('.sparkline-card').forEach(c => {{
+        const canvas = c.querySelector('canvas');
+        if (canvas) {{
+          const notice = document.createElement('div');
+          notice.style.cssText = 'color:#666;font-size:0.72rem;text-align:center;padding:16px 0;';
+          notice.textContent = '메트릭 데이터 수집 중...';
+          canvas.parentNode.replaceChild(notice, canvas);
+        }}
+      }});
     }}
-  }} catch(e) {{ console.log('sparkline error:', e); }}
+  }} catch(e) {{
+    console.log('sparkline error:', e);
+    document.querySelectorAll('.sparkline-card').forEach(c => {{
+      const canvas = c.querySelector('canvas');
+      if (canvas) {{
+        const notice = document.createElement('div');
+        notice.style.cssText = 'color:#666;font-size:0.72rem;text-align:center;padding:16px 0;';
+        notice.textContent = '메트릭 로드 실패';
+        canvas.parentNode.replaceChild(notice, canvas);
+      }}
+    }});
+  }}
 }})();
 
 /* === 예약 재시작 === */
@@ -1157,15 +1222,17 @@ function renderSchedules(schedules) {{
 async function loadSchedules() {{
   try {{
     const res = await fetch('/api/schedules');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     renderSchedules(data);
   }} catch(e) {{
-    document.getElementById('scheduleTable').innerHTML = '<div class="sched-empty" style="color:#f44336">스케줄 로딩 실패</div>';
+    document.getElementById('scheduleTable').innerHTML = '<div class="sched-empty" style="color:#f44336">스케줄 로딩 실패: ' + escapeHtml(String(e)) + '</div>';
   }}
 }}
 
 async function addSchedule() {{
   const msg = document.getElementById('schedMsg');
+  const addBtn = document.querySelector('.sched-add-btn');
   const project = document.getElementById('schedProject').value;
   const stype = document.getElementById('schedType').value;
   const time = document.getElementById('schedTime').value;
@@ -1178,6 +1245,7 @@ async function addSchedule() {{
 
   msg.textContent = '추가 중...';
   msg.className = 'sched-msg';
+  if (addBtn) addBtn.disabled = true;
   try {{
     const res = await fetch('/api/schedules', {{
       method: 'POST',
@@ -1185,12 +1253,14 @@ async function addSchedule() {{
       body: JSON.stringify(body)
     }});
     const data = await res.json();
-    msg.textContent = data.msg;
+    msg.textContent = data.msg || '완료';
     msg.className = 'sched-msg ' + (data.ok ? 'ok' : 'err');
     if (data.ok) loadSchedules();
   }} catch(e) {{
     msg.textContent = '추가 실패: ' + e;
     msg.className = 'sched-msg err';
+  }} finally {{
+    if (addBtn) addBtn.disabled = false;
   }}
 }}
 
@@ -1199,7 +1269,10 @@ async function toggleSched(id) {{
     const res = await fetch('/api/schedules/' + id + '/toggle', {{method: 'PUT'}});
     const data = await res.json();
     if (data.ok) loadSchedules();
-  }} catch(e) {{ console.error('toggle error:', e); }}
+    else {{ const m = document.getElementById('schedMsg'); if(m){{ m.textContent = data.msg || '토글 실패'; m.className = 'sched-msg err'; }} }}
+  }} catch(e) {{
+    const m = document.getElementById('schedMsg'); if(m){{ m.textContent = '토글 실패: ' + e; m.className = 'sched-msg err'; }}
+  }}
 }}
 
 async function deleteSched(id) {{
@@ -1208,7 +1281,10 @@ async function deleteSched(id) {{
     const res = await fetch('/api/schedules/' + id, {{method: 'DELETE'}});
     const data = await res.json();
     if (data.ok) loadSchedules();
-  }} catch(e) {{ console.error('delete error:', e); }}
+    else {{ const m = document.getElementById('schedMsg'); if(m){{ m.textContent = data.msg || '삭제 실패'; m.className = 'sched-msg err'; }} }}
+  }} catch(e) {{
+    const m = document.getElementById('schedMsg'); if(m){{ m.textContent = '삭제 실패: ' + e; m.className = 'sched-msg err'; }}
+  }}
 }}
 
 // 페이지 로드 시 스케줄 목록 로딩
@@ -1217,14 +1293,15 @@ loadSchedules();
 /* === 자동 복구 === */
 async function healProject(name) {{
   const msg = document.getElementById('healProjectMsg');
+  if (!msg) return;
   msg.textContent = name + ' 복구 중...';
   msg.className = 'heal-msg';
   try {{
     const res = await fetch('/api/healing/trigger/' + name, {{method: 'POST'}});
     const data = await res.json();
-    msg.textContent = name + ': ' + (data.msg || '');
+    msg.textContent = name + ': ' + (data.msg || '완료');
     msg.className = 'heal-msg ' + (data.ok ? 'ok' : 'err');
-    setTimeout(() => location.reload(), 3000);
+    if (data.ok) setTimeout(() => location.reload(), 3000);
   }} catch(e) {{
     msg.textContent = '복구 실패: ' + e;
     msg.className = 'heal-msg err';
@@ -1233,8 +1310,11 @@ async function healProject(name) {{
 
 async function healAll() {{
   const msg = document.getElementById('healAllMsg');
+  if (!msg) return;
   msg.textContent = '전체 복구 중...';
   msg.className = 'heal-msg';
+  const healBtn = msg.previousElementSibling;
+  if (healBtn) healBtn.disabled = true;
   const names = {list(PROJECTS.keys())};
   const results = [];
   for (const name of names) {{
@@ -1248,6 +1328,7 @@ async function healAll() {{
   }}
   msg.textContent = results.join(' | ');
   msg.className = 'heal-msg';
+  if (healBtn) healBtn.disabled = false;
   setTimeout(() => location.reload(), 3000);
 }}
 </script>
@@ -1256,7 +1337,7 @@ async function healAll() {{
 
     req_host = request.headers.get("host", "localhost:9000")
     host_only = req_host.split(":")[0]
-    html = html.replace("{{host}}", host_only)
+    html = html.replace("REPLACE_HOST", host_only)
     return HTMLResponse(html)
 
 

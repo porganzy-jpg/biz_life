@@ -27,7 +27,9 @@ async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    const btn = e.target.querySelector('button[type="submit"]');
 
+    if (btn) { btn.disabled = true; btn.textContent = '로그인 중...'; }
     try {
         const data = await API.login({ email, password });
         API.setTokens(data.access_token, data.refresh_token);
@@ -38,6 +40,8 @@ async function handleLogin(e) {
         refreshCurrentTab();
     } catch (err) {
         showToast(err.detail || '로그인 실패');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '로그인'; }
     }
     return false;
 }
@@ -51,7 +55,9 @@ async function handleRegister(e) {
         phone: document.getElementById('regPhone').value,
         company_code: document.getElementById('regCompanyCode').value || null,
     };
+    const btn = e.target.querySelector('button[type="submit"]');
 
+    if (btn) { btn.disabled = true; btn.textContent = '가입 중...'; }
     try {
         const result = await API.register(data);
         API.setTokens(result.access_token, result.refresh_token);
@@ -62,6 +68,8 @@ async function handleRegister(e) {
         refreshCurrentTab();
     } catch (err) {
         showToast(err.detail || '회원가입 실패');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '회원가입'; }
     }
     return false;
 }
@@ -73,6 +81,9 @@ async function handleLogout() {
     API.clearTokens();
     showToast('로그아웃 완료');
     updateAuthUI();
+    if (typeof NotificationManager !== 'undefined') {
+        NotificationManager.refreshBadge();
+    }
     switchTab('map');
 }
 

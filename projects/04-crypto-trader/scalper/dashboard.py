@@ -797,7 +797,7 @@ table{min-width:600px}
 <!-- Tab: 전략 최적화 (Adaptive Optimizer) -->
 <div id="tab-optimizer" class="tab-content">
   <div class="panel-title" style="margin-bottom:16px">전략 최적화 엔진
-    <button class="btn btn-green" style="margin-left:16px;font-size:11px" onclick="triggerOptimization()">수동 최적화 실행</button>
+    <button class="btn btn-green" style="margin-left:16px;font-size:11px" id="opt-trigger-btn" onclick="triggerOptimization(this)">수동 최적화 실행</button>
     <button class="btn" style="margin-left:8px;font-size:11px" onclick="resetParams('')">전체 초기화</button>
     <span id="opt-last-run" style="margin-left:16px;color:var(--text2);font-size:11px"></span>
   </div>
@@ -870,15 +870,15 @@ table{min-width:600px}
   <div class="guide-section">
     <h3>앙상블 투표 과정 (플로우차트)</h3>
     <div class="guide-flow"><span class="step">[1단계] 4개 전략 독립 분석</span>
-  각 전략이 1분봉 데이터를 받아 BUY / SELL / HOLD 판단
+  각 전략이 15분봉 데이터를 받아 BUY / SELL / HOLD 판단
   RSI+BB (30%) │ VWAP+Vol (25%) │ StochRSI (25%) │ EMA Cross (20%)
         ↓               ↓               ↓               ↓
 <span class="step">[2단계] 쿨다운 체크</span>
-  마지막 거래 후 8분 경과했는가?
+  마지막 거래 후 3봉(45분) 경과했는가?
   <span class="yes">→ YES: 다음 단계</span>  <span class="no">→ NO: HOLD (쿨다운 대기)</span>
 
 <span class="step">[3단계] 변동성 레짐 체크</span>
-  현재 변동성이 적정 범위(20~90 퍼센타일)인가?
+  현재 변동성이 적정 범위(10~95 퍼센타일)인가?
   <span class="yes">→ YES: 다음 단계</span>  <span class="no">→ NO: HOLD (변동성 부적합)</span>
 
 <span class="step">[4단계] 투표 집계</span>
@@ -886,7 +886,7 @@ table{min-width:600px}
   <span class="yes">→ YES: 다음 단계</span>  <span class="no">→ NO: HOLD (합의 부족)</span>
 
 <span class="step">[5단계] 신뢰도 검증</span>
-  가중 합산 신뢰도 ≥ 0.30? (가중치 × 개별 신뢰도의 합)
+  가중 합산 신뢰도 ≥ 0.25? (가중치 × 개별 신뢰도의 합)
   <span class="yes">→ YES: 다음 단계</span>  <span class="no">→ NO: HOLD (신뢰도 부족)</span>
 
 <span class="step">[6단계] 추세 필터</span>
@@ -903,9 +903,9 @@ table{min-width:600px}
     <p>이 봇은 <span class="guide-highlight">4개의 전략</span>이 동시에 시장을 분석하고, <span class="guide-highlight">최소 2개 이상</span>이 "매수"에 동의해야 실제 매수가 실행되는 <b>앙상블 투표 시스템</b>입니다.</p>
     <ul>
       <li>각 전략은 독립적으로 BUY / SELL / HOLD 시그널을 생성합니다</li>
-      <li>각 전략에는 가중치가 있어, 가중 합산된 신뢰도가 <span class="guide-highlight">30% 이상</span>이어야 합니다</li>
+      <li>각 전략에는 가중치가 있어, 가중 합산된 신뢰도가 <span class="guide-highlight">25% 이상</span>이어야 합니다</li>
       <li>추가로 <span class="guide-buy">상승추세</span>(EMA50 기울기 양수 + 가격이 EMA50 위)일 때만 매수를 허용합니다</li>
-      <li>매매 후 최소 <span class="guide-highlight">8분간 쿨다운</span> (같은 코인 재진입 방지)</li>
+      <li>매매 후 최소 <span class="guide-highlight">3봉(45분) 쿨다운</span> (같은 코인 재진입 방지)</li>
       <li>변동성이 너무 낮거나(횡보장) 너무 높으면(급변장) 자동으로 거래를 쉽니다</li>
     </ul>
   </div>
@@ -915,19 +915,19 @@ table{min-width:600px}
     <p><b>핵심 아이디어:</b> "가격이 너무 빠졌으니 반등할 것이다" - 과매도 구간에서 반등 시작 시 매수</p>
     <p style="margin:8px 0"><b>지표 설명:</b></p>
     <ul>
-      <li><b>RSI (상대강도지수, 기간=7)</b>: 최근 7분간 상승폭 vs 하락폭의 비율. 0~100 범위</li>
-      <li>RSI <span class="guide-buy">&lt; 30</span> = 과매도 (최근 7분간 하락이 압도적 → 반등 가능성 ↑)</li>
-      <li>RSI <span class="guide-sell">&gt; 70</span> = 과매수 (최근 7분간 상승이 압도적 → 하락 가능성 ↑)</li>
+      <li><b>RSI (상대강도지수, 기간=14)</b>: 최근 14봉간 상승폭 vs 하락폭의 비율. 0~100 범위</li>
+      <li>RSI <span class="guide-buy">&lt; 35</span> = 과매도 (최근 하락이 압도적 → 반등 가능성 ↑)</li>
+      <li>RSI <span class="guide-sell">&gt; 65</span> = 과매수 (최근 상승이 압도적 → 하락 가능성 ↑)</li>
       <li><b>BB%B (볼린저밴드 위치, 기간=20, 표준편차=2)</b>: 현재 가격이 통계적 밴드의 어디에 있는지</li>
       <li>BB%B = 0% → 하단밴드 (통계적으로 가격이 매우 낮음), 100% → 상단밴드 (매우 높음)</li>
     </ul>
     <p style="margin:8px 0"><b>매수 조건 (3개 모두 충족 필요):</b></p>
     <ul>
-      <li>✅ RSI &lt; 30 (과매도 진입)</li>
+      <li>✅ RSI &lt; 35 (과매도 진입)</li>
       <li>✅ BB%B &lt; 15% (밴드 하단 근처 - 통계적으로 '싸다')</li>
       <li>✅ RSI가 전봉 대비 반등 시작 (이전 RSI &lt; 현재 RSI)</li>
     </ul>
-    <p style="margin:8px 0"><b>신뢰도:</b> RSI가 30에서 멀수록 높음. 계산: min(1.0, (30-RSI)/30 + 0.2)</p>
+    <p style="margin:8px 0"><b>신뢰도:</b> RSI가 35에서 멀수록 높음. 계산: min(1.0, (35-RSI)/35 + 0.2)</p>
   </div>
 
   <div class="guide-card">
@@ -937,13 +937,13 @@ table{min-width:600px}
     <ul>
       <li><b>VWAP (거래량가중평균가, 기간=14)</b>: 거래량을 가중치로 한 평균 매입 단가. 기관의 기준선</li>
       <li>가격 &gt; VWAP → 대다수가 수익 중 (매수세 우위), 가격 &lt; VWAP → 대다수가 손실 중 (매도세 우위)</li>
-      <li><b>거래량 비율</b>: 현재봉 거래량 / 14봉 평균. <span class="guide-highlight">1.5배 이상</span> = "거래량 급증(서지)"</li>
+      <li><b>거래량 비율</b>: 현재봉 거래량 / 14봉 평균. <span class="guide-highlight">1.3배 이상</span> = "거래량 급증(서지)"</li>
     </ul>
     <p style="margin:8px 0"><b>매수 조건 (3개 모두 충족 필요):</b></p>
     <ul>
       <li>✅ 최근 2봉 내 VWAP 상향돌파 (아래→위)</li>
       <li>✅ 현재 가격이 VWAP 위 유지 중</li>
-      <li>✅ 최근 2봉 중 거래량이 평균의 1.5배 이상</li>
+      <li>✅ 최근 2봉 중 거래량이 평균의 1.3배 이상</li>
     </ul>
     <p style="margin:8px 0"><b>신뢰도:</b> 거래량 급증 강도 + VWAP 대비 가격 차이 기반</p>
   </div>
@@ -955,15 +955,15 @@ table{min-width:600px}
     <ul>
       <li><b>K선 (빠른선, 기간=5)</b>: StochRSI의 이동평균. 민감하게 반응</li>
       <li><b>D선 (느린선, 기간=3)</b>: K선의 이동평균. 노이즈 필터링</li>
-      <li>0~100 범위. <span class="guide-buy">&lt; 25</span> = 과매도 구간, <span class="guide-sell">&gt; 75</span> = 과매수 구간</li>
+      <li>0~100 범위. <span class="guide-buy">&lt; 30</span> = 과매도 구간, <span class="guide-sell">&gt; 70</span> = 과매수 구간</li>
       <li><b>골든크로스</b>: K선이 D선을 아래에서 위로 교차 → 상승 모멘텀 전환 신호</li>
     </ul>
     <p style="margin:8px 0"><b>매수 조건 (2개 모두 충족 필요):</b></p>
     <ul>
       <li>✅ K선이 D선을 상향교차 (골든크로스) - 이전봉: K≤D, 현재봉: K&gt;D</li>
-      <li>✅ K 또는 D가 25 이하 (과매도 구간에서의 교차만 유효)</li>
+      <li>✅ K 또는 D가 30 이하 (과매도 구간에서의 교차만 유효)</li>
     </ul>
-    <p style="margin:8px 0"><b>신뢰도:</b> 과매도 깊이에 비례. 계산: min(1.0, (25-min(K,D))/25), 최소 0.3</p>
+    <p style="margin:8px 0"><b>신뢰도:</b> 과매도 깊이에 비례. 계산: min(1.0, (30-min(K,D))/30), 최소 0.3</p>
   </div>
 
   <div class="guide-card">
@@ -971,27 +971,28 @@ table{min-width:600px}
     <p><b>핵심 아이디어:</b> "추세가 전환됐다" - 단기 이동평균이 중기를 돌파하면 새 추세에 올라탐</p>
     <p style="margin:8px 0"><b>지표 설명:</b></p>
     <ul>
-      <li><b>EMA 3 (단기)</b>: 최근 3분 지수이동평균. 가격 변화에 가장 빠르게 반응</li>
-      <li><b>EMA 8 (중기)</b>: 최근 8분 지수이동평균. 약간 느리지만 안정적</li>
-      <li><b>EMA 21 (추세)</b>: 최근 21분 지수이동평균. 중기 추세 방향 판단 기준선</li>
-      <li>EMA3 &gt; EMA8 → 단기 상승세, EMA3 &lt; EMA8 → 단기 하락세</li>
+      <li><b>EMA 5 (단기)</b>: 최근 5봉 지수이동평균. 가격 변화에 가장 빠르게 반응</li>
+      <li><b>EMA 13 (중기)</b>: 최근 13봉 지수이동평균. 약간 느리지만 안정적</li>
+      <li><b>EMA 34 (추세)</b>: 최근 34봉 지수이동평균. 중기 추세 방향 판단 기준선</li>
+      <li>EMA5 &gt; EMA13 → 단기 상승세, EMA5 &lt; EMA13 → 단기 하락세</li>
     </ul>
     <p style="margin:8px 0"><b>매수 조건 (2개 모두 충족 필요):</b></p>
     <ul>
-      <li>✅ EMA3이 EMA8을 상향교차 (골든크로스) - 이전봉: EMA3≤EMA8, 현재봉: EMA3&gt;EMA8</li>
-      <li>✅ 현재 가격이 EMA21 위 (중기 추세가 상승일 때만)</li>
+      <li>✅ EMA5이 EMA13을 상향교차 (골든크로스) - 이전봉: EMA5≤EMA13, 현재봉: EMA5&gt;EMA13</li>
+      <li>✅ 현재 가격이 EMA34 위 (중기 추세가 상승일 때만)</li>
     </ul>
-    <p style="margin:8px 0"><b>신뢰도:</b> EMA3-EMA8 간격(스프레드)에 비례. 벌어질수록 추세가 강함</p>
+    <p style="margin:8px 0"><b>신뢰도:</b> EMA5-EMA13 간격(스프레드)에 비례. 벌어질수록 추세가 강함</p>
   </div>
 
   <div class="guide-section">
     <h3>손절/익절 시스템</h3>
     <ul>
-      <li><b>손절 (Stop Loss)</b>: ATR(변동성) × 4배 기반 자동 계산. 최소 0.4%, 최대 1.2%</li>
-      <li><b>익절 (Take Profit)</b>: 1.0% 도달 시 자동 매도 (고정)</li>
-      <li><b>트레일링 스탑</b>: +0.5% 수익 도달 후 활성화, 고점 대비 0.3% 하락 시 매도 → 수익 극대화</li>
-      <li><b>시그널 매도</b>: 진입 후 15분 경과 + 수익 -0.1% 이상일 때, 앙상블이 SELL 판단하면 매도</li>
-      <li><b>서킷 브레이커</b>: 일일 손실 3% 또는 연속 4패 시 15분간 자동 거래 중지</li>
+      <li><b>손절 (Stop Loss)</b>: ATR(변동성) × 1.5배 기반 자동 계산. 최소 0.5%, 최대 3.0%</li>
+      <li><b>익절 (Take Profit)</b>: ATR × 4.0배 또는 최소 3.0% 도달 시 자동 매도</li>
+      <li><b>트레일링 스탑</b>: +0.8% 수익 도달 후 활성화, 고점 대비 0.3% 하락 시 매도 → 수익 극대화</li>
+      <li><b>시그널 매도</b>: 진입 후 4봉(1시간) 경과 + 수익 +0.3% 이상일 때, 앙상블이 SELL 판단하면 매도</li>
+      <li><b>Breakeven 스탑</b>: 48봉(12시간) 후 BEP+0.2% 버퍼로 손절선 이동</li>
+      <li><b>서킷 브레이커</b>: 일일 손실 5% 또는 연속 5패 시 10분간 자동 거래 중지</li>
       <li><b>수수료</b>: 업비트 편도 0.05% (왕복 0.1%). 모든 PnL에 자동 반영됨</li>
     </ul>
   </div>
@@ -1000,16 +1001,16 @@ table{min-width:600px}
     <h3>상세 차트 읽는 법</h3>
     <p>Market Watch에서 코인 카드를 <b>클릭</b>하면 상세 차트가 열립니다:</p>
     <ul>
-      <li><b>메인 캔들스틱 차트</b>: 초록봉=상승(양봉), 빨간봉=하락(음봉). 최근 60분봉</li>
+      <li><b>메인 캔들스틱 차트</b>: 초록봉=상승(양봉), 빨간봉=하락(음봉). 최근 60개 15분봉</li>
       <li style="color:var(--purple)"><b>보라색 점선</b> = 볼린저밴드 상/하한선 (가격의 통계적 범위)</li>
-      <li style="color:var(--orange)"><b>주황선</b> = EMA3 (단기), <span style="color:var(--yellow)">노란선</span> = EMA8 (중기), <span style="color:var(--accent)">파란선</span> = EMA21 (추세)</li>
+      <li style="color:var(--orange)"><b>주황선</b> = EMA5 (단기), <span style="color:var(--yellow)">노란선</span> = EMA13 (중기), <span style="color:var(--accent)">파란선</span> = EMA34 (추세)</li>
       <li style="color:var(--green)"><b>연초록 점선</b> = VWAP (거래량가중평균가)</li>
     </ul>
     <p style="margin-top:8px"><b>서브차트:</b></p>
     <ul>
-      <li><b>RSI</b>: 보라색 라인. 초록 점선(30)과 빨간 점선(70) 사이가 정상 구간</li>
-      <li><b>StochRSI</b>: 파란선(K) + 주황점선(D). 초록 점선(25) 아래에서 K가 D를 상향교차하면 매수 시그널</li>
-      <li><b>Volume</b>: 파란 막대=보통, 노란 막대=거래량 서지(1.5x 이상). 노란 점선=서지 기준선</li>
+      <li><b>RSI</b>: 보라색 라인. 초록 점선(35)과 빨간 점선(65) 사이가 정상 구간</li>
+      <li><b>StochRSI</b>: 파란선(K) + 주황점선(D). 초록 점선(30) 아래에서 K가 D를 상향교차하면 매수 시그널</li>
+      <li><b>Volume</b>: 파란 막대=보통, 노란 막대=거래량 서지(1.3x 이상). 노란 점선=서지 기준선</li>
     </ul>
   </div>
 
@@ -1019,8 +1020,8 @@ table{min-width:600px}
     <ul>
       <li><span style="color:var(--green)">초록 영역</span> = 매수 유리 (과매도), <span style="color:var(--red)">빨간 영역</span> = 매도 유리 (과매수), 가운데 = 중립</li>
       <li><span style="color:var(--accent)">파란 마커(|)</span> = 현재 값 위치. 초록 영역 안에 있으면 해당 지표가 매수 조건 충족</li>
-      <li>RSI: 0-30(초록) 30-70(중립) 70-100(빨강) | BB%B: 0-15%(초록) 15-85%(중립) 85-100%(빨강)</li>
-      <li>StochRSI K: 0-25(초록) 25-75(중립) 75-100(빨강) | Volume: 1.5x 이상이면 노란색 "SURGE"</li>
+      <li>RSI: 0-35(초록) 35-65(중립) 65-100(빨강) | BB%B: 0-15%(초록) 15-85%(중립) 85-100%(빨강)</li>
+      <li>StochRSI K: 0-30(초록) 30-70(중립) 70-100(빨강) | Volume: 1.3x 이상이면 노란색 "SURGE"</li>
     </ul>
   </div>
 
@@ -1294,7 +1295,7 @@ function applyMarketWatch(d){
       <div class="mw-detail" id="detail-${m.market}">
         <div class="tv-chart-wrap" id="tv-${m.market}"></div>
         <div class="subchart-row">
-          <div class="subchart-box"><div class="subchart-label">RSI (7)</div><canvas class="subchart-canvas" id="sc-rsi-${m.market}"></canvas></div>
+          <div class="subchart-box"><div class="subchart-label">RSI</div><canvas class="subchart-canvas" id="sc-rsi-${m.market}"></canvas></div>
           <div class="subchart-box"><div class="subchart-label">StochRSI K/D</div><canvas class="subchart-canvas" id="sc-stoch-${m.market}"></canvas></div>
           <div class="subchart-box"><div class="subchart-label">Volume</div><canvas class="subchart-canvas vol" id="sc-vol-${m.market}"></canvas></div>
         </div>
@@ -1345,7 +1346,7 @@ function applyMarketWatch(d){
     // Indicator gauges - only update if data changed
     if(!changed){/* skip gauge rebuild */}else{
     let gaugeHtml='';
-    if(ind.rsi!=null) gaugeHtml+=makeGauge('RSI (7)',ind.rsi,0,100,ind.rsi_oversold,ind.rsi_overbought);
+    if(ind.rsi!=null) gaugeHtml+=makeGauge('RSI',ind.rsi,0,100,ind.rsi_oversold,ind.rsi_overbought);
     if(ind.bb_pctb!=null) gaugeHtml+=makeGauge('BB%B',ind.bb_pctb*100,0,100,ind.bb_buy_zone*100,ind.bb_sell_zone*100);
     if(ind.stoch_k!=null) gaugeHtml+=makeGauge('StochRSI K',ind.stoch_k,0,100,ind.stoch_oversold,ind.stoch_overbought);
     if(ind.vol_ratio!=null) gaugeHtml+=makeVolGauge('Volume',ind.vol_ratio,ind.vol_surge_threshold);
@@ -1504,25 +1505,28 @@ function renderSubCharts(m){
   if(!labels.length)return;
 
   // RSI
+  const rsiOS=ind.rsi_oversold||35,rsiOB=ind.rsi_overbought||65;
   renderSubChart('sc-rsi-'+m.market,m.market+'_rsi',labels,[
     {label:'RSI',data:ind.chart_rsi||[],borderColor:'#bc8cff',borderWidth:1.5,pointRadius:0,fill:false,tension:.2}
-  ],{min:0,max:100,thresholds:[{y:30,color:'rgba(63,185,80,0.15)'},{y:70,color:'rgba(248,81,73,0.15)'}],
-    annotations:[{y:30,color:'#3fb950',dash:[4,4]},{y:70,color:'#f85149',dash:[4,4]}]});
+  ],{min:0,max:100,thresholds:[{y:rsiOS,color:'rgba(63,185,80,0.15)'},{y:rsiOB,color:'rgba(248,81,73,0.15)'}],
+    annotations:[{y:rsiOS,color:'#3fb950',dash:[4,4]},{y:rsiOB,color:'#f85149',dash:[4,4]}]});
 
   // StochRSI
+  const stOS=ind.stoch_oversold||30,stOB=ind.stoch_overbought||70;
   renderSubChart('sc-stoch-'+m.market,m.market+'_stoch',labels,[
     {label:'K',data:ind.chart_stoch_k||[],borderColor:'#58a6ff',borderWidth:1.5,pointRadius:0,fill:false,tension:.2},
     {label:'D',data:ind.chart_stoch_d||[],borderColor:'#f0883e',borderWidth:1,pointRadius:0,fill:false,tension:.2,borderDash:[3,3]}
-  ],{min:0,max:100,annotations:[{y:25,color:'#3fb950',dash:[4,4]},{y:75,color:'#f85149',dash:[4,4]}]});
+  ],{min:0,max:100,annotations:[{y:stOS,color:'#3fb950',dash:[4,4]},{y:stOB,color:'#f85149',dash:[4,4]}]});
 
   // Volume
   const volAvg=ind.chart_vol_avg||[];
-  const surgeLineData=volAvg.map(v=>v!=null?v*1.5:null);
+  const volSurge=ind.vol_surge_threshold||1.3;
+  const surgeLineData=volAvg.map(v=>v!=null?v*volSurge:null);
   renderSubChart('sc-vol-'+m.market,m.market+'_vol',labels,[
     {label:'Vol',data:ind.chart_volume||[],type:'bar',backgroundColor:ind.chart_volume?.map((v,i)=>{
-      const avg=volAvg[i];return(avg&&v>=avg*1.5)?'rgba(210,153,34,0.7)':'rgba(88,166,255,0.4)';
+      const avg=volAvg[i];return(avg&&v>=avg*volSurge)?'rgba(210,153,34,0.7)':'rgba(88,166,255,0.4)';
     })||'rgba(88,166,255,0.4)',borderWidth:0},
-    {label:'1.5x Avg',data:surgeLineData,borderColor:'#d29922',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,type:'line'}
+    {label:volSurge+'x Avg',data:surgeLineData,borderColor:'#d29922',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,type:'line'}
   ],{min:0});
 }
 
@@ -1629,6 +1633,13 @@ function makeVolGauge(label,ratio,threshold){
 // ── Performance ──
 async function loadPerformance(){
   const d=await api(`/api/trades/stats?period=${currentPeriod}`);if(!d)return;
+  if(!d.total_trades||d.total_trades===0){
+    document.getElementById('perfStats').innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:24px"><div style="color:var(--text2);font-size:14px">선택한 기간에 거래 기록이 없습니다.</div></div>';
+    ['equityChart','dailyPnlChart','exitTypeChart','marketPnlChart'].forEach(id=>{if(charts[id]){charts[id].destroy();delete charts[id]}});
+    document.getElementById('perfSummaryBox').innerHTML='<div class="panel-title">Summary ('+currentPeriod+')</div><p style="color:var(--text2);padding:20px;text-align:center">거래 기록 없음</p>';
+    if(document.getElementById('perfBlank'))document.getElementById('perfBlank').innerHTML='';
+    return;
+  }
   document.getElementById('perfStats').innerHTML=`
     <div class="card"><div class="card-label">Total PnL</div><div class="card-value ${cls(d.total_pnl_krw)}">${d.total_pnl_krw>=0?'+':''}${fmt(d.total_pnl_krw)}</div></div>
     <div class="card"><div class="card-label">Win Rate</div><div class="card-value ${d.win_rate>=50?'positive':'negative'}">${d.win_rate}%</div></div>
@@ -1740,6 +1751,13 @@ function renderChart(id,type,data,extra={}){
 const analyticsChartIds=['analyticsStrategyBar','analyticsCumLine','analyticsDrawdown','analyticsDistribution','analyticsDowBar'];
 async function loadAnalytics(){
   const d=await api('/api/analytics');if(!d)return;
+  if(!d.total_trades||d.total_trades===0){
+    document.getElementById('analyticsRiskCards').innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:24px"><div class="card-label">Analytics</div><div style="color:var(--text2);font-size:14px;margin-top:8px">거래 기록이 없습니다. 봇이 거래를 시작하면 분석 데이터가 표시됩니다.</div></div>';
+    analyticsChartIds.forEach(id=>{if(charts[id]){charts[id].destroy();delete charts[id]}});
+    const emptyBoxes=['analyticsMonthlyTable','analyticsAttribution','analyticsCorrelation','analyticsEnsembleAccuracy','analyticsHourlyHeatmap'];
+    emptyBoxes.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div style="color:var(--text2);text-align:center;padding:20px">데이터 대기중</div>'});
+    return;
+  }
   const rm=d.risk_metrics||{};
   const ta=d.time_analysis||{};
   const sa=d.strategy_attribution||{};
@@ -1968,7 +1986,10 @@ async function loadAnalytics(){
 
 // ── Strategy ──
 async function loadStrategy(){
-  const d=await api('/api/status');if(!d||!d.ensemble)return;const ens=d.ensemble;
+  const d=await api('/api/status');if(!d||!d.ensemble){
+    document.getElementById('strategyTable').innerHTML='<div class="panel-title">Strategy Details</div><p style="color:var(--text2);padding:20px;text-align:center">봇이 초기화되면 전략 데이터가 표시됩니다.</p>';
+    return;
+  }const ens=d.ensemble;
   const names=Object.keys(ens.weights||{});const weights=names.map(n=>((ens.weights[n]||0)*100).toFixed(1));
   const winRates=names.map(n=>{const tc=ens.trade_counts[n]||0;const wc=ens.win_counts[n]||0;return tc>0?((wc/tc)*100).toFixed(1):'0.0'});
   const emaWr=names.map(n=>((ens.ema_win_rates[n]||0)*100).toFixed(1));
@@ -2047,6 +2068,17 @@ async function loadOptimizerTab(){
   const d=await api('/api/optimizer/status');
   if(!d||!d.enabled){
     document.getElementById('opt-regime').textContent='비활성';
+    document.getElementById('opt-regime').style.color='var(--text2)';
+    document.getElementById('opt-run-count').textContent='0';
+    document.getElementById('opt-locked').textContent='-';
+    document.getElementById('opt-locked').style.color='var(--text2)';
+    document.getElementById('opt-rollback-count').textContent='0';
+    document.getElementById('opt-last-run').textContent='적응형 최적화 비활성화됨';
+    document.getElementById('opt-degradation-body').innerHTML='<tr><td colspan="8" style="color:var(--text2);text-align:center">적응형 최적화가 비활성화 상태입니다</td></tr>';
+    document.getElementById('opt-params-body').innerHTML='<tr><td colspan="6" style="color:var(--text2);text-align:center">적응형 최적화가 비활성화 상태입니다</td></tr>';
+    document.getElementById('opt-weights-cards').innerHTML='<div style="color:var(--text2);padding:12px">적응형 최적화가 비활성화 상태입니다</div>';
+    document.getElementById('opt-history-body').innerHTML='<tr><td colspan="6" style="color:var(--text2);text-align:center">이력 없음</td></tr>';
+    document.getElementById('opt-postopt-body').innerHTML='<tr><td colspan="5" style="color:var(--text2);text-align:center">추적 데이터 없음</td></tr>';
     return;
   }
   // Top cards
@@ -2092,7 +2124,7 @@ function renderDegradation(deg){
   strategies.forEach(s=>{
     const r=deg[s];
     if(!r){
-      html+=`<tr><td>${s}</td><td style="color:var(--text2)">데이터 없음</td><td colspan="6">-</td></tr>`;
+      html+=`<tr><td>${s}</td><td style="color:var(--text2)">미분석</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td style="color:var(--text2);font-size:11px">최적화 사이클 대기 중</td></tr>`;
       return;
     }
     hasData=true;
@@ -2218,15 +2250,16 @@ function renderPostOpt(postOpt){
   tbody.innerHTML=html;
 }
 
-async function triggerOptimization(){
+async function triggerOptimization(btn){
   if(!confirm('수동 최적화를 실행하시겠습니까? (현재 열린 포지션에 사용 중인 전략은 건너뜁니다)'))return;
-  const btn=event.target;btn.disabled=true;btn.textContent='최적화 실행 중...';
+  if(!btn)btn=document.getElementById('opt-trigger-btn');
+  if(btn){btn.disabled=true;btn.textContent='최적화 실행 중...'}
   try{
     const r=await api('/api/optimizer/trigger','POST');
     if(r&&r.error){alert('오류: '+r.error)}
     else{alert('최적화 완료. 결과를 확인하세요.');loadOptimizerTab()}
   }catch(e){alert('최적화 실패: '+e)}
-  finally{btn.disabled=false;btn.textContent='수동 최적화 실행'}
+  finally{if(btn){btn.disabled=false;btn.textContent='수동 최적화 실행'}}
 }
 
 async function resetParams(strategy){

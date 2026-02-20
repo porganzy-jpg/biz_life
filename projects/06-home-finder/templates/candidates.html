@@ -212,45 +212,56 @@ function toggleCompareMode() {
 }
 
 async function refreshPipeline() {
-    const resp = await fetch(API);
-    const data = await resp.json();
-    const pipeline = data.counts || {};
+    try {
+        const resp = await fetch(API);
+        const data = await resp.json();
+        const pipeline = data.counts || {};
 
-    const statuses = ['발견', '조사', '관심', '방문예정', '방문완료', '결정'];
-    for (const s of statuses) {
-        document.getElementById(`count-${s}`).textContent = pipeline[s] || 0;
-        document.getElementById(`cards-${s}`).innerHTML = '';
-    }
-
-    for (const s of statuses) {
-        const listResp = await fetch(`${API}/list?status=${encodeURIComponent(s)}&size=50`);
-        const listData = await listResp.json();
-        const container = document.getElementById(`cards-${s}`);
-
-        for (const c of (listData.items || [])) {
-            container.innerHTML += `
-                <div class="kanban-card priority-${c.priority || 3}" onclick="onCardClick(event, ${c.id}, '${s}', ${c.property_id})">
-                    <div class="d-flex justify-content-between">
-                        <small class="text-muted">#${c.id}</small>
-                        <span class="score badge ${getScoreBadge(c.score_composite)}">${(c.score_composite || 0).toFixed(0)}</span>
-                    </div>
-                    <div class="fw-bold small">${c.address || c.complex_name || '매물 ' + c.property_id}</div>
-                    <div class="price small">${formatPrice(c.price_krw)}</div>
-                    <div class="small text-muted">${c.district || ''} ${c.dong || ''}</div>
-                    ${c.rating ? '<div class="small">' + '⭐'.repeat(c.rating) + '</div>' : ''}
-                    <div class="d-flex gap-1 mt-1">
-                        <button class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showPropertyModal(${c.property_id})">
-                            <i class="bi bi-eye"></i> 상세
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showStatusModal(${c.id}, '${s}')">
-                            <i class="bi bi-arrow-right-circle"></i> 이동
-                        </button>
-                        <button class="btn btn-outline-info btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); addToCompare(${c.property_id})" title="비교함에 추가">
-                            <i class="bi bi-layout-split"></i>
-                        </button>
-                    </div>
-                </div>`;
+        const statuses = ['발견', '조사', '관심', '방문예정', '방문완료', '결정'];
+        for (const s of statuses) {
+            document.getElementById(`count-${s}`).textContent = pipeline[s] || 0;
+            document.getElementById(`cards-${s}`).innerHTML = '';
         }
+
+        const listPromises = statuses.map(s =>
+            fetch(`${API}/list?status=${encodeURIComponent(s)}&size=50`)
+                .then(r => r.json())
+                .then(data => ({ status: s, items: data.items || [] }))
+        );
+        const allLists = await Promise.all(listPromises);
+
+        for (const { status: s, items } of allLists) {
+            const container = document.getElementById(`cards-${s}`);
+
+            for (const c of items) {
+                container.innerHTML += `
+                    <div class="kanban-card priority-${c.priority || 3}" onclick="onCardClick(event, ${c.id}, '${s}', ${c.property_id})">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">#${c.id}</small>
+                            <span class="score badge ${getScoreBadge(c.score_composite)}">${(c.score_composite || 0).toFixed(0)}</span>
+                        </div>
+                        <div class="fw-bold small">${c.address || c.complex_name || '매물 ' + c.property_id}</div>
+                        <div class="price small">${formatPrice(c.price_krw)}</div>
+                        <div class="small text-muted">${c.district || ''} ${c.dong || ''}</div>
+                        ${c.rating ? '<div class="small">' + '⭐'.repeat(c.rating) + '</div>' : ''}
+                        <div class="d-flex gap-1 mt-1">
+                            <button class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showPropertyModal(${c.property_id})">
+                                <i class="bi bi-eye"></i> 상세
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showStatusModal(${c.id}, '${s}')">
+                                <i class="bi bi-arrow-right-circle"></i> 이동
+                            </button>
+                            <button class="btn btn-outline-info btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); addToCompare(${c.property_id})" title="비교함에 추가">
+                                <i class="bi bi-layout-split"></i>
+                            </button>
+                        </div>
+                    </div>`;
+            }
+        }
+    } catch (e) {
+        console.error('Pipeline load error:', e);
+        document.getElementById('kanbanBoard').insertAdjacentHTML('afterbegin',
+            '<div class="alert alert-danger m-3">데이터를 불러올 수 없습니다: ' + e.message + '</div>');
     }
 }
 
@@ -315,30 +326,38 @@ async function updateCandidateStatus() {
     const notes = document.getElementById('modalNotes').value;
     const rating = document.getElementById('modalRating').value;
 
-    await fetch(`${API}/${id}/status`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({status})
-    });
-
-    if (notes) {
-        await fetch(`${API}/${id}/notes`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({note_type: 'general', content: notes})
-        });
-    }
-
-    if (rating && status === '방문완료') {
-        await fetch(`${API}/${id}/rate`, {
+    try {
+        const resp = await fetch(`${API}/${id}/status`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({rating: parseInt(rating), notes})
+            body: JSON.stringify({status})
         });
-    }
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || '상태 변경 실패');
+        }
 
-    bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
-    refreshPipeline();
+        if (notes) {
+            await fetch(`${API}/${id}/notes`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({note_type: 'general', content: notes})
+            });
+        }
+
+        if (rating && status === '방문완료') {
+            await fetch(`${API}/${id}/rate`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({rating: parseInt(rating), notes})
+            });
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
+        refreshPipeline();
+    } catch (e) {
+        alert('오류: ' + e.message);
+    }
 }
 
 refreshPipeline();

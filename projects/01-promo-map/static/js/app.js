@@ -27,14 +27,28 @@ function switchTab(tab) {
     favTab.style.display = tab === 'favorites' ? 'block' : 'none';
     myTab.style.display = tab === 'mypage' ? 'block' : 'none';
 
-    // 카테고리 필터는 지도/검색 탭에서만 표시
+    // 카테고리 필터는 지도 탭에서만 표시
+    const showCategory = (tab === 'map');
     if (categoryBar) {
-        categoryBar.style.display = (tab === 'map' || tab === 'search') ? 'block' : 'none';
+        categoryBar.style.display = showCategory ? 'block' : 'none';
     }
+
+    // 카테고리바 없는 탭은 상단 간격 조정
+    [searchTab, favTab, myTab].forEach(el => {
+        if (el) {
+            el.classList.toggle('no-category-bar', !showCategory);
+        }
+    });
 
     // 탭별 데이터 로드
     if (tab === 'favorites') loadFavorites();
     if (tab === 'mypage') loadMypage();
+    if (tab === 'search') {
+        setTimeout(() => {
+            const input = document.getElementById('searchInput');
+            if (input) input.focus();
+        }, 100);
+    }
     if (tab === 'map' && kakaoMap) {
         setTimeout(() => kakaoMap.relayout(), 100);
     }
@@ -49,6 +63,16 @@ function initPromoPanel() {
     const handle = document.getElementById('promoHandle');
     handle.addEventListener('click', () => {
         document.getElementById('promoPanel').classList.toggle('collapsed');
+    });
+}
+
+// 모달 오버레이 클릭 시 닫기
+function initModalOverlayClose() {
+    document.getElementById('storeModal').addEventListener('click', function(e) {
+        if (e.target === this) closeStoreModal();
+    });
+    document.getElementById('authModal').addEventListener('click', function(e) {
+        if (e.target === this) closeAuthModal();
     });
 }
 
@@ -70,6 +94,9 @@ function initApp() {
 
         // 인증 상태 확인
         updateAuthUI();
+
+        // 모달 오버레이 클릭 닫기
+        initModalOverlayClose();
 
         // 트렌딩 데이터 로드
         loadTrending();

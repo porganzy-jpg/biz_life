@@ -1,0 +1,22 @@
+{
+  "name": "PromoMap - 내 주변 할인 혜택",
+  "short_name": "PromoMap",
+  "description": "위치 기반 임직원 할인 서비스",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f5",
+  "theme_color": "#FF6B35",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

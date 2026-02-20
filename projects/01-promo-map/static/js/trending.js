@@ -12,19 +12,32 @@ async function loadTrending() {
     if (trendingLoaded) return;
     trendingLoaded = true;
 
+    // 각 섹션 독립적으로 로드하여 부분 실패 허용
     try {
-        const [trendingRes, popularRes, hotDealsRes] = await Promise.all([
-            API.getTrendingDiscounts(7, 10),
-            API.getPopularStores(8),
-            API.getHotDeals(5),
-        ]);
-
+        var trendingRes = await API.getTrendingDiscounts(7, 10);
         renderTrendingCarousel(trendingRes.items || []);
+    } catch (e) {
+        console.warn('Trending discounts load failed:', e);
+        var trendingSec = document.getElementById('trendingSection');
+        if (trendingSec) trendingSec.style.display = 'none';
+    }
+
+    try {
+        var popularRes = await API.getPopularStores(8);
         renderPopularStores(popularRes.items || []);
+    } catch (e) {
+        console.warn('Popular stores load failed:', e);
+        var popularSec = document.getElementById('popularStoresSection');
+        if (popularSec) popularSec.style.display = 'none';
+    }
+
+    try {
+        var hotDealsRes = await API.getHotDeals(5);
         renderHotDeals(hotDealsRes.items || []);
     } catch (e) {
-        console.warn('Trending data load failed:', e);
-        // 데이터 없어도 앱 동작에 문제 없음
+        console.warn('Hot deals load failed:', e);
+        var hotDealsSec = document.getElementById('hotDealsSection');
+        if (hotDealsSec) hotDealsSec.style.display = 'none';
     }
 }
 

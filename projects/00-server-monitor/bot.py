@@ -63,7 +63,7 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "/status - 전체 프로젝트 상태\n"
         "/system - 시스템 리소스 (CPU/RAM/Disk)\n"
         "/report - 서버 일일 리포트\n"
-        "/history [프로젝트] [타입] [기간] - 이벤트 검색\n"
+        "/history [프로젝트] [타입] [기간] - 이벤트 검색 (타입: start/stop/restart/error/deploy 등)\n"
         "/uptime - 가동률 통계\n"
         "/panel - 인라인 제어 패널\n\n"
         "프로젝트 제어:\n"
@@ -230,7 +230,7 @@ async def cmd_events(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     days_filter = None
     hours_filter = None
 
-    valid_types = {"start", "stop", "restart", "auto_restart", "error", "resource_alert", "deploy"}
+    valid_types = {"start", "stop", "restart", "auto_restart", "scheduled_restart", "error", "resource_alert", "deploy"}
 
     for arg in args:
         arg_lower = arg.lower()
@@ -263,6 +263,7 @@ async def cmd_events(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "stop": "⏹️",
         "restart": "🔄",
         "auto_restart": "🤖",
+        "scheduled_restart": "⏰",
         "resource_alert": "⚠️",
         "error": "❌",
         "deploy": "🚀",

@@ -37,7 +37,7 @@ def export_candidates_csv(
     filename = f"homefinder_candidates_{timestamp}.csv"
 
     return Response(
-        content=csv_content.encode("utf-8-sig"),
+        content=csv_content.encode("utf-8"),
         media_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
@@ -73,7 +73,7 @@ def export_candidates_report(
         content=html_content.encode("utf-8"),
         media_type="text/html; charset=utf-8",
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": f'inline; filename="{filename}"',
         },
     )
 
@@ -101,7 +101,7 @@ def export_properties_csv(
     filename = f"homefinder_properties_{timestamp}.csv"
 
     return Response(
-        content=csv_content.encode("utf-8-sig"),
+        content=csv_content.encode("utf-8"),
         media_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',

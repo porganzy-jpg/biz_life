@@ -133,9 +133,9 @@
                         {% endfor %}
                     </select>
                     <select id="filterMinScore" class="form-select form-select-sm" onchange="filterMatches()">
-                        <option value="0">전체 점수</option>
+                        <option value="0" selected>전체 점수</option>
                         <option value="90">90점 이상</option>
-                        <option value="80" selected>80점 이상</option>
+                        <option value="80">80점 이상</option>
                         <option value="70">70점 이상</option>
                         <option value="60">60점 이상</option>
                     </select>
@@ -466,11 +466,11 @@ async function loadMatches() {
     try {
         const data = await api('/api/v1/matching/top?limit=50');
         allMatches = data.matches || [];
-        document.getElementById('matchCount').textContent = allMatches.length;
         filterMatches();
     } catch (e) {
         document.getElementById('matchesLoading').style.display = 'none';
-        document.getElementById('matchesList').innerHTML = '<div class="alert alert-danger">' + e.message + '</div>';
+        document.getElementById('matchCount').textContent = '0';
+        document.getElementById('matchesList').innerHTML = '<div class="alert alert-danger">매칭 데이터를 불러올 수 없습니다: ' + e.message + '</div>';
         document.getElementById('matchesList').style.display = '';
     }
 }
@@ -486,6 +486,7 @@ function filterMatches() {
     });
 
     document.getElementById('matchesLoading').style.display = 'none';
+    document.getElementById('matchCount').textContent = filtered.length;
 
     if (filtered.length === 0) {
         document.getElementById('matchesList').style.display = 'none';
@@ -678,6 +679,7 @@ async function saveWeights() {
     try {
         await api('/api/v1/matching/profile/weights', 'PUT', body);
         showToast('가중치가 저장되었습니다');
+        loadMatches();
     } catch (e) {
         showToast(e.message, true);
     }
@@ -717,12 +719,16 @@ async function savePreferences() {
         await api('/api/v1/matching/profile/preferences', 'PUT', body);
         showToast('선호 조건이 저장되었습니다');
         loadProfile();
+        loadMatches();
     } catch (e) {
         showToast(e.message, true);
     }
 }
 
 async function learnProfile() {
+    const btns = document.querySelectorAll('[onclick="learnProfile()"]');
+    const origHtmls = [];
+    btns.forEach(b => { origHtmls.push(b.innerHTML); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 학습중...'; });
     try {
         const res = await api('/api/v1/matching/profile/learn', 'POST');
         showToast('프로필 재학습 완료: ' + (res.profile?.meta?.actions_count || 0) + '건 데이터 반영');
@@ -730,6 +736,8 @@ async function learnProfile() {
         loadMatches();
     } catch (e) {
         showToast(e.message, true);
+    } finally {
+        btns.forEach((b, i) => { b.disabled = false; b.innerHTML = origHtmls[i]; });
     }
 }
 
@@ -775,12 +783,12 @@ async function loadAlerts() {
                         <span class="badge bg-${typeBadgeColor} me-1">${typeBadge}</span>
                         <strong>${a.property_name || '매물'}</strong>
                         <span class="text-muted ms-1">${a.property_district || ''}</span>
-                        <span class="ms-2 fw-bold" style="color:${a.match_score >= 90 ? '#dc3545' : a.match_score >= 80 ? '#0d6efd' : '#6c757d'}">${a.match_score.toFixed(0)}점</span>
+                        <span class="ms-2 fw-bold" style="color:${(a.match_score || 0) >= 90 ? '#dc3545' : (a.match_score || 0) >= 80 ? '#0d6efd' : '#6c757d'}">${(a.match_score || 0).toFixed(0)}점</span>
                         ${a.property_price_krw ? '<span class="text-primary ms-2">' + formatPrice(a.property_price_krw) + '</span>' : ''}
                     </div>
                     <small class="text-muted">${a.created_at ? a.created_at.substring(0, 16).replace('T',' ') : ''}</small>
                 </div>
-                ${a.explanation ? '<div class="mt-1 text-muted small" style="white-space:pre-line;max-height:60px;overflow:hidden">' + a.explanation.split('\\n')[0] + '</div>' : ''}
+                ${a.explanation ? '<div class="mt-1 text-muted small" style="white-space:pre-line;max-height:60px;overflow:hidden">' + a.explanation.split('\n')[0] + '</div>' : ''}
             </div>`;
         });
 

@@ -784,7 +784,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockBot v2.1</title>
+    <title>StockBot v2.2</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1021,49 +1021,49 @@ DASHBOARD_HTML = """
     <div class="header">
         <h1>StockBot v2.2</h1>
         <div class="header-right">
-            <a href="/backtest" style="color:#58a6ff;text-decoration:none;font-size:0.85rem;padding:4px 12px;border:1px solid #1f6feb;border-radius:6px;margin-right:10px;">Backtest</a>
+            <a href="/backtest" style="color:#58a6ff;text-decoration:none;font-size:0.85rem;padding:4px 12px;border:1px solid #1f6feb;border-radius:6px;margin-right:10px;">\ubc31\ud14c\uc2a4\ud2b8</a>
             <span class="refresh-info" id="lastUpdate">-</span>
-            <span class="mode mode-paper" id="modeTag">Loading...</span>
+            <span class="mode mode-paper" id="modeTag">\ub85c\ub529 \uc911...</span>
         </div>
     </div>
     <div class="container">
         <div class="circuit-alert" id="circuitAlert">
             <span style="font-size:1.2rem">&#x1F6A8;</span>
-            <div><b>Circuit Breaker</b> <span id="cbReason"></span>
-            <button class="btn btn-sm btn-stop" onclick="resetCB()" style="margin-left:8px">Reset</button></div>
+            <div><b>\uc11c\ud0b7\ube0c\ub808\uc774\ucee4</b> <span id="cbReason"></span>
+            <button class="btn btn-sm btn-stop" onclick="resetCB()" style="margin-left:8px">\ucd08\uae30\ud654</button></div>
         </div>
         <div class="controls">
-            <button class="btn btn-start" onclick="startBot()">Start Auto</button>
-            <button class="btn btn-stop" onclick="stopBot()">Stop</button>
-            <button class="btn btn-scan" onclick="scanAll()">Scan Watchlist</button>
-            <button class="btn btn-cycle" onclick="runCycle()">Run 1 Cycle</button>
+            <button class="btn btn-start" onclick="startBot()">\uc790\ub3d9\ub9e4\ub9e4 \uc2dc\uc791</button>
+            <button class="btn btn-stop" onclick="stopBot()">\uc911\uc9c0</button>
+            <button class="btn btn-scan" onclick="scanAll()">\uc885\ubaa9 \uc2a4\uce94</button>
+            <button class="btn btn-cycle" onclick="runCycle()">1\ud68c \uc2e4\ud589</button>
             <span id="schedInfo" class="refresh-info" style="margin-left:auto"></span>
         </div>
         <div class="card" style="margin-bottom:12px">
-            <h2>Market Regime</h2>
+            <h2>\uc2dc\uc7a5 \uad6d\uba74</h2>
             <div class="regime-panel">
                 <span class="badge-regime regime-sideways" id="regimeBadge">SIDEWAYS</span>
                 <div class="regime-detail">ADX: <span id="regimeADX">-</span></div>
-                <div class="regime-detail">Volatility: <span id="regimeVol">-</span></div>
-                <div class="regime-detail">20D Return: <span id="regimeReturn">-</span></div>
-                <div class="regime-detail">MA Diff: <span id="regimeMaDiff">-</span></div>
+                <div class="regime-detail">\ubcc0\ub3d9\uc131: <span id="regimeVol">-</span></div>
+                <div class="regime-detail">20\uc77c \uc218\uc775\ub960: <span id="regimeReturn">-</span></div>
+                <div class="regime-detail">MA \uad34\ub9ac: <span id="regimeMaDiff">-</span></div>
                 <div class="regime-detail" id="regimeSince" style="margin-left:auto"></div>
             </div>
             <div id="regimeWeights" style="margin-top:10px;font-size:0.75rem;color:#8b949e"></div>
         </div>
         <div class="grid-6">
-            <div class="card stat-card"><div class="label">Total Assets</div><div class="value accent" id="totalAssets">-</div></div>
-            <div class="card stat-card"><div class="label">Cash</div><div class="value" id="cash">-</div></div>
-            <div class="card stat-card"><div class="label">Total PnL</div><div class="value" id="totalPnl">-</div></div>
-            <div class="card stat-card"><div class="label">Positions</div><div class="value" id="posCount">0</div></div>
-            <div class="card stat-card"><div class="label">Win Rate (30d)</div><div class="value green" id="winRate">-</div></div>
-            <div class="card stat-card"><div class="label">Regime</div><div class="value" id="regimeStat">-</div></div>
+            <div class="card stat-card"><div class="label">\ucd1d \uc790\uc0b0</div><div class="value accent" id="totalAssets">-</div></div>
+            <div class="card stat-card"><div class="label">\ud604\uae08</div><div class="value" id="cash">-</div></div>
+            <div class="card stat-card"><div class="label">\ub204\uc801 \uc190\uc775</div><div class="value" id="totalPnl">-</div></div>
+            <div class="card stat-card"><div class="label">\ubcf4\uc720 \uc885\ubaa9</div><div class="value" id="posCount">0</div></div>
+            <div class="card stat-card"><div class="label">\uc2b9\ub960 (30\uc77c)</div><div class="value green" id="winRate">-</div></div>
+            <div class="card stat-card"><div class="label">\uad6d\uba74</div><div class="value" id="regimeStat">-</div></div>
         </div>
 
         <!-- Performance Charts Section -->
         <div class="perf-section">
             <div class="section-header">
-                <span class="section-title">Performance</span>
+                <span class="section-title">\uc131\uacfc \ucc28\ud2b8</span>
                 <div class="period-selector">
                     <button class="period-btn" data-period="1W" onclick="setPeriod('1W')">1W</button>
                     <button class="period-btn" data-period="1M" onclick="setPeriod('1M')">1M</button>
@@ -1073,41 +1073,41 @@ DASHBOARD_HTML = """
             </div>
             <div class="perf-grid">
                 <div class="card">
-                    <h2>Equity Curve</h2>
+                    <h2>\uc790\uc0b0 \uace1\uc120</h2>
                     <div class="chart-container large">
                         <canvas id="equityChart"></canvas>
-                        <div class="chart-empty" id="equityEmpty">No equity data available yet</div>
+                        <div class="chart-empty" id="equityEmpty">\uc790\uc0b0 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                     </div>
                 </div>
                 <div class="perf-right">
                     <div class="card">
-                        <h2>Daily P&amp;L</h2>
+                        <h2>\uc77c\ubcc4 \uc190\uc775</h2>
                         <div class="chart-container medium">
                             <canvas id="dailyPnlChart"></canvas>
-                            <div class="chart-empty" id="pnlEmpty">No trade data available yet</div>
+                            <div class="chart-empty" id="pnlEmpty">\uac70\ub798 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                         </div>
                     </div>
                     <div class="card">
-                        <h2>Strategy Win Contribution</h2>
+                        <h2>\uc804\ub7b5 \uc2b9\ub960 \uae30\uc5ec</h2>
                         <div class="chart-container medium">
                             <canvas id="strategyChart"></canvas>
-                            <div class="chart-empty" id="strategyEmpty">No strategy data available yet</div>
+                            <div class="chart-empty" id="strategyEmpty">\uc804\ub7b5 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="perf-grid-bottom">
                 <div class="card">
-                    <h2>Trade Return Distribution</h2>
+                    <h2>\uac70\ub798 \uc218\uc775\ub960 \ubd84\ud3ec</h2>
                     <div class="chart-container" style="height:200px">
                         <canvas id="distChart"></canvas>
-                        <div class="chart-empty" id="distEmpty">No trade data available yet</div>
+                        <div class="chart-empty" id="distEmpty">\uac70\ub798 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>Strategy Win Rates</h2>
+                    <h2>\uc804\ub7b5\ubcc4 \uc2b9\ub960</h2>
                     <div class="scroll-table" id="strategyTable">
-                        <p class="neu">Loading strategy data...</p>
+                        <p class="neu">\uc804\ub7b5 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
             </div>
@@ -1116,7 +1116,7 @@ DASHBOARD_HTML = """
         <!-- Strategy Analysis Section -->
         <div class="sa-section">
             <div class="section-header">
-                <span class="section-title">Strategy Analysis</span>
+                <span class="section-title">\uc804\ub7b5 \ubd84\uc11d</span>
                 <div class="period-selector">
                     <button class="period-btn sa-period-btn" data-sa-period="7d" onclick="setSAPeriod('7d')">7D</button>
                     <button class="period-btn sa-period-btn active" data-sa-period="14d" onclick="setSAPeriod('14d')">14D</button>
@@ -1126,30 +1126,30 @@ DASHBOARD_HTML = """
             </div>
             <div class="sa-grid-top">
                 <div class="card">
-                    <h2>Strategy Heatmap (Win Rate by Day)</h2>
+                    <h2>\uc804\ub7b5 \ud788\ud2b8\ub9f5 (\uc77c\ubcc4 \uc2b9\ub960)</h2>
                     <div class="heatmap-wrap" id="strategyHeatmap">
-                        <p class="neu">Loading heatmap data...</p>
+                        <p class="neu">\ud788\ud2b8\ub9f5 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>Rolling Win Rate (Last N Trades)</h2>
+                    <h2>\ub864\ub9c1 \uc2b9\ub960 (\ucd5c\uadfc N\uac74)</h2>
                     <div class="chart-container large">
                         <canvas id="rollingChart"></canvas>
-                        <div class="chart-empty" id="rollingEmpty">No rolling data available yet</div>
+                        <div class="chart-empty" id="rollingEmpty">\ub864\ub9c1 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                     </div>
                 </div>
             </div>
             <div class="sa-grid-bottom">
                 <div class="card">
-                    <h2>Strategy Toggle Controls</h2>
+                    <h2>\uc804\ub7b5 \ud1a0\uae00 \uc124\uc815</h2>
                     <div class="toggle-controls" id="strategyToggles">
-                        <p class="neu">Loading strategy config...</p>
+                        <p class="neu">\uc804\ub7b5 \uc124\uc815 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>Strategy Ranking (by Sharpe Ratio)</h2>
+                    <h2>\uc804\ub7b5 \ub7ad\ud0b9 (\uc0e4\ud504 \ube44\uc728)</h2>
                     <div class="scroll-table" id="strategyRanking">
-                        <p class="neu">Loading ranking data...</p>
+                        <p class="neu">\ub7ad\ud0b9 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
             </div>
@@ -1158,16 +1158,16 @@ DASHBOARD_HTML = """
         <!-- Market Regime Detection Section -->
         <div class="regime-section">
             <div class="section-header">
-                <span class="section-title">Market Regime Detection</span>
-                <button class="btn btn-apply" onclick="applyRegimeWeights()">Apply Weights</button>
+                <span class="section-title">\uc2dc\uc7a5 \uad6d\uba74 \uac10\uc9c0</span>
+                <button class="btn btn-apply" onclick="applyRegimeWeights()">\uac00\uc911\uce58 \uc801\uc6a9</button>
             </div>
             <div class="regime-grid">
                 <div class="card">
-                    <h2>Current Regime</h2>
+                    <h2>\ud604\uc7ac \uad6d\uba74</h2>
                     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
                         <span class="regime-badge-lg regime-ranging" id="dashRegimeBadge">RANGING</span>
                         <div style="flex:1;min-width:120px">
-                            <div style="font-size:0.78rem;color:#8b949e">Confidence</div>
+                            <div style="font-size:0.78rem;color:#8b949e">\uc2e0\ub8b0\ub3c4</div>
                             <div style="font-size:1.3rem;font-weight:700" id="dashRegimeConf">0%</div>
                             <div class="regime-confidence-bar">
                                 <div class="regime-confidence-fill" id="dashRegimeConfBar" style="width:0%;background:#d29922"></div>
@@ -1175,31 +1175,31 @@ DASHBOARD_HTML = """
                         </div>
                     </div>
                     <div class="regime-info-grid" id="dashRegimeIndicators">
-                        <div class="regime-info-item"><div class="info-label">20D Return</div><div class="info-value" id="drInd20dRet">-</div></div>
-                        <div class="regime-info-item"><div class="info-label">Recent Vol</div><div class="info-value" id="drIndRecentVol">-</div></div>
-                        <div class="regime-info-item"><div class="info-label">Vol Z-Score</div><div class="info-value" id="drIndVolZ">-</div></div>
-                        <div class="regime-info-item"><div class="info-label">Price vs MA50</div><div class="info-value" id="drIndPriceMa">-</div></div>
+                        <div class="regime-info-item"><div class="info-label">20\uc77c \uc218\uc775\ub960</div><div class="info-value" id="drInd20dRet">-</div></div>
+                        <div class="regime-info-item"><div class="info-label">\ucd5c\uadfc \ubcc0\ub3d9\uc131</div><div class="info-value" id="drIndRecentVol">-</div></div>
+                        <div class="regime-info-item"><div class="info-label">\ubcc0\ub3d9\uc131 Z\uc810\uc218</div><div class="info-value" id="drIndVolZ">-</div></div>
+                        <div class="regime-info-item"><div class="info-label">\uac00\uaca9 vs MA50</div><div class="info-value" id="drIndPriceMa">-</div></div>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>Regime Timeline (30 Days)</h2>
+                    <h2>\uad6d\uba74 \ud0c0\uc784\ub77c\uc778 (30\uc77c)</h2>
                     <div class="chart-container" style="height:180px">
                         <canvas id="regimeTimelineChart"></canvas>
-                        <div class="chart-empty" id="regimeTimelineEmpty">No regime history available yet</div>
+                        <div class="chart-empty" id="regimeTimelineEmpty">\uad6d\uba74 \uc774\ub825 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                     </div>
                 </div>
             </div>
             <div class="regime-grid">
                 <div class="card">
-                    <h2>Recommended vs Current Weights</h2>
+                    <h2>\uad8c\uc7a5 vs \ud604\uc7ac \uac00\uc911\uce58</h2>
                     <div id="weightCompareContainer">
-                        <p class="neu">Loading weight comparison...</p>
+                        <p class="neu">\uac00\uc911\uce58 \ube44\uad50 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>Regime History Log</h2>
+                    <h2>\uad6d\uba74 \uc774\ub825 \ub85c\uadf8</h2>
                     <div class="scroll-table" id="regimeHistoryLog" style="max-height:250px">
-                        <p class="neu">Loading regime history...</p>
+                        <p class="neu">\uad6d\uba74 \uc774\ub825 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
             </div>
@@ -1407,28 +1407,28 @@ DASHBOARD_HTML = """
 
         <div class="grid-2">
             <div class="card">
-                <h2>Watchlist Analysis</h2>
+                <h2>\uad00\uc2ec\uc885\ubaa9 \ubd84\uc11d</h2>
                 <div class="scroll-table">
-                <table><thead><tr><th>Name</th><th>Score</th><th>Action</th><th>Price</th><th>Sentiment</th><th>Reasons</th></tr></thead>
-                <tbody id="scanResults"><tr><td colspan="6" class="neu">Click "Scan Watchlist"</td></tr></tbody></table>
+                <table><thead><tr><th>\uc885\ubaa9</th><th>\uc810\uc218</th><th>\uc2e0\ud638</th><th>\uac00\uaca9</th><th>\uac10\uc131</th><th>\uc0ac\uc720</th></tr></thead>
+                <tbody id="scanResults"><tr><td colspan="6" class="neu">"\uc885\ubaa9 \uc2a4\uce94" \ubc84\ud2bc\uc744 \ud074\ub9ad\ud558\uc138\uc694</td></tr></tbody></table>
                 </div>
             </div>
             <div class="card">
-                <h2>Positions</h2>
-                <div class="scroll-table" id="positions"><p class="neu">No positions</p></div>
+                <h2>\ubcf4\uc720 \uc885\ubaa9</h2>
+                <div class="scroll-table" id="positions"><p class="neu">\ubcf4\uc720 \uc885\ubaa9 \uc5c6\uc74c</p></div>
             </div>
         </div>
         <div class="grid-2">
             <div class="card">
-                <h2>Recent Trades</h2>
+                <h2>\ucd5c\uadfc \uac70\ub798</h2>
                 <div class="scroll-table">
-                <table><thead><tr><th>Time</th><th>Action</th><th>Name</th><th>Qty</th><th>Price</th><th>PnL</th></tr></thead>
+                <table><thead><tr><th>\uc2dc\uac04</th><th>\uc720\ud615</th><th>\uc885\ubaa9</th><th>\uc218\ub7c9</th><th>\uac00\uaca9</th><th>\uc190\uc775</th></tr></thead>
                 <tbody id="recentTrades"></tbody></table>
                 </div>
             </div>
             <div class="card">
-                <h2>Trade Statistics</h2>
-                <div id="tradeStats" class="neu">Loading...</div>
+                <h2>\uac70\ub798 \ud1b5\uacc4</h2>
+                <div id="tradeStats" class="neu">\ub85c\ub529 \uc911...</div>
             </div>
         </div>
     </div>
@@ -1488,7 +1488,7 @@ DASHBOARD_HTML = """
                         labels: labels,
                         datasets: [
                             {
-                                label: 'Cumulative P&L',
+                                label: '\ub204\uc801 \uc190\uc775',
                                 data: pnlData,
                                 borderColor: '#58a6ff',
                                 backgroundColor: 'rgba(88,166,255,0.08)',
@@ -1500,7 +1500,7 @@ DASHBOARD_HTML = """
                                 yAxisID: 'y',
                             },
                             {
-                                label: 'Drawdown %',
+                                label: '\ub0a8\ud3ed %',
                                 data: ddData,
                                 borderColor: '#f8514988',
                                 backgroundColor: 'rgba(248,81,73,0.12)',
@@ -1521,8 +1521,8 @@ DASHBOARD_HTML = """
                             tooltip: {
                                 callbacks: {
                                     label: function(ctx) {
-                                        if (ctx.datasetIndex === 0) return 'P&L: ' + fmtW(ctx.raw) + '\\uc6d0';
-                                        return 'Drawdown: ' + ctx.raw.toFixed(2) + '%';
+                                        if (ctx.datasetIndex === 0) return '\uc190\uc775: ' + fmtW(ctx.raw) + '\\uc6d0';
+                                        return '\ub0a8\ud3ed: ' + ctx.raw.toFixed(2) + '%';
                                     }
                                 }
                             },
@@ -1596,7 +1596,7 @@ DASHBOARD_HTML = """
                         labels: labels,
                         datasets: [
                             {
-                                label: 'Daily P&L',
+                                label: '\uc77c\ubcc4 \uc190\uc775',
                                 data: pnlData,
                                 backgroundColor: barColors,
                                 borderRadius: 2,
@@ -1604,7 +1604,7 @@ DASHBOARD_HTML = """
                                 order: 2,
                             },
                             {
-                                label: 'Running Total',
+                                label: '\ub204\uc801 \ud569\uacc4',
                                 data: runningData,
                                 type: 'line',
                                 borderColor: '#d29922',
@@ -1659,7 +1659,7 @@ DASHBOARD_HTML = """
                     emptyEl.style.display = 'flex';
                     canvas.style.display = 'none';
                     if (strategyChartInst) { strategyChartInst.destroy(); strategyChartInst = null; }
-                    tableEl.innerHTML = '<p class="neu">No strategy data available yet</p>';
+                    tableEl.innerHTML = '<p class="neu">\uc804\ub7b5 \ub370\uc774\ud130 \uc5c6\uc74c</p>';
                     return;
                 }
                 emptyEl.style.display = 'none';
@@ -1714,7 +1714,7 @@ DASHBOARD_HTML = """
                                 callbacks: {
                                     label: function(ctx) {
                                         const s = strategies[ctx.label] || {};
-                                        return ctx.label + ': ' + Math.round(ctx.raw) + ' wins (' + (s.win_rate||0) + '% WR)';
+                                        return ctx.label + ': ' + Math.round(ctx.raw) + '\uc2b9 (' + (s.win_rate||0) + '% \uc2b9\ub960)';
                                     }
                                 }
                             }
@@ -1723,7 +1723,7 @@ DASHBOARD_HTML = """
                 });
 
                 // Strategy win rates table
-                let html = '<table><thead><tr><th>Strategy</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>PnL</th></tr></thead><tbody>';
+                let html = '<table><thead><tr><th>\uc804\ub7b5</th><th>\uc2b9</th><th>\ud328</th><th>\uc2b9\ub960</th><th>\uc190\uc775</th></tr></thead><tbody>';
                 for (const name of names) {
                     const s = strategies[name];
                     const pnlClass = (s.total_pnl||0) >= 0 ? 'pos' : 'neg';
@@ -1769,7 +1769,7 @@ DASHBOARD_HTML = """
                     data: {
                         labels: bins,
                         datasets: [{
-                            label: 'Trade Count',
+                            label: '\uac70\ub798 \uac74\uc218',
                             data: counts,
                             backgroundColor: barColors,
                             borderRadius: 2,
@@ -1782,16 +1782,16 @@ DASHBOARD_HTML = """
                             legend: { display: false },
                             tooltip: {
                                 callbacks: {
-                                    title: ctx => 'Return: ' + ctx[0].label,
+                                    title: ctx => '\uc218\uc775\ub960: ' + ctx[0].label,
                                     afterBody: function() {
-                                        return 'Avg: ' + d.avg_return + '% | Med: ' + d.median_return + '%';
+                                        return '\ud3c9\uade0: ' + d.avg_return + '% | \uc911\uc559: ' + d.median_return + '%';
                                     }
                                 }
                             },
                         },
                         scales: {
-                            x: { grid: { display: false }, title: { display: true, text: 'Return %', font: { size: 10 } } },
-                            y: { grid: { color: '#21262d' }, title: { display: true, text: 'Trades', font: { size: 10 } },
+                            x: { grid: { display: false }, title: { display: true, text: '\uc218\uc775\ub960 %', font: { size: 10 } } },
+                            y: { grid: { color: '#21262d' }, title: { display: true, text: '\uac70\ub798 \uac74\uc218', font: { size: 10 } },
                                  ticks: { stepSize: 1 } }
                         }
                     },
@@ -1834,7 +1834,7 @@ DASHBOARD_HTML = """
                 const r = await fetch('/api/status');
                 const d = await r.json();
                 const mt = document.getElementById('modeTag');
-                mt.textContent = d.scheduler?.running ? 'AUTO RUNNING' : d.mode;
+                mt.textContent = d.scheduler?.running ? '\uc790\ub3d9\ub9e4\ub9e4 \uc911' : d.mode;
                 mt.className = 'mode ' + (d.mode==='\\uc2e4\\uc804\\ud22c\\uc790'?'mode-live':'mode-paper');
                 if(d.scheduler?.running) { mt.className='mode'; mt.style.cssText='padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;background:#23863633;color:#3fb950;border:1px solid #238636'; }
                 document.getElementById('totalAssets').textContent = fmtW(d.balance?.total_eval||0)+'\\uc6d0';
@@ -1853,9 +1853,9 @@ DASHBOARD_HTML = """
                 document.getElementById('schedInfo').textContent = (si.is_market_hours?'\\uc7a5\\uc911':'\\uc7a5\\uc678')+' | '+si.time_until_open;
                 const posEl = document.getElementById('positions');
                 const pe = Object.entries(d.positions||{});
-                if(!pe.length) { posEl.innerHTML='<p class="neu">No positions</p>'; }
+                if(!pe.length) { posEl.innerHTML='<p class="neu">\ubcf4\uc720 \uc885\ubaa9 \uc5c6\uc74c</p>'; }
                 else {
-                    posEl.innerHTML = '<table><thead><tr><th>Name</th><th>Qty</th><th>Avg</th><th>Value</th></tr></thead><tbody>'
+                    posEl.innerHTML = '<table><thead><tr><th>\uc885\ubaa9</th><th>\uc218\ub7c9</th><th>\ud3c9\uade0\uac00</th><th>\ud3c9\uac00\uae08\uc561</th></tr></thead><tbody>'
                         + pe.map(([s,p]) => {
                             const val = (p.qty||0)*(p.avg_price||0);
                             return '<tr><td><b>'+(p.name||s)+'</b><br><span class="neu" style="font-size:0.72rem">'+s+'</span></td><td>'+fmt(p.qty)+'</td><td>'+fmt(p.avg_price)+'</td><td>'+fmtW(val)+'\\uc6d0</td></tr>';
@@ -1863,26 +1863,29 @@ DASHBOARD_HTML = """
                 }
                 const tb = document.getElementById('recentTrades');
                 const trades = (d.recent_trades||[]).slice(-15).reverse();
+                const ACTION_KO = {'BUY':'\ub9e4\uc218','SELL':'\ub9e4\ub3c4','STOP_LOSS':'\uc190\uc808','TAKE_PROFIT':'\uc775\uc808','TRAILING_STOP':'\ucd94\uc801\uc190\uc808'};
                 tb.innerHTML = trades.map(t => {
                     const badge = t.action==='BUY'?'badge-buy':t.action.includes('STOP')||t.action==='SELL'?'badge-sell':'badge-hold';
+                    const actionText = ACTION_KO[t.action] || t.action;
                     const pnl = t.pnl_pct?'<span class="'+(t.pnl_pct>=0?'pos':'neg')+'">'+(t.pnl_pct>=0?'+':'')+t.pnl_pct+'%</span>':'-';
                     const time = new Date(t.timestamp).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-                    return '<tr><td>'+time+'</td><td><span class="badge '+badge+'">'+t.action+'</span></td><td>'+(t.name||t.symbol)+'</td><td>'+(t.qty||'-')+'</td><td>'+fmt(t.price)+'</td><td>'+pnl+'</td></tr>';
+                    return '<tr><td>'+time+'</td><td><span class="badge '+badge+'">'+actionText+'</span></td><td>'+(t.name||t.symbol)+'</td><td>'+(t.qty||'-')+'</td><td>'+fmt(t.price)+'</td><td>'+pnl+'</td></tr>';
                 }).join('');
                 // Regime display
                 const rg = d.regime||{};
                 const rgBadge = document.getElementById('regimeBadge');
                 const rgName = rg.regime||'SIDEWAYS';
-                rgBadge.textContent = rgName;
+                const REGIME_KO = {'BULL':'\uac15\uc138','BEAR':'\uc57d\uc138','SIDEWAYS':'\ud69f\ubcf4'};
+                rgBadge.textContent = REGIME_KO[rgName] || rgName;
                 rgBadge.className = 'badge-regime regime-'+rgName.toLowerCase();
                 const rgDet = rg.details||{};
                 document.getElementById('regimeADX').textContent = rgDet.adx!==undefined ? rgDet.adx : '-';
                 document.getElementById('regimeVol').textContent = rgDet.recent_volatility!==undefined ? rgDet.recent_volatility+'%' : '-';
                 document.getElementById('regimeReturn').textContent = rgDet.recent_return_pct!==undefined ? (rgDet.recent_return_pct>=0?'+':'')+rgDet.recent_return_pct+'%' : '-';
                 document.getElementById('regimeMaDiff').textContent = rgDet.ma_diff_pct!==undefined ? (rgDet.ma_diff_pct>=0?'+':'')+rgDet.ma_diff_pct+'%' : '-';
-                document.getElementById('regimeSince').textContent = rg.regime_since ? 'Since: '+new Date(rg.regime_since).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+                document.getElementById('regimeSince').textContent = rg.regime_since ? '\uc2dc\uc791: '+new Date(rg.regime_since).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
                 const rgStatEl = document.getElementById('regimeStat');
-                rgStatEl.textContent = rgName;
+                rgStatEl.textContent = REGIME_KO[rgName] || rgName;
                 rgStatEl.className = 'value '+(rgName==='BULL'?'green':rgName==='BEAR'?'pos':'yellow');
                 // Regime weights
                 const rgw = rg.weights||{};
@@ -1890,9 +1893,9 @@ DASHBOARD_HTML = """
                     const pct = Math.round(v*100);
                     return k+': <b>'+pct+'%</b><span class="weight-bar" style="width:'+pct+'px"></span>';
                 }).join(' &nbsp; ');
-                document.getElementById('regimeWeights').innerHTML = 'Active Weights: '+wHtml;
+                document.getElementById('regimeWeights').innerHTML = '\ud65c\uc131 \uac00\uc911\uce58: '+wHtml;
 
-                document.getElementById('lastUpdate').textContent = 'Updated: '+new Date().toLocaleTimeString('ko');
+                document.getElementById('lastUpdate').textContent = '\uac31\uc2e0: '+new Date().toLocaleTimeString('ko');
             } catch(e) { console.error(e); }
         }
 
@@ -1903,22 +1906,23 @@ DASHBOARD_HTML = """
                 const el = document.getElementById('tradeStats');
                 const s7 = d['7d']||{}, s30 = d['30d']||{}, sa = d['all']||{};
                 el.innerHTML =
-                    '<table><tr><th></th><th>7 Days</th><th>30 Days</th><th>All</th></tr>'
-                    +'<tr><td>Trades</td><td>'+(s7.total||0)+'</td><td>'+(s30.total||0)+'</td><td>'+(sa.total||0)+'</td></tr>'
-                    +'<tr><td>Wins</td><td>'+(s7.wins||0)+'</td><td>'+(s30.wins||0)+'</td><td>'+(sa.wins||0)+'</td></tr>'
-                    +'<tr><td>Win Rate</td><td class="green">'+(s7.win_rate||0)+'%</td><td class="green">'+(s30.win_rate||0)+'%</td><td class="green">'+(sa.win_rate||0)+'%</td></tr>'
-                    +'<tr><td>Total PnL</td><td class="'+((s7.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(s7.total_pnl||0)+'\\uc6d0</td>'
+                    '<table><tr><th></th><th>7\uc77c</th><th>30\uc77c</th><th>\uc804\uccb4</th></tr>'
+                    +'<tr><td>\uac70\ub798</td><td>'+(s7.total||0)+'</td><td>'+(s30.total||0)+'</td><td>'+(sa.total||0)+'</td></tr>'
+                    +'<tr><td>\uc2b9\ub9ac</td><td>'+(s7.wins||0)+'</td><td>'+(s30.wins||0)+'</td><td>'+(sa.wins||0)+'</td></tr>'
+                    +'<tr><td>\uc2b9\ub960</td><td class="green">'+(s7.win_rate||0)+'%</td><td class="green">'+(s30.win_rate||0)+'%</td><td class="green">'+(sa.win_rate||0)+'%</td></tr>'
+                    +'<tr><td>\ub204\uc801 \uc190\uc775</td><td class="'+((s7.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(s7.total_pnl||0)+'\\uc6d0</td>'
                     +'<td class="'+((s30.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(s30.total_pnl||0)+'\\uc6d0</td>'
                     +'<td class="'+((sa.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(sa.total_pnl||0)+'\\uc6d0</td></tr>'
-                    +'<tr><td>Avg PnL</td><td>'+(s7.avg_pnl_pct||0)+'%</td><td>'+(s30.avg_pnl_pct||0)+'%</td><td>'+(sa.avg_pnl_pct||0)+'%</td></tr></table>';
+                    +'<tr><td>\ud3c9\uade0 \uc218\uc775</td><td>'+(s7.avg_pnl_pct||0)+'%</td><td>'+(s30.avg_pnl_pct||0)+'%</td><td>'+(sa.avg_pnl_pct||0)+'%</td></tr></table>';
             } catch(e) {}
         }
 
         async function scanAll() {
-            document.getElementById('scanResults').innerHTML='<tr><td colspan="6">Scanning 15 stocks...</td></tr>';
+            document.getElementById('scanResults').innerHTML='<tr><td colspan="6">15\uac1c \uc885\ubaa9 \uc2a4\uce94 \uc911...</td></tr>';
             const r = await fetch('/api/scan');
             const d = await r.json();
             const tb = document.getElementById('scanResults');
+            const SCAN_ACTION_KO = {'BUY':'\ub9e4\uc218','SELL':'\ub9e4\ub3c4','HOLD':'\ubcf4\ub958'};
             tb.innerHTML = (d.results||[]).map(s => {
                 const badge = s.action==='BUY'?'badge-buy':s.action==='SELL'?'badge-sell':'badge-hold';
                 const barW = Math.max(0,Math.min(100,s.score));
@@ -1926,7 +1930,7 @@ DASHBOARD_HTML = """
                 const sent = s.sentiment ? '<span class="'+(s.sentiment.overall>0?'green':s.sentiment.overall<0?'pos':'neu')+'">'+(s.sentiment.overall>0?'+':'')+(s.sentiment.overall*100).toFixed(0)+'</span>' : '-';
                 return '<tr><td><b>'+s.name+'</b><br><span class="neu" style="font-size:0.7rem">'+s.symbol+'</span></td>'
                     +'<td><div class="score-bar"><div class="score-fill" style="width:'+barW+'%;background:'+barC+'"></div></div> '+s.score+'</td>'
-                    +'<td><span class="badge '+badge+'">'+s.action+'</span></td>'
+                    +'<td><span class="badge '+badge+'">'+(SCAN_ACTION_KO[s.action]||s.action)+'</span></td>'
                     +'<td>'+fmt(s.current_price)+'</td><td>'+sent+'</td>'
                     +'<td style="font-size:0.72rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">'+(s.reasons||[]).slice(0,2).join(', ')+'</td></tr>';
             }).join('');
@@ -1935,7 +1939,7 @@ DASHBOARD_HTML = """
         async function startBot() { await fetch('/api/bot/start',{method:'POST'}); fetchStatus(); }
         async function stopBot() { await fetch('/api/bot/stop',{method:'POST'}); fetchStatus(); }
         async function runCycle() {
-            document.getElementById('scanResults').innerHTML='<tr><td colspan="6">Running cycle...</td></tr>';
+            document.getElementById('scanResults').innerHTML='<tr><td colspan="6">\ub9e4\ub9e4 \uc0ac\uc774\ud074 \uc2e4\ud589 \uc911...</td></tr>';
             await fetch('/api/cycle',{method:'POST'});
             fetchStatus(); fetchStats();
         }
@@ -1967,12 +1971,12 @@ DASHBOARD_HTML = """
                 const matrix = d.matrix || {};
 
                 if (!dates.length) {
-                    el.innerHTML = '<p class="neu">No heatmap data for this period</p>';
+                    el.innerHTML = '<p class="neu">\ud574\ub2f9 \uae30\uac04 \ud788\ud2b8\ub9f5 \ub370\uc774\ud130 \uc5c6\uc74c</p>';
                     return;
                 }
 
                 // Build heatmap table
-                let html = '<table class="heatmap-table"><thead><tr><th>Strategy</th>';
+                let html = '<table class="heatmap-table"><thead><tr><th>\uc804\ub7b5</th>';
                 for (const dt of dates) {
                     // Show short date MM-DD
                     const parts = dt.split('-');
@@ -2095,12 +2099,12 @@ DASHBOARD_HTML = """
                         scales: {
                             x: {
                                 grid: { color: '#21262d' },
-                                title: { display: true, text: 'Trade #', font: { size: 10 } },
+                                title: { display: true, text: '\uac70\ub798 #', font: { size: 10 } },
                                 ticks: { maxTicksLimit: 12 }
                             },
                             y: {
                                 grid: { color: '#21262d' },
-                                title: { display: true, text: 'Win Rate %', font: { size: 10 } },
+                                title: { display: true, text: '\uc2b9\ub960 %', font: { size: 10 } },
                                 min: 0, max: 100,
                                 ticks: { callback: v => v + '%' }
                             }
@@ -2150,8 +2154,8 @@ DASHBOARD_HTML = """
         }
 
         async function toggleStrategy(name, checkbox) {
-            const action = checkbox.checked ? 'enable' : 'disable';
-            const confirmed = confirm('Are you sure you want to ' + action + ' strategy "' + name + '"?');
+            const action = checkbox.checked ? '\ud65c\uc131\ud654' : '\ube44\ud65c\uc131\ud654';
+            const confirmed = confirm('"' + name + '" \uc804\ub7b5\uc744 ' + action + '\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?');
             if (!confirmed) {
                 checkbox.checked = !checkbox.checked;
                 return;
@@ -2160,7 +2164,7 @@ DASHBOARD_HTML = """
                 const r = await fetch('/api/strategy/' + name + '/toggle', { method: 'POST' });
                 const d = await r.json();
                 if (d.error) {
-                    alert('Error: ' + d.error);
+                    alert('\uc624\ub958: ' + d.error);
                     checkbox.checked = !checkbox.checked;
                     return;
                 }
@@ -2183,11 +2187,11 @@ DASHBOARD_HTML = """
                 const el = document.getElementById('strategyRanking');
 
                 if (!ranking.length) {
-                    el.innerHTML = '<p class="neu">No ranking data available</p>';
+                    el.innerHTML = '<p class="neu">\ub7ad\ud0b9 \ub370\uc774\ud130 \uc5c6\uc74c</p>';
                     return;
                 }
 
-                let html = '<table><thead><tr><th>#</th><th>Strategy</th><th>Trades</th><th>Win Rate</th><th>Avg Return</th><th>Sharpe</th><th>Status</th></tr></thead><tbody>';
+                let html = '<table><thead><tr><th>#</th><th>\uc804\ub7b5</th><th>\uac70\ub798</th><th>\uc2b9\ub960</th><th>\ud3c9\uade0 \uc218\uc775</th><th>\uc0e4\ud504</th><th>\uc0c1\ud0dc</th></tr></thead><tbody>';
                 ranking.forEach((s, idx) => {
                     const rank = idx + 1;
                     let rankClass = 'rank-n';
@@ -2199,7 +2203,7 @@ DASHBOARD_HTML = """
                     const retClass = s.avg_return >= 0 ? 'green' : 'pos';
                     const sharpeClass = s.sharpe > 0 ? 'green' : s.sharpe < 0 ? 'pos' : 'neu';
                     const statusClass = s.enabled ? 'status-active' : 'status-disabled';
-                    const statusText = s.enabled ? 'Active' : 'Disabled';
+                    const statusText = s.enabled ? '\ud65c\uc131' : '\ube44\ud65c\uc131';
 
                     html += '<tr>'
                          + '<td><span class="rank-badge ' + rankClass + '">' + rank + '</span></td>'
@@ -2241,10 +2245,10 @@ DASHBOARD_HTML = """
             'HIGH_VOLATILITY': 'regime-high-vol',
         };
         const REGIME_LABELS_KO = {
-            'BULL_TREND': 'Bull Trend',
-            'BEAR_TREND': 'Bear Trend',
-            'RANGING': 'Ranging',
-            'HIGH_VOLATILITY': 'High Vol',
+            'BULL_TREND': '\uac15\uc138 \ucd94\uc138',
+            'BEAR_TREND': '\uc57d\uc138 \ucd94\uc138',
+            'RANGING': '\ud69f\ubcf4',
+            'HIGH_VOLATILITY': '\uace0\ubcc0\ub3d9\uc131',
         };
 
         async function loadDashboardRegime() {
@@ -2285,7 +2289,7 @@ DASHBOARD_HTML = """
                 else volZEl.style.color = '#c9d1d9';
 
                 const priceMa = indicators.price_above_ma50;
-                document.getElementById('drIndPriceMa').textContent = priceMa === true ? 'Above' : priceMa === false ? 'Below' : '-';
+                document.getElementById('drIndPriceMa').textContent = priceMa === true ? '\uc0c1\ud68c' : priceMa === false ? '\ud558\ud68c' : '-';
                 document.getElementById('drIndPriceMa').style.color = priceMa === true ? '#3fb950' : priceMa === false ? '#f85149' : '#c9d1d9';
 
                 // Update weight comparison
@@ -2319,10 +2323,10 @@ DASHBOARD_HTML = """
                     html += '<div class="weight-compare-row">'
                          + '<div class="wc-name" style="color:' + nameColor + '">' + name + '</div>'
                          + '<div class="weight-compare-bars">'
-                         + '<div class="weight-bar-row"><div class="weight-bar-label" style="color:#58a6ff">Rec</div>'
+                         + '<div class="weight-bar-row"><div class="weight-bar-label" style="color:#58a6ff">\uad8c\uc7a5</div>'
                          + '<div class="weight-bar-track"><div class="weight-bar-fill-rec" style="width:' + recBarW + '%"></div></div>'
                          + '<div class="weight-pct" style="color:#58a6ff">' + recPct + '%</div></div>'
-                         + '<div class="weight-bar-row"><div class="weight-bar-label">Cur</div>'
+                         + '<div class="weight-bar-row"><div class="weight-bar-label">\ud604\uc7ac</div>'
                          + '<div class="weight-bar-track"><div class="weight-bar-fill-cur" style="width:' + curBarW + '%"></div></div>'
                          + '<div class="weight-pct">' + curPct + '%</div></div>'
                          + '</div></div>';
@@ -2330,7 +2334,7 @@ DASHBOARD_HTML = """
                 el.innerHTML = html;
             } catch(e) {
                 console.error('Weight comparison error:', e);
-                el.innerHTML = '<p class="neu">Failed to load weight comparison</p>';
+                el.innerHTML = '<p class="neu">\uac00\uc911\uce58 \ube44\uad50 \ub85c\ub529 \uc2e4\ud328</p>';
             }
         }
 
@@ -2374,7 +2378,7 @@ DASHBOARD_HTML = """
                         labels: shortDates,
                         datasets: [
                             {
-                                label: 'Regime',
+                                label: '\uad6d\uba74',
                                 data: dataPoints,
                                 backgroundColor: bgColors,
                                 borderRadius: 3,
@@ -2382,7 +2386,7 @@ DASHBOARD_HTML = """
                                 order: 2,
                             },
                             {
-                                label: 'Confidence',
+                                label: '\uc2e0\ub8b0\ub3c4',
                                 data: confData,
                                 type: 'line',
                                 borderColor: '#8b949e',
@@ -2407,9 +2411,10 @@ DASHBOARD_HTML = """
                                     label: function(ctx) {
                                         if (ctx.datasetIndex === 0) {
                                             const dateKey = dates[ctx.dataIndex];
-                                            return 'Regime: ' + (byDate[dateKey] ? byDate[dateKey].regime : '-');
+                                            const r = byDate[dateKey] ? byDate[dateKey].regime : '-';
+                                            return '\uad6d\uba74: ' + (REGIME_LABELS_KO[r] || r);
                                         }
-                                        return 'Confidence: ' + ctx.raw + '%';
+                                        return '\uc2e0\ub8b0\ub3c4: ' + ctx.raw + '%';
                                     }
                                 }
                             }
@@ -2424,7 +2429,7 @@ DASHBOARD_HTML = """
                                     stepSize: 1,
                                     font: { size: 9 },
                                     callback: function(v) {
-                                        const labels = { 1: 'BEAR', 2: 'HIGH VOL', 3: 'RANGE', 4: 'BULL' };
+                                        const labels = { 1: '\uc57d\uc138', 2: '\uace0\ubcc0\ub3d9', 3: '\ud69f\ubcf4', 4: '\uac15\uc138' };
                                         return labels[v] || '';
                                     }
                                 }
@@ -2449,13 +2454,13 @@ DASHBOARD_HTML = """
                 const el = document.getElementById('regimeHistoryLog');
 
                 if (!history.length) {
-                    el.innerHTML = '<p class="neu">No regime history available</p>';
+                    el.innerHTML = '<p class="neu">\uad6d\uba74 \uc774\ub825 \uc5c6\uc74c</p>';
                     return;
                 }
 
                 // Show last 30 entries, newest first
                 const recent = history.slice(-30).reverse();
-                let html = '<table><thead><tr><th>Time</th><th>Regime</th><th>Confidence</th><th>20D Return</th></tr></thead><tbody>';
+                let html = '<table><thead><tr><th>\uc2dc\uac04</th><th>\uad6d\uba74</th><th>\uc2e0\ub8b0\ub3c4</th><th>20\uc77c \uc218\uc775\ub960</th></tr></thead><tbody>';
                 for (const entry of recent) {
                     const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString('ko', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
                     const regime = entry.regime || 'RANGING';
@@ -2476,20 +2481,20 @@ DASHBOARD_HTML = """
         }
 
         async function applyRegimeWeights() {
-            if (!confirm('Apply recommended regime weights to strategy configuration?')) return;
+            if (!confirm('\uad8c\uc7a5 \uad6d\uba74 \uac00\uc911\uce58\ub97c \uc804\ub7b5 \uc124\uc815\uc5d0 \uc801\uc6a9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) return;
             try {
                 const r = await fetch('/api/regime/apply-weights', { method: 'POST' });
                 const d = await r.json();
                 if (d.status === 'applied') {
-                    alert('Weights applied successfully!\\nRegime: ' + d.regime + '\\nConfidence: ' + Math.round(d.confidence * 100) + '%');
+                    alert('\uac00\uc911\uce58 \uc801\uc6a9 \uc644\ub8cc!\\n\uad6d\uba74: ' + (REGIME_LABELS_KO[d.regime] || d.regime) + '\\n\uc2e0\ub8b0\ub3c4: ' + Math.round(d.confidence * 100) + '%');
                     loadDashboardRegime();
                     loadStrategyToggles();
                 } else {
-                    alert('Failed to apply weights');
+                    alert('\uac00\uc911\uce58 \uc801\uc6a9 \uc2e4\ud328');
                 }
             } catch(e) {
                 console.error('Apply weights error:', e);
-                alert('Error applying weights');
+                alert('\uac00\uc911\uce58 \uc801\uc6a9 \uc911 \uc624\ub958 \ubc1c\uc0dd');
             }
         }
 
@@ -2900,7 +2905,7 @@ DASHBOARD_HTML = """
         }
 
         /* ========== Execution Engine Section ========== */
-        let slippageHistChart = null;
+        let slippageHistChartInst = null;
 
         async function loadExecutionStats() {
             try {
@@ -2926,11 +2931,12 @@ DASHBOARD_HTML = """
                     activeList.innerHTML = orders.map(o => {
                         const fillPct = ((o.fill_rate || 0) * 100).toFixed(0);
                         const sideClass = o.side === 'BUY' ? 'badge-buy' : 'badge-sell';
+                        const sideKo = o.side === 'BUY' ? '\ub9e4\uc218' : '\ub9e4\ub3c4';
                         return `<div class="active-order-item">
                             <div>
                                 <span class="ao-symbol">${o.symbol}</span>
                                 <span class="ao-type">${o.order_type}</span>
-                                <span class="badge ${sideClass}" style="margin-left:4px">${o.side}</span>
+                                <span class="badge ${sideClass}" style="margin-left:4px">${sideKo}</span>
                             </div>
                             <div class="ao-progress">
                                 ${o.filled_qty || 0}/${o.total_qty}\uc8fc
@@ -2941,7 +2947,7 @@ DASHBOARD_HTML = """
                     }).join('');
                 }
 
-                document.getElementById('execLastUpdate').textContent = new Date().toLocaleTimeString('ko-KR');
+                document.getElementById('execLastUpdate').textContent = '\uac31\uc2e0: ' + new Date().toLocaleTimeString('ko-KR');
             } catch(e) { console.error('Exec stats error:', e); }
         }
 
@@ -2956,9 +2962,9 @@ DASHBOARD_HTML = """
                 const circumference = 314.16;
                 const offset = circumference * (1 - fillRate / 100);
                 const gaugeFill = document.getElementById('eqGaugeFill');
-                gaugeFill.style.strokeDashoffset = offset;
+                gaugeFill.setAttribute('stroke-dashoffset', offset.toFixed(2));
                 const gaugeColor = fillRate >= 90 ? '#3fb950' : fillRate >= 70 ? '#d29922' : '#f85149';
-                gaugeFill.style.stroke = gaugeColor;
+                gaugeFill.setAttribute('stroke', gaugeColor);
                 document.getElementById('eqGaugeValue').textContent = fillRate.toFixed(0) + '%';
                 document.getElementById('eqGaugeValue').style.color = gaugeColor;
 
@@ -2977,8 +2983,8 @@ DASHBOARD_HTML = """
                 if (bins.length > 0 && counts.some(c => c > 0)) {
                     histEmpty.style.display = 'none';
                     histCanvas.style.display = 'block';
-                    if (slippageHistChart) slippageHistChart.destroy();
-                    slippageHistChart = new Chart(histCanvas.getContext('2d'), {
+                    if (slippageHistChartInst) slippageHistChartInst.destroy();
+                    slippageHistChartInst = new Chart(histCanvas.getContext('2d'), {
                         type: 'bar',
                         data: {
                             labels: bins.map(b => b + 'bp'),

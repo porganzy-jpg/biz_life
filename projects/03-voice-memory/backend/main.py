@@ -1614,22 +1614,22 @@ TEMPLATE_HTML = """
     </div>
     <div class="container">
         <div class="tabs">
-            <div class="tab active" onclick="showTab('persons')">Persons</div>
-            <div class="tab" onclick="showTab('record')">Record</div>
-            <div class="tab" onclick="showTab('chat')">Chat</div>
+            <div class="tab active" onclick="showTab('persons')">\uC778\uBB3C</div>
+            <div class="tab" onclick="showTab('record')">\uB179\uC74C</div>
+            <div class="tab" onclick="showTab('chat')">\uB300\uD654</div>
         </div>
 
         <!-- PERSONS TAB -->
         <div class="panel active" id="panel-persons">
             <div class="card">
-                <h3>New Person</h3>
-                <div class="input-group"><label>Name</label><input id="pName" placeholder="이름" /></div>
-                <div class="input-group"><label>Relationship</label>
-                    <select id="pRel"><option value="family">가족</option><option value="friend">친구</option><option value="mentor">스승</option></select>
+                <h3>\uC0C8 \uC778\uBB3C \uB4F1\uB85D</h3>
+                <div class="input-group"><label>\uC774\uB984</label><input id="pName" placeholder="\uC774\uB984" /></div>
+                <div class="input-group"><label>\uAD00\uACC4</label>
+                    <select id="pRel"><option value="family">\uAC00\uC871</option><option value="friend">\uCE5C\uAD6C</option><option value="mentor">\uC2A4\uC2B9</option></select>
                 </div>
-                <div class="input-group"><label>Personality</label><input id="pTraits" placeholder="따뜻한, 유머러스, 다정한" /></div>
-                <div class="input-group"><label>Speaking Style</label><input id="pStyle" placeholder="말투 특징 (예: ~란다, ~하렴)" /></div>
-                <button class="btn btn-primary" onclick="createPerson()">Register</button>
+                <div class="input-group"><label>\uC131\uACA9</label><input id="pTraits" placeholder="\uB530\uB73B\uD55C, \uC720\uBA38\uB7EC\uC2A4, \uB2E4\uC815\uD55C" /></div>
+                <div class="input-group"><label>\uB9D0\uD22C</label><input id="pStyle" placeholder="\uB9D0\uD22C \uD2B9\uC9D5 (\uC608: ~\uB780\uB2E4, ~\uD558\uB834)" /></div>
+                <button class="btn btn-primary" onclick="createPerson()">\uB4F1\uB85D</button>
             </div>
             <div id="personList"></div>
         </div>
@@ -1638,52 +1638,52 @@ TEMPLATE_HTML = """
         <div class="panel" id="panel-record">
             <!-- Search Bar -->
             <div class="search-bar">
-                <input id="searchInput" placeholder="Search sessions, notes, tags, conversations..." onkeypress="if(event.key==='Enter')performSearch()" />
-                <button onclick="performSearch()">Search</button>
+                <input id="searchInput" placeholder="\uC138\uC158, \uBA54\uBAA8, \uD0DC\uADF8, \uB300\uD654 \uAC80\uC0C9..." onkeypress="if(event.key==='Enter')performSearch()" />
+                <button onclick="performSearch()">\uAC80\uC0C9</button>
             </div>
             <div class="search-filter-row" id="searchFilterRow" style="display:none;">
-                <span class="filter-label">Filter by tag:</span>
+                <span class="filter-label">\uD0DC\uADF8 \uD544\uD130:</span>
                 <select id="searchTagFilter" onchange="performSearch()">
-                    <option value="">All tags</option>
+                    <option value="">\uBAA8\uB4E0 \uD0DC\uADF8</option>
                 </select>
-                <button class="btn btn-sm" style="background:#e0d5c8;color:#5d4037;padding:4px 10px;font-size:0.75rem;" onclick="clearSearch()">Clear Search</button>
+                <button class="btn btn-sm" style="background:#e0d5c8;color:#5d4037;padding:4px 10px;font-size:0.75rem;" onclick="clearSearch()">\uAC80\uC0C9 \uCD08\uAE30\uD654</button>
             </div>
             <div class="search-results" id="searchResults" style="display:none;"></div>
 
             <!-- Transcript Search -->
             <div class="transcript-search-bar">
-                <input id="transcriptSearchInput" placeholder="Search transcripts..." onkeypress="if(event.key==='Enter')searchTranscripts()" />
-                <button onclick="searchTranscripts()">Search Transcripts</button>
+                <input id="transcriptSearchInput" placeholder="\uC804\uC0AC \uB0B4\uC6A9 \uAC80\uC0C9..." onkeypress="if(event.key==='Enter')searchTranscripts()" />
+                <button onclick="searchTranscripts()">\uC804\uC0AC \uAC80\uC0C9</button>
             </div>
             <div class="transcript-search-results" id="transcriptSearchResults" style="display:none;"></div>
 
             <div class="card" id="consentArea">
-                <h3>Consent Required</h3>
+                <h3>\uB3D9\uC758 \uD544\uC694</h3>
                 <p style="font-size:0.85rem;color:#888;margin-bottom:10px">녹음 전 아래 동의가 필요합니다.</p>
                 <div id="consentList"></div>
                 <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="grantAllConsents()">모두 동의</button>
             </div>
             <div class="card">
-                <h3>Recording Topics</h3>
+                <h3>\uB179\uC74C \uC8FC\uC81C</h3>
                 <div id="topicList"></div>
             </div>
             <!-- Audio recorder widget -->
             <div class="card" id="recorderCard">
-                <h3 id="recorderTitle">Audio Recorder</h3>
+                <h3 id="recorderTitle">\uC74C\uC131 \uB179\uC74C</h3>
                 <p id="recorderGuide" style="font-size:0.85rem;color:#888;margin-bottom:10px">
-                    Start a session to begin recording. Answer the guided questions naturally.
+                    \uC138\uC158\uC744 \uC2DC\uC791\uD558\uC5EC \uB179\uC74C\uC744 \uC2DC\uC791\uD558\uC138\uC694. \uC548\uB0B4 \uC9C8\uBB38\uC5D0 \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uB300\uB2F5\uD574 \uC8FC\uC138\uC694.
                 </p>
                 <div id="sessionQuestions" style="display:none;margin-bottom:12px;padding:10px;background:#faf5f0;border-radius:10px;">
-                    <div style="font-weight:600;color:#5d4037;font-size:0.85rem;margin-bottom:4px">Guide Questions:</div>
+                    <div style="font-weight:600;color:#5d4037;font-size:0.85rem;margin-bottom:4px">\uC548\uB0B4 \uC9C8\uBB38:</div>
                     <div id="questionList" style="font-size:0.8rem;color:#666;"></div>
                 </div>
                 <div class="recorder-widget">
                     <div class="recorder-controls">
-                        <button class="rec-btn" id="recBtn" onclick="toggleRecording()" disabled title="Start recording">
+                        <button class="rec-btn" id="recBtn" onclick="toggleRecording()" disabled title="\uB179\uC74C \uC2DC\uC791">
                             <div class="rec-dot"></div>
                         </button>
                         <div class="rec-timer" id="recTimer">0:00</div>
-                        <div class="rec-status" id="recStatus">Create a session first</div>
+                        <div class="rec-status" id="recStatus">\uBA3C\uC800 \uC138\uC158\uC744 \uC2DC\uC791\uD558\uC138\uC694</div>
                     </div>
                     <div class="waveform-container" id="waveformContainer">
                         <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
@@ -1691,13 +1691,13 @@ TEMPLATE_HTML = """
                     <div class="playback-area" id="playbackArea" style="display:none;">
                         <audio id="audioPlayback" controls style="width:100%;"></audio>
                         <div style="display:flex;gap:8px;margin-top:8px;">
-                            <button class="btn btn-primary btn-sm" id="uploadBtn" onclick="uploadRecording()">Upload Recording</button>
-                            <button class="btn btn-sm" style="background:#e0d5c8;color:#5d4037;" onclick="discardRecording()">Discard</button>
+                            <button class="btn btn-primary btn-sm" id="uploadBtn" onclick="uploadRecording()">\uB179\uC74C \uC5C5\uB85C\uB4DC</button>
+                            <button class="btn btn-sm" style="background:#e0d5c8;color:#5d4037;" onclick="discardRecording()">\uC0AD\uC81C</button>
                         </div>
                         <div id="uploadStatus"></div>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="margin-top:10px;width:100%;" id="startSessionBtn" onclick="startRecordingSession()">Start New Session</button>
+                <button class="btn btn-primary" style="margin-top:10px;width:100%;" id="startSessionBtn" onclick="startRecordingSession()">\uC0C8 \uC138\uC158 \uC2DC\uC791</button>
             </div>
             <!-- Memory Search -->
             <div class="memory-search-card" id="memorySearchCard" style="display:none;">
@@ -1711,15 +1711,15 @@ TEMPLATE_HTML = """
 
             <!-- Past recordings -->
             <div class="card">
-                <h3>Past Recordings</h3>
-                <div id="sessionList"><div class="empty-state">No recordings yet.</div></div>
+                <h3>\uC774\uC804 \uB179\uC74C</h3>
+                <div id="sessionList"><div class="empty-state">\uC544\uC9C1 \uB179\uC74C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.</div></div>
             </div>
         </div>
 
         <!-- CHAT TAB -->
         <div class="panel" id="panel-chat">
             <div class="card">
-                <h3 id="chatTitle">Select a person to chat</h3>
+                <h3 id="chatTitle">\uB300\uD654\uD560 \uC778\uBB3C\uC744 \uC120\uD0DD\uD558\uC138\uC694</h3>
                 <!-- Mode Toggle: Text <-> Voice -->
                 <div class="vc-mode-toggle-wrap">
                     <button class="vc-mode-btn active" id="vcModeText" onclick="switchChatMode('text')">&#x2328; 텍스트 채팅</button>
@@ -1796,7 +1796,7 @@ TEMPLATE_HTML = """
                 <button class="analytics-close" onclick="closeAnalytics()">&times;</button>
             </div>
             <div class="analytics-body" id="analyticsBody">
-                <div class="empty-state">Loading...</div>
+                <div class="empty-state">\uB85C\uB529 \uC911...</div>
             </div>
         </div>
     </div>
@@ -1809,7 +1809,7 @@ TEMPLATE_HTML = """
                 <button class="profile-close" onclick="closeProfile()">&times;</button>
             </div>
             <div class="profile-body" id="profileBody">
-                <div class="empty-state">Loading...</div>
+                <div class="empty-state">\uB85C\uB529 \uC911...</div>
             </div>
         </div>
     </div>
@@ -1853,7 +1853,7 @@ TEMPLATE_HTML = """
                 speaking_style: document.getElementById('pStyle').value,
             })});
             const d = await r.json();
-            alert(d.message || 'Created!');
+            alert(d.message || '\uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4!');
             loadPersons();
         }
 
@@ -1862,14 +1862,15 @@ TEMPLATE_HTML = """
             const d = await r.json();
             const el = document.getElementById('personList');
             if (!d.persons.length) { el.innerHTML='<div class="empty-state">등록된 인물이 없습니다.</div>'; return; }
-            el.innerHTML = d.persons.map(p=>
-                `<div class="person-card">
-                    <div class="person-avatar" onclick="selectPerson(${p.id},'${p.name}')">${p.name[0]}</div>
-                    <div class="person-info" onclick="selectPerson(${p.id},'${p.name}')"><div class="name">${p.name}</div><div class="sub">${p.relationship_type} | Sessions: ${p.session_count} | Chats: ${p.conversation_count}</div></div>
-                    <button class="btn-profile" onclick="event.stopPropagation();openProfile(${p.id},'${p.name}')" title="프로필">&#x1F4CB; 프로필</button>
-                    <button class="btn-analytics" onclick="event.stopPropagation();openAnalytics(${p.id},'${p.name}')"><svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:-1px;margin-right:3px;"><rect x="1" y="7" width="2" height="4" fill="#8e6b47"/><rect x="5" y="4" width="2" height="7" fill="#8e6b47"/><rect x="9" y="1" width="2" height="10" fill="#8e6b47"/></svg>&#xBD84;&#xC11D;</button>
+            el.innerHTML = d.persons.map(p=>{
+                const safeName = escapeHtml(p.name).replace(/'/g, '&#39;');
+                return `<div class="person-card">
+                    <div class="person-avatar" onclick="selectPerson(${p.id},'${safeName}')">${escapeHtml(p.name)[0]}</div>
+                    <div class="person-info" onclick="selectPerson(${p.id},'${safeName}')"><div class="name">${escapeHtml(p.name)}</div><div class="sub">${escapeHtml(p.relationship_type)} | \uC138\uC158: ${p.session_count} | \uB300\uD654: ${p.conversation_count}</div></div>
+                    <button class="btn-profile" onclick="event.stopPropagation();openProfile(${p.id},'${safeName}')" title="\uD504\uB85C\uD544">&#x1F4CB; \uD504\uB85C\uD544</button>
+                    <button class="btn-analytics" onclick="event.stopPropagation();openAnalytics(${p.id},'${safeName}')"><svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:-1px;margin-right:3px;"><rect x="1" y="7" width="2" height="4" fill="#8e6b47"/><rect x="5" y="4" width="2" height="7" fill="#8e6b47"/><rect x="9" y="1" width="2" height="10" fill="#8e6b47"/></svg>&#xBD84;&#xC11D;</button>
                 </div>`
-            ).join('');
+            }).join('');
         }
 
         function selectPerson(id, name) {
@@ -1881,7 +1882,7 @@ TEMPLATE_HTML = """
         // ====== Record Tab ======
         async function loadRecordTab() {
             if (!selectedPersonId) {
-                document.getElementById('consentList').innerHTML='<p style="color:#aaa">먼저 인물을 선택하세요 (Persons 탭).</p>';
+                document.getElementById('consentList').innerHTML='<p style="color:#aaa">먼저 인물을 선택하세요 (\uC778\uBB3C \uD0ED).</p>';
                 document.getElementById('startSessionBtn').disabled = true;
                 document.getElementById('memorySearchCard').style.display = 'none';
                 return;
@@ -1934,8 +1935,8 @@ TEMPLATE_HTML = """
             if (d.error) { alert(d.error); return; }
 
             currentSessionId = d.session_id;
-            document.getElementById('recorderTitle').textContent = 'Session #' + d.session_number + ': ' + d.topic;
-            document.getElementById('recorderGuide').textContent = 'Press the record button and answer the questions below.';
+            document.getElementById('recorderTitle').textContent = '\uC138\uC158 #' + d.session_number + ': ' + d.topic;
+            document.getElementById('recorderGuide').textContent = '\uB179\uC74C \uBC84\uD2BC\uC744 \uB204\uB974\uACE0 \uC544\uB798 \uC9C8\uBB38\uC5D0 \uB300\uB2F5\uD574 \uC8FC\uC138\uC694.';
             document.getElementById('sessionQuestions').style.display = 'block';
             document.getElementById('questionList').innerHTML = d.questions.map((q,i) =>
                 '<div style="margin:2px 0;">' + (i+1) + '. ' + q + '</div>'
@@ -1943,7 +1944,7 @@ TEMPLATE_HTML = """
 
             // Enable record button
             document.getElementById('recBtn').disabled = false;
-            document.getElementById('recStatus').textContent = 'Ready to record';
+            document.getElementById('recStatus').textContent = '\uB179\uC74C \uC900\uBE44 \uC644\uB8CC';
             document.getElementById('recStatus').className = 'rec-status';
 
             // Reset playback area
@@ -1963,7 +1964,7 @@ TEMPLATE_HTML = """
 
         async function startAudioRecording() {
             if (!currentSessionId) {
-                alert('Start a session first!');
+                alert('\uBA3C\uC800 \uC138\uC158\uC744 \uC2DC\uC791\uD558\uC138\uC694!');
                 return;
             }
             try {
@@ -2024,7 +2025,7 @@ TEMPLATE_HTML = """
 
                 document.getElementById('recBtn').classList.add('recording');
                 document.getElementById('recTimer').classList.add('recording');
-                document.getElementById('recStatus').textContent = 'Recording...';
+                document.getElementById('recStatus').textContent = '\uB179\uC74C \uC911...';
                 document.getElementById('recStatus').className = 'rec-status recording';
                 document.getElementById('playbackArea').style.display = 'none';
 
@@ -2034,11 +2035,11 @@ TEMPLATE_HTML = """
             } catch (err) {
                 console.error('Microphone access error:', err);
                 if (err.name === 'NotAllowedError') {
-                    alert('Microphone access denied. Please allow microphone access in your browser settings.');
+                    alert('\uB9C8\uC774\uD06C \uC811\uADFC\uC774 \uAC70\uBD80\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uBE0C\uB77C\uC6B0\uC800 \uC124\uC815\uC5D0\uC11C \uB9C8\uC774\uD06C \uAD8C\uD55C\uC744 \uD5C8\uC6A9\uD574 \uC8FC\uC138\uC694.');
                 } else if (err.name === 'NotFoundError') {
-                    alert('No microphone found. Please connect a microphone.');
+                    alert('\uB9C8\uC774\uD06C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uB9C8\uC774\uD06C\uB97C \uC5F0\uACB0\uD574 \uC8FC\uC138\uC694.');
                 } else {
-                    alert('Could not access microphone: ' + err.message);
+                    alert('\uB9C8\uC774\uD06C \uC624\uB958: ' + err.message);
                 }
             }
         }
@@ -2052,7 +2053,7 @@ TEMPLATE_HTML = """
 
             document.getElementById('recBtn').classList.remove('recording');
             document.getElementById('recTimer').classList.remove('recording');
-            document.getElementById('recStatus').textContent = 'Recording stopped. Review and upload below.';
+            document.getElementById('recStatus').textContent = '\uB179\uC74C \uC644\uB8CC. \uC544\uB798\uC5D0\uC11C \uD655\uC778 \uD6C4 \uC5C5\uB85C\uB4DC\uD558\uC138\uC694.';
             document.getElementById('recStatus').className = 'rec-status';
         }
 
@@ -2070,19 +2071,19 @@ TEMPLATE_HTML = """
             document.getElementById('playbackArea').style.display = 'none';
             document.getElementById('uploadStatus').innerHTML = '';
             document.getElementById('recTimer').textContent = '0:00';
-            document.getElementById('recStatus').textContent = 'Recording discarded. Press record to try again.';
+            document.getElementById('recStatus').textContent = '\uB179\uC74C\uC774 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uB179\uC74C\uD558\uB824\uBA74 \uBC84\uD2BC\uC744 \uB204\uB974\uC138\uC694.';
             clearWaveformCanvas();
         }
 
         // ====== Upload Recording ======
         async function uploadRecording() {
             if (!audioBlob || !currentSessionId) {
-                alert('No recording to upload.');
+                alert('\uC5C5\uB85C\uB4DC\uD560 \uB179\uC74C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
                 return;
             }
 
             const statusEl = document.getElementById('uploadStatus');
-            statusEl.innerHTML = '<div class="upload-status uploading">Uploading...</div>';
+            statusEl.innerHTML = '<div class="upload-status uploading">\uC5C5\uB85C\uB4DC \uC911...</div>';
             document.getElementById('uploadBtn').disabled = true;
 
             try {
@@ -2104,7 +2105,7 @@ TEMPLATE_HTML = """
 
                 if (r.ok) {
                     const sizeKB = Math.round(d.size_bytes / 1024);
-                    statusEl.innerHTML = '<div class="upload-status success">Uploaded successfully! (' + d.format.toUpperCase() + ', ' + sizeKB + ' KB)</div>';
+                    statusEl.innerHTML = '<div class="upload-status success">\uC5C5\uB85C\uB4DC \uC644\uB8CC! (' + d.format.toUpperCase() + ', ' + sizeKB + ' KB)</div>';
                     // Update session with duration
                     const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
                     await fetch('/api/recording/session/' + currentSessionId, {
@@ -2117,12 +2118,12 @@ TEMPLATE_HTML = """
                     // Reset for next recording
                     currentSessionId = null;
                     document.getElementById('recBtn').disabled = true;
-                    document.getElementById('recStatus').textContent = 'Upload complete! Start a new session to record again.';
+                    document.getElementById('recStatus').textContent = '\uC5C5\uB85C\uB4DC \uC644\uB8CC! \uC0C8 \uC138\uC158\uC744 \uC2DC\uC791\uD558\uC5EC \uB2E4\uC2DC \uB179\uC74C\uD558\uC138\uC694.';
                 } else {
-                    statusEl.innerHTML = '<div class="upload-status error">Upload failed: ' + (d.detail || 'Unknown error') + '</div>';
+                    statusEl.innerHTML = '<div class="upload-status error">\uC5C5\uB85C\uB4DC \uC2E4\uD328: ' + (d.detail || '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958') + '</div>';
                 }
             } catch (err) {
-                statusEl.innerHTML = '<div class="upload-status error">Upload failed: ' + err.message + '</div>';
+                statusEl.innerHTML = '<div class="upload-status error">\uC5C5\uB85C\uB4DC \uC2E4\uD328: ' + err.message + '</div>';
             }
             document.getElementById('uploadBtn').disabled = false;
         }
@@ -2142,7 +2143,7 @@ TEMPLATE_HTML = """
             const d = await r.json();
             const el = document.getElementById('sessionList');
             if (!d.sessions || !d.sessions.length) {
-                el.innerHTML = '<div class="empty-state">No recordings yet.</div>';
+                el.innerHTML = '<div class="empty-state">\uC544\uC9C1 \uB179\uC74C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.</div>';
                 return;
             }
             el.innerHTML = d.sessions.map(s => {
@@ -2150,10 +2151,10 @@ TEMPLATE_HTML = """
                 const durSec = (s.duration_seconds || 0) % 60;
                 const durStr = durMin + ':' + (durSec < 10 ? '0' : '') + durSec;
                 const statusBadge = s.status === 'completed'
-                    ? '<span style="color:#2e7d32;font-size:0.7rem;">Completed</span>'
+                    ? '<span style="color:#2e7d32;font-size:0.7rem;">\uC644\uB8CC</span>'
                     : '<span style="color:#e65100;font-size:0.7rem;">' + s.status + '</span>';
                 const playBtn = s.has_audio
-                    ? '<button class="play-btn" onclick="playSessionAudio(' + s.id + ', this)" title="Play recording">&#9654;</button>'
+                    ? '<button class="play-btn" onclick="playSessionAudio(' + s.id + ', this)" title="\uB179\uC74C \uC7AC\uC0DD">&#9654;</button>'
                     : '';
 
                 // Tags
@@ -2168,13 +2169,13 @@ TEMPLATE_HTML = """
                 const toneOptions = ['','행복','슬픔','감사','그리움','평온'];
                 const toneSelect = toneOptions.map(opt =>
                     '<option value="' + opt + '"' + (opt === (s.emotional_tone || '') ? ' selected' : '') + '>' +
-                    (opt || '-- tone --') + '</option>'
+                    (opt || '-- \uAC10\uC815 --') + '</option>'
                 ).join('');
 
                 // Transcription UI
                 let transcribeBtn = '';
                 if (s.has_audio && s.transcription_status !== 'completed' && s.transcription_status !== 'processing' && s.transcription_status !== 'pending') {
-                    transcribeBtn = '<button class="transcribe-btn" onclick="transcribeSession(' + s.id + ')">Transcribe</button>';
+                    transcribeBtn = '<button class="transcribe-btn" onclick="transcribeSession(' + s.id + ')">\uC804\uC0AC</button>';
                 }
                 let tsStatusHtml = '';
                 if (s.transcription_status && s.transcription_status !== 'none') {
@@ -2184,7 +2185,7 @@ TEMPLATE_HTML = """
                 // Transcript display (collapsible)
                 let transcriptHtml = '';
                 if (s.has_transcript || s.transcript_summary || (s.keywords && s.keywords.length)) {
-                    transcriptHtml += '<button class="transcript-toggle" onclick="toggleTranscript(' + s.id + ')">Transcript &#9662;</button>';
+                    transcriptHtml += '<button class="transcript-toggle" onclick="toggleTranscript(' + s.id + ')">\uC804\uC0AC \uB0B4\uC6A9 &#9662;</button>';
                     transcriptHtml += '<div id="transcript-' + s.id + '" style="display:none;">';
                     if (s.transcript_summary) {
                         transcriptHtml += '<div class="transcript-summary">' + escapeHtml(s.transcript_summary) + '</div>';
@@ -2197,8 +2198,8 @@ TEMPLATE_HTML = """
                         transcriptHtml += '</div>';
                     }
                     if (s.has_transcript) {
-                        transcriptHtml += '<button class="transcript-toggle" style="margin-top:6px;" onclick="loadFullTranscript(' + s.id + ')">Show full transcript</button>';
-                        transcriptHtml += '<div class="transcript-section" id="full-transcript-' + s.id + '" style="display:none;">Loading...</div>';
+                        transcriptHtml += '<button class="transcript-toggle" style="margin-top:6px;" onclick="loadFullTranscript(' + s.id + ')">\uC804\uCCB4 \uC804\uC0AC \uBCF4\uAE30</button>';
+                        transcriptHtml += '<div class="transcript-section" id="full-transcript-' + s.id + '" style="display:none;">\uB85C\uB529 \uC911...</div>';
                     }
                     transcriptHtml += '</div>';
                 }
@@ -2214,21 +2215,21 @@ TEMPLATE_HTML = """
                     '</div>' +
                     '<div class="tag-area" id="tags-' + s.id + '">' +
                         tagsHtml +
-                        '<button class="add-tag-btn" onclick="showTagInput(' + s.id + ')">+ tag</button>' +
+                        '<button class="add-tag-btn" onclick="showTagInput(' + s.id + ')">+ \uD0DC\uADF8</button>' +
                         '<div class="tag-input-wrap" id="tag-input-' + s.id + '" style="display:none;">' +
-                            '<input id="tag-val-' + s.id + '" placeholder="tag name" onkeypress="if(event.key===\'Enter\')addTag(' + s.id + ')" />' +
-                            '<button onclick="addTag(' + s.id + ')">Add</button>' +
+                            '<input id="tag-val-' + s.id + '" placeholder="\uD0DC\uADF8\uBA85" onkeypress="if(event.key===\'Enter\')addTag(' + s.id + ')" />' +
+                            '<button onclick="addTag(' + s.id + ')">\uCD94\uAC00</button>' +
                         '</div>' +
                     '</div>' +
                     transcriptHtml +
                     '<div style="display:flex;align-items:center;gap:8px;">' +
                         '<select class="tone-select" onchange="saveTone(' + s.id + ',this.value)">' + toneSelect + '</select>' +
-                        '<button class="notes-toggle" onclick="toggleNotes(' + s.id + ')">Notes &#9662;</button>' +
+                        '<button class="notes-toggle" onclick="toggleNotes(' + s.id + ')">\uBA54\uBAA8 &#9662;</button>' +
                     '</div>' +
                     '<div class="notes-section" id="notes-' + s.id + '" style="display:none;">' +
-                        '<textarea id="notes-text-' + s.id + '" placeholder="Add your notes about this session...">' + escapeHtml(s.user_notes || '') + '</textarea>' +
+                        '<textarea id="notes-text-' + s.id + '" placeholder="\uC774 \uC138\uC158\uC5D0 \uB300\uD55C \uBA54\uBAA8\uB97C \uC791\uC131\uD558\uC138\uC694...">' + escapeHtml(s.user_notes || '') + '</textarea>' +
                         '<div class="notes-actions">' +
-                            '<button class="btn btn-primary btn-sm" onclick="saveNotes(' + s.id + ')">Save Notes</button>' +
+                            '<button class="btn btn-primary btn-sm" onclick="saveNotes(' + s.id + ')">\uBA54\uBAA8 \uC800\uC7A5</button>' +
                         '</div>' +
                     '</div>' +
                 '</div>';
@@ -2280,7 +2281,7 @@ TEMPLATE_HTML = """
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({user_notes: text}),
             });
-            alert('Notes saved!');
+            alert('\uBA54\uBAA8\uAC00 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4!');
         }
 
         async function saveTone(sessionId, tone) {
@@ -2300,7 +2301,7 @@ TEMPLATE_HTML = """
                 pollTranscriptionStatus(sessionId);
                 loadSessionList();
             } else {
-                alert('Transcription request failed.');
+                alert('\uC804\uC0AC \uC694\uCCAD\uC774 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.');
             }
         }
 
@@ -2327,15 +2328,15 @@ TEMPLATE_HTML = """
         async function loadFullTranscript(sessionId) {
             const el = document.getElementById('full-transcript-' + sessionId);
             if (!el) return;
-            if (el.style.display === 'block' && el.textContent !== 'Loading...') {
+            if (el.style.display === 'block' && el.textContent !== '\uB85C\uB529 \uC911...') {
                 el.style.display = 'none';
                 return;
             }
             el.style.display = 'block';
-            el.textContent = 'Loading...';
+            el.textContent = '\uB85C\uB529 \uC911...';
             const r = await fetch('/api/recording/sessions/' + sessionId + '/transcript');
             const d = await r.json();
-            el.textContent = d.transcript || '(No transcript available)';
+            el.textContent = d.transcript || '(\uC804\uC0AC \uB0B4\uC6A9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4)';
         }
 
         // ====== Transcript Search ======
@@ -2350,10 +2351,10 @@ TEMPLATE_HTML = """
             const el = document.getElementById('transcriptSearchResults');
             el.style.display = 'block';
             if (!d.results || !d.results.length) {
-                el.innerHTML = '<div class="empty-state">No transcript results found.</div>';
+                el.innerHTML = '<div class="empty-state">\uC804\uC0AC \uAC80\uC0C9 \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</div>';
                 return;
             }
-            el.innerHTML = '<div style="font-size:0.8rem;color:#888;margin-bottom:4px;">' + d.count + ' transcript result(s)</div>' +
+            el.innerHTML = '<div style="font-size:0.8rem;color:#888;margin-bottom:4px;">' + d.count + '\uAC1C\uC758 \uC804\uC0AC \uACB0\uACFC</div>' +
                 d.results.map(function(r) {
                     let snippetHtml = '';
                     if (r.transcript_snippet) {
@@ -2385,7 +2386,7 @@ TEMPLATE_HTML = """
             const d = await r.json();
             const sel = document.getElementById('searchTagFilter');
             const current = sel.value;
-            sel.innerHTML = '<option value="">All tags</option>' +
+            sel.innerHTML = '<option value="">\uBAA8\uB4E0 \uD0DC\uADF8</option>' +
                 (d.tags || []).map(t =>
                     '<option value="' + escapeHtml(t.tag_name) + '"' + (t.tag_name === current ? ' selected' : '') + '>' +
                     escapeHtml(t.tag_name) + ' (' + t.count + ')</option>'
@@ -2412,11 +2413,11 @@ TEMPLATE_HTML = """
             el.style.display = 'block';
 
             if (!d.results || !d.results.length) {
-                el.innerHTML = '<div class="empty-state">No results found.</div>';
+                el.innerHTML = '<div class="empty-state">\uAC80\uC0C9 \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.</div>';
                 return;
             }
 
-            el.innerHTML = '<div style="font-size:0.8rem;color:#888;margin-bottom:6px;">' + d.count + ' result(s)</div>' +
+            el.innerHTML = '<div style="font-size:0.8rem;color:#888;margin-bottom:6px;">' + d.count + '\uAC1C\uC758 \uACB0\uACFC</div>' +
                 d.results.map(r => {
                     const tagsHtml = (r.tags || []).map(t =>
                         '<span class="tag-chip" style="background:' + tagColor(t) + '">' + escapeHtml(t) + '</span>'
@@ -2474,7 +2475,7 @@ TEMPLATE_HTML = """
             player.onerror = function() {
                 if (btnEl) btnEl.innerHTML = '&#9654;';
                 currentlyPlayingBtn = null;
-                alert('Failed to play audio.');
+                alert('\uC624\uB514\uC624 \uC7AC\uC0DD\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.');
             };
             player.play();
         }
@@ -2806,7 +2807,7 @@ TEMPLATE_HTML = """
         function openAnalytics(personId, personName) {
             document.getElementById('analyticsOverlay').style.display = 'flex';
             document.getElementById('analyticsTitle').textContent = personName + ' - 분석';
-            document.getElementById('analyticsBody').innerHTML = '<div class="empty-state">Loading analytics...</div>';
+            document.getElementById('analyticsBody').innerHTML = '<div class="empty-state">\uBD84\uC11D \uB85C\uB529 \uC911...</div>';
             document.body.style.overflow = 'hidden';
             loadAnalytics(personId);
         }
@@ -2837,12 +2838,12 @@ TEMPLATE_HTML = """
         async function loadAnalytics(personId) {
             try {
                 const r = await fetch('/api/persons/' + personId + '/analytics');
-                if (!r.ok) throw new Error('Failed to load analytics');
+                if (!r.ok) throw new Error('\uBD84\uC11D \uB85C\uB4DC \uC2E4\uD328');
                 const d = await r.json();
                 renderAnalytics(d);
             } catch (err) {
                 document.getElementById('analyticsBody').innerHTML =
-                    '<div class="empty-state">Failed to load analytics: ' + escapeHtml(err.message) + '</div>';
+                    '<div class="empty-state">\uBD84\uC11D \uB85C\uB4DC \uC2E4\uD328:' + escapeHtml(err.message) + '</div>';
             }
         }
 
@@ -2973,9 +2974,9 @@ TEMPLATE_HTML = """
                         const toneLabel = m.emotional_tone ? '<span style="font-size:0.7rem;color:#8e44ad;margin-left:6px;">' + escapeHtml(m.emotional_tone) + '</span>' : '';
                         // Highlight query terms in text
                         let textHtml = escapeHtml(m.text);
-                        const queryTerms = q.split(/\s+/).filter(function(t){ return t.length >= 2; });
+                        const queryTerms = q.split(/\\s+/).filter(function(t){ return t.length >= 2; });
                         queryTerms.forEach(function(term) {
-                            const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                            const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + ')', 'gi');
                             textHtml = textHtml.replace(re, '<mark>$1</mark>');
                         });
                         return '<div class="memory-result-item">' +
@@ -2995,7 +2996,7 @@ TEMPLATE_HTML = """
         function openProfile(personId, personName) {
             document.getElementById('profileOverlay').style.display = 'flex';
             document.getElementById('profileTitle').textContent = personName + ' - 프로필';
-            document.getElementById('profileBody').innerHTML = '<div class="empty-state">Loading...</div>';
+            document.getElementById('profileBody').innerHTML = '<div class="empty-state">\uB85C\uB529 \uC911...</div>';
             document.body.style.overflow = 'hidden';
             loadProfile(personId);
         }
@@ -3008,7 +3009,7 @@ TEMPLATE_HTML = """
         async function loadProfile(personId) {
             try {
                 const r = await fetch('/api/persons/' + personId + '/profile');
-                if (!r.ok) throw new Error('Failed to load profile');
+                if (!r.ok) throw new Error('\uD504\uB85C\uD544 \uB85C\uB4DC \uC2E4\uD328');
                 const d = await r.json();
                 renderProfile(d);
             } catch (err) {
@@ -3268,7 +3269,7 @@ TEMPLATE_HTML = """
         // --- Start recording ---
         async function startVoiceChatRecording() {
             if (!selectedPersonId) {
-                alert('먼저 인물을 선택하세요 (Persons 탭).');
+                alert('먼저 인물을 선택하세요 (\uC778\uBB3C \uD0ED).');
                 return;
             }
             if (vcIsProcessing) return;
@@ -3291,6 +3292,9 @@ TEMPLATE_HTML = """
                 source.connect(vcAnalyser);
 
                 // Setup MediaRecorder
+                if (typeof MediaRecorder === 'undefined') {
+                    throw {name: 'NotSupportedError', message: '\uC774 \uBE0C\uB77C\uC6B0\uC800\uB294 \uC74C\uC131 \uB179\uC74C\uC744 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.'};
+                }
                 let mimeType = 'audio/webm;codecs=opus';
                 if (!MediaRecorder.isTypeSupported(mimeType)) {
                     mimeType = 'audio/webm';
@@ -3298,9 +3302,13 @@ TEMPLATE_HTML = """
                 if (!MediaRecorder.isTypeSupported(mimeType)) {
                     mimeType = 'audio/ogg;codecs=opus';
                 }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = '';  // Let browser decide
+                }
 
                 vcAudioChunks = [];
-                vcRecorder = new MediaRecorder(vcStream, {mimeType: mimeType});
+                const vcRecOpts = mimeType ? {mimeType: mimeType} : {};
+                vcRecorder = new MediaRecorder(vcStream, vcRecOpts);
                 vcRecorder.ondataavailable = function(e) {
                     if (e.data.size > 0) vcAudioChunks.push(e.data);
                 };
@@ -3323,7 +3331,25 @@ TEMPLATE_HTML = """
 
             } catch (err) {
                 console.error('Microphone access error:', err);
-                setVcStatus('', '\uB9C8\uC774\uD06C \uC811\uADFC\uC774 \uAC70\uBD80\uB418\uC5C8\uC2B5\uB2C8\uB2E4');
+                // Cleanup any partially-initialized state
+                if (vcStream) {
+                    vcStream.getTracks().forEach(function(t) { t.stop(); });
+                    vcStream = null;
+                }
+                if (vcAudioCtx) {
+                    try { vcAudioCtx.close(); } catch(e) {}
+                    vcAudioCtx = null;
+                    vcAnalyser = null;
+                }
+                vcIsRecording = false;
+
+                if (err.name === 'NotAllowedError') {
+                    setVcStatus('', '\uB9C8\uC774\uD06C \uC811\uADFC\uC774 \uAC70\uBD80\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uBE0C\uB77C\uC6B0\uC800 \uC124\uC815\uC5D0\uC11C \uB9C8\uC774\uD06C \uAD8C\uD55C\uC744 \uD5C8\uC6A9\uD574 \uC8FC\uC138\uC694.');
+                } else if (err.name === 'NotFoundError') {
+                    setVcStatus('', '\uB9C8\uC774\uD06C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uB9C8\uC774\uD06C\uB97C \uC5F0\uACB0\uD574 \uC8FC\uC138\uC694.');
+                } else {
+                    setVcStatus('', '\uB9C8\uC774\uD06C \uC624\uB958: ' + (err.message || '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'));
+                }
             }
         }
 
@@ -3437,15 +3463,20 @@ TEMPLATE_HTML = """
 
             vcIsProcessing = false;
             document.getElementById('vcMicBtn').classList.remove('disabled');
-            setVcStatus('', '\uB9C8\uC774\uD06C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC138\uC694');
 
             // Continuous mode: auto-restart recording
-            if (document.getElementById('vcContinuousToggle').checked && !vcIsProcessing) {
+            var shouldContinue = document.getElementById('vcContinuousToggle').checked && vcMode === 'voice';
+            if (shouldContinue) {
+                setVcStatus('', '\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uB4E3\uAE30 \uC2DC\uC791...');
                 setTimeout(function() {
-                    if (document.getElementById('vcContinuousToggle').checked && vcMode === 'voice') {
+                    if (document.getElementById('vcContinuousToggle').checked && vcMode === 'voice' && !vcIsProcessing) {
                         startVoiceChatRecording();
+                    } else {
+                        setVcStatus('', '\uB9C8\uC774\uD06C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC138\uC694');
                     }
                 }, 500);
+            } else {
+                setVcStatus('', '\uB9C8\uC774\uD06C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC138\uC694');
             }
         }
 
@@ -3453,16 +3484,24 @@ TEMPLATE_HTML = """
         function playVcAudio(audioUrl) {
             return new Promise(function(resolve) {
                 const player = getChatAudioPlayer();
+                // Stop any current playback first
+                player.pause();
+                player.currentTime = 0;
+                if (currentPlayBtnEl) {
+                    currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E3\uAE30';
+                    currentPlayBtnEl.classList.remove('playing', 'loading');
+                    currentPlayBtnEl = null;
+                }
+
                 player.src = audioUrl;
                 player.volume = chatVolume;
 
-                player.onended = function() {
-                    resolve();
-                };
-                player.onerror = function() {
+                // Use once:true listeners so we don't clobber the shared player's permanent handlers
+                player.addEventListener('ended', function() { resolve(); }, {once: true});
+                player.addEventListener('error', function() {
                     console.warn('Voice chat audio playback error');
                     resolve();
-                };
+                }, {once: true});
 
                 player.play().catch(function(err) {
                     console.warn('Voice chat audio play failed:', err);

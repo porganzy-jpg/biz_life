@@ -254,6 +254,8 @@ async function loadNearbyStores() {
         applyFilterAndRender();
     } catch (e) {
         console.error('Nearby stores error:', e);
+        document.getElementById('promoList').innerHTML =
+            '<div class="loading-text">매장 정보를 불러올 수 없습니다. 잠시 후 다시 시도합니다.</div>';
     }
 }
 
@@ -307,11 +309,16 @@ function renderPromoList(stores) {
 }
 
 async function openStoreDetail(storeId) {
+    // 로딩 상태 즉시 표시
+    document.getElementById('modalStoreName').textContent = '불러오는 중...';
+    document.getElementById('modalStoreBody').innerHTML = '<div class="loading-text">매장 정보를 불러오는 중...</div>';
+    document.getElementById('storeModal').style.display = 'flex';
+
     try {
         const store = await API.getStoreDetail(storeId);
         renderStoreModal(store);
-        document.getElementById('storeModal').style.display = 'flex';
     } catch (e) {
+        document.getElementById('storeModal').style.display = 'none';
         showToast('매장 정보를 불러올 수 없습니다');
     }
 }
@@ -425,8 +432,11 @@ function setRating(rating) {
     });
 }
 
+let _reviewSubmitting = false;
 async function submitReview(storeId) {
     if (selectedRating === 0) { showToast('별점을 선택해주세요'); return; }
+    if (_reviewSubmitting) return;
+    _reviewSubmitting = true;
     const content = document.getElementById('reviewContent').value;
     try {
         await API.createReview({ store_id: storeId, rating: selectedRating, content });
@@ -437,6 +447,8 @@ async function submitReview(storeId) {
         document.querySelectorAll('#starRating span').forEach(el => { el.textContent = '\u2606'; el.classList.remove('active'); });
     } catch (err) {
         showToast(err.detail || '리뷰 작성 실패');
+    } finally {
+        _reviewSubmitting = false;
     }
 }
 
