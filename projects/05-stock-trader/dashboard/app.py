@@ -1,9 +1,10 @@
 """
-StockBot v2.1 대시보드
+StockBot v2.2 대시보드
 8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 일일성과 + 시장국면감지
 + 성과 차트 (Equity Curve, Daily PnL, Strategy Stats, Trade Distribution)
 + 전략 분석 (Strategy Heatmap, Rolling Performance, Toggle, Ranking)
 + 시장 레짐 (Dashboard Regime Detection & Strategy Rotation)
++ 스마트 주문 실행 (TWAP/VWAP/Smart Execute, 슬리피지 분석)
 """
 import sys
 import os
@@ -35,7 +36,7 @@ from regime_detector import (
 )
 from correlation_monitor import CorrelationMonitor
 
-app = FastAPI(title="StockBot v2.1 Dashboard")
+app = FastAPI(title="StockBot v2.2 Dashboard")
 app.include_router(backtest_router)
 trader = StockTrader(paper_trading=False)
 
@@ -731,6 +732,52 @@ async def get_correlation_history(days: int = Query(30)):
     return {"history": history, "days": days}
 
 
+# =====================================================================
+# Smart Order Execution API Endpoints
+# =====================================================================
+
+@app.get("/api/execution/stats")
+async def get_execution_stats():
+    """오늘의 실행 엔진 통계."""
+    stats = trader.execution_engine.get_daily_stats()
+    active = trader.execution_engine.get_active_orders()
+    return {"stats": stats, "active_orders": active}
+
+
+@app.get("/api/execution/history")
+async def get_execution_history(days: int = Query(30)):
+    """과거 실행 이력 및 슬리피지 분석."""
+    return trader.execution_engine.get_historical(days=days)
+
+
+@app.get("/api/execution/report/{order_id}")
+async def get_execution_report(order_id: str):
+    """개별 주문 실행 리포트."""
+    report = trader.execution_engine.get_execution_report(order_id)
+    if report is None:
+        return {"error": "주문을 찾을 수 없습니다."}
+    return report
+
+
+@app.get("/api/execution/volume-profile/{symbol}")
+async def get_volume_profile(symbol: str):
+    """종목의 장중 거래량 프로파일."""
+    return trader.execution_engine.get_volume_profile(symbol)
+
+
+@app.get("/api/execution/slippage-estimate/{symbol}")
+async def get_slippage_estimate(symbol: str, qty: int = Query(100)):
+    """주문의 예상 슬리피지 추정."""
+    return trader.execution_engine.estimate_slippage(symbol, qty)
+
+
+@app.post("/api/execution/cancel/{order_id}")
+async def cancel_execution(order_id: str):
+    """실행 중인 주문 취소."""
+    success = trader.execution_engine.cancel_order(order_id)
+    return {"success": success, "order_id": order_id}
+
+
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html lang="ko">
@@ -924,6 +971,37 @@ DASHBOARD_HTML = """
         .suggestion-list { display: flex; flex-direction: column; gap: 4px; }
         .suggestion-item { padding: 6px 10px; background: #0d1117; border-radius: 4px; font-size: 0.78rem; color: #c9d1d9; border-left: 2px solid #bc8cff; }
 
+        /* Execution Engine section styles */
+        .exec-section { margin-bottom: 12px; }
+        .exec-section .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .exec-section .section-title { color: #f472b6; font-size: 1.1rem; font-weight: 700; }
+        .exec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .exec-grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .exec-stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #21262d; font-size: 0.82rem; }
+        .exec-stat-label { color: #8b949e; }
+        .exec-stat-value { color: #c9d1d9; font-weight: 600; }
+        .exec-quality-gauge { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; }
+        .eq-ring { position: relative; width: 120px; height: 120px; }
+        .eq-ring svg { transform: rotate(-90deg); }
+        .eq-ring .eq-bg { fill: none; stroke: #21262d; stroke-width: 10; }
+        .eq-ring .eq-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+        .eq-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .eq-value { font-size: 1.5rem; font-weight: 700; }
+        .eq-label { font-size: 0.7rem; color: #8b949e; }
+        .active-order-item { display: flex; justify-content: space-between; align-items: center;
+                             padding: 8px 10px; background: #0d1117; border-radius: 6px;
+                             border-left: 3px solid #f472b6; margin-bottom: 6px; font-size: 0.78rem; }
+        .active-order-item .ao-symbol { font-weight: 700; color: #c9d1d9; }
+        .active-order-item .ao-type { color: #f472b6; font-weight: 600; font-size: 0.72rem; }
+        .active-order-item .ao-progress { color: #8b949e; }
+        .ao-bar { width: 80px; height: 5px; background: #21262d; border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 4px; }
+        .ao-bar-fill { height: 100%; background: #f472b6; border-radius: 3px; transition: width 0.3s; }
+        .vp-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-size: 0.72rem; }
+        .vp-label { width: 40px; color: #8b949e; text-align: right; flex-shrink: 0; }
+        .vp-bar { flex: 1; height: 14px; background: #21262d; border-radius: 3px; overflow: hidden; }
+        .vp-bar-fill { height: 100%; background: linear-gradient(90deg, #f472b6, #a855f7); border-radius: 3px; transition: width 0.5s; }
+        .vp-pct { width: 36px; color: #8b949e; font-size: 0.68rem; }
+
         @media (max-width: 900px) {
             .grid-2 { grid-template-columns: 1fr; }
             .perf-grid { grid-template-columns: 1fr; }
@@ -934,12 +1012,14 @@ DASHBOARD_HTML = """
             .regime-grid { grid-template-columns: 1fr; }
             .pr-grid { grid-template-columns: 1fr; }
             .pr-grid-3 { grid-template-columns: 1fr; }
+            .exec-grid { grid-template-columns: 1fr; }
+            .exec-grid-3 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>StockBot v2.1</h1>
+        <h1>StockBot v2.2</h1>
         <div class="header-right">
             <a href="/backtest" style="color:#58a6ff;text-decoration:none;font-size:0.85rem;padding:4px 12px;border:1px solid #1f6feb;border-radius:6px;margin-right:10px;">Backtest</a>
             <span class="refresh-info" id="lastUpdate">-</span>
@@ -1213,6 +1293,113 @@ DASHBOARD_HTML = """
                     <div class="chart-container" style="height:200px">
                         <canvas id="divTrendChart"></canvas>
                         <div class="chart-empty" id="divTrendEmpty">\ucd94\uc138 \ub370\uc774\ud130 \uc5c6\uc74c</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smart Order Execution Section -->
+        <div class="exec-section">
+            <div class="section-header">
+                <span class="section-title">\uc8fc\ubb38 \uc2e4\ud589</span>
+                <span class="refresh-info" id="execLastUpdate">-</span>
+            </div>
+            <div class="grid-6">
+                <div class="card stat-card">
+                    <div class="label">\uc624\ub298 \uc8fc\ubb38</div>
+                    <div class="value accent" id="execTotalOrders">0</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="label">\uccb4\uacb0 \uc644\ub8cc</div>
+                    <div class="value green" id="execFilledOrders">0</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="label">\uc2e4\ud328</div>
+                    <div class="value pos" id="execFailedOrders">0</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="label">\ud3c9\uade0 \uc2ac\ub9ac\ud53c\uc9c0</div>
+                    <div class="value" id="execAvgSlippage">0bp</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="label">\uccb4\uacb0 \ubb3c\ub7c9</div>
+                    <div class="value accent" id="execTotalVolume">0</div>
+                </div>
+                <div class="card stat-card">
+                    <div class="label">\ud65c\uc131 \uc8fc\ubb38</div>
+                    <div class="value yellow" id="execActiveOrders">0</div>
+                </div>
+            </div>
+            <div class="exec-grid-3">
+                <div class="card">
+                    <h2>\ud65c\uc131 \uc8fc\ubb38 \ubaa9\ub85d</h2>
+                    <div id="execActiveList" style="max-height:280px;overflow-y:auto">
+                        <p class="neu" style="font-size:0.82rem">\ud65c\uc131 \uc8fc\ubb38 \uc5c6\uc74c</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>\uc2e4\ud589 \ud488\uc9c8 \uac8c\uc774\uc9c0</h2>
+                    <div class="exec-quality-gauge">
+                        <div class="eq-ring">
+                            <svg width="120" height="120" viewBox="0 0 120 120">
+                                <circle class="eq-bg" cx="60" cy="60" r="50" />
+                                <circle class="eq-fill" id="eqGaugeFill" cx="60" cy="60" r="50"
+                                    stroke="#f472b6" stroke-dasharray="314.16" stroke-dashoffset="314.16" />
+                            </svg>
+                            <div class="eq-center">
+                                <div class="eq-value" id="eqGaugeValue">-</div>
+                                <div class="eq-label">\uccb4\uacb0\ub960</div>
+                            </div>
+                        </div>
+                        <div style="width:100%;margin-top:8px">
+                            <div class="exec-stat-row">
+                                <span class="exec-stat-label">\uccb4\uacb0\ub960</span>
+                                <span class="exec-stat-value" id="eqFillRate">-</span>
+                            </div>
+                            <div class="exec-stat-row">
+                                <span class="exec-stat-label">\ud3c9\uade0 \uc2ac\ub9ac\ud53c\uc9c0</span>
+                                <span class="exec-stat-value" id="eqAvgSlip">-</span>
+                            </div>
+                            <div class="exec-stat-row">
+                                <span class="exec-stat-label">\ucd5c\uc120 \uc2ac\ub9ac\ud53c\uc9c0</span>
+                                <span class="exec-stat-value" id="eqBestSlip">-</span>
+                            </div>
+                            <div class="exec-stat-row">
+                                <span class="exec-stat-label">\ucd5c\uc545 \uc2ac\ub9ac\ud53c\uc9c0</span>
+                                <span class="exec-stat-value" id="eqWorstSlip">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>\uac70\ub798\ub7c9 \ud504\ub85c\ud544</h2>
+                    <div id="execVolumeProfile" style="max-height:280px;overflow-y:auto">
+                        <p class="neu" style="font-size:0.82rem">\uc885\ubaa9 \uc120\ud0dd \uc2dc \ud45c\uc2dc</p>
+                    </div>
+                    <div style="margin-top:8px">
+                        <select id="vpSymbolSelect" style="background:#0d1117;color:#c9d1d9;border:1px solid #21262d;border-radius:4px;padding:4px 8px;font-size:0.78rem;width:100%">
+                            <option value="">\uc885\ubaa9 \uc120\ud0dd...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="exec-grid">
+                <div class="card">
+                    <h2>\uc2ac\ub9ac\ud53c\uc9c0 \ubd84\ud3ec (30\uc77c)</h2>
+                    <div class="chart-container" style="height:200px">
+                        <canvas id="slippageHistChart"></canvas>
+                        <div class="chart-empty" id="slippageHistEmpty">\ub370\uc774\ud130 \uc5c6\uc74c</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>\uc77c\ubcc4 \uc2e4\ud589 \ud1b5\uacc4</h2>
+                    <div class="scroll-table" style="max-height:200px">
+                        <table>
+                            <thead><tr><th>\ub0a0\uc9dc</th><th>\uc8fc\ubb38</th><th>\uccb4\uacb0</th><th>\uc2e4\ud328</th><th>\ud3c9\uade0 \uc2ac\ub9ac\ud53c\uc9c0</th><th>\uccb4\uacb0\ub960</th></tr></thead>
+                            <tbody id="execDailyTable">
+                                <tr><td colspan="6" class="neu">\ub370\uc774\ud130 \ub85c\ub529 \uc911...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -2712,14 +2899,214 @@ DASHBOARD_HTML = """
             loadDivTrend();
         }
 
+        /* ========== Execution Engine Section ========== */
+        let slippageHistChart = null;
+
+        async function loadExecutionStats() {
+            try {
+                const res = await fetch('/api/execution/stats');
+                const data = await res.json();
+                const s = data.stats || {};
+                document.getElementById('execTotalOrders').textContent = (s.total_orders || 0).toLocaleString();
+                document.getElementById('execFilledOrders').textContent = (s.filled_orders || 0).toLocaleString();
+                document.getElementById('execFailedOrders').textContent = (s.failed_orders || 0).toLocaleString();
+                const avgSlip = s.avg_slippage_bps || 0;
+                const slipEl = document.getElementById('execAvgSlippage');
+                slipEl.textContent = avgSlip.toFixed(1) + 'bp';
+                slipEl.className = 'value ' + (avgSlip > 30 ? 'pos' : avgSlip > 10 ? 'yellow' : 'green');
+                document.getElementById('execTotalVolume').textContent = (s.total_volume || 0).toLocaleString();
+                document.getElementById('execActiveOrders').textContent = (s.active_orders || 0).toLocaleString();
+
+                // Active orders list
+                const activeList = document.getElementById('execActiveList');
+                const orders = data.active_orders || [];
+                if (orders.length === 0) {
+                    activeList.innerHTML = '<p class="neu" style="font-size:0.82rem">\ud65c\uc131 \uc8fc\ubb38 \uc5c6\uc74c</p>';
+                } else {
+                    activeList.innerHTML = orders.map(o => {
+                        const fillPct = ((o.fill_rate || 0) * 100).toFixed(0);
+                        const sideClass = o.side === 'BUY' ? 'badge-buy' : 'badge-sell';
+                        return `<div class="active-order-item">
+                            <div>
+                                <span class="ao-symbol">${o.symbol}</span>
+                                <span class="ao-type">${o.order_type}</span>
+                                <span class="badge ${sideClass}" style="margin-left:4px">${o.side}</span>
+                            </div>
+                            <div class="ao-progress">
+                                ${o.filled_qty || 0}/${o.total_qty}\uc8fc
+                                <div class="ao-bar"><div class="ao-bar-fill" style="width:${fillPct}%"></div></div>
+                                ${fillPct}%
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
+
+                document.getElementById('execLastUpdate').textContent = new Date().toLocaleTimeString('ko-KR');
+            } catch(e) { console.error('Exec stats error:', e); }
+        }
+
+        async function loadExecutionHistory() {
+            try {
+                const res = await fetch('/api/execution/history?days=30');
+                const data = await res.json();
+                const summary = data.summary || {};
+
+                // Execution quality gauge
+                const fillRate = summary.fill_rate_pct || 0;
+                const circumference = 314.16;
+                const offset = circumference * (1 - fillRate / 100);
+                const gaugeFill = document.getElementById('eqGaugeFill');
+                gaugeFill.style.strokeDashoffset = offset;
+                const gaugeColor = fillRate >= 90 ? '#3fb950' : fillRate >= 70 ? '#d29922' : '#f85149';
+                gaugeFill.style.stroke = gaugeColor;
+                document.getElementById('eqGaugeValue').textContent = fillRate.toFixed(0) + '%';
+                document.getElementById('eqGaugeValue').style.color = gaugeColor;
+
+                document.getElementById('eqFillRate').textContent = fillRate.toFixed(1) + '%';
+                document.getElementById('eqAvgSlip').textContent = (summary.avg_slippage_bps || 0).toFixed(1) + 'bp';
+                document.getElementById('eqBestSlip').textContent = (summary.min_slippage_bps || 0).toFixed(1) + 'bp';
+                document.getElementById('eqWorstSlip').textContent = (summary.max_slippage_bps || 0).toFixed(1) + 'bp';
+
+                // Slippage histogram
+                const dist = data.slippage_distribution || {};
+                const bins = dist.bins || [];
+                const counts = dist.counts || [];
+                const histCanvas = document.getElementById('slippageHistChart');
+                const histEmpty = document.getElementById('slippageHistEmpty');
+
+                if (bins.length > 0 && counts.some(c => c > 0)) {
+                    histEmpty.style.display = 'none';
+                    histCanvas.style.display = 'block';
+                    if (slippageHistChart) slippageHistChart.destroy();
+                    slippageHistChart = new Chart(histCanvas.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: bins.map(b => b + 'bp'),
+                            datasets: [{
+                                data: counts,
+                                backgroundColor: bins.map(b => {
+                                    const v = parseInt(b);
+                                    if (v <= -20) return '#f8514988';
+                                    if (v < 0) return '#d2992288';
+                                    if (v === 0) return '#3fb95088';
+                                    return '#58a6ff88';
+                                }),
+                                borderColor: bins.map(b => {
+                                    const v = parseInt(b);
+                                    if (v <= -20) return '#f85149';
+                                    if (v < 0) return '#d29922';
+                                    if (v === 0) return '#3fb950';
+                                    return '#58a6ff';
+                                }),
+                                borderWidth: 1,
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false },
+                                tooltip: { callbacks: { label: ctx => ctx.raw + '\uac74' } } },
+                            scales: {
+                                x: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { display: false } },
+                                y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } }
+                            }
+                        }
+                    });
+                } else {
+                    histCanvas.style.display = 'none';
+                    histEmpty.style.display = 'flex';
+                }
+
+                // Daily breakdown table
+                const daily = data.daily_breakdown || [];
+                const tbody = document.getElementById('execDailyTable');
+                if (daily.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="neu">\ub370\uc774\ud130 \uc5c6\uc74c</td></tr>';
+                } else {
+                    tbody.innerHTML = daily.slice(-15).reverse().map(d => {
+                        const slipClass = (d.avg_slippage_bps || 0) > 30 ? 'pos' : (d.avg_slippage_bps || 0) > 10 ? 'yellow' : 'green';
+                        const fr = ((d.avg_fill_rate || 0) * 100).toFixed(0);
+                        return `<tr>
+                            <td>${d.date || '-'}</td>
+                            <td>${d.total_orders || 0}</td>
+                            <td class="green">${d.filled_orders || 0}</td>
+                            <td class="pos">${d.failed_orders || 0}</td>
+                            <td class="${slipClass}">${(d.avg_slippage_bps || 0).toFixed(1)}bp</td>
+                            <td>${fr}%</td>
+                        </tr>`;
+                    }).join('');
+                }
+            } catch(e) { console.error('Exec history error:', e); }
+        }
+
+        async function loadVolumeProfile(symbol) {
+            if (!symbol) {
+                document.getElementById('execVolumeProfile').innerHTML = '<p class="neu" style="font-size:0.82rem">\uc885\ubaa9 \uc120\ud0dd \uc2dc \ud45c\uc2dc</p>';
+                return;
+            }
+            try {
+                const res = await fetch('/api/execution/volume-profile/' + symbol);
+                const data = await res.json();
+                const buckets = data.buckets || [];
+                if (buckets.length === 0) {
+                    document.getElementById('execVolumeProfile').innerHTML = '<p class="neu" style="font-size:0.82rem">\ud504\ub85c\ud544 \ub370\uc774\ud130 \uc5c6\uc74c</p>';
+                    return;
+                }
+                const maxWeight = Math.max(...buckets.map(b => b.weight));
+                let html = buckets.map(b => {
+                    const pct = maxWeight > 0 ? (b.weight / maxWeight * 100).toFixed(0) : 0;
+                    const wpct = (b.weight * 100).toFixed(1);
+                    return `<div class="vp-bar-row">
+                        <span class="vp-label">${b.label}</span>
+                        <div class="vp-bar"><div class="vp-bar-fill" style="width:${pct}%"></div></div>
+                        <span class="vp-pct">${wpct}%</span>
+                    </div>`;
+                }).join('');
+                html += `<div style="margin-top:8px;font-size:0.72rem;color:#8b949e">
+                    \ud3c9\uade0 \uc77c\uac70\ub798\ub7c9: <span style="color:#c9d1d9;font-weight:600">${Math.round(data.avg_daily_volume || 0).toLocaleString()}</span>
+                    | \uc18c\uc2a4: <span style="color:#c9d1d9">${data.profile_source || '-'}</span>
+                </div>`;
+                document.getElementById('execVolumeProfile').innerHTML = html;
+            } catch(e) { console.error('VP error:', e); }
+        }
+
+        // Populate symbol selector for volume profile
+        function populateVPSymbolSelect() {
+            const sel = document.getElementById('vpSymbolSelect');
+            const watchlist = [
+                {code:'005930',name:'\uc0bc\uc131\uc804\uc790'},{code:'000660',name:'SK\ud558\uc774\ub2c9\uc2a4'},
+                {code:'035420',name:'NAVER'},{code:'035720',name:'\uce74\uce74\uc624'},
+                {code:'051910',name:'LG\ud654\ud559'},{code:'006400',name:'\uc0bc\uc131SDI'},
+                {code:'003670',name:'\ud3ec\uc2a4\ucf54\ud4e8\uccd0\uc5e0'},{code:'028260',name:'\uc0bc\uc131\ubb3c\uc0b0'},
+                {code:'105560',name:'KB\uae08\uc735'},{code:'055550',name:'\uc2e0\ud55c\uc9c0\uc8fc'},
+                {code:'005380',name:'\ud604\ub300\uc790\ub3d9\ucc28'},{code:'000270',name:'\uae30\uc544'},
+                {code:'207940',name:'\uc0bc\uc131\ubc14\uc774\uc624\ub85c\uc9c1\uc2a4'},{code:'068270',name:'\uc140\ud2b8\ub9ac\uc628'},
+                {code:'373220',name:'LG\uc5d0\ub108\uc9c0\uc194\ub8e8\uc158'}
+            ];
+            watchlist.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.code;
+                opt.textContent = s.name + ' (' + s.code + ')';
+                sel.appendChild(opt);
+            });
+            sel.addEventListener('change', () => loadVolumeProfile(sel.value));
+        }
+
+        function loadAllExecution() {
+            loadExecutionStats();
+            loadExecutionHistory();
+        }
+
+        populateVPSymbolSelect();
+
         /* ========== Initialize ========== */
-        fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis(); loadAllRegimeData(); loadAllPortfolioRisk();
+        fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis(); loadAllRegimeData(); loadAllPortfolioRisk(); loadAllExecution();
         setInterval(fetchStatus, 15000);
         setInterval(fetchStats, 60000);
         setInterval(loadAllCharts, 120000);
         setInterval(loadAllStrategyAnalysis, 120000);
         setInterval(loadAllRegimeData, 120000);
         setInterval(loadAllPortfolioRisk, 120000);
+        setInterval(loadAllExecution, 30000);
     </script>
 </body>
 </html>
@@ -2730,7 +3117,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     print("=" * 50)
-    print(f"  StockBot v2.1 Dashboard")
+    print(f"  StockBot v2.2 Dashboard")
     print(f"  http://localhost:{DASHBOARD_PORT}")
     print("=" * 50)
     uvicorn.run(app, host=DASHBOARD_HOST, port=DASHBOARD_PORT)

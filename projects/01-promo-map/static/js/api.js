@@ -143,8 +143,32 @@ const API = {
     },
 
     // Notifications
-    checkNotifications(lat, lon) {
-        return this.request(`notifications/check?lat=${lat}&lon=${lon}`);
+    checkNotifications(lat, lng) {
+        return this.request('notifications/check', {
+            method: 'POST',
+            body: JSON.stringify({ lat, lng }),
+        });
+    },
+    getUnreadNotifications(limit = 50) {
+        return this.request(`notifications/unread?limit=${limit}`);
+    },
+    markNotificationRead(id) {
+        return this.request(`notifications/${id}/read`, { method: 'POST' });
+    },
+    markAllNotificationsRead() {
+        return this.request('notifications/read-all', { method: 'POST' });
+    },
+    dismissNotification(id) {
+        return this.request(`notifications/${id}`, { method: 'DELETE' });
+    },
+    getNotificationPreferences() {
+        return this.request('notifications/preferences');
+    },
+    updateNotificationPreferences(data) {
+        return this.request('notifications/preferences', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
     },
     useDiscount(storeId, discountId, savedAmount = 0) {
         return this.request(`notifications/use?store_id=${storeId}&discount_id=${discountId}&saved_amount=${savedAmount}`, { method: 'POST' });

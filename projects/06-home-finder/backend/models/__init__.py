@@ -11,3 +11,4 @@ from models.price_index import PriceIndex
 from models.data_collection_log import DataCollectionLog
 from models.saved_search import SavedSearch
 from models.note import PropertyNote
+from models.matching import UserProfile, MatchAlert, AlertSettings

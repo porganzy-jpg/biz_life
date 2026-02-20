@@ -1,0 +1,892 @@
+{% extends "base.html" %}
+{% block title %}맞춤 추천{% endblock %}
+{% block nav_recommendations %}active{% endblock %}
+
+{% block head %}
+<style>
+    /* Match score circle */
+    .match-score-circle {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 56px; height: 56px; border-radius: 50%;
+        font-weight: bold; font-size: 1.25rem; color: white;
+        flex-shrink: 0;
+    }
+    .match-score-high { background: linear-gradient(135deg, #198754, #20c997); }
+    .match-score-mid  { background: linear-gradient(135deg, #0d6efd, #6ea8fe); }
+    .match-score-low  { background: linear-gradient(135deg, #6c757d, #adb5bd); }
+
+    /* Breakdown bars */
+    .bd-bar-container { height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; margin-top: 2px; }
+    .bd-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    .bd-bar-fill.loc { background: #0d6efd; }
+    .bd-bar-fill.price { background: #198754; }
+    .bd-bar-fill.size { background: #6610f2; }
+    .bd-bar-fill.quality { background: #fd7e14; }
+    .bd-bar-fill.opportunity { background: #d63384; }
+    .bd-bar-fill.urgency { background: #dc3545; }
+
+    .bd-label { font-size: 0.7rem; color: #888; display: flex; justify-content: space-between; }
+
+    /* Match card */
+    .match-card {
+        border: 1px solid #e9ecef; border-radius: 10px;
+        padding: 14px; margin-bottom: 12px;
+        transition: box-shadow 0.2s, border-color 0.2s;
+        cursor: pointer; background: white;
+    }
+    .match-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-color: #0d6efd;
+    }
+    .match-card .prop-name { font-weight: 600; font-size: 0.95rem; }
+    .match-card .prop-meta { font-size: 0.82rem; color: #666; }
+    .match-card .prop-price { font-weight: 700; color: #0d6efd; }
+
+    /* Explanation panel */
+    .explain-panel {
+        background: #f8f9fa; border-radius: 8px; padding: 12px;
+        font-size: 0.85rem; line-height: 1.6; white-space: pre-line;
+        display: none; margin-top: 8px;
+    }
+    .explain-panel.show { display: block; }
+
+    /* Profile editor */
+    .district-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px 10px; border-radius: 20px; font-size: 0.78rem;
+        background: #e9ecef; margin: 2px; cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .district-chip.high { background: #0d6efd; color: white; }
+    .district-chip.mid  { background: #6ea8fe; color: white; }
+    .district-chip.low  { background: #e9ecef; color: #666; }
+
+    .weight-slider-group { margin-bottom: 12px; }
+    .weight-slider-group label { font-size: 0.82rem; font-weight: 600; color: #555; }
+    .weight-slider-group input[type=range] { width: 100%; }
+    .weight-slider-group .value-display { font-size: 0.82rem; font-weight: 700; color: #0d6efd; }
+
+    /* Alert card */
+    .alert-card {
+        border-left: 4px solid #dee2e6; padding: 10px 12px; margin-bottom: 8px;
+        background: white; border-radius: 0 6px 6px 0;
+        font-size: 0.85rem;
+    }
+    .alert-card.unread { border-left-color: #0d6efd; background: #f0f7ff; }
+    .alert-card.instant { border-left-color: #dc3545; }
+    .alert-card.daily_digest { border-left-color: #fd7e14; }
+
+    /* Tab content animation */
+    .tab-pane { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h4><i class="bi bi-stars"></i> 맞춤 추천</h4>
+        <p class="text-muted mb-0">AI가 내 선호도를 학습하고, 최적의 매물을 추천합니다.</p>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs mb-3" id="recTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-matches" data-bs-toggle="tab" data-bs-target="#pane-matches" type="button">
+            <i class="bi bi-trophy"></i> TOP 매칭
+            <span class="badge bg-primary ms-1" id="matchCount">-</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-profile" data-bs-toggle="tab" data-bs-target="#pane-profile" type="button">
+            <i class="bi bi-person-gear"></i> 내 선호도
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-alerts" data-bs-toggle="tab" data-bs-target="#pane-alerts" type="button">
+            <i class="bi bi-bell"></i> 알림 이력
+            <span class="badge bg-danger ms-1" id="unreadCount" style="display:none">0</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-settings" data-bs-toggle="tab" data-bs-target="#pane-settings" type="button">
+            <i class="bi bi-gear"></i> 알림 설정
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- ═══════════════ TAB 1: TOP 매칭 ═══════════════ -->
+    <div class="tab-pane fade show active" id="pane-matches" role="tabpanel">
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-funnel"></i></span>
+                    <select id="filterDistrict" class="form-select form-select-sm" onchange="filterMatches()">
+                        <option value="">모든 지역</option>
+                        {% for d in target_districts %}
+                        <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                        {% for d in target_suburbs %}
+                        <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="filterMinScore" class="form-select form-select-sm" onchange="filterMatches()">
+                        <option value="0">전체 점수</option>
+                        <option value="90">90점 이상</option>
+                        <option value="80" selected>80점 이상</option>
+                        <option value="70">70점 이상</option>
+                        <option value="60">60점 이상</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-outline-primary btn-sm" onclick="loadMatches()">
+                    <i class="bi bi-arrow-clockwise"></i> 새로고침
+                </button>
+                <button class="btn btn-outline-success btn-sm" onclick="learnProfile()">
+                    <i class="bi bi-lightbulb"></i> 재학습
+                </button>
+            </div>
+        </div>
+
+        <div id="matchesLoading" class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+            <p class="text-muted mt-2">매칭 분석 중...</p>
+        </div>
+
+        <div id="matchesList" style="display:none;"></div>
+
+        <div id="matchesEmpty" style="display:none;" class="text-center py-5">
+            <i class="bi bi-inbox text-muted" style="font-size:3rem;"></i>
+            <p class="text-muted mt-2">조건에 맞는 매물이 없습니다.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 2: 내 선호도 ═══════════════ -->
+    <div class="tab-pane fade" id="pane-profile" role="tabpanel">
+        <div class="row">
+            <!-- Left: 가중치 편집 -->
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-sliders2"></i> 매칭 가중치
+                        <small class="text-muted ms-1">(합계 자동 정규화)</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="weight-slider-group">
+                            <label>위치 <span class="value-display" id="wLocVal">0.30</span></label>
+                            <input type="range" class="form-range" id="wLoc" min="0" max="100" value="30" oninput="updateWeightDisplay()">
+                        </div>
+                        <div class="weight-slider-group">
+                            <label>가격 <span class="value-display" id="wPriceVal">0.25</span></label>
+                            <input type="range" class="form-range" id="wPrice" min="0" max="100" value="25" oninput="updateWeightDisplay()">
+                        </div>
+                        <div class="weight-slider-group">
+                            <label>규모 <span class="value-display" id="wSizeVal">0.15</span></label>
+                            <input type="range" class="form-range" id="wSize" min="0" max="100" value="15" oninput="updateWeightDisplay()">
+                        </div>
+                        <div class="weight-slider-group">
+                            <label>품질 <span class="value-display" id="wQualVal">0.15</span></label>
+                            <input type="range" class="form-range" id="wQual" min="0" max="100" value="15" oninput="updateWeightDisplay()">
+                        </div>
+                        <div class="weight-slider-group">
+                            <label>기회 <span class="value-display" id="wOppVal">0.10</span></label>
+                            <input type="range" class="form-range" id="wOpp" min="0" max="100" value="10" oninput="updateWeightDisplay()">
+                        </div>
+                        <div class="weight-slider-group">
+                            <label>긴급 <span class="value-display" id="wUrgVal">0.05</span></label>
+                            <input type="range" class="form-range" id="wUrg" min="0" max="100" value="5" oninput="updateWeightDisplay()">
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100 mt-2" onclick="saveWeights()">
+                            <i class="bi bi-check-lg"></i> 가중치 저장
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: 선호 조건 -->
+            <div class="col-md-6 mb-3">
+                <div class="card mb-3">
+                    <div class="card-header"><i class="bi bi-geo-alt"></i> 지역 선호도</div>
+                    <div class="card-body" id="districtChips">
+                        <p class="text-muted small">로딩중...</p>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header"><i class="bi bi-cash-stack"></i> 가격 범위</div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small">최소 (억)</label>
+                                <input type="number" class="form-control form-control-sm" id="prefPriceMin" step="0.5" placeholder="8">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">최대 (억)</label>
+                                <input type="number" class="form-control form-control-sm" id="prefPriceMax" step="0.5" placeholder="15">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-success">스윗스팟 하한 (억)</label>
+                                <input type="number" class="form-control form-control-sm" id="prefSweetMin" step="0.5" placeholder="9">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-success">스윗스팟 상한 (억)</label>
+                                <input type="number" class="form-control form-control-sm" id="prefSweetMax" step="0.5" placeholder="12">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header"><i class="bi bi-rulers"></i> 면적 / 기타</div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <label class="form-label small">선호 면적(m2)</label>
+                                <input type="number" class="form-control form-control-sm" id="prefArea" step="1" placeholder="84">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small">최대 연식(년)</label>
+                                <input type="number" class="form-control form-control-sm" id="prefMaxAge" step="1" placeholder="25">
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small">지하철 최대(m)</label>
+                                <input type="number" class="form-control form-control-sm" id="prefMaxSubway" step="100" placeholder="1500">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">선호 향</label>
+                                <select class="form-select form-select-sm" id="prefDirection">
+                                    <option value="">무관</option>
+                                    <option value="남향">남향</option>
+                                    <option value="남동향">남동향</option>
+                                    <option value="남서향">남서향</option>
+                                    <option value="동향">동향</option>
+                                    <option value="서향">서향</option>
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label small">최소 층</label>
+                                <input type="number" class="form-control form-control-sm" id="prefFloorMin" step="1" placeholder="3">
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label small">최대 층</label>
+                                <input type="number" class="form-control form-control-sm" id="prefFloorMax" step="1" placeholder="25">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100 mt-3" onclick="savePreferences()">
+                            <i class="bi bi-check-lg"></i> 선호 조건 저장
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 학습 현황 -->
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-robot"></i> 학습 현황</div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between small">
+                            <span>학습 데이터</span>
+                            <span class="fw-bold" id="profileActionCount">0건</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span>마지막 학습</span>
+                            <span class="fw-bold" id="profileLastLearned">-</span>
+                        </div>
+                        <button class="btn btn-outline-success btn-sm w-100 mt-2" onclick="learnProfile()">
+                            <i class="bi bi-lightbulb"></i> 후보/검색 데이터에서 재학습
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 3: 알림 이력 ═══════════════ -->
+    <div class="tab-pane fade" id="pane-alerts" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><i class="bi bi-bell"></i> 매칭 알림 이력</h6>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadAlerts()">
+                <i class="bi bi-arrow-clockwise"></i> 새로고침
+            </button>
+        </div>
+        <div id="alertsLoading" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+        </div>
+        <div id="alertsList" style="display:none;"></div>
+        <div id="alertsEmpty" style="display:none;" class="text-center py-4">
+            <i class="bi bi-bell-slash text-muted" style="font-size:2rem;"></i>
+            <p class="text-muted mt-2">알림 이력이 없습니다.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 4: 알림 설정 ═══════════════ -->
+    <div class="tab-pane fade" id="pane-settings" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-gear"></i> 알림 설정</div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="setEnabled" checked>
+                            <label class="form-check-label" for="setEnabled">알림 활성화</label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="setTelegram" checked>
+                            <label class="form-check-label" for="setTelegram">텔레그램 알림</label>
+                        </div>
+                        <hr>
+                        <h6 class="small fw-bold text-muted">임계치</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <label class="form-label small">즉시 알림</label>
+                                <input type="number" class="form-control form-control-sm" id="setInstant" value="90" min="0" max="100">
+                                <small class="text-muted">점 이상</small>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small">일간 요약</label>
+                                <input type="number" class="form-control form-control-sm" id="setDaily" value="80" min="0" max="100">
+                                <small class="text-muted">점 이상</small>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label small">주간 요약</label>
+                                <input type="number" class="form-control form-control-sm" id="setWeekly" value="70" min="0" max="100">
+                                <small class="text-muted">점 이상</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6 class="small fw-bold text-muted">조용한 시간</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small">시작</label>
+                                <select class="form-select form-select-sm" id="setQuietStart">
+                                    {% for h in range(24) %}
+                                    <option value="{{ h }}" {% if h == 22 %}selected{% endif %}>{{ '%02d' % h }}:00</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">종료</label>
+                                <select class="form-select form-select-sm" id="setQuietEnd">
+                                    {% for h in range(24) %}
+                                    <option value="{{ h }}" {% if h == 8 %}selected{% endif %}>{{ '%02d' % h }}:00</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">중복 방지 (시간)</label>
+                            <input type="number" class="form-control form-control-sm" id="setDedup" value="24" min="1" max="168">
+                        </div>
+                        <button class="btn btn-primary btn-sm w-100" onclick="saveAlertSettings()">
+                            <i class="bi bi-check-lg"></i> 설정 저장
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-lightning-charge"></i> 수동 실행</div>
+                    <div class="card-body">
+                        <p class="small text-muted">신규 매물 체크 및 다이제스트를 수동 실행합니다.</p>
+                        <button class="btn btn-outline-warning btn-sm w-100 mb-2" onclick="checkNewListings()">
+                            <i class="bi bi-search"></i> 신규 매물 체크
+                        </button>
+                        <button class="btn btn-outline-info btn-sm w-100 mb-2" onclick="sendDigest()">
+                            <i class="bi bi-envelope"></i> 일간 다이제스트 전송
+                        </button>
+                        <div id="manualResult" class="mt-2 small"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ═══════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════
+let allMatches = [];
+let currentProfile = null;
+
+// ═══════════════════════════════════════════
+// API helpers
+// ═══════════════════════════════════════════
+async function api(url, method='GET', body=null) {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+
+function formatPrice(krw) {
+    if (!krw) return '가격미정';
+    const eok = Math.floor(krw / 100000000);
+    const man = Math.floor((krw % 100000000) / 10000);
+    if (eok > 0 && man > 0) return eok + '억 ' + man.toLocaleString() + '만';
+    if (eok > 0) return eok + '억';
+    if (man > 0) return man.toLocaleString() + '만';
+    return krw.toLocaleString();
+}
+
+function formatArea(m2) {
+    if (!m2) return '';
+    const pyeong = (m2 * 0.3025).toFixed(0);
+    return m2.toFixed(1) + 'm\u00B2(' + pyeong + '평)';
+}
+
+function scoreClass(score) {
+    if (score >= 80) return 'match-score-high';
+    if (score >= 60) return 'match-score-mid';
+    return 'match-score-low';
+}
+
+function scoreBarColor(key) {
+    const map = {location:'loc', price:'price', size:'size', quality:'quality', opportunity:'opportunity', urgency:'urgency'};
+    return map[key] || 'loc';
+}
+
+const factorLabels = {location:'위치', price:'가격', size:'규모', quality:'품질', opportunity:'기회', urgency:'긴급'};
+
+// ═══════════════════════════════════════════
+// TAB 1: Top Matches
+// ═══════════════════════════════════════════
+async function loadMatches() {
+    document.getElementById('matchesLoading').style.display = '';
+    document.getElementById('matchesList').style.display = 'none';
+    document.getElementById('matchesEmpty').style.display = 'none';
+
+    try {
+        const data = await api('/api/v1/matching/top?limit=50');
+        allMatches = data.matches || [];
+        document.getElementById('matchCount').textContent = allMatches.length;
+        filterMatches();
+    } catch (e) {
+        document.getElementById('matchesLoading').style.display = 'none';
+        document.getElementById('matchesList').innerHTML = '<div class="alert alert-danger">' + e.message + '</div>';
+        document.getElementById('matchesList').style.display = '';
+    }
+}
+
+function filterMatches() {
+    const distFilter = document.getElementById('filterDistrict').value;
+    const minScore = parseFloat(document.getElementById('filterMinScore').value) || 0;
+
+    let filtered = allMatches.filter(m => {
+        if (distFilter && m.district !== distFilter) return false;
+        if (m.match_score < minScore) return false;
+        return true;
+    });
+
+    document.getElementById('matchesLoading').style.display = 'none';
+
+    if (filtered.length === 0) {
+        document.getElementById('matchesList').style.display = 'none';
+        document.getElementById('matchesEmpty').style.display = '';
+        return;
+    }
+
+    document.getElementById('matchesEmpty').style.display = 'none';
+
+    let html = '';
+    filtered.forEach((m, idx) => {
+        const name = m.complex_name || m.address || (m.district + ' ' + (m.dong || ''));
+        const bd = m.breakdown || {};
+
+        html += `
+        <div class="match-card" onclick="showPropertyModal(${m.property_id})">
+            <div class="d-flex gap-3 align-items-start">
+                <div class="match-score-circle ${scoreClass(m.match_score)}">${m.match_score.toFixed(0)}</div>
+                <div class="flex-grow-1">
+                    <div class="prop-name">${name}</div>
+                    <div class="prop-meta">
+                        ${m.property_type || ''} &middot; ${m.district || ''} ${m.dong || ''}
+                        ${m.nearest_subway_name ? ' &middot; ' + m.nearest_subway_name + '역' : ''}
+                    </div>
+                    <div class="d-flex gap-3 mt-1 align-items-center flex-wrap">
+                        <span class="prop-price">${formatPrice(m.price_krw)}</span>
+                        <small class="text-muted">${formatArea(m.area_m2)}</small>
+                        ${m.floor ? '<small class="text-muted">' + m.floor + '층</small>' : ''}
+                        ${m.direction ? '<small class="text-muted">' + m.direction + '</small>' : ''}
+                        ${m.built_year ? '<small class="text-muted">' + m.built_year + '년</small>' : ''}
+                    </div>
+                    <!-- Breakdown bars -->
+                    <div class="row gx-2 mt-2">
+                        ${Object.keys(factorLabels).map(k => `
+                        <div class="col-2">
+                            <div class="bd-bar-container">
+                                <div class="bd-bar-fill ${scoreBarColor(k)}" style="width:${bd[k] || 0}%"></div>
+                            </div>
+                            <div class="bd-label"><span>${factorLabels[k]}</span><span>${(bd[k] || 0).toFixed(0)}</span></div>
+                        </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="d-flex flex-column gap-1" onclick="event.stopPropagation()">
+                    <button class="btn btn-outline-primary btn-sm" onclick="toggleExplain(${m.property_id}, this)" title="왜 이 매물?">
+                        <i class="bi bi-chat-quote"></i>
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="addCandidate(${m.property_id})" title="후보 추가">
+                        <i class="bi bi-plus-circle"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="explain-panel" id="explain-${m.property_id}"></div>
+        </div>
+        `;
+    });
+
+    document.getElementById('matchesList').innerHTML = html;
+    document.getElementById('matchesList').style.display = '';
+}
+
+async function toggleExplain(propId, btn) {
+    const panel = document.getElementById('explain-' + propId);
+    if (panel.classList.contains('show')) {
+        panel.classList.remove('show');
+        return;
+    }
+    panel.innerHTML = '<small class="text-muted">분석 중...</small>';
+    panel.classList.add('show');
+
+    try {
+        const data = await api('/api/v1/matching/explain/' + propId);
+        panel.innerHTML = '<strong>왜 이 매물?</strong><br>' + (data.explanation || '설명 없음').replace(/\n/g, '<br>');
+    } catch (e) {
+        panel.innerHTML = '<span class="text-danger">오류: ' + e.message + '</span>';
+    }
+}
+
+async function addCandidate(propId) {
+    try {
+        await api('/api/v1/candidates/', 'POST', { property_id: propId, priority: 2 });
+        // 행동 학습
+        const match = allMatches.find(m => m.property_id === propId);
+        if (match) {
+            api('/api/v1/matching/profile/action', 'POST', {
+                action_type: 'candidate_add',
+                property_data: { district: match.district, price_krw: match.price_krw, area_m2: match.area_m2 }
+            }).catch(() => {});
+        }
+        showToast('후보에 추가되었습니다');
+    } catch (e) {
+        showToast(e.message, true);
+    }
+}
+
+// ═══════════════════════════════════════════
+// TAB 2: Profile
+// ═══════════════════════════════════════════
+async function loadProfile() {
+    try {
+        currentProfile = await api('/api/v1/matching/profile');
+        renderProfile(currentProfile);
+    } catch (e) {
+        console.error('Profile load error:', e);
+    }
+}
+
+function renderProfile(p) {
+    // Weights
+    const w = p.weights || {};
+    setSlider('wLoc', 'wLocVal', w.location);
+    setSlider('wPrice', 'wPriceVal', w.price);
+    setSlider('wSize', 'wSizeVal', w.size);
+    setSlider('wQual', 'wQualVal', w.quality);
+    setSlider('wOpp', 'wOppVal', w.opportunity);
+    setSlider('wUrg', 'wUrgVal', w.urgency);
+
+    // District chips
+    const dw = p.district_weights || {};
+    const chipContainer = document.getElementById('districtChips');
+    let chipHtml = '';
+    const sorted = Object.entries(dw).sort((a,b) => b[1] - a[1]);
+    sorted.forEach(([dist, weight]) => {
+        let cls = 'low';
+        if (weight >= 0.7) cls = 'high';
+        else if (weight >= 0.4) cls = 'mid';
+        chipHtml += `<span class="district-chip ${cls}" data-district="${dist}" onclick="cycleDistrictWeight(this)">${dist} <small>${(weight*100).toFixed(0)}%</small></span>`;
+    });
+    chipContainer.innerHTML = chipHtml || '<p class="text-muted small">지역 데이터 없음</p>';
+
+    // Price
+    const pr = p.price_range || {};
+    if (pr.min) document.getElementById('prefPriceMin').value = (pr.min / 100000000).toFixed(1);
+    if (pr.max) document.getElementById('prefPriceMax').value = (pr.max / 100000000).toFixed(1);
+    if (pr.sweet_min) document.getElementById('prefSweetMin').value = (pr.sweet_min / 100000000).toFixed(1);
+    if (pr.sweet_max) document.getElementById('prefSweetMax').value = (pr.sweet_max / 100000000).toFixed(1);
+
+    // Area / preferences
+    const pref = p.preferences || {};
+    const area = p.area_preference || {};
+    if (area.preferred) document.getElementById('prefArea').value = area.preferred;
+    if (pref.max_building_age) document.getElementById('prefMaxAge').value = pref.max_building_age;
+    if (pref.max_subway_distance) document.getElementById('prefMaxSubway').value = pref.max_subway_distance;
+    if (pref.direction) document.getElementById('prefDirection').value = pref.direction;
+    if (pref.floor_min) document.getElementById('prefFloorMin').value = pref.floor_min;
+    if (pref.floor_max) document.getElementById('prefFloorMax').value = pref.floor_max;
+
+    // Meta
+    const meta = p.meta || {};
+    document.getElementById('profileActionCount').textContent = (meta.actions_count || 0) + '건';
+    document.getElementById('profileLastLearned').textContent = meta.last_learned_at ? meta.last_learned_at.substring(0, 16).replace('T', ' ') : '-';
+}
+
+function setSlider(sliderId, displayId, value) {
+    if (value === null || value === undefined) return;
+    document.getElementById(sliderId).value = Math.round(value * 100);
+    document.getElementById(displayId).textContent = value.toFixed(2);
+}
+
+function updateWeightDisplay() {
+    ['wLoc','wPrice','wSize','wQual','wOpp','wUrg'].forEach(id => {
+        const val = document.getElementById(id).value / 100;
+        document.getElementById(id + 'Val').textContent = val.toFixed(2);
+    });
+}
+
+function cycleDistrictWeight(chip) {
+    // Cycle: low -> mid -> high -> low
+    if (chip.classList.contains('low')) {
+        chip.classList.remove('low'); chip.classList.add('mid');
+        chip.querySelector('small').textContent = '60%';
+    } else if (chip.classList.contains('mid')) {
+        chip.classList.remove('mid'); chip.classList.add('high');
+        chip.querySelector('small').textContent = '90%';
+    } else {
+        chip.classList.remove('high'); chip.classList.add('low');
+        chip.querySelector('small').textContent = '20%';
+    }
+}
+
+async function saveWeights() {
+    const body = {
+        w_location: document.getElementById('wLoc').value / 100,
+        w_price: document.getElementById('wPrice').value / 100,
+        w_size: document.getElementById('wSize').value / 100,
+        w_quality: document.getElementById('wQual').value / 100,
+        w_opportunity: document.getElementById('wOpp').value / 100,
+        w_urgency: document.getElementById('wUrg').value / 100,
+    };
+    try {
+        await api('/api/v1/matching/profile/weights', 'PUT', body);
+        showToast('가중치가 저장되었습니다');
+    } catch (e) {
+        showToast(e.message, true);
+    }
+}
+
+async function savePreferences() {
+    // District weights from chips
+    const chips = document.querySelectorAll('.district-chip');
+    const dw = {};
+    chips.forEach(chip => {
+        const dist = chip.dataset.district;
+        if (chip.classList.contains('high')) dw[dist] = 0.9;
+        else if (chip.classList.contains('mid')) dw[dist] = 0.6;
+        else dw[dist] = 0.2;
+    });
+
+    const eokToKrw = v => v ? Math.round(parseFloat(v) * 100000000) : null;
+
+    const body = {
+        district_weights: Object.keys(dw).length > 0 ? dw : null,
+        price_min_krw: eokToKrw(document.getElementById('prefPriceMin').value),
+        price_max_krw: eokToKrw(document.getElementById('prefPriceMax').value),
+        price_sweet_min_krw: eokToKrw(document.getElementById('prefSweetMin').value),
+        price_sweet_max_krw: eokToKrw(document.getElementById('prefSweetMax').value),
+        area_preferred_m2: parseFloat(document.getElementById('prefArea').value) || null,
+        max_building_age: parseInt(document.getElementById('prefMaxAge').value) || null,
+        max_subway_distance: parseFloat(document.getElementById('prefMaxSubway').value) || null,
+        preferred_direction: document.getElementById('prefDirection').value || null,
+        preferred_floor_min: parseInt(document.getElementById('prefFloorMin').value) || null,
+        preferred_floor_max: parseInt(document.getElementById('prefFloorMax').value) || null,
+    };
+
+    // Remove null values
+    Object.keys(body).forEach(k => { if (body[k] === null) delete body[k]; });
+
+    try {
+        await api('/api/v1/matching/profile/preferences', 'PUT', body);
+        showToast('선호 조건이 저장되었습니다');
+        loadProfile();
+    } catch (e) {
+        showToast(e.message, true);
+    }
+}
+
+async function learnProfile() {
+    try {
+        const res = await api('/api/v1/matching/profile/learn', 'POST');
+        showToast('프로필 재학습 완료: ' + (res.profile?.meta?.actions_count || 0) + '건 데이터 반영');
+        loadProfile();
+        loadMatches();
+    } catch (e) {
+        showToast(e.message, true);
+    }
+}
+
+// ═══════════════════════════════════════════
+// TAB 3: Alerts
+// ═══════════════════════════════════════════
+async function loadAlerts() {
+    document.getElementById('alertsLoading').style.display = '';
+    document.getElementById('alertsList').style.display = 'none';
+    document.getElementById('alertsEmpty').style.display = 'none';
+
+    try {
+        const data = await api('/api/v1/matching/alerts?limit=50');
+        const alerts = data.alerts || [];
+
+        const unread = alerts.filter(a => !a.is_read).length;
+        const badge = document.getElementById('unreadCount');
+        if (unread > 0) {
+            badge.textContent = unread;
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        document.getElementById('alertsLoading').style.display = 'none';
+
+        if (alerts.length === 0) {
+            document.getElementById('alertsEmpty').style.display = '';
+            return;
+        }
+
+        let html = '';
+        alerts.forEach(a => {
+            const typeClass = a.is_read ? '' : 'unread';
+            const alertTypeClass = a.alert_type || '';
+            const typeBadge = {instant:'즉시', daily_digest:'일간', weekly:'주간'}[a.alert_type] || '';
+            const typeBadgeColor = {instant:'danger', daily_digest:'warning', weekly:'secondary'}[a.alert_type] || 'secondary';
+
+            html += `
+            <div class="alert-card ${typeClass} ${alertTypeClass}" onclick="markRead(${a.id}); showPropertyModal(${a.property_id});" style="cursor:pointer">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge bg-${typeBadgeColor} me-1">${typeBadge}</span>
+                        <strong>${a.property_name || '매물'}</strong>
+                        <span class="text-muted ms-1">${a.property_district || ''}</span>
+                        <span class="ms-2 fw-bold" style="color:${a.match_score >= 90 ? '#dc3545' : a.match_score >= 80 ? '#0d6efd' : '#6c757d'}">${a.match_score.toFixed(0)}점</span>
+                        ${a.property_price_krw ? '<span class="text-primary ms-2">' + formatPrice(a.property_price_krw) + '</span>' : ''}
+                    </div>
+                    <small class="text-muted">${a.created_at ? a.created_at.substring(0, 16).replace('T',' ') : ''}</small>
+                </div>
+                ${a.explanation ? '<div class="mt-1 text-muted small" style="white-space:pre-line;max-height:60px;overflow:hidden">' + a.explanation.split('\\n')[0] + '</div>' : ''}
+            </div>`;
+        });
+
+        document.getElementById('alertsList').innerHTML = html;
+        document.getElementById('alertsList').style.display = '';
+    } catch (e) {
+        document.getElementById('alertsLoading').style.display = 'none';
+        document.getElementById('alertsList').innerHTML = '<div class="alert alert-danger">' + e.message + '</div>';
+        document.getElementById('alertsList').style.display = '';
+    }
+}
+
+async function markRead(alertId) {
+    try {
+        await api('/api/v1/matching/alerts/' + alertId + '/read', 'POST');
+    } catch (e) { /* ignore */ }
+}
+
+// ═══════════════════════════════════════════
+// TAB 4: Alert Settings
+// ═══════════════════════════════════════════
+async function loadAlertSettings() {
+    try {
+        const s = await api('/api/v1/matching/settings');
+        document.getElementById('setEnabled').checked = s.enabled;
+        document.getElementById('setTelegram').checked = s.telegram_enabled;
+        document.getElementById('setInstant').value = s.instant_threshold || 90;
+        document.getElementById('setDaily').value = s.daily_threshold || 80;
+        document.getElementById('setWeekly').value = s.weekly_threshold || 70;
+        document.getElementById('setQuietStart').value = s.quiet_start_hour ?? 22;
+        document.getElementById('setQuietEnd').value = s.quiet_end_hour ?? 8;
+        document.getElementById('setDedup').value = s.dedup_hours || 24;
+    } catch (e) {
+        console.error('Settings load error:', e);
+    }
+}
+
+async function saveAlertSettings() {
+    const body = {
+        enabled: document.getElementById('setEnabled').checked,
+        telegram_enabled: document.getElementById('setTelegram').checked,
+        instant_threshold: parseFloat(document.getElementById('setInstant').value),
+        daily_threshold: parseFloat(document.getElementById('setDaily').value),
+        weekly_threshold: parseFloat(document.getElementById('setWeekly').value),
+        quiet_start_hour: parseInt(document.getElementById('setQuietStart').value),
+        quiet_end_hour: parseInt(document.getElementById('setQuietEnd').value),
+        dedup_hours: parseInt(document.getElementById('setDedup').value),
+    };
+    try {
+        await api('/api/v1/matching/settings', 'PUT', body);
+        showToast('알림 설정이 저장되었습니다');
+    } catch (e) {
+        showToast(e.message, true);
+    }
+}
+
+async function checkNewListings() {
+    const result = document.getElementById('manualResult');
+    result.innerHTML = '<span class="text-muted">체크 중...</span>';
+    try {
+        const data = await api('/api/v1/matching/check-new', 'POST');
+        result.innerHTML = `<span class="text-success">완료: ${data.alerts_created}건 알림 생성</span>`;
+        if (data.alerts_created > 0) loadAlerts();
+    } catch (e) {
+        result.innerHTML = '<span class="text-danger">오류: ' + e.message + '</span>';
+    }
+}
+
+async function sendDigest() {
+    const result = document.getElementById('manualResult');
+    result.innerHTML = '<span class="text-muted">전송 중...</span>';
+    try {
+        const data = await api('/api/v1/matching/send-digest', 'POST');
+        result.innerHTML = `<span class="${data.sent ? 'text-success' : 'text-warning'}">${data.message}</span>`;
+    } catch (e) {
+        result.innerHTML = '<span class="text-danger">오류: ' + e.message + '</span>';
+    }
+}
+
+// ═══════════════════════════════════════════
+// Toast helper
+// ═══════════════════════════════════════════
+function showToast(message, isError) {
+    const toastEl = document.getElementById('compareToast');
+    if (!toastEl) return;
+    toastEl.querySelector('.toast-body').textContent = message;
+    if (isError) {
+        toastEl.classList.remove('text-bg-dark');
+        toastEl.classList.add('text-bg-danger');
+    } else {
+        toastEl.classList.remove('text-bg-danger');
+        toastEl.classList.add('text-bg-dark');
+    }
+    const toast = new bootstrap.Toast(toastEl, {delay: 3000});
+    toast.show();
+}
+
+// ═══════════════════════════════════════════
+// Tab change handlers
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+    loadMatches();
+    loadProfile();
+
+    document.getElementById('tab-alerts').addEventListener('shown.bs.tab', loadAlerts);
+    document.getElementById('tab-settings').addEventListener('shown.bs.tab', loadAlertSettings);
+});
+</script>
+{% endblock %}

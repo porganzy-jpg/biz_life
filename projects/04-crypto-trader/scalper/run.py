@@ -54,12 +54,14 @@ def main():
         logger.info("Dynamic market scanner disabled via --no-scanner")
     if args.no_optimizer:
         config.OPTIMIZER_ENABLED = False
+        config.ADAPTIVE_OPTIMIZER_ENABLED = False
         logger.info("Walk-forward optimizer disabled via --no-optimizer")
 
     if args.backtest:
         # Backtest mode: always disable scanner/optimizer
         config.DYNAMIC_MARKETS_ENABLED = False
         config.OPTIMIZER_ENABLED = False
+        config.ADAPTIVE_OPTIMIZER_ENABLED = False
         logger.info("=== Backtest Mode ===")
         bt = Backtester(initial_balance=config.PAPER_INITIAL_KRW)
         result = bt.run(market=args.market, days=args.days)

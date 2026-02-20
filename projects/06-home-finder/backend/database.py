@@ -36,6 +36,7 @@ def init_db():
     from models import (  # noqa
         property, complex, area, transaction, auction,
         subscription, candidate, subway_station, park,
-        price_index, data_collection_log, saved_search, note
+        price_index, data_collection_log, saved_search, note,
+        matching
     )
     Base.metadata.create_all(bind=engine)

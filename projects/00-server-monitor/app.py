@@ -22,6 +22,7 @@ from services import (
 from deploy import deploy_router, get_deploy_manager
 from anomaly import get_alert_manager, get_collector, MaintenanceWindow
 from scheduler import get_schedules, add_schedule, remove_schedule, toggle_schedule, DAY_NAMES_KO
+from auto_healer import get_healing_engine, get_healing_history
 
 app = FastAPI(title="Server Monitor")
 app.include_router(deploy_router)
@@ -152,6 +153,37 @@ async def api_schedule_toggle(schedule_id: str):
     return JSONResponse(toggle_schedule(schedule_id))
 
 
+# === 자동 복구 API ===
+
+@app.get("/api/health-scores")
+async def api_health_scores():
+    """프로젝트별 건강 점수 반환 (캐시 5분)"""
+    engine = get_healing_engine()
+    scorer = engine.health_scorer
+    cached = scorer.get_cached_scores()
+    if cached:
+        return JSONResponse(cached)
+    return JSONResponse(scorer.calculate_all_scores())
+
+@app.get("/api/healing-history")
+async def api_healing_history(limit: int = 50, project: str = None):
+    """복구 이력 반환"""
+    return JSONResponse(get_healing_history(limit=limit, project=project))
+
+@app.post("/api/healing/trigger/{project}")
+async def api_healing_trigger(project: str):
+    """수동 복구 트리거"""
+    engine = get_healing_engine()
+    result = engine.manual_heal(project)
+    return JSONResponse(result)
+
+@app.get("/api/healing/status")
+async def api_healing_status():
+    """자동 복구 엔진 상태"""
+    engine = get_healing_engine()
+    return JSONResponse(engine.get_engine_status())
+
+
 # === 대시보드 UI ===
 
 @app.get("/", response_class=HTMLResponse)
@@ -170,6 +202,18 @@ async def dashboard(request: Request):
     alert_stats = alert_mgr.get_alert_stats()
     maintenance_status = MaintenanceWindow().get_status()
     unresolved_critical = alert_stats.get("unresolved_critical", 0)
+
+    # 자동 복구 데이터
+    healing_engine = get_healing_engine()
+    healing_scorer = healing_engine.health_scorer
+    health_scores = healing_scorer.get_cached_scores()
+    if not health_scores:
+        try:
+            health_scores = healing_scorer.calculate_all_scores()
+        except Exception:
+            health_scores = {"system_score": 0, "alive_count": 0, "total_count": 0, "projects": {}}
+    healing_history = get_healing_history(limit=20)
+    healing_status = healing_engine.get_engine_status()
 
     def _time_ago(iso_str: str) -> str:
         """ISO 시간 문자열을 '~전' 형식으로 변환"""
@@ -322,6 +366,95 @@ async def dashboard(request: Request):
           <div class="action-msg" id="deploy-msg" style="margin-top:4px"></div>
         </div>"""
 
+    # 자동 복구 - 건강 점수 게이지 HTML 생성
+    system_score = health_scores.get("system_score", 0)
+    project_scores = health_scores.get("projects", {})
+
+    def _score_color(score):
+        if score >= 80:
+            return "#4caf50"
+        elif score >= 60:
+            return "#ff9800"
+        elif score >= 40:
+            return "#f44336"
+        else:
+            return "#d32f2f"
+
+    # SVG 게이지 둘레 계산 (반지름 32, 둘레 = 2*pi*32 ~= 201)
+    gauge_circumference = 201
+
+    # 시스템 전체 게이지
+    sys_score_offset = gauge_circumference - (gauge_circumference * system_score / 100)
+    sys_score_color = _score_color(system_score)
+    health_gauges_html = f"""
+    <div class="health-gauge">
+      <div class="gauge-name">시스템 전체</div>
+      <div class="gauge-ring">
+        <svg viewBox="0 0 70 70">
+          <circle class="bg" cx="35" cy="35" r="32"/>
+          <circle class="fg" cx="35" cy="35" r="32" stroke="{sys_score_color}" stroke-dasharray="{gauge_circumference}" stroke-dashoffset="{sys_score_offset:.1f}"/>
+        </svg>
+        <div class="gauge-score" style="color:{sys_score_color}">{system_score}</div>
+      </div>
+      <div class="gauge-status">{health_scores.get('alive_count', 0)}/{health_scores.get('total_count', 0)} 실행 중</div>
+    </div>"""
+
+    for pname, pdata in project_scores.items():
+        pscore = pdata.get("score", 0)
+        palive = pdata.get("alive", False)
+        pcolor = _score_color(pscore)
+        poffset = gauge_circumference - (gauge_circumference * pscore / 100)
+        alive_cls = "gauge-alive" if palive else "gauge-dead"
+        alive_txt = "실행 중" if palive else "중지됨"
+        health_gauges_html += f"""
+    <div class="health-gauge">
+      <div class="gauge-name">{pname}</div>
+      <div class="gauge-ring">
+        <svg viewBox="0 0 70 70">
+          <circle class="bg" cx="35" cy="35" r="32"/>
+          <circle class="fg" cx="35" cy="35" r="32" stroke="{pcolor}" stroke-dasharray="{gauge_circumference}" stroke-dashoffset="{poffset:.1f}"/>
+        </svg>
+        <div class="gauge-score" style="color:{pcolor}">{pscore}</div>
+      </div>
+      <div class="gauge-status {alive_cls}">{alive_txt}</div>
+    </div>"""
+
+    # 복구 이력 HTML
+    heal_severity_icons = {"CRITICAL": "\U0001f6a8", "WARNING": "\u26a0\ufe0f", "INFO": "\u2139\ufe0f"}
+    healing_history_html = ""
+    if healing_history:
+        for hh in healing_history[:20]:
+            hh_sev = hh.get("severity", "INFO")
+            hh_icon = heal_severity_icons.get(hh_sev, "\U0001f527")
+            hh_time = _time_ago(hh.get("timestamp", ""))
+            hh_ts = hh.get("timestamp", "")[:19].replace("T", " ")
+            hh_project = hh.get("project", "")
+            hh_action = hh.get("action", "")
+            hh_result = hh.get("result", "")
+            hh_action_escaped = hh_action.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            hh_result_escaped = hh_result.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            healing_history_html += f"""<div class="heal-item {hh_sev}">
+              <span class="heal-severity">{hh_icon}</span>
+              <span class="heal-time" title="{hh_ts}">{hh_time}</span>
+              <span class="heal-project">{hh_project}</span>
+              <span class="heal-action">{hh_action_escaped}</span>
+              <span class="heal-result">{hh_result_escaped}</span>
+            </div>\n"""
+    else:
+        healing_history_html = '<div style="color:#666;font-size:0.8rem;padding:8px 0;">복구 이력이 없습니다.</div>'
+
+    # 엔진 상태
+    engine_running = healing_status.get("running", False)
+    engine_enabled = healing_status.get("enabled", False)
+    engine_interval = healing_status.get("check_interval", 30)
+    circuit_breakers = healing_status.get("circuit_breaker", {})
+
+    cb_badges_html = ""
+    for cb_proj, cb_info in circuit_breakers.items():
+        if cb_info.get("open"):
+            remaining = cb_info.get("remaining_seconds", 0)
+            cb_badges_html += f'<span class="cb-badge">{cb_proj}: OPEN ({remaining}s)</span>'
+
     cpu_color = "#4caf50" if sys_info["cpu_percent"] < 60 else "#ff9800" if sys_info["cpu_percent"] < 85 else "#f44336"
     mem_color = "#4caf50" if sys_info["mem_percent"] < 60 else "#ff9800" if sys_info["mem_percent"] < 85 else "#f44336"
     disk_color = "#4caf50" if sys_info["disk_percent"] < 75 else "#ff9800" if sys_info["disk_percent"] < 90 else "#f44336"
@@ -462,6 +595,43 @@ async def dashboard(request: Request):
   .sched-msg.ok {{ color: #4caf50; }}
   .sched-msg.err {{ color: #f44336; }}
   .sched-empty {{ color: #666; font-size: 0.8rem; padding: 12px 0; }}
+
+  /* 자동 복구 섹션 */
+  .healing-section {{ margin-top: 24px; background: #1a1d27; border-radius: 12px; padding: 16px; }}
+  .healing-section h2 {{ font-size: 1.1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }}
+  .health-overview {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }}
+  .health-gauge {{ background: #15171e; border-radius: 10px; padding: 14px; text-align: center; position: relative; }}
+  .health-gauge .gauge-name {{ color: #aaa; font-size: 0.72rem; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+  .health-gauge .gauge-ring {{ position: relative; width: 70px; height: 70px; margin: 0 auto 6px; }}
+  .health-gauge .gauge-ring svg {{ width: 70px; height: 70px; transform: rotate(-90deg); }}
+  .health-gauge .gauge-ring .bg {{ fill: none; stroke: #2a2d37; stroke-width: 6; }}
+  .health-gauge .gauge-ring .fg {{ fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }}
+  .health-gauge .gauge-score {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.1rem; font-weight: 700; }}
+  .health-gauge .gauge-status {{ font-size: 0.7rem; margin-top: 2px; }}
+  .health-gauge .gauge-alive {{ color: #4caf50; }}
+  .health-gauge .gauge-dead {{ color: #f44336; }}
+  .healing-engine-status {{ display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px; background: #15171e; border-radius: 10px; font-size: 0.8rem; flex-wrap: wrap; }}
+  .healing-engine-status .status-label {{ color: #888; }}
+  .healing-engine-status .status-on {{ color: #4caf50; font-weight: 600; }}
+  .healing-engine-status .status-off {{ color: #f44336; font-weight: 600; }}
+  .heal-btn {{ background: #1b2a3a; color: #64b5f6; border: 1px solid #64b5f6; padding: 4px 12px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; font-weight: 600; }}
+  .heal-btn:hover {{ background: #264a6a; }}
+  .heal-msg {{ font-size: 0.72rem; color: #aaa; min-height: 16px; margin-top: 4px; }}
+  .heal-msg.ok {{ color: #4caf50; }}
+  .heal-msg.err {{ color: #f44336; }}
+  .healing-history {{ max-height: 300px; overflow-y: auto; }}
+  .heal-item {{ display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2a2d37; font-size: 0.8rem; }}
+  .heal-item:last-child {{ border-bottom: none; }}
+  .heal-item.CRITICAL {{ border-left: 3px solid #f44336; padding-left: 8px; }}
+  .heal-item.WARNING {{ border-left: 3px solid #ff9800; padding-left: 8px; }}
+  .heal-item.INFO {{ border-left: 3px solid #64b5f6; padding-left: 8px; }}
+  .heal-severity {{ font-size: 1rem; min-width: 24px; text-align: center; }}
+  .heal-time {{ color: #666; min-width: 130px; font-size: 0.72rem; }}
+  .heal-project {{ color: #64b5f6; min-width: 100px; font-weight: 600; font-size: 0.75rem; }}
+  .heal-action {{ color: #e0e0e0; min-width: 140px; font-size: 0.75rem; }}
+  .heal-result {{ color: #aaa; flex: 1; }}
+  .circuit-breaker-info {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }}
+  .cb-badge {{ font-size: 0.68rem; padding: 2px 8px; border-radius: 8px; background: #3a1b1b; color: #f44336; }}
 </style>
 </head>
 <body>
@@ -624,6 +794,40 @@ async def dashboard(request: Request):
     </div>
     <div class="sched-msg" id="schedMsg"></div>
   </div>
+</div>
+
+<!-- 자동 복구 섹션 -->
+<div class="healing-section">
+  <h2>\U0001fa79 자동 복구</h2>
+
+  <!-- 엔진 상태 -->
+  <div class="healing-engine-status">
+    <span class="status-label">엔진:</span>
+    <span class="{"status-on" if engine_running else "status-off"}">{"실행 중" if engine_running else "중지됨"}</span>
+    <span class="status-label">간격: {engine_interval}초</span>
+    {f'<span class="status-label">서킷 브레이커:</span>' + cb_badges_html if cb_badges_html else ''}
+    <button class="heal-btn" onclick="healAll()">전체 복구</button>
+    <span class="heal-msg" id="healAllMsg"></span>
+  </div>
+
+  <!-- 건강 점수 게이지 -->
+  <div class="health-overview">
+    {health_gauges_html}
+  </div>
+
+  <!-- 프로젝트별 수동 복구 -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+    {"".join('<button class="heal-btn" onclick="healProject(' + chr(39) + n + chr(39) + ')">' + n + '</button>' for n in PROJECTS.keys())}
+  </div>
+  <div class="heal-msg" id="healProjectMsg"></div>
+
+  <!-- 복구 이력 -->
+  <details open>
+    <summary style="cursor:pointer;color:#aaa;font-size:0.8rem;margin-bottom:8px">복구 이력 (최근 20건)</summary>
+    <div class="healing-history" id="healingHistory">
+      {healing_history_html}
+    </div>
+  </details>
 </div>
 
 <p class="refresh">
@@ -1009,6 +1213,43 @@ async function deleteSched(id) {{
 
 // 페이지 로드 시 스케줄 목록 로딩
 loadSchedules();
+
+/* === 자동 복구 === */
+async function healProject(name) {{
+  const msg = document.getElementById('healProjectMsg');
+  msg.textContent = name + ' 복구 중...';
+  msg.className = 'heal-msg';
+  try {{
+    const res = await fetch('/api/healing/trigger/' + name, {{method: 'POST'}});
+    const data = await res.json();
+    msg.textContent = name + ': ' + (data.msg || '');
+    msg.className = 'heal-msg ' + (data.ok ? 'ok' : 'err');
+    setTimeout(() => location.reload(), 3000);
+  }} catch(e) {{
+    msg.textContent = '복구 실패: ' + e;
+    msg.className = 'heal-msg err';
+  }}
+}}
+
+async function healAll() {{
+  const msg = document.getElementById('healAllMsg');
+  msg.textContent = '전체 복구 중...';
+  msg.className = 'heal-msg';
+  const names = {list(PROJECTS.keys())};
+  const results = [];
+  for (const name of names) {{
+    try {{
+      const res = await fetch('/api/healing/trigger/' + name, {{method: 'POST'}});
+      const data = await res.json();
+      results.push((data.ok ? '\\u2705' : '\\u274c') + ' ' + name);
+    }} catch(e) {{
+      results.push('\\u274c ' + name + ': ' + e);
+    }}
+  }}
+  msg.textContent = results.join(' | ');
+  msg.className = 'heal-msg';
+  setTimeout(() => location.reload(), 3000);
+}}
 </script>
 </body>
 </html>"""

@@ -289,6 +289,45 @@ async def api_analytics_strategy(name: str):
     return get_strategy_analytics(name)
 
 
+@app.get("/api/optimizer/status")
+async def api_optimizer_status():
+    """Adaptive optimizer status: current params, degradation, history."""
+    if _trader is None or _trader.adaptive_optimizer is None:
+        return {"enabled": False}
+    return _trader.adaptive_optimizer.get_status()
+
+
+@app.post("/api/optimizer/trigger")
+async def api_optimizer_trigger():
+    """Manually trigger an optimization cycle."""
+    if _trader is None or _trader.adaptive_optimizer is None:
+        return {"error": "Adaptive optimizer not available"}
+    open_pos = {}
+    for m, p in _trader.positions.items():
+        open_pos[m] = {"contributing_strategies": list(p.contributing_strategies)}
+    result = _trader.adaptive_optimizer.trigger_optimization(open_pos)
+    return result
+
+
+@app.post("/api/optimizer/reset")
+async def api_optimizer_reset(strategy: str = Query("")):
+    """Reset parameters to defaults."""
+    if _trader is None or _trader.param_store is None:
+        return {"error": "Param store not available"}
+    success = _trader.param_store.reset_to_defaults(strategy)
+    if success:
+        _trader.param_store.apply_to_config()
+    return {"success": success, "strategy": strategy or "_all"}
+
+
+@app.get("/api/optimizer/history")
+async def api_optimizer_history():
+    """Get parameter change history."""
+    if _trader is None or _trader.param_store is None:
+        return {"history": []}
+    return {"history": _trader.param_store.get_history(limit=50)}
+
+
 @app.post("/api/bot/start")
 async def start_bot():
     if _trader is None:
@@ -626,6 +665,7 @@ table{min-width:600px}
   <div class="tab" data-tab="analytics">Analytics</div>
   <div class="tab" data-tab="strategy">Strategy</div>
   <div class="tab" data-tab="history">Trade History</div>
+  <div class="tab" data-tab="optimizer">전략 최적화</div>
   <div class="tab" data-tab="guide">Guide</div>
 </div>
 
@@ -752,6 +792,69 @@ table{min-width:600px}
     <tbody id="historyBody"></tbody>
   </table></div>
   <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- Tab: 전략 최적화 (Adaptive Optimizer) -->
+<div id="tab-optimizer" class="tab-content">
+  <div class="panel-title" style="margin-bottom:16px">전략 최적화 엔진
+    <button class="btn btn-green" style="margin-left:16px;font-size:11px" onclick="triggerOptimization()">수동 최적화 실행</button>
+    <button class="btn" style="margin-left:8px;font-size:11px" onclick="resetParams('')">전체 초기화</button>
+    <span id="opt-last-run" style="margin-left:16px;color:var(--text2);font-size:11px"></span>
+  </div>
+
+  <!-- Regime & Status Row -->
+  <div class="cards" style="margin-bottom:16px">
+    <div class="card"><div class="card-label">시장 레짐</div><div class="card-value" id="opt-regime" style="font-size:16px">-</div></div>
+    <div class="card"><div class="card-label">최적화 횟수</div><div class="card-value" id="opt-run-count">0</div></div>
+    <div class="card"><div class="card-label">파라미터 잠금</div><div class="card-value" id="opt-locked" style="font-size:14px">-</div></div>
+    <div class="card"><div class="card-label">롤백 대기</div><div class="card-value" id="opt-rollback-count" style="font-size:16px">0</div></div>
+  </div>
+
+  <!-- Degradation Status -->
+  <div class="chart-box" style="margin-bottom:16px">
+    <div class="panel-title" style="margin-bottom:8px">성능 저하 감지 (Degradation Detection)</div>
+    <table>
+      <thead><tr><th>전략</th><th>상태</th><th>승률 Z</th><th>샤프 Z</th><th>평균PnL Z</th><th>기준 승률</th><th>현재 승률</th><th>메시지</th></tr></thead>
+      <tbody id="opt-degradation-body"><tr><td colspan="8" style="color:var(--text2);text-align:center">데이터 로딩 중...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Current Parameters per Strategy -->
+  <div class="chart-box" style="margin-bottom:16px">
+    <div class="panel-title" style="margin-bottom:8px">전략별 현재 파라미터</div>
+    <div id="opt-params-container">
+      <table>
+        <thead><tr><th>전략</th><th>파라미터</th><th>현재값</th><th>기본값</th><th>범위</th><th>액션</th></tr></thead>
+        <tbody id="opt-params-body"><tr><td colspan="6" style="color:var(--text2);text-align:center">데이터 로딩 중...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Ensemble Weights -->
+  <div class="chart-box" style="margin-bottom:16px">
+    <div class="panel-title" style="margin-bottom:8px">앙상블 가중치</div>
+    <div class="cards" id="opt-weights-cards"></div>
+  </div>
+
+  <!-- Optimization History -->
+  <div class="chart-box" style="margin-bottom:16px">
+    <div class="panel-title" style="margin-bottom:8px">최적화 이력</div>
+    <div style="max-height:400px;overflow-y:auto">
+      <table>
+        <thead><tr><th>시간</th><th>전략</th><th>액션</th><th>OOS 개선</th><th>과적합 비율</th><th>상세</th></tr></thead>
+        <tbody id="opt-history-body"><tr><td colspan="6" style="color:var(--text2);text-align:center">이력 없음</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Post-Optimization Tracking -->
+  <div class="chart-box" style="margin-bottom:16px">
+    <div class="panel-title" style="margin-bottom:8px">최적화 후 성과 추적</div>
+    <table>
+      <thead><tr><th>전략</th><th>거래 수</th><th>승리</th><th>연속 패배</th><th>롤백 준비</th></tr></thead>
+      <tbody id="opt-postopt-body"><tr><td colspan="5" style="color:var(--text2);text-align:center">추적 데이터 없음</td></tr></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Tab 5: Guide -->
@@ -955,6 +1058,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
     if(tab.dataset.tab==='analytics')loadAnalytics();
     if(tab.dataset.tab==='strategy')loadStrategy();
     if(tab.dataset.tab==='history')loadHistory(1);
+    if(tab.dataset.tab==='optimizer')loadOptimizerTab();
     if(tab.dataset.tab==='guide')refreshGuideLive();
     if(tab.dataset.tab==='portfolio')refreshStatus();
   });
@@ -1936,6 +2040,202 @@ async function refreshGuideLive(){
     html+='</div>';
   });
   document.getElementById('guideLiveContent').innerHTML=html;
+}
+
+// ── Optimizer Tab (전략 최적화) ──
+async function loadOptimizerTab(){
+  const d=await api('/api/optimizer/status');
+  if(!d||!d.enabled){
+    document.getElementById('opt-regime').textContent='비활성';
+    return;
+  }
+  // Top cards
+  const regimeMap={'trending':'추세장','ranging':'횡보장','volatile':'변동성장','unknown':'미확인'};
+  const regimeColors={'trending':'var(--green)','ranging':'var(--yellow)','volatile':'var(--red)','unknown':'var(--text2)'};
+  const reg=d.current_regime||'unknown';
+  const regEl=document.getElementById('opt-regime');
+  regEl.textContent=regimeMap[reg]||reg;
+  regEl.style.color=regimeColors[reg]||'var(--text)';
+  document.getElementById('opt-run-count').textContent=d.run_count||0;
+  const ps=d.param_store||{};
+  const lockEl=document.getElementById('opt-locked');
+  lockEl.textContent=ps.locked?'잠금':'해제';
+  lockEl.style.color=ps.locked?'var(--red)':'var(--green)';
+  // Rollback count
+  let rbCount=0;
+  const postOpt=d.post_optimization||{};
+  for(const k in postOpt){if(postOpt[k].has_rollback)rbCount++}
+  document.getElementById('opt-rollback-count').textContent=rbCount;
+  // Last run
+  const lrEl=document.getElementById('opt-last-run');
+  if(d.last_run_time>0){
+    const dt=new Date(d.last_run_time*1000);
+    lrEl.textContent='마지막 실행: '+dt.toLocaleString('ko-KR');
+  }else{lrEl.textContent='아직 실행되지 않음'}
+  // Degradation table
+  renderDegradation(d.degradation||{});
+  // Params table
+  renderParamsTable(ps);
+  // Weights
+  renderWeightsCards(ps.weights||{});
+  // History
+  renderOptHistory(d.history||[]);
+  // Post-opt tracking
+  renderPostOpt(postOpt);
+}
+
+function renderDegradation(deg){
+  const tbody=document.getElementById('opt-degradation-body');
+  const strategies=['rsi_bb','vwap_volume','stoch_rsi','ema_cross'];
+  let html='';
+  let hasData=false;
+  strategies.forEach(s=>{
+    const r=deg[s];
+    if(!r){
+      html+=`<tr><td>${s}</td><td style="color:var(--text2)">데이터 없음</td><td colspan="6">-</td></tr>`;
+      return;
+    }
+    hasData=true;
+    const isDeg=r.is_degraded;
+    const stColor=isDeg?'var(--red)':'var(--green)';
+    const stText=isDeg?'저하 감지':'정상';
+    const zColor=(v)=>v<-2?'var(--red)':v<-1?'var(--yellow)':'var(--green)';
+    html+=`<tr>
+      <td><b>${s}</b></td>
+      <td style="color:${stColor};font-weight:700">${stText}</td>
+      <td style="color:${zColor(r.z_win_rate)}">${(r.z_win_rate||0).toFixed(2)}</td>
+      <td style="color:${zColor(r.z_sharpe)}">${(r.z_sharpe||0).toFixed(2)}</td>
+      <td style="color:${zColor(r.z_avg_pnl)}">${(r.z_avg_pnl||0).toFixed(2)}</td>
+      <td>${((r.baseline_win_rate||0)*100).toFixed(1)}%</td>
+      <td>${((r.current_win_rate||0)*100).toFixed(1)}%</td>
+      <td style="font-size:11px;color:var(--text2)">${r.message||'-'}</td>
+    </tr>`;
+  });
+  if(!hasData)html='<tr><td colspan="8" style="color:var(--text2);text-align:center">아직 성능 저하 분석이 실행되지 않았습니다</td></tr>';
+  tbody.innerHTML=html;
+}
+
+function renderParamsTable(ps){
+  const tbody=document.getElementById('opt-params-body');
+  const params=ps.strategy_params||{};
+  const defaults=ps.defaults||{};
+  const bounds=ps.bounds||{};
+  const strategies=['rsi_bb','vwap_volume','stoch_rsi','ema_cross'];
+  const nameMap={'rsi_bb':'RSI+BB','vwap_volume':'VWAP+Volume','stoch_rsi':'StochRSI','ema_cross':'EMA Cross'};
+  let html='';
+  strategies.forEach(s=>{
+    const sp=params[s]||{};
+    const sd=defaults[s]||{};
+    const sb=bounds[s]||{};
+    const keys=Object.keys(sd);
+    keys.forEach((k,i)=>{
+      const cur=sp[k]!==undefined?sp[k]:sd[k];
+      const def=sd[k];
+      const bnd=sb[k];
+      const isChanged=cur!==def;
+      const changeColor=isChanged?'var(--yellow)':'var(--text)';
+      html+=`<tr>
+        <td>${i===0?'<b>'+nameMap[s]+'</b>':''}</td>
+        <td style="font-family:monospace;font-size:12px">${k}</td>
+        <td style="color:${changeColor};font-weight:${isChanged?700:400};font-family:monospace">${typeof cur==='number'?Number(cur).toFixed(cur%1===0?0:3):cur}</td>
+        <td style="color:var(--text2);font-family:monospace">${typeof def==='number'?Number(def).toFixed(def%1===0?0:3):def}</td>
+        <td style="color:var(--text2);font-size:11px;font-family:monospace">${bnd?bnd[0]+' ~ '+bnd[1]:'-'}</td>
+        <td>${i===0?'<button class="btn" style="font-size:10px;padding:2px 8px" onclick="resetParams(\''+s+'\')">초기화</button>':''}</td>
+      </tr>`;
+    });
+  });
+  tbody.innerHTML=html||'<tr><td colspan="6" style="color:var(--text2);text-align:center">파라미터 데이터 없음</td></tr>';
+}
+
+function renderWeightsCards(weights){
+  const container=document.getElementById('opt-weights-cards');
+  const nameMap={'rsi_bb':'RSI+BB','vwap_volume':'VWAP+Volume','stoch_rsi':'StochRSI','ema_cross':'EMA Cross'};
+  const defaultW={'rsi_bb':0.30,'vwap_volume':0.25,'stoch_rsi':0.25,'ema_cross':0.20};
+  let html='';
+  for(const s of ['rsi_bb','vwap_volume','stoch_rsi','ema_cross']){
+    const w=(weights[s]||0)*100;
+    const dw=(defaultW[s]||0)*100;
+    const diff=w-dw;
+    const diffColor=diff>0?'var(--green)':diff<0?'var(--red)':'var(--text2)';
+    const diffSign=diff>0?'+':'';
+    html+=`<div class="card">
+      <div class="card-label">${nameMap[s]}</div>
+      <div class="card-value" style="font-size:20px">${w.toFixed(1)}%</div>
+      <div class="card-sub">기본: ${dw.toFixed(0)}% <span style="color:${diffColor}">(${diffSign}${diff.toFixed(1)})</span></div>
+      <div style="margin-top:6px;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+        <div style="width:${Math.min(w/40*100,100)}%;height:100%;background:var(--accent);border-radius:2px"></div>
+      </div>
+    </div>`;
+  }
+  container.innerHTML=html;
+}
+
+function renderOptHistory(history){
+  const tbody=document.getElementById('opt-history-body');
+  if(!history.length){
+    tbody.innerHTML='<tr><td colspan="6" style="color:var(--text2);text-align:center">최적화 이력 없음</td></tr>';
+    return;
+  }
+  let html='';
+  history.forEach(h=>{
+    const actionColor={'applied':'var(--green)','rejected':'var(--yellow)','rollback':'var(--red)','not_needed':'var(--text2)','skipped':'var(--text2)','failed':'var(--red)','error':'var(--red)'}[h.action]||'var(--text)';
+    const actionText={'applied':'적용됨','rejected':'거부됨','rollback':'롤백','not_needed':'불필요','skipped':'건너뜀','failed':'실패','error':'오류','failed_to_apply':'적용실패'}[h.action]||h.action;
+    const wf=h.walk_forward||{};
+    const improvement=wf.improvement_pct?wf.improvement_pct.toFixed(1)+'%':'-';
+    const overfit=wf.overfitting_ratio?wf.overfitting_ratio.toFixed(2):'-';
+    const detail=h.reason||'';
+    html+=`<tr>
+      <td style="font-size:11px;white-space:nowrap">${h.timestamp||'-'}</td>
+      <td><b>${h.strategy||'-'}</b></td>
+      <td style="color:${actionColor};font-weight:700">${actionText}</td>
+      <td>${improvement}</td>
+      <td>${overfit}</td>
+      <td style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis">${detail}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+function renderPostOpt(postOpt){
+  const tbody=document.getElementById('opt-postopt-body');
+  const keys=Object.keys(postOpt);
+  if(!keys.length){
+    tbody.innerHTML='<tr><td colspan="5" style="color:var(--text2);text-align:center">최적화 후 추적 데이터 없음</td></tr>';
+    return;
+  }
+  let html='';
+  keys.forEach(s=>{
+    const p=postOpt[s];
+    const badColor=p.consecutive_bad>=10?'var(--red)':p.consecutive_bad>=5?'var(--yellow)':'var(--green)';
+    html+=`<tr>
+      <td><b>${s}</b></td>
+      <td>${p.trades||0}</td>
+      <td style="color:var(--green)">${p.wins||0}</td>
+      <td style="color:${badColor};font-weight:700">${p.consecutive_bad||0} / 20</td>
+      <td>${p.has_rollback?'<span style="color:var(--yellow)">롤백 준비됨</span>':'<span style="color:var(--text2)">없음</span>'}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+async function triggerOptimization(){
+  if(!confirm('수동 최적화를 실행하시겠습니까? (현재 열린 포지션에 사용 중인 전략은 건너뜁니다)'))return;
+  const btn=event.target;btn.disabled=true;btn.textContent='최적화 실행 중...';
+  try{
+    const r=await api('/api/optimizer/trigger','POST');
+    if(r&&r.error){alert('오류: '+r.error)}
+    else{alert('최적화 완료. 결과를 확인하세요.');loadOptimizerTab()}
+  }catch(e){alert('최적화 실패: '+e)}
+  finally{btn.disabled=false;btn.textContent='수동 최적화 실행'}
+}
+
+async function resetParams(strategy){
+  const target=strategy||'전체';
+  if(!confirm(target+' 파라미터를 기본값으로 초기화하시겠습니까?'))return;
+  const url='/api/optimizer/reset?strategy='+(strategy||'');
+  const r=await api(url,'POST');
+  if(r&&r.success)loadOptimizerTab();
+  else alert('초기화 실패');
 }
 
 // ── WebSocket Client ──

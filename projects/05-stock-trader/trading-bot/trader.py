@@ -1,8 +1,9 @@
 """
-StockBot v2.1 주식 자동매매 트레이더
+StockBot v2.2 주식 자동매매 트레이더
 
 8전략 앙상블 + 뉴스 감성분석 + 서킷브레이커 + DB 영속성 + 스케줄러
 + 시장 국면(Regime) 감지 및 전략 가중치 동적 조정
++ 스마트 주문 실행 엔진 (TWAP/VWAP/Smart Execute)
 """
 import sys
 import os
@@ -21,6 +22,7 @@ from alert_system import AlertSystem
 from database import TradeDB
 from scheduler import TradingScheduler, is_market_hours
 from regime_detector import RegimeDetector, MarketRegime
+from execution_engine import ExecutionEngine, Side
 from config import (
     STOCK_TRADING_CONFIG, WATCHLIST, ANALYSIS_CONFIG,
     CIRCUIT_BREAKER_CONFIG,
@@ -41,7 +43,7 @@ def _get_news_engine():
 
 
 class StockTrader:
-    """주식 자동매매 트레이더 v2.0"""
+    """주식 자동매매 트레이더 v2.2"""
 
     def __init__(self, paper_trading: bool = True):
         self.client = BrokerClient(paper_trading=paper_trading)
@@ -51,6 +53,7 @@ class StockTrader:
         self.db = TradeDB()
         self.scheduler = TradingScheduler()
         self.regime_detector = RegimeDetector()
+        self.execution_engine = ExecutionEngine(broker_client=self.client)
         self.paper_trading = paper_trading
 
         self.trade_history = []
@@ -200,41 +203,52 @@ class StockTrader:
             # 고가 업데이트
             self.db.update_highest_price(symbol, current_price)
 
-            # 손절
+            # 손절 - 긴급: 시장가 즉시 실행
             if pnl_pct <= STOCK_TRADING_CONFIG["stop_loss_pct"]:
-                result = self.client.sell(symbol, pos["qty"])
-                if result:
-                    pnl = (current_price - avg_price) * pos["qty"]
-                    self._record_trade("STOP_LOSS", symbol, pos.get("name", ""),
-                                       pos["qty"], current_price, pnl, pnl_pct)
-                    self.circuit_breaker.record_trade(pnl_pct)
+                exec_id = self.execution_engine.smart_execute(
+                    symbol=symbol, side=Side.SELL.value,
+                    qty=pos["qty"], urgency="high",
+                    name=pos.get("name", ""),
+                )
+                pnl = (current_price - avg_price) * pos["qty"]
+                self._record_trade("STOP_LOSS", symbol, pos.get("name", ""),
+                                   pos["qty"], current_price, pnl, pnl_pct)
+                self.circuit_breaker.record_trade(pnl_pct)
+                logger.info(f"손절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
-            # 익절
+            # 익절 - 50% 물량을 VWAP으로 분할 매도
             if pnl_pct >= STOCK_TRADING_CONFIG["take_profit_pct"]:
-                # 50% 물량 익절, 나머지 트레일링
                 sell_qty = max(1, pos["qty"] // 2)
-                result = self.client.sell(symbol, sell_qty)
-                if result:
-                    pnl = (current_price - avg_price) * sell_qty
-                    self._record_trade("TAKE_PROFIT", symbol, pos.get("name", ""),
-                                       sell_qty, current_price, pnl, pnl_pct)
-                    self.circuit_breaker.record_trade(pnl_pct)
+                exec_id = self.execution_engine.smart_execute(
+                    symbol=symbol, side=Side.SELL.value,
+                    qty=sell_qty, urgency="normal",
+                    name=pos.get("name", ""),
+                )
+                pnl = (current_price - avg_price) * sell_qty
+                self._record_trade("TAKE_PROFIT", symbol, pos.get("name", ""),
+                                   sell_qty, current_price, pnl, pnl_pct)
+                self.circuit_breaker.record_trade(pnl_pct)
+                logger.info(f"익절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
-            # 트레일링 스탑 (DB에서 고가 조회)
+            # 트레일링 스탑 (DB에서 고가 조회) - 긴급 매도
             db_positions = self.db.get_positions()
             db_pos = next((p for p in db_positions if p["symbol"] == symbol), None)
             if db_pos and db_pos["highest_price"] > 0:
                 highest = db_pos["highest_price"]
                 drop_from_high = (current_price - highest) / highest * 100
                 if drop_from_high <= STOCK_TRADING_CONFIG["trailing_stop_pct"] and pnl_pct > 0:
-                    result = self.client.sell(symbol, pos["qty"])
-                    if result:
-                        pnl = (current_price - avg_price) * pos["qty"]
-                        self._record_trade("TRAILING_STOP", symbol, pos.get("name", ""),
-                                           pos["qty"], current_price, pnl, pnl_pct)
-                        self.circuit_breaker.record_trade(pnl_pct)
+                    exec_id = self.execution_engine.smart_execute(
+                        symbol=symbol, side=Side.SELL.value,
+                        qty=pos["qty"], urgency="high",
+                        name=pos.get("name", ""),
+                    )
+                    pnl = (current_price - avg_price) * pos["qty"]
+                    self._record_trade("TRAILING_STOP", symbol, pos.get("name", ""),
+                                       pos["qty"], current_price, pnl, pnl_pct)
+                    self.circuit_breaker.record_trade(pnl_pct)
+                    logger.info(f"트레일링 스탑 [{symbol}] exec_id={exec_id}")
 
         # 2. 매수 (점수 높은 순)
         for result in scan_results:
@@ -282,8 +296,13 @@ class StockTrader:
                 logger.warning(f"수량 부족 [{result.get('name', symbol)}]: amount={amount:,.0f}, price={current_price:,.0f} - 매수 건너뜀")
                 continue
 
-            buy_result = self.client.buy(symbol, result["name"], qty)
-            if buy_result:
+            # 스마트 실행 엔진을 통한 매수 (수량에 따라 TWAP/VWAP 자동 선택)
+            exec_id = self.execution_engine.smart_execute(
+                symbol=symbol, side=Side.BUY.value,
+                qty=qty, urgency="normal",
+                name=result["name"],
+            )
+            if exec_id:
                 cash -= qty * current_price
                 positions[symbol] = {"qty": qty, "avg_price": current_price, "sector": sector, "name": result["name"]}
                 self._record_trade("BUY", symbol, result["name"], qty,
@@ -292,6 +311,7 @@ class StockTrader:
                                    result.get("reasons", []))
                 self.db.save_position(symbol, result["name"], qty, current_price,
                                       sector, result.get("score", 0))
+                logger.info(f"매수 실행 [{result['name']}] exec_id={exec_id}")
 
     def _record_trade(self, action, symbol, name, qty, price,
                       pnl=0, pnl_pct=0, score=0, confidence=0, reasons=None):
@@ -415,6 +435,7 @@ class StockTrader:
             "circuit_breaker": self.circuit_breaker.get_status(),
             "scheduler": self.scheduler.get_status(),
             "regime": self.regime_detector.get_status(),
+            "execution": self.execution_engine.get_daily_stats(),
         }
 
 
@@ -423,8 +444,8 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v2.1 - 주식 자동매매")
-    print("  8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 시장국면감지")
+    print("  StockBot v2.2 - 주식 자동매매")
+    print("  8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 시장국면감지 + 스마트실행")
     print("=" * 60)
 
     trader = StockTrader(paper_trading=False)

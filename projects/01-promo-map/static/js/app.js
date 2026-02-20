@@ -74,6 +74,11 @@ function initApp() {
         // 트렌딩 데이터 로드
         loadTrending();
 
+        // 알림 시스템 초기화
+        if (typeof NotificationManager !== 'undefined') {
+            NotificationManager.init();
+        }
+
         // 30초 주기 갱신
         setInterval(() => {
             if (currentTab === 'map') loadNearbyStores();

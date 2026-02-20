@@ -1,5 +1,5 @@
 """
-BarcodeQuest - FastAPI 게임 서버 v2.3
+BarcodeQuest - FastAPI 게임 서버 v2.4
 
 v2.0 시스템:
   - 방치형 탐험 (ExpeditionSystem)
@@ -17,6 +17,9 @@ v2.2 변경:
 v2.3 변경:
   - 길드 시스템 (길드 생성/가입/탈퇴, 보스전, 랭킹)
   - 몬스터 거래소 (마켓플레이스 등록/구매/취소, 거래내역)
+
+v2.4 변경:
+  - 던전 캠페인 시스템 (5챕터 30스테이지 PvE, 보스전, 에너지, 리더보드)
 """
 import sys
 import os
@@ -46,8 +49,9 @@ from pvp_system import ArenaManager
 from guild_system import GuildManager
 from trading_system import TradeManager
 from achievement_system import AchievementManager
+from dungeon_system import DungeonManager
 
-app = FastAPI(title="BarcodeQuest Game Server v2.4")
+app = FastAPI(title="BarcodeQuest Game Server v2.5")
 
 # 게임 엔진 인스턴스 (stateless singletons)
 generator = BarcodeMonsterGenerator()
@@ -63,6 +67,9 @@ trade_manager = TradeManager()
 
 # 업적 매니저
 achievement_manager = AchievementManager()
+
+# 던전 캠페인 매니저
+dungeon_manager = DungeonManager()
 
 # Sub-systems that hold per-session state in memory (loaded from DB on access)
 expedition_system = ExpeditionSystem()
@@ -130,6 +137,7 @@ async def startup():
     import guild_system  # noqa: F401  (Guild, GuildMember, GuildBossLog 테이블 생성)
     import trading_system  # noqa: F401  (TradeListing, TradeHistory 테이블 생성)
     import models  # noqa: F401  (PlayerAchievement 테이블 생성)
+    import dungeon_system  # noqa: F401  (DungeonProgress, DungeonBossLog, DungeonEnergyState 테이블 생성)
     init_db()
 
 
@@ -1257,6 +1265,167 @@ async def check_achievements(session_id: str):
         "count": len(newly),
         "player": player.to_dict(),
     }
+
+
+# =====================================================
+#  신규 API: 던전 캠페인 시스템
+# =====================================================
+
+@app.get("/api/dungeon/campaign/{player_id}")
+async def dungeon_campaign(player_id: str):
+    """던전 캠페인 전체 현황 (챕터, 스테이지, 별, 에너지)"""
+    result = dungeon_manager.get_campaign_status(player_id)
+    return result
+
+
+@app.get("/api/dungeon/stage/{stage_id}/preview")
+async def dungeon_stage_preview(stage_id: int):
+    """스테이지 보상 미리보기 + 적 정보"""
+    reward_preview = dungeon_manager.get_reward_preview(stage_id)
+    enemies = dungeon_manager.get_stage_enemies(stage_id)
+    enemy_preview = [
+        {
+            "id": e["id"],
+            "name": e["name"],
+            "primary_type": e["primary_type"],
+            "level": e["level"],
+            "rarity": e.get("rarity", "Common"),
+            "stats": e["stats"],
+            "is_boss": e.get("is_boss", False),
+        }
+        for e in enemies
+    ]
+    return {**reward_preview, "enemies": enemy_preview}
+
+
+@app.post("/api/dungeon/enter/{stage_id}")
+async def dungeon_enter(
+    stage_id: int,
+    session: str = Query("default"),
+):
+    """던전 스테이지 진입 (파티 자동 사용)"""
+    player, _ = get_or_create_player(session)
+    if not player.party:
+        return {"error": "파티에 몬스터가 없습니다! 먼저 바코드를 스캔하세요."}
+
+    # Build party data from player's party (up to 3)
+    party = []
+    for m in player.party[:3]:
+        party.append({
+            "id": m.get("id", m.get("monster_id", "")),
+            "name": m.get("name", "Unknown"),
+            "primary_type": m.get("primary_type", "Dark"),
+            "secondary_type": m.get("secondary_type", "Dark"),
+            "level": m.get("level", 1),
+            "stats": m.get("stats", {"hp": 50, "attack": 15, "defense": 10, "speed": 10, "special": 12}),
+        })
+
+    result = dungeon_manager.enter_stage(session, stage_id, party)
+    return result
+
+
+@app.post("/api/dungeon/battle")
+async def dungeon_battle(
+    action: str = Query("attack", description="attack 또는 special"),
+    target: int = Query(0, description="타겟 적 인덱스"),
+    session: str = Query("default"),
+):
+    """던전 배틀 턴 실행"""
+    result = dungeon_manager.battle_turn(session, action, target)
+
+    # If battle ended in victory, apply rewards to player
+    if result.get("completion") and result["completion"].get("victory"):
+        player, collection = get_or_create_player(session)
+        rewards = result["completion"]["rewards"]
+        if rewards.get("gold"):
+            player.gain_gold(rewards["gold"])
+        if rewards.get("exp"):
+            player.gain_exp(rewards["exp"])
+
+        # Add dropped items to inventory
+        inv = get_inventory(session)
+        items_added = []
+        for item_id in rewards.get("items", []):
+            add_res = inv.add_item(item_id)
+            items_added.append(add_res)
+        result["completion"]["items_added"] = items_added
+
+        # Persist
+        persistence.save_player(session, player)
+        persistence.save_inventory(session, inv)
+
+        result["player"] = player.to_dict()
+
+        # Achievement check
+        result["achievement_unlocks"] = _run_achievement_check(session, player, collection)
+
+    return result
+
+
+@app.post("/api/dungeon/auto-battle")
+async def dungeon_auto_battle(
+    session: str = Query("default"),
+):
+    """던전 자동 배틀 (전투 끝까지 실행)"""
+    result = dungeon_manager.auto_battle(session)
+
+    # If battle ended in victory, apply rewards to player
+    if result.get("completion") and result["completion"].get("victory"):
+        player, collection = get_or_create_player(session)
+        rewards = result["completion"]["rewards"]
+        if rewards.get("gold"):
+            player.gain_gold(rewards["gold"])
+        if rewards.get("exp"):
+            player.gain_exp(rewards["exp"])
+
+        inv = get_inventory(session)
+        items_added = []
+        for item_id in rewards.get("items", []):
+            add_res = inv.add_item(item_id)
+            items_added.append(add_res)
+        result["completion"]["items_added"] = items_added
+
+        persistence.save_player(session, player)
+        persistence.save_inventory(session, inv)
+
+        result["player"] = player.to_dict()
+        result["achievement_unlocks"] = _run_achievement_check(session, player, collection)
+
+    return result
+
+
+@app.post("/api/dungeon/abandon")
+async def dungeon_abandon(
+    session: str = Query("default"),
+):
+    """던전 전투 포기"""
+    result = dungeon_manager.abandon_battle(session)
+    return result
+
+
+@app.get("/api/dungeon/boss/{chapter}")
+async def dungeon_boss_info(chapter: int):
+    """보스 상세 정보 + 로어"""
+    result = dungeon_manager.get_boss_info(chapter)
+    return result
+
+
+@app.get("/api/dungeon/energy")
+async def dungeon_energy(
+    session: str = Query("default"),
+):
+    """던전 에너지 조회"""
+    result = dungeon_manager.get_energy(session)
+    return result
+
+
+@app.get("/api/dungeon/leaderboard")
+async def dungeon_leaderboard(
+    limit: int = Query(20, ge=1, le=100),
+):
+    """보스 클리어 타임 리더보드"""
+    results = dungeon_manager.get_leaderboard(limit)
+    return {"leaderboard": results, "total": len(results)}
 
 
 if __name__ == "__main__":

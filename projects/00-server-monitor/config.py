@@ -83,6 +83,57 @@ SCHEDULE_CONFIG = {
     "SCHEDULE_CHECK_INTERVAL": int(os.getenv("SCHEDULE_CHECK_INTERVAL", "60")),  # 스케줄 확인 간격(초)
 }
 
+# === 자동 복구 (Auto-Healing) 설정 ===
+HEALING_CONFIG = {
+    # 엔진 활성화
+    "HEALING_ENABLED": os.getenv("HEALING_ENABLED", "true").lower() in ("true", "1", "yes"),
+    "HEALING_CHECK_INTERVAL": int(os.getenv("HEALING_CHECK_INTERVAL", "30")),  # 복구 사이클 간격(초)
+
+    # 서킷 브레이커
+    "CIRCUIT_BREAKER_MAX_FAILURES": int(os.getenv("CIRCUIT_BREAKER_MAX_FAILURES", "3")),
+    "CIRCUIT_BREAKER_WINDOW_MINUTES": int(os.getenv("CIRCUIT_BREAKER_WINDOW_MINUTES", "15")),
+    "CIRCUIT_BREAKER_COOLDOWN_MINUTES": int(os.getenv("CIRCUIT_BREAKER_COOLDOWN_MINUTES", "30")),
+
+    # 프로세스 건강 모니터
+    "CPU_STUCK_THRESHOLD_SECONDS": int(os.getenv("CPU_STUCK_THRESHOLD_SECONDS", "300")),
+    "MEMORY_GROWTH_THRESHOLD_MB": int(os.getenv("MEMORY_GROWTH_THRESHOLD_MB", "100")),
+    "MEMORY_CHECK_WINDOW_MINUTES": int(os.getenv("MEMORY_CHECK_WINDOW_MINUTES", "30")),
+
+    # 디스크 자동 정리
+    "DISK_CLEANUP_THRESHOLD": int(os.getenv("DISK_CLEANUP_THRESHOLD", "90")),
+    "LOG_RETENTION_DAYS": int(os.getenv("LOG_RETENTION_DAYS", "7")),
+    "MAX_LOG_FILES_PER_PROJECT": int(os.getenv("MAX_LOG_FILES_PER_PROJECT", "5")),
+    "TEMP_FILE_PATTERNS": ["*.tmp", "*.temp", "*.bak", "*.swp"],
+
+    # 포트 충돌 해결
+    "PORT_CONFLICT_AUTO_KILL": os.getenv("PORT_CONFLICT_AUTO_KILL", "true").lower() in ("true", "1", "yes"),
+
+    # 연쇄 장애 방지
+    "CASCADE_STAGGER_DELAY_SECONDS": int(os.getenv("CASCADE_STAGGER_DELAY_SECONDS", "10")),
+    "CASCADE_SIMULTANEOUS_THRESHOLD": int(os.getenv("CASCADE_SIMULTANEOUS_THRESHOLD", "2")),
+    "PROJECT_PRIORITIES": {
+        # 숫자가 작을수록 높은 우선순위 (먼저 재시작)
+        "04-crypto-trader": 10,
+        "05-stock-trader": 20,
+        "01-promo-map": 30,
+        "02-barcode-game": 40,
+        "03-voice-memory": 50,
+        "06-home-finder": 60,
+    },
+    "PROJECT_DEPENDENCIES": {
+        # 프로젝트별 의존성 (해당 프로젝트가 먼저 살아있어야 재시작)
+        # 예: "02-barcode-game": ["01-promo-map"],
+    },
+
+    # 건강 점수 가중치
+    "HEALTH_SCORE_WEIGHTS": {
+        "uptime": 0.40,
+        "restart_frequency": 0.20,
+        "response_time": 0.20,
+        "resource_usage": 0.20,
+    },
+}
+
 # === 자동 배포 설정 ===
 DEPLOY_CONFIG = {
     "DEPLOY_ENABLED": os.getenv("DEPLOY_ENABLED", "true").lower() in ("true", "1", "yes"),

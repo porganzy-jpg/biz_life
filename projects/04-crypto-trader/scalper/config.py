@@ -150,5 +150,9 @@ CORRELATION_WINDOW = 96             # Rolling correlation window (96 x 15min = 2
 MAX_CORRELATED_POSITIONS = 2        # Max positions in correlated (>threshold) assets
 CONCENTRATION_THRESHOLD = 0.8       # Pearson corr above this = "highly correlated"
 
+# === Adaptive Strategy Optimizer ===
+ADAPTIVE_OPTIMIZER_ENABLED = True
+ADAPTIVE_OPTIMIZER_INTERVAL_SEC = 14400  # 4시간마다 최적화
+
 # === Logging ===
 LOG_LEVEL = os.getenv("SCALPER_LOG_LEVEL", "INFO")

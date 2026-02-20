@@ -27,6 +27,7 @@ from services import (
 from deploy import bot_deploy_trigger, bot_deploy_status
 from anomaly import get_alert_manager, MaintenanceWindow
 from scheduler import bot_schedule_list, bot_schedule_add, bot_schedule_remove, bot_schedule_toggle
+from auto_healer import bot_heal, bot_health
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -81,6 +82,9 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "/schedule add <프로젝트> <daily|weekly> <HH:MM> [요일]\n"
         "/schedule remove <id> - 예약 삭제\n"
         "/schedule toggle <id> - 활성/비활성\n\n"
+        "자동 복구:\n"
+        "/heal [프로젝트명|all] - 수동 복구 트리거\n"
+        "/health [프로젝트명] - 건강 점수 조회\n\n"
         "알림 & 이상 탐지:\n"
         "/alerts - 최근 알림 조회\n"
         "/maintenance start 2h - 유지보수 윈도우 시작\n"
@@ -491,6 +495,31 @@ async def cmd_schedule(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
 
 
+async def cmd_heal(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """수동 복구 트리거: /heal [프로젝트명|all]"""
+    if not is_authorized(update):
+        return
+    args = ctx.args or []
+    await update.message.reply_text("🔧 복구 실행 중...")
+    try:
+        result = bot_heal(args)
+        await update.message.reply_text(result)
+    except Exception as e:
+        await update.message.reply_text(f"❌ 복구 실패: {e}")
+
+
+async def cmd_health(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """건강 점수 조회: /health [프로젝트명]"""
+    if not is_authorized(update):
+        return
+    args = ctx.args or []
+    try:
+        result = bot_health(args)
+        await update.message.reply_text(result)
+    except Exception as e:
+        await update.message.reply_text(f"❌ 건강 점수 조회 실패: {e}")
+
+
 async def cmd_panel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update):
         return
@@ -601,6 +630,8 @@ def main():
     app.add_handler(CommandHandler("maintenance", cmd_maintenance))
     app.add_handler(CommandHandler("thresholds", cmd_thresholds))
     app.add_handler(CommandHandler("schedule", cmd_schedule))
+    app.add_handler(CommandHandler("heal", cmd_heal))
+    app.add_handler(CommandHandler("health", cmd_health))
     app.add_handler(CommandHandler("panel", cmd_panel))
     app.add_handler(CallbackQueryHandler(button_handler))
 

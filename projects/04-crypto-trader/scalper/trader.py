@@ -28,6 +28,8 @@ from .alert_system import AlertSystem
 from .market_scanner import MarketScanner
 from .optimizer import WalkForwardOptimizer
 from .portfolio_manager import PortfolioRiskManager
+from .param_store import ParamStore
+from .adaptive_optimizer import AdaptiveOptimizer
 
 logger = logging.getLogger("scalper.trader")
 
@@ -90,6 +92,15 @@ class ScalpTrader:
         # Portfolio risk manager
         self.portfolio_mgr = PortfolioRiskManager() if getattr(config, 'PORTFOLIO_RISK_ENABLED', False) else None
 
+        # Adaptive optimizer with param store
+        self.param_store = ParamStore()
+        adaptive_enabled = getattr(config, 'ADAPTIVE_OPTIMIZER_ENABLED', True)
+        if adaptive_enabled:
+            self.adaptive_optimizer = AdaptiveOptimizer(self.param_store)
+            self.param_store.apply_to_config()  # Load persisted params on startup
+        else:
+            self.adaptive_optimizer = None
+
         # Stats
         self.total_wins = 0
         self.total_losses = 0
@@ -119,6 +130,8 @@ class ScalpTrader:
             mode_info.append("Optimizer")
         if self.portfolio_mgr:
             mode_info.append("PortfolioRisk")
+        if self.adaptive_optimizer:
+            mode_info.append("AdaptiveOptimizer")
         logger.info(f"ScalpTrader initialized. Balance: {initial_balance:,.0f} KRW, "
                      f"Paper: {paper}, Markets: {config.MARKETS}, "
                      f"Modules: {', '.join(mode_info) or 'none'}")
@@ -145,6 +158,12 @@ class ScalpTrader:
         if self.optimizer:
             self.optimizer.start()
             logger.info("Walk-forward optimizer started (background thread)")
+
+        # Start adaptive optimizer (every 4 hours)
+        if self.adaptive_optimizer:
+            adaptive_interval = getattr(config, 'ADAPTIVE_OPTIMIZER_INTERVAL_SEC', 14400)
+            self.adaptive_optimizer.start(interval_sec=adaptive_interval)
+            logger.info(f"Adaptive optimizer started (interval={adaptive_interval}s)")
 
         # Startup alert
         balance = self.client.get_krw_balance()
@@ -193,6 +212,8 @@ class ScalpTrader:
         self.running = False
         if self.optimizer:
             self.optimizer.stop()
+        if self.adaptive_optimizer:
+            self.adaptive_optimizer.stop()
 
     def _tick(self):
         """Single trading cycle."""
@@ -484,6 +505,11 @@ class ScalpTrader:
         if self._analytics_cache is not None:
             self._analytics_cache.on_new_trade(asdict(record))
 
+        # Notify adaptive optimizer for rollback tracking
+        if self.adaptive_optimizer:
+            for strat in pos.contributing_strategies:
+                self.adaptive_optimizer.record_post_optimization_trade(strat, won)
+
         self._ws_push({
             "type": "trade_event",
             "data": {
@@ -647,6 +673,7 @@ class ScalpTrader:
             "mtf_data": dict(self._last_mtf),
             "kelly_status": kelly_status,
             "portfolio_stats": portfolio_stats,
+            "adaptive_optimizer_status": self.adaptive_optimizer.get_status() if self.adaptive_optimizer else {"enabled": False},
         }
 
     def get_market_watch(self) -> dict:

@@ -39,12 +39,17 @@ logger = logging.getLogger("main")
 def run_dashboard():
     """FastAPI 대시보드 서브프로세스"""
     import uvicorn
-    from config import SCHEDULE_CONFIG
+    from config import SCHEDULE_CONFIG, HEALING_CONFIG
     # 대시보드 프로세스 안에서 스케줄러 스레드 시작 (같은 프로세스에서 동작해야 API와 공유)
     if SCHEDULE_CONFIG.get("SCHEDULE_ENABLED", True):
         from scheduler import start_scheduler_thread
         start_scheduler_thread()
         logger.info("예약 재시작 스케줄러 시작됨")
+    # 자동 복구 엔진 백그라운드 스레드 시작
+    if HEALING_CONFIG.get("HEALING_ENABLED", True):
+        from auto_healer import start_healing_thread
+        start_healing_thread()
+        logger.info("자동 복구 엔진 시작됨")
     from app import app
     uvicorn.run(app, host="0.0.0.0", port=9000, log_level="warning")
 

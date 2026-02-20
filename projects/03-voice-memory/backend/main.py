@@ -30,12 +30,14 @@ from transcription_service import (
 )
 from memory_engine import MemoryEngine
 from voice_clone_service import VoiceCloneService, RESPONSES_AUDIO_DIR
+from services.voice_conversation_service import VoiceConversationService
 from pydantic import BaseModel as _BaseModel
 import json as _json
 
 app = FastAPI(title="VoiceMemory API", version="1.0.0")
 persona_chat = PersonaChat()
 voice_service = VoiceCloneService()
+voice_conversation_service = VoiceConversationService(persona_chat, voice_service)
 
 
 class SynthesizeRequest(_BaseModel):
@@ -794,6 +796,58 @@ async def synthesize_speech(person_id: int, data: SynthesizeRequest):
         raise HTTPException(status_code=500, detail=f"음성 합성 오류: {str(e)}")
 
 
+@app.post("/api/voice-chat/{person_id}")
+async def voice_chat(
+    person_id: int,
+    audio: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """
+    음성 대화 파이프라인: 음성 입력 -> 전사 -> AI 응답 -> 음성 합성
+
+    Args:
+        person_id: 대화 대상 인물 ID
+        audio: 업로드된 오디오 파일 (multipart)
+
+    Returns:
+        JSON: transcribed_text, ai_response_text, audio_url, emotion, memory_attribution
+    """
+    file_bytes = await audio.read()
+    if len(file_bytes) == 0:
+        raise HTTPException(status_code=400, detail="빈 오디오 파일입니다")
+    if len(file_bytes) > 25 * 1024 * 1024:  # 25 MB limit for voice chat
+        raise HTTPException(status_code=400, detail="파일이 너무 큽니다 (최대 25MB)")
+
+    # Determine audio format from filename or content type
+    audio_format = "webm"
+    if audio.filename:
+        ext = audio.filename.rsplit(".", 1)[-1].lower() if "." in audio.filename else ""
+        if ext:
+            audio_format = ext
+    elif audio.content_type:
+        audio_format = audio.content_type
+
+    try:
+        result = await voice_conversation_service.process_voice_message(
+            person_id=person_id,
+            audio_data=file_bytes,
+            audio_format=audio_format,
+            db=db,
+        )
+
+        if result.get("error") and not result.get("ai_response_text"):
+            raise HTTPException(status_code=422, detail=result["error"])
+
+        return JSONResponse(content=result)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Voice chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"음성 대화 처리 오류: {str(e)}")
+
+
 @app.get("/api/audio/responses/{filename}")
 async def serve_synthesized_audio(filename: str):
     """합성된 음성 오디오 파일 제공"""
@@ -1465,6 +1519,92 @@ TEMPLATE_HTML = """
         .memory-attr-kw.highlighted {
             background: #ffe082; color: #8e6b47;
         }
+        /* ====== Voice Chat Mode Styles ====== */
+        .vc-mode-toggle-wrap {
+            display: flex; gap: 4px; margin-bottom: 12px;
+            background: #f0ebe4; border-radius: 10px; padding: 3px;
+        }
+        .vc-mode-btn {
+            flex: 1; padding: 8px 12px; border: none; border-radius: 8px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            background: transparent; color: #888; transition: all 0.2s;
+        }
+        .vc-mode-btn.active {
+            background: #8e6b47; color: white;
+            box-shadow: 0 2px 6px rgba(142,107,71,0.3);
+        }
+        .vc-mode-btn:hover:not(.active) { color: #5d4037; }
+
+        .vc-status {
+            text-align: center; font-size: 0.9rem; font-weight: 600;
+            color: #888; padding: 12px 0 8px; min-height: 40px;
+            transition: color 0.3s;
+        }
+        .vc-status.listening { color: #c0392b; }
+        .vc-status.thinking { color: #2980b9; }
+        .vc-status.speaking { color: #27ae60; }
+
+        .vc-waveform-wrap {
+            background: #1a1a2e; border-radius: 14px; padding: 8px;
+            margin-bottom: 16px; height: 80px; display: flex;
+            align-items: center; justify-content: center; overflow: hidden;
+        }
+        .vc-waveform-canvas { width: 100%; height: 64px; display: block; }
+
+        .vc-mic-area {
+            display: flex; justify-content: center; padding: 10px 0 16px;
+        }
+        .vc-mic-btn {
+            width: 80px; height: 80px; border-radius: 50%;
+            border: 4px solid #e0d5c8; background: white;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; transition: all 0.3s;
+            color: #8e6b47; position: relative;
+        }
+        .vc-mic-btn:hover { border-color: #8e6b47; background: #faf5f0; }
+        .vc-mic-btn.recording {
+            border-color: #c0392b; background: #c0392b; color: white;
+            animation: vc-pulse 1.5s infinite;
+        }
+        .vc-mic-btn.disabled {
+            opacity: 0.4; cursor: not-allowed; pointer-events: none;
+        }
+        @keyframes vc-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.5); }
+            50% { box-shadow: 0 0 0 16px rgba(192,57,43,0); }
+        }
+
+        .vc-continuous-wrap {
+            display: flex; justify-content: center; margin-bottom: 12px;
+        }
+        .vc-continuous-label {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.78rem; color: #888; cursor: pointer;
+        }
+        .vc-continuous-label input { accent-color: #8e6b47; }
+
+        .vc-transcript {
+            max-height: 320px; overflow-y: auto; padding: 8px 0;
+        }
+        .vc-msg { margin-bottom: 10px; display: flex; }
+        .vc-msg.user { justify-content: flex-end; }
+        .vc-msg .vc-bubble {
+            max-width: 85%; padding: 10px 14px; border-radius: 14px;
+            font-size: 0.88rem; line-height: 1.5;
+        }
+        .vc-msg.user .vc-bubble {
+            background: #8e6b47; color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .vc-msg.ai .vc-bubble {
+            background: white; border: 1px solid #e0d5c8;
+            border-bottom-left-radius: 4px;
+        }
+        .vc-msg .vc-label {
+            font-size: 0.68rem; color: #999; margin-bottom: 2px;
+        }
+        .vc-msg.user .vc-label { text-align: right; }
+
     </style>
 </head>
 <body>
@@ -1580,6 +1720,11 @@ TEMPLATE_HTML = """
         <div class="panel" id="panel-chat">
             <div class="card">
                 <h3 id="chatTitle">Select a person to chat</h3>
+                <!-- Mode Toggle: Text <-> Voice -->
+                <div class="vc-mode-toggle-wrap">
+                    <button class="vc-mode-btn active" id="vcModeText" onclick="switchChatMode('text')">&#x2328; 텍스트 채팅</button>
+                    <button class="vc-mode-btn" id="vcModeVoice" onclick="switchChatMode('voice')">&#x1F3A4; 음성 대화</button>
+                </div>
                 <div class="voice-volume-wrap" id="chatVolumeWrap">
                     <label>&#x1F50A; 음량</label>
                     <input type="range" class="voice-volume-slider" id="chatVolumeSlider" min="0" max="100" value="80" oninput="updateChatVolume(this.value)" />
@@ -1589,12 +1734,55 @@ TEMPLATE_HTML = """
                     <div class="chat-suggestions-label">이런 질문을 해보세요:</div>
                     <div class="chat-suggestion-chips" id="chatSuggestionChips"></div>
                 </div>
-                <div class="chat-area" id="chatArea">
-                    <div class="empty-state">인물을 선택하고 대화를 시작하세요.</div>
+
+                <!-- ===== TEXT CHAT MODE ===== -->
+                <div id="textChatMode">
+                    <div class="chat-area" id="chatArea">
+                        <div class="empty-state">인물을 선택하고 대화를 시작하세요.</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input class="chat-input" id="chatInput" placeholder="메시지를 입력하세요..." onkeypress="if(event.key==='Enter')sendChat()" />
+                        <button class="send-btn" onclick="sendChat()">&#x27A4;</button>
+                    </div>
                 </div>
-                <div class="chat-input-area">
-                    <input class="chat-input" id="chatInput" placeholder="메시지를 입력하세요..." onkeypress="if(event.key==='Enter')sendChat()" />
-                    <button class="send-btn" onclick="sendChat()">&#x27A4;</button>
+
+                <!-- ===== VOICE CHAT MODE ===== -->
+                <div id="voiceChatMode" style="display:none;">
+                    <!-- Status text -->
+                    <div class="vc-status" id="vcStatus">마이크 버튼을 눌러 대화를 시작하세요</div>
+
+                    <!-- Waveform visualization -->
+                    <div class="vc-waveform-wrap" id="vcWaveformWrap">
+                        <canvas class="vc-waveform-canvas" id="vcWaveformCanvas"></canvas>
+                    </div>
+
+                    <!-- Microphone button -->
+                    <div class="vc-mic-area">
+                        <button class="vc-mic-btn" id="vcMicBtn" onclick="toggleVoiceChat()">
+                            <svg class="vc-mic-icon" id="vcMicIcon" viewBox="0 0 24 24" width="36" height="36">
+                                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" fill="currentColor"/>
+                                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" fill="currentColor"/>
+                            </svg>
+                            <div class="vc-mic-stop-icon" id="vcMicStopIcon" style="display:none;">
+                                <svg viewBox="0 0 24 24" width="36" height="36">
+                                    <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Continuous mode toggle -->
+                    <div class="vc-continuous-wrap">
+                        <label class="vc-continuous-label">
+                            <input type="checkbox" id="vcContinuousToggle" />
+                            <span>연속 대화 모드 (응답 후 자동 녹음)</span>
+                        </label>
+                    </div>
+
+                    <!-- Voice conversation transcript -->
+                    <div class="vc-transcript" id="vcTranscript">
+                        <div class="empty-state">음성 대화 내용이 여기에 표시됩니다.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2943,6 +3131,385 @@ TEMPLATE_HTML = """
         function useSuggestion(text) {
             document.getElementById('chatInput').value = text;
             document.getElementById('chatInput').focus();
+        }
+
+        // ====================================================================
+        // ======  VOICE CONVERSATION MODE  ====================================
+        // ====================================================================
+        let vcMode = 'text';          // 'text' | 'voice'
+        let vcRecorder = null;        // MediaRecorder for voice chat
+        let vcAudioChunks = [];
+        let vcStream = null;          // MediaStream
+        let vcAudioCtx = null;        // AudioContext for waveform
+        let vcAnalyser = null;        // AnalyserNode
+        let vcAnimFrame = null;       // requestAnimationFrame ID
+        let vcIsRecording = false;
+        let vcIsProcessing = false;   // pipeline running
+        let vcSilenceTimer = null;    // silence detection timer
+        let vcSilenceStart = 0;       // when silence began
+        const VC_SILENCE_THRESHOLD = 0.02;   // RMS threshold
+        const VC_SILENCE_DURATION = 2000;    // 2 seconds of silence to auto-stop
+
+        // --- Mode switching ---
+        function switchChatMode(mode) {
+            vcMode = mode;
+            document.getElementById('vcModeText').classList.toggle('active', mode === 'text');
+            document.getElementById('vcModeVoice').classList.toggle('active', mode === 'voice');
+            document.getElementById('textChatMode').style.display = mode === 'text' ? 'block' : 'none';
+            document.getElementById('voiceChatMode').style.display = mode === 'voice' ? 'block' : 'none';
+
+            if (mode === 'voice') {
+                initVcWaveform();
+            } else {
+                stopVoiceChatRecording(true);  // cleanup if switching away
+            }
+        }
+
+        // --- Waveform canvas init ---
+        function initVcWaveform() {
+            const canvas = document.getElementById('vcWaveformCanvas');
+            if (!canvas) return;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = canvas.offsetWidth * dpr;
+            canvas.height = canvas.offsetHeight * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            // Draw idle state
+            drawVcIdleWaveform(ctx, canvas.offsetWidth, canvas.offsetHeight);
+        }
+
+        function drawVcIdleWaveform(ctx, w, h) {
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = '#3d3d5c';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, h / 2);
+            ctx.lineTo(w, h / 2);
+            ctx.stroke();
+        }
+
+        function drawVcWaveform() {
+            if (!vcAnalyser || !vcIsRecording) return;
+            const canvas = document.getElementById('vcWaveformCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.offsetWidth;
+            const h = canvas.offsetHeight;
+
+            const bufferLen = vcAnalyser.fftSize;
+            const dataArray = new Float32Array(bufferLen);
+            vcAnalyser.getFloatTimeDomainData(dataArray);
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Gradient line
+            const grad = ctx.createLinearGradient(0, 0, w, 0);
+            grad.addColorStop(0, '#c0392b');
+            grad.addColorStop(0.5, '#e74c3c');
+            grad.addColorStop(1, '#c0392b');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const sliceWidth = w / bufferLen;
+            let x = 0;
+            for (let i = 0; i < bufferLen; i++) {
+                const v = dataArray[i];
+                const y = (v * 0.5 + 0.5) * h;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.lineTo(w, h / 2);
+            ctx.stroke();
+
+            // Glow effect
+            ctx.shadowColor = '#e74c3c';
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Compute RMS for silence detection
+            let sum = 0;
+            for (let i = 0; i < bufferLen; i++) {
+                sum += dataArray[i] * dataArray[i];
+            }
+            const rms = Math.sqrt(sum / bufferLen);
+            checkVcSilence(rms);
+
+            vcAnimFrame = requestAnimationFrame(drawVcWaveform);
+        }
+
+        // --- Silence detection ---
+        function checkVcSilence(rms) {
+            if (rms < VC_SILENCE_THRESHOLD) {
+                if (vcSilenceStart === 0) {
+                    vcSilenceStart = Date.now();
+                } else if (Date.now() - vcSilenceStart >= VC_SILENCE_DURATION) {
+                    // Auto-stop after sustained silence
+                    vcSilenceStart = 0;
+                    stopVoiceChatRecording(false);
+                }
+            } else {
+                vcSilenceStart = 0;
+            }
+        }
+
+        // --- Toggle recording ---
+        async function toggleVoiceChat() {
+            if (vcIsProcessing) return;
+            if (vcIsRecording) {
+                stopVoiceChatRecording(false);
+            } else {
+                await startVoiceChatRecording();
+            }
+        }
+
+        // --- Start recording ---
+        async function startVoiceChatRecording() {
+            if (!selectedPersonId) {
+                alert('먼저 인물을 선택하세요 (Persons 탭).');
+                return;
+            }
+            if (vcIsProcessing) return;
+
+            try {
+                vcStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 44100,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                    }
+                });
+
+                // Setup audio context + analyser for waveform
+                vcAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const source = vcAudioCtx.createMediaStreamSource(vcStream);
+                vcAnalyser = vcAudioCtx.createAnalyser();
+                vcAnalyser.fftSize = 2048;
+                source.connect(vcAnalyser);
+
+                // Setup MediaRecorder
+                let mimeType = 'audio/webm;codecs=opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/webm';
+                }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/ogg;codecs=opus';
+                }
+
+                vcAudioChunks = [];
+                vcRecorder = new MediaRecorder(vcStream, {mimeType: mimeType});
+                vcRecorder.ondataavailable = function(e) {
+                    if (e.data.size > 0) vcAudioChunks.push(e.data);
+                };
+                vcRecorder.onstop = function() {
+                    processVoiceChatAudio();
+                };
+
+                vcRecorder.start(100);
+                vcIsRecording = true;
+                vcSilenceStart = 0;
+
+                // UI updates
+                document.getElementById('vcMicBtn').classList.add('recording');
+                document.getElementById('vcMicIcon').style.display = 'none';
+                document.getElementById('vcMicStopIcon').style.display = 'block';
+                setVcStatus('listening', '\uB4E3\uB294 \uC911...');
+
+                // Start waveform animation
+                drawVcWaveform();
+
+            } catch (err) {
+                console.error('Microphone access error:', err);
+                setVcStatus('', '\uB9C8\uC774\uD06C \uC811\uADFC\uC774 \uAC70\uBD80\uB418\uC5C8\uC2B5\uB2C8\uB2E4');
+            }
+        }
+
+        // --- Stop recording ---
+        function stopVoiceChatRecording(discard) {
+            if (!vcIsRecording) return;
+            vcIsRecording = false;
+            vcSilenceStart = 0;
+
+            // Stop waveform animation
+            if (vcAnimFrame) {
+                cancelAnimationFrame(vcAnimFrame);
+                vcAnimFrame = null;
+            }
+
+            // Reset waveform to idle
+            const canvas = document.getElementById('vcWaveformCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                drawVcIdleWaveform(ctx, canvas.offsetWidth, canvas.offsetHeight);
+            }
+
+            // UI updates
+            document.getElementById('vcMicBtn').classList.remove('recording');
+            document.getElementById('vcMicIcon').style.display = 'block';
+            document.getElementById('vcMicStopIcon').style.display = 'none';
+
+            if (vcRecorder && vcRecorder.state !== 'inactive') {
+                if (discard) {
+                    vcRecorder.onstop = null;  // don't process
+                }
+                vcRecorder.stop();
+            }
+
+            // Stop mic stream
+            if (vcStream) {
+                vcStream.getTracks().forEach(function(t) { t.stop(); });
+                vcStream = null;
+            }
+            if (vcAudioCtx) {
+                try { vcAudioCtx.close(); } catch(e) {}
+                vcAudioCtx = null;
+                vcAnalyser = null;
+            }
+
+            if (discard) {
+                vcAudioChunks = [];
+                setVcStatus('', '\uB9C8\uC774\uD06C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC138\uC694');
+            }
+        }
+
+        // --- Process recorded audio through the pipeline ---
+        async function processVoiceChatAudio() {
+            if (vcAudioChunks.length === 0) {
+                setVcStatus('', '\uB9C8\uC774\uD06C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC138\uC694');
+                return;
+            }
+
+            vcIsProcessing = true;
+            document.getElementById('vcMicBtn').classList.add('disabled');
+
+            // Build audio blob
+            const blob = new Blob(vcAudioChunks, {type: vcAudioChunks[0].type || 'audio/webm'});
+            vcAudioChunks = [];
+
+            // Show thinking status
+            setVcStatus('thinking', '\uC0DD\uAC01 \uC911...');
+
+            try {
+                const formData = new FormData();
+                formData.append('audio', blob, 'voice_chat.webm');
+
+                const r = await fetch('/api/voice-chat/' + selectedPersonId, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!r.ok) {
+                    const errData = await r.json().catch(function() { return {}; });
+                    throw new Error(errData.detail || '\uC74C\uC131 \uB300\uD654 \uCC98\uB9AC \uC2E4\uD328');
+                }
+
+                const data = await r.json();
+
+                // Add user message to transcript
+                if (data.transcribed_text) {
+                    addVcMessage('user', data.transcribed_text);
+                }
+
+                // Add AI response to transcript
+                if (data.ai_response_text) {
+                    addVcMessage('ai', data.ai_response_text, data.memory_attribution);
+                }
+
+                // Play synthesized audio
+                if (data.audio_url) {
+                    setVcStatus('speaking', '\uB9D0\uD558\uB294 \uC911...');
+                    await playVcAudio(data.audio_url);
+                }
+
+                // Show error if transcription failed but we still got a response
+                if (data.error && data.ai_response_text) {
+                    console.warn('Voice chat warning:', data.error);
+                }
+
+            } catch (err) {
+                console.error('Voice chat error:', err);
+                setVcStatus('', err.message || '\uC74C\uC131 \uB300\uD654 \uC624\uB958');
+                addVcMessage('ai', '\uC8C4\uC1A1\uD569\uB2C8\uB2E4, \uC74C\uC131\uC744 \uCC98\uB9AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.');
+            }
+
+            vcIsProcessing = false;
+            document.getElementById('vcMicBtn').classList.remove('disabled');
+            setVcStatus('', '\uB9C8\uC774\uD06C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC138\uC694');
+
+            // Continuous mode: auto-restart recording
+            if (document.getElementById('vcContinuousToggle').checked && !vcIsProcessing) {
+                setTimeout(function() {
+                    if (document.getElementById('vcContinuousToggle').checked && vcMode === 'voice') {
+                        startVoiceChatRecording();
+                    }
+                }, 500);
+            }
+        }
+
+        // --- Play AI response audio ---
+        function playVcAudio(audioUrl) {
+            return new Promise(function(resolve) {
+                const player = getChatAudioPlayer();
+                player.src = audioUrl;
+                player.volume = chatVolume;
+
+                player.onended = function() {
+                    resolve();
+                };
+                player.onerror = function() {
+                    console.warn('Voice chat audio playback error');
+                    resolve();
+                };
+
+                player.play().catch(function(err) {
+                    console.warn('Voice chat audio play failed:', err);
+                    resolve();
+                });
+            });
+        }
+
+        // --- Add message to voice transcript ---
+        function addVcMessage(role, text, memoryAttribution) {
+            const transcript = document.getElementById('vcTranscript');
+            // Clear empty state
+            const emptyState = transcript.querySelector('.empty-state');
+            if (emptyState) transcript.innerHTML = '';
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'vc-msg ' + role;
+
+            let label = role === 'user' ? '\uB098' : (selectedPersonName || 'AI');
+            let html = '<div><div class="vc-label">' + escapeHtml(label) + '</div>';
+            html += '<div class="vc-bubble">' + escapeHtml(text);
+
+            // Add voice play button for AI messages
+            if (role === 'ai') {
+                ttsIdCounter++;
+                var ttsId = 'vc-tts-' + ttsIdCounter;
+                var safeText = escapeHtml(text).replace(/"/g, '&quot;');
+                html += '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + safeText + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">&#x1F50A; \uB2E4\uC2DC \uB4E3\uAE30</button></div>';
+            }
+
+            // Memory attribution
+            if (role === 'ai' && memoryAttribution && memoryAttribution.length > 0) {
+                html += buildMemoryAttributionHtml(memoryAttribution, '');
+            }
+
+            html += '</div></div>';
+            msgDiv.innerHTML = html;
+            transcript.appendChild(msgDiv);
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        // --- Status text helper ---
+        function setVcStatus(state, text) {
+            const el = document.getElementById('vcStatus');
+            if (!el) return;
+            el.textContent = text;
+            el.className = 'vc-status' + (state ? ' ' + state : '');
         }
 
         loadPersons();

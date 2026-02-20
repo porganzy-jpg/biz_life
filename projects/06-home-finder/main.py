@@ -178,6 +178,15 @@ async def page_edit_property(request: Request, property_id: int):
     })
 
 
+@app.get("/recommendations", include_in_schema=False)
+async def page_recommendations(request: Request):
+    return templates.TemplateResponse("recommendations.html", {
+        "request": request,
+        "target_districts": settings.TARGET_DISTRICTS,
+        "target_suburbs": settings.TARGET_SUBURBS,
+    })
+
+
 @app.get("/scraper", include_in_schema=False)
 async def page_scraper(request: Request):
     return templates.TemplateResponse("scraper.html", {

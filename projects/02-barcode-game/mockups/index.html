@@ -452,6 +452,129 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 .trade-history-item .th-detail .th-meta{color:var(--text-light);font-size:.6rem;margin-top:2px;}
 .trade-history-item .th-price{font-weight:700;font-size:.75rem;color:#f9ca24;}
 .trade-empty{text-align:center;padding:30px 16px;color:var(--text-light);font-size:.78rem;}
+/* === Dungeon Campaign System === */
+.dg-pad{padding:16px 16px 24px;}
+.dg-energy-bar{background:var(--card);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);display:flex;align-items:center;gap:10px;}
+.dg-energy-bar .dg-ei{font-size:1.2rem;}
+.dg-energy-bar .dg-etrack{flex:1;height:10px;background:#eee;border-radius:5px;overflow:hidden;position:relative;}
+.dg-energy-bar .dg-efill{height:100%;background:linear-gradient(90deg,#e17055,#fdcb6e);border-radius:5px;transition:width .5s;}
+.dg-energy-bar .dg-etxt{font-size:.72rem;font-weight:700;color:var(--energy);min-width:55px;text-align:right;}
+.dg-energy-bar .dg-eregen{font-size:.58rem;color:var(--text-light);min-width:45px;text-align:right;}
+.dg-stars-summary{text-align:center;margin-bottom:14px;font-size:.72rem;color:var(--text-light);}
+.dg-stars-summary .dg-starcount{font-size:1.3rem;font-weight:900;color:#f9ca24;margin-right:4px;}
+.dg-chapter-scroll{display:flex;gap:12px;overflow-x:auto;padding:0 0 14px;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;}
+.dg-chapter-scroll::-webkit-scrollbar{height:4px;}
+.dg-chapter-scroll::-webkit-scrollbar-thumb{background:rgba(108,92,231,.3);border-radius:2px;}
+.dg-chcard{min-width:260px;max-width:280px;scroll-snap-align:start;border-radius:var(--radius);padding:16px;color:#fff;cursor:pointer;transition:transform .15s;position:relative;overflow:hidden;flex-shrink:0;}
+.dg-chcard:active{transform:scale(.97);}
+.dg-chcard.locked{opacity:.45;filter:grayscale(.6);cursor:not-allowed;}
+.dg-chcard .dg-chnum{font-size:.6rem;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:2px;}
+.dg-chcard .dg-chname{font-size:1.05rem;font-weight:900;margin:4px 0;}
+.dg-chcard .dg-chdesc{font-size:.65rem;opacity:.8;line-height:1.4;margin-bottom:8px;}
+.dg-chcard .dg-chstars{font-size:.68rem;font-weight:700;}
+.dg-chcard .dg-chboss{font-size:.62rem;opacity:.75;margin-top:6px;}
+.dg-chcard .dg-chboss.defeated{color:#00ff88;}
+.dg-chcard .dg-chemoji{position:absolute;top:12px;right:14px;font-size:2rem;opacity:.35;}
+.dg-stage-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.dg-stage-header .dg-back{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text);padding:4px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.dg-stage-header h3{font-size:.95rem;font-weight:700;flex:1;}
+.dg-stage-header .dg-chstar{font-size:.72rem;color:#f9ca24;font-weight:700;}
+.dg-lore-card{background:var(--card);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);font-size:.72rem;line-height:1.6;color:var(--text-light);font-style:italic;position:relative;overflow:hidden;}
+.dg-lore-card::before{content:'"';position:absolute;top:-8px;left:8px;font-size:3rem;opacity:.1;font-style:normal;}
+.dg-stage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.dg-stage-card{background:var(--card);border-radius:var(--radius-sm);padding:12px 8px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .2s;position:relative;overflow:hidden;}
+.dg-stage-card:active{transform:scale(.95);}
+.dg-stage-card.locked{opacity:.35;filter:grayscale(.7);cursor:not-allowed;}
+.dg-stage-card.cleared{border-color:var(--heal);}
+.dg-stage-card.boss{border-color:#e74c3c;border-width:2px;}
+.dg-stage-card .dg-snum{font-size:.58rem;color:var(--text-light);margin-bottom:2px;}
+.dg-stage-card .dg-sname{font-size:.72rem;font-weight:700;margin-bottom:4px;}
+.dg-stage-card .dg-sstars{font-size:.8rem;margin-bottom:2px;min-height:16px;}
+.dg-stage-card .dg-scost{font-size:.55rem;color:var(--energy);font-weight:600;}
+.dg-stage-card .dg-sboss-icon{font-size:1.4rem;margin-bottom:2px;}
+/* Stage detail modal */
+.dg-modal-overlay{position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;padding:16px;}
+.dg-modal-overlay.show{opacity:1;pointer-events:auto;}
+.dg-modal{background:var(--card);border-radius:var(--radius);padding:20px;max-width:380px;width:100%;color:var(--text);max-height:85vh;overflow-y:auto;}
+.dg-modal h3{font-size:1rem;font-weight:900;margin-bottom:4px;}
+.dg-modal .dg-msub{font-size:.72rem;color:var(--text-light);margin-bottom:12px;}
+.dg-modal .dg-menemy{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--card-border);font-size:.72rem;}
+.dg-modal .dg-menemy:last-child{border-bottom:none;}
+.dg-modal .dg-menemy .me-icon{font-size:1.2rem;min-width:28px;text-align:center;}
+.dg-modal .dg-menemy .me-info{flex:1;}
+.dg-modal .dg-menemy .me-name{font-weight:700;}
+.dg-modal .dg-menemy .me-stat{font-size:.6rem;color:var(--text-light);}
+.dg-modal .dg-mrewards{margin-top:12px;padding:10px;background:rgba(249,202,36,.08);border-radius:var(--radius-sm);font-size:.72rem;}
+.dg-modal .dg-mrewards h4{font-size:.78rem;font-weight:700;margin-bottom:6px;color:#f9ca24;}
+.dg-modal .dg-mrewards .dr-item{font-size:.65rem;color:var(--text-light);margin:2px 0;}
+.dg-modal .dg-mbtn-row{display:flex;gap:8px;margin-top:14px;}
+.dg-modal .dg-mbtn{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px;color:#fff;transition:transform .15s;}
+.dg-modal .dg-mbtn:active{transform:scale(.97);}
+.dg-modal .dg-mbtn.enter{background:linear-gradient(135deg,#e74c3c,#fd79a8);}
+.dg-modal .dg-mbtn.auto{background:linear-gradient(135deg,#6c5ce7,#a29bfe);}
+.dg-modal .dg-mbtn.close{background:#636e72;}
+.dg-modal .dg-mbtn:disabled{opacity:.5;cursor:not-allowed;}
+/* Dungeon battle screen */
+.dg-battle-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.92);display:flex;flex-direction:column;color:#fff;opacity:0;pointer-events:none;transition:opacity .4s;overflow-y:auto;}
+.dg-battle-overlay.show{opacity:1;pointer-events:auto;}
+.dg-battle-top{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.5);}
+.dg-battle-top .dg-bstage{font-size:.78rem;font-weight:700;}
+.dg-battle-top .dg-bturn{font-size:.68rem;opacity:.7;}
+.dg-battle-top .dg-bflee{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:6px 14px;font-size:.68rem;cursor:pointer;font-family:inherit;min-height:32px;}
+.dg-battle-enemies{padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+.dg-enemy-unit{background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);border-radius:var(--radius-sm);padding:10px;text-align:center;min-width:90px;max-width:120px;transition:all .3s;position:relative;}
+.dg-enemy-unit.dead{opacity:.25;filter:grayscale(1);}
+.dg-enemy-unit.boss{border-color:#f9ca24;background:rgba(249,202,36,.1);box-shadow:0 0 12px rgba(249,202,36,.3);}
+.dg-enemy-unit.enraged{animation:enrageGlow 1s infinite alternate;border-color:#ff0000;}
+@keyframes enrageGlow{0%{box-shadow:0 0 8px rgba(255,0,0,.3)}100%{box-shadow:0 0 20px rgba(255,0,0,.7)}}
+.dg-enemy-unit .eu-icon{font-size:1.6rem;margin-bottom:4px;}
+.dg-enemy-unit .eu-name{font-size:.68rem;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
+.dg-enemy-unit .eu-hpbar{height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;}
+.dg-enemy-unit .eu-hpfill{height:100%;background:linear-gradient(90deg,#e74c3c,#fdcb6e);border-radius:3px;transition:width .4s;}
+.dg-enemy-unit .eu-hptxt{font-size:.55rem;opacity:.7;margin-top:2px;}
+.dg-battle-party{padding:10px 16px;display:flex;gap:10px;justify-content:center;}
+.dg-party-unit{background:rgba(0,184,148,.12);border:1px solid rgba(0,184,148,.3);border-radius:var(--radius-sm);padding:10px;text-align:center;min-width:90px;max-width:120px;transition:all .3s;}
+.dg-party-unit.dead{opacity:.25;filter:grayscale(1);}
+.dg-party-unit .pu-name{font-size:.68rem;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
+.dg-party-unit .pu-hpbar{height:6px;background:rgba(255,255,255,.15);border-radius:3px;overflow:hidden;}
+.dg-party-unit .pu-hpfill{height:100%;background:linear-gradient(90deg,#00b894,#00cec9);border-radius:3px;transition:width .4s;}
+.dg-party-unit .pu-hptxt{font-size:.55rem;opacity:.7;margin-top:2px;}
+.dg-battle-log{flex:1;padding:10px 16px;overflow-y:auto;max-height:180px;min-height:80px;}
+.dg-log-entry{font-size:.65rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);line-height:1.4;}
+.dg-log-entry.player{color:#00cec9;}
+.dg-log-entry.enemy{color:#e17055;}
+.dg-log-entry.boss_ability{color:#f9ca24;font-weight:700;}
+.dg-log-entry.boss_enrage{color:#ff4444;font-weight:900;}
+.dg-battle-actions{padding:12px 16px;display:flex;gap:8px;background:rgba(0,0,0,.5);}
+.dg-battle-actions .dg-abtn{flex:1;padding:14px;border:none;border-radius:var(--radius-sm);font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:48px;color:#fff;transition:transform .15s;}
+.dg-battle-actions .dg-abtn:active{transform:scale(.95);}
+.dg-battle-actions .dg-abtn.atk{background:linear-gradient(135deg,#e74c3c,#c0392b);}
+.dg-battle-actions .dg-abtn.spc{background:linear-gradient(135deg,#6c5ce7,#a29bfe);}
+.dg-battle-actions .dg-abtn.auto{background:linear-gradient(135deg,#00b894,#00cec9);}
+.dg-battle-actions .dg-abtn:disabled{opacity:.5;cursor:not-allowed;}
+/* Boss intro */
+.dg-boss-intro{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;opacity:0;pointer-events:none;transition:opacity .5s;}
+.dg-boss-intro.show{opacity:1;pointer-events:auto;}
+.dg-boss-intro .bi-emoji{font-size:5rem;animation:bossAppear 1.5s ease-out forwards;}
+@keyframes bossAppear{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{transform:scale(1.3) rotate(5deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+.dg-boss-intro .bi-title{font-size:.72rem;opacity:.6;margin-top:12px;letter-spacing:4px;text-transform:uppercase;}
+.dg-boss-intro .bi-name{font-size:1.8rem;font-weight:900;margin-top:6px;text-shadow:0 0 30px rgba(231,76,60,.5);}
+.dg-boss-intro .bi-lore{font-size:.72rem;opacity:.7;margin-top:10px;max-width:300px;text-align:center;line-height:1.5;}
+.dg-boss-intro .bi-abilities{margin-top:14px;display:flex;flex-direction:column;gap:4px;}
+.dg-boss-intro .bi-ability{font-size:.62rem;opacity:.5;text-align:center;}
+/* Dungeon result */
+.dg-result-overlay{position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;padding:16px;}
+.dg-result-overlay.show{opacity:1;pointer-events:auto;}
+.dg-result-card{background:var(--card);border-radius:var(--radius);padding:24px 20px;text-align:center;color:var(--text);max-width:340px;width:100%;}
+.dg-result-card h2{font-size:1.3rem;font-weight:900;margin-bottom:6px;}
+.dg-result-card .dg-rstars{font-size:1.8rem;margin:8px 0;}
+.dg-result-card .dg-rmsg{font-size:.78rem;color:var(--text-light);margin-bottom:12px;}
+.dg-result-card .dg-rrewards{font-size:.75rem;margin-bottom:10px;}
+.dg-result-card .dg-rrewards .rr-line{margin:4px 0;display:flex;align-items:center;justify-content:center;gap:6px;}
+.dg-result-card .dg-rbtn{padding:12px 30px;border:none;border-radius:var(--radius-sm);background:var(--primary);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px;margin-top:6px;}
+/* Dungeon leaderboard */
+.dg-lb-section{margin-top:16px;}
+.dg-lb-section h3{font-size:.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 </style>
 </head>
 <body>
@@ -606,7 +729,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
     <h2 style="margin-bottom:14px;font-size:1rem;">⚙️ 설정</h2>
     <div id="settings-list"></div>
     <div style="margin-top:20px;text-align:center;font-size:.7rem;color:var(--text-light);">
-      <p>천국행 버스 v3.1 (업적 시스템)</p>
+      <p>천국행 버스 v3.2 (던전 캠페인)</p>
       <p style="margin-top:4px;">치유의 여정 - 모든 영혼에게 평화를</p>
     </div>
   </div>
@@ -689,6 +812,50 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   </div>
 </div>
 
+<!-- DUNGEON -->
+<div class="screen" id="screen-dungeon">
+  <div class="dg-pad">
+    <div class="dg-energy-bar" id="dg-energy-bar">
+      <div class="dg-ei">&#x26A1;</div>
+      <div class="dg-etrack"><div class="dg-efill" id="dg-efill" style="width:100%"></div></div>
+      <div class="dg-etxt" id="dg-etxt">50/50</div>
+      <div class="dg-eregen" id="dg-eregen"></div>
+    </div>
+    <div class="dg-stars-summary" id="dg-stars-summary"></div>
+    <div id="dg-main-view"></div>
+  </div>
+</div>
+
+<!-- DUNGEON STAGE DETAIL MODAL -->
+<div class="dg-modal-overlay" id="dg-modal-overlay">
+  <div class="dg-modal" id="dg-modal-content"></div>
+</div>
+
+<!-- DUNGEON BATTLE OVERLAY -->
+<div class="dg-battle-overlay" id="dg-battle-overlay">
+  <div class="dg-battle-top">
+    <div class="dg-bstage" id="dg-bstage"></div>
+    <div class="dg-bturn" id="dg-bturn">턴 0</div>
+    <button class="dg-bflee" onclick="dungeonAbandon()">포기</button>
+  </div>
+  <div class="dg-battle-enemies" id="dg-battle-enemies"></div>
+  <div class="dg-battle-party" id="dg-battle-party"></div>
+  <div class="dg-battle-log" id="dg-battle-log"></div>
+  <div class="dg-battle-actions" id="dg-battle-actions">
+    <button class="dg-abtn atk" onclick="dungeonBattleTurn('attack')">&#x2694;&#xFE0F; 공격</button>
+    <button class="dg-abtn spc" onclick="dungeonBattleTurn('special')">&#x2728; 특수</button>
+    <button class="dg-abtn auto" onclick="dungeonAutoBattle()">&#x25B6;&#xFE0F; 자동</button>
+  </div>
+</div>
+
+<!-- DUNGEON BOSS INTRO -->
+<div class="dg-boss-intro" id="dg-boss-intro"></div>
+
+<!-- DUNGEON RESULT -->
+<div class="dg-result-overlay" id="dg-result-overlay">
+  <div class="dg-result-card" id="dg-result-card"></div>
+</div>
+
 <!-- ARENA BATTLE OVERLAY -->
 <div class="arena-battle-overlay" id="arena-battle-overlay">
   <div id="arena-battle-content"></div>
@@ -727,6 +894,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   <div class="nav-item" onclick="navTo('bus')" data-screen="bus"><div class="ni">🚌</div><div class="nl">버스</div></div>
   <div class="nav-item" onclick="navTo('map')" data-screen="map"><div class="ni">🗺️</div><div class="nl">지도</div></div>
   <div class="nav-item" onclick="navTo('collection')" data-screen="collection"><div class="ni">📚</div><div class="nl">도감</div></div>
+  <div class="nav-item" onclick="navTo('dungeon')" data-screen="dungeon"><div class="ni">&#x1F3F0;</div><div class="nl">던전</div></div>
   <div class="nav-item" onclick="navTo('guild')" data-screen="guild"><div class="ni">&#x1F6E1;&#xFE0F;</div><div class="nl">길드</div></div>
   <div class="nav-item" onclick="navTo('trade')" data-screen="trade"><div class="ni">&#x1F4B1;</div><div class="nl">거래소</div></div>
   <div class="nav-item" onclick="navTo('arena')" data-screen="arena"><div class="ni">&#x2694;&#xFE0F;</div><div class="nl">아레나</div></div>
@@ -1088,7 +1256,7 @@ function navTo(id){
   const next=document.getElementById('screen-'+id);
   if(!next)return;
   // determine direction
-  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings','guild','trade','arena'];
+  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings','dungeon','guild','trade','arena'];
   const pi=navOrder.indexOf(currentScreen),ni=navOrder.indexOf(id);
   const forward=ni>=pi||ni<0;
   if(prev){
@@ -1127,6 +1295,7 @@ function renderScreen(id){
     case'shop':renderShop();break;
     case'achievements':renderAchievements();break;
     case'settings':renderSettings();break;
+    case'dungeon':renderDungeon();break;
     case'guild':renderGuild();break;
     case'trade':renderTrade();break;
     case'arena':renderArena();break;
@@ -1175,7 +1344,8 @@ function renderHome(){
     {icon:'🗺️',label:'지도',screen:'map',badge:''},
     {icon:'🚌',label:'버스',screen:'bus',badge:''},
     {icon:'📚',label:'도감',screen:'collection',badge:''},
-    {icon:'\u2694\uFE0F',label:'아레나',screen:'arena',badge:'PvP'}
+    {icon:'\u2694\uFE0F',label:'아레나',screen:'arena',badge:'PvP'},
+    {icon:'\uD83C\uDFF0',label:'던전',screen:'dungeon',badge:'PvE'}
   ];
   document.getElementById('action-grid').innerHTML=actions.map(a=>
     `<div class="action-card ripple" onclick="navTo('${a.screen}')">
@@ -3816,6 +3986,522 @@ async function tradeListMonster(){
   showToast(res.message||'Monster listed!');
   if(res.player) updatePlayerUI(res.player);
   await renderTrade();
+}
+
+// ============================================================
+// DUNGEON CAMPAIGN
+// ============================================================
+
+let dgState={
+  campaign:null,
+  selectedChapter:null,
+  battleActive:false,
+  battleData:null,
+  currentStageId:null,
+};
+
+async function renderDungeon(){
+  const res=await apiFetch('/api/dungeon/campaign/default');
+  dgState.campaign=res;
+  dgState.selectedChapter=null;
+  renderDungeonMain();
+}
+
+function renderDungeonMain(){
+  const c=dgState.campaign;
+  if(!c){
+    document.getElementById('dg-main-view').innerHTML='<div style="text-align:center;padding:30px;color:var(--text-light);font-size:.78rem;">던전 정보를 불러올 수 없습니다.</div>';
+    return;
+  }
+  // Energy bar
+  const e=c.energy||{energy:50,max_energy:50,seconds_to_next_regen:0};
+  const pct=Math.round(e.energy/e.max_energy*100);
+  document.getElementById('dg-efill').style.width=pct+'%';
+  document.getElementById('dg-etxt').textContent=`${e.energy}/${e.max_energy}`;
+  const regen=e.seconds_to_next_regen;
+  document.getElementById('dg-eregen').textContent=regen>0?`${Math.floor(regen/60)}:${String(regen%60).padStart(2,'0')}`:'';
+  // Stars
+  document.getElementById('dg-stars-summary').innerHTML=`<span class="dg-starcount">\u2B50 ${c.total_stars}</span> / ${c.max_stars}`;
+
+  if(dgState.selectedChapter){
+    renderDungeonStages(dgState.selectedChapter);
+    return;
+  }
+
+  // Chapter cards
+  let html='<div class="dg-chapter-scroll">';
+  for(const ch of c.chapters){
+    const bg=ch.bg_color||'#2d3436';
+    const accent=ch.accent||'#00b894';
+    const lockedCls=ch.unlocked?'':'locked';
+    html+=`<div class="dg-chcard ${lockedCls}" style="background:linear-gradient(135deg,${bg},${accent})" onclick="${ch.unlocked?`dgSelectChapter(${ch.chapter})`:''}">
+      <div class="dg-chemoji">${ch.emoji}</div>
+      <div class="dg-chnum">CHAPTER ${ch.chapter}</div>
+      <div class="dg-chname">${ch.emoji} ${ch.name}</div>
+      <div class="dg-chdesc">${ch.description}</div>
+      <div class="dg-chstars">\u2B50 ${ch.stars} / ${ch.max_stars}</div>
+      <div class="dg-chboss ${ch.boss_defeated?'defeated':''}">\uD83D\uDC80 ${ch.boss_name} ${ch.boss_defeated?'(처치 완료)':'(미처치)'}</div>
+    </div>`;
+  }
+  html+='</div>';
+
+  // Leaderboard
+  html+=`<div class="dg-lb-section">
+    <h3>\uD83C\uDFC6 보스 클리어 리더보드</h3>
+    <div id="dg-leaderboard-body" style="font-size:.72rem;color:var(--text-light);text-align:center;padding:10px;">로딩 중...</div>
+  </div>`;
+
+  document.getElementById('dg-main-view').innerHTML=html;
+  loadDungeonLeaderboard();
+}
+
+async function loadDungeonLeaderboard(){
+  const res=await apiFetch('/api/dungeon/leaderboard?limit=20');
+  const lb=res.leaderboard||[];
+  const el=document.getElementById('dg-leaderboard-body');
+  if(!el)return;
+  if(lb.length===0){
+    el.innerHTML='<div style="padding:16px;font-size:.72rem;color:var(--text-light);">아직 보스를 처치한 기록이 없습니다.</div>';
+    return;
+  }
+  let html='<table class="lb-table"><thead><tr><th>#</th><th>플레이어</th><th>보스</th><th>턴</th><th>시도</th></tr></thead><tbody>';
+  lb.forEach((r,i)=>{
+    const rankCls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const meCls=r.session_id==='default'?'me':'';
+    html+=`<tr class="${meCls}">
+      <td><span class="lb-rank ${rankCls}">${i+1}</span></td>
+      <td>${r.session_id==='default'?'<b>나</b>':r.session_id.substring(0,8)}</td>
+      <td>${r.boss_name}</td>
+      <td style="font-weight:700;color:var(--primary);">${r.best_turns}턴</td>
+      <td>${r.attempt_count}회</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+function dgSelectChapter(ch){
+  dgState.selectedChapter=ch;
+  renderDungeonStages(ch);
+}
+
+function dgBackToChapters(){
+  dgState.selectedChapter=null;
+  renderDungeonMain();
+}
+
+function renderDungeonStages(chNum){
+  const c=dgState.campaign;
+  if(!c)return;
+  const ch=c.chapters.find(x=>x.chapter===chNum);
+  if(!ch)return;
+
+  let html=`<div class="dg-stage-header">
+    <button class="dg-back" onclick="dgBackToChapters()">\u2190</button>
+    <h3>${ch.emoji} ${ch.name}</h3>
+    <div class="dg-chstar">\u2B50 ${ch.stars}/${ch.max_stars}</div>
+  </div>`;
+
+  // Lore
+  const chData=getDgChapterLore(chNum);
+  if(chData){
+    html+=`<div class="dg-lore-card">${chData}</div>`;
+  }
+
+  // Stage grid
+  html+='<div class="dg-stage-grid">';
+  for(const s of ch.stages){
+    const lockedCls=s.unlocked?'':'locked';
+    const clearedCls=s.cleared?'cleared':'';
+    const bossCls=s.is_boss?'boss':'';
+    const stars=s.stars>0?'\u2B50'.repeat(s.stars)+'\u2606'.repeat(3-s.stars):'';
+    const bossIcon=s.is_boss?'<div class="dg-sboss-icon">\uD83D\uDC80</div>':'';
+    html+=`<div class="dg-stage-card ${lockedCls} ${clearedCls} ${bossCls}" onclick="${s.unlocked?`dgOpenStageModal(${s.stage_id})`:''}">
+      ${bossIcon}
+      <div class="dg-snum">${s.is_boss?'BOSS':'STAGE'} ${s.stage_id}</div>
+      <div class="dg-sname">${s.name}</div>
+      <div class="dg-sstars">${stars}</div>
+      <div class="dg-scost">\u26A1 ${s.energy_cost}</div>
+    </div>`;
+  }
+  html+='</div>';
+
+  document.getElementById('dg-main-view').innerHTML=html;
+}
+
+function getDgChapterLore(ch){
+  const lore={
+    1:'오래전 빛의 수호자가 쓰러진 후, 이 숲은 영원한 황혼에 갇혔다. 나무들은 그림자를 먹고 자라며, 숲의 주인인 그림자 녹대왕이 모든 것을 지배한다.',
+    2:'태초의 겨울이 만든 이 동굴은 시간마저 얼어붙어 있다. 얼음의 심장에는 고대 빙룡 프로스트 하트가 잠들어 있다.',
+    3:'화염의 신을 모시던 사원은 이제 광기에 빠진 불의 정령들이 점령했다. 사원 최심부에는 영원불꽃의 수호자가 침입자를 기다린다.',
+    4:'천상의 건축가들이 세운 이 성채는 폭풍의 힘으로 하늘에 떠 있다. 지금은 뇌전의 군주가 번개의 군단을 이끌며 성채를 지배한다.',
+    5:'모든 어둠이 태어나는 곳. 심연의 왕은 세계를 삼키려 한다. 종말의 군주를 쓰러뜨려야만 세계에 평화가 돌아온다.',
+  };
+  return lore[ch]||'';
+}
+
+async function dgOpenStageModal(stageId){
+  const overlay=document.getElementById('dg-modal-overlay');
+  const content=document.getElementById('dg-modal-content');
+  content.innerHTML='<div style="text-align:center;padding:20px;font-size:.78rem;color:var(--text-light);">로딩 중...</div>';
+  overlay.classList.add('show');
+
+  const res=await apiFetch(`/api/dungeon/stage/${stageId}/preview`);
+  if(res.error){
+    content.innerHTML=`<div style="padding:20px;text-align:center;"><p style="color:#e74c3c;font-size:.78rem;margin-bottom:10px;">${res.error}</p><button class="dg-mbtn close" onclick="dgCloseModal()">닫기</button></div>`;
+    return;
+  }
+
+  const isBoss=res.is_boss;
+  const enemies=res.enemies||[];
+  const rewards=res.rewards||{};
+
+  let enemyHtml=enemies.map(e=>{
+    const typeEmoji=getTypeEmoji(e.primary_type);
+    const rarColor=getRarColor(e.rarity);
+    return `<div class="dg-menemy">
+      <div class="me-icon">${e.is_boss?'\uD83D\uDC80':typeEmoji}</div>
+      <div class="me-info">
+        <div class="me-name" style="color:${rarColor}">${e.name} <span style="font-size:.58rem;opacity:.6">Lv.${e.level}</span></div>
+        <div class="me-stat">HP:${e.stats.hp} ATK:${e.stats.attack} DEF:${e.stats.defense} SPD:${e.stats.speed} SPC:${e.stats.special}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  let dropHtml=(rewards.possible_drops||[]).map(d=>{
+    return `<div class="dr-item">${getItemName(d.item_id)} (${d.chance_pct}%${d.count>1?' x'+d.count:''})</div>`;
+  }).join('');
+
+  const energy=dgState.campaign?.energy||{energy:0};
+  const canEnter=energy.energy>=res.energy_cost;
+
+  content.innerHTML=`
+    <h3>${isBoss?'\uD83D\uDC80 ':'\u2694\uFE0F '}${res.stage_name}</h3>
+    <div class="dg-msub">챕터 ${res.chapter} ${isBoss?'- 보스 스테이지':''} | \u26A1 에너지 ${res.energy_cost}</div>
+    <div style="margin-bottom:10px;">
+      <div style="font-size:.75rem;font-weight:700;margin-bottom:6px;">\uD83D\uDC7E 적 정보</div>
+      ${enemyHtml}
+    </div>
+    <div class="dg-mrewards">
+      <h4>\uD83C\uDF81 보상 미리보기</h4>
+      <div class="dr-item">\uD83D\uDCB0 골드: ${rewards.gold_range||'?'}</div>
+      <div class="dr-item">\u2728 경험치: ${rewards.exp_range||'?'}</div>
+      ${dropHtml}
+    </div>
+    <div class="dg-mbtn-row">
+      <button class="dg-mbtn close" onclick="dgCloseModal()">닫기</button>
+      <button class="dg-mbtn enter" onclick="dgEnterStage(${stageId})" ${canEnter?'':'disabled'}>${canEnter?'\u2694\uFE0F 도전!':'\u26A1 에너지 부족'}</button>
+      <button class="dg-mbtn auto" onclick="dgEnterStageAuto(${stageId})" ${canEnter?'':'disabled'}>\u25B6\uFE0F 자동</button>
+    </div>
+  `;
+}
+
+function getRarColor(rarity){
+  const m={Common:'#aaa',Uncommon:'#00cec9',Rare:'#6c5ce7',Epic:'#fd79a8',Legendary:'#f9ca24'};
+  return m[rarity]||'#aaa';
+}
+
+function getItemName(id){
+  const m={
+    exp_candy_s:'\uD83C\uDF6C 경험치 사탕(S)',exp_candy_m:'\uD83C\uDF6C 경험치 사탕(M)',exp_candy_l:'\uD83C\uDF6C 경험치 사탕(L)',
+    atk_stone:'\u2694\uFE0F 공격의 돌',def_seed:'\uD83D\uDEE1\uFE0F 방어의 씨앗',spd_feather:'\uD83D\uDCA8 속도의 깃털',hp_fruit:'\u2764\uFE0F HP 열매',
+    star_shard:'\u2B50 별의 조각',rainbow_dew:'\uD83C\uDF08 무지개 이슬',shadow_essence:'\uD83C\uDF11 그림자 에센스',
+    frost_crystal:'\u2744\uFE0F 서리 수정',fire_heart:'\uD83D\uDD25 화염의 심장',storm_core:'\u26A1 폭풍 핵',
+    dragon_scale:'\uD83D\uDC09 용의 비늘',moon_crystal:'\uD83C\uDF19 달빛 수정',abyss_crown:'\uD83D\uDC51 심연의 왕관',
+  };
+  return m[id]||id;
+}
+
+function dgCloseModal(){
+  document.getElementById('dg-modal-overlay').classList.remove('show');
+}
+
+async function dgEnterStage(stageId){
+  dgCloseModal();
+  dgState.currentStageId=stageId;
+
+  const res=await apiFetch(`/api/dungeon/enter/${stageId}?session=default`,{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    return;
+  }
+
+  // Boss intro
+  if(res.is_boss&&res.boss_info){
+    await showBossIntro(res.boss_info);
+  }
+
+  // Start battle UI
+  dgState.battleActive=true;
+  dgState.battleData={
+    stage_name:res.stage_name,
+    chapter_name:res.chapter_name,
+    is_boss:res.is_boss,
+    party:res.party,
+    enemies:res.enemies,
+    turn:0,
+    log:[],
+    boss_enraged:false,
+  };
+  renderDungeonBattle();
+  document.getElementById('dg-battle-overlay').classList.add('show');
+}
+
+async function dgEnterStageAuto(stageId){
+  dgCloseModal();
+  dgState.currentStageId=stageId;
+
+  const enterRes=await apiFetch(`/api/dungeon/enter/${stageId}?session=default`,{method:'POST'});
+  if(enterRes.error){
+    showToast(enterRes.error);
+    return;
+  }
+
+  // Boss intro
+  if(enterRes.is_boss&&enterRes.boss_info){
+    await showBossIntro(enterRes.boss_info);
+  }
+
+  // Show battle overlay with loading state
+  dgState.battleActive=true;
+  dgState.battleData={
+    stage_name:enterRes.stage_name,
+    chapter_name:enterRes.chapter_name,
+    is_boss:enterRes.is_boss,
+    party:enterRes.party,
+    enemies:enterRes.enemies,
+    turn:0,
+    log:[],
+    boss_enraged:false,
+  };
+  renderDungeonBattle();
+  document.getElementById('dg-battle-overlay').classList.add('show');
+
+  // Disable buttons
+  document.querySelectorAll('.dg-battle-actions .dg-abtn').forEach(b=>b.disabled=true);
+
+  // Run auto-battle
+  const res=await apiFetch('/api/dungeon/auto-battle?session=default',{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    document.querySelectorAll('.dg-battle-actions .dg-abtn').forEach(b=>b.disabled=false);
+    return;
+  }
+
+  // Update battle data with full result
+  dgState.battleData.party=res.party||[];
+  dgState.battleData.enemies=res.enemies||[];
+  dgState.battleData.turn=res.turn||0;
+  dgState.battleData.boss_enraged=res.boss_enraged||false;
+  const fullLog=res.full_log||res.turn_log||[];
+  dgState.battleData.log=fullLog;
+
+  renderDungeonBattle();
+
+  // Show result
+  if(res.status==='victory'||res.status==='defeat'){
+    dgState.battleActive=false;
+    setTimeout(()=>{
+      showDungeonResult(res);
+    },800);
+  }else{
+    document.querySelectorAll('.dg-battle-actions .dg-abtn').forEach(b=>b.disabled=false);
+  }
+}
+
+function showBossIntro(bossInfo){
+  return new Promise(resolve=>{
+    const el=document.getElementById('dg-boss-intro');
+    const abilities=(bossInfo.abilities||[]).map(a=>`<div class="bi-ability">${a.name}: ${a.description}</div>`).join('');
+    el.innerHTML=`
+      <div class="bi-emoji">${bossInfo.emoji||'\uD83D\uDC80'}</div>
+      <div class="bi-title">${bossInfo.title||''}</div>
+      <div class="bi-name">${bossInfo.name||'???'}</div>
+      <div class="bi-lore">${bossInfo.lore||''}</div>
+      <div class="bi-abilities">${abilities}</div>
+    `;
+    el.classList.add('show');
+    setTimeout(()=>{
+      el.classList.remove('show');
+      setTimeout(resolve,400);
+    },3000);
+    el.onclick=()=>{
+      el.classList.remove('show');
+      el.onclick=null;
+      setTimeout(resolve,300);
+    };
+  });
+}
+
+function renderDungeonBattle(){
+  const bd=dgState.battleData;
+  if(!bd)return;
+
+  document.getElementById('dg-bstage').textContent=`${bd.chapter_name} - ${bd.stage_name}`;
+  document.getElementById('dg-bturn').textContent=`턴 ${bd.turn}`;
+
+  // Enemies
+  const enemyEl=document.getElementById('dg-battle-enemies');
+  enemyEl.innerHTML=(bd.enemies||[]).map(e=>{
+    const hpPct=e.max_hp>0?Math.round(e.current_hp/e.max_hp*100):0;
+    const deadCls=e.is_alive===false||e.current_hp<=0?'dead':'';
+    const bossCls=e.is_boss?'boss':'';
+    const enragedCls=e.is_boss&&bd.boss_enraged?'enraged':'';
+    const typeEmoji=getTypeEmoji(e.primary_type);
+    return `<div class="dg-enemy-unit ${deadCls} ${bossCls} ${enragedCls}">
+      <div class="eu-icon">${e.is_boss?'\uD83D\uDC80':typeEmoji}</div>
+      <div class="eu-name">${e.name}</div>
+      <div class="eu-hpbar"><div class="eu-hpfill" style="width:${hpPct}%"></div></div>
+      <div class="eu-hptxt">${Math.max(0,e.current_hp)}/${e.max_hp}</div>
+    </div>`;
+  }).join('');
+
+  // Party
+  const partyEl=document.getElementById('dg-battle-party');
+  partyEl.innerHTML=(bd.party||[]).map(p=>{
+    const hpPct=p.max_hp>0?Math.round(p.current_hp/p.max_hp*100):0;
+    const deadCls=p.is_alive===false||p.current_hp<=0?'dead':'';
+    return `<div class="dg-party-unit ${deadCls}">
+      <div class="pu-name">${p.name}</div>
+      <div class="pu-hpbar"><div class="pu-hpfill" style="width:${hpPct}%"></div></div>
+      <div class="pu-hptxt">${Math.max(0,p.current_hp)}/${p.max_hp}</div>
+    </div>`;
+  }).join('');
+
+  // Log
+  const logEl=document.getElementById('dg-battle-log');
+  const logs=bd.log||[];
+  const recentLogs=logs.slice(-15);
+  logEl.innerHTML=recentLogs.map(l=>{
+    const phase=l.phase||'';
+    let cls='';
+    if(phase==='player')cls='player';
+    else if(phase==='enemy')cls='enemy';
+    else if(phase==='boss_ability')cls='boss_ability';
+    else if(phase==='boss_enrage')cls='boss_enrage';
+    return `<div class="dg-log-entry ${cls}">${l.message||''}</div>`;
+  }).join('');
+  logEl.scrollTop=logEl.scrollHeight;
+}
+
+async function dungeonBattleTurn(action){
+  if(!dgState.battleActive)return;
+  const btns=document.querySelectorAll('.dg-battle-actions .dg-abtn');
+  btns.forEach(b=>b.disabled=true);
+
+  const res=await apiFetch(`/api/dungeon/battle?action=${action}&target=0&session=default`,{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    btns.forEach(b=>b.disabled=false);
+    if(res.error.includes('진행 중인')||res.error.includes('종료')){
+      dgCloseBattle();
+    }
+    return;
+  }
+
+  // Update battle data
+  dgState.battleData.party=res.party||dgState.battleData.party;
+  dgState.battleData.enemies=res.enemies||dgState.battleData.enemies;
+  dgState.battleData.turn=res.turn||dgState.battleData.turn;
+  dgState.battleData.boss_enraged=res.boss_enraged||false;
+  const newLogs=res.turn_log||[];
+  dgState.battleData.log=dgState.battleData.log.concat(newLogs);
+
+  renderDungeonBattle();
+
+  if(res.status==='victory'||res.status==='defeat'){
+    dgState.battleActive=false;
+    setTimeout(()=>showDungeonResult(res),600);
+  }else{
+    btns.forEach(b=>b.disabled=false);
+  }
+}
+
+async function dungeonAutoBattle(){
+  if(!dgState.battleActive)return;
+  const btns=document.querySelectorAll('.dg-battle-actions .dg-abtn');
+  btns.forEach(b=>b.disabled=true);
+
+  const res=await apiFetch('/api/dungeon/auto-battle?session=default',{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    btns.forEach(b=>b.disabled=false);
+    return;
+  }
+
+  dgState.battleData.party=res.party||dgState.battleData.party;
+  dgState.battleData.enemies=res.enemies||dgState.battleData.enemies;
+  dgState.battleData.turn=res.turn||dgState.battleData.turn;
+  dgState.battleData.boss_enraged=res.boss_enraged||false;
+  const fullLog=res.full_log||res.turn_log||[];
+  dgState.battleData.log=dgState.battleData.log.concat(fullLog);
+
+  renderDungeonBattle();
+
+  if(res.status==='victory'||res.status==='defeat'){
+    dgState.battleActive=false;
+    setTimeout(()=>showDungeonResult(res),600);
+  }else{
+    btns.forEach(b=>b.disabled=false);
+  }
+}
+
+function showDungeonResult(res){
+  const overlay=document.getElementById('dg-result-overlay');
+  const card=document.getElementById('dg-result-card');
+  const completion=res.completion||{};
+  const isVictory=completion.victory;
+  const stars=completion.stars||0;
+  const rewards=completion.rewards||{};
+
+  let starsHtml='';
+  for(let i=0;i<3;i++){
+    starsHtml+=i<stars?'\u2B50':'\u2606';
+  }
+
+  let rewardHtml='';
+  if(isVictory){
+    rewardHtml+=`<div class="rr-line">\uD83D\uDCB0 ${rewards.gold||0} 골드</div>`;
+    rewardHtml+=`<div class="rr-line">\u2728 ${rewards.exp||0} 경험치</div>`;
+    if(rewards.items&&rewards.items.length>0){
+      const itemCounts={};
+      rewards.items.forEach(id=>{itemCounts[id]=(itemCounts[id]||0)+1;});
+      for(const[id,cnt]of Object.entries(itemCounts)){
+        rewardHtml+=`<div class="rr-line">${getItemName(id)}${cnt>1?' x'+cnt:''}</div>`;
+      }
+    }
+  }
+
+  card.innerHTML=`
+    <h2 style="color:${isVictory?'#00b894':'#e74c3c'}">${isVictory?'\uD83C\uDF89 승리!':'\uD83D\uDCA2 패배'}</h2>
+    <div class="dg-rstars">${starsHtml}</div>
+    <div class="dg-rmsg">${completion.message||''}</div>
+    <div class="dg-rrewards">${rewardHtml}</div>
+    <button class="dg-rbtn" onclick="dgCloseResult()">확인</button>
+  `;
+  overlay.classList.add('show');
+}
+
+function dgCloseResult(){
+  document.getElementById('dg-result-overlay').classList.remove('show');
+  dgCloseBattle();
+  // Refresh campaign data
+  renderDungeon();
+}
+
+async function dungeonAbandon(){
+  if(!dgState.battleActive)return;
+  if(!confirm('전투를 포기하시겠습니까?'))return;
+  await apiFetch('/api/dungeon/abandon?session=default',{method:'POST'});
+  dgState.battleActive=false;
+  dgCloseBattle();
+  showToast('전투를 포기했습니다.');
+}
+
+function dgCloseBattle(){
+  document.getElementById('dg-battle-overlay').classList.remove('show');
+  dgState.battleActive=false;
+  dgState.battleData=null;
 }
 
 // ============================================================
