@@ -153,7 +153,14 @@ function _renderPropertyModal(p) {
         sourceLink.href = p.source_url;
         sourceLink.style.display = 'inline-block';
     } else {
-        sourceLink.style.display = 'none';
+        // Fallback: 네이버 부동산 검색 링크
+        const query = [p.complex_name, p.district, p.dong, p.address].filter(Boolean).join(' ');
+        if (query) {
+            sourceLink.href = 'https://land.naver.com/search?query=' + encodeURIComponent(query);
+            sourceLink.style.display = 'inline-block';
+        } else {
+            sourceLink.style.display = 'none';
+        }
     }
 
     // Store property ID for actions

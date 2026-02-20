@@ -232,11 +232,16 @@ async function showSubDetail(id) {
         `;
 
         const sourceLink = document.getElementById('subSourceLink');
-        if (s.source_url) {
+        if (s.source_url && s.source_url !== 'https://www.applyhome.co.kr') {
             sourceLink.href = s.source_url;
             sourceLink.style.display = '';
+        } else if (s.name) {
+            // Fallback: 청약홈에서 단지명 검색
+            sourceLink.href = `https://www.applyhome.co.kr/co/coa/selectNoticeList.do?searchWord=${encodeURIComponent(s.name)}`;
+            sourceLink.style.display = '';
         } else {
-            sourceLink.style.display = 'none';
+            sourceLink.href = 'https://www.applyhome.co.kr';
+            sourceLink.style.display = '';
         }
 
         new bootstrap.Modal(document.getElementById('subDetailModal')).show();

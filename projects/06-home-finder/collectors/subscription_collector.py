@@ -59,6 +59,9 @@ class SubscriptionCollector(BaseCollector):
                     if not is_target:
                         continue
 
+                    # 개별 청약 공고 링크 생성
+                    link_tag = cols[1].select_one("a")
+                    detail_href = link_tag.get("href", "") if link_tag else ""
                     source_id = f"sub_{name}_{cols[3].get_text(strip=True)}"
 
                     # Check duplicate
@@ -92,7 +95,7 @@ class SubscriptionCollector(BaseCollector):
                         subscription_end=end_date,
                         status="접수중" if end_date and end_date >= datetime.now().date() else "마감",
                         source_id=source_id,
-                        source_url=APPLYHOME_URL,
+                        source_url=f"{APPLYHOME_URL}{detail_href}" if detail_href else f"{APPLYHOME_URL}/co/coa/selectNoticeInfo.do?noticeId={source_id}",
                     )
                     db.add(sub)
                     total_new += 1

@@ -102,7 +102,7 @@ class AuctionCollector(BaseCollector):
                                 discount_rate=round(discount, 1),
                                 auction_date=auction_date,
                                 auction_status="진행중",
-                                source_url=f"{AUCTION_URL}",
+                                source_url=f"{AUCTION_URL}/RetrieveRealEstCar498Detail.laf?saession={case_num}",
                             )
                             db.add(listing)
                             total_new += 1

@@ -232,11 +232,16 @@ async function showAuctionDetail(id) {
         `;
 
         const sourceLink = document.getElementById('auctionSourceLink');
-        if (a.source_url) {
+        if (a.source_url && a.source_url !== 'https://www.courtauction.go.kr') {
             sourceLink.href = a.source_url;
             sourceLink.style.display = '';
+        } else if (a.case_number) {
+            // Fallback: 사건번호로 법원경매 검색
+            sourceLink.href = `https://www.courtauction.go.kr/RetrieveRealEstMulDetailList.laf?saession=${encodeURIComponent(a.case_number)}`;
+            sourceLink.style.display = '';
         } else {
-            sourceLink.style.display = 'none';
+            sourceLink.href = 'https://www.courtauction.go.kr';
+            sourceLink.style.display = '';
         }
 
         new bootstrap.Modal(document.getElementById('auctionDetailModal')).show();
