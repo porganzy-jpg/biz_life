@@ -13,40 +13,48 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card summary-card bg-primary text-white">
-            <div class="card-body">
-                <h6 class="card-title">전체 매물</h6>
-                <h2 id="totalProperties">-</h2>
-                <small id="propertySub">활성 매물 수</small>
+        <a href="/search" class="text-decoration-none">
+            <div class="card summary-card bg-primary text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div class="card-body">
+                    <h6 class="card-title">전체 매물</h6>
+                    <h2 id="totalProperties">-</h2>
+                    <small id="propertySub">활성 매물 수</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card summary-card bg-success text-white">
-            <div class="card-body">
-                <h6 class="card-title">후보 매물</h6>
-                <h2 id="totalCandidates">-</h2>
-                <small>파이프라인 총 건수</small>
+        <a href="/candidates" class="text-decoration-none">
+            <div class="card summary-card bg-success text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div class="card-body">
+                    <h6 class="card-title">후보 매물</h6>
+                    <h2 id="totalCandidates">-</h2>
+                    <small>파이프라인 총 건수</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card summary-card bg-warning text-dark">
-            <div class="card-body">
-                <h6 class="card-title">이번주 경매</h6>
-                <h2 id="weeklyAuctions">-</h2>
-                <small>진행 예정</small>
+        <a href="/auctions" class="text-decoration-none">
+            <div class="card summary-card bg-warning text-dark" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div class="card-body">
+                    <h6 class="card-title">이번주 경매</h6>
+                    <h2 id="weeklyAuctions">-</h2>
+                    <small>진행 예정</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3 col-sm-6 mb-3">
-        <div class="card summary-card bg-info text-white">
-            <div class="card-body">
-                <h6 class="card-title">진행중 청약</h6>
-                <h2 id="activeSubscriptions">-</h2>
-                <small>접수중</small>
+        <a href="/subscriptions" class="text-decoration-none">
+            <div class="card summary-card bg-info text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div class="card-body">
+                    <h6 class="card-title">진행중 청약</h6>
+                    <h2 id="activeSubscriptions">-</h2>
+                    <small>접수중</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
