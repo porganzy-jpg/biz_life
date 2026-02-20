@@ -7,6 +7,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/static/css/dashboard.css" rel="stylesheet">
+    <style>
+        /* Property Detail Modal */
+        .pdm-score-circle {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 64px; height: 64px; border-radius: 50%;
+            font-weight: bold; font-size: 1.5rem; color: white;
+        }
+        .pdm-score-high { background: #198754; }
+        .pdm-score-mid { background: #0d6efd; }
+        .pdm-score-low { background: #6c757d; }
+        .pdm-sub-bar { height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; }
+        .pdm-sub-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .pdm-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .pdm-info-item { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; }
+        .pdm-info-item i { color: #6c757d; width: 18px; text-align: center; }
+        .pdm-info-item .label { color: #6c757d; min-width: 55px; }
+        .pdm-info-item .value { font-weight: 600; }
+        .pdm-section { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+        .pdm-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .pdm-section-title { font-size: 0.8rem; font-weight: 700; color: #6c757d; text-transform: uppercase; margin-bottom: 8px; }
+        #pdm-description { background: #f8f9fa; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; color: #555; }
+    </style>
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -72,8 +94,155 @@
         {% block content %}{% endblock %}
     </div>
 
+    <!-- Property Detail Modal -->
+    <div class="modal fade" id="propertyDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <div>
+                        <h5 class="modal-title mb-0" id="pdm-title">-</h5>
+                        <div class="mt-1">
+                            <span id="pdm-type-badge" class="badge bg-primary">-</span>
+                            <span id="pdm-acq-badge" class="badge bg-outline-secondary border" style="display:none">-</span>
+                            <small class="text-muted ms-2" id="pdm-location">-</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="pdm-property-id">
+
+                    <!-- Loading -->
+                    <div id="pdm-loading" style="display:flex;justify-content:center;padding:60px;">
+                        <div class="spinner-border text-primary"></div>
+                    </div>
+
+                    <!-- Error -->
+                    <div id="pdm-error" style="display:none;" class="text-center py-5">
+                        <i class="bi bi-exclamation-triangle text-danger" style="font-size:2rem;"></i>
+                        <p class="mt-2" id="pdm-error-msg">오류 발생</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div id="pdm-content" style="display:none;">
+                        <!-- Price + Score Row -->
+                        <div class="pdm-section">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fs-4 fw-bold text-primary" id="pdm-price">-</div>
+                                    <small class="text-muted" id="pdm-price-m2"></small>
+                                </div>
+                                <div class="text-center">
+                                    <div class="pdm-score-circle" id="pdm-score">-</div>
+                                    <div style="font-size:0.75rem;color:#888;margin-top:2px;">종합점수</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sub-scores -->
+                        <div class="pdm-section">
+                            <div class="row gx-3">
+                                <div class="col-3" id="pdm-sub-location">
+                                    <div class="pdm-sub-bar"><div class="pdm-sub-fill" style="width:0%"></div></div>
+                                    <div style="font-size:0.72rem;color:#888;margin-top:2px;">위치 <span class="pdm-sub-value">0</span></div>
+                                </div>
+                                <div class="col-3" id="pdm-sub-price">
+                                    <div class="pdm-sub-bar"><div class="pdm-sub-fill" style="width:0%"></div></div>
+                                    <div style="font-size:0.72rem;color:#888;margin-top:2px;">가격 <span class="pdm-sub-value">0</span></div>
+                                </div>
+                                <div class="col-3" id="pdm-sub-property">
+                                    <div class="pdm-sub-bar"><div class="pdm-sub-fill" style="width:0%"></div></div>
+                                    <div style="font-size:0.72rem;color:#888;margin-top:2px;"><span id="pdm-prop-label">매물</span> <span class="pdm-sub-value">0</span></div>
+                                </div>
+                                <div class="col-3" id="pdm-sub-area">
+                                    <div class="pdm-sub-bar"><div class="pdm-sub-fill" style="width:0%"></div></div>
+                                    <div style="font-size:0.72rem;color:#888;margin-top:2px;">지역 <span class="pdm-sub-value">0</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Left: Info -->
+                            <div class="col-md-7">
+                                <!-- Building Info -->
+                                <div id="pdm-building-info" class="pdm-section">
+                                    <div class="pdm-section-title">건물 정보</div>
+                                    <div class="pdm-info-grid">
+                                        <div class="pdm-info-item"><i class="bi bi-rulers"></i><span class="label">면적</span><span class="value" id="pdm-area">-</span><small class="text-muted" id="pdm-supply-area"></small></div>
+                                        <div class="pdm-info-item"><i class="bi bi-building"></i><span class="label">단지</span><span class="value" id="pdm-complex">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-layers"></i><span class="label">층수</span><span class="value" id="pdm-floor">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-compass"></i><span class="label">향</span><span class="value" id="pdm-direction">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-calendar3"></i><span class="label">건축</span><span class="value" id="pdm-built-year">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-door-open"></i><span class="label">방</span><span class="value" id="pdm-rooms">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-cash-stack"></i><span class="label">관리비</span><span class="value" id="pdm-maintenance">-</span></div>
+                                    </div>
+                                </div>
+
+                                <!-- Land Info -->
+                                <div id="pdm-land-info" style="display:none;" class="pdm-section">
+                                    <div class="pdm-section-title">토지 정보</div>
+                                    <div class="pdm-info-grid">
+                                        <div class="pdm-info-item"><i class="bi bi-rulers"></i><span class="label">면적</span><span class="value" id="pdm-land-area">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-signpost-split"></i><span class="label">지목</span><span class="value" id="pdm-land-use">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-building-gear"></i><span class="label">용도</span><span class="value" id="pdm-land-zoning">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-bounding-box"></i><span class="label">건폐율</span><span class="value" id="pdm-land-bcr">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-arrow-up-right"></i><span class="label">용적률</span><span class="value" id="pdm-land-far">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-signpost"></i><span class="label">접도</span><span class="value" id="pdm-land-road">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-triangle"></i><span class="label">지형</span><span class="value" id="pdm-land-topo">-</span></div>
+                                    </div>
+                                </div>
+
+                                <!-- Infrastructure -->
+                                <div class="pdm-section">
+                                    <div class="pdm-section-title">주변 인프라</div>
+                                    <div class="pdm-info-grid">
+                                        <div class="pdm-info-item"><i class="bi bi-train-front"></i><span class="label">지하철</span><span class="value" id="pdm-subway">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-signpost-2"></i><span class="label">노선</span><span class="value" id="pdm-subway-lines">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-tree"></i><span class="label">공원</span><span class="value" id="pdm-park">-</span></div>
+                                        <div class="pdm-info-item"><i class="bi bi-water"></i><span class="label">한강</span><span class="value" id="pdm-river">-</span></div>
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div id="pdm-description" style="display:none;"></div>
+
+                                <!-- Meta -->
+                                <div class="d-flex gap-3 mt-2" style="font-size:0.8rem;color:#999;">
+                                    <span>출처: <span id="pdm-source">-</span></span>
+                                    <span>등록: <span id="pdm-created">-</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Right: Radar Chart -->
+                            <div class="col-md-5">
+                                <div class="text-center">
+                                    <canvas id="pdm-radar" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button class="btn btn-success btn-sm" id="pdm-btn-candidate" onclick="pdmAddCandidate()">
+                        <i class="bi bi-plus-circle"></i> 후보 추가
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" id="pdm-btn-rescore" onclick="pdmRescore()">
+                        <i class="bi bi-arrow-clockwise"></i> 재채점
+                    </button>
+                    <a id="pdm-link-source" href="#" target="_blank" class="btn btn-outline-secondary btn-sm" style="display:none;">
+                        <i class="bi bi-box-arrow-up-right"></i> 원본
+                    </a>
+                    <a id="pdm-link-detail" href="#" class="btn btn-primary btn-sm">
+                        <i class="bi bi-eye"></i> 전체 상세
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="/static/js/property-modal.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

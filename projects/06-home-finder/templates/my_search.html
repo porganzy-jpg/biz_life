@@ -891,9 +891,8 @@ function onCardClick(id, lat, lng) {
     if (currentView === 'map' && lat && lng && sMap) {
         sMap.panTo(new kakao.maps.LatLng(lat, lng));
         sMap.setLevel(4);
-    } else {
-        location.href = '/property/' + id;
     }
+    showPropertyModal(id);
 }
 
 // ──── View Toggle ────
@@ -1002,7 +1001,7 @@ function updateMapMarkers(items) {
                         <span style="margin-left:8px;color:${scoreColor};font-weight:600">점수 ${score}</span><br>
                         <small>${prop.area_m2 ? prop.area_m2 + '㎡' : ''} · ${prop.land_use || ''} · ${prop.zoning_type || ''}</small><br>
                         <small>건폐${prop.building_coverage_ratio || '-'}% / 용적${prop.floor_area_ratio || '-'}%</small><br>
-                        <a href="/property/${prop.id}" style="font-size:12px">상세보기 →</a>
+                        <a href="javascript:void(0)" onclick="showPropertyModal(${prop.id})" style="font-size:12px;font-weight:600">상세보기 →</a>
                     </div>`;
                 } else {
                     infoContent = `
@@ -1011,7 +1010,7 @@ function updateMapMarkers(items) {
                         <span style="color:#0d6efd;font-weight:700">${krwToEok(prop.price_krw)}</span>
                         <span style="margin-left:8px;color:${scoreColor};font-weight:600">점수 ${score}</span><br>
                         <small>${prop.district || ''} ${prop.dong || ''} · ${prop.area_m2 ? prop.area_m2 + '㎡' : ''}</small><br>
-                        <a href="/property/${prop.id}" style="font-size:12px">상세보기 →</a>
+                        <a href="javascript:void(0)" onclick="showPropertyModal(${prop.id})" style="font-size:12px;font-weight:600">상세보기 →</a>
                     </div>`;
                 }
                 sInfowindow.setContent(infoContent);

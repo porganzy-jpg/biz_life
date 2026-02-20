@@ -157,9 +157,9 @@ async function refreshPipeline() {
                     <div class="small text-muted">${c.district || ''} ${c.dong || ''}</div>
                     ${c.rating ? '<div class="small">' + '⭐'.repeat(c.rating) + '</div>' : ''}
                     <div class="d-flex gap-1 mt-1">
-                        <a href="/property/${c.property_id}" class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation()">
+                        <button class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showPropertyModal(${c.property_id})">
                             <i class="bi bi-eye"></i> 상세
-                        </a>
+                        </button>
                         <button class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showStatusModal(${c.id}, '${s}')">
                             <i class="bi bi-arrow-right-circle"></i> 이동
                         </button>

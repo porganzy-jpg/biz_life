@@ -109,7 +109,7 @@ async function loadMarkers(filters) {
                         <br>
                         <small>건폐${m.building_coverage_ratio || '-'}% / 용적${m.floor_area_ratio || '-'}%</small>
                         <br>
-                        <a href="/property/${m.id}" style="font-size:12px">상세보기 →</a>
+                        <a href="javascript:void(0)" onclick="showPropertyModal(${m.id})" style="font-size:12px;font-weight:600">상세보기 →</a>
                     </div>`;
                 } else {
                     content = `
@@ -122,7 +122,7 @@ async function loadMarkers(filters) {
                         <br>
                         <small>${m.property_type || ''} ${m.acquisition_type || ''}</small>
                         <br>
-                        <a href="/property/${m.id}" style="font-size:12px">상세보기 →</a>
+                        <a href="javascript:void(0)" onclick="showPropertyModal(${m.id})" style="font-size:12px;font-weight:600">상세보기 →</a>
                     </div>`;
                 }
                 infowindow.setContent(content);
@@ -141,13 +141,18 @@ async function loadMarkers(filters) {
                     ? '<span class="badge bg-success" style="font-size:0.65rem;">토지</span>'
                     : `<span class="badge bg-secondary" style="font-size:0.65rem;">${m.property_type || ''}</span>`;
                 propertyList.innerHTML += `
-                    <div class="property-list-item" onclick="panTo(${m.lat},${m.lng})">
+                    <div class="property-list-item" onclick="panTo(${m.lat},${m.lng})" style="cursor:pointer">
                         <div class="d-flex justify-content-between">
                             <span class="name">${typeBadge} ${m.label}</span>
                             <span class="score-badge ${scoreClass}">${(m.score_composite || 0).toFixed(0)}</span>
                         </div>
                         <div class="price">${formatPrice(m.price_krw)}</div>
-                        <div class="info">${m.property_type || ''} ${m.is_candidate ? '★ 후보' : ''}</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="info">${m.property_type || ''} ${m.is_candidate ? '★ 후보' : ''}</span>
+                            <button class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showPropertyModal(${m.id})">
+                                <i class="bi bi-eye"></i> 상세
+                            </button>
+                        </div>
                     </div>`;
             }
         }

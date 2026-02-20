@@ -58,7 +58,7 @@ async function loadTopProperties() {
             const score = p.score_composite || 0;
             const badgeClass = getScoreBadgeClass(score);
             tbody.innerHTML += `
-                <tr onclick="location.href='/property/${p.id}'" style="cursor:pointer">
+                <tr onclick="showPropertyModal(${p.id})" style="cursor:pointer" title="클릭하여 상세보기">
                     <td class="fw-bold">${p.complex_name || p.address || '매물 ' + p.id}</td>
                     <td>${p.district || ''} ${p.dong || ''}</td>
                     <td class="text-primary fw-bold">${formatPrice(p.price_krw)}</td>
