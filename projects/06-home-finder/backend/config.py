@@ -49,6 +49,15 @@ class Settings:
     SCORE_WEIGHT_PROPERTY: float = float(os.getenv("SCORE_WEIGHT_PROPERTY", "0.20"))
     SCORE_WEIGHT_AREA: float = float(os.getenv("SCORE_WEIGHT_AREA", "0.20"))
 
+    # Scraper
+    SCRAPER_ENABLED: bool = os.getenv("SCRAPER_ENABLED", "true").lower() in ("true", "1", "yes")
+    SCRAPER_INTERVAL_HOURS: float = float(os.getenv("SCRAPER_INTERVAL_HOURS", "24"))
+    SCRAPER_TARGET_DISTRICTS: list = os.getenv(
+        "SCRAPER_TARGET_DISTRICTS",
+        "",
+    ).split(",") if os.getenv("SCRAPER_TARGET_DISTRICTS") else []
+    SCRAPER_RATE_LIMIT_SEC: float = float(os.getenv("SCRAPER_RATE_LIMIT_SEC", "2"))
+
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 

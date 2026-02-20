@@ -14,7 +14,7 @@ import psutil
 from dotenv import load_dotenv
 
 from config import PROJECTS
-from services import check_port, find_pid_by_port, start_project as _start_project
+from services import check_port, find_pid_by_port, start_project as _start_project, log_event
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -75,6 +75,7 @@ async def health_check_loop():
                     if failures >= MAX_RESTART_ATTEMPTS:
                         # 최대 시도 초과 → 재시작 포기, 30분 후 리셋
                         if _can_alert(f"giveup_{name}"):
+                            log_event(name, "error", f"{MAX_RESTART_ATTEMPTS}회 재시작 실패, 자동 재시작 중단")
                             msg = f"⛔ {name}: {MAX_RESTART_ATTEMPTS}회 재시작 실패, 자동 재시작 중단"
                             logger.error(msg)
                             await send_telegram(msg)
@@ -94,6 +95,7 @@ async def health_check_loop():
                     result = _start_project(name, verify=False)["msg"]
                     _restart_failures[name] = failures + 1
                     ts = datetime.now().strftime("%H:%M:%S")
+                    log_event(name, "auto_restart", f"자동 재시작 ({failures+1}/{MAX_RESTART_ATTEMPTS}): {result}")
                     msg = f"🔄 자동 재시작: {name} ({failures+1}/{MAX_RESTART_ATTEMPTS})\n시간: {ts}\n결과: {result}"
                     logger.warning(msg)
                     if _can_alert(f"restart_{name}"):
@@ -127,6 +129,8 @@ async def resource_alert_loop():
                 alerts.append(f"Disk: {round(disk.percent, 1)}% (>{DISK_THRESHOLD}%)")
 
             if alerts:
+                alert_summary = ", ".join(alerts)
+                log_event("system", "resource_alert", alert_summary)
                 msg = "⚠️ 리소스 경고\n\n" + "\n".join(alerts)
                 msg += f"\n\nCPU: {cpu}% | RAM: {mem.percent}% | Disk: {round(disk.percent, 1)}%"
                 logger.warning(msg)

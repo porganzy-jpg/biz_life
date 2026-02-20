@@ -149,6 +149,14 @@ body{display:flex;justify-content:center;background:#1a1a2e;}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text-light);}
 .empty-state .ei{font-size:2.5rem;margin-bottom:10px;opacity:.5;}
 .empty-state p{font-size:.82rem;}
+.inv-filter-tabs{display:flex;gap:0;margin-bottom:10px;background:rgba(108,92,231,.1);border-radius:var(--radius-sm);overflow:hidden;flex-wrap:nowrap;}
+.inv-filter-tabs .ftab{flex:1;padding:8px 4px;text-align:center;font-size:.65rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text-light);min-height:36px;display:flex;align-items:center;justify-content:center;gap:2px;white-space:nowrap;position:relative;}
+.inv-filter-tabs .ftab.active{background:var(--primary);color:#fff;}
+.inv-filter-tabs .ftab .fbadge{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;border-radius:8px;font-size:.5rem;font-weight:700;padding:0 4px;background:rgba(255,255,255,.25);color:inherit;}
+.inv-filter-tabs .ftab.active .fbadge{background:rgba(255,255,255,.35);color:#fff;}
+.inv-sort-row{display:flex;gap:6px;margin-bottom:10px;justify-content:flex-end;}
+.inv-sort-btn{background:var(--card);border:1px solid var(--card-border);border-radius:6px;padding:4px 10px;font-size:.62rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text-light);transition:all .15s;min-height:28px;}
+.inv-sort-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
 .inv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .inv-item{background:var(--card);border-radius:8px;padding:10px 4px;text-align:center;border:1px solid var(--card-border);font-size:.58rem;cursor:pointer;min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .inv-item .ii{font-size:1.2rem;margin-bottom:3px;}
@@ -250,6 +258,61 @@ canvas#particles{position:absolute;inset:0;pointer-events:none;z-index:50;}
 .pull-ind{text-align:center;padding:6px;font-size:.68rem;color:var(--text-light);opacity:.4;}
 button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
 @media(max-width:440px){#app{max-width:100%;}}
+/* === PvP 아레나 === */
+.arena-pad{padding:16px 16px 24px;}
+.arena-header{background:linear-gradient(135deg,#e74c3c,#c0392b);border-radius:var(--radius);padding:18px 16px;color:#fff;text-align:center;margin-bottom:14px;position:relative;overflow:hidden;}
+.arena-header h2{font-size:1.1rem;margin-bottom:4px;}
+.arena-header .rating-big{font-size:2rem;font-weight:900;}
+.arena-header .rank-info{font-size:.72rem;opacity:.85;margin-top:4px;}
+.arena-stats-row{display:flex;gap:8px;margin-bottom:14px;}
+.arena-stat-card{flex:1;background:var(--card);border-radius:var(--radius-sm);padding:12px 8px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.arena-stat-card .sv{font-size:1.2rem;font-weight:900;color:var(--primary);}
+.arena-stat-card .sl{font-size:.62rem;color:var(--text-light);margin-top:2px;}
+.arena-team-section{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.arena-team-section h3{font-size:.82rem;font-weight:700;margin-bottom:10px;}
+.arena-party-slots{display:flex;gap:8px;margin-bottom:10px;}
+.arena-slot{flex:1;background:rgba(108,92,231,.06);border:2px dashed var(--card-border);border-radius:var(--radius-sm);padding:10px 6px;text-align:center;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.65rem;color:var(--text-light);cursor:pointer;transition:all .15s;}
+.arena-slot.filled{border:2px solid var(--primary);background:rgba(108,92,231,.08);}
+.arena-slot .slot-name{font-weight:700;font-size:.7rem;color:var(--text);margin-top:4px;}
+.arena-slot .slot-type{font-size:.58rem;color:var(--primary);}
+.arena-slot .slot-icon{font-size:1.4rem;}
+.arena-btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .15s;min-height:48px;color:#fff;}
+.arena-btn:active{transform:scale(.97);}
+.arena-btn.register{background:linear-gradient(135deg,#6c5ce7,#a29bfe);}
+.arena-btn.battle{background:linear-gradient(135deg,#e74c3c,#fd79a8);margin-top:8px;}
+.arena-btn:disabled{opacity:.5;cursor:not-allowed;}
+.arena-section-title{font-size:.82rem;font-weight:700;margin:16px 0 10px;display:flex;align-items:center;gap:6px;}
+.lb-table{width:100%;border-collapse:collapse;font-size:.68rem;}
+.lb-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--card-border);color:var(--text-light);font-weight:600;}
+.lb-table td{padding:8px 6px;border-bottom:1px solid var(--card-border);}
+.lb-table tr.me{background:rgba(108,92,231,.1);}
+.lb-rank{font-weight:900;color:var(--primary);}
+.lb-rank.gold{color:#f9ca24;}
+.lb-rank.silver{color:#bbb;}
+.lb-rank.bronze{color:#cd7f32;}
+.lb-rating{font-weight:700;}
+.lb-streak{color:#e74c3c;font-weight:600;}
+.arena-history-item{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.arena-history-item .result-badge{padding:3px 10px;border-radius:8px;font-size:.65rem;font-weight:700;color:#fff;min-width:36px;text-align:center;}
+.arena-history-item .result-badge.win{background:#00b894;}
+.arena-history-item .result-badge.lose{background:#d63031;}
+.arena-history-item .detail{flex:1;font-size:.68rem;}
+.arena-history-item .detail .opp{font-weight:600;}
+.arena-history-item .detail .meta{color:var(--text-light);font-size:.6rem;margin-top:2px;}
+.arena-history-item .rating-chg{font-weight:700;font-size:.75rem;}
+.arena-history-item .rating-chg.up{color:#00b894;}
+.arena-history-item .rating-chg.down{color:#d63031;}
+.arena-battle-overlay{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;opacity:0;pointer-events:none;transition:opacity .3s;}
+.arena-battle-overlay.show{opacity:1;pointer-events:auto;}
+.arena-battle-overlay .vs-text{font-size:2.5rem;font-weight:900;color:#e74c3c;text-shadow:0 0 20px rgba(231,76,60,.6);animation:vsPulse 1s infinite;}
+@keyframes vsPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.arena-battle-overlay .team-col{text-align:center;padding:10px;}
+.arena-battle-overlay .team-col h4{font-size:.72rem;opacity:.7;margin-bottom:6px;}
+.arena-battle-overlay .mon-name{font-size:.68rem;margin:4px 0;}
+.arena-result-card{background:var(--card);border-radius:var(--radius);padding:20px;text-align:center;color:var(--text);max-width:320px;width:90%;}
+.arena-result-card h2{margin-bottom:10px;}
+.arena-result-card .reward-line{font-size:.78rem;margin:4px 0;}
+.arena-result-card .close-btn{margin-top:14px;padding:10px 30px;border:none;border-radius:var(--radius-sm);background:var(--primary);color:#fff;font-weight:700;cursor:pointer;font-family:inherit;}
 </style>
 </head>
 <body>
@@ -409,6 +472,45 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   </div>
 </div>
 
+<!-- ARENA -->
+<div class="screen" id="screen-arena">
+  <div class="arena-pad">
+    <div class="arena-header" id="arena-header">
+      <h2>PvP 아레나</h2>
+      <div class="rating-big" id="arena-my-rating">1000</div>
+      <div class="rank-info" id="arena-rank-info">순위: - / -</div>
+    </div>
+    <div class="arena-stats-row" id="arena-stats-row">
+      <div class="arena-stat-card"><div class="sv" id="arena-wins">0</div><div class="sl">승리</div></div>
+      <div class="arena-stat-card"><div class="sv" id="arena-losses">0</div><div class="sl">패배</div></div>
+      <div class="arena-stat-card"><div class="sv" id="arena-winrate">0%</div><div class="sl">승률</div></div>
+      <div class="arena-stat-card"><div class="sv" id="arena-streak">0</div><div class="sl">연승</div></div>
+    </div>
+    <div class="arena-team-section">
+      <h3>방어 파티</h3>
+      <div class="arena-party-slots" id="arena-party-slots">
+        <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
+        <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
+        <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
+      </div>
+      <button class="arena-btn register" id="arena-register-btn" onclick="arenaRegister()">방어 파티 등록</button>
+      <button class="arena-btn battle" id="arena-battle-btn" onclick="arenaBattle()">배틀!</button>
+    </div>
+    <div class="arena-section-title">리더보드</div>
+    <table class="lb-table" id="arena-leaderboard">
+      <thead><tr><th>#</th><th>플레이어</th><th>레이팅</th><th>승률</th><th>연승</th></tr></thead>
+      <tbody id="arena-lb-body"></tbody>
+    </table>
+    <div class="arena-section-title" style="margin-top:18px;">최근 전적</div>
+    <div id="arena-history"></div>
+  </div>
+</div>
+
+<!-- ARENA BATTLE OVERLAY -->
+<div class="arena-battle-overlay" id="arena-battle-overlay">
+  <div id="arena-battle-content"></div>
+</div>
+
 <!-- DISCOVERY OVERLAY -->
 <div class="discovery-overlay" id="discovery-overlay">
   <div class="glow"><img class="pa" id="disc-img"></div>
@@ -442,6 +544,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   <div class="nav-item" onclick="navTo('bus')" data-screen="bus"><div class="ni">🚌</div><div class="nl">버스</div></div>
   <div class="nav-item" onclick="navTo('map')" data-screen="map"><div class="ni">🗺️</div><div class="nl">지도</div></div>
   <div class="nav-item" onclick="navTo('collection')" data-screen="collection"><div class="ni">📚</div><div class="nl">도감</div></div>
+  <div class="nav-item" onclick="navTo('arena')" data-screen="arena"><div class="ni">&#x2694;&#xFE0F;</div><div class="nl">아레나</div></div>
 </div>
 
 </div><!-- end #app -->
@@ -648,15 +751,21 @@ const MEMORIES = [
 ];
 
 const INVENTORY_ITEMS = [
-  {id:'i1',icon:'🌿',name:'허브잎',type:'재료'},
-  {id:'i2',icon:'🥕',name:'당근',type:'재료'},
-  {id:'i3',icon:'🌾',name:'밀가루',type:'재료'},
-  {id:'i4',icon:'🍯',name:'꿀',type:'재료'},
-  {id:'i5',icon:'✨',name:'별먼지',type:'재료'},
-  {id:'i6',icon:'🌸',name:'꽃잎',type:'장식'},
-  {id:'i7',icon:'🕯️',name:'양초',type:'장식'},
-  {id:'i8',icon:'📜',name:'기억 조각',type:'기억'}
+  {id:'i1',icon:'🌿',name:'허브잎',type:'재료',category:'성장',rarity:'Common'},
+  {id:'i2',icon:'🥕',name:'당근',type:'재료',category:'성장',rarity:'Common'},
+  {id:'i3',icon:'🌾',name:'밀가루',type:'재료',category:'강화',rarity:'Common'},
+  {id:'i4',icon:'🍯',name:'꿀',type:'재료',category:'강화',rarity:'Uncommon'},
+  {id:'i5',icon:'✨',name:'별먼지',type:'재료',category:'진화',rarity:'Rare'},
+  {id:'i6',icon:'🌸',name:'꽃잎',type:'장식',category:'소모',rarity:'Common'},
+  {id:'i7',icon:'🕯️',name:'양초',type:'장식',category:'소모',rarity:'Uncommon'},
+  {id:'i8',icon:'📜',name:'기억 조각',type:'기억',category:'소모',rarity:'Rare'}
 ];
+
+// 인벤토리 필터/정렬 상태
+const INV_FILTER_CATEGORIES = ['전체','성장','강화','진화','소모'];
+const INV_RARITY_ORDER = ['Legendary','Epic','Rare','Uncommon','Common'];
+let invFilter = '전체';
+let invSort = 'name'; // 'name', 'count', 'rarity'
 
 const CRAFTING = [
   {name:'꽃다발',icon:'💐',ingredients:['🌸','🌿','✨'],effect:'치유+10',stat:'heal',amount:10},
@@ -778,7 +887,7 @@ function navTo(id){
   const next=document.getElementById('screen-'+id);
   if(!next)return;
   // determine direction
-  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings'];
+  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings','arena'];
   const pi=navOrder.indexOf(currentScreen),ni=navOrder.indexOf(id);
   const forward=ni>=pi||ni<0;
   if(prev){
@@ -817,6 +926,7 @@ function renderScreen(id){
     case'shop':renderShop();break;
     case'achievements':renderAchievements();break;
     case'settings':renderSettings();break;
+    case'arena':renderArena();break;
   }
 }
 
@@ -861,7 +971,8 @@ function renderHome(){
     {icon:'📋',label:'퀘스트',screen:'quest',badge:''},
     {icon:'🗺️',label:'지도',screen:'map',badge:''},
     {icon:'🚌',label:'버스',screen:'bus',badge:''},
-    {icon:'📚',label:'도감',screen:'collection',badge:''}
+    {icon:'📚',label:'도감',screen:'collection',badge:''},
+    {icon:'\u2694\uFE0F',label:'아레나',screen:'arena',badge:'PvP'}
   ];
   document.getElementById('action-grid').innerHTML=actions.map(a=>
     `<div class="action-card ripple" onclick="navTo('${a.screen}')">
@@ -1823,19 +1934,72 @@ function renderChars(){
   if(GS.compareChars.length===2) renderCompare();
 }
 
+function setInvFilter(cat){
+  invFilter=cat;
+  renderInventory();
+}
+function setInvSort(sortKey){
+  invSort=sortKey;
+  renderInventory();
+}
+
 function renderInventory(){
   const el=document.getElementById('coll-inventory');
   const items=GS.inventory.map(id=>INVENTORY_ITEMS.find(i=>i.id===id)).filter(Boolean);
   // Count duplicates
   const counts={};
   items.forEach(i=>{counts[i.id]=(counts[i.id]||0)+1;});
-  const unique=Object.keys(counts).map(id=>({item:INVENTORY_ITEMS.find(i=>i.id===id),count:counts[id]}));
+  let unique=Object.keys(counts).map(id=>({item:INVENTORY_ITEMS.find(i=>i.id===id),count:counts[id]}));
 
-  let html=`<div class="inv-grid">`;
+  // 카테고리별 아이템 수 계산 (필터 탭 뱃지용)
+  const catCounts={};
+  INV_FILTER_CATEGORIES.forEach(c=>{catCounts[c]=0;});
   unique.forEach(({item,count})=>{
+    catCounts['전체']+=count;
+    if(item.category && catCounts[item.category]!==undefined) catCounts[item.category]+=count;
+  });
+
+  // 필터 탭 렌더링
+  let html=`<div class="inv-filter-tabs">`;
+  INV_FILTER_CATEGORIES.forEach(cat=>{
+    const active=invFilter===cat?'active':'';
+    html+=`<div class="ftab ${active}" onclick="setInvFilter('${cat}')">${cat}<span class="fbadge">${catCounts[cat]||0}</span></div>`;
+  });
+  html+=`</div>`;
+
+  // 정렬 버튼 렌더링
+  html+=`<div class="inv-sort-row">`;
+  [{key:'name',label:'이름순'},{key:'count',label:'수량순'},{key:'rarity',label:'등급순'}].forEach(s=>{
+    const active=invSort===s.key?'active':'';
+    html+=`<button class="inv-sort-btn ${active}" onclick="setInvSort('${s.key}')">${s.label}</button>`;
+  });
+  html+=`</div>`;
+
+  // 필터 적용
+  let filtered=unique;
+  if(invFilter!=='전체'){
+    filtered=unique.filter(({item})=>item.category===invFilter);
+  }
+
+  // 정렬 적용
+  if(invSort==='name'){
+    filtered.sort((a,b)=>a.item.name.localeCompare(b.item.name,'ko'));
+  }else if(invSort==='count'){
+    filtered.sort((a,b)=>b.count-a.count);
+  }else if(invSort==='rarity'){
+    filtered.sort((a,b)=>{
+      const ra=INV_RARITY_ORDER.indexOf(a.item.rarity||'Common');
+      const rb=INV_RARITY_ORDER.indexOf(b.item.rarity||'Common');
+      return ra-rb;
+    });
+  }
+
+  // 아이템 그리드 렌더링
+  html+=`<div class="inv-grid">`;
+  filtered.forEach(({item,count})=>{
     html+=`<div class="inv-item"><div class="ii">${item.icon}</div><div>${item.name}</div><div class="ic">x${count}</div></div>`;
   });
-  if(unique.length===0){
+  if(filtered.length===0){
     html+=`<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-light);font-size:.8rem;">아이템이 없어요</div>`;
   }
   html+=`</div>`;
@@ -2787,6 +2951,211 @@ document.addEventListener('click',(e)=>{
   target.appendChild(ripple);
   setTimeout(()=>ripple.remove(),600);
 },{passive:true});
+
+// ============================================================
+// PVP ARENA
+// ============================================================
+const API_BASE='';  // same-origin
+
+let arenaState={
+  registered:false,
+  stats:null,
+  leaderboard:[],
+  history:[],
+  defenseParty:[]
+};
+
+async function apiFetch(url,opts={}){
+  try{
+    const res=await fetch(API_BASE+url,opts);
+    return await res.json();
+  }catch(e){
+    console.error('API error:',e);
+    return {error:'서버 연결 실패'};
+  }
+}
+
+async function renderArena(){
+  // Load stats
+  const statsRes=await apiFetch('/api/pvp/stats?session=default');
+  if(statsRes.registered){
+    arenaState.registered=true;
+    arenaState.stats=statsRes.stats;
+  }else{
+    arenaState.registered=false;
+    arenaState.stats=null;
+  }
+
+  // Load leaderboard
+  const lbRes=await apiFetch('/api/pvp/leaderboard?limit=50');
+  arenaState.leaderboard=lbRes.leaderboard||[];
+
+  // Load history
+  const histRes=await apiFetch('/api/pvp/history?session=default&limit=10');
+  arenaState.history=histRes.history||[];
+
+  updateArenaUI();
+}
+
+function updateArenaUI(){
+  const s=arenaState.stats;
+  if(s){
+    document.getElementById('arena-my-rating').textContent=Math.round(s.rating);
+    document.getElementById('arena-rank-info').textContent=`순위: ${s.rank} / ${s.total_players}`;
+    document.getElementById('arena-wins').textContent=s.wins;
+    document.getElementById('arena-losses').textContent=s.losses;
+    document.getElementById('arena-winrate').textContent=s.win_rate+'%';
+    document.getElementById('arena-streak').textContent=s.win_streak;
+
+    // Defense party
+    const dp=s.defense_party||[];
+    const slots=document.getElementById('arena-party-slots');
+    let slotHtml='';
+    for(let i=0;i<3;i++){
+      if(dp[i]){
+        const m=dp[i];
+        const typeEmoji=getTypeEmoji(m.primary_type);
+        slotHtml+=`<div class="arena-slot filled">
+          <div class="slot-icon">${typeEmoji}</div>
+          <div class="slot-name">${m.name||'???'}</div>
+          <div class="slot-type">Lv.${m.level||1} ${m.primary_type||''}</div>
+        </div>`;
+      }else{
+        slotHtml+=`<div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>`;
+      }
+    }
+    slots.innerHTML=slotHtml;
+    document.getElementById('arena-battle-btn').disabled=false;
+  }else{
+    document.getElementById('arena-my-rating').textContent='---';
+    document.getElementById('arena-rank-info').textContent='아레나에 등록해주세요';
+    document.getElementById('arena-wins').textContent='-';
+    document.getElementById('arena-losses').textContent='-';
+    document.getElementById('arena-winrate').textContent='-';
+    document.getElementById('arena-streak').textContent='-';
+    document.getElementById('arena-battle-btn').disabled=true;
+  }
+
+  // Leaderboard
+  const tbody=document.getElementById('arena-lb-body');
+  if(arenaState.leaderboard.length===0){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">아직 등록된 플레이어가 없습니다</td></tr>';
+  }else{
+    tbody.innerHTML=arenaState.leaderboard.map(p=>{
+      const rankCls=p.rank===1?'gold':p.rank===2?'silver':p.rank===3?'bronze':'';
+      const meCls=p.session_id==='default'?'me':'';
+      return `<tr class="${meCls}">
+        <td><span class="lb-rank ${rankCls}">${p.rank<=3?['','1','2','3'][p.rank]:p.rank}</span></td>
+        <td>${p.session_id==='default'?'<b>나</b>':p.session_id.substring(0,8)}</td>
+        <td class="lb-rating">${Math.round(p.rating)}</td>
+        <td>${p.win_rate}%</td>
+        <td class="lb-streak">${p.win_streak>0?p.win_streak+'연승':'-'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // History
+  const histEl=document.getElementById('arena-history');
+  if(arenaState.history.length===0){
+    histEl.innerHTML='<div style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">아직 전적이 없습니다</div>';
+  }else{
+    histEl.innerHTML=arenaState.history.map(h=>{
+      const won=h.result==='WIN';
+      const chg=h.rating_change;
+      const chgStr=chg>=0?`+${chg.toFixed(1)}`:`${chg.toFixed(1)}`;
+      return `<div class="arena-history-item">
+        <div class="result-badge ${won?'win':'lose'}">${won?'WIN':'LOSE'}</div>
+        <div class="detail">
+          <div class="opp">vs ${h.opponent_id==='default'?'나':h.opponent_id.substring(0,8)}</div>
+          <div class="meta">${h.gold_reward}G${h.bonus_reward?' + '+h.bonus_reward:''}</div>
+        </div>
+        <div class="rating-chg ${chg>=0?'up':'down'}">${chgStr}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function getTypeEmoji(type){
+  const map={Fire:'🔥',Water:'💧',Nature:'🌿',Tech:'⚙️',Spirit:'👻',Dark:'🌑',Earth:'🪨',Wind:'💨',Food:'🍖',Light:'✨'};
+  return map[type]||'❓';
+}
+
+async function arenaRegister(){
+  const btn=document.getElementById('arena-register-btn');
+  btn.disabled=true;
+  btn.textContent='등록 중...';
+
+  const res=await apiFetch('/api/pvp/register?session=default',{method:'POST'});
+
+  if(res.error){
+    showToast(res.error);
+    btn.disabled=false;
+    btn.textContent='방어 파티 등록';
+    return;
+  }
+
+  showToast(res.message||'방어 파티 등록 완료!');
+  btn.textContent='방어 파티 등록';
+  btn.disabled=false;
+  await renderArena();
+}
+
+async function arenaBattle(){
+  const btn=document.getElementById('arena-battle-btn');
+  btn.disabled=true;
+  btn.textContent='대전 상대 검색 중...';
+
+  // Show overlay
+  const overlay=document.getElementById('arena-battle-overlay');
+  const content=document.getElementById('arena-battle-content');
+  content.innerHTML=`<div class="vs-text">VS</div><p style="margin-top:12px;font-size:.8rem;">대전 상대 검색 중...</p>`;
+  overlay.classList.add('show');
+
+  const res=await apiFetch('/api/pvp/battle?session=default',{method:'POST'});
+
+  if(res.error){
+    overlay.classList.remove('show');
+    showToast(res.error);
+    btn.disabled=false;
+    btn.textContent='배틀!';
+    return;
+  }
+
+  // Show battle animation
+  const won=res.result==='WIN';
+  const opp=res.opponent||{};
+  const oppParty=opp.party||[];
+  const chg=res.rating_change||0;
+  const reward=res.reward||{};
+
+  // Brief VS display
+  await new Promise(r=>setTimeout(r,1500));
+
+  // Show result
+  const chgStr=chg>=0?`+${chg.toFixed(1)}`:`${chg.toFixed(1)}`;
+  content.innerHTML=`
+    <div class="arena-result-card">
+      <h2 style="color:${won?'#00b894':'#d63031'};font-size:1.5rem;">${won?'승리!':'패배...'}</h2>
+      <p style="font-size:.78rem;color:var(--text-light);margin:6px 0;">vs ${opp.session_id?opp.session_id.substring(0,8):'???'} (${Math.round(opp.rating||0)})</p>
+      <div class="reward-line" style="color:${chg>=0?'#00b894':'#d63031'};font-weight:700;">레이팅 ${chgStr}</div>
+      <div class="reward-line">💰 ${reward.gold||0} 골드${reward.bonus_gold>0?' (+'+reward.bonus_gold+' 보너스)':''}</div>
+      ${reward.bonus_item?'<div class="reward-line">🎁 진화석 획득!</div>':''}
+      ${reward.streak>=3?'<div class="reward-line" style="color:#e74c3c;">🔥 '+reward.streak+'연승!</div>':''}
+      <button class="close-btn" onclick="closeArenaResult()">확인</button>
+    </div>`;
+
+  if(won){
+    try{launchConfetti();}catch(e){}
+  }
+
+  btn.disabled=false;
+  btn.textContent='배틀!';
+  await renderArena();
+}
+
+function closeArenaResult(){
+  document.getElementById('arena-battle-overlay').classList.remove('show');
+}
 
 // ============================================================
 // INITIALIZATION

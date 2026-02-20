@@ -96,7 +96,8 @@ class BattleSystem:
         """
         데미지 계산
 
-        기본 데미지 = (공격력 * 레벨보정) / (방어력 * 0.5) * 상성 * 크리티컬 * 랜덤
+        기본 데미지 = (공격력 * 레벨보정) * (1 - 방어 감소율) * 상성 * 크리티컬 * 랜덤
+        방어 감소율 = defense / (defense + 100) (스케일링 방어 공식)
         """
         base_stat = attacker.special if is_special else attacker.attack
         level_mod = 1 + (attacker.level * 0.1)
@@ -104,8 +105,13 @@ class BattleSystem:
         # 방어 중이면 방어력 2배
         def_stat = defender.defense * (2 if defender.is_defending else 1)
 
-        # 기본 데미지
-        raw_damage = (base_stat * level_mod * 2) / max(def_stat * 0.5, 1)
+        # 기본 공격력 (레벨 보정 적용)
+        raw_damage = base_stat * level_mod * 2
+
+        # 방어력 스케일링: defense / (defense + 100) 비율만큼 데미지 감소
+        # 방어력 100 → 50% 감소, 200 → 66% 감소, 50 → 33% 감소
+        defense_reduction = def_stat / (def_stat + 100)
+        raw_damage *= (1 - defense_reduction)
 
         # 속성 상성
         effectiveness, eff_label = self.calculate_type_effectiveness(
@@ -119,8 +125,8 @@ class BattleSystem:
         if is_critical:
             raw_damage *= 1.5
 
-        # 랜덤 변동 (85~100%)
-        raw_damage *= random.uniform(0.85, 1.0)
+        # 랜덤 변동 (80~110%) - 더 넓은 범위로 전투를 흥미롭게
+        raw_damage *= random.uniform(0.80, 1.10)
 
         final_damage = max(1, int(raw_damage))
         return final_damage, is_critical, eff_label
@@ -190,6 +196,32 @@ class BattleSystem:
             defender_hp_remaining=defender.current_hp,
             message=f"{attacker.name}의 {action_name}! {damage} 데미지!{crit_msg}{eff_msg}",
         )
+
+    @staticmethod
+    def clamp_opponent_level(player_monster_level: int, opponent: dict) -> dict:
+        """
+        상대 몬스터 레벨을 플레이어 몬스터 레벨 ± 3 범위로 제한
+
+        밸런스를 위해 상대가 너무 강하거나 너무 약하지 않도록 조정합니다.
+        레벨에 맞게 스탯도 비례 보정합니다.
+        """
+        opp_level = opponent.get("level", 1)
+        min_level = max(1, player_monster_level - 3)
+        max_level = player_monster_level + 3
+        clamped_level = max(min_level, min(max_level, opp_level))
+
+        if clamped_level != opp_level and opp_level > 0:
+            # 레벨 변경 시 스탯 비례 보정
+            scale = clamped_level / opp_level
+            opponent = opponent.copy()
+            opponent["level"] = clamped_level
+            if "stats" in opponent and isinstance(opponent["stats"], dict):
+                opponent["stats"] = {
+                    k: max(1, int(v * scale))
+                    for k, v in opponent["stats"].items()
+                }
+
+        return opponent
 
     def get_battle_reward(self, winner: BattleMonster, loser: BattleMonster) -> dict:
         """배틀 보상 계산"""

@@ -27,8 +27,24 @@
         <!-- 상단 바 -->
         <div class="top-bar">
             <div class="logo">PromoMap</div>
-            <input class="search-bar" placeholder="매장, 브랜드 검색..." id="searchInput" />
+            <div class="search-wrapper" id="searchWrapper">
+                <input class="search-bar" placeholder="매장, 브랜드 검색..." id="searchInput" autocomplete="off" />
+                <div class="search-suggestions" id="searchSuggestions" style="display:none;"></div>
+            </div>
             <button class="filter-btn" id="searchBtn">검색</button>
+        </div>
+
+        <!-- 카테고리 필터 -->
+        <div class="category-filter-bar" id="categoryFilterBar">
+            <div class="category-chips" id="categoryChips">
+                <button class="category-chip active" data-category="all">전체</button>
+                <button class="category-chip" data-category="food">음식점</button>
+                <button class="category-chip" data-category="cafe">카페</button>
+                <button class="category-chip" data-category="shopping">쇼핑</button>
+                <button class="category-chip" data-category="convenience">편의점</button>
+                <button class="category-chip" data-category="entertainment">엔터</button>
+                <button class="category-chip" data-category="general">기타</button>
+            </div>
         </div>
 
         <!-- 지도 영역 -->

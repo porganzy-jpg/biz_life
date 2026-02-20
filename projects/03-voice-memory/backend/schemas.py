@@ -59,3 +59,12 @@ class RecordingSessionUpdate(BaseModel):
     duration_seconds: Optional[int] = None
     audio_file_path: Optional[str] = None
     transcript: Optional[str] = None
+
+
+class TagCreate(BaseModel):
+    tag_name: str
+
+
+class SessionNotesUpdate(BaseModel):
+    user_notes: Optional[str] = None
+    emotional_tone: Optional[str] = None

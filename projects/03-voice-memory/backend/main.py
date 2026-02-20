@@ -11,14 +11,22 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "sh
 from fastapi import FastAPI, Depends, Query, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func, or_
 import uvicorn
 
 from database import init_db, get_db
-from models import Person, RecordingSession, Conversation, Consent
-from schemas import PersonCreate, ChatRequest, ConsentCreate, RecordingSessionCreate, RecordingSessionUpdate
+from models import Person, RecordingSession, Conversation, Consent, SessionTag
+from schemas import (
+    PersonCreate, ChatRequest, ConsentCreate, RecordingSessionCreate,
+    RecordingSessionUpdate, TagCreate, SessionNotesUpdate,
+)
 from consent_service import ConsentService
 from recording_service import RecordingService
 from persona_chat import PersonaChat
+from transcription_service import (
+    TranscriptionService, queue_transcription, start_transcription_worker,
+)
+import json as _json
 
 app = FastAPI(title="VoiceMemory API", version="1.0.0")
 persona_chat = PersonaChat()
@@ -27,6 +35,7 @@ persona_chat = PersonaChat()
 @app.on_event("startup")
 async def startup():
     init_db()
+    start_transcription_worker()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -150,12 +159,214 @@ async def update_recording_session(session_id: int, data: RecordingSessionUpdate
 @app.get("/api/recording/sessions/{person_id}")
 async def get_sessions(person_id: int, db: Session = Depends(get_db)):
     sessions = RecordingService.get_sessions(db, person_id)
-    return {"sessions": [
-        {"id": s.id, "topic": s.topic, "status": s.status, "number": s.session_number,
-         "duration_seconds": s.duration_seconds, "has_transcript": bool(s.transcript),
-         "has_audio": bool(s.audio_file_path)}
-        for s in sessions
-    ]}
+    result_sessions = []
+    for s in sessions:
+        kw = []
+        if s.keywords:
+            try:
+                kw = _json.loads(s.keywords)
+            except (ValueError, TypeError):
+                kw = []
+        result_sessions.append({
+            "id": s.id, "topic": s.topic, "status": s.status, "number": s.session_number,
+            "duration_seconds": s.duration_seconds, "has_transcript": bool(s.transcript and s.transcript.strip()),
+            "has_audio": bool(s.audio_file_path),
+            "user_notes": s.user_notes or "",
+            "emotional_tone": s.emotional_tone or "",
+            "tags": [t.tag_name for t in s.tags],
+            "transcription_status": s.transcription_status or "none",
+            "transcript_summary": s.transcript_summary or "",
+            "keywords": kw,
+        })
+    return {"sessions": result_sessions}
+
+
+# === Tag API ===
+@app.post("/api/recording/sessions/{session_id}/tags")
+async def add_tag(session_id: int, data: TagCreate, db: Session = Depends(get_db)):
+    session = db.query(RecordingSession).filter(RecordingSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    tag_name = data.tag_name.strip().lower()
+    if not tag_name:
+        raise HTTPException(status_code=400, detail="Tag name is required")
+    # Check if tag already exists on this session
+    existing = db.query(SessionTag).filter(
+        SessionTag.session_id == session_id,
+        SessionTag.tag_name == tag_name,
+    ).first()
+    if existing:
+        return {"status": "already_exists", "tag_name": tag_name}
+    tag = SessionTag(session_id=session_id, tag_name=tag_name)
+    db.add(tag)
+    db.commit()
+    return {"status": "ok", "tag_name": tag_name}
+
+
+@app.delete("/api/recording/sessions/{session_id}/tags/{tag_name}")
+async def remove_tag(session_id: int, tag_name: str, db: Session = Depends(get_db)):
+    tag = db.query(SessionTag).filter(
+        SessionTag.session_id == session_id,
+        SessionTag.tag_name == tag_name.strip().lower(),
+    ).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    db.delete(tag)
+    db.commit()
+    return {"status": "ok"}
+
+
+@app.get("/api/tags")
+async def get_all_tags(db: Session = Depends(get_db)):
+    results = db.query(
+        SessionTag.tag_name, func.count(SessionTag.id).label("count")
+    ).group_by(SessionTag.tag_name).order_by(func.count(SessionTag.id).desc()).all()
+    return {"tags": [{"tag_name": r[0], "count": r[1]} for r in results]}
+
+
+# === Session Notes API ===
+@app.put("/api/recording/sessions/{session_id}/notes")
+async def update_session_notes(session_id: int, data: SessionNotesUpdate, db: Session = Depends(get_db)):
+    session = db.query(RecordingSession).filter(RecordingSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if data.user_notes is not None:
+        session.user_notes = data.user_notes
+    if data.emotional_tone is not None:
+        session.emotional_tone = data.emotional_tone
+    db.commit()
+    db.refresh(session)
+    return {
+        "status": "ok",
+        "user_notes": session.user_notes or "",
+        "emotional_tone": session.emotional_tone or "",
+    }
+
+
+# === Search API ===
+@app.get("/api/search")
+async def search(
+    q: str = Query(default="", description="Search keyword"),
+    person_id: int = Query(default=0, description="Filter by person ID"),
+    tag: str = Query(default="", description="Filter by tag name"),
+    db: Session = Depends(get_db),
+):
+    results = []
+    keyword = q.strip()
+    tag_filter = tag.strip().lower()
+
+    if not keyword and not tag_filter and not person_id:
+        return {"results": []}
+
+    # Start with all sessions
+    session_query = db.query(RecordingSession)
+
+    if person_id:
+        session_query = session_query.filter(RecordingSession.person_id == person_id)
+
+    # If tag filter is specified, filter sessions that have that tag
+    if tag_filter:
+        tagged_session_ids = db.query(SessionTag.session_id).filter(
+            SessionTag.tag_name == tag_filter
+        ).subquery()
+        session_query = session_query.filter(RecordingSession.id.in_(tagged_session_ids))
+
+    # If keyword is specified, search across multiple fields
+    if keyword:
+        like_pattern = f"%{keyword}%"
+
+        # Find session IDs that match in conversations
+        conv_session_ids = db.query(RecordingSession.id).join(
+            Conversation, Conversation.person_id == RecordingSession.person_id
+        ).filter(
+            or_(
+                Conversation.user_message.ilike(like_pattern),
+                Conversation.ai_response.ilike(like_pattern),
+            )
+        ).distinct().all()
+        conv_session_id_set = {r[0] for r in conv_session_ids}
+
+        # Find session IDs that match in tags
+        tag_session_ids = db.query(SessionTag.session_id).filter(
+            SessionTag.tag_name.ilike(like_pattern)
+        ).distinct().all()
+        tag_session_id_set = {r[0] for r in tag_session_ids}
+
+        # Combine: sessions matching topic, notes, transcript, or matched via convs/tags
+        session_query = session_query.filter(
+            or_(
+                RecordingSession.topic.ilike(like_pattern),
+                RecordingSession.user_notes.ilike(like_pattern),
+                RecordingSession.transcript.ilike(like_pattern),
+                RecordingSession.transcript_summary.ilike(like_pattern),
+                RecordingSession.id.in_(conv_session_id_set | tag_session_id_set),
+            )
+        )
+
+    sessions = session_query.order_by(RecordingSession.created_at.desc()).limit(50).all()
+
+    for s in sessions:
+        # Build context snippets showing where keyword matched
+        snippets = []
+        if keyword:
+            kw_lower = keyword.lower()
+            if s.topic and kw_lower in s.topic.lower():
+                snippets.append({"field": "topic", "text": s.topic})
+            if s.user_notes and kw_lower in s.user_notes.lower():
+                # Extract snippet around match
+                idx = s.user_notes.lower().find(kw_lower)
+                start = max(0, idx - 40)
+                end = min(len(s.user_notes), idx + len(keyword) + 40)
+                snippet = ("..." if start > 0 else "") + s.user_notes[start:end] + ("..." if end < len(s.user_notes) else "")
+                snippets.append({"field": "notes", "text": snippet})
+            if s.transcript and kw_lower in s.transcript.lower():
+                idx = s.transcript.lower().find(kw_lower)
+                start = max(0, idx - 40)
+                end = min(len(s.transcript), idx + len(keyword) + 40)
+                snippet = ("..." if start > 0 else "") + s.transcript[start:end] + ("..." if end < len(s.transcript) else "")
+                snippets.append({"field": "transcript", "text": snippet})
+            if s.transcript_summary and kw_lower in s.transcript_summary.lower():
+                snippets.append({"field": "summary", "text": s.transcript_summary})
+            # Check tags
+            for t in s.tags:
+                if kw_lower in t.tag_name.lower():
+                    snippets.append({"field": "tag", "text": t.tag_name})
+            # Check conversations for this person
+            if s.person_id:
+                convs = db.query(Conversation).filter(
+                    Conversation.person_id == s.person_id,
+                    or_(
+                        Conversation.user_message.ilike(f"%{keyword}%"),
+                        Conversation.ai_response.ilike(f"%{keyword}%"),
+                    )
+                ).limit(3).all()
+                for c in convs:
+                    for field_name, field_val in [("user_message", c.user_message), ("ai_response", c.ai_response)]:
+                        if field_val and kw_lower in field_val.lower():
+                            idx = field_val.lower().find(kw_lower)
+                            start = max(0, idx - 40)
+                            end = min(len(field_val), idx + len(keyword) + 40)
+                            snippet = ("..." if start > 0 else "") + field_val[start:end] + ("..." if end < len(field_val) else "")
+                            snippets.append({"field": field_name, "text": snippet})
+
+        # Get person name
+        person = db.query(Person).filter(Person.id == s.person_id).first()
+        person_name = person.name if person else "Unknown"
+
+        results.append({
+            "session_id": s.id,
+            "person_id": s.person_id,
+            "person_name": person_name,
+            "topic": s.topic,
+            "session_number": s.session_number,
+            "status": s.status,
+            "user_notes": s.user_notes or "",
+            "emotional_tone": s.emotional_tone or "",
+            "tags": [t.tag_name for t in s.tags],
+            "snippets": snippets,
+        })
+
+    return {"results": results, "count": len(results)}
 
 
 # === Audio Upload / Playback API ===
@@ -222,6 +433,99 @@ async def get_recording_audio(session_id: int, db: Session = Depends(get_db)):
         media_type=content_type,
         filename=os.path.basename(file_path),
     )
+
+
+# === Transcription API ===
+@app.post("/api/recording/sessions/{session_id}/transcribe")
+async def transcribe_session(session_id: int, db: Session = Depends(get_db)):
+    """Queue transcription for a recording session."""
+    session = db.query(RecordingSession).filter(RecordingSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if not session.audio_file_path or not os.path.exists(session.audio_file_path):
+        raise HTTPException(status_code=400, detail="No audio file for this session")
+    if session.transcription_status == "processing":
+        return {"status": "already_processing", "session_id": session_id}
+
+    result = queue_transcription(session_id, session.audio_file_path)
+    return result
+
+
+@app.get("/api/recording/sessions/{session_id}/transcript")
+async def get_transcript(session_id: int, db: Session = Depends(get_db)):
+    """Get transcript, summary, and keywords for a session."""
+    session = db.query(RecordingSession).filter(RecordingSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    keywords = []
+    if session.keywords:
+        try:
+            keywords = _json.loads(session.keywords)
+        except (ValueError, TypeError):
+            keywords = []
+
+    return {
+        "session_id": session_id,
+        "transcription_status": session.transcription_status or "none",
+        "transcript": session.transcript or "",
+        "transcript_summary": session.transcript_summary or "",
+        "keywords": keywords,
+    }
+
+
+@app.get("/api/search/transcript")
+async def search_transcripts(
+    q: str = Query(default="", description="Keyword to search in transcripts"),
+    db: Session = Depends(get_db),
+):
+    """Search across all transcripts."""
+    keyword = q.strip()
+    if not keyword:
+        return {"results": [], "count": 0}
+
+    like_pattern = f"%{keyword}%"
+    sessions = db.query(RecordingSession).filter(
+        or_(
+            RecordingSession.transcript.ilike(like_pattern),
+            RecordingSession.transcript_summary.ilike(like_pattern),
+            RecordingSession.keywords.ilike(like_pattern),
+        )
+    ).order_by(RecordingSession.created_at.desc()).limit(50).all()
+
+    results = []
+    for s in sessions:
+        person = db.query(Person).filter(Person.id == s.person_id).first()
+        person_name = person.name if person else "Unknown"
+
+        # Build snippet from transcript
+        snippet = ""
+        if s.transcript and keyword.lower() in s.transcript.lower():
+            idx = s.transcript.lower().find(keyword.lower())
+            start = max(0, idx - 60)
+            end = min(len(s.transcript), idx + len(keyword) + 60)
+            snippet = ("..." if start > 0 else "") + s.transcript[start:end] + ("..." if end < len(s.transcript) else "")
+
+        keywords = []
+        if s.keywords:
+            try:
+                keywords = _json.loads(s.keywords)
+            except (ValueError, TypeError):
+                keywords = []
+
+        results.append({
+            "session_id": s.id,
+            "person_id": s.person_id,
+            "person_name": person_name,
+            "topic": s.topic,
+            "session_number": s.session_number,
+            "transcript_snippet": snippet,
+            "transcript_summary": s.transcript_summary or "",
+            "keywords": keywords,
+            "transcription_status": s.transcription_status or "none",
+        })
+
+    return {"results": results, "count": len(results)}
 
 
 # === Chat API ===
@@ -382,18 +686,169 @@ TEMPLATE_HTML = """
 
         /* Session list with audio */
         .session-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px;
+            display: flex; flex-direction: column; gap: 8px; padding: 12px;
             border: 1px solid #e0d5c8; border-radius: 10px; margin: 6px 0;
         }
-        .session-item .session-info { flex: 1; }
-        .session-item .session-info .topic { font-weight: 600; color: #5d4037; font-size: 0.9rem; }
-        .session-item .session-info .meta { font-size: 0.75rem; color: #999; }
+        .session-header { display: flex; align-items: center; gap: 10px; }
+        .session-header .session-info { flex: 1; }
+        .session-header .session-info .topic { font-weight: 600; color: #5d4037; font-size: 0.9rem; }
+        .session-header .session-info .meta { font-size: 0.75rem; color: #999; }
         .play-btn {
             width: 36px; height: 36px; border-radius: 50%; border: none;
             background: #8e6b47; color: white; font-size: 1rem; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
         .play-btn:hover { background: #7a5c3c; }
+
+        /* Tags */
+        .tag-area { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        .tag-chip {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600;
+            cursor: default; color: white;
+        }
+        .tag-chip .tag-remove {
+            cursor: pointer; margin-left: 2px; font-size: 0.8rem; opacity: 0.7;
+        }
+        .tag-chip .tag-remove:hover { opacity: 1; }
+        .add-tag-btn {
+            padding: 2px 8px; border-radius: 12px; border: 1px dashed #bbb;
+            background: none; font-size: 0.72rem; color: #888; cursor: pointer;
+        }
+        .add-tag-btn:hover { border-color: #8e6b47; color: #8e6b47; }
+        .tag-input-wrap {
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .tag-input-wrap input {
+            width: 90px; padding: 2px 8px; border: 1px solid #d0c4b4; border-radius: 10px;
+            font-size: 0.75rem; background: #faf8f5;
+        }
+        .tag-input-wrap button {
+            padding: 2px 8px; border: none; border-radius: 10px; font-size: 0.7rem;
+            background: #8e6b47; color: white; cursor: pointer;
+        }
+
+        /* Emotional tone selector */
+        .tone-select {
+            padding: 3px 8px; border: 1px solid #e0d5c8; border-radius: 8px;
+            font-size: 0.75rem; background: #faf8f5; color: #5d4037;
+        }
+
+        /* Session notes */
+        .notes-toggle {
+            font-size: 0.75rem; color: #8e6b47; cursor: pointer; border: none;
+            background: none; font-weight: 600; padding: 0;
+        }
+        .notes-toggle:hover { text-decoration: underline; }
+        .notes-section { margin-top: 6px; }
+        .notes-section textarea {
+            width: 100%; min-height: 60px; padding: 8px; border: 1px solid #e0d5c8;
+            border-radius: 8px; font-size: 0.8rem; background: #faf8f5; resize: vertical;
+            font-family: inherit;
+        }
+        .notes-section .notes-actions {
+            display: flex; align-items: center; gap: 8px; margin-top: 6px;
+        }
+
+        /* Search */
+        .search-bar {
+            display: flex; gap: 8px; margin-bottom: 12px;
+        }
+        .search-bar input {
+            flex: 1; padding: 10px 14px; border: 1px solid #e0d5c8; border-radius: 20px;
+            font-size: 0.9rem; background: white;
+        }
+        .search-bar button {
+            padding: 8px 16px; border: none; border-radius: 20px;
+            background: #8e6b47; color: white; font-weight: 600; cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .search-bar button:hover { background: #7a5c3c; }
+        .search-results { margin-top: 8px; }
+        .search-result-item {
+            background: white; border-radius: 10px; padding: 12px; margin-bottom: 8px;
+            border: 1px solid #e0d5c8;
+        }
+        .search-result-item .sr-header { font-weight: 600; color: #5d4037; font-size: 0.9rem; }
+        .search-result-item .sr-person { font-size: 0.75rem; color: #999; }
+        .search-result-item .sr-snippet {
+            font-size: 0.8rem; color: #666; margin-top: 4px; padding: 4px 8px;
+            background: #faf5f0; border-radius: 6px; border-left: 3px solid #d7c4a8;
+        }
+        .search-result-item .sr-snippet mark { background: #ffe082; padding: 0 2px; border-radius: 2px; }
+        .search-result-item .sr-tags { margin-top: 4px; }
+        .search-filter-row {
+            display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center;
+        }
+        .search-filter-row select {
+            padding: 6px 10px; border: 1px solid #e0d5c8; border-radius: 10px;
+            font-size: 0.8rem; background: white;
+        }
+        .search-filter-row .filter-label { font-size: 0.8rem; color: #888; }
+
+        /* Transcription UI */
+        .transcribe-btn {
+            padding: 4px 12px; border: none; border-radius: 8px; font-size: 0.72rem;
+            font-weight: 600; cursor: pointer; background: #2980b9; color: white;
+        }
+        .transcribe-btn:hover { background: #2472a4; }
+        .transcribe-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .transcription-status {
+            font-size: 0.7rem; font-weight: 600; padding: 2px 8px;
+            border-radius: 8px; display: inline-block;
+        }
+        .transcription-status.pending { background: #fff3e0; color: #e65100; }
+        .transcription-status.processing { background: #e3f2fd; color: #1565c0; }
+        .transcription-status.completed { background: #e8f5e9; color: #2e7d32; }
+        .transcription-status.failed { background: #fce4ec; color: #c62828; }
+        .transcript-section {
+            margin-top: 8px; padding: 10px; background: #faf8f5; border-radius: 8px;
+            border: 1px solid #e0d5c8; font-size: 0.8rem; color: #444;
+            max-height: 200px; overflow-y: auto; line-height: 1.5;
+        }
+        .transcript-summary {
+            margin-top: 6px; padding: 8px 10px; background: #f0f7ff;
+            border-radius: 8px; font-size: 0.8rem; color: #333;
+            border-left: 3px solid #2980b9;
+        }
+        .keyword-badges { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+        .keyword-badge {
+            padding: 2px 8px; border-radius: 10px; font-size: 0.68rem;
+            background: #e8eaf6; color: #3949ab; font-weight: 500;
+        }
+        .transcript-toggle {
+            font-size: 0.75rem; color: #2980b9; cursor: pointer; border: none;
+            background: none; font-weight: 600; padding: 0;
+        }
+        .transcript-toggle:hover { text-decoration: underline; }
+
+        /* Transcript search bar */
+        .transcript-search-bar {
+            display: flex; gap: 8px; margin-bottom: 8px; margin-top: 8px;
+        }
+        .transcript-search-bar input {
+            flex: 1; padding: 8px 12px; border: 1px solid #c8d6e5; border-radius: 16px;
+            font-size: 0.85rem; background: white;
+        }
+        .transcript-search-bar button {
+            padding: 6px 14px; border: none; border-radius: 16px;
+            background: #2980b9; color: white; font-weight: 600; cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .transcript-search-bar button:hover { background: #2472a4; }
+        .transcript-search-results { margin-top: 6px; }
+        .transcript-search-result {
+            background: white; border-radius: 8px; padding: 10px; margin-bottom: 6px;
+            border: 1px solid #c8d6e5;
+        }
+        .transcript-search-result .tsr-header { font-weight: 600; color: #2c3e50; font-size: 0.85rem; }
+        .transcript-search-result .tsr-person { font-size: 0.72rem; color: #999; }
+        .transcript-search-result .tsr-snippet {
+            font-size: 0.8rem; color: #555; margin-top: 4px; padding: 4px 8px;
+            background: #f0f7ff; border-radius: 6px; border-left: 3px solid #2980b9;
+        }
+        .transcript-search-result .tsr-snippet mark { background: #ffe082; padding: 0 2px; border-radius: 2px; }
+        .transcript-search-result .tsr-keywords { margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -425,6 +880,27 @@ TEMPLATE_HTML = """
 
         <!-- RECORD TAB -->
         <div class="panel" id="panel-record">
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <input id="searchInput" placeholder="Search sessions, notes, tags, conversations..." onkeypress="if(event.key==='Enter')performSearch()" />
+                <button onclick="performSearch()">Search</button>
+            </div>
+            <div class="search-filter-row" id="searchFilterRow" style="display:none;">
+                <span class="filter-label">Filter by tag:</span>
+                <select id="searchTagFilter" onchange="performSearch()">
+                    <option value="">All tags</option>
+                </select>
+                <button class="btn btn-sm" style="background:#e0d5c8;color:#5d4037;padding:4px 10px;font-size:0.75rem;" onclick="clearSearch()">Clear Search</button>
+            </div>
+            <div class="search-results" id="searchResults" style="display:none;"></div>
+
+            <!-- Transcript Search -->
+            <div class="transcript-search-bar">
+                <input id="transcriptSearchInput" placeholder="Search transcripts..." onkeypress="if(event.key==='Enter')searchTranscripts()" />
+                <button onclick="searchTranscripts()">Search Transcripts</button>
+            </div>
+            <div class="transcript-search-results" id="transcriptSearchResults" style="display:none;"></div>
+
             <div class="card" id="consentArea">
                 <h3>Consent Required</h3>
                 <p style="font-size:0.85rem;color:#888;margin-bottom:10px">녹음 전 아래 동의가 필요합니다.</p>
@@ -797,6 +1273,14 @@ TEMPLATE_HTML = """
             document.getElementById('uploadBtn').disabled = false;
         }
 
+        // ====== Tag Colors ======
+        const TAG_COLORS = ['#8e6b47','#c0392b','#2980b9','#27ae60','#8e44ad','#d35400','#16a085','#2c3e50','#f39c12','#7f8c8d'];
+        function tagColor(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
+        }
+
         // ====== Session List & Playback ======
         async function loadSessionList() {
             if (!selectedPersonId) return;
@@ -817,14 +1301,296 @@ TEMPLATE_HTML = """
                 const playBtn = s.has_audio
                     ? '<button class="play-btn" onclick="playSessionAudio(' + s.id + ', this)" title="Play recording">&#9654;</button>'
                     : '';
-                return '<div class="session-item">' +
-                    '<div class="session-info">' +
-                        '<div class="topic">#' + s.number + ' ' + s.topic + '</div>' +
-                        '<div class="meta">' + durStr + ' | ' + statusBadge + '</div>' +
+
+                // Tags
+                const tagsHtml = (s.tags || []).map(t =>
+                    '<span class="tag-chip" style="background:' + tagColor(t) + '">' +
+                        escapeHtml(t) +
+                        '<span class="tag-remove" onclick="removeTag(' + s.id + ',\'' + escapeHtml(t) + '\')">&times;</span>' +
+                    '</span>'
+                ).join('');
+
+                // Emotional tone
+                const toneOptions = ['','행복','슬픔','감사','그리움','평온'];
+                const toneSelect = toneOptions.map(opt =>
+                    '<option value="' + opt + '"' + (opt === (s.emotional_tone || '') ? ' selected' : '') + '>' +
+                    (opt || '-- tone --') + '</option>'
+                ).join('');
+
+                // Transcription UI
+                let transcribeBtn = '';
+                if (s.has_audio && s.transcription_status !== 'completed' && s.transcription_status !== 'processing' && s.transcription_status !== 'pending') {
+                    transcribeBtn = '<button class="transcribe-btn" onclick="transcribeSession(' + s.id + ')">Transcribe</button>';
+                }
+                let tsStatusHtml = '';
+                if (s.transcription_status && s.transcription_status !== 'none') {
+                    tsStatusHtml = '<span class="transcription-status ' + s.transcription_status + '">' + s.transcription_status + '</span>';
+                }
+
+                // Transcript display (collapsible)
+                let transcriptHtml = '';
+                if (s.has_transcript || s.transcript_summary || (s.keywords && s.keywords.length)) {
+                    transcriptHtml += '<button class="transcript-toggle" onclick="toggleTranscript(' + s.id + ')">Transcript &#9662;</button>';
+                    transcriptHtml += '<div id="transcript-' + s.id + '" style="display:none;">';
+                    if (s.transcript_summary) {
+                        transcriptHtml += '<div class="transcript-summary">' + escapeHtml(s.transcript_summary) + '</div>';
+                    }
+                    if (s.keywords && s.keywords.length) {
+                        transcriptHtml += '<div class="keyword-badges">';
+                        s.keywords.forEach(function(kw) {
+                            transcriptHtml += '<span class="keyword-badge">' + escapeHtml(kw) + '</span>';
+                        });
+                        transcriptHtml += '</div>';
+                    }
+                    if (s.has_transcript) {
+                        transcriptHtml += '<button class="transcript-toggle" style="margin-top:6px;" onclick="loadFullTranscript(' + s.id + ')">Show full transcript</button>';
+                        transcriptHtml += '<div class="transcript-section" id="full-transcript-' + s.id + '" style="display:none;">Loading...</div>';
+                    }
+                    transcriptHtml += '</div>';
+                }
+
+                return '<div class="session-item" id="session-' + s.id + '">' +
+                    '<div class="session-header">' +
+                        '<div class="session-info">' +
+                            '<div class="topic">#' + s.number + ' ' + escapeHtml(s.topic) + '</div>' +
+                            '<div class="meta">' + durStr + ' | ' + statusBadge + ' ' + tsStatusHtml + '</div>' +
+                        '</div>' +
+                        transcribeBtn +
+                        playBtn +
                     '</div>' +
-                    playBtn +
+                    '<div class="tag-area" id="tags-' + s.id + '">' +
+                        tagsHtml +
+                        '<button class="add-tag-btn" onclick="showTagInput(' + s.id + ')">+ tag</button>' +
+                        '<div class="tag-input-wrap" id="tag-input-' + s.id + '" style="display:none;">' +
+                            '<input id="tag-val-' + s.id + '" placeholder="tag name" onkeypress="if(event.key===\'Enter\')addTag(' + s.id + ')" />' +
+                            '<button onclick="addTag(' + s.id + ')">Add</button>' +
+                        '</div>' +
+                    '</div>' +
+                    transcriptHtml +
+                    '<div style="display:flex;align-items:center;gap:8px;">' +
+                        '<select class="tone-select" onchange="saveTone(' + s.id + ',this.value)">' + toneSelect + '</select>' +
+                        '<button class="notes-toggle" onclick="toggleNotes(' + s.id + ')">Notes &#9662;</button>' +
+                    '</div>' +
+                    '<div class="notes-section" id="notes-' + s.id + '" style="display:none;">' +
+                        '<textarea id="notes-text-' + s.id + '" placeholder="Add your notes about this session...">' + escapeHtml(s.user_notes || '') + '</textarea>' +
+                        '<div class="notes-actions">' +
+                            '<button class="btn btn-primary btn-sm" onclick="saveNotes(' + s.id + ')">Save Notes</button>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>';
             }).join('');
+            // Load tags for search filter
+            loadTagFilter();
+        }
+
+        // ====== Tag Management ======
+        function showTagInput(sessionId) {
+            const el = document.getElementById('tag-input-' + sessionId);
+            el.style.display = el.style.display === 'none' ? 'inline-flex' : 'none';
+            if (el.style.display === 'inline-flex') {
+                document.getElementById('tag-val-' + sessionId).focus();
+            }
+        }
+
+        async function addTag(sessionId) {
+            const input = document.getElementById('tag-val-' + sessionId);
+            const tagName = input.value.trim();
+            if (!tagName) return;
+            await fetch('/api/recording/sessions/' + sessionId + '/tags', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({tag_name: tagName}),
+            });
+            input.value = '';
+            document.getElementById('tag-input-' + sessionId).style.display = 'none';
+            loadSessionList();
+        }
+
+        async function removeTag(sessionId, tagName) {
+            await fetch('/api/recording/sessions/' + sessionId + '/tags/' + encodeURIComponent(tagName), {
+                method: 'DELETE',
+            });
+            loadSessionList();
+        }
+
+        // ====== Notes & Emotional Tone ======
+        function toggleNotes(sessionId) {
+            const el = document.getElementById('notes-' + sessionId);
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function saveNotes(sessionId) {
+            const text = document.getElementById('notes-text-' + sessionId).value;
+            await fetch('/api/recording/sessions/' + sessionId + '/notes', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user_notes: text}),
+            });
+            alert('Notes saved!');
+        }
+
+        async function saveTone(sessionId, tone) {
+            await fetch('/api/recording/sessions/' + sessionId + '/notes', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({emotional_tone: tone}),
+            });
+        }
+
+        // ====== Transcription ======
+        async function transcribeSession(sessionId) {
+            const r = await fetch('/api/recording/sessions/' + sessionId + '/transcribe', {method: 'POST'});
+            const d = await r.json();
+            if (d.status === 'queued' || d.status === 'already_processing') {
+                // Start polling
+                pollTranscriptionStatus(sessionId);
+                loadSessionList();
+            } else {
+                alert('Transcription request failed.');
+            }
+        }
+
+        function pollTranscriptionStatus(sessionId) {
+            const interval = setInterval(async function() {
+                const r = await fetch('/api/recording/sessions/' + sessionId + '/transcript');
+                const d = await r.json();
+                if (d.transcription_status === 'completed' || d.transcription_status === 'failed') {
+                    clearInterval(interval);
+                    loadSessionList();
+                } else if (d.transcription_status === 'processing' || d.transcription_status === 'pending') {
+                    // Keep polling
+                }
+            }, 3000);
+            // Stop polling after 5 minutes max
+            setTimeout(function() { clearInterval(interval); }, 300000);
+        }
+
+        function toggleTranscript(sessionId) {
+            const el = document.getElementById('transcript-' + sessionId);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function loadFullTranscript(sessionId) {
+            const el = document.getElementById('full-transcript-' + sessionId);
+            if (!el) return;
+            if (el.style.display === 'block' && el.textContent !== 'Loading...') {
+                el.style.display = 'none';
+                return;
+            }
+            el.style.display = 'block';
+            el.textContent = 'Loading...';
+            const r = await fetch('/api/recording/sessions/' + sessionId + '/transcript');
+            const d = await r.json();
+            el.textContent = d.transcript || '(No transcript available)';
+        }
+
+        // ====== Transcript Search ======
+        async function searchTranscripts() {
+            const q = document.getElementById('transcriptSearchInput').value.trim();
+            if (!q) {
+                document.getElementById('transcriptSearchResults').style.display = 'none';
+                return;
+            }
+            const r = await fetch('/api/search/transcript?q=' + encodeURIComponent(q));
+            const d = await r.json();
+            const el = document.getElementById('transcriptSearchResults');
+            el.style.display = 'block';
+            if (!d.results || !d.results.length) {
+                el.innerHTML = '<div class="empty-state">No transcript results found.</div>';
+                return;
+            }
+            el.innerHTML = '<div style="font-size:0.8rem;color:#888;margin-bottom:4px;">' + d.count + ' transcript result(s)</div>' +
+                d.results.map(function(r) {
+                    let snippetHtml = '';
+                    if (r.transcript_snippet) {
+                        let text = escapeHtml(r.transcript_snippet);
+                        const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + ')', 'gi');
+                        text = text.replace(re, '<mark>$1</mark>');
+                        snippetHtml = '<div class="tsr-snippet">' + text + '</div>';
+                    }
+                    let kwHtml = '';
+                    if (r.keywords && r.keywords.length) {
+                        kwHtml = '<div class="tsr-keywords">' +
+                            r.keywords.map(function(kw) { return '<span class="keyword-badge">' + escapeHtml(kw) + '</span>'; }).join(' ') +
+                        '</div>';
+                    }
+                    let summaryHtml = r.transcript_summary
+                        ? '<div style="font-size:0.78rem;color:#555;margin-top:3px;">' + escapeHtml(r.transcript_summary) + '</div>'
+                        : '';
+                    return '<div class="transcript-search-result">' +
+                        '<div class="tsr-header">#' + r.session_number + ' ' + escapeHtml(r.topic) + '</div>' +
+                        '<div class="tsr-person">' + escapeHtml(r.person_name) + '</div>' +
+                        summaryHtml + snippetHtml + kwHtml +
+                    '</div>';
+                }).join('');
+        }
+
+        // ====== Search ======
+        async function loadTagFilter() {
+            const r = await fetch('/api/tags');
+            const d = await r.json();
+            const sel = document.getElementById('searchTagFilter');
+            const current = sel.value;
+            sel.innerHTML = '<option value="">All tags</option>' +
+                (d.tags || []).map(t =>
+                    '<option value="' + escapeHtml(t.tag_name) + '"' + (t.tag_name === current ? ' selected' : '') + '>' +
+                    escapeHtml(t.tag_name) + ' (' + t.count + ')</option>'
+                ).join('');
+        }
+
+        async function performSearch() {
+            const q = document.getElementById('searchInput').value.trim();
+            const tag = document.getElementById('searchTagFilter').value;
+            if (!q && !tag) {
+                clearSearch();
+                return;
+            }
+
+            let url = '/api/search?q=' + encodeURIComponent(q);
+            if (selectedPersonId) url += '&person_id=' + selectedPersonId;
+            if (tag) url += '&tag=' + encodeURIComponent(tag);
+
+            const r = await fetch(url);
+            const d = await r.json();
+
+            document.getElementById('searchFilterRow').style.display = 'flex';
+            const el = document.getElementById('searchResults');
+            el.style.display = 'block';
+
+            if (!d.results || !d.results.length) {
+                el.innerHTML = '<div class="empty-state">No results found.</div>';
+                return;
+            }
+
+            el.innerHTML = '<div style="font-size:0.8rem;color:#888;margin-bottom:6px;">' + d.count + ' result(s)</div>' +
+                d.results.map(r => {
+                    const tagsHtml = (r.tags || []).map(t =>
+                        '<span class="tag-chip" style="background:' + tagColor(t) + '">' + escapeHtml(t) + '</span>'
+                    ).join('');
+                    const snippetsHtml = (r.snippets || []).map(sn => {
+                        let text = escapeHtml(sn.text);
+                        if (q) {
+                            const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + ')', 'gi');
+                            text = text.replace(re, '<mark>$1</mark>');
+                        }
+                        return '<div class="sr-snippet"><span style="font-size:0.7rem;color:#aaa;">[' + sn.field + ']</span> ' + text + '</div>';
+                    }).join('');
+                    const toneLabel = r.emotional_tone ? ' | ' + r.emotional_tone : '';
+                    return '<div class="search-result-item">' +
+                        '<div class="sr-header">#' + r.session_number + ' ' + escapeHtml(r.topic) + '</div>' +
+                        '<div class="sr-person">' + escapeHtml(r.person_name) + toneLabel + '</div>' +
+                        (tagsHtml ? '<div class="sr-tags">' + tagsHtml + '</div>' : '') +
+                        snippetsHtml +
+                    '</div>';
+                }).join('');
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchTagFilter').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('searchFilterRow').style.display = 'none';
         }
 
         let currentlyPlayingBtn = null;

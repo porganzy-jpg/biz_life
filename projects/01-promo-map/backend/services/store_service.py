@@ -57,7 +57,8 @@ def get_nearby_stores(db: Session, lat: float, lon: float, radius: float = 100.0
             "icon_letter": store.icon_letter,
             "distance_m": distance,
             "discounts": [
-                {"id": d.id, "type": d.discount_type, "value": d.discount_value, "description": d.description}
+                {"id": d.id, "type": d.discount_type, "value": d.discount_value, "description": d.description,
+                 "valid_until": d.valid_until.isoformat() if d.valid_until else None}
                 for d in discounts
             ],
         })
@@ -145,7 +146,8 @@ def get_store_detail(db: Session, store_id: int, user: User = None) -> dict:
             "icon_color": store.icon_color,
             "icon_letter": store.icon_letter,
             "discounts": [
-                {"id": d.id, "type": d.discount_type, "value": d.discount_value, "description": d.description}
+                {"id": d.id, "type": d.discount_type, "value": d.discount_value, "description": d.description,
+                 "valid_until": d.valid_until.isoformat() if d.valid_until else None}
                 for d in discounts
             ],
             "reviews_count": reviews_count,

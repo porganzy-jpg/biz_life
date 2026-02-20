@@ -12,10 +12,25 @@
     width: 44px; height: 44px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-size: 18px; color: white; font-weight: 700; flex-shrink: 0;
+    position: relative;
+}
+.store-card .card-icon .card-category-icon {
+    position: absolute; bottom: -3px; right: -3px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: white; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .store-card .card-info { flex: 1; min-width: 0; }
-.store-card .card-name { font-weight: 600; font-size: 0.92rem; }
+.store-card .card-name {
+    font-weight: 600; font-size: 0.92rem;
+    display: flex; align-items: center; gap: 6px;
+}
 .store-card .card-meta { color: #999; font-size: 0.78rem; margin-top: 2px; }
+.store-card .card-phone {
+    color: #4285f4; font-size: 0.75rem; margin-top: 2px;
+    text-decoration: none;
+}
+.store-card .card-phone:hover { text-decoration: underline; }
 .store-card .card-discount {
     background: #FF3B30; color: white; padding: 4px 10px;
     border-radius: 8px; font-weight: 700; font-size: 0.82rem;

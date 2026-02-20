@@ -13,6 +13,7 @@ class DiscountBrief(BaseModel):
     type: str
     value: float
     description: str
+    valid_until: Optional[str] = None
 
 
 class StoreResponse(BaseModel):

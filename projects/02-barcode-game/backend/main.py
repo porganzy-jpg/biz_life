@@ -1,5 +1,5 @@
 """
-BarcodeQuest - FastAPI 게임 서버 v2.1
+BarcodeQuest - FastAPI 게임 서버 v2.2
 
 v2.0 시스템:
   - 방치형 탐험 (ExpeditionSystem)
@@ -10,6 +10,9 @@ v2.0 시스템:
 v2.1 변경:
   - SQLite-backed persistence (인메모리 dict → DB 저장)
   - 서버 재시작 후에도 플레이어 진행도 유지
+
+v2.2 변경:
+  - PvP 아레나 시스템 (ELO 매치메이킹, 글로벌 리더보드)
 """
 import sys
 import os
@@ -35,13 +38,17 @@ from daily_quest_system import DailyQuestSystem
 from bus_system import BusSystem, calculate_affinity, get_room_suggestion, ROOM_DEFINITIONS
 
 import persistence
+from pvp_system import ArenaManager
 
-app = FastAPI(title="BarcodeQuest Game Server v2.1")
+app = FastAPI(title="BarcodeQuest Game Server v2.2")
 
 # 게임 엔진 인스턴스 (stateless singletons)
 generator = BarcodeMonsterGenerator()
 battle_system = BattleSystem()
 evolution_system = EvolutionSystem()
+
+# PvP 아레나 매니저
+arena_manager = ArenaManager()
 
 # Sub-systems that hold per-session state in memory (loaded from DB on access)
 expedition_system = ExpeditionSystem()
@@ -105,6 +112,7 @@ def get_inventory(session_id: str = "default") -> ItemInventory:
 
 @app.on_event("startup")
 async def startup():
+    import pvp_models  # noqa: F401  (테이블 생성을 위해 모델 import)
     init_db()
 
 
@@ -817,6 +825,83 @@ async def collect_bus_resources(session: str = Query("default")):
         persistence.save_daily_quests(session, daily_quest_system)
 
     return result
+
+
+# =====================================================
+#  신규 API: PvP 아레나 시스템
+# =====================================================
+
+@app.post("/api/pvp/register")
+async def pvp_register(
+    session: str = Query("default"),
+):
+    """아레나 방어 파티 등록 (현재 파티 그대로 등록)"""
+    player, _ = get_or_create_player(session)
+    if not player.party:
+        return {"error": "파티에 몬스터가 없습니다! 먼저 바코드를 스캔하세요."}
+    result = arena_manager.register_for_arena(session, player.party[:3])
+    return result
+
+
+@app.post("/api/pvp/battle")
+async def pvp_battle(
+    session: str = Query("default"),
+):
+    """PvP 배틀 (매치메이킹 → 배틀 → 레이팅 업데이트)"""
+    player, _ = get_or_create_player(session)
+    if not player.party:
+        return {"error": "파티에 몬스터가 없습니다!"}
+
+    result = arena_manager.do_pvp_battle(session, player.party[:3])
+    if "error" in result:
+        return result
+
+    # 골드 보상 지급
+    gold = result.get("gold_earned", 0)
+    player.gain_gold(gold)
+
+    # 보너스 아이템 지급
+    bonus_item = result.get("bonus_item")
+    if bonus_item:
+        inv = get_inventory(session)
+        inv.add_item(bonus_item)
+        persistence.save_inventory(session, inv)
+
+    # --- DB Persist ---
+    persistence.save_player(session, player)
+
+    result["player"] = player.to_dict()
+    return result
+
+
+@app.get("/api/pvp/leaderboard")
+async def pvp_leaderboard(
+    limit: int = Query(50, ge=1, le=100),
+):
+    """글로벌 PvP 리더보드 (상위 N명)"""
+    leaderboard = arena_manager.get_leaderboard(limit)
+    return {"leaderboard": leaderboard, "total": len(leaderboard)}
+
+
+@app.get("/api/pvp/stats")
+async def pvp_stats(
+    session: str = Query("default"),
+):
+    """내 아레나 통계"""
+    stats = arena_manager.get_player_arena_stats(session)
+    if stats is None:
+        return {"registered": False, "message": "아레나에 등록되지 않았습니다."}
+    return {"registered": True, "stats": stats}
+
+
+@app.get("/api/pvp/history")
+async def pvp_history(
+    session: str = Query("default"),
+    limit: int = Query(10, ge=1, le=50),
+):
+    """내 최근 PvP 배틀 기록"""
+    history = arena_manager.get_recent_battles(session, limit)
+    return {"history": history, "total": len(history)}
 
 
 if __name__ == "__main__":

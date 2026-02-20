@@ -7,6 +7,7 @@ Endpoints:
 - GET /api/market-watch -> Per-market strategy signals + indicators
 - GET /api/trades/stats?period=today|week|month|all -> Period stats
 - GET /api/trades/history?page=&market=&exit_type= -> Trade history
+- GET /api/export/csv?market=&exit_type= -> CSV file download of trades
 - GET /api/runtime   -> Runtime info + config summary
 - POST /api/bot/start|stop|halt|resume -> Bot control
 """
@@ -18,7 +19,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from . import config
 from .trader import get_trades_stats, get_trades_history
@@ -213,6 +214,57 @@ async def api_runtime():
     }
 
 
+@app.get("/api/export/csv")
+async def export_csv(
+    market: str = Query(""),
+    exit_type: str = Query(""),
+):
+    """Export trade history as CSV file download."""
+    import csv
+    import io
+    from datetime import datetime as _dt
+
+    all_trades = get_trades_history(page=1, page_size=10000, market=market, exit_type=exit_type)
+    trades = all_trades.get("trades", [])
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "timestamp", "market", "side", "entry_price", "exit_price",
+        "pnl_krw", "pnl_pct", "exit_type", "bars_held", "strategies",
+    ])
+
+    candle_sec = getattr(config, "CANDLE_INTERVAL_SEC", 900)
+    for t in trades:
+        duration = t.get("duration_sec", 0)
+        bars_held = int(duration / candle_sec) if candle_sec > 0 else 0
+        strategies = ", ".join(t.get("contributing_strategies", [])) if t.get("contributing_strategies") else ""
+        writer.writerow([
+            t.get("exit_time", ""),
+            t.get("market", ""),
+            t.get("side", "long"),
+            t.get("entry_price", 0),
+            t.get("exit_price", 0),
+            round(t.get("pnl_krw", 0), 0),
+            round(t.get("pnl_pct", 0), 2),
+            t.get("exit_type", ""),
+            bars_held,
+            strategies,
+        ])
+
+    csv_content = output.getvalue()
+    output.close()
+
+    timestamp = _dt.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"scalper_trades_{timestamp}.csv"
+
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
 @app.post("/api/bot/start")
 async def start_bot():
     if _trader is None:
@@ -331,6 +383,19 @@ tr:hover{background:rgba(88,166,255,.04)}
 .ind-status{width:36px;text-align:center;font-size:10px;font-weight:700;border-radius:3px;padding:1px 4px;flex-shrink:0}
 .sig-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px}
 .sig-name{color:var(--text2)}.sig-buy{color:var(--green);font-weight:600}.sig-sell{color:var(--red);font-weight:600}.sig-hold{color:var(--text2)}
+/* MTF Confluence panel */
+.mtf-panel{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+.mtf-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.mtf-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;min-width:24px;text-align:center}
+.mtf-badge-3{background:#1a3a1a;color:var(--green)}.mtf-badge-2{background:#1a3a1a;color:var(--green)}
+.mtf-badge-1{background:#3a3a1a;color:var(--yellow)}.mtf-badge-0{background:#3a1a1a;color:var(--red)}
+.mtf-tf-row{display:flex;align-items:center;gap:10px;padding:3px 0;font-size:12px}
+.mtf-tf-label{width:32px;color:var(--text2);font-weight:600;flex-shrink:0}
+.mtf-arrow{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.mtf-arrow-bullish{color:var(--green)}.mtf-arrow-bearish{color:var(--red)}.mtf-arrow-neutral{color:var(--yellow)}
+.mtf-tf-detail{font-size:11px;color:var(--text2);flex:1}
+.mtf-sr{font-size:11px;color:var(--text2);margin-top:4px;display:flex;gap:16px}
+.mtf-sr-label{color:var(--text2)}.mtf-sr-val{font-family:monospace;font-weight:600}
 /* Positions */
 .pos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
 .pos-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px}
@@ -523,7 +588,8 @@ table{min-width:600px}
   </div>
   <div class="stats-grid" id="perfStats"></div>
   <div class="chart-row"><div class="chart-box"><canvas id="equityChart"></canvas></div><div class="chart-box"><canvas id="dailyPnlChart"></canvas></div></div>
-  <div class="chart-row"><div class="chart-box"><canvas id="exitTypeChart"></canvas></div><div class="chart-box" id="perfSummaryBox"></div></div>
+  <div class="chart-row"><div class="chart-box"><canvas id="exitTypeChart"></canvas></div><div class="chart-box"><canvas id="marketPnlChart"></canvas></div></div>
+  <div class="chart-row"><div class="chart-box" id="perfSummaryBox"></div><div class="chart-box" id="perfBlank"></div></div>
 </div>
 
 <!-- Tab 3: Strategy -->
@@ -831,6 +897,7 @@ function applyMarketWatch(d){
       <div class="mw-chart-wrap"><canvas id="chart-${m.market}"></canvas></div>
       <div id="sigs-${m.market}"></div>
       <div class="ind-section" id="ind-${m.market}"></div>
+      <div class="mtf-panel" id="mtf-${m.market}"></div>
       <div class="mw-expand-hint">클릭하면 상세 차트 열기</div>
       <div class="mw-detail" id="detail-${m.market}">
         <div class="tv-chart-wrap" id="tv-${m.market}"></div>
@@ -905,6 +972,9 @@ function applyMarketWatch(d){
     document.getElementById('ind-'+m.market).innerHTML=gaugeHtml;
     } // end gauge changed check
 
+    // MTF confluence panel
+    if(changed){renderMTFPanel(m)}
+
     // Expanded detail: TV candlestick + subcharts + trigger
     const card=document.getElementById('mw-'+m.market);
     if(card&&card.classList.contains('expanded')){
@@ -916,6 +986,31 @@ function applyMarketWatch(d){
 }
 async function refreshMarketWatch(){
   const d=await api('/api/market-watch');applyMarketWatch(d);
+}
+
+// MTF panel renderer
+function renderMTFPanel(m){
+  const el=document.getElementById('mtf-'+m.market);
+  if(!el)return;
+  const mtf=m.mtf;
+  if(!mtf||!mtf.available){el.innerHTML='';return}
+  const sc=mtf.confluence_score;
+  const badgeCls='mtf-badge-'+sc;
+  const recMap={strong_buy:'Strong Buy',buy:'Buy',neutral:'Neutral',sell:'Sell',strong_sell:'Strong Sell'};
+  const recLabel=recMap[mtf.recommendation]||mtf.recommendation;
+  function tfRow(label,tf){
+    if(!tf)return `<div class="mtf-tf-row"><span class="mtf-tf-label">${label}</span><span style="color:var(--text2);font-size:11px">N/A</span></div>`;
+    const aCls='mtf-arrow-'+tf.trend;
+    return `<div class="mtf-tf-row"><span class="mtf-tf-label">${label}</span><span class="mtf-arrow ${aCls}">${tf.arrow}</span><span class="mtf-tf-detail">EMA: ${tf.ema_direction} | RSI: ${tf.rsi.toFixed(1)} (${tf.rsi_zone}) | VWAP: ${tf.price_vs_vwap}</span></div>`;
+  }
+  let srHtml='';
+  if(mtf.nearest_support>0||mtf.nearest_resistance>0){
+    srHtml='<div class="mtf-sr">';
+    if(mtf.nearest_support>0)srHtml+=`<span><span class="mtf-sr-label">S: </span><span class="mtf-sr-val" style="color:var(--green)">${fmt(mtf.nearest_support)}</span></span>`;
+    if(mtf.nearest_resistance>0)srHtml+=`<span><span class="mtf-sr-label">R: </span><span class="mtf-sr-val" style="color:var(--red)">${fmt(mtf.nearest_resistance)}</span></span>`;
+    srHtml+='</div>';
+  }
+  el.innerHTML=`<div class="mtf-title">Multi-Timeframe <span class="mtf-badge ${badgeCls}">${sc}/3</span> <span style="font-size:10px;font-weight:400;color:var(--text2)">${recLabel}</span></div>${tfRow('15m',mtf.tf_15m)}${tfRow('1h',mtf.tf_1h)}${tfRow('4h',mtf.tf_4h)}${srHtml}`;
 }
 
 // Toggle expand
@@ -1151,12 +1246,87 @@ async function loadPerformance(){
     <div class="card"><div class="card-label">Avg Duration</div><div class="card-value">${fmtDuration(d.avg_duration_sec)}</div></div>
     <div class="card"><div class="card-label">Best Trade</div><div class="card-value positive">+${fmt(d.best_trade_krw)}</div></div>
     <div class="card"><div class="card-label">Worst Trade</div><div class="card-value negative">${fmt(d.worst_trade_krw)}</div></div>`;
+
+  // ── Equity Curve with green/red gradient + drawdown shading ──
   const eq=d.equity_curve||[];
-  renderChart('equityChart','line',{labels:eq.map((e,i)=>i+1),datasets:[{label:'Cumulative PnL (KRW)',data:eq.map(e=>e.cumulative_pnl),borderColor:'rgb(88,166,255)',backgroundColor:'rgba(88,166,255,.1)',fill:true,tension:.3,pointRadius:eq.length>50?0:3}]},{plugins:{title:{display:true,text:'Equity Curve',color:'#8b949e'}}});
+  const dd=d.drawdown_series||[];
+  const eqLabels=eq.map((e,i)=>i+1);
+  const eqData=eq.map(e=>e.cumulative_pnl);
+  const ddData=dd.map(e=>e.drawdown);
+
+  // Destroy previous chart before creating new one with custom plugin
+  if(charts['equityChart']){charts['equityChart'].destroy();delete charts['equityChart']}
+  const eqCtx=document.getElementById('equityChart');
+  if(eqCtx){
+    // Custom plugin: gradient fill green above zero, red below zero
+    const equityGradientPlugin={
+      id:'equityGradient',
+      beforeDraw(chart){
+        const ctx2=chart.ctx;
+        const area=chart.chartArea;
+        const yScale=chart.scales.y;
+        if(!area)return;
+        const zeroY=yScale.getPixelForValue(0);
+        const clampedZero=Math.max(area.top,Math.min(area.bottom,zeroY));
+        // Green gradient above zero
+        const greenGrad=ctx2.createLinearGradient(0,area.top,0,clampedZero);
+        greenGrad.addColorStop(0,'rgba(63,185,80,0.25)');
+        greenGrad.addColorStop(1,'rgba(63,185,80,0.02)');
+        // Red gradient below zero
+        const redGrad=ctx2.createLinearGradient(0,clampedZero,0,area.bottom);
+        redGrad.addColorStop(0,'rgba(248,81,73,0.02)');
+        redGrad.addColorStop(1,'rgba(248,81,73,0.25)');
+        // Apply to datasets
+        const ds=chart.data.datasets[0];
+        if(ds){
+          const meta=chart.getDatasetMeta(0);
+          if(meta&&meta.dataset){
+            // Use split gradient
+            const fullGrad=ctx2.createLinearGradient(0,area.top,0,area.bottom);
+            const ratio=(clampedZero-area.top)/(area.bottom-area.top);
+            fullGrad.addColorStop(0,'rgba(63,185,80,0.25)');
+            fullGrad.addColorStop(Math.max(0,ratio-0.01),'rgba(63,185,80,0.05)');
+            fullGrad.addColorStop(ratio,'rgba(128,128,128,0.02)');
+            fullGrad.addColorStop(Math.min(1,ratio+0.01),'rgba(248,81,73,0.05)');
+            fullGrad.addColorStop(1,'rgba(248,81,73,0.25)');
+            ds.backgroundColor=fullGrad;
+          }
+        }
+      }
+    };
+    const eqDatasets=[
+      {label:'Cumulative PnL (KRW)',data:eqData,borderColor:eqData.length>0&&eqData[eqData.length-1]>=0?'#3fb950':'#f85149',backgroundColor:'rgba(88,166,255,.1)',fill:true,tension:.3,pointRadius:eq.length>50?0:3,borderWidth:2,order:1},
+    ];
+    if(ddData.length>0){
+      eqDatasets.push({label:'Drawdown (KRW)',data:ddData,borderColor:'rgba(248,81,73,0.4)',backgroundColor:'rgba(248,81,73,0.08)',fill:true,tension:.3,pointRadius:0,borderWidth:1,borderDash:[4,4],order:2,yAxisID:'y'});
+    }
+    charts['equityChart']=new Chart(eqCtx,{type:'line',data:{labels:eqLabels,datasets:eqDatasets},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{labels:{color:'#c9d1d9',font:{size:11}}},title:{display:true,text:'Equity Curve & Drawdown',color:'#8b949e'}},
+        scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}}}},
+      plugins:[equityGradientPlugin]});
+  }
+
+  // ── Daily PnL Bar Chart (green wins, red losses) ──
   const days=Object.keys(d.daily_pnl||{});const dayVals=days.map(k=>d.daily_pnl[k]);
-  renderChart('dailyPnlChart','bar',{labels:days.map(k=>k.slice(5)),datasets:[{label:'Daily PnL (KRW)',data:dayVals,backgroundColor:dayVals.map(v=>v>=0?'rgba(63,185,80,.7)':'rgba(248,81,73,.7)')}]},{plugins:{title:{display:true,text:'Daily PnL',color:'#8b949e'}}});
+  renderChart('dailyPnlChart','bar',{labels:days.map(k=>k.slice(5)),datasets:[{label:'Daily PnL (KRW)',data:dayVals,backgroundColor:dayVals.map(v=>v>=0?'rgba(63,185,80,.7)':'rgba(248,81,73,.7)'),borderColor:dayVals.map(v=>v>=0?'#3fb950':'#f85149'),borderWidth:1}]},{plugins:{title:{display:true,text:'Daily PnL Timeline',color:'#8b949e'}}});
+
+  // ── Exit Type Doughnut with specific colors ──
+  const exitColorMap={'stop_loss':'#f85149','take_profit':'#3fb950','trailing_stop':'#58a6ff','signal_sell':'#f0883e','breakeven_stop':'#8b949e','breakeven':'#8b949e','unknown':'#6e7681'};
   const etL=Object.keys(d.exit_types||{});const etV=etL.map(k=>d.exit_types[k]);
-  renderChart('exitTypeChart','doughnut',{labels:etL,datasets:[{data:etV,backgroundColor:['#58a6ff','#3fb950','#f85149','#d29922','#bc8cff','#f0883e'].slice(0,etL.length)}]},{plugins:{title:{display:true,text:'Exit Types',color:'#8b949e'}}});
+  const etColors=etL.map(k=>exitColorMap[k]||'#bc8cff');
+  renderChart('exitTypeChart','doughnut',{labels:etL,datasets:[{data:etV,backgroundColor:etColors,borderColor:'#161b22',borderWidth:2}]},{plugins:{title:{display:true,text:'Exit Type Distribution',color:'#8b949e'},legend:{labels:{color:'#c9d1d9',font:{size:11},padding:12}}}});
+
+  // ── Market Performance Horizontal Bar Chart ──
+  const mktPnl=d.market_pnl||{};
+  const mktLabels=Object.keys(mktPnl);const mktVals=mktLabels.map(k=>mktPnl[k]);
+  if(mktLabels.length>0){
+    renderChart('marketPnlChart','bar',{labels:mktLabels,datasets:[{label:'P&L (KRW)',data:mktVals,backgroundColor:mktVals.map(v=>v>=0?'rgba(63,185,80,.7)':'rgba(248,81,73,.7)'),borderColor:mktVals.map(v=>v>=0?'#3fb950':'#f85149'),borderWidth:1}]},{indexAxis:'y',plugins:{title:{display:true,text:'Market Performance Comparison',color:'#8b949e'},legend:{display:false}},scales:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#c9d1d9',font:{size:11}},grid:{color:'#21262d'}}}});
+  } else {
+    const mpEl=document.getElementById('marketPnlChart');
+    if(mpEl){const mpParent=mpEl.parentElement;if(mpParent)mpParent.innerHTML='<div class="panel-title">Market Performance</div><p style="color:var(--text2);padding:20px;text-align:center">No market data available</p>'}
+  }
+
   document.getElementById('perfSummaryBox').innerHTML=`<div class="panel-title">Summary (${currentPeriod})</div><table>
     <tr><td style="color:var(--text2)">Trades</td><td>${d.total_trades}</td></tr>
     <tr><td style="color:var(--text2)">Wins / Losses</td><td>${d.wins} / ${d.losses}</td></tr>
@@ -1207,14 +1377,13 @@ async function populateFilters(){
   ['stop_loss','take_profit','trailing_stop','signal_sell','breakeven_stop'].forEach(et=>{const o=document.createElement('option');o.value=et;o.textContent=et;es.appendChild(o)});
 }
 function exportCSV(){
-  const market=document.getElementById('filterMarket').value;const exit=document.getElementById('filterExit').value;
-  fetch(`/api/trades/history?page=1&page_size=200&market=${market}&exit_type=${exit}`).then(r=>r.json()).then(d=>{
-    if(!d.trades||!d.trades.length)return alert('No trades');
-    const h=['exit_time','market','entry_price','exit_price','pnl_pct','pnl_krw','fee_krw','exit_type','duration_sec'];
-    const rows=[h.join(',')];d.trades.forEach(t=>{rows.push(h.map(k=>{const v=t[k];return typeof v==='string'&&v.includes(',')?`"${v}"`:v}).join(','))});
-    const blob=new Blob([rows.join('\n')],{type:'text/csv'});const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=`scalper_trades_${currentPeriod}.csv`;a.click();URL.revokeObjectURL(url);
-  });
+  const market=document.getElementById('filterMarket').value;
+  const exit=document.getElementById('filterExit').value;
+  const params=new URLSearchParams();
+  if(market)params.set('market',market);
+  if(exit)params.set('exit_type',exit);
+  const url='/api/export/csv'+(params.toString()?'?'+params.toString():'');
+  const a=document.createElement('a');a.href=url;a.download='';a.click();
 }
 
 // ── Guide live status ──

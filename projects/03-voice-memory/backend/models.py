@@ -40,11 +40,29 @@ class RecordingSession(Base):
     duration_seconds = Column(Integer, default=0)
     audio_file_path = Column(String(500), default="")
     transcript = Column(Text, default="")
+    transcript_summary = Column(Text, nullable=True)
+    keywords = Column(Text, nullable=True)  # JSON array of keyword strings
+    transcription_status = Column(String(20), default="none")  # none/pending/processing/completed/failed
     status = Column(String(20), default="pending")  # pending, recording, completed
+    user_notes = Column(Text, nullable=True)
+    emotional_tone = Column(String(20), nullable=True)
     recorded_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     person = relationship("Person", back_populates="sessions")
+    tags = relationship("SessionTag", back_populates="session", cascade="all, delete-orphan")
+
+
+class SessionTag(Base):
+    """세션 태그"""
+    __tablename__ = "session_tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("recording_sessions.id"), nullable=False)
+    tag_name = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("RecordingSession", back_populates="tags")
 
 
 class Conversation(Base):

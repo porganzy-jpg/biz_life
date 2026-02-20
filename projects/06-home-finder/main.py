@@ -178,6 +178,18 @@ async def page_edit_property(request: Request, property_id: int):
     })
 
 
+@app.get("/scraper", include_in_schema=False)
+async def page_scraper(request: Request):
+    return templates.TemplateResponse("scraper.html", {
+        "request": request,
+        "target_districts": settings.TARGET_DISTRICTS,
+        "target_suburbs": settings.TARGET_SUBURBS,
+        "scraper_enabled": getattr(settings, "SCRAPER_ENABLED", True),
+        "scraper_interval": getattr(settings, "SCRAPER_INTERVAL_HOURS", 24),
+        "scraper_rate_limit": getattr(settings, "SCRAPER_RATE_LIMIT_SEC", 2),
+    })
+
+
 # ──────────────── Run ────────────────
 
 if __name__ == "__main__":

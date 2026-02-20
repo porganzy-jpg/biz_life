@@ -20,6 +20,7 @@ from . import config
 from .upbit_client import UpbitClient
 from .strategies.ensemble import EnsembleStrategy
 from .strategies.base import SignalType
+from .strategies.mtf_analyzer import MultiTimeframeAnalyzer
 from .risk_manager import RiskManager, RiskLevels
 from .circuit_breaker import CircuitBreaker
 from .alert_system import AlertSystem
@@ -75,6 +76,10 @@ class ScalpTrader:
         self.running = False
         self.today = date.today()
 
+        # Multi-timeframe analyzer
+        self.mtf_analyzer = MultiTimeframeAnalyzer() if getattr(config, 'MTF_ENABLED', False) else None
+        self._last_mtf: dict[str, dict] = {}  # market -> MTFSignal.to_dict() cache
+
         # Dynamic market scanner
         self.scanner = MarketScanner() if config.DYNAMIC_MARKETS_ENABLED else None
         # Walk-forward optimizer
@@ -94,6 +99,8 @@ class ScalpTrader:
         self._prev_can_trade = True
 
         mode_info = []
+        if self.mtf_analyzer:
+            mode_info.append("MTF")
         if self.scanner:
             mode_info.append(f"Scanner(top{config.SCANNER_TOP_N})")
         if self.optimizer:
@@ -217,7 +224,19 @@ class ScalpTrader:
         if df is None:
             return
 
-        signal = self.ensemble.analyze(df, market=market, bar_index=self.cycle_count)
+        # --- Multi-timeframe analysis (cached, runs before ensemble) ---
+        mtf_signal = None
+        mtf_dict = None
+        if self.mtf_analyzer:
+            try:
+                mtf_signal = self.mtf_analyzer.analyze(market, self.client, df_15m=df)
+                mtf_dict = mtf_signal.to_dict()
+                self._last_mtf[market] = mtf_dict
+            except Exception as e:
+                logger.warning(f"MTF analysis failed for {market}: {e}")
+
+        signal = self.ensemble.analyze(df, market=market, bar_index=self.cycle_count,
+                                       mtf_signal=mtf_signal)
 
         # Cache price + analysis for dashboard market watch
         current_price = float(df["close"].iloc[-1])
@@ -254,6 +273,7 @@ class ScalpTrader:
             "sell_weight": signal.metadata.get("sell_weight", 0),
             "indicators": indicators,
             "trigger_summary": trigger_summary,
+            "mtf": mtf_dict,
             "updated_at": datetime.now().strftime("%H:%M:%S"),
         }
 
@@ -515,6 +535,8 @@ class ScalpTrader:
             "active_markets": active_markets,
             "scanner_status": scanner_status,
             "optimizer_status": optimizer_status,
+            "mtf_status": self.mtf_analyzer.get_status() if self.mtf_analyzer else {"enabled": False},
+            "mtf_data": dict(self._last_mtf),
         }
 
     def get_market_watch(self) -> dict:
@@ -623,6 +645,26 @@ def get_trades_stats(period: str = "all") -> dict:
     strategy_stats: dict[str, dict] = {}
     # Note: strategy info not stored in trade log, so we skip per-trade strategy analysis
 
+    # Market P&L breakdown (for horizontal bar chart)
+    market_pnl: dict[str, float] = {}
+    for t in trades:
+        mkt = t.get("market", "unknown")
+        market_pnl[mkt] = market_pnl.get(mkt, 0) + t.get("pnl_krw", 0)
+
+    # Drawdown series (for equity curve overlay)
+    drawdown_series = []
+    cum2 = 0.0
+    peak2 = 0.0
+    for t in trades:
+        cum2 += t.get("pnl_krw", 0)
+        if cum2 > peak2:
+            peak2 = cum2
+        dd_val = cum2 - peak2  # negative or zero
+        drawdown_series.append({
+            "time": t.get("exit_time", ""),
+            "drawdown": round(dd_val, 0),
+        })
+
     return {
         "period": period,
         "total_trades": len(trades),
@@ -641,6 +683,8 @@ def get_trades_stats(period: str = "all") -> dict:
         "exit_types": exit_types,
         "daily_pnl": daily_pnl,
         "equity_curve": equity_curve,
+        "market_pnl": market_pnl,
+        "drawdown_series": drawdown_series,
     }
 
 
@@ -684,6 +728,7 @@ def _empty_stats() -> dict:
         "profit_factor": 0, "max_drawdown_krw": 0,
         "avg_duration_sec": 0, "exit_types": {},
         "daily_pnl": {}, "equity_curve": [],
+        "market_pnl": {}, "drawdown_series": [],
     }
 
 

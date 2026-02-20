@@ -1,5 +1,10 @@
 """프로젝트 설정 - 대시보드와 텔레그램 봇 공용"""
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PROJECTS_DIR = Path(r"C:\Users\itzia\biz_life\projects")
 
@@ -41,4 +46,12 @@ PROJECTS = {
         "cwd": ".",
         "cmd": [".venv/Scripts/python.exe", "main.py"],
     },
+}
+
+# === 자동 배포 설정 ===
+DEPLOY_CONFIG = {
+    "DEPLOY_ENABLED": os.getenv("DEPLOY_ENABLED", "true").lower() in ("true", "1", "yes"),
+    "DEPLOY_WEBHOOK_SECRET": os.getenv("DEPLOY_WEBHOOK_SECRET", ""),
+    "DEPLOY_REPO_DIR": os.getenv("DEPLOY_REPO_DIR", str(PROJECTS_DIR.parent)),  # biz_life 루트
+    "DEPLOY_AUTO_RESTART": os.getenv("DEPLOY_AUTO_RESTART", "true").lower() in ("true", "1", "yes"),
 }

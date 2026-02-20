@@ -20,7 +20,10 @@ from services import (
     start_project as _start_project,
     stop_project as _stop_project,
     get_recent_logs,
+    get_event_history,
+    get_uptime_stats,
 )
+from deploy import bot_deploy_trigger, bot_deploy_status
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -56,6 +59,8 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "/status - 전체 프로젝트 상태\n"
         "/system - 시스템 리소스 (CPU/RAM/Disk)\n"
         "/report - 서버 일일 리포트\n"
+        "/history - 최근 이벤트 히스토리\n"
+        "/uptime - 가동률 통계\n"
         "/panel - 인라인 제어 패널\n\n"
         "프로젝트 제어:\n"
         "/begin <이름> - 시작\n"
@@ -63,7 +68,11 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "/restart <이름> - 재시작\n"
         "/logs <이름> - 최근 로그\n"
         "/startall - 전체 시작\n"
-        "/stopall - 전체 중지"
+        "/stopall - 전체 중지\n\n"
+        "배포:\n"
+        "/deploy - 수동 배포 (git pull + 전체 재시작)\n"
+        "/deploy <이름> - 특정 프로젝트만 배포\n"
+        "/deploystatus - 마지막 배포 상태"
     )
 
 
@@ -183,6 +192,62 @@ async def cmd_report(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text)
 
 
+async def cmd_events(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """최근 이벤트 히스토리 (최대 10개)"""
+    if not is_authorized(update):
+        return
+
+    events = get_event_history(limit=10)
+    if not events:
+        await update.message.reply_text("📋 이벤트 기록이 없습니다.")
+        return
+
+    event_icons = {
+        "start": "▶️",
+        "stop": "⏹️",
+        "restart": "🔄",
+        "auto_restart": "🤖",
+        "resource_alert": "⚠️",
+        "error": "❌",
+    }
+
+    lines = ["📋 최근 이벤트 (최대 10개)\n"]
+    for ev in events:
+        icon = event_icons.get(ev.get("type", ""), "📋")
+        ts = ev.get("timestamp", "")[:19].replace("T", " ")
+        project = ev.get("project", "")
+        details = ev.get("details", ev.get("type", ""))
+        lines.append(f"{icon} [{ts}] {project}: {details}")
+
+    await update.message.reply_text("\n".join(lines))
+
+
+async def cmd_uptime(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """프로젝트별 가동률 통계"""
+    if not is_authorized(update):
+        return
+
+    stats = get_uptime_stats()
+    if not stats:
+        await update.message.reply_text("📊 가동률 데이터가 없습니다.")
+        return
+
+    lines = ["📊 가동률 통계 (24시간 기준)\n"]
+    for name, s in stats.items():
+        pct = s.get("uptime_percent", 0.0)
+        starts = s.get("total_starts", 0)
+        errors = s.get("total_errors", 0)
+        if pct >= 99:
+            icon = "🟢"
+        elif pct >= 90:
+            icon = "🟡"
+        else:
+            icon = "🔴"
+        lines.append(f"{icon} {name}: {pct}% (시작 {starts}회, 오류 {errors}회)")
+
+    await update.message.reply_text("\n".join(lines))
+
+
 async def cmd_startall(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """전체 프로젝트 시작"""
     if not is_authorized(update):
@@ -206,6 +271,30 @@ async def cmd_stopall(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         result = stop_project(name)
         results.append(f"⏹️ {name}: {result}")
     await update.message.reply_text("\n".join(results))
+
+
+async def cmd_deploy(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """수동 배포 트리거: /deploy [프로젝트명|all]"""
+    if not is_authorized(update):
+        return
+    project = ctx.args[0] if ctx.args else "all"
+    await update.message.reply_text(f"🚀 배포 시작 중... (대상: {project})")
+    try:
+        result = bot_deploy_trigger(project)
+        await update.message.reply_text(f"🚀 배포 결과\n\n{result}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ 배포 실패: {e}")
+
+
+async def cmd_deploy_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """마지막 배포 상태 조회: /deploystatus"""
+    if not is_authorized(update):
+        return
+    try:
+        result = bot_deploy_status()
+        await update.message.reply_text(f"📦 배포 상태\n\n{result}")
+    except Exception as e:
+        await update.message.reply_text(f"❌ 배포 상태 조회 실패: {e}")
 
 
 async def cmd_panel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -309,6 +398,11 @@ def main():
     app.add_handler(CommandHandler("logs", cmd_logs))
     app.add_handler(CommandHandler("startall", cmd_startall))
     app.add_handler(CommandHandler("stopall", cmd_stopall))
+    app.add_handler(CommandHandler("history", cmd_events))
+    app.add_handler(CommandHandler("events", cmd_events))
+    app.add_handler(CommandHandler("uptime", cmd_uptime))
+    app.add_handler(CommandHandler("deploy", cmd_deploy))
+    app.add_handler(CommandHandler("deploystatus", cmd_deploy_status))
     app.add_handler(CommandHandler("panel", cmd_panel))
     app.add_handler(CallbackQueryHandler(button_handler))
 

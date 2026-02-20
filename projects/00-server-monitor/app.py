@@ -12,12 +12,16 @@ from services import (
     check_port,
     get_recent_logs,
     get_system_info,
+    get_event_history,
+    get_uptime_stats,
     start_project,
     stop_project,
     restart_project,
 )
+from deploy import deploy_router, get_deploy_manager
 
 app = FastAPI(title="Server Monitor")
+app.include_router(deploy_router)
 
 
 # === API 엔드포인트 ===
@@ -43,14 +47,45 @@ async def api_status():
         project_list.append({"name": name, "port": proj["port"], "desc": proj["desc"], "alive": alive})
     return {"system": get_system_info(), "projects": project_list}
 
+@app.get("/api/events")
+async def api_events(project: str = None, limit: int = 50):
+    return JSONResponse(get_event_history(project_name=project, limit=limit))
+
+@app.get("/api/uptime")
+async def api_uptime():
+    return JSONResponse(get_uptime_stats())
+
 
 # === 대시보드 UI ===
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
+    from datetime import datetime
+
     tasks = [check_port(p["port"]) for p in PROJECTS.values()]
     results = await asyncio.gather(*tasks)
     sys_info = get_system_info()
+    uptime_stats = get_uptime_stats()
+    recent_events = get_event_history(limit=30)
+
+    def _time_ago(iso_str: str) -> str:
+        """ISO 시간 문자열을 '~전' 형식으로 변환"""
+        if not iso_str:
+            return "기록 없음"
+        try:
+            dt = datetime.fromisoformat(iso_str)
+            diff = datetime.now() - dt
+            secs = int(diff.total_seconds())
+            if secs < 60:
+                return f"{secs}초 전"
+            elif secs < 3600:
+                return f"{secs // 60}분 전"
+            elif secs < 86400:
+                return f"{secs // 3600}시간 전"
+            else:
+                return f"{secs // 86400}일 전"
+        except (ValueError, TypeError):
+            return "기록 없음"
 
     project_cards = ""
     for (name, proj), alive in zip(PROJECTS.items(), results):
@@ -60,14 +95,28 @@ async def dashboard(request: Request):
         logs = get_recent_logs(name)
         logs_escaped = logs.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+        stats = uptime_stats.get(name, {})
+        uptime_pct = stats.get("uptime_percent", 0.0)
+        last_restart = stats.get("last_restart", "")
+        last_restart_ago = _time_ago(last_restart)
+
+        if uptime_pct >= 99:
+            uptime_color = "#4caf50"
+        elif uptime_pct >= 90:
+            uptime_color = "#ff9800"
+        else:
+            uptime_color = "#f44336"
+
         project_cards += f"""
         <div class="card {status_class}" id="card-{name}">
             <div class="card-header">
                 <span class="status-dot">{status_dot}</span>
                 <h3>{name}</h3>
                 <span class="badge">{status_text}</span>
+                <span class="badge uptime-badge" style="background:{uptime_color}22;color:{uptime_color}">가동률 {uptime_pct}%</span>
             </div>
             <p class="desc">{proj['desc']} &mdash; 포트 {proj['port']}</p>
+            <p class="desc">마지막 재시작: {last_restart_ago}</p>
             <div class="controls">
                 <button class="btn btn-start" onclick="ctrl('{name}','start')" {'disabled' if alive else ''}>시작</button>
                 <button class="btn btn-stop" onclick="ctrl('{name}','stop')" {'disabled' if not alive else ''}>중지</button>
@@ -81,6 +130,68 @@ async def dashboard(request: Request):
             </details>
         </div>
         """
+
+    # 이벤트 타임라인 HTML 생성
+    event_icons = {
+        "start": "▶️",
+        "stop": "⏹️",
+        "restart": "🔄",
+        "auto_restart": "🤖",
+        "resource_alert": "⚠️",
+        "error": "❌",
+    }
+    event_timeline_html = ""
+    if recent_events:
+        for ev in recent_events:
+            icon = event_icons.get(ev.get("type", ""), "📋")
+            ev_time = _time_ago(ev.get("timestamp", ""))
+            ev_ts = ev.get("timestamp", "")[:19].replace("T", " ")
+            ev_project = ev.get("project", "")
+            ev_details = ev.get("details", ev.get("type", ""))
+            ev_details_escaped = ev_details.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            event_timeline_html += f"""<div class="event-item">
+              <span class="event-icon">{icon}</span>
+              <span class="event-time" title="{ev_ts}">{ev_time}</span>
+              <span class="event-project">{ev_project}</span>
+              <span class="event-details">{ev_details_escaped}</span>
+            </div>\n"""
+    else:
+        event_timeline_html = '<div style="color:#666;font-size:0.8rem;padding:8px 0;">이벤트 기록이 없습니다.</div>'
+
+    # 배포 상태 카드 생성
+    deploy_mgr = get_deploy_manager()
+    last_deploy = deploy_mgr.get_last_deploy()
+    if last_deploy:
+        deploy_time = _time_ago(last_deploy.get("timestamp", ""))
+        deploy_ts = last_deploy.get("timestamp", "")[:19].replace("T", " ")
+        deploy_success = last_deploy.get("success", False)
+        deploy_trigger = last_deploy.get("trigger", "unknown")
+        deploy_projects = ", ".join(last_deploy.get("projects", [])) or "없음"
+        deploy_color = "#4caf50" if deploy_success else "#f44336"
+        deploy_status_text = "성공" if deploy_success else "실패"
+        deploy_card_html = f"""
+        <div class="sys-card" style="border-left:3px solid {deploy_color}">
+          <h4>마지막 배포</h4>
+          <div class="value" style="font-size:1rem;color:{deploy_color}">{deploy_status_text}</div>
+          <div style="color:#888;font-size:0.72rem;margin-top:4px">{deploy_time} ({deploy_trigger})</div>
+          <div style="color:#666;font-size:0.7rem;margin-top:2px" title="{deploy_ts}">프로젝트: {deploy_projects}</div>
+          <div style="margin-top:6px">
+            <button class="btn btn-restart" onclick="manualDeploy('all')" style="padding:4px 10px;font-size:0.7rem">수동 배포</button>
+            <button class="btn btn-link" onclick="gitPull()" style="padding:4px 10px;font-size:0.7rem">git pull</button>
+          </div>
+          <div class="action-msg" id="deploy-msg" style="margin-top:4px"></div>
+        </div>"""
+    else:
+        deploy_card_html = f"""
+        <div class="sys-card" style="border-left:3px solid #666">
+          <h4>배포</h4>
+          <div class="value" style="font-size:1rem;color:#666">이력 없음</div>
+          <div style="margin-top:6px">
+            <button class="btn btn-restart" onclick="manualDeploy('all')" style="padding:4px 10px;font-size:0.7rem">수동 배포</button>
+            <button class="btn btn-link" onclick="gitPull()" style="padding:4px 10px;font-size:0.7rem">git pull</button>
+          </div>
+          <div class="action-msg" id="deploy-msg" style="margin-top:4px"></div>
+        </div>"""
 
     cpu_color = "#4caf50" if sys_info["cpu_percent"] < 60 else "#ff9800" if sys_info["cpu_percent"] < 85 else "#f44336"
     mem_color = "#4caf50" if sys_info["mem_percent"] < 60 else "#ff9800" if sys_info["mem_percent"] < 85 else "#f44336"
@@ -130,9 +241,18 @@ async def dashboard(request: Request):
   details {{ margin-top: 8px; }}
   summary {{ cursor: pointer; color: #888; font-size: 0.75rem; }}
   .log {{ background: #111318; padding: 8px; border-radius: 8px; font-size: 0.7rem; max-height: 180px; overflow-y: auto; margin-top: 6px; white-space: pre-wrap; word-break: break-all; color: #aaa; }}
+  .uptime-badge {{ margin-left: 4px; }}
   .refresh {{ text-align: center; margin-top: 16px; color: #555; font-size: 0.75rem; }}
   .all-controls {{ text-align: center; margin-bottom: 16px; }}
   .all-controls .btn {{ padding: 8px 20px; font-size: 0.85rem; }}
+  .events-section {{ margin-top: 24px; background: #1a1d27; border-radius: 12px; padding: 16px; }}
+  .events-section h2 {{ font-size: 1.1rem; margin-bottom: 12px; }}
+  .event-item {{ display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2a2d37; font-size: 0.8rem; }}
+  .event-item:last-child {{ border-bottom: none; }}
+  .event-icon {{ font-size: 1rem; min-width: 24px; text-align: center; }}
+  .event-time {{ color: #666; min-width: 130px; font-size: 0.72rem; }}
+  .event-project {{ color: #64b5f6; min-width: 110px; font-weight: 600; font-size: 0.75rem; }}
+  .event-details {{ color: #aaa; flex: 1; }}
 </style>
 </head>
 <body>
@@ -156,6 +276,7 @@ async def dashboard(request: Request):
     <div class="value">{sys_info['disk_used_gb']} / {sys_info['disk_total_gb']} GB</div>
     <div class="bar"><div class="bar-fill" style="width:{sys_info['disk_percent']}%;background:{disk_color}"></div></div>
   </div>
+  {deploy_card_html}
 </div>
 
 <div class="all-controls">
@@ -166,6 +287,11 @@ async def dashboard(request: Request):
 
 <div class="grid">
 {project_cards}
+</div>
+
+<div class="events-section">
+  <h2>이벤트 히스토리</h2>
+  {event_timeline_html}
 </div>
 
 <p class="refresh">30초마다 자동 새로고침 &middot; <a href="/" style="color:#64b5f6">수동 새로고침</a></p>
@@ -191,6 +317,36 @@ async function ctrlAll(action) {{
   for (const name of names) {{
     ctrl(name, action);
     await new Promise(r => setTimeout(r, 1000));
+  }}
+}}
+async function manualDeploy(project) {{
+  const msg = document.getElementById('deploy-msg');
+  msg.textContent = '배포 중...';
+  msg.className = 'action-msg';
+  try {{
+    const res = await fetch('/api/deploy/manual?project=' + project, {{method: 'POST'}});
+    const data = await res.json();
+    msg.textContent = data.msg;
+    msg.className = 'action-msg ' + (data.ok ? 'ok' : 'err');
+    setTimeout(() => location.reload(), 3000);
+  }} catch(e) {{
+    msg.textContent = '배포 실패: ' + e;
+    msg.className = 'action-msg err';
+  }}
+}}
+async function gitPull() {{
+  const msg = document.getElementById('deploy-msg');
+  msg.textContent = 'git pull 중...';
+  msg.className = 'action-msg';
+  try {{
+    const res = await fetch('/api/deploy/pull', {{method: 'POST'}});
+    const data = await res.json();
+    msg.textContent = data.msg;
+    msg.className = 'action-msg ' + (data.ok ? 'ok' : 'err');
+    setTimeout(() => location.reload(), 2000);
+  }} catch(e) {{
+    msg.textContent = 'git pull 실패: ' + e;
+    msg.className = 'action-msg err';
   }}
 }}
 </script>

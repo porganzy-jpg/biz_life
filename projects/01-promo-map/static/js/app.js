@@ -19,12 +19,18 @@ function switchTab(tab) {
     const searchTab = document.getElementById('tabSearch');
     const favTab = document.getElementById('tabFavorites');
     const myTab = document.getElementById('tabMypage');
+    const categoryBar = document.getElementById('categoryFilterBar');
 
     mapArea.style.display = tab === 'map' ? 'block' : 'none';
     promoPanel.style.display = tab === 'map' ? 'block' : 'none';
     searchTab.style.display = tab === 'search' ? 'block' : 'none';
     favTab.style.display = tab === 'favorites' ? 'block' : 'none';
     myTab.style.display = tab === 'mypage' ? 'block' : 'none';
+
+    // 카테고리 필터는 지도/검색 탭에서만 표시
+    if (categoryBar) {
+        categoryBar.style.display = (tab === 'map' || tab === 'search') ? 'block' : 'none';
+    }
 
     // 탭별 데이터 로드
     if (tab === 'favorites') loadFavorites();

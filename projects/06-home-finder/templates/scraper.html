@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+{% block title %}데이터 수집{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4><i class="bi bi-robot"></i> 데이터 수집 (Scraper)</h4>
+        <p class="text-muted">
+            네이버부동산, KB부동산 데이터를 자동으로 수집합니다.
+            <span id="scraperEnabledBadge" class="badge {% if scraper_enabled %}bg-success{% else %}bg-danger{% endif %} ms-2">
+                {% if scraper_enabled %}활성{% else %}비활성{% endif %}
+            </span>
+        </p>
+    </div>
+</div>
+
+<!-- Status Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-title">마지막 수집</h6>
+                <h5 id="lastScanTime" class="mb-0">-</h5>
+                <small id="scanningStatus">대기중</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-title">신규 매물</h6>
+                <h2 id="totalNew" class="mb-0">0</h2>
+                <small>누적 신규 등록</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title">업데이트</h6>
+                <h2 id="totalUpdated" class="mb-0">0</h2>
+                <small>가격 변동 업데이트</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-danger text-white">
+            <div class="card-body">
+                <h6 class="card-title">오류</h6>
+                <h2 id="totalErrors" class="mb-0">0</h2>
+                <small>수집 오류</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Scan + Schedule Configuration -->
+<div class="row mb-4">
+    <!-- Manual Scan -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-play-circle"></i> 수동 스캔
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">구 선택</label>
+                    <div class="d-flex flex-wrap gap-2" id="districtButtons">
+                        {% for d in target_districts %}
+                        <button class="btn btn-outline-primary btn-sm district-scan-btn" data-district="{{ d }}">
+                            {{ d }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">매물 유형</label>
+                    <select id="scanPropertyType" class="form-select form-select-sm">
+                        <option value="아파트" selected>아파트</option>
+                        <option value="빌라">빌라</option>
+                        <option value="오피스텔">오피스텔</option>
+                        <option value="토지">토지</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" id="btnScanSelected" onclick="scanSelected()" disabled>
+                        <i class="bi bi-search"></i> 선택 구 스캔
+                    </button>
+                    <button class="btn btn-outline-secondary" id="btnPreview" onclick="previewSelected()" disabled>
+                        <i class="bi bi-eye"></i> 미리보기
+                    </button>
+                    <button class="btn btn-success" onclick="scanAllDistricts()">
+                        <i class="bi bi-collection-play"></i> 전체 스캔
+                    </button>
+                </div>
+                <div id="scanProgressContainer" class="mt-3" style="display:none;">
+                    <div class="progress">
+                        <div id="scanProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted mt-1" id="scanProgressText">스캔 중...</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Configuration -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> 자동 스캔 설정
+                <span id="schedulerBadge" class="badge bg-secondary ms-2">중지</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">대상 구 (다중 선택)</label>
+                    <select id="scheduleDistricts" class="form-select form-select-sm" multiple size="5">
+                        {% for d in target_districts %}
+                        <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                        {% for s in target_suburbs %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Ctrl+클릭으로 다중 선택</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">스캔 주기 (시간)</label>
+                    <input type="number" id="scheduleInterval" class="form-control form-control-sm"
+                           value="{{ scraper_interval }}" min="0.5" max="168" step="0.5">
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="startSchedule()">
+                        <i class="bi bi-play-fill"></i> 자동 스캔 시작
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="stopSchedule()">
+                        <i class="bi bi-stop-fill"></i> 중지
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Results -->
+<div class="row mb-4" id="previewSection" style="display:none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-eye"></i> 미리보기 결과</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('previewSection').style.display='none'">
+                    <i class="bi bi-x"></i> 닫기
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-auto">
+                        <span class="badge bg-primary fs-6" id="previewTotal">0건 발견</span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-success fs-6" id="previewNew">0건 신규</span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-secondary fs-6" id="previewExisting">0건 기존</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>상태</th>
+                                <th>유형</th>
+                                <th>위치</th>
+                                <th>단지/명칭</th>
+                                <th>가격</th>
+                                <th>면적</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scan History -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-journal-text"></i> 수집 이력
+                <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadStatus()">
+                    <i class="bi bi-arrow-clockwise"></i> 새로고침
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>시간</th>
+                                <th>대상</th>
+                                <th>유형</th>
+                                <th>수집</th>
+                                <th>신규</th>
+                                <th>업데이트</th>
+                                <th>건너뜀</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable">
+                            <tr><td colspan="8" class="text-center text-muted">이력 없음</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API_BASE = '/api/v1/scraper';
+let selectedDistrict = null;
+
+// District button selection
+document.querySelectorAll('.district-scan-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.district-scan-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        selectedDistrict = this.dataset.district;
+        document.getElementById('btnScanSelected').disabled = false;
+        document.getElementById('btnPreview').disabled = false;
+    });
+});
+
+// Load status on page load
+async function loadStatus() {
+    try {
+        const resp = await fetch(`${API_BASE}/status`);
+        const data = await resp.json();
+
+        // Update cards
+        document.getElementById('lastScanTime').textContent =
+            data.last_scan_time ? formatDateTime(data.last_scan_time) : '-';
+        document.getElementById('scanningStatus').textContent =
+            data.is_scanning ? '스캔 진행 중...' : '대기중';
+        document.getElementById('totalNew').textContent = data.total_new || 0;
+        document.getElementById('totalUpdated').textContent = data.total_updated || 0;
+        document.getElementById('totalErrors').textContent = data.total_errors || 0;
+
+        // Scheduler badge
+        const badge = document.getElementById('schedulerBadge');
+        if (data.scheduler_running) {
+            badge.className = 'badge bg-success ms-2';
+            badge.textContent = '실행중';
+        } else {
+            badge.className = 'badge bg-secondary ms-2';
+            badge.textContent = '중지';
+        }
+
+        // History table
+        renderHistory(data.recent_scans || []);
+    } catch (e) {
+        console.error('Status load error:', e);
+    }
+}
+
+// Scan a selected district
+async function scanSelected() {
+    if (!selectedDistrict) return;
+
+    const propType = document.getElementById('scanPropertyType').value;
+    const btn = document.getElementById('btnScanSelected');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 스캔 중...';
+
+    try {
+        const resp = await fetch(`${API_BASE}/scan`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                district: selectedDistrict,
+                property_type: propType,
+            }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('success', `${selectedDistrict} 스캔이 시작되었습니다`);
+            showProgress();
+            pollStatus();
+        } else {
+            showToast('danger', data.detail || '스캔 실패');
+        }
+    } catch (e) {
+        showToast('danger', '네트워크 오류');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-search"></i> 선택 구 스캔';
+    }
+}
+
+// Scan all districts sequentially
+async function scanAllDistricts() {
+    const propType = document.getElementById('scanPropertyType').value;
+    const districts = [{% for d in target_districts %}'{{ d }}',{% endfor %}];
+
+    showProgress();
+    let completed = 0;
+
+    for (const district of districts) {
+        try {
+            const resp = await fetch(`${API_BASE}/scan`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ district: district, property_type: propType }),
+            });
+
+            completed++;
+            updateProgress(completed, districts.length, district);
+
+            // Wait a bit between scans to not overwhelm
+            if (completed < districts.length) {
+                await new Promise(r => setTimeout(r, 2000));
+            }
+        } catch (e) {
+            console.error(`Scan error for ${district}:`, e);
+        }
+    }
+
+    hideProgress();
+    showToast('success', '전체 스캔이 완료되었습니다');
+    loadStatus();
+}
+
+// Preview scan
+async function previewSelected() {
+    if (!selectedDistrict) return;
+
+    const propType = document.getElementById('scanPropertyType').value;
+    const btn = document.getElementById('btnPreview');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 미리보기...';
+
+    try {
+        const resp = await fetch(`${API_BASE}/preview?district=${encodeURIComponent(selectedDistrict)}&property_type=${encodeURIComponent(propType)}`);
+        const data = await resp.json();
+
+        if (resp.ok) {
+            renderPreview(data);
+        } else {
+            showToast('danger', data.detail || '미리보기 실패');
+        }
+    } catch (e) {
+        showToast('danger', '네트워크 오류');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-eye"></i> 미리보기';
+    }
+}
+
+// Schedule management
+async function startSchedule() {
+    const select = document.getElementById('scheduleDistricts');
+    const districts = Array.from(select.selectedOptions).map(o => o.value);
+    const interval = parseFloat(document.getElementById('scheduleInterval').value);
+
+    if (districts.length === 0) {
+        showToast('warning', '대상 구를 선택해주세요');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`${API_BASE}/schedule`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                districts: districts,
+                property_types: ['아파트'],
+                interval_hours: interval,
+            }),
+        });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('success', '자동 스캔이 시작되었습니다');
+            loadStatus();
+        } else {
+            showToast('danger', data.detail || '설정 실패');
+        }
+    } catch (e) {
+        showToast('danger', '네트워크 오류');
+    }
+}
+
+async function stopSchedule() {
+    try {
+        const resp = await fetch(`${API_BASE}/schedule/stop`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ confirm: true }),
+        });
+
+        if (resp.ok) {
+            showToast('info', '자동 스캔이 중지되었습니다');
+            loadStatus();
+        }
+    } catch (e) {
+        showToast('danger', '네트워크 오류');
+    }
+}
+
+// Render functions
+function renderHistory(scans) {
+    const tbody = document.getElementById('historyTable');
+    if (!scans || scans.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">이력 없음</td></tr>';
+        return;
+    }
+
+    // Show most recent first
+    const sorted = [...scans].reverse();
+    tbody.innerHTML = sorted.map(s => {
+        const statusBadge = s.status === 'success'
+            ? '<span class="badge bg-success">성공</span>'
+            : s.status === 'running'
+            ? '<span class="badge bg-warning">진행중</span>'
+            : '<span class="badge bg-danger">실패</span>';
+
+        return `<tr>
+            <td><small>${formatDateTime(s.started_at)}</small></td>
+            <td>${s.district || '-'}</td>
+            <td>${s.property_type || '-'}</td>
+            <td>${s.fetched || 0}</td>
+            <td class="text-success fw-bold">${s.new || 0}</td>
+            <td class="text-info">${s.updated || 0}</td>
+            <td class="text-muted">${s.skipped || 0}</td>
+            <td>${statusBadge}</td>
+        </tr>`;
+    }).join('');
+}
+
+function renderPreview(data) {
+    const section = document.getElementById('previewSection');
+    section.style.display = '';
+
+    document.getElementById('previewTotal').textContent = `${data.total_found || 0}건 발견`;
+    document.getElementById('previewNew').textContent = `${data.new_count || 0}건 신규`;
+    document.getElementById('previewExisting').textContent = `${data.existing_count || 0}건 기존`;
+
+    const tbody = document.getElementById('previewTable');
+    const props = data.properties || [];
+
+    if (props.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">매물 없음</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = props.map(p => {
+        const statusBadge = p._status === 'new'
+            ? '<span class="badge bg-success">신규</span>'
+            : '<span class="badge bg-secondary">기존</span>';
+        const price = p.price_krw ? formatPrice(p.price_krw) : '-';
+        const area = p.area_m2 ? `${p.area_m2.toFixed(1)}m2` : '-';
+
+        return `<tr>
+            <td>${statusBadge}</td>
+            <td>${p.property_type || '-'}</td>
+            <td>${p.district || ''} ${p.dong || ''}</td>
+            <td>${p.complex_name || p.address || '-'}</td>
+            <td>${price}</td>
+            <td>${area}</td>
+        </tr>`;
+    }).join('');
+}
+
+// Progress helpers
+function showProgress() {
+    document.getElementById('scanProgressContainer').style.display = '';
+    document.getElementById('scanProgressBar').style.width = '0%';
+}
+
+function hideProgress() {
+    setTimeout(() => {
+        document.getElementById('scanProgressContainer').style.display = 'none';
+    }, 1000);
+}
+
+function updateProgress(completed, total, current) {
+    const pct = Math.round((completed / total) * 100);
+    document.getElementById('scanProgressBar').style.width = pct + '%';
+    document.getElementById('scanProgressText').textContent =
+        `${current} 스캔 완료 (${completed}/${total})`;
+}
+
+async function pollStatus() {
+    // Poll status every 3 seconds while scanning
+    for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const resp = await fetch(`${API_BASE}/status`);
+        const data = await resp.json();
+        loadStatus();
+        if (!data.is_scanning) {
+            hideProgress();
+            break;
+        }
+    }
+}
+
+// Utility functions
+function formatDateTime(isoStr) {
+    if (!isoStr) return '-';
+    try {
+        const d = new Date(isoStr);
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        return `${month}/${day} ${hours}:${mins}`;
+    } catch { return isoStr; }
+}
+
+function formatPrice(krw) {
+    if (!krw) return '-';
+    const eok = Math.floor(krw / 100000000);
+    const man = Math.floor((krw % 100000000) / 10000);
+    if (eok > 0 && man > 0) return `${eok}억 ${man}만`;
+    if (eok > 0) return `${eok}억`;
+    if (man > 0) return `${man}만`;
+    return '-';
+}
+
+function showToast(type, message) {
+    // Simple alert-based toast (could be replaced with Bootstrap toast)
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top:80px;right:20px;z-index:9999;min-width:300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+
+// Initial load
+loadStatus();
+// Auto-refresh every 30 seconds
+setInterval(loadStatus, 30000);
+</script>
+{% endblock %}

@@ -130,5 +130,11 @@ OPTIMIZER_LOOKBACK_DAYS = 3    # 과거 3일 데이터
 OPTIMIZER_N_PROFILES = 12      # 테스트할 프로필 수
 OPTIMIZER_MARKETS = ["KRW-BTC", "KRW-ETH"]  # 최적화 대상 (고정, 속도)
 
+# === Multi-Timeframe Confluence ===
+MTF_ENABLED = True
+MTF_TIMEFRAMES = ["minute15", "minute60", "minute240"]  # 15m, 1h, 4h
+MTF_MIN_CONFLUENCE = 2           # 최소 2개 타임프레임 정렬 필요
+MTF_CACHE_SEC = 300              # 상위 TF 캐시 5분 (15m 루프에서 반복 호출 방지)
+
 # === Logging ===
 LOG_LEVEL = os.getenv("SCALPER_LOG_LEVEL", "INFO")

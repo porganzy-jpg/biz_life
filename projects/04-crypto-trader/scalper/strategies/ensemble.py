@@ -5,9 +5,11 @@ Combines 4 strategies with weighted voting.
 Requires minimum 2 strategy agreement + confidence threshold.
 추세 필터 + 쿨다운으로 허위 진입 차단.
 Auto-adjusts weights based on performance (EMA win rate).
+MTF confluence filter: higher timeframe alignment boosts/blocks trades.
 """
 import logging
 from collections import defaultdict
+from typing import Optional
 
 import pandas as pd
 
@@ -41,8 +43,19 @@ class EnsembleStrategy:
         # Cooldown tracking (market -> last trade bar index)
         self.last_trade_bar: dict[str, int] = {}
 
-    def analyze(self, df: pd.DataFrame, market: str = "", bar_index: int = 0) -> ScalpSignal:
-        """Run all strategies and produce weighted ensemble signal."""
+    def analyze(self, df: pd.DataFrame, market: str = "", bar_index: int = 0,
+                mtf_signal=None) -> ScalpSignal:
+        """Run all strategies and produce weighted ensemble signal.
+
+        Parameters
+        ----------
+        mtf_signal : MTFSignal or None
+            Multi-timeframe confluence signal.  When provided and MTF is
+            enabled, the BUY decision is filtered through confluence scoring:
+              confluence >= MTF_MIN_CONFLUENCE -> proceed (full confidence)
+              confluence == MTF_MIN_CONFLUENCE-1 -> reduce confidence 30%
+              confluence < that -> block trade
+        """
         # Run all strategies first (for market watch even during cooldown/vol filter)
         signals: list[ScalpSignal] = []
         for strategy in self.strategies:
@@ -114,13 +127,34 @@ class EnsembleStrategy:
                         reason=f"BUY blocked: price below EMA({config.TREND_EMA_PERIOD}): {reason_str}",
                         metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight},
                     )
+            # --- MTF confluence filter (additional gate before BUY) ---
+            final_confidence = min(1.0, buy_weight)
+            mtf_reason = ""
+            if mtf_signal is not None and getattr(config, "MTF_ENABLED", False):
+                min_conf = getattr(config, "MTF_MIN_CONFLUENCE", 2)
+                score = mtf_signal.confluence_score
+                if mtf_signal.available:
+                    if score >= min_conf:
+                        pass  # full confidence
+                    elif score == min_conf - 1:
+                        final_confidence *= 0.7  # reduce 30%
+                    else:
+                        return ScalpSignal(
+                            signal=SignalType.HOLD, strategy_name="ensemble",
+                            reason=f"BUY blocked by MTF (confluence={score}/{min_conf}): {reason_str}",
+                            metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight,
+                                      "mtf_confluence": score},
+                        )
+                mtf_reason = f", mtf={score}/3"
+
             return ScalpSignal(
                 signal=SignalType.BUY,
                 strategy_name="ensemble",
-                confidence=min(1.0, buy_weight),
-                reason=f"Ensemble BUY ({buy_count}/{len(self.strategies)}, trend={trend}): {reason_str}",
+                confidence=final_confidence,
+                reason=f"Ensemble BUY ({buy_count}/{len(self.strategies)}, trend={trend}{mtf_reason}): {reason_str}",
                 metadata={**sig_meta, "buy_weight": buy_weight, "sell_weight": sell_weight,
-                          "buy_count": buy_count},
+                          "buy_count": buy_count,
+                          "mtf_confluence": mtf_signal.confluence_score if mtf_signal else None},
             )
 
         # SELL 조건: 최소 2전략 합의 + 상승추세에서만 매도 차단
