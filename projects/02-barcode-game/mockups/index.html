@@ -719,6 +719,32 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 .battle-effectiveness.super{background:rgba(0,184,148,.9);color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.3);}
 .battle-effectiveness.not-very{background:rgba(231,76,60,.9);color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.3);}
 @keyframes effectMsg{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}40%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(.9)}}
+/* === Monster Variant Badges === */
+.variant-badge{display:inline-flex;align-items:center;gap:2px;font-size:.52rem;padding:1px 6px;border-radius:8px;font-weight:700;white-space:nowrap;margin-left:3px;}
+.variant-badge-강공형{background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid rgba(231,76,60,.25);}
+.variant-badge-방어형{background:rgba(52,152,219,.15);color:#3498db;border:1px solid rgba(52,152,219,.25);}
+.variant-badge-민첩형{background:rgba(46,204,113,.15);color:#27ae60;border:1px solid rgba(46,204,113,.25);}
+/* === Team Synergy Display === */
+.synergy-panel{background:var(--card);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.synergy-panel h3{font-size:.78rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.synergy-card{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--card-border);font-size:.68rem;}
+.synergy-card:last-child{border-bottom:none;}
+.synergy-icon{font-size:1rem;min-width:28px;text-align:center;}
+.synergy-active{position:relative;}
+.synergy-active::after{content:'';position:absolute;top:-1px;right:-1px;width:6px;height:6px;border-radius:50%;background:#00b894;border:1px solid var(--card);}
+.synergy-info{flex:1;}
+.synergy-name{font-weight:700;font-size:.68rem;color:var(--text);}
+.synergy-effect{font-size:.58rem;color:var(--text-light);margin-top:1px;}
+.synergy-types{display:flex;gap:3px;font-size:.5rem;}
+.synergy-inactive{opacity:.4;}
+/* === Status Effects in Battle === */
+.status-effects-row{display:flex;gap:3px;margin-top:3px;justify-content:center;flex-wrap:wrap;}
+.status-effect-icon{font-size:.55rem;padding:1px 4px;border-radius:6px;font-weight:700;display:inline-flex;align-items:center;gap:1px;animation:statusPulse 2s ease-in-out infinite;white-space:nowrap;}
+.status-effect-icon.debuff{background:rgba(231,76,60,.2);color:#e74c3c;}
+.status-effect-icon.buff{background:rgba(0,184,148,.2);color:#00b894;}
+@keyframes statusPulse{0%,100%{opacity:1}50%{opacity:.7}}
+/* === Free Scan Note === */
+.free-scan-note{text-align:center;font-size:.68rem;color:var(--heal);font-weight:600;margin:6px 0;padding:6px 12px;background:rgba(0,184,148,.08);border-radius:8px;border:1px dashed rgba(0,184,148,.3);}
 </style>
 </head>
 <body>
@@ -772,6 +798,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
     </div>
     <div class="action-grid" id="action-grid"></div>
     <div id="daily-missions-container"></div>
+    <div id="synergy-container"></div>
   </div>
 </div>
 
@@ -786,12 +813,11 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
       <div id="scan-result" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.7);z-index:2;border-radius:var(--radius);"></div>
     </div>
     <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin:8px 0;font-size:.65rem;color:var(--text-light);">
-      <span>에너지: <strong id="scan-energy-display">5</strong></span>
-      <span>·</span>
       <span>수집: <strong id="scan-remaining">0</strong></span>
     </div>
+    <div class="free-scan-note">🌟 바코드 스캔은 무제한! 자유롭게 수집하세요</div>
     <div id="pity-bar-container"></div>
-    <button class="scan-btn" id="scan-btn-main" onclick="doScan()">바코드 스캔하기</button>
+    <button class="scan-btn" id="scan-btn-main" onclick="doScan()">🔍 무제한 바코드 스캔</button>
     <button class="manual-toggle" onclick="toggleManual()">직접 입력하기</button>
     <div class="manual-input" id="manual-input" style="display:none;">
       <input type="text" id="barcode-input" maxlength="13" placeholder="13자리 바코드 입력" inputmode="numeric">
@@ -1448,6 +1474,52 @@ const SKILL_NAMES = {
 };
 
 // ============================================================
+// MONSTER VARIANTS
+// ============================================================
+const VARIANTS = ['강공형','방어형','민첩형'];
+const VARIANT_MODIFIERS = {
+  '강공형': {atk:1.25, special:1.15, def:0.9, hp:1, spd:1},
+  '방어형': {def:1.25, hp:1.15, spd:0.9, atk:1, special:1},
+  '민첩형': {spd:1.25, atk:1.15, hp:0.9, def:1, special:1}
+};
+const VARIANT_EMOJI = {'강공형':'⚔️','방어형':'🛡️','민첩형':'💨'};
+
+// ============================================================
+// TEAM TYPE SYNERGIES
+// ============================================================
+const TYPE_SYNERGIES = [
+  {types:['불','바람'], name:'지옥의 폭풍', effect:'불 공격력 +20%', bonus:{type:'불',atkMult:1.2}},
+  {types:['물','대지'], name:'진흙 격류', effect:'물 방어력 +15%', bonus:{type:'물',defMult:1.15}},
+  {types:['자연','영혼'], name:'생명의 꽃', effect:'턴당 HP 5% 회복', bonus:{healPerTurn:0.05}},
+  {types:['기계','어둠'], name:'사이버 팬텀', effect:'적 방어력 30% 무시', bonus:{defPen:0.3}},
+  {types:['빛','영혼'], name:'천상의 수호', effect:'어둠 피해 -20%', bonus:{darkRes:0.2}},
+  {types:['불','대지'], name:'용암의 분노', effect:'전체 공격력 +10%', bonus:{allAtkMult:1.1}},
+  {types:['물','바람'], name:'태풍의 눈', effect:'속도 +25%', bonus:{spdMult:1.25}},
+  {types:['자연','음식'], name:'풍요의 축제', effect:'골드 획득 +30%', bonus:{goldMult:1.3}},
+  {types:['빛','기계'], name:'광속 회로', effect:'에너지 회복 +50%', bonus:{energyRegen:1.5}},
+  {types:['어둠','대지'], name:'심연의 감옥', effect:'적 속도 -20%', bonus:{enemySpdDebuff:0.2}}
+];
+
+// ============================================================
+// STATUS EFFECTS (Battle)
+// ============================================================
+const STATUS_EFFECTS = {
+  burn: {name:'화상', emoji:'🔥', dmgPerTurn:0.08, duration:3, desc:'매 턴 8% HP 피해'},
+  freeze: {name:'빙결', emoji:'❄️', skipChance:0.3, duration:2, desc:'30% 확률로 행동불가'},
+  poison: {name:'중독', emoji:'☠️', dmgPerTurn:0.05, duration:5, desc:'매 턴 5% HP 피해'},
+  stun: {name:'기절', emoji:'⚡', skipChance:1.0, duration:1, desc:'1턴 행동불가'},
+  atkUp: {name:'공격 강화', emoji:'⬆️', mult:1.3, stat:'atk', duration:3, desc:'공격력 30% 증가'},
+  defUp: {name:'방어 강화', emoji:'🛡️', mult:1.3, stat:'def', duration:3, desc:'방어력 30% 증가'}
+};
+
+// Map monster types to status effects they can inflict
+const TYPE_STATUS_MAP = {
+  '불':'burn', '물':'freeze', '자연':'poison', '바람':'stun',
+  '영혼':'poison', '빛':'atkUp', '어둠':'freeze', '대지':'defUp',
+  '기계':'atkUp', '음식':'defUp'
+};
+
+// ============================================================
 // DAILY MISSION TEMPLATES
 // ============================================================
 const DAILY_MISSION_POOL = [
@@ -1511,12 +1583,17 @@ function generateMonsterFromBarcode(barcode){
   const allSame=bc.split('').every(d=>d===bc[0]);
   const rarity=allSame?'Legendary':BARCODE_RARITIES[rarIdx];
 
-  // Stats derived from digits
-  const hp=50+(ds*3)%151; // 50-200
-  const atk=10+((digits[3]||0)*10+(digits[4]||0))%91; // 10-100
-  const def=10+((digits[5]||0)*10+(digits[6]||0))%91;
-  const spd=10+((digits[7]||0)*10+(digits[8]||0))%91;
-  const special=10+((digits[9]||0)*10+(digits[10]||0))%91;
+  // Variant from barcode digits
+  const variantIdx = (digits[11] || digits[0]) % 3;
+  const variant = VARIANTS[variantIdx];
+  const vMod = VARIANT_MODIFIERS[variant];
+
+  // Stats derived from digits, modified by variant
+  const hp=Math.round((50+(ds*3)%151) * vMod.hp); // 50-200 base
+  const atk=Math.round((10+((digits[3]||0)*10+(digits[4]||0))%91) * vMod.atk); // 10-100 base
+  const def=Math.round((10+((digits[5]||0)*10+(digits[6]||0))%91) * vMod.def);
+  const spd=Math.round((10+((digits[7]||0)*10+(digits[8]||0))%91) * vMod.spd);
+  const special=Math.round((10+((digits[9]||0)*10+(digits[10]||0))%91) * vMod.special);
 
   // Emoji
   const emojiIdx=(h>>>8)%BARCODE_EMOJIS.length;
@@ -1546,6 +1623,7 @@ function generateMonsterFromBarcode(barcode){
     name:name,
     species:species,
     type:type,
+    variant:variant,
     rarity:rarity.toLowerCase(),
     rarityEn:rarity,
     emoji:emoji,
@@ -1641,6 +1719,14 @@ function loadState(){
   if(!GS.dailyMissions) GS.dailyMissions=[];
   if(!GS.dailyMissionDate) GS.dailyMissionDate=null;
   if(GS.dailyMissionAllClaimed===undefined) GS.dailyMissionAllClaimed=false;
+  // Backward compat: add variant to existing barcode monsters that don't have one
+  Object.values(GS.barcodeMonsters).forEach(m=>{
+    if(m.barcode && !m.variant){
+      const digits=String(m.barcode).split('').map(Number);
+      const variantIdx=(digits[11]||digits[0])%3;
+      m.variant=VARIANTS[variantIdx];
+    }
+  });
   // Restore barcode monsters into CHARACTERS array
   Object.values(GS.barcodeMonsters).forEach(m=>{
     if(!CHARACTERS.find(c=>c.id===m.id)){
@@ -1888,6 +1974,9 @@ function renderHome(){
   // Render daily missions panel
   const dmEl=document.getElementById('daily-missions-container');
   if(dmEl) dmEl.innerHTML=dmPanel;
+  // Render active synergies
+  const synEl=document.getElementById('synergy-container');
+  if(synEl) synEl.innerHTML=renderSynergyPanel();
 }
 
 function nextStory(){
@@ -1898,9 +1987,7 @@ function nextStory(){
 }
 
 function renderScan(){
-  const se=document.getElementById('scan-energy-display');
   const sr=document.getElementById('scan-remaining');
-  if(se) se.textContent=GS.energy;
   // Show total discovered barcode monsters and remaining story chars
   const barcodeCount=Object.keys(GS.barcodeMonsters||{}).length;
   const storyRemaining=CHARACTERS.filter(c=>!c.isBarcodeMonster&&!GS.discovered.includes(c.id)).length;
@@ -2847,7 +2934,7 @@ function renderChars(){
       <div class="mi">${disc?getMood(c):'?'}</div>
       <div class="pa">${artHtml}</div>
       <div class="cn">${disc?c.name:'???'}</div>
-      <div class="ct">${disc?getTypeBadgeHtml(c.type):'미발견'}</div>
+      <div class="ct">${disc?getTypeBadgeHtml(c.type)+(c.variant?getVariantBadgeHtml(c.variant):''):'미발견'}</div>
       ${disc?`${isBc?`${getEvoStarsHtml(c.id)}
       <div class="level-bar-wrap">
         <div class="level-bar-label"><span>Lv.${ml.level}</span><span>${ml.exp}/${getExpForMonsterLevel(ml.level)}</span></div>
@@ -3312,15 +3399,10 @@ function renderAffinityBar(id,compact){
 }
 
 function doScan(barcodeOverride){
-  if(GS.energy<=0){
-    showToast('에너지가 부족해요! 잠시 기다려주세요.');
-    return;
-  }
+  // Scanning is FREE - no energy cost (energy is reserved for battles only)
   // Disable button during animation
   const btn=document.getElementById('scan-btn-main');
   if(btn){btn.disabled=true;btn.textContent='스캔 중...';}
-  GS.energy--;
-  updateEnergyUI();
   saveState();
   // Show scanning animation in viewport
   const sr=document.getElementById('scan-result');
@@ -3333,7 +3415,7 @@ function doScan(barcodeOverride){
   // Delayed reveal for dramatic effect
   setTimeout(()=>{
     if(sr) sr.style.display='none';
-    if(btn){btn.disabled=false;btn.textContent='바코드 스캔하기';}
+    if(btn){btn.disabled=false;btn.textContent='🔍 무제한 바코드 스캔';}
 
     // Small chance (5%) to discover a special story character (the original 10)
     const storyUndiscovered=CHARACTERS.filter(c=>!c.isBarcodeMonster&&!GS.discovered.includes(c.id));
@@ -3463,7 +3545,8 @@ function showBarcodeDiscovery(monster){
   const typeEmoji=TYPE_EMOJI_KR[monster.type]||'';
   document.getElementById('disc-img').outerHTML=`<div class="pa" id="disc-img" style="font-size:3.5rem;display:flex;align-items:center;justify-content:center;">${monster.emoji}</div>`;
   document.getElementById('disc-name').textContent=monster.name;
-  document.getElementById('disc-sub').innerHTML=`${monster.species} · ${typeEmoji} ${monster.type} 타입<br><span class="barcode-display">${monster.barcode}</span>`;
+  const varBadge=monster.variant?getVariantBadgeHtml(monster.variant):'';
+  document.getElementById('disc-sub').innerHTML=`${monster.species} · ${typeEmoji} ${monster.type} 타입 ${varBadge}<br><span class="barcode-display">${monster.barcode}</span>`;
   const rarEl=document.getElementById('disc-rar');
   rarEl.textContent=rarKr;
   rarEl.className='rar rar-'+rarCss;
@@ -3555,7 +3638,8 @@ function showCharDetail(id){
   html+=`<h2 style="margin-bottom:2px;">${c.emoji} ${c.name}</h2>`;
   const rarKr=BARCODE_RARITY_KR?.[c.rarityEn]||{common:'일반',uncommon:'고급',rare:'희귀',epic:'전설'}[c.rarity]||'일반';
   const rarCss=BARCODE_RARITY_CSS?.[c.rarityEn]||c.rarity||'common';
-  html+=`<div style="font-size:.7rem;color:var(--text-light);margin-bottom:4px;">${c.species} · ${getTypeBadgeHtml(c.type)} · <span class="rar rar-${rarCss}" style="font-size:.65rem;padding:2px 8px;">${rarKr}</span></div>`;
+  const varBadge=c.variant?getVariantBadgeHtml(c.variant):'';
+  html+=`<div style="font-size:.7rem;color:var(--text-light);margin-bottom:4px;">${c.species} · ${getTypeBadgeHtml(c.type)} ${varBadge} · <span class="rar rar-${rarCss}" style="font-size:.65rem;padding:2px 8px;">${rarKr}</span></div>`;
   if(isBc&&c.barcode){
     html+=`<div class="barcode-display" style="margin-bottom:8px;">${c.barcode}</div>`;
   }
@@ -5184,10 +5268,12 @@ function renderDungeonBattle(){
       const mult=getTypeMatchup(partyType,e.primary_type);
       matchupHtml=getMatchupLabel(mult);
     }
+    const eStatusHtml=renderStatusEffectIcons(e.statusEffects);
     return `<div class="dg-enemy-unit ${deadCls} ${bossCls} ${enragedCls} ${targetedCls}" onclick="${isDead?'':`selectBattleTarget(${idx})`}" style="${isDead?'':'cursor:pointer;'}">
       <div class="eu-icon">${e.is_boss?'\uD83D\uDC80':typeEmoji}</div>
       <div class="eu-name">${e.name}</div>
       ${matchupHtml}
+      ${eStatusHtml}
       <div class="eu-hpbar"><div class="eu-hpfill" style="width:${hpPct}%"></div></div>
       <div class="eu-hptxt">${Math.max(0,e.current_hp)}/${e.max_hp}</div>
     </div>`;
@@ -5199,9 +5285,11 @@ function renderDungeonBattle(){
     const hpPct=p.max_hp>0?Math.round(p.current_hp/p.max_hp*100):0;
     const deadCls=p.is_alive===false||p.current_hp<=0?'dead':'';
     const pTypeEmoji=getTypeEmoji(p.primary_type);
+    const pStatusHtml=renderStatusEffectIcons(p.statusEffects);
     return `<div class="dg-party-unit ${deadCls}">
       <div style="font-size:.7rem;margin-bottom:2px;">${pTypeEmoji}</div>
       <div class="pu-name">${p.name}</div>
+      ${pStatusHtml}
       <div class="pu-hpbar"><div class="pu-hpfill" style="width:${hpPct}%"></div></div>
       <div class="pu-hptxt">${Math.max(0,p.current_hp)}/${p.max_hp}</div>
     </div>`;
@@ -6047,7 +6135,7 @@ function renderDex(){
       html+=`<div class="char-card ${rarGlow}" onclick="${disc?`showCharDetail('${m.id}')`:''}">
         <div style="font-size:1.6rem;">${disc?m.emoji:'?'}</div>
         <div class="cn">${disc?m.name:'???'}</div>
-        <div class="ct">${disc?getTypeBadgeHtml(m.type):'미발견'}</div>
+        <div class="ct">${disc?getTypeBadgeHtml(m.type)+(m.variant?getVariantBadgeHtml(m.variant):''):'미발견'}</div>
         ${disc?`${getEvoStarsHtml(m.id)}
         <div class="level-bar-wrap">
           <div class="level-bar-label"><span>Lv.${ml.level}</span><span>${ml.exp}/${getExpForMonsterLevel(ml.level)}</span></div>
@@ -6208,6 +6296,173 @@ function useSkill(skillIdx){
   if(typeof dungeonBattleTurn==='function'){
     dungeonBattleTurn(action);
   }
+}
+
+// ============================================================
+// VARIANT BADGE HELPER
+// ============================================================
+function getVariantBadgeHtml(variant){
+  if(!variant) return '';
+  const emoji=VARIANT_EMOJI[variant]||'';
+  return `<span class="variant-badge variant-badge-${variant}">${emoji} ${variant}</span>`;
+}
+
+// ============================================================
+// TEAM SYNERGY SYSTEM
+// ============================================================
+function getActiveSynergies(){
+  const discovered=GS.discovered||[];
+  // Collect all types the player's discovered monsters have
+  const playerTypes=new Set();
+  discovered.forEach(id=>{
+    const c=CHARACTERS.find(ch=>ch.id===id);
+    if(c&&c.type) playerTypes.add(c.type);
+  });
+  // Check which synergies are fulfilled
+  return TYPE_SYNERGIES.map(syn=>{
+    const active=syn.types.every(t=>playerTypes.has(t));
+    return {...syn, active};
+  });
+}
+
+function renderSynergyPanel(){
+  const synergies=getActiveSynergies();
+  const activeCount=synergies.filter(s=>s.active).length;
+  if(synergies.length===0) return '';
+
+  let html=`<div class="synergy-panel">
+    <h3>🔗 타입 시너지 <span style="font-size:.6rem;color:var(--text-light);font-weight:400;">(${activeCount}/${synergies.length} 활성)</span></h3>`;
+
+  // Show active synergies first, then inactive
+  const sorted=[...synergies.filter(s=>s.active),...synergies.filter(s=>!s.active)];
+  // Show max 5 (all active + some inactive to tease)
+  const toShow=sorted.slice(0, Math.max(activeCount, 4));
+  toShow.forEach(syn=>{
+    const typeEmojis=syn.types.map(t=>TYPE_EMOJI_KR[t]||'').join('+');
+    html+=`<div class="synergy-card ${syn.active?'synergy-active':'synergy-inactive'}">
+      <div class="synergy-icon ${syn.active?'synergy-active':''}">${typeEmojis}</div>
+      <div class="synergy-info">
+        <div class="synergy-name">${syn.name}</div>
+        <div class="synergy-effect">${syn.effect}</div>
+        <div class="synergy-types">${syn.types.map(t=>getTypeBadgeHtml(t)).join(' ')}</div>
+      </div>
+      <div style="font-size:.58rem;font-weight:700;color:${syn.active?'var(--heal)':'var(--text-light)'};">${syn.active?'활성':'미달성'}</div>
+    </div>`;
+  });
+
+  if(synergies.length>toShow.length){
+    html+=`<div style="text-align:center;font-size:.6rem;color:var(--text-light);margin-top:6px;">+${synergies.length-toShow.length}개 시너지 더 있음</div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+// ============================================================
+// STATUS EFFECT SYSTEM (Battle)
+// ============================================================
+function renderStatusEffectIcons(effects){
+  if(!effects||effects.length===0) return '';
+  let html='<div class="status-effects-row">';
+  effects.forEach(eff=>{
+    const info=STATUS_EFFECTS[eff.id]||{};
+    const isDebuff=['burn','freeze','poison','stun'].includes(eff.id);
+    html+=`<span class="status-effect-icon ${isDebuff?'debuff':'buff'}" title="${info.desc||''}">${info.emoji||'?'}${eff.turns||''}</span>`;
+  });
+  html+='</div>';
+  return html;
+}
+
+function applyStatusEffectFromSkill(attackerType, skillSlot, targetUnit){
+  if(!targetUnit) return null;
+  // Special attacks have 40% chance, basic have 15% chance
+  let chance=0;
+  if(skillSlot==='special') chance=0.40;
+  else if(skillSlot==='basic') chance=0.15;
+  else if(skillSlot==='ultimate') chance=0.60;
+  else if(skillSlot==='buff') chance=0; // buff handled separately
+  if(chance<=0) return null;
+  if(Math.random()>chance) return null;
+
+  const effectId=TYPE_STATUS_MAP[attackerType];
+  if(!effectId) return null;
+  const effectDef=STATUS_EFFECTS[effectId];
+  if(!effectDef) return null;
+
+  // Initialize status effects array
+  if(!targetUnit.statusEffects) targetUnit.statusEffects=[];
+  // Don't stack same effect, just refresh duration
+  const existing=targetUnit.statusEffects.find(e=>e.id===effectId);
+  if(existing){
+    existing.turns=effectDef.duration;
+    return effectDef;
+  }
+  targetUnit.statusEffects.push({id:effectId, turns:effectDef.duration});
+  return effectDef;
+}
+
+function applyBuffSkillEffect(monster, targetUnit){
+  if(!monster||!targetUnit) return null;
+  // Determine buff type based on monster type
+  // Defensive types get defUp, offensive types get atkUp
+  const defensiveTypes=['물','대지','자연','음식'];
+  const buffId=defensiveTypes.includes(monster.type)?'defUp':'atkUp';
+  const effectDef=STATUS_EFFECTS[buffId];
+  if(!effectDef) return null;
+
+  if(!targetUnit.statusEffects) targetUnit.statusEffects=[];
+  const existing=targetUnit.statusEffects.find(e=>e.id===buffId);
+  if(existing){
+    existing.turns=effectDef.duration;
+    return effectDef;
+  }
+  targetUnit.statusEffects.push({id:buffId, turns:effectDef.duration});
+  return effectDef;
+}
+
+function processStatusEffectsOnTurn(unit){
+  if(!unit||!unit.statusEffects||unit.statusEffects.length===0) return [];
+  const messages=[];
+  // Process effects
+  unit.statusEffects.forEach(eff=>{
+    const def=STATUS_EFFECTS[eff.id];
+    if(!def) return;
+    // Damage over time (burn, poison)
+    if(def.dmgPerTurn&&unit.current_hp>0){
+      const dmg=Math.round(unit.max_hp*def.dmgPerTurn);
+      unit.current_hp=Math.max(0, unit.current_hp-dmg);
+      messages.push(`${def.emoji} ${unit.name}: ${def.name} 피해 -${dmg}HP`);
+    }
+    // Decrement duration
+    eff.turns--;
+  });
+  // Remove expired effects
+  unit.statusEffects=unit.statusEffects.filter(e=>e.turns>0);
+  return messages;
+}
+
+function isUnitStunned(unit){
+  if(!unit||!unit.statusEffects) return false;
+  return unit.statusEffects.some(eff=>{
+    const def=STATUS_EFFECTS[eff.id];
+    if(!def) return false;
+    if(def.skipChance){
+      return Math.random()<def.skipChance;
+    }
+    return false;
+  });
+}
+
+function getStatusStatMult(unit, stat){
+  if(!unit||!unit.statusEffects) return 1;
+  let mult=1;
+  unit.statusEffects.forEach(eff=>{
+    const def=STATUS_EFFECTS[eff.id];
+    if(def&&def.stat===stat&&def.mult){
+      mult*=def.mult;
+    }
+  });
+  return mult;
 }
 
 // ============================================================
