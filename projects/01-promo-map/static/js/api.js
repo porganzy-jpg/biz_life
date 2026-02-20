@@ -175,4 +175,18 @@ const API = {
     getRedemptionStats() {
         return this.request('redeem/stats');
     },
+
+    // Trending
+    getTrendingDiscounts(days = 7, limit = 10) {
+        return this.request(`trending/discounts?days=${days}&limit=${limit}`);
+    },
+    getPopularStores(limit = 10) {
+        return this.request(`trending/stores?limit=${limit}`);
+    },
+    getHotDeals(limit = 5) {
+        return this.request(`trending/hot-deals?limit=${limit}`);
+    },
+    getSavingsLeaders(limit = 5) {
+        return this.request(`trending/savings-leaders?limit=${limit}`);
+    },
 };

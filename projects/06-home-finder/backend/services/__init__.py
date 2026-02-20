@@ -6,6 +6,7 @@ from services.price_service import PriceService
 from services.area_service import AreaService
 from services.complex_service import ComplexService
 from services.report_service import ReportService
+from services.export_service import ExportService
 
 __all__ = [
     "PropertyService",
@@ -16,4 +17,5 @@ __all__ = [
     "AreaService",
     "ComplexService",
     "ReportService",
+    "ExportService",
 ]

@@ -167,3 +167,16 @@ class BusStateModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(String(100), unique=True, nullable=False, index=True)
     bus_data = Column(JSON, default=dict)
+
+
+class PlayerAchievement(Base):
+    """
+    업적 해금 기록.
+    한 플레이어가 해금한 업적마다 1행.
+    """
+    __tablename__ = "player_achievements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(100), nullable=False, index=True)
+    achievement_id = Column(String(50), nullable=False)
+    unlocked_at = Column(DateTime, default=datetime.utcnow)

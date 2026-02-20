@@ -77,6 +77,40 @@
         <!-- 바텀시트 (지도 탭에서만 표시) -->
         <div class="promo-panel" id="promoPanel">
             <div class="promo-handle" id="promoHandle"><div class="promo-handle-bar"></div></div>
+
+            <!-- 인기 할인 캐러셀 -->
+            <div class="trending-section" id="trendingSection">
+                <div class="trending-header">
+                    <span class="trending-title">&#x1F525; 인기 할인</span>
+                    <span class="trending-subtitle">최근 7일 기준</span>
+                </div>
+                <div class="trending-carousel" id="trendingCarousel">
+                    <div class="loading-text" style="font-size:0.8rem;">인기 할인 로딩 중...</div>
+                </div>
+            </div>
+
+            <!-- 핫딜 섹션 -->
+            <div class="hot-deals-section" id="hotDealsSection">
+                <div class="trending-header">
+                    <span class="trending-title">&#x26A1; 핫딜</span>
+                    <span class="trending-subtitle">절약 속도 TOP</span>
+                </div>
+                <div id="hotDealsList">
+                    <div class="loading-text" style="font-size:0.8rem;">핫딜 로딩 중...</div>
+                </div>
+            </div>
+
+            <!-- 인기 매장 섹션 -->
+            <div class="popular-stores-section" id="popularStoresSection">
+                <div class="trending-header">
+                    <span class="trending-title">&#x2B50; 인기 매장</span>
+                    <span class="trending-subtitle">리뷰 + 평점 + 이용량</span>
+                </div>
+                <div id="popularStoresList">
+                    <div class="loading-text" style="font-size:0.8rem;">인기 매장 로딩 중...</div>
+                </div>
+            </div>
+
             <div class="promo-header">
                 <div>
                     <div class="title" id="promoTitle">주변 할인 혜택</div>
@@ -89,6 +123,7 @@
                     <option value="nearest">가까운순</option>
                     <option value="discount">할인율순</option>
                     <option value="expiring">마감임박순</option>
+                    <option value="popular">인기순</option>
                 </select>
             </div>
             <div class="promo-list" id="promoList">
@@ -185,6 +220,7 @@
     <script src="/static/js/search.js"></script>
     <script src="/static/js/favorites.js"></script>
     <script src="/static/js/mypage.js"></script>
+    <script src="/static/js/trending.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

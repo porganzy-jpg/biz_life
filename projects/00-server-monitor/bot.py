@@ -26,6 +26,7 @@ from services import (
 )
 from deploy import bot_deploy_trigger, bot_deploy_status
 from anomaly import get_alert_manager, MaintenanceWindow
+from scheduler import bot_schedule_list, bot_schedule_add, bot_schedule_remove, bot_schedule_toggle
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -75,6 +76,11 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "/deploy - 수동 배포 (git pull + 전체 재시작)\n"
         "/deploy <이름> - 특정 프로젝트만 배포\n"
         "/deploystatus - 마지막 배포 상태\n\n"
+        "예약 재시작:\n"
+        "/schedule - 예약 재시작 목록\n"
+        "/schedule add <프로젝트> <daily|weekly> <HH:MM> [요일]\n"
+        "/schedule remove <id> - 예약 삭제\n"
+        "/schedule toggle <id> - 활성/비활성\n\n"
         "알림 & 이상 탐지:\n"
         "/alerts - 최근 알림 조회\n"
         "/maintenance start 2h - 유지보수 윈도우 시작\n"
@@ -441,6 +447,50 @@ async def cmd_thresholds(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines))
 
 
+async def cmd_schedule(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """예약 재시작 관리: /schedule [add|remove|toggle] [args...]
+    사용법:
+      /schedule - 목록 조회
+      /schedule add 04-crypto-trader daily 03:00
+      /schedule add 01-promo-map weekly 04:00 mon
+      /schedule remove <id>
+      /schedule toggle <id>
+    """
+    if not is_authorized(update):
+        return
+
+    args = ctx.args or []
+    if not args:
+        # 목록 조회
+        result = bot_schedule_list()
+        await update.message.reply_text(f"⏰ {result}")
+        return
+
+    action = args[0].lower()
+    sub_args = args[1:]
+
+    if action == "add":
+        result = bot_schedule_add(sub_args)
+        await update.message.reply_text(f"⏰ {result}")
+    elif action == "remove" or action == "delete" or action == "del":
+        result = bot_schedule_remove(sub_args)
+        await update.message.reply_text(f"⏰ {result}")
+    elif action == "toggle":
+        result = bot_schedule_toggle(sub_args)
+        await update.message.reply_text(f"⏰ {result}")
+    elif action == "list":
+        result = bot_schedule_list()
+        await update.message.reply_text(f"⏰ {result}")
+    else:
+        await update.message.reply_text(
+            "⏰ 사용법:\n"
+            "/schedule - 목록 조회\n"
+            "/schedule add <프로젝트> <daily|weekly> <HH:MM> [요일]\n"
+            "/schedule remove <id>\n"
+            "/schedule toggle <id>"
+        )
+
+
 async def cmd_panel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update):
         return
@@ -550,6 +600,7 @@ def main():
     app.add_handler(CommandHandler("alerts", cmd_alerts))
     app.add_handler(CommandHandler("maintenance", cmd_maintenance))
     app.add_handler(CommandHandler("thresholds", cmd_thresholds))
+    app.add_handler(CommandHandler("schedule", cmd_schedule))
     app.add_handler(CommandHandler("panel", cmd_panel))
     app.add_handler(CallbackQueryHandler(button_handler))
 

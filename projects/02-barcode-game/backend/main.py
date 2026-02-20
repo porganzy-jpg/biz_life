@@ -45,8 +45,9 @@ import persistence
 from pvp_system import ArenaManager
 from guild_system import GuildManager
 from trading_system import TradeManager
+from achievement_system import AchievementManager
 
-app = FastAPI(title="BarcodeQuest Game Server v2.3")
+app = FastAPI(title="BarcodeQuest Game Server v2.4")
 
 # 게임 엔진 인스턴스 (stateless singletons)
 generator = BarcodeMonsterGenerator()
@@ -59,6 +60,9 @@ arena_manager = ArenaManager()
 # 길드 & 거래 매니저
 guild_manager = GuildManager()
 trade_manager = TradeManager()
+
+# 업적 매니저
+achievement_manager = AchievementManager()
 
 # Sub-systems that hold per-session state in memory (loaded from DB on access)
 expedition_system = ExpeditionSystem()
@@ -125,6 +129,7 @@ async def startup():
     import pvp_models  # noqa: F401  (테이블 생성을 위해 모델 import)
     import guild_system  # noqa: F401  (Guild, GuildMember, GuildBossLog 테이블 생성)
     import trading_system  # noqa: F401  (TradeListing, TradeHistory 테이블 생성)
+    import models  # noqa: F401  (PlayerAchievement 테이블 생성)
     init_db()
 
 
@@ -209,6 +214,9 @@ async def scan_barcode(
     persistence.save_scanned_barcode(session, barcode)
     persistence.save_daily_quests(session, daily_quest_system)
 
+    # --- Achievement check after scan ---
+    achievement_unlocks = _run_achievement_check(session, player, collection)
+
     return {
         "monster": monster_dict,
         "collection": coll_result,
@@ -216,6 +224,7 @@ async def scan_barcode(
         "player": player.to_dict(),
         "quest_updates": quest_updates,
         "bus_suggestion": bus_suggestion,
+        "achievement_unlocks": achievement_unlocks,
     }
 
 
@@ -310,6 +319,9 @@ async def start_battle(
     persistence.save_player(session, player)
     persistence.save_daily_quests(session, daily_quest_system)
 
+    # --- Achievement check after battle ---
+    achievement_unlocks = _run_achievement_check(session, player, collection)
+
     return {
         "result": "WIN" if is_player_win else "LOSE",
         "player_monster": {"name": player_monster_data["name"], "level": player_monster_data.get("level", 1), "final_hp": p1.current_hp, "max_hp": p1.max_hp},
@@ -321,6 +333,7 @@ async def start_battle(
         "affinity_heal": affinity_heal_result,
         "player": player.to_dict(),
         "quest_updates": quest_updates,
+        "achievement_unlocks": achievement_unlocks,
     }
 
 
@@ -504,6 +517,10 @@ async def collect_expedition(session: str = "default"):
     persistence.save_expedition(session, expedition_system)
     persistence.save_daily_quests(session, daily_quest_system)
 
+    # --- Achievement check after expedition ---
+    _, collection = get_or_create_player(session)
+    achievement_unlocks = _run_achievement_check(session, player, collection)
+
     return {
         "result": {
             "zone_name": result.zone_name,
@@ -517,6 +534,7 @@ async def collect_expedition(session: str = "default"):
         "items_added": items_added,
         "affinity_updates": affinity_results,
         "player": player.to_dict(),
+        "achievement_unlocks": achievement_unlocks,
     }
 
 
@@ -686,11 +704,15 @@ async def evolve_monster(
     persistence.save_collection(session, collection)
     persistence.save_inventory(session, inv)
 
+    # --- Achievement check after evolution ---
+    achievement_unlocks = _run_achievement_check(session, player, collection)
+
     return {
         "evolved_monster": evolved,
         "cost_paid": {"gold": costs["gold"], "materials": costs["materials"]},
         "player": player.to_dict(),
         "message": f"축하합니다! {monster.get('name')}이(가) {evolved['name']}(으)로 진화했습니다!",
+        "achievement_unlocks": achievement_unlocks,
     }
 
 
@@ -934,6 +956,10 @@ async def pvp_battle(
     # --- DB Persist ---
     persistence.save_player(session, player)
 
+    # --- Achievement check after PvP ---
+    _, collection = get_or_create_player(session)
+    result["achievement_unlocks"] = _run_achievement_check(session, player, collection)
+
     result["player"] = player.to_dict()
     return result
 
@@ -993,8 +1019,11 @@ async def guild_join(
     session: str = Query("default"),
 ):
     """길드 가입"""
-    get_or_create_player(session)
+    player, collection = get_or_create_player(session)
     result = guild_manager.join_guild(session, guild_id)
+    if result.get("ok"):
+        # --- Achievement check after guild join ---
+        result["achievement_unlocks"] = _run_achievement_check(session, player, collection)
     return result
 
 
@@ -1055,6 +1084,10 @@ async def guild_boss(
             player.gain_exp(rewards["exp"])
         persistence.save_player(session, player)
         result["player"] = player.to_dict()
+
+        # --- Achievement check after guild boss ---
+        _, collection = get_or_create_player(session)
+        result["achievement_unlocks"] = _run_achievement_check(session, player, collection)
     return result
 
 
@@ -1118,6 +1151,9 @@ async def trade_buy(
         # Save buyer
         persistence.save_player(session, player)
         result["player"] = player.to_dict()
+
+        # --- Achievement check after trade ---
+        result["achievement_unlocks"] = _run_achievement_check(session, player, get_or_create_player(session)[1])
     return result
 
 
@@ -1161,6 +1197,66 @@ async def trade_history(
     """거래 내역 조회"""
     history = trade_manager.get_trade_history(session, limit)
     return {"history": history, "total": len(history)}
+
+
+# =====================================================
+#  신규 API: 업적 시스템
+# =====================================================
+
+def _build_achievement_extra(session_id: str) -> dict:
+    """Build extra context dict for achievement checks."""
+    return achievement_manager.get_extra_context(
+        session_id,
+        arena_manager=arena_manager,
+        trade_manager=trade_manager,
+        guild_manager=guild_manager,
+        expedition_system=expedition_system,
+        daily_quest_system=daily_quest_system,
+    )
+
+
+def _run_achievement_check(session_id: str, player, collection) -> list:
+    """
+    Run achievement check and apply rewards for newly unlocked achievements.
+    Returns list of newly unlocked achievement dicts.
+    """
+    extra = _build_achievement_extra(session_id)
+    newly = achievement_manager.check_achievements(session_id, player, collection, extra)
+
+    # Apply rewards for each newly unlocked achievement
+    for ach in newly:
+        if ach.get("reward_gold"):
+            player.gain_gold(ach["reward_gold"])
+        if ach.get("reward_item"):
+            inv = get_inventory(session_id)
+            inv.add_item(ach["reward_item"])
+            persistence.save_inventory(session_id, inv)
+
+    if newly:
+        persistence.save_player(session_id, player)
+
+    return newly
+
+
+@app.get("/api/achievements/{session_id}")
+async def get_achievements(session_id: str):
+    """업적 전체 목록 + 해금 상태 + 진행도 조회"""
+    player, collection = get_or_create_player(session_id)
+    extra = _build_achievement_extra(session_id)
+    result = achievement_manager.get_player_achievements(session_id, player, collection, extra)
+    return result
+
+
+@app.post("/api/achievements/check/{session_id}")
+async def check_achievements(session_id: str):
+    """업적 달성 검사 트리거 - 새로 해금된 업적과 보상 반환"""
+    player, collection = get_or_create_player(session_id)
+    newly = _run_achievement_check(session_id, player, collection)
+    return {
+        "newly_unlocked": newly,
+        "count": len(newly),
+        "player": player.to_dict(),
+    }
 
 
 if __name__ == "__main__":

@@ -30,13 +30,18 @@
 <div class="row mb-3">
     <div class="col-12 d-flex justify-content-between align-items-center">
         <h4><i class="bi bi-kanban"></i> 후보 파이프라인</h4>
-        <div>
+        <div class="d-flex gap-2 flex-wrap">
             <button class="btn btn-outline-primary btn-sm" onclick="refreshPipeline()">
                 <i class="bi bi-arrow-clockwise"></i> 새로고침
             </button>
             <button class="btn btn-outline-secondary btn-sm" onclick="toggleCompareMode()">
                 <i class="bi bi-layout-split"></i> <span id="compareBtnLabel">비교하기</span>
             </button>
+            <div class="btn-group">
+                <button class="btn btn-outline-success btn-sm" onclick="showExportModal()">
+                    <i class="bi bi-download"></i> 내보내기
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -65,6 +70,83 @@
     <div class="kanban-column" data-status="결정">
         <h6 class="status-결정">결정 <span class="badge bg-light text-dark" id="count-결정">0</span></h6>
         <div class="kanban-cards" id="cards-결정"></div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-download"></i> 후보 내보내기</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">포함할 파이프라인 단계</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input export-status-chk" type="checkbox" value="발견" id="expSt1" checked>
+                            <label class="form-check-label" for="expSt1">발견</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input export-status-chk" type="checkbox" value="조사" id="expSt2" checked>
+                            <label class="form-check-label" for="expSt2">조사</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input export-status-chk" type="checkbox" value="관심" id="expSt3" checked>
+                            <label class="form-check-label" for="expSt3">관심</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input export-status-chk" type="checkbox" value="방문예정" id="expSt4" checked>
+                            <label class="form-check-label" for="expSt4">방문예정</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input export-status-chk" type="checkbox" value="방문완료" id="expSt5" checked>
+                            <label class="form-check-label" for="expSt5">방문완료</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input export-status-chk" type="checkbox" value="결정" id="expSt6" checked>
+                            <label class="form-check-label" for="expSt6">결정</label>
+                        </div>
+                    </div>
+                    <div class="mt-1">
+                        <button class="btn btn-link btn-sm p-0" onclick="document.querySelectorAll('.export-status-chk').forEach(c => c.checked = true)">전체 선택</button>
+                        <span class="text-muted mx-1">|</span>
+                        <button class="btn btn-link btn-sm p-0" onclick="document.querySelectorAll('.export-status-chk').forEach(c => c.checked = false)">전체 해제</button>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">최소 점수</label>
+                        <input type="number" class="form-control form-control-sm" id="exportMinScore" min="0" max="100" placeholder="예: 50">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">구 필터</label>
+                        <input type="text" class="form-control form-control-sm" id="exportDistrict" placeholder="예: 마포구">
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">최소 가격 (억)</label>
+                        <input type="number" class="form-control form-control-sm" id="exportPriceMin" min="0" step="0.5" placeholder="예: 3">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">최대 가격 (억)</label>
+                        <input type="number" class="form-control form-control-sm" id="exportPriceMax" min="0" step="0.5" placeholder="예: 10">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="doExportCSV()">
+                    <i class="bi bi-filetype-csv"></i> CSV 다운로드
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="doExportReport()">
+                    <i class="bi bi-file-earmark-richtext"></i> 보고서 출력
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -260,5 +342,56 @@ async function updateCandidateStatus() {
 }
 
 refreshPipeline();
+
+// ──────────── Export (내보내기) ────────────
+
+function showExportModal() {
+    new bootstrap.Modal(document.getElementById('exportModal')).show();
+}
+
+function _buildExportParams() {
+    const params = new URLSearchParams();
+
+    // 선택된 상태 수집
+    const checkedStatuses = [];
+    document.querySelectorAll('.export-status-chk:checked').forEach(chk => {
+        checkedStatuses.push(chk.value);
+    });
+    // 모든 상태가 선택된 경우 파라미터 생략 (전체)
+    if (checkedStatuses.length > 0 && checkedStatuses.length < 6) {
+        checkedStatuses.forEach(s => params.append('statuses', s));
+    }
+
+    // 최소 점수
+    const minScore = document.getElementById('exportMinScore').value;
+    if (minScore) params.set('min_score', minScore);
+
+    // 구 필터
+    const district = document.getElementById('exportDistrict').value.trim();
+    if (district) params.set('district', district);
+
+    // 가격 범위 (억 -> 원 변환)
+    const priceMinEok = document.getElementById('exportPriceMin').value;
+    if (priceMinEok) params.set('price_min', Math.round(parseFloat(priceMinEok) * 100000000));
+
+    const priceMaxEok = document.getElementById('exportPriceMax').value;
+    if (priceMaxEok) params.set('price_max', Math.round(parseFloat(priceMaxEok) * 100000000));
+
+    return params.toString();
+}
+
+function doExportCSV() {
+    const queryString = _buildExportParams();
+    const url = `/api/v1/exports/candidates/csv${queryString ? '?' + queryString : ''}`;
+    window.location.href = url;
+    bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+}
+
+function doExportReport() {
+    const queryString = _buildExportParams();
+    const url = `/api/v1/exports/candidates/report${queryString ? '?' + queryString : ''}`;
+    window.open(url, '_blank');
+    bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+}
 </script>
 {% endblock %}

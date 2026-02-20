@@ -33,6 +33,7 @@ from regime_detector import (
     get_regime_display,
     STRATEGY_NAMES as REGIME_STRATEGY_NAMES,
 )
+from correlation_monitor import CorrelationMonitor
 
 app = FastAPI(title="StockBot v2.1 Dashboard")
 app.include_router(backtest_router)
@@ -41,6 +42,9 @@ trader = StockTrader(paper_trading=False)
 # --- Dashboard regime detector & strategy rotator ---
 dashboard_regime_detector = DashboardRegimeDetector()
 strategy_rotator = StrategyRotator()
+
+# --- Portfolio correlation monitor ---
+correlation_monitor = CorrelationMonitor(broker_client=trader.client)
 
 # --- Strategy toggle state (in-memory, persisted to JSON) ---
 STRATEGY_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "strategy_config.json")
@@ -646,6 +650,87 @@ async def get_strategy_ranking(period: str = Query("ALL")):
     return {"ranking": ranking}
 
 
+# =====================================================================
+# Portfolio Correlation & Risk Monitoring API Endpoints
+# =====================================================================
+
+def _get_positions_with_sector() -> dict:
+    """Merge broker positions with DB positions to include sector info."""
+    broker_pos = trader.client.get_positions()
+    db_positions = trader.db.get_positions()
+    db_map = {p["symbol"]: p for p in db_positions}
+
+    merged = {}
+    for sym, pos in broker_pos.items():
+        db_p = db_map.get(sym, {})
+        merged[sym] = {
+            "qty": pos.get("qty", 0),
+            "avg_price": pos.get("avg_price", 0),
+            "name": pos.get("name", db_p.get("name", sym)),
+            "sector": pos.get("sector", db_p.get("sector", "기타")),
+        }
+    # Also include any DB-only positions
+    for p in db_positions:
+        sym = p["symbol"]
+        if sym not in merged and p.get("qty", 0) > 0:
+            merged[sym] = {
+                "qty": p.get("qty", 0),
+                "avg_price": p.get("avg_price", 0),
+                "name": p.get("name", sym),
+                "sector": p.get("sector", "기타"),
+            }
+    return merged
+
+
+@app.get("/api/correlation-matrix")
+async def get_correlation_matrix(lookback: int = Query(20)):
+    """Correlation heatmap data for held positions."""
+    positions = _get_positions_with_sector()
+    result = correlation_monitor.compute_correlation_matrix(positions, lookback=lookback)
+    return result
+
+
+@app.get("/api/sector-weights")
+async def get_sector_weights():
+    """Sector pie chart data."""
+    positions = _get_positions_with_sector()
+    exposure = correlation_monitor.get_sector_exposure(positions)
+    rebalance = correlation_monitor.sector_rebalance_signal(positions)
+
+    sectors_data = []
+    for name, data in exposure["sectors"].items():
+        sectors_data.append({
+            "sector": name,
+            "weight_pct": data["weight_pct"],
+            "value": data["value"],
+            "stocks": data["stocks"],
+            "color": data.get("color", "#8b949e"),
+        })
+    sectors_data.sort(key=lambda x: x["weight_pct"], reverse=True)
+
+    return {
+        "sectors": sectors_data,
+        "total_value": exposure["total_value"],
+        "sector_count": exposure["sector_count"],
+        "rebalance": rebalance,
+    }
+
+
+@app.get("/api/portfolio-risk")
+async def get_portfolio_risk():
+    """Diversification score + concentration risk + alerts."""
+    positions = _get_positions_with_sector()
+    report = correlation_monitor.get_full_risk_report(positions)
+    return report
+
+
+@app.get("/api/correlation-history")
+async def get_correlation_history(days: int = Query(30)):
+    """Historical correlation trend data."""
+    history = correlation_monitor.get_correlation_history(days=days)
+    return {"history": history, "days": days}
+
+
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html lang="ko">
@@ -795,6 +880,50 @@ DASHBOARD_HTML = """
         .btn-apply { background: #f97316; color: #fff; }
         .btn-apply:hover { opacity: 0.85; }
 
+        /* Portfolio Risk section styles */
+        .pr-section { margin-bottom: 12px; }
+        .pr-section .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .pr-section .section-title { color: #bc8cff; font-size: 1.1rem; font-weight: 700; }
+        .pr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .pr-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+        /* Correlation heatmap */
+        .corr-heatmap-table { border-collapse: collapse; font-size: 0.75rem; width: 100%; }
+        .corr-heatmap-table th, .corr-heatmap-table td { padding: 5px 8px; text-align: center; border: 1px solid #21262d; white-space: nowrap; }
+        .corr-heatmap-table th { background: #0d1117; color: #8b949e; font-weight: 600; }
+        .corr-heatmap-table td.stock-name { text-align: left; font-weight: 600; color: #c9d1d9; background: #0d1117; min-width: 80px; }
+        .corr-cell { min-width: 45px; font-weight: 600; border-radius: 2px; font-size: 0.72rem; }
+
+        /* Gauge display */
+        .gauge-container { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .gauge-ring { position: relative; width: 140px; height: 140px; }
+        .gauge-ring svg { transform: rotate(-90deg); }
+        .gauge-ring .gauge-bg { fill: none; stroke: #21262d; stroke-width: 12; }
+        .gauge-ring .gauge-fill { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+        .gauge-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .gauge-value { font-size: 1.8rem; font-weight: 700; }
+        .gauge-label { font-size: 0.75rem; color: #8b949e; }
+
+        /* Alert list */
+        .alert-list { display: flex; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto; }
+        .alert-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 0.78rem; }
+        .alert-item.warning { background: #d2992215; border-left: 3px solid #d29922; }
+        .alert-item.danger { background: #f8514915; border-left: 3px solid #f85149; }
+        .alert-item.info { background: #58a6ff15; border-left: 3px solid #58a6ff; }
+        .alert-icon { font-size: 1rem; flex-shrink: 0; }
+        .alert-text { flex: 1; color: #c9d1d9; }
+        .alert-time { font-size: 0.68rem; color: #484f58; white-space: nowrap; }
+
+        /* Concentration bar */
+        .conc-bar-wrap { margin-top: 8px; }
+        .conc-bar-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: #8b949e; margin-bottom: 3px; }
+        .conc-bar-track { width: 100%; height: 10px; background: #21262d; border-radius: 5px; overflow: hidden; }
+        .conc-bar-fill { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+
+        /* Suggestion list */
+        .suggestion-list { display: flex; flex-direction: column; gap: 4px; }
+        .suggestion-item { padding: 6px 10px; background: #0d1117; border-radius: 4px; font-size: 0.78rem; color: #c9d1d9; border-left: 2px solid #bc8cff; }
+
         @media (max-width: 900px) {
             .grid-2 { grid-template-columns: 1fr; }
             .perf-grid { grid-template-columns: 1fr; }
@@ -803,6 +932,8 @@ DASHBOARD_HTML = """
             .sa-grid-top { grid-template-columns: 1fr; }
             .sa-grid-bottom { grid-template-columns: 1fr; }
             .regime-grid { grid-template-columns: 1fr; }
+            .pr-grid { grid-template-columns: 1fr; }
+            .pr-grid-3 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -989,6 +1120,99 @@ DASHBOARD_HTML = """
                     <h2>Regime History Log</h2>
                     <div class="scroll-table" id="regimeHistoryLog" style="max-height:250px">
                         <p class="neu">Loading regime history...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Risk Section -->
+        <div class="pr-section">
+            <div class="section-header">
+                <span class="section-title">\ud3ec\ud2b8\ud3f4\ub9ac\uc624 \ub9ac\uc2a4\ud06c</span>
+                <span class="refresh-info" id="prLastUpdate">-</span>
+            </div>
+            <div class="pr-grid">
+                <div class="card">
+                    <h2>\uc0c1\uad00\uad00\uacc4 \ud788\ud2b8\ub9f5</h2>
+                    <div class="heatmap-wrap" id="corrHeatmap">
+                        <p class="neu">\ubcf4\uc720 \uc885\ubaa9 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
+                    </div>
+                    <div style="margin-top:8px;font-size:0.78rem;color:#8b949e">
+                        \ud3c9\uade0 \uc0c1\uad00\uacc4\uc218: <span id="prAvgCorr" style="font-weight:700;color:#c9d1d9">-</span>
+                        <span id="prCorrSpike" style="margin-left:12px"></span>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>\uc139\ud130 \ubc30\ubd84 \ud604\ud669</h2>
+                    <div class="chart-container" style="height:240px">
+                        <canvas id="sectorPieChart"></canvas>
+                        <div class="chart-empty" id="sectorPieEmpty">\ubcf4\uc720 \uc885\ubaa9 \uc5c6\uc74c</div>
+                    </div>
+                </div>
+            </div>
+            <div class="pr-grid-3">
+                <div class="card">
+                    <h2>\ubd84\uc0b0\ud22c\uc790 \uc810\uc218</h2>
+                    <div class="gauge-container">
+                        <div class="gauge-ring">
+                            <svg width="140" height="140" viewBox="0 0 140 140">
+                                <circle class="gauge-bg" cx="70" cy="70" r="58" />
+                                <circle class="gauge-fill" id="divGaugeFill" cx="70" cy="70" r="58"
+                                    stroke="#bc8cff" stroke-dasharray="364.42" stroke-dashoffset="364.42" />
+                            </svg>
+                            <div class="gauge-center">
+                                <div class="gauge-value" id="divScoreValue">-</div>
+                                <div class="gauge-label" id="divScoreGrade">-</div>
+                            </div>
+                        </div>
+                        <div id="divScoreComponents" style="font-size:0.72rem;color:#8b949e;text-align:center;margin-top:4px"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>\uc9d1\uc911\ub3c4 \ub9ac\uc2a4\ud06c (HHI)</h2>
+                    <div style="text-align:center;padding-top:10px">
+                        <div style="font-size:2rem;font-weight:700" id="hhiValue">-</div>
+                        <div style="font-size:0.82rem;margin-top:2px" id="hhiLevel">-</div>
+                        <div class="conc-bar-wrap" style="margin-top:12px">
+                            <div class="conc-bar-label">
+                                <span>\ub0ae\uc74c</span>
+                                <span>\ubcf4\ud1b5</span>
+                                <span>\ub192\uc74c</span>
+                                <span>\ub9e4\uc6b0 \ub192\uc74c</span>
+                            </div>
+                            <div class="conc-bar-track">
+                                <div class="conc-bar-fill" id="hhiBar" style="width:0%;background:#3fb950"></div>
+                            </div>
+                        </div>
+                        <div id="topPositions" style="margin-top:12px;text-align:left;font-size:0.75rem"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>\uacbd\uace0 / \uc54c\ub9bc</h2>
+                    <div class="alert-list" id="prAlerts">
+                        <p class="neu">\ud65c\uc131 \uacbd\uace0 \uc5c6\uc74c</p>
+                    </div>
+                    <div style="margin-top:12px">
+                        <h2 style="font-size:0.82rem;margin-bottom:6px">\ub9ac\ubc38\ub7f0\uc2f1 \uc81c\uc548</h2>
+                        <div class="suggestion-list" id="prSuggestions">
+                            <p class="neu" style="font-size:0.75rem">\uc81c\uc548 \uc5c6\uc74c</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pr-grid">
+                <div class="card">
+                    <h2>\uc0c1\uad00\uad00\uacc4 \ucd94\uc138</h2>
+                    <div class="chart-container" style="height:200px">
+                        <canvas id="corrTrendChart"></canvas>
+                        <div class="chart-empty" id="corrTrendEmpty">\ucd94\uc138 \ub370\uc774\ud130 \uc5c6\uc74c</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>\ubd84\uc0b0\ud22c\uc790 \uc810\uc218 \ucd94\uc138</h2>
+                    <div class="chart-container" style="height:200px">
+                        <canvas id="divTrendChart"></canvas>
+                        <div class="chart-empty" id="divTrendEmpty">\ucd94\uc138 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                     </div>
                 </div>
             </div>
@@ -2088,13 +2312,414 @@ DASHBOARD_HTML = """
             loadRegimeHistory();
         }
 
+        /* ========== Portfolio Risk Section ========== */
+        let sectorPieChartInst = null;
+        let corrTrendChartInst = null;
+        let divTrendChartInst = null;
+
+        function corrCellColor(value) {
+            // -1 (blue) -> 0 (neutral) -> +1 (red)
+            const v = Math.max(-1, Math.min(1, value));
+            let r, g, b;
+            if (v <= 0) {
+                const t = (v + 1) / 1; // 0..1
+                r = Math.round(30 + 50 * t);
+                g = Math.round(80 + 100 * t);
+                b = Math.round(200 - 80 * t);
+            } else {
+                const t = v; // 0..1
+                r = Math.round(80 + 170 * t);
+                g = Math.round(180 - 130 * t);
+                b = Math.round(120 - 80 * t);
+            }
+            return 'rgba(' + r + ',' + g + ',' + b + ',0.85)';
+        }
+
+        async function loadCorrelationHeatmap() {
+            try {
+                const r = await fetch('/api/correlation-matrix?lookback=20');
+                const d = await r.json();
+                const el = document.getElementById('corrHeatmap');
+                const symbols = d.symbols || [];
+                const names = d.names || [];
+                const matrix = d.matrix || [];
+                const n = symbols.length;
+
+                document.getElementById('prAvgCorr').textContent = (d.avg_correlation !== undefined) ? d.avg_correlation.toFixed(3) : '-';
+
+                if (n < 2) {
+                    el.innerHTML = '<p class="neu">\uc0c1\uad00\uad00\uacc4 \ubd84\uc11d\uc744 \uc704\ud574 2\uac1c \uc774\uc0c1 \uc885\ubaa9 \ud544\uc694</p>';
+                    return;
+                }
+
+                let html = '<table class="corr-heatmap-table"><thead><tr><th></th>';
+                for (let i = 0; i < n; i++) {
+                    const short = names[i].length > 4 ? names[i].substring(0, 4) + '..' : names[i];
+                    html += '<th title="' + names[i] + '">' + short + '</th>';
+                }
+                html += '</tr></thead><tbody>';
+
+                for (let i = 0; i < n; i++) {
+                    html += '<tr><td class="stock-name" title="' + symbols[i] + '">' + names[i] + '</td>';
+                    for (let j = 0; j < n; j++) {
+                        const val = matrix[i][j];
+                        const bg = i === j ? '#21262d' : corrCellColor(val);
+                        const text = i === j ? '1.00' : val.toFixed(2);
+                        const textColor = i === j ? '#484f58' : (Math.abs(val) > 0.5 ? '#0a0e17' : '#c9d1d9');
+                        html += '<td class="corr-cell" style="background:' + bg + ';color:' + textColor + '">' + text + '</td>';
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } catch(e) { console.error('Correlation heatmap error:', e); }
+        }
+
+        async function loadSectorPie() {
+            try {
+                const r = await fetch('/api/sector-weights');
+                const d = await r.json();
+                const sectors = d.sectors || [];
+                const emptyEl = document.getElementById('sectorPieEmpty');
+                const canvas = document.getElementById('sectorPieChart');
+
+                if (!sectors.length) {
+                    emptyEl.style.display = 'flex';
+                    canvas.style.display = 'none';
+                    if (sectorPieChartInst) { sectorPieChartInst.destroy(); sectorPieChartInst = null; }
+                    return;
+                }
+                emptyEl.style.display = 'none';
+                canvas.style.display = 'block';
+
+                const labels = sectors.map(s => s.sector + ' (' + s.weight_pct + '%)');
+                const data = sectors.map(s => s.weight_pct);
+                const colors = sectors.map(s => s.color || '#8b949e');
+
+                if (sectorPieChartInst) sectorPieChartInst.destroy();
+                sectorPieChartInst = new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderColor: '#161b28',
+                            borderWidth: 2,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '50%',
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'right',
+                                labels: { boxWidth: 10, padding: 6, font: { size: 10 }, color: '#c9d1d9' }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        const sec = sectors[ctx.dataIndex] || {};
+                                        const stocks = (sec.stocks || []).join(', ');
+                                        return sec.sector + ': ' + sec.weight_pct + '% (' + stocks + ')';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch(e) { console.error('Sector pie error:', e); }
+        }
+
+        async function loadPortfolioRisk() {
+            try {
+                const r = await fetch('/api/portfolio-risk');
+                const d = await r.json();
+
+                // Diversification gauge
+                const divData = d.diversification || {};
+                const score = divData.score || 0;
+                const grade = divData.grade || '-';
+                const circumference = 2 * Math.PI * 58; // 364.42
+                const offset = circumference * (1 - score / 100);
+                const gaugeFill = document.getElementById('divGaugeFill');
+
+                let gaugeColor = '#f85149';
+                if (score >= 80) gaugeColor = '#3fb950';
+                else if (score >= 60) gaugeColor = '#58a6ff';
+                else if (score >= 40) gaugeColor = '#d29922';
+                else if (score >= 20) gaugeColor = '#f97316';
+
+                gaugeFill.setAttribute('stroke', gaugeColor);
+                gaugeFill.setAttribute('stroke-dashoffset', offset.toFixed(2));
+                document.getElementById('divScoreValue').textContent = Math.round(score);
+                document.getElementById('divScoreValue').style.color = gaugeColor;
+                document.getElementById('divScoreGrade').textContent = grade;
+
+                const comps = divData.components || {};
+                let compHtml = '';
+                const compOrder = ['position_count', 'sector_diversity', 'correlation', 'weight_evenness'];
+                const compNames = {
+                    'position_count': '\uc885\ubaa9\uc218',
+                    'sector_diversity': '\uc139\ud130',
+                    'correlation': '\uc0c1\uad00\ub3c4',
+                    'weight_evenness': '\uade0\ub4f1\ub3c4'
+                };
+                for (const key of compOrder) {
+                    const c = comps[key];
+                    if (c) {
+                        compHtml += compNames[key] + ': ' + c.score + '/' + c.max + '&nbsp;&nbsp;';
+                    }
+                }
+                document.getElementById('divScoreComponents').innerHTML = compHtml;
+
+                // Concentration risk
+                const concData = d.concentration || {};
+                const hhi = concData.hhi_normalized || 0;
+                const hhiLevel = concData.risk_level || '-';
+                document.getElementById('hhiValue').textContent = (hhi * 100).toFixed(1) + '%';
+
+                let hhiColor = '#3fb950';
+                if (hhi >= 0.5) hhiColor = '#f85149';
+                else if (hhi >= 0.25) hhiColor = '#f97316';
+                else if (hhi >= 0.15) hhiColor = '#d29922';
+                document.getElementById('hhiValue').style.color = hhiColor;
+                document.getElementById('hhiLevel').textContent = hhiLevel;
+                document.getElementById('hhiLevel').style.color = hhiColor;
+
+                const hhiBar = document.getElementById('hhiBar');
+                hhiBar.style.width = Math.min(100, hhi * 100).toFixed(1) + '%';
+                hhiBar.style.background = hhiColor;
+
+                // Top positions
+                const topPos = concData.top_positions || [];
+                let topHtml = '<div style="margin-bottom:4px;font-weight:600;color:#8b949e">\uc0c1\uc704 \ubcf4\uc720 \uc885\ubaa9:</div>';
+                for (const p of topPos) {
+                    const barW = Math.min(100, p.weight_pct);
+                    topHtml += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
+                        + '<span style="width:60px;text-align:right;color:#c9d1d9">' + p.name + '</span>'
+                        + '<div style="flex:1;height:5px;background:#21262d;border-radius:3px;overflow:hidden">'
+                        + '<div style="width:' + barW + '%;height:100%;background:#bc8cff;border-radius:3px"></div></div>'
+                        + '<span style="width:36px;font-size:0.7rem;color:#8b949e">' + p.weight_pct + '%</span>'
+                        + '</div>';
+                }
+                document.getElementById('topPositions').innerHTML = topHtml;
+
+                // Alerts
+                const alerts = d.alerts || [];
+                const alertEl = document.getElementById('prAlerts');
+                if (!alerts.length) {
+                    alertEl.innerHTML = '<p class="neu" style="font-size:0.78rem;text-align:center;padding:12px">\ud65c\uc131 \uacbd\uace0 \uc5c6\uc74c - \ud3ec\ud2b8\ud3f4\ub9ac\uc624 \uc815\uc0c1</p>';
+                } else {
+                    let alertHtml = '';
+                    for (const a of alerts) {
+                        const cls = a.level || 'warning';
+                        const icon = cls === 'danger' ? '\u26a0\ufe0f' : cls === 'warning' ? '\u26a1' : '\u2139\ufe0f';
+                        const time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString('ko', {hour:'2-digit', minute:'2-digit'}) : '';
+                        alertHtml += '<div class="alert-item ' + cls + '">'
+                            + '<span class="alert-icon">' + icon + '</span>'
+                            + '<span class="alert-text">' + a.message + '</span>'
+                            + '<span class="alert-time">' + time + '</span>'
+                            + '</div>';
+                    }
+                    alertEl.innerHTML = alertHtml;
+                }
+
+                // Correlation spike indicator
+                const spike = d.correlation_spike || {};
+                const spikeEl = document.getElementById('prCorrSpike');
+                if (spike.spike_detected) {
+                    spikeEl.innerHTML = '<span style="color:#f85149;font-weight:600">\u26a0 \uc0c1\uad00\uad00\uacc4 \uae09\ub4f1 (+' + spike.delta.toFixed(3) + ')</span>';
+                } else {
+                    spikeEl.innerHTML = '<span style="color:#3fb950">\uc815\uc0c1</span>';
+                }
+
+                // Rebalancing suggestions
+                const rebalance = d.sector_rebalance || {};
+                const sugEl = document.getElementById('prSuggestions');
+                const suggestions = rebalance.suggestions || [];
+                if (!suggestions.length) {
+                    sugEl.innerHTML = '<p class="neu" style="font-size:0.75rem">\ub9ac\ubc38\ub7f0\uc2f1 \ud544\uc694 \uc5c6\uc74c</p>';
+                } else {
+                    let sugHtml = '';
+                    for (const s of suggestions) {
+                        sugHtml += '<div class="suggestion-item">' + s + '</div>';
+                    }
+                    sugEl.innerHTML = sugHtml;
+                }
+
+                document.getElementById('prLastUpdate').textContent = '\uac31\uc2e0: ' + new Date().toLocaleTimeString('ko');
+            } catch(e) { console.error('Portfolio risk error:', e); }
+        }
+
+        async function loadCorrelationTrend() {
+            try {
+                const r = await fetch('/api/correlation-history?days=30');
+                const d = await r.json();
+                const history = d.history || [];
+                const emptyEl = document.getElementById('corrTrendEmpty');
+                const canvas = document.getElementById('corrTrendChart');
+
+                if (!history.length) {
+                    emptyEl.style.display = 'flex';
+                    canvas.style.display = 'none';
+                    if (corrTrendChartInst) { corrTrendChartInst.destroy(); corrTrendChartInst = null; }
+                    return;
+                }
+                emptyEl.style.display = 'none';
+                canvas.style.display = 'block';
+
+                const labels = history.map(h => { const p = h.date.split('-'); return p[1] + '-' + p[2]; });
+                const corrData = history.map(h => h.avg_correlation || 0);
+                const hhiData = history.map(h => h.hhi_normalized || 0);
+
+                if (corrTrendChartInst) corrTrendChartInst.destroy();
+                corrTrendChartInst = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '\ud3c9\uade0 \uc0c1\uad00\uacc4\uc218',
+                                data: corrData,
+                                borderColor: '#bc8cff',
+                                backgroundColor: 'rgba(188,140,255,0.08)',
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 2,
+                                borderWidth: 2,
+                                yAxisID: 'y',
+                            },
+                            {
+                                label: 'HHI (\uc9d1\uc911\ub3c4)',
+                                data: hhiData,
+                                borderColor: '#f97316',
+                                backgroundColor: 'transparent',
+                                tension: 0.3,
+                                pointRadius: 2,
+                                borderWidth: 1.5,
+                                borderDash: [4, 3],
+                                yAxisID: 'y1',
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 6, font: { size: 9 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        return ctx.dataset.label + ': ' + ctx.raw.toFixed(3);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 9 } } },
+                            y: { position: 'left', min: -1, max: 1, grid: { color: '#21262d' },
+                                 ticks: { font: { size: 9 }, callback: v => v.toFixed(1) },
+                                 title: { display: true, text: '\uc0c1\uad00\uacc4\uc218', font: { size: 9 } } },
+                            y1: { position: 'right', min: 0, max: 1, grid: { display: false },
+                                  ticks: { font: { size: 9 }, callback: v => v.toFixed(1) },
+                                  title: { display: true, text: 'HHI', font: { size: 9 } } }
+                        }
+                    }
+                });
+            } catch(e) { console.error('Correlation trend error:', e); }
+        }
+
+        async function loadDivTrend() {
+            try {
+                const r = await fetch('/api/correlation-history?days=30');
+                const d = await r.json();
+                const history = d.history || [];
+                const emptyEl = document.getElementById('divTrendEmpty');
+                const canvas = document.getElementById('divTrendChart');
+
+                if (!history.length) {
+                    emptyEl.style.display = 'flex';
+                    canvas.style.display = 'none';
+                    if (divTrendChartInst) { divTrendChartInst.destroy(); divTrendChartInst = null; }
+                    return;
+                }
+                emptyEl.style.display = 'none';
+                canvas.style.display = 'block';
+
+                const labels = history.map(h => { const p = h.date.split('-'); return p[1] + '-' + p[2]; });
+                const divData = history.map(h => h.diversification_score || 0);
+                const sectorData = history.map(h => h.sector_count || 0);
+
+                if (divTrendChartInst) divTrendChartInst.destroy();
+                divTrendChartInst = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '\ubd84\uc0b0\ud22c\uc790 \uc810\uc218',
+                                data: divData,
+                                borderColor: '#3fb950',
+                                backgroundColor: 'rgba(63,185,80,0.08)',
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 2,
+                                borderWidth: 2,
+                                yAxisID: 'y',
+                            },
+                            {
+                                label: '\uc139\ud130 \uc218',
+                                data: sectorData,
+                                borderColor: '#58a6ff',
+                                backgroundColor: 'transparent',
+                                tension: 0.3,
+                                pointRadius: 2,
+                                borderWidth: 1.5,
+                                yAxisID: 'y1',
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 6, font: { size: 9 } } },
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 9 } } },
+                            y: { position: 'left', min: 0, max: 100, grid: { color: '#21262d' },
+                                 ticks: { font: { size: 9 } },
+                                 title: { display: true, text: '\uc810\uc218', font: { size: 9 } } },
+                            y1: { position: 'right', min: 0, grid: { display: false },
+                                  ticks: { font: { size: 9 }, stepSize: 1 },
+                                  title: { display: true, text: '\uc139\ud130', font: { size: 9 } } }
+                        }
+                    }
+                });
+            } catch(e) { console.error('Diversification trend error:', e); }
+        }
+
+        function loadAllPortfolioRisk() {
+            loadCorrelationHeatmap();
+            loadSectorPie();
+            loadPortfolioRisk();
+            loadCorrelationTrend();
+            loadDivTrend();
+        }
+
         /* ========== Initialize ========== */
-        fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis(); loadAllRegimeData();
+        fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis(); loadAllRegimeData(); loadAllPortfolioRisk();
         setInterval(fetchStatus, 15000);
         setInterval(fetchStats, 60000);
         setInterval(loadAllCharts, 120000);
         setInterval(loadAllStrategyAnalysis, 120000);
         setInterval(loadAllRegimeData, 120000);
+        setInterval(loadAllPortfolioRisk, 120000);
     </script>
 </body>
 </html>

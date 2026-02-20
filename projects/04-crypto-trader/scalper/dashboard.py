@@ -8,6 +8,8 @@ Endpoints:
 - GET /api/trades/stats?period=today|week|month|all -> Period stats
 - GET /api/trades/history?page=&market=&exit_type= -> Trade history
 - GET /api/export/csv?market=&exit_type= -> CSV file download of trades
+- GET /api/analytics -> Full trade performance analytics
+- GET /api/analytics/strategy/{name} -> Per-strategy analytics detail
 - GET /api/runtime   -> Runtime info + config summary
 - POST /api/bot/start|stop|halt|resume -> Bot control
 """
@@ -23,6 +25,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from . import config
 from .trader import get_trades_stats, get_trades_history
+from .trade_analyzer import get_full_analytics, get_strategy_analytics
 
 logger = logging.getLogger("scalper.dashboard")
 
@@ -270,6 +273,22 @@ async def export_csv(
     )
 
 
+@app.get("/api/analytics")
+async def api_analytics():
+    """Full trade performance analytics."""
+    initial_balance = config.PAPER_INITIAL_KRW
+    if _trader and hasattr(_trader, '_analytics_cache'):
+        _trader._analytics_cache.maybe_refresh()
+        return _trader._analytics_cache.get_data()
+    return get_full_analytics(initial_balance)
+
+
+@app.get("/api/analytics/strategy/{name}")
+async def api_analytics_strategy(name: str):
+    """Per-strategy analytics detail."""
+    return get_strategy_analytics(name)
+
+
 @app.post("/api/bot/start")
 async def start_bot():
     if _trader is None:
@@ -484,6 +503,21 @@ tr:hover{background:rgba(88,166,255,.04)}
 .guide-flow{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:12px;font-family:monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--text)}
 .guide-flow .step{color:var(--accent);font-weight:700}
 .guide-flow .yes{color:var(--green)}.guide-flow .no{color:var(--red)}
+/* Analytics heatmap */
+.hm-grid{display:inline-grid;gap:2px}
+.hm-cell{width:42px;height:32px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:monospace;cursor:default}
+.hm-header{width:42px;height:20px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text2);font-weight:600}
+.hm-row-label{width:32px;height:32px;display:flex;align-items:center;font-size:10px;color:var(--text2);font-weight:600}
+.analytics-metric{text-align:center;padding:8px}
+.analytics-metric .metric-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.analytics-metric .metric-value{font-size:20px;font-weight:700}
+.analytics-metric .metric-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.attr-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.attr-row:last-child{border-bottom:none}
+.attr-name{font-weight:600;color:var(--text)}
+.attr-bar{flex:1;margin:0 12px;height:8px;background:var(--bg);border-radius:4px;position:relative;overflow:hidden}
+.attr-bar-fill{height:100%;border-radius:4px}
+.attr-val{font-family:monospace;font-weight:600;min-width:80px;text-align:right}
 /* Tablet */
 @media(max-width:768px){
 .chart-row,.mw-grid{grid-template-columns:1fr}
@@ -589,6 +623,7 @@ table{min-width:600px}
   <div class="tab active" data-tab="realtime">Real-time</div>
   <div class="tab" data-tab="portfolio">Portfolio Risk</div>
   <div class="tab" data-tab="performance">Performance</div>
+  <div class="tab" data-tab="analytics">Analytics</div>
   <div class="tab" data-tab="strategy">Strategy</div>
   <div class="tab" data-tab="history">Trade History</div>
   <div class="tab" data-tab="guide">Guide</div>
@@ -657,6 +692,46 @@ table{min-width:600px}
   <div class="chart-row"><div class="chart-box"><canvas id="equityChart"></canvas></div><div class="chart-box"><canvas id="dailyPnlChart"></canvas></div></div>
   <div class="chart-row"><div class="chart-box"><canvas id="exitTypeChart"></canvas></div><div class="chart-box"><canvas id="marketPnlChart"></canvas></div></div>
   <div class="chart-row"><div class="chart-box" id="perfSummaryBox"></div><div class="chart-box" id="perfBlank"></div></div>
+</div>
+
+<!-- Tab: Analytics (Trade Performance) -->
+<div id="tab-analytics" class="tab-content">
+  <!-- Risk Metrics Summary -->
+  <div class="panel-title" style="margin-bottom:12px">리스크 지표</div>
+  <div class="stats-grid" id="analyticsRiskCards"></div>
+
+  <!-- Row 1: Strategy Performance Comparison + Cumulative P&L by Strategy -->
+  <div class="chart-row">
+    <div class="chart-box"><canvas id="analyticsStrategyBar"></canvas></div>
+    <div class="chart-box"><canvas id="analyticsCumLine"></canvas></div>
+  </div>
+
+  <!-- Row 2: Win Rate by Hour Heatmap + Drawdown Chart -->
+  <div class="chart-row">
+    <div class="chart-box">
+      <div class="panel-title" style="margin-bottom:8px">시간대별 승률 히트맵</div>
+      <div id="analyticsHourlyHeatmap" style="overflow-x:auto"></div>
+    </div>
+    <div class="chart-box"><canvas id="analyticsDrawdown"></canvas></div>
+  </div>
+
+  <!-- Row 3: Trade Distribution Histogram + Day-of-Week Performance -->
+  <div class="chart-row">
+    <div class="chart-box"><canvas id="analyticsDistribution"></canvas></div>
+    <div class="chart-box"><canvas id="analyticsDowBar"></canvas></div>
+  </div>
+
+  <!-- Row 4: Monthly Returns Table + Strategy Attribution -->
+  <div class="chart-row">
+    <div class="chart-box" id="analyticsMonthlyTable" style="overflow-y:auto;max-height:350px"></div>
+    <div class="chart-box" id="analyticsAttribution" style="overflow-y:auto;max-height:350px"></div>
+  </div>
+
+  <!-- Row 5: Strategy Correlation + Ensemble Accuracy -->
+  <div class="chart-row">
+    <div class="chart-box" id="analyticsCorrelation" style="overflow-y:auto;max-height:300px"></div>
+    <div class="chart-box" id="analyticsEnsembleAccuracy"></div>
+  </div>
 </div>
 
 <!-- Tab 3: Strategy -->
@@ -877,6 +952,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
     tab.classList.add('active');
     document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
     if(tab.dataset.tab==='performance')loadPerformance();
+    if(tab.dataset.tab==='analytics')loadAnalytics();
     if(tab.dataset.tab==='strategy')loadStrategy();
     if(tab.dataset.tab==='history')loadHistory(1);
     if(tab.dataset.tab==='guide')refreshGuideLive();
@@ -1554,6 +1630,236 @@ function renderChart(id,type,data,extra={}){
   charts[id]=new Chart(ctx,{type,data,options:{responsive:true,maintainAspectRatio:false,
     scales:type==='doughnut'?{}:{x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}}},
     plugins:{legend:{labels:{color:'#c9d1d9',font:{size:11}}},...extra.plugins},...extra}});
+}
+
+// ── Analytics ──
+const analyticsChartIds=['analyticsStrategyBar','analyticsCumLine','analyticsDrawdown','analyticsDistribution','analyticsDowBar'];
+async function loadAnalytics(){
+  const d=await api('/api/analytics');if(!d)return;
+  const rm=d.risk_metrics||{};
+  const ta=d.time_analysis||{};
+  const sa=d.strategy_attribution||{};
+  const ps=d.per_strategy||{};
+
+  // Risk Metric Cards
+  const riskEl=document.getElementById('analyticsRiskCards');
+  if(riskEl){
+    const sharpeColor=rm.sharpe_ratio>=1?'var(--green)':rm.sharpe_ratio>=0?'var(--yellow)':'var(--red)';
+    const sortinoColor=rm.sortino_ratio>=1.5?'var(--green)':rm.sortino_ratio>=0?'var(--yellow)':'var(--red)';
+    riskEl.innerHTML=`
+      <div class="card"><div class="card-label">Sharpe Ratio</div><div class="card-value" style="color:${sharpeColor}">${rm.sharpe_ratio||0}</div><div class="card-sub">위험조정 수익률</div></div>
+      <div class="card"><div class="card-label">Sortino Ratio</div><div class="card-value" style="color:${sortinoColor}">${rm.sortino_ratio===999.99?'∞':rm.sortino_ratio||0}</div><div class="card-sub">하방위험 대비 수익</div></div>
+      <div class="card"><div class="card-label">Max Drawdown</div><div class="card-value negative">${fmt(rm.max_drawdown_krw||0)}</div><div class="card-sub">${(rm.max_drawdown_pct||0).toFixed(2)}%</div></div>
+      <div class="card"><div class="card-label">Recovery</div><div class="card-value" style="color:var(--accent)">${rm.recovery_time_trades||0} trades</div><div class="card-sub">${rm.recovery_time_hours||0}h</div></div>
+      <div class="card"><div class="card-label">Win/Loss Ratio</div><div class="card-value" style="color:var(--accent)">${rm.win_loss_ratio===999.99?'∞':(rm.win_loss_ratio||0)}</div><div class="card-sub">평균 수익/손실 비</div></div>
+      <div class="card"><div class="card-label">Expectancy</div><div class="card-value ${(rm.expectancy_krw||0)>=0?'positive':'negative'}">${(rm.expectancy_krw||0)>=0?'+':''}${fmt(rm.expectancy_krw||0)}</div><div class="card-sub">트레이드당 기대수익</div></div>
+      <div class="card"><div class="card-label">Total Trades</div><div class="card-value" style="color:var(--accent)">${d.total_trades||0}</div></div>`;
+  }
+
+  // Strategy Performance Comparison Bar Chart
+  const stratNames=Object.keys(ps).filter(n=>n!=='_all');
+  if(stratNames.length>0){
+    const stratPnl=stratNames.map(n=>ps[n].total_pnl_krw||0);
+    const stratWR=stratNames.map(n=>ps[n].win_rate||0);
+    renderChart('analyticsStrategyBar','bar',{
+      labels:stratNames,
+      datasets:[
+        {label:'Total PnL (KRW)',data:stratPnl,backgroundColor:stratPnl.map(v=>v>=0?'rgba(63,185,80,.7)':'rgba(248,81,73,.7)'),borderColor:stratPnl.map(v=>v>=0?'#3fb950':'#f85149'),borderWidth:1,yAxisID:'y'},
+        {label:'Win Rate %',data:stratWR,type:'line',borderColor:'#58a6ff',backgroundColor:'rgba(88,166,255,.2)',pointBackgroundColor:'#58a6ff',pointRadius:4,tension:.3,yAxisID:'y1'}
+      ]
+    },{
+      plugins:{title:{display:true,text:'전략별 성과 비교',color:'#8b949e'}},
+      scales:{
+        x:{ticks:{color:'#c9d1d9',font:{size:11}},grid:{color:'#21262d'}},
+        y:{position:'left',ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'},title:{display:true,text:'PnL (KRW)',color:'#8b949e'}},
+        y1:{position:'right',min:0,max:100,ticks:{color:'#58a6ff',font:{size:10}},grid:{drawOnChartArea:false},title:{display:true,text:'Win Rate %',color:'#58a6ff'}}
+      }
+    });
+  }
+
+  // Cumulative P&L by Strategy Line Chart
+  const cumData=sa.cumulative_by_strategy||{};
+  const cumKeys=Object.keys(cumData).filter(k=>k!=='_unknown');
+  const stratColors=['#58a6ff','#3fb950','#f0883e','#bc8cff','#f85149','#d29922'];
+  if(cumKeys.length>0){
+    const maxLen=Math.max(...cumKeys.map(k=>(cumData[k]||[]).length));
+    const cumLabels=Array.from({length:maxLen},(_,i)=>i+1);
+    const cumDatasets=cumKeys.map((k,i)=>{
+      const series=cumData[k]||[];
+      return {label:k,data:series.map(s=>s.cumulative_pnl),borderColor:stratColors[i%stratColors.length],backgroundColor:'transparent',tension:.3,pointRadius:series.length>50?0:2,borderWidth:2};
+    });
+    renderChart('analyticsCumLine','line',{labels:cumLabels,datasets:cumDatasets},{
+      plugins:{title:{display:true,text:'전략별 누적 손익',color:'#8b949e'},legend:{labels:{color:'#c9d1d9',font:{size:11}}}},
+      scales:{x:{title:{display:true,text:'Trade #',color:'#8b949e'},ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}
+    });
+  }
+
+  // Hourly Win Rate Heatmap
+  const hourly=ta.hourly_win_rate||{};
+  const hmEl=document.getElementById('analyticsHourlyHeatmap');
+  if(hmEl){
+    let hmHtml='<div class="hm-grid" style="grid-template-columns:repeat(25,auto)">';
+    // Header row
+    hmHtml+='<div class="hm-header"></div>';
+    for(let h=0;h<24;h++){hmHtml+=`<div class="hm-header">${String(h).padStart(2,'0')}</div>`}
+    // Win rate row
+    hmHtml+='<div class="hm-row-label">승률</div>';
+    for(let h=0;h<24;h++){
+      const hd=hourly[h]||{};
+      const wr=hd.win_rate||0;
+      const cnt=hd.count||0;
+      const bg=cnt===0?'var(--border)':wr>=70?'rgba(63,185,80,.8)':wr>=50?'rgba(63,185,80,.4)':wr>=30?'rgba(210,153,34,.5)':'rgba(248,81,73,.6)';
+      hmHtml+=`<div class="hm-cell" style="background:${bg}" title="${h}시: ${wr}% (${cnt}건)">${cnt>0?wr+'%':'-'}</div>`;
+    }
+    // PnL row
+    hmHtml+='<div class="hm-row-label">손익</div>';
+    for(let h=0;h<24;h++){
+      const hd=hourly[h]||{};
+      const pnl=hd.total_pnl||0;
+      const cnt=hd.count||0;
+      const bg=cnt===0?'var(--border)':pnl>0?'rgba(63,185,80,.4)':'rgba(248,81,73,.4)';
+      const txt=cnt===0?'-':((pnl>=0?'+':'')+Math.round(pnl/1000)+'K');
+      hmHtml+=`<div class="hm-cell" style="background:${bg}" title="${h}시: ${fmt(pnl)} KRW">${txt}</div>`;
+    }
+    // Count row
+    hmHtml+='<div class="hm-row-label">건수</div>';
+    for(let h=0;h<24;h++){
+      const hd=hourly[h]||{};
+      const cnt=hd.count||0;
+      const intensity=Math.min(cnt/10,.8);
+      const bg=cnt===0?'var(--border)':`rgba(88,166,255,${intensity})`;
+      hmHtml+=`<div class="hm-cell" style="background:${bg}" title="${h}시: ${cnt}건">${cnt||'-'}</div>`;
+    }
+    hmHtml+='</div>';
+    hmEl.innerHTML=hmHtml;
+  }
+
+  // Drawdown Chart
+  const ddSeries=rm.drawdown_series||[];
+  if(ddSeries.length>0){
+    renderChart('analyticsDrawdown','line',{
+      labels:ddSeries.map(s=>s.trade_num),
+      datasets:[{label:'Drawdown (KRW)',data:ddSeries.map(s=>-s.drawdown),borderColor:'rgba(248,81,73,.8)',backgroundColor:'rgba(248,81,73,.15)',fill:true,tension:.3,pointRadius:ddSeries.length>50?0:2,borderWidth:2}]
+    },{
+      plugins:{title:{display:true,text:'Drawdown (최대 낙폭)',color:'#8b949e'}},
+      scales:{x:{title:{display:true,text:'Trade #',color:'#8b949e'},ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}
+    });
+  }
+
+  // Trade Distribution Histogram
+  const dist=rm.pnl_distribution||{};
+  if((dist.bins||[]).length>0){
+    renderChart('analyticsDistribution','bar',{
+      labels:dist.bin_labels||[],
+      datasets:[{label:'Trade Count',data:dist.counts||[],backgroundColor:dist.bins.map(b=>b>=0?'rgba(63,185,80,.6)':'rgba(248,81,73,.6)'),borderColor:dist.bins.map(b=>b>=0?'#3fb950':'#f85149'),borderWidth:1}]
+    },{
+      plugins:{title:{display:true,text:'손익 분포 (히스토그램)',color:'#8b949e'},legend:{display:false}},
+      scales:{x:{title:{display:true,text:'PnL (KRW)',color:'#8b949e'},ticks:{color:'#8b949e',maxRotation:45},grid:{color:'#21262d'}},y:{title:{display:true,text:'Count',color:'#8b949e'},ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}
+    });
+  }
+
+  // Day-of-Week Performance Bar
+  const dow=ta.daily_performance||{};
+  const dowKeys=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const dowLabelsKR=dowKeys.map(k=>(dow[k]||{}).name_kr||k);
+  const dowPnl=dowKeys.map(k=>(dow[k]||{}).total_pnl||0);
+  const dowWR=dowKeys.map(k=>(dow[k]||{}).win_rate||0);
+  renderChart('analyticsDowBar','bar',{
+    labels:dowLabelsKR,
+    datasets:[
+      {label:'Total PnL',data:dowPnl,backgroundColor:dowPnl.map(v=>v>=0?'rgba(63,185,80,.6)':'rgba(248,81,73,.6)'),borderWidth:1,yAxisID:'y'},
+      {label:'Win Rate %',data:dowWR,type:'line',borderColor:'#58a6ff',pointBackgroundColor:'#58a6ff',pointRadius:4,tension:.3,yAxisID:'y1'}
+    ]
+  },{
+    plugins:{title:{display:true,text:'요일별 성과',color:'#8b949e'}},
+    scales:{
+      x:{ticks:{color:'#c9d1d9'},grid:{color:'#21262d'}},
+      y:{position:'left',ticks:{color:'#8b949e'},grid:{color:'#21262d'},title:{display:true,text:'PnL',color:'#8b949e'}},
+      y1:{position:'right',min:0,max:100,ticks:{color:'#58a6ff'},grid:{drawOnChartArea:false},title:{display:true,text:'Win Rate %',color:'#58a6ff'}}
+    }
+  });
+
+  // Monthly Returns Table
+  const monthly=ta.monthly_returns||{};
+  const monthKeys=Object.keys(monthly).sort();
+  const mtEl=document.getElementById('analyticsMonthlyTable');
+  if(mtEl){
+    let mtHtml='<div class="panel-title" style="margin-bottom:8px">월별 수익 현황</div><table><thead><tr><th>월</th><th>거래수</th><th>승률</th><th>Total PnL</th><th>Avg PnL</th><th>Best</th><th>Worst</th></tr></thead><tbody>';
+    if(monthKeys.length===0){mtHtml+='<tr><td colspan="7" style="color:var(--text2);text-align:center">데이터 없음</td></tr>'}
+    else{monthKeys.forEach(k=>{
+      const m=monthly[k];
+      const c=m.total_pnl>=0?'positive':'negative';
+      mtHtml+=`<tr><td style="font-weight:600">${k}</td><td>${m.count}</td><td class="${m.win_rate>=50?'positive':'negative'}">${m.win_rate}%</td><td class="${c}">${m.total_pnl>=0?'+':''}${fmt(m.total_pnl)}</td><td>${fmt(m.avg_pnl)}</td><td class="positive">+${fmt(m.best_trade)}</td><td class="negative">${fmt(m.worst_trade)}</td></tr>`;
+    })}
+    mtHtml+='</tbody></table>';
+    mtEl.innerHTML=mtHtml;
+  }
+
+  // Strategy Attribution
+  const contrib=sa.contribution||{};
+  const atEl=document.getElementById('analyticsAttribution');
+  if(atEl){
+    const contribKeys=Object.keys(contrib).filter(k=>k!=='_unknown');
+    const maxPnl=Math.max(1,...contribKeys.map(k=>Math.abs(contrib[k].total_pnl_krw||0)));
+    let atHtml='<div class="panel-title" style="margin-bottom:8px">전략 기여도</div>';
+    if(contribKeys.length===0){atHtml+='<p style="color:var(--text2);text-align:center;padding:20px">전략 기여 데이터 없음<br><span style="font-size:11px">contributing_strategies 필드가 기록되면 표시됩니다</span></p>'}
+    else{contribKeys.forEach(k=>{
+      const c=contrib[k];
+      const pnl=c.total_pnl_krw||0;
+      const pct=c.pnl_pct_of_total||0;
+      const barW=Math.abs(pnl)/maxPnl*100;
+      const barColor=pnl>=0?'var(--green)':'var(--red)';
+      atHtml+=`<div class="attr-row"><span class="attr-name">${k}</span><div class="attr-bar"><div class="attr-bar-fill" style="width:${barW}%;background:${barColor}"></div></div><span class="attr-val ${pnl>=0?'positive':'negative'}">${pnl>=0?'+':''}${fmt(pnl)} (${pct}%)</span></div>`;
+      atHtml+=`<div style="font-size:10px;color:var(--text2);padding:0 0 4px 4px">${c.trade_count}건 | 승률 ${c.win_rate}%</div>`;
+    })}
+    atEl.innerHTML=atHtml;
+  }
+
+  // Strategy Correlation Table
+  const corr=sa.strategy_correlation||{};
+  const corrEl=document.getElementById('analyticsCorrelation');
+  if(corrEl){
+    const corrKeys=Object.keys(corr);
+    let corrHtml='<div class="panel-title" style="margin-bottom:8px">전략 상관관계</div>';
+    if(corrKeys.length===0){corrHtml+='<p style="color:var(--text2);text-align:center;padding:20px">공동 진입 데이터 없음</p>'}
+    else{
+      corrHtml+='<table><thead><tr><th>전략 조합</th><th>공동진입</th><th>함께 승리</th><th>함께 패배</th><th>동반승률</th></tr></thead><tbody>';
+      corrKeys.forEach(k=>{
+        const c=corr[k];
+        corrHtml+=`<tr><td style="font-weight:600">${k}</td><td>${c.co_occurrences}</td><td class="positive">${c.both_win}</td><td class="negative">${c.both_lose}</td><td class="${c.agreement_win_rate>=50?'positive':'negative'}">${c.agreement_win_rate}%</td></tr>`;
+      });
+      corrHtml+='</tbody></table>';
+    }
+    corrEl.innerHTML=corrHtml;
+  }
+
+  // Ensemble Accuracy
+  const ensAcc=sa.ensemble_accuracy||{};
+  const eaEl=document.getElementById('analyticsEnsembleAccuracy');
+  if(eaEl){
+    const acc=ensAcc.accuracy_pct||0;
+    const accColor=acc>=55?'var(--green)':acc>=45?'var(--yellow)':'var(--red)';
+    eaEl.innerHTML=`
+      <div class="panel-title" style="margin-bottom:12px">앙상블 투표 정확도</div>
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:48px;font-weight:700;color:${accColor}">${acc}%</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:8px">전체 ${ensAcc.total_trades||0}건 중 ${ensAcc.winning_trades||0}건 수익</div>
+        <div style="margin-top:16px;height:12px;background:var(--bg);border-radius:6px;overflow:hidden">
+          <div style="height:100%;width:${acc}%;background:${accColor};border-radius:6px;transition:width .5s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-top:4px">
+          <span>0%</span><span>50%</span><span>100%</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:12px;background:var(--bg);border-radius:6px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">해석 가이드:</div>
+        <div style="font-size:11px;line-height:1.6;color:var(--text)">
+          <div><span style="color:var(--green)">55%+</span>: 양호 - 앙상블이 시장 방향을 잘 예측</div>
+          <div><span style="color:var(--yellow)">45-55%</span>: 보통 - 개선 여지 있음</div>
+          <div><span style="color:var(--red)">&lt;45%</span>: 재검토 필요 - 전략 파라미터 조정 권장</div>
+        </div>
+      </div>`;
+  }
 }
 
 // ── Strategy ──

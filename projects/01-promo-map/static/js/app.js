@@ -71,6 +71,9 @@ function initApp() {
         // 인증 상태 확인
         updateAuthUI();
 
+        // 트렌딩 데이터 로드
+        loadTrending();
+
         // 30초 주기 갱신
         setInterval(() => {
             if (currentTab === 'map') loadNearbyStores();

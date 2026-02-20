@@ -152,6 +152,9 @@ function sortPromoStores(stores) {
                 return aDate - bDate;
             });
             break;
+        case 'popular':
+            sorted.sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0));
+            break;
         case 'nearest':
         default:
             sorted.sort((a, b) => (a.distance_m || 0) - (b.distance_m || 0));
@@ -275,6 +278,9 @@ function renderPromoList(stores) {
         const walkTime = getWalkingTime(s.distance_m);
         const expiryHtml = getExpiryBadgeHtml(d.valid_until);
         const phoneHtml = s.phone ? '<span style="color:#4285f4;font-size:0.7rem;">\uD83D\uDCDE ' + s.phone + '</span>' : '';
+        const usageBadgeHtml = s.usage_count
+            ? '<span class="usage-badge-inline">' + s.usage_count + '\uBA85 \uC774\uC6A9</span>'
+            : '';
 
         return '<div class="promo-item" onclick="openStoreDetail(' + s.id + ')">'
             + '<div class="store-info">'
@@ -285,8 +291,9 @@ function renderPromoList(stores) {
             +        s.name
             + '    </div>'
             + '    <div class="s-dist">' + s.distance_m + 'm'
-            +        (walkTime ? ' · ' + walkTime : '')
+            +        (walkTime ? ' \u00B7 ' + walkTime : '')
             +        ' | ' + s.brand
+            +        (usageBadgeHtml ? ' ' + usageBadgeHtml : '')
             + '    </div>'
             + (phoneHtml ? '<div>' + phoneHtml + '</div>' : '')
             + '  </div>'

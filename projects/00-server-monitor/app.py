@@ -21,6 +21,7 @@ from services import (
 )
 from deploy import deploy_router, get_deploy_manager
 from anomaly import get_alert_manager, get_collector, MaintenanceWindow
+from scheduler import get_schedules, add_schedule, remove_schedule, toggle_schedule, DAY_NAMES_KO
 
 app = FastAPI(title="Server Monitor")
 app.include_router(deploy_router)
@@ -117,6 +118,40 @@ async def api_maintenance_stop():
     return JSONResponse({"ok": True, "msg": "유지보수 윈도우 종료"})
 
 
+# === 예약 재시작 API ===
+
+@app.get("/api/schedules")
+async def api_schedules():
+    """전체 스케줄 목록 반환"""
+    return JSONResponse(get_schedules())
+
+@app.post("/api/schedules")
+async def api_schedule_create(request: Request):
+    """스케줄 생성"""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "msg": "잘못된 요청"}, status_code=400)
+    result = add_schedule(
+        project_name=body.get("project_name", ""),
+        schedule_type=body.get("schedule_type", ""),
+        time_str=body.get("time", ""),
+        day_of_week=body.get("day_of_week"),
+        enabled=body.get("enabled", True),
+    )
+    return JSONResponse(result)
+
+@app.delete("/api/schedules/{schedule_id}")
+async def api_schedule_delete(schedule_id: str):
+    """스케줄 삭제"""
+    return JSONResponse(remove_schedule(schedule_id))
+
+@app.put("/api/schedules/{schedule_id}/toggle")
+async def api_schedule_toggle(schedule_id: str):
+    """스케줄 활성/비활성 토글"""
+    return JSONResponse(toggle_schedule(schedule_id))
+
+
 # === 대시보드 UI ===
 
 @app.get("/", response_class=HTMLResponse)
@@ -205,6 +240,7 @@ async def dashboard(request: Request):
         "stop": "⏹️",
         "restart": "🔄",
         "auto_restart": "🤖",
+        "scheduled_restart": "⏰",
         "resource_alert": "⚠️",
         "error": "❌",
     }
@@ -398,6 +434,34 @@ async def dashboard(request: Request):
   .maint-btn.start {{ background: #2a2a1b; color: #ff9800; }}
   .maint-btn.stop {{ background: #3a1b1b; color: #f44336; }}
   .maint-msg {{ font-size: 0.72rem; color: #aaa; min-height: 16px; }}
+
+  /* 예약 재시작 섹션 */
+  .schedule-section {{ margin-top: 24px; background: #1a1d27; border-radius: 12px; padding: 16px; }}
+  .schedule-section h2 {{ font-size: 1.1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }}
+  .schedule-table {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; }}
+  .schedule-table th {{ text-align: left; color: #888; font-size: 0.72rem; text-transform: uppercase; padding: 8px 10px; border-bottom: 2px solid #2a2d37; font-weight: 600; }}
+  .schedule-table td {{ padding: 8px 10px; border-bottom: 1px solid #2a2d37; vertical-align: middle; }}
+  .schedule-table tr:last-child td {{ border-bottom: none; }}
+  .schedule-table .sched-enabled {{ color: #4caf50; font-weight: 600; }}
+  .schedule-table .sched-disabled {{ color: #888; }}
+  .sched-toggle {{ background: none; border: 1px solid #2a2d37; color: #aaa; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; }}
+  .sched-toggle:hover {{ border-color: #555; color: #e0e0e0; }}
+  .sched-toggle.on {{ border-color: #4caf50; color: #4caf50; }}
+  .sched-delete {{ background: none; border: 1px solid #3a1b1b; color: #f44336; padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; }}
+  .sched-delete:hover {{ background: #3a1b1b; }}
+  .schedule-form {{ background: #15171e; border-radius: 10px; padding: 14px; margin-top: 14px; }}
+  .schedule-form h4 {{ color: #aaa; font-size: 0.8rem; margin-bottom: 10px; }}
+  .sched-form-row {{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }}
+  .sched-form-row:last-child {{ margin-bottom: 0; }}
+  .sched-form-row label {{ color: #888; font-size: 0.72rem; min-width: 60px; }}
+  .sched-form-row select, .sched-form-row input {{ background: #1a1d27; color: #e0e0e0; border: 1px solid #2a2d37; border-radius: 6px; padding: 5px 8px; font-size: 0.75rem; }}
+  .sched-form-row input[type="time"] {{ width: 100px; }}
+  .sched-add-btn {{ background: #1b2a3a; color: #64b5f6; border: 1px solid #64b5f6; padding: 5px 16px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600; }}
+  .sched-add-btn:hover {{ background: #264a6a; }}
+  .sched-msg {{ font-size: 0.72rem; color: #aaa; min-height: 16px; margin-top: 6px; }}
+  .sched-msg.ok {{ color: #4caf50; }}
+  .sched-msg.err {{ color: #f44336; }}
+  .sched-empty {{ color: #666; font-size: 0.8rem; padding: 12px 0; }}
 </style>
 </head>
 <body>
@@ -455,6 +519,7 @@ async def dashboard(request: Request):
       <label><input type="checkbox" class="evt-type-cb" value="auto_restart" checked> auto_restart</label>
       <label><input type="checkbox" class="evt-type-cb" value="error" checked> error</label>
       <label><input type="checkbox" class="evt-type-cb" value="resource_alert" checked> resource_alert</label>
+      <label><input type="checkbox" class="evt-type-cb" value="scheduled_restart" checked> scheduled_restart</label>
       <label><input type="checkbox" class="evt-type-cb" value="deploy" checked> deploy</label>
     </div>
     <div class="filter-row">
@@ -512,6 +577,52 @@ async def dashboard(request: Request):
   <!-- 알림 타임라인 -->
   <div id="alertTimeline">
     {alert_timeline_html}
+  </div>
+</div>
+
+<!-- 예약 재시작 섹션 -->
+<div class="schedule-section">
+  <h2>예약 재시작</h2>
+  <div id="scheduleTable">
+    <div class="sched-empty">스케줄 로딩 중...</div>
+  </div>
+
+  <div class="schedule-form">
+    <h4>새 예약 추가</h4>
+    <div class="sched-form-row">
+      <label>프로젝트</label>
+      <select id="schedProject">
+        {"".join(f'<option value="{n}">{n}</option>' for n in PROJECTS.keys())}
+      </select>
+    </div>
+    <div class="sched-form-row">
+      <label>유형</label>
+      <select id="schedType" onchange="schedTypeChanged()">
+        <option value="daily">매일 (daily)</option>
+        <option value="weekly">매주 (weekly)</option>
+      </select>
+    </div>
+    <div class="sched-form-row">
+      <label>시간</label>
+      <input type="time" id="schedTime" value="04:00">
+    </div>
+    <div class="sched-form-row" id="schedDayRow" style="display:none">
+      <label>요일</label>
+      <select id="schedDay">
+        <option value="0">월요일</option>
+        <option value="1">화요일</option>
+        <option value="2">수요일</option>
+        <option value="3">목요일</option>
+        <option value="4">금요일</option>
+        <option value="5">토요일</option>
+        <option value="6">일요일</option>
+      </select>
+    </div>
+    <div class="sched-form-row">
+      <label></label>
+      <button class="sched-add-btn" onclick="addSchedule()">추가</button>
+    </div>
+    <div class="sched-msg" id="schedMsg"></div>
   </div>
 </div>
 
@@ -581,7 +692,7 @@ async function gitPull() {{
 /* === 이벤트 필터 === */
 const eventIcons = {{
   start: "\\u25b6\\ufe0f", stop: "\\u23f9\\ufe0f", restart: "\\ud83d\\udd04",
-  auto_restart: "\\ud83e\\udd16", resource_alert: "\\u26a0\\ufe0f", error: "\\u274c", deploy: "\\ud83d\\ude80"
+  auto_restart: "\\ud83e\\udd16", scheduled_restart: "\\u23f0", resource_alert: "\\u26a0\\ufe0f", error: "\\u274c", deploy: "\\ud83d\\ude80"
 }};
 let activeTimeBtn = document.querySelector('.time-btn.active');
 
@@ -782,6 +893,122 @@ function drawSparkline(canvasId, data, color) {{
     }}
   }} catch(e) {{ console.log('sparkline error:', e); }}
 }})();
+
+/* === 예약 재시작 === */
+const dayNames = {{0:'월',1:'화',2:'수',3:'목',4:'금',5:'토',6:'일'}};
+
+function schedTypeChanged() {{
+  const t = document.getElementById('schedType').value;
+  document.getElementById('schedDayRow').style.display = t === 'weekly' ? 'flex' : 'none';
+}}
+
+function formatNextRun(isoStr) {{
+  if (!isoStr) return '-';
+  try {{
+    const dt = new Date(isoStr);
+    const mm = String(dt.getMonth()+1).padStart(2,'0');
+    const dd = String(dt.getDate()).padStart(2,'0');
+    const hh = String(dt.getHours()).padStart(2,'0');
+    const mi = String(dt.getMinutes()).padStart(2,'0');
+    const dayKo = dayNames[dt.getDay() === 0 ? 6 : dt.getDay()-1] || '';
+    return mm+'/'+dd+' ('+dayKo+') '+hh+':'+mi;
+  }} catch(e) {{ return '-'; }}
+}}
+
+function renderSchedules(schedules) {{
+  const container = document.getElementById('scheduleTable');
+  if (!schedules || schedules.length === 0) {{
+    container.innerHTML = '<div class="sched-empty">등록된 예약 재시작이 없습니다.</div>';
+    return;
+  }}
+  let html = '<table class="schedule-table"><thead><tr>';
+  html += '<th>상태</th><th>프로젝트</th><th>유형</th><th>시간</th><th>요일</th><th>다음 실행</th><th>제어</th>';
+  html += '</tr></thead><tbody>';
+  schedules.forEach(s => {{
+    const enabled = s.enabled !== false;
+    const statusCls = enabled ? 'sched-enabled' : 'sched-disabled';
+    const statusTxt = enabled ? 'ON' : 'OFF';
+    const stype = s.schedule_type === 'daily' ? '매일' : '매주';
+    const dayStr = s.day_of_week !== null && s.day_of_week !== undefined ? (dayNames[s.day_of_week] || '-') : '-';
+    const nextRun = formatNextRun(s.next_run);
+    const toggleCls = enabled ? 'sched-toggle on' : 'sched-toggle';
+    const toggleTxt = enabled ? '비활성' : '활성';
+    html += '<tr>';
+    html += '<td class="'+statusCls+'">'+statusTxt+'</td>';
+    html += '<td>'+escapeHtml(s.project_name)+'</td>';
+    html += '<td>'+stype+'</td>';
+    html += '<td>'+(s.time||'')+'</td>';
+    html += '<td>'+dayStr+'</td>';
+    html += '<td>'+nextRun+'</td>';
+    html += '<td>';
+    html += '<button class="'+toggleCls+'" onclick="toggleSched(\''+s.id+'\')">'+toggleTxt+'</button> ';
+    html += '<button class="sched-delete" onclick="deleteSched(\''+s.id+'\')">삭제</button>';
+    html += '</td>';
+    html += '</tr>';
+  }});
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}}
+
+async function loadSchedules() {{
+  try {{
+    const res = await fetch('/api/schedules');
+    const data = await res.json();
+    renderSchedules(data);
+  }} catch(e) {{
+    document.getElementById('scheduleTable').innerHTML = '<div class="sched-empty" style="color:#f44336">스케줄 로딩 실패</div>';
+  }}
+}}
+
+async function addSchedule() {{
+  const msg = document.getElementById('schedMsg');
+  const project = document.getElementById('schedProject').value;
+  const stype = document.getElementById('schedType').value;
+  const time = document.getElementById('schedTime').value;
+  const day = document.getElementById('schedDay').value;
+
+  if (!time) {{ msg.textContent = '시간을 입력하세요'; msg.className = 'sched-msg err'; return; }}
+
+  const body = {{ project_name: project, schedule_type: stype, time: time }};
+  if (stype === 'weekly') body.day_of_week = day;
+
+  msg.textContent = '추가 중...';
+  msg.className = 'sched-msg';
+  try {{
+    const res = await fetch('/api/schedules', {{
+      method: 'POST',
+      headers: {{'Content-Type':'application/json'}},
+      body: JSON.stringify(body)
+    }});
+    const data = await res.json();
+    msg.textContent = data.msg;
+    msg.className = 'sched-msg ' + (data.ok ? 'ok' : 'err');
+    if (data.ok) loadSchedules();
+  }} catch(e) {{
+    msg.textContent = '추가 실패: ' + e;
+    msg.className = 'sched-msg err';
+  }}
+}}
+
+async function toggleSched(id) {{
+  try {{
+    const res = await fetch('/api/schedules/' + id + '/toggle', {{method: 'PUT'}});
+    const data = await res.json();
+    if (data.ok) loadSchedules();
+  }} catch(e) {{ console.error('toggle error:', e); }}
+}}
+
+async function deleteSched(id) {{
+  if (!confirm('이 스케줄을 삭제하시겠습니까?')) return;
+  try {{
+    const res = await fetch('/api/schedules/' + id, {{method: 'DELETE'}});
+    const data = await res.json();
+    if (data.ok) loadSchedules();
+  }} catch(e) {{ console.error('delete error:', e); }}
+}}
+
+// 페이지 로드 시 스케줄 목록 로딩
+loadSchedules();
 </script>
 </body>
 </html>"""

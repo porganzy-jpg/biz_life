@@ -29,10 +29,17 @@ from transcription_service import (
     TranscriptionService, queue_transcription, start_transcription_worker,
 )
 from memory_engine import MemoryEngine
+from voice_clone_service import VoiceCloneService, RESPONSES_AUDIO_DIR
+from pydantic import BaseModel as _BaseModel
 import json as _json
 
 app = FastAPI(title="VoiceMemory API", version="1.0.0")
 persona_chat = PersonaChat()
+voice_service = VoiceCloneService()
+
+
+class SynthesizeRequest(_BaseModel):
+    text: str
 
 
 @app.on_event("startup")
@@ -659,12 +666,28 @@ async def chat(data: ChatRequest, db: Session = Depends(get_db)):
     db.add(conv)
     db.commit()
 
+    # Build enhanced memory attribution with keyword highlighting info
+    relevant_memories = memory_ctx.get("relevant_memories", [])
+    memory_attribution = []
+    for mem in relevant_memories:
+        if mem.get("score", 0) >= 0.05:
+            memory_attribution.append({
+                "session_id": mem.get("session_id"),
+                "session_number": mem.get("session_number", 0),
+                "topic": mem.get("topic", ""),
+                "score": mem.get("score", 0),
+                "keywords": mem.get("keywords", []),
+                "emotional_tone": mem.get("emotional_tone", ""),
+                "text_preview": (mem.get("text", "")[:120] + "...") if len(mem.get("text", "")) > 120 else mem.get("text", ""),
+            })
+
     return {
         "person_name": person.name,
         "user_message": data.message,
         "ai_response": result["response"],
         "emotion": result["emotion"],
         "memory_sources": source_sessions,
+        "memory_attribution": memory_attribution,
     }
 
 
@@ -726,6 +749,70 @@ async def chat_history(person_id: int, limit: int = 20, db: Session = Depends(ge
         }
         for c in reversed(convs)
     ]}
+
+
+# === Voice Synthesis API ===
+@app.post("/api/chat/{person_id}/synthesize")
+async def synthesize_speech(person_id: int, data: SynthesizeRequest):
+    """
+    AI 응답 텍스트를 음성으로 합성
+
+    Args:
+        person_id: 인물 ID
+        data.text: 합성할 텍스트
+
+    Returns:
+        audio_url: 합성된 오디오 파일 URL
+    """
+    text = data.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="텍스트가 비어있습니다")
+
+    # 텍스트 길이 제한 (너무 긴 텍스트는 TTS에 부적합)
+    if len(text) > 2000:
+        text = text[:2000]
+
+    try:
+        file_path = await voice_service.synthesize_response(text, person_id)
+        if file_path and os.path.exists(file_path):
+            filename = os.path.basename(file_path)
+            return {
+                "audio_url": f"/api/audio/responses/{filename}",
+                "filename": filename,
+                "status": "ok",
+            }
+        else:
+            raise HTTPException(
+                status_code=503,
+                detail="음성 합성에 실패했습니다. edge-tts가 설치되어 있는지 확인하세요 (pip install edge-tts)."
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Synthesize error: {e}")
+        raise HTTPException(status_code=500, detail=f"음성 합성 오류: {str(e)}")
+
+
+@app.get("/api/audio/responses/{filename}")
+async def serve_synthesized_audio(filename: str):
+    """합성된 음성 오디오 파일 제공"""
+    # 보안: 파일 이름에 path traversal 방지
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.join(RESPONSES_AUDIO_DIR, safe_filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="오디오 파일을 찾을 수 없습니다")
+
+    return FileResponse(
+        path=file_path,
+        media_type="audio/mpeg",
+        filename=safe_filename,
+        headers={
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "public, max-age=3600",
+        },
+    )
 
 
 TEMPLATE_HTML = """
@@ -1274,6 +1361,110 @@ TEMPLATE_HTML = """
             font-weight: 600; cursor: pointer; white-space: nowrap;
         }
         .btn-profile:hover { background: #dbeafe; border-color: #2980b9; }
+
+        /* ====== Voice Playback Button ====== */
+        .voice-play-btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border: 1px solid #d7c4a8; border-radius: 14px;
+            background: #faf5f0; color: #8e6b47; font-size: 0.72rem;
+            font-weight: 600; cursor: pointer; margin-top: 6px;
+            transition: all 0.2s;
+        }
+        .voice-play-btn:hover { background: #8e6b47; color: white; border-color: #8e6b47; }
+        .voice-play-btn.loading {
+            opacity: 0.7; cursor: wait;
+        }
+        .voice-play-btn.playing {
+            background: #8e6b47; color: white; border-color: #8e6b47;
+        }
+        .voice-play-btn .spinner {
+            display: inline-block; width: 10px; height: 10px;
+            border: 2px solid currentColor; border-top-color: transparent;
+            border-radius: 50%; animation: spin-anim 0.6s linear infinite;
+        }
+        @keyframes spin-anim {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Volume Control */
+        .voice-volume-wrap {
+            display: flex; align-items: center; gap: 6px;
+            margin-top: 6px; padding: 4px 8px;
+            background: #faf5f0; border-radius: 10px;
+        }
+        .voice-volume-wrap label {
+            font-size: 0.7rem; color: #888;
+        }
+        .voice-volume-slider {
+            width: 80px; height: 4px; accent-color: #8e6b47;
+            cursor: pointer;
+        }
+        .voice-volume-val {
+            font-size: 0.65rem; color: #aaa; min-width: 28px;
+        }
+
+        /* ====== Memory Attribution ====== */
+        .memory-attr-toggle {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 0.7rem; color: #2980b9; cursor: pointer;
+            border: none; background: none; font-weight: 600;
+            padding: 2px 0; margin-top: 4px;
+        }
+        .memory-attr-toggle:hover { text-decoration: underline; }
+        .memory-attr-section {
+            margin-top: 6px; padding: 8px; background: #f0f7ff;
+            border-radius: 8px; border: 1px solid #d5e1ed;
+            font-size: 0.78rem;
+        }
+        .memory-attr-title {
+            font-weight: 700; color: #2c3e50; font-size: 0.78rem;
+            margin-bottom: 6px;
+        }
+        .memory-attr-item {
+            padding: 6px 8px; margin-bottom: 5px; background: white;
+            border-radius: 6px; border: 1px solid #e0ecf7;
+        }
+        .memory-attr-item:last-child { margin-bottom: 0; }
+        .memory-attr-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .memory-attr-session {
+            font-weight: 600; color: #2c3e50; font-size: 0.75rem;
+        }
+        .memory-attr-score-wrap {
+            display: flex; align-items: center; gap: 4px;
+        }
+        .memory-attr-score-bar {
+            width: 50px; height: 5px; background: #e0ecf7;
+            border-radius: 3px; overflow: hidden;
+        }
+        .memory-attr-score-fill {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, #2980b9, #5dade2);
+            transition: width 0.3s ease;
+        }
+        .memory-attr-score-pct {
+            font-size: 0.65rem; font-weight: 700; color: #1565c0;
+            min-width: 28px; text-align: right;
+        }
+        .memory-attr-text {
+            font-size: 0.72rem; color: #555; line-height: 1.4;
+            margin-top: 2px;
+        }
+        .memory-attr-text mark {
+            background: #ffe082; padding: 0 2px; border-radius: 2px;
+        }
+        .memory-attr-keywords {
+            display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px;
+        }
+        .memory-attr-kw {
+            padding: 1px 6px; border-radius: 8px; font-size: 0.62rem;
+            background: #e8eaf6; color: #3949ab; font-weight: 600;
+        }
+        .memory-attr-kw.highlighted {
+            background: #ffe082; color: #8e6b47;
+        }
     </style>
 </head>
 <body>
@@ -1389,6 +1580,11 @@ TEMPLATE_HTML = """
         <div class="panel" id="panel-chat">
             <div class="card">
                 <h3 id="chatTitle">Select a person to chat</h3>
+                <div class="voice-volume-wrap" id="chatVolumeWrap">
+                    <label>&#x1F50A; 음량</label>
+                    <input type="range" class="voice-volume-slider" id="chatVolumeSlider" min="0" max="100" value="80" oninput="updateChatVolume(this.value)" />
+                    <span class="voice-volume-val" id="chatVolumeVal">80%</span>
+                </div>
                 <div class="chat-suggestions" id="chatSuggestions" style="display:none;">
                     <div class="chat-suggestions-label">이런 질문을 해보세요:</div>
                     <div class="chat-suggestion-chips" id="chatSuggestionChips"></div>
@@ -2193,20 +2389,179 @@ TEMPLATE_HTML = """
         }
 
         // ====== Chat ======
+        let chatAudioPlayer = null;        // shared HTML5 Audio for TTS playback
+        let chatVolume = 0.8;              // 0.0 - 1.0
+        let currentPlayBtnEl = null;       // currently active play button
+        let ttsIdCounter = 0;              // unique id for each AI response
+
+        function getChatAudioPlayer() {
+            if (!chatAudioPlayer) {
+                chatAudioPlayer = new Audio();
+                chatAudioPlayer.volume = chatVolume;
+                chatAudioPlayer.addEventListener('ended', function() {
+                    if (currentPlayBtnEl) {
+                        currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                        currentPlayBtnEl.classList.remove('playing');
+                        currentPlayBtnEl = null;
+                    }
+                });
+                chatAudioPlayer.addEventListener('error', function() {
+                    if (currentPlayBtnEl) {
+                        currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                        currentPlayBtnEl.classList.remove('playing', 'loading');
+                        currentPlayBtnEl = null;
+                    }
+                });
+            }
+            return chatAudioPlayer;
+        }
+
+        function updateChatVolume(val) {
+            chatVolume = parseInt(val) / 100;
+            document.getElementById('chatVolumeVal').textContent = val + '%';
+            if (chatAudioPlayer) {
+                chatAudioPlayer.volume = chatVolume;
+            }
+        }
+
         async function loadChatHistory() {
             if (!selectedPersonId) return;
-            document.getElementById('chatTitle').textContent = selectedPersonName + '와(과) 대화';
+            document.getElementById('chatTitle').textContent = selectedPersonName + '\uC640(\uACFC) \uB300\uD654';
             const r = await fetch('/api/chat/history/' + selectedPersonId + '?limit=20');
             const d = await r.json();
             const area = document.getElementById('chatArea');
-            if (!d.conversations.length) { area.innerHTML='<div class="empty-state">첫 메시지를 보내보세요.</div>'; return; }
-            area.innerHTML = d.conversations.map(c=>
-                '<div class="chat-msg user"><div class="bubble">' + escapeHtml(c.user_message) + '</div></div>' +
-                '<div class="chat-msg ai"><div class="bubble">' + escapeHtml(c.ai_response) + '</div></div>'
-            ).join('');
+            if (!d.conversations.length) { area.innerHTML='<div class="empty-state">\uCCAB \uBA54\uC2DC\uC9C0\uB97C \uBCF4\uB0B4\uBCF4\uC138\uC694.</div>'; return; }
+            area.innerHTML = d.conversations.map(function(c) {
+                ttsIdCounter++;
+                var ttsId = 'tts-hist-' + ttsIdCounter;
+                var safeText = escapeHtml(c.ai_response).replace(/"/g, '&quot;');
+                return '<div class="chat-msg user"><div class="bubble">' + escapeHtml(c.user_message) + '</div></div>' +
+                    '<div class="chat-msg ai"><div class="bubble">' + escapeHtml(c.ai_response) +
+                    '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + safeText + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">&#x1F50A; \uB4E4\uAE30</button></div>' +
+                    '</div></div>';
+            }).join('');
             area.scrollTop = area.scrollHeight;
-            // Load chat suggestions
             loadChatSuggestions();
+        }
+
+        async function synthesizeAndPlay(personId, btnEl, textOrId) {
+            const player = getChatAudioPlayer();
+            // If this button is already playing, toggle pause/resume
+            if (currentPlayBtnEl === btnEl && !player.paused) {
+                player.pause();
+                btnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                btnEl.classList.remove('playing');
+                currentPlayBtnEl = null;
+                return;
+            }
+            if (currentPlayBtnEl === btnEl && player.paused && player.currentTime > 0) {
+                player.play();
+                btnEl.innerHTML = '&#x23F8; \uC77C\uC2DC\uC815\uC9C0';
+                btnEl.classList.add('playing');
+                return;
+            }
+
+            // Get text to synthesize
+            var text = '';
+            if (typeof textOrId === 'string') {
+                text = textOrId;
+            } else {
+                text = btnEl.dataset.ttsText || '';
+            }
+            if (!text) return;
+
+            // Stop any currently playing audio
+            player.pause();
+            player.currentTime = 0;
+            if (currentPlayBtnEl) {
+                currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                currentPlayBtnEl.classList.remove('playing', 'loading');
+            }
+
+            // Show loading state
+            btnEl.innerHTML = '<span class="spinner"></span> \uC900\uBE44 \uC911...';
+            btnEl.classList.add('loading');
+            currentPlayBtnEl = btnEl;
+
+            try {
+                const r = await fetch('/api/chat/' + personId + '/synthesize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text}),
+                });
+                if (!r.ok) {
+                    var errData = await r.json().catch(function() { return {}; });
+                    throw new Error(errData.detail || 'TTS \uC2E4\uD328');
+                }
+                const d = await r.json();
+
+                // Play the audio
+                player.src = d.audio_url;
+                player.volume = chatVolume;
+                await player.play();
+
+                btnEl.innerHTML = '&#x23F8; \uC77C\uC2DC\uC815\uC9C0';
+                btnEl.classList.remove('loading');
+                btnEl.classList.add('playing');
+            } catch (err) {
+                console.error('TTS error:', err);
+                btnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                btnEl.classList.remove('loading', 'playing');
+                currentPlayBtnEl = null;
+                btnEl.title = err.message || '\uC74C\uC131 \uD569\uC131 \uC2E4\uD328';
+            }
+        }
+
+        function buildMemoryAttributionHtml(memoryAttribution, userMessage) {
+            if (!memoryAttribution || memoryAttribution.length === 0) return '';
+
+            var attrId = 'mem-attr-' + (++ttsIdCounter);
+            var html = '<button class="memory-attr-toggle" onclick="toggleMemAttr(\\'' + attrId + '\\')">&#x1F4DA; \uCC38\uC870\uB41C \uAE30\uC5B5 (' + memoryAttribution.length + ') &#x25BC;</button>';
+            html += '<div class="memory-attr-section" id="' + attrId + '" style="display:none;">';
+            html += '<div class="memory-attr-title">\uCC38\uC870\uB41C \uAE30\uC5B5</div>';
+
+            // Get user query tokens for keyword highlighting
+            var queryTokens = (userMessage || '').split(/\\s+/).filter(function(t) { return t.length >= 2; });
+
+            memoryAttribution.forEach(function(mem) {
+                var scorePct = Math.round(mem.score * 100);
+                html += '<div class="memory-attr-item">';
+                html += '<div class="memory-attr-header">';
+                html += '<span class="memory-attr-session">\uC138\uC158 #' + mem.session_number + ' - ' + escapeHtml(mem.topic) + '</span>';
+                html += '<div class="memory-attr-score-wrap">';
+                html += '<div class="memory-attr-score-bar"><div class="memory-attr-score-fill" style="width:' + scorePct + '%"></div></div>';
+                html += '<span class="memory-attr-score-pct">' + scorePct + '%</span>';
+                html += '</div></div>';
+
+                // Text preview with query term highlighting
+                if (mem.text_preview) {
+                    var textHtml = escapeHtml(mem.text_preview);
+                    queryTokens.forEach(function(term) {
+                        var re = new RegExp('(' + term.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + ')', 'gi');
+                        textHtml = textHtml.replace(re, '<mark>$1</mark>');
+                    });
+                    html += '<div class="memory-attr-text">' + textHtml + '</div>';
+                }
+
+                // Keywords with highlighting
+                if (mem.keywords && mem.keywords.length > 0) {
+                    html += '<div class="memory-attr-keywords">';
+                    mem.keywords.slice(0, 8).forEach(function(kw) {
+                        var isMatch = queryTokens.some(function(t) { return kw.toLowerCase().indexOf(t.toLowerCase()) >= 0 || t.toLowerCase().indexOf(kw.toLowerCase()) >= 0; });
+                        html += '<span class="memory-attr-kw' + (isMatch ? ' highlighted' : '') + '">' + escapeHtml(kw) + '</span>';
+                    });
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function toggleMemAttr(id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
         }
 
         async function sendChat() {
@@ -2223,8 +2578,18 @@ TEMPLATE_HTML = """
             const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_id:selectedPersonId,message:msg})});
             const d = await r.json();
             const typingEl = document.getElementById('typing');
+            ttsIdCounter++;
+            const ttsId = 'tts-' + ttsIdCounter;
             let responseHtml = escapeHtml(d.ai_response);
-            // Add memory source tags if AI referenced specific recordings
+
+            // Play button for TTS
+            responseHtml += '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + escapeHtml(d.ai_response).replace(/"/g, '&quot;') + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">&#x1F50A; \uB4E4\uAE30</button></div>';
+
+            // Memory attribution section
+            if (d.memory_attribution && d.memory_attribution.length > 0) {
+                responseHtml += buildMemoryAttributionHtml(d.memory_attribution, msg);
+            }
+            // Also show old-style source tags for backward compat
             if (d.memory_sources && d.memory_sources.length > 0) {
                 const sourceTags = d.memory_sources
                     .filter(function(s) { return s.score > 0.1; })
@@ -2237,6 +2602,7 @@ TEMPLATE_HTML = """
                     responseHtml += '<div style="margin-top:4px;">' + sourceTags + '</div>';
                 }
             }
+
             typingEl.innerHTML = responseHtml;
             typingEl.removeAttribute('id');
             area.scrollTop = area.scrollHeight;

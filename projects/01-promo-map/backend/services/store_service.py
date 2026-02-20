@@ -12,6 +12,7 @@ from cache import (
     nearby_stores_cache, store_detail_cache,
     _lat_lon_grid_key,
 )
+from services.trending_service import get_store_usage_counts
 
 logger = logging.getLogger("promomap.cache")
 
@@ -41,6 +42,9 @@ def get_nearby_stores(db: Session, lat: float, lon: float, radius: float = 100.0
     store_ids = [store.id for store, _ in nearby]
     discounts_map = discount_repo.get_active_by_store_ids(store_ids)
 
+    # Batch fetch usage counts for usage badges
+    usage_counts = get_store_usage_counts(db, store_ids)
+
     results = []
     for store, distance in nearby:
         discounts = discounts_map.get(store.id, [])
@@ -56,6 +60,7 @@ def get_nearby_stores(db: Session, lat: float, lon: float, radius: float = 100.0
             "icon_color": store.icon_color,
             "icon_letter": store.icon_letter,
             "distance_m": distance,
+            "usage_count": usage_counts.get(store.id, 0),
             "discounts": [
                 {"id": d.id, "type": d.discount_type, "value": d.discount_value, "description": d.description,
                  "valid_until": d.valid_until.isoformat() if d.valid_until else None}

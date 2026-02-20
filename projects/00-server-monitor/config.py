@@ -77,6 +77,12 @@ PROJECTS = {
     },
 }
 
+# === 예약 재시작 설정 ===
+SCHEDULE_CONFIG = {
+    "SCHEDULE_ENABLED": os.getenv("SCHEDULE_ENABLED", "true").lower() in ("true", "1", "yes"),
+    "SCHEDULE_CHECK_INTERVAL": int(os.getenv("SCHEDULE_CHECK_INTERVAL", "60")),  # 스케줄 확인 간격(초)
+}
+
 # === 자동 배포 설정 ===
 DEPLOY_CONFIG = {
     "DEPLOY_ENABLED": os.getenv("DEPLOY_ENABLED", "true").lower() in ("true", "1", "yes"),

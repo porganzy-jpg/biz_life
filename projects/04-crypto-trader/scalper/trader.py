@@ -19,6 +19,7 @@ from typing import Optional
 from . import config
 from .upbit_client import UpbitClient
 from .strategies.ensemble import EnsembleStrategy
+from .trade_analyzer import TradeAnalyticsCache
 from .strategies.base import SignalType
 from .strategies.mtf_analyzer import MultiTimeframeAnalyzer
 from .risk_manager import RiskManager, RiskLevels, KellyResult
@@ -58,6 +59,7 @@ class TradeRecord:
     exit_time: str
     duration_sec: float
     fee_krw: float = 0.0
+    contributing_strategies: list = field(default_factory=list)
 
 
 class ScalpTrader:
@@ -104,6 +106,9 @@ class ScalpTrader:
         self._last_prices: dict[str, float] = {}  # market -> latest close price cache
         self._ws_callback = None
         self._prev_can_trade = True
+
+        # Trade analytics cache (incremental)
+        self._analytics_cache = TradeAnalyticsCache(initial_balance=initial_balance)
 
         mode_info = []
         if self.mtf_analyzer:
@@ -470,9 +475,14 @@ class ScalpTrader:
             exit_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             duration_sec=duration,
             fee_krw=fee_krw,
+            contributing_strategies=list(pos.contributing_strategies),
         )
         self.trade_history.append(record)
         self._save_trade(record)
+
+        # Notify analytics cache
+        if self._analytics_cache is not None:
+            self._analytics_cache.on_new_trade(asdict(record))
 
         self._ws_push({
             "type": "trade_event",

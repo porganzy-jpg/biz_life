@@ -245,12 +245,33 @@ body{display:flex;justify-content:center;background:#1a1a2e;}
 .shop-item .sinfo p{font-size:.62rem;color:var(--text-light);}
 .shop-item .bbtn{background:var(--gold-color);color:#333;border:none;border-radius:8px;padding:8px 12px;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;min-height:36px;}
 .ach-content{padding:16px;}
-.ach-card{background:var(--card);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);transition:opacity .3s;}
-.ach-card.locked{opacity:.4;}
-.ach-card .ai{font-size:1.3rem;flex:0 0 36px;text-align:center;}
-.ach-card .ainfo h4{font-size:.78rem;font-weight:700;margin-bottom:1px;}
-.ach-card .ainfo p{font-size:.62rem;color:var(--text-light);}
-.ach-card .ack{font-size:.9rem;color:var(--heal);margin-left:auto;}
+.ach-summary{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px;padding:14px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:var(--radius);color:#fff;}
+.ach-summary .ach-count{font-size:1.8rem;font-weight:900;}
+.ach-summary .ach-label{font-size:.72rem;opacity:.85;}
+.ach-summary .ach-bar-wrap{flex:1;max-width:160px;}
+.ach-summary .ach-bar-track{height:8px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden;}
+.ach-summary .ach-bar-fill{height:100%;background:#fff;border-radius:4px;transition:width .8s;}
+.ach-summary .ach-bar-text{font-size:.6rem;text-align:center;margin-top:3px;opacity:.8;}
+.ach-cat-tabs{display:flex;gap:0;margin-bottom:12px;background:rgba(108,92,231,.1);border-radius:var(--radius-sm);overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+.ach-cat-tabs .atab{flex:0 0 auto;padding:8px 12px;text-align:center;font-size:.65rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text-light);white-space:nowrap;min-height:36px;display:flex;align-items:center;justify-content:center;gap:3px;}
+.ach-cat-tabs .atab.active{background:var(--primary);color:#fff;border-radius:var(--radius-sm);}
+.ach-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.ach-card{background:var(--card);border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);transition:opacity .3s,transform .2s;cursor:pointer;position:relative;overflow:hidden;min-height:130px;}
+.ach-card:active{transform:scale(.97);}
+.ach-card.locked{opacity:.45;filter:grayscale(.7);}
+.ach-card.unlocked{border-color:var(--primary);box-shadow:0 2px 12px rgba(108,92,231,.15);}
+.ach-card .ach-icon{font-size:1.6rem;margin-bottom:6px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(108,92,231,.08);}
+.ach-card.unlocked .ach-icon{background:linear-gradient(135deg,rgba(108,92,231,.15),rgba(253,121,168,.15));}
+.ach-card .ach-name{font-size:.72rem;font-weight:700;margin-bottom:2px;line-height:1.3;}
+.ach-card .ach-desc{font-size:.58rem;color:var(--text-light);line-height:1.3;margin-bottom:6px;}
+.ach-card .ach-progress{width:100%;margin-top:auto;}
+.ach-card .ach-prog-bar{height:5px;background:#eee;border-radius:3px;overflow:hidden;}
+.ach-card .ach-prog-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:3px;transition:width .6s;}
+.ach-card .ach-prog-text{font-size:.52rem;color:var(--text-light);margin-top:2px;}
+.ach-card .ach-reward{font-size:.55rem;color:#b8860b;font-weight:600;margin-top:3px;}
+.ach-card .ach-check{position:absolute;top:6px;right:6px;font-size:.8rem;color:var(--heal);}
+.ach-card .ach-lock{position:absolute;top:6px;right:6px;font-size:.7rem;opacity:.4;}
+.toast.achievement-toast{border-left-color:var(--accent);background:linear-gradient(135deg,var(--card),rgba(253,121,168,.08));}
 .settings-content{padding:16px;}
 .setting-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--card-border);font-size:.8rem;}
 .toggle{width:44px;height:26px;background:#ccc;border-radius:13px;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
@@ -573,8 +594,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 <!-- ACHIEVEMENTS -->
 <div class="screen" id="screen-achievements">
   <div class="ach-content">
-    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">🏆 업적</h2>
-    <div id="ach-list"></div>
+    <div id="ach-summary"></div>
+    <div class="ach-cat-tabs" id="ach-cat-tabs"></div>
+    <div class="ach-grid" id="ach-grid"></div>
   </div>
 </div>
 
@@ -584,7 +606,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
     <h2 style="margin-bottom:14px;font-size:1rem;">⚙️ 설정</h2>
     <div id="settings-list"></div>
     <div style="margin-top:20px;text-align:center;font-size:.7rem;color:var(--text-light);">
-      <p>천국행 버스 v3.0</p>
+      <p>천국행 버스 v3.1 (업적 시스템)</p>
       <p style="margin-top:4px;">치유의 여정 - 모든 영혼에게 평화를</p>
     </div>
   </div>
@@ -900,6 +922,21 @@ const ACHIEVEMENTS = [
   {id:'a11',name:'기억 수집가',icon:'🧩',desc:'기억을 6개 이상 모았어요',condition:()=>GS.memories.length>=6},
   {id:'a12',name:'퀘스트 마스터',icon:'⚔️',desc:'모든 퀘스트를 완료했어요',condition:()=>QUESTS.every(q=>{const s=GS.questStates[q.id];return s&&s.completed;})}
 ];
+
+// ============================================================
+// BACKEND ACHIEVEMENT ICON MAP
+// ============================================================
+const ACH_ICON_MAP = {
+  egg:'\uD83E\uDD5A',books:'\uD83D\uDCDA',star2:'\u2B50',crown:'\uD83D\uDC51',
+  crossed_swords:'\u2694\uFE0F',fire:'\uD83D\uDD25',trophy:'\uD83C\uDFC6',medal:'\uD83E\uDD47',
+  handshake:'\uD83E\uDD1D',moneybag:'\uD83D\uDCB0',chart:'\uD83D\uDCC8',
+  shield:'\uD83D\uDEE1\uFE0F',dragon:'\uD83D\uDC09',compass:'\uD83E\uDDED',globe:'\uD83C\uDF0D',
+  sparkles:'\u2728',hundred:'\uD83D\uDCAF',calendar:'\uD83D\uDCC5',star:'\u2B50'
+};
+
+// Backend achievement data cache
+let backendAchData = null;
+let backendAchFilter = 'all';
 
 const MEMORIES = [
   {id:'m1',icon:'🌸',name:'첫 번째 꽃잎',desc:'천국행 버스에서 처음 본 벚꽃'},
@@ -2234,16 +2271,117 @@ function renderShop(){
   ).join('');
 }
 
-function renderAchievements(){
-  const el=document.getElementById('ach-list');
-  el.innerHTML=ACHIEVEMENTS.map(a=>{
+async function renderAchievements(){
+  // Fetch from backend API
+  const sessionId = 'default';
+  try {
+    const resp = await fetch(`/api/achievements/${sessionId}`);
+    if(resp.ok) {
+      backendAchData = await resp.json();
+    }
+  } catch(e) {
+    // Fallback: use old client-side data if backend unavailable
+  }
+
+  if(backendAchData && backendAchData.achievements) {
+    renderBackendAchievements(backendAchData);
+  } else {
+    // Fallback to old client-side achievements
+    renderClientAchievements();
+  }
+}
+
+function renderClientAchievements(){
+  // Legacy fallback renderer
+  const grid=document.getElementById('ach-grid');
+  const summary=document.getElementById('ach-summary');
+  const tabs=document.getElementById('ach-cat-tabs');
+  tabs.innerHTML='';
+  const unlockCount=GS.achievementsUnlocked.length;
+  const total=ACHIEVEMENTS.length;
+  const pct=total>0?Math.round(unlockCount/total*100):0;
+  summary.innerHTML=`<div class="ach-summary">
+    <div><div class="ach-count">${unlockCount}/${total}</div><div class="ach-label">\uC5C5\uC801 \uB2EC\uC131</div></div>
+    <div class="ach-bar-wrap"><div class="ach-bar-track"><div class="ach-bar-fill" style="width:${pct}%"></div></div><div class="ach-bar-text">${pct}% \uC644\uC131</div></div>
+  </div>`;
+  grid.innerHTML=ACHIEVEMENTS.map(a=>{
     const unlocked=GS.achievementsUnlocked.includes(a.id);
-    return `<div class="ach-card scroll-reveal${unlocked?'':' locked'}">
-      <div class="ai">${a.icon}</div>
-      <div class="ainfo"><h4>${a.name}</h4><p>${a.desc}</p></div>
-      ${unlocked?'<div class="ack">✅</div>':''}
+    return `<div class="ach-card scroll-reveal ${unlocked?'unlocked':'locked'}">
+      ${unlocked?'<div class="ach-check">\u2705</div>':'<div class="ach-lock">\uD83D\uDD12</div>'}
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-name">${a.name}</div>
+      <div class="ach-desc">${a.desc}</div>
     </div>`;
   }).join('');
+}
+
+function renderBackendAchievements(data){
+  const summaryEl=document.getElementById('ach-summary');
+  const tabsEl=document.getElementById('ach-cat-tabs');
+  const gridEl=document.getElementById('ach-grid');
+
+  const total=data.total||0;
+  const unlocked=data.unlocked_count||0;
+  const pct=total>0?Math.round(unlocked/total*100):0;
+
+  // Summary bar
+  summaryEl.innerHTML=`<div class="ach-summary">
+    <div style="text-align:center;">
+      <div class="ach-count">${unlocked}<span style="font-size:.9rem;font-weight:400;opacity:.7">/${total}</span></div>
+      <div class="ach-label">\uC5C5\uC801 \uB2EC\uC131</div>
+    </div>
+    <div class="ach-bar-wrap">
+      <div class="ach-bar-track"><div class="ach-bar-fill" style="width:${pct}%"></div></div>
+      <div class="ach-bar-text">${pct}% \uC644\uC131</div>
+    </div>
+  </div>`;
+
+  // Category tabs
+  const cats=data.categories||{};
+  let tabsHtml=`<div class="atab ${backendAchFilter==='all'?'active':''}" onclick="filterAchCategory('all')">\uC804\uCCB4</div>`;
+  for(const [catId,catInfo] of Object.entries(cats)){
+    const icon=ACH_ICON_MAP[catInfo.icon]||'\u2B50';
+    tabsHtml+=`<div class="atab ${backendAchFilter===catId?'active':''}" onclick="filterAchCategory('${catId}')">${icon} ${catInfo.name}</div>`;
+  }
+  tabsEl.innerHTML=tabsHtml;
+
+  // Filter achievements
+  let achs=data.achievements||[];
+  if(backendAchFilter!=='all'){
+    achs=achs.filter(a=>a.category===backendAchFilter);
+  }
+
+  // Render grid
+  gridEl.innerHTML=achs.map(a=>{
+    const icon=ACH_ICON_MAP[a.icon]||'\u2B50';
+    const progPct=a.progress_target>0?Math.round(a.progress_current/a.progress_target*100):0;
+    const rewardText=a.reward_gold?`\uD83D\uDCB0 ${a.reward_gold.toLocaleString()}G`:'';
+
+    return `<div class="ach-card scroll-reveal ${a.unlocked?'unlocked':'locked'}">
+      ${a.unlocked?'<div class="ach-check">\u2705</div>':'<div class="ach-lock">\uD83D\uDD12</div>'}
+      <div class="ach-icon">${icon}</div>
+      <div class="ach-name">${a.name}</div>
+      <div class="ach-desc">${a.description}</div>
+      <div class="ach-progress">
+        <div class="ach-prog-bar"><div class="ach-prog-fill" style="width:${progPct}%"></div></div>
+        <div class="ach-prog-text">${a.progress_current}/${a.progress_target}</div>
+      </div>
+      ${rewardText?`<div class="ach-reward">${rewardText}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Trigger scroll-reveal
+  setTimeout(()=>{
+    const screen=document.getElementById('screen-achievements');
+    if(screen) initScrollReveal(screen);
+  },100);
+}
+
+function filterAchCategory(cat){
+  backendAchFilter=cat;
+  if(backendAchData){
+    renderBackendAchievements(backendAchData);
+  }
 }
 
 function renderSettings(){
@@ -3047,18 +3185,70 @@ function fireConfetti(){
 // ACHIEVEMENTS
 // ============================================================
 function checkAchievements(){
+  // Client-side legacy check
   ACHIEVEMENTS.forEach(a=>{
     if(!GS.achievementsUnlocked.includes(a.id) && a.condition()){
       GS.achievementsUnlocked.push(a.id);
-      showToast(`🏆 업적 달성: ${a.name}!`);
+      showToast(`\uD83C\uDFC6 \uC5C5\uC801 \uB2EC\uC131: ${a.name}!`);
       fireConfetti();
       saveState();
     }
   });
+  // Also trigger backend check
+  triggerBackendAchievementCheck();
 }
 
 function checkNewAchievements(){
   return ACHIEVEMENTS.some(a=>!GS.achievementsUnlocked.includes(a.id)&&a.condition());
+}
+
+async function triggerBackendAchievementCheck(){
+  try{
+    const resp=await fetch('/api/achievements/check/default',{method:'POST'});
+    if(resp.ok){
+      const data=await resp.json();
+      handleBackendAchievementUnlocks(data.newly_unlocked||[]);
+    }
+  }catch(e){}
+}
+
+function handleBackendAchievementUnlocks(unlocks){
+  if(!unlocks||unlocks.length===0) return;
+  unlocks.forEach(a=>{
+    const icon=ACH_ICON_MAP[a.icon]||'\uD83C\uDFC6';
+    showAchievementToast(icon, a.name, a.description, a.reward_gold);
+    fireConfetti();
+  });
+  // Invalidate cache so next render fetches fresh data
+  backendAchData=null;
+}
+
+function showAchievementToast(icon, name, desc, gold){
+  if(!GS.settings.notifications)return;
+  const container=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast achievement-toast';
+  let html=`<div style="display:flex;align-items:center;gap:8px;">
+    <span style="font-size:1.4rem;">${icon}</span>
+    <div>
+      <div style="font-weight:700;font-size:.78rem;">\uD83C\uDFC6 \uC5C5\uC801 \uB2EC\uC131!</div>
+      <div style="font-size:.72rem;">${name}</div>
+      <div style="font-size:.6rem;color:var(--text-light);">${desc}</div>`;
+  if(gold){
+    html+=`<div style="font-size:.62rem;color:#b8860b;font-weight:600;margin-top:2px;">\uD83D\uDCB0 +${gold.toLocaleString()}G</div>`;
+  }
+  html+=`</div></div>`;
+  t.innerHTML=html;
+  container.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},5000);
+}
+
+// Process achievement_unlocks from any API response
+function processApiAchievementUnlocks(responseData){
+  if(responseData && responseData.achievement_unlocks && responseData.achievement_unlocks.length>0){
+    handleBackendAchievementUnlocks(responseData.achievement_unlocks);
+  }
 }
 
 // ============================================================
@@ -3381,6 +3571,7 @@ async function guildJoin(guildId){
     return;
   }
   showToast(res.message||'Joined guild!');
+  processApiAchievementUnlocks(res);
   await renderGuild();
 }
 
@@ -3430,6 +3621,7 @@ async function guildBossBattle(){
 
   if(won){try{launchConfetti();}catch(e){}}
   if(res.player) updatePlayerUI(res.player);
+  processApiAchievementUnlocks(res);
   await renderGuild();
 }
 
@@ -3581,6 +3773,7 @@ async function tradeBuy(listingId){
   }
   showToast(res.message||'Purchase successful!');
   if(res.player) updatePlayerUI(res.player);
+  processApiAchievementUnlocks(res);
   await renderTrade();
 }
 
@@ -3805,6 +3998,7 @@ async function arenaBattle(){
     try{launchConfetti();}catch(e){}
   }
 
+  processApiAchievementUnlocks(res);
   btn.disabled=false;
   btn.textContent='배틀!';
   await renderArena();

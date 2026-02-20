@@ -296,3 +296,279 @@
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* =========================================
+   트렌딩 / 인기 할인 / 인기 매장 / 핫딜
+   ========================================= */
+
+/* 섹션 공통 */
+.trending-section,
+.popular-stores-section,
+.hot-deals-section {
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.trending-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.trending-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #222;
+}
+.trending-subtitle {
+    font-size: 0.72rem;
+    color: #999;
+}
+
+/* === 인기 할인 캐러셀 === */
+.trending-carousel {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+}
+.trending-carousel::-webkit-scrollbar { display: none; }
+
+.trending-card {
+    flex-shrink: 0;
+    width: 220px;
+    scroll-snap-align: start;
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.15s;
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: fadeInUp 0.3s ease;
+}
+.trending-card:hover {
+    box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+/* 랭크 배지 */
+.trending-rank {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #999;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+.trending-rank-top {
+    background: linear-gradient(135deg, #FF6B35, #FF3B30);
+}
+
+.trending-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: white;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.trending-card-body {
+    flex: 1;
+    min-width: 0;
+}
+.trending-card-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.trending-card-desc {
+    font-size: 0.72rem;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+.trending-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+}
+
+.trending-discount-badge {
+    background: #FF3B30;
+    color: white;
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+/* 이용자 배지 */
+.usage-badge {
+    background: #F0F0F0;
+    color: #555;
+    border-radius: 10px;
+    padding: 2px 7px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.usage-badge-sm {
+    background: #F0F0F0;
+    color: #555;
+    border-radius: 8px;
+    padding: 1px 6px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+/* 프로모 리스트 아이템 내 인라인 이용 배지 */
+.usage-badge-inline {
+    display: inline-block;
+    background: #FFF3ED;
+    color: #FF6B35;
+    border-radius: 8px;
+    padding: 1px 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 2px;
+}
+
+/* === 인기 매장 카드 === */
+.popular-store-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.popular-store-card:last-child { border-bottom: none; }
+.popular-store-card:hover { background: #fafafa; }
+
+.popular-store-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: white;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.popular-store-info {
+    flex: 1;
+    min-width: 0;
+}
+.popular-store-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.popular-store-meta {
+    color: #999;
+    font-size: 0.75rem;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.popular-store-rating {
+    font-size: 0.78rem;
+}
+
+/* === 핫딜 카드 === */
+.hot-deal-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.hot-deal-card:last-child { border-bottom: none; }
+.hot-deal-card:hover { background: #fafafa; }
+
+.hot-deal-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: white;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.hot-deal-info {
+    flex: 1;
+    min-width: 0;
+}
+.hot-deal-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hot-deal-desc {
+    font-size: 0.72rem;
+    color: #666;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
+.hot-deal-stats {
+    flex-shrink: 0;
+    text-align: right;
+}
+.hot-deal-discount {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #FF3B30;
+}
+.hot-deal-velocity {
+    font-size: 0.68rem;
+    color: #FF6B35;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-top: 2px;
+}
