@@ -201,3 +201,98 @@
 }
 .login-prompt p { color: #666; margin-bottom: 16px; }
 .login-prompt .btn-primary { display: inline-block; }
+
+/* === 할인 코드 발급/사용 (Redemption) === */
+
+/* 할인 항목 레이아웃 변경 - 버튼 포함 */
+.discount-item {
+    display: flex; flex-direction: column;
+    padding: 10px 0; border-bottom: 1px solid #f5f5f5;
+    gap: 6px;
+}
+
+/* 할인 사용하기 버튼 */
+.btn-redeem {
+    background: #FF6B35; color: white; border: none;
+    border-radius: 8px; padding: 8px 14px;
+    font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    align-self: flex-end;
+}
+.btn-redeem:hover { background: #E55A2B; transform: translateY(-1px); }
+.btn-redeem:active { transform: translateY(0); }
+
+/* 코드 표시 박스 */
+.redeem-code-box {
+    background: linear-gradient(135deg, #f8f9fa, #fff);
+    border: 2px dashed #FF6B35;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin-top: 4px;
+    animation: fadeInUp 0.3s ease;
+}
+.redeem-code-box.expired {
+    border-color: #ccc;
+    background: #f8f8f8;
+}
+.redeem-label {
+    font-size: 0.75rem; font-weight: 600;
+    color: #FF6B35; text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 6px;
+}
+.redeem-code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 2rem; font-weight: 700;
+    color: #222; letter-spacing: 4px;
+    padding: 8px 0;
+    user-select: all;
+}
+.redeem-timer {
+    font-size: 1.3rem; font-weight: 700;
+    color: #FF6B35;
+    font-variant-numeric: tabular-nums;
+    padding: 4px 0;
+    transition: color 0.3s;
+}
+.redeem-hint {
+    font-size: 0.75rem; color: #999;
+    margin-top: 4px;
+}
+
+/* 사용 완료 버튼 */
+.btn-redeem-complete {
+    background: #34C759; color: white; border: none;
+    border-radius: 8px; padding: 8px 20px;
+    font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+}
+.btn-redeem-complete:hover { background: #2DB84D; }
+
+/* 마이페이지 - 코드 사용 절약 현황 섹션 */
+.redemption-stats-section {
+    margin-bottom: 16px;
+}
+.redemption-stats-section h3 {
+    font-size: 1rem; font-weight: 700; margin-bottom: 12px;
+}
+
+/* 마이페이지 - 최근 코드 사용 미리보기 */
+.redemption-history-preview {
+    background: white; border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+}
+.redemption-history-item {
+    display: flex; justify-content: space-between;
+    align-items: center; padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+.redemption-history-item:last-child { border-bottom: none; }
+
+/* 페이드인 애니메이션 */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}

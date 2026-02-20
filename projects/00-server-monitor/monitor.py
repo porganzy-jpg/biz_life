@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 from config import PROJECTS
 from services import check_port, find_pid_by_port, start_project as _start_project, log_event
+from anomaly import get_collector, start_anomaly_thread
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ def _can_alert(key: str) -> bool:
 async def health_check_loop():
     """30초마다 프로젝트 상태 확인, 죽은 서비스 자동 재시작"""
     logger.info("헬스체크 루프 시작 (간격: %ds)", HEALTH_CHECK_INTERVAL)
+    start_anomaly_thread()
     await asyncio.sleep(10)  # 초기 시작 대기
 
     while True:
@@ -102,6 +104,12 @@ async def health_check_loop():
                         await send_telegram(msg)
         except Exception as e:
             logger.error(f"헬스체크 오류: {e}")
+
+        # 매 사이클마다 시스템 메트릭 수집 및 저장
+        try:
+            get_collector().collect_and_store()
+        except Exception as e:
+            logger.error(f"메트릭 수집 오류: {e}")
 
         await asyncio.sleep(HEALTH_CHECK_INTERVAL)
 

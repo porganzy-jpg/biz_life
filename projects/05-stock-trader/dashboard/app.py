@@ -3,6 +3,7 @@ StockBot v2.1 대시보드
 8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 일일성과 + 시장국면감지
 + 성과 차트 (Equity Curve, Daily PnL, Strategy Stats, Trade Distribution)
 + 전략 분석 (Strategy Heatmap, Rolling Performance, Toggle, Ranking)
++ 시장 레짐 (Dashboard Regime Detection & Strategy Rotation)
 """
 import sys
 import os
@@ -24,10 +25,22 @@ from config import DASHBOARD_HOST, DASHBOARD_PORT, WATCHLIST
 from datetime import datetime, timedelta
 
 from backtest_portal import backtest_router
+from regime_detector import (
+    RegimeDetector as DashboardRegimeDetector,
+    StrategyRotator,
+    DashboardRegime,
+    compute_regime_from_trades,
+    get_regime_display,
+    STRATEGY_NAMES as REGIME_STRATEGY_NAMES,
+)
 
 app = FastAPI(title="StockBot v2.1 Dashboard")
 app.include_router(backtest_router)
 trader = StockTrader(paper_trading=False)
+
+# --- Dashboard regime detector & strategy rotator ---
+dashboard_regime_detector = DashboardRegimeDetector()
+strategy_rotator = StrategyRotator()
 
 # --- Strategy toggle state (in-memory, persisted to JSON) ---
 STRATEGY_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "strategy_config.json")
@@ -315,6 +328,121 @@ async def get_regime():
 async def reset_circuit_breaker():
     trader.circuit_breaker.reset()
     return {"status": "reset"}
+
+
+# =====================================================================
+# Dashboard Regime Detection & Strategy Rotation API Endpoints
+# =====================================================================
+
+@app.get("/api/regime/current")
+async def get_dashboard_regime_current():
+    """Current market regime + confidence + recommended weights.
+    Uses database trades and daily performance for classification.
+    """
+    conn = get_connection()
+    # Fetch daily_performance (last 90 days, ordered ASC)
+    since_date = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+    daily_rows = conn.execute(
+        "SELECT date, total_assets, total_pnl, total_pnl_pct, cash, invested "
+        "FROM daily_performance WHERE date >= ? ORDER BY date ASC",
+        (since_date,),
+    ).fetchall()
+
+    # Fetch sell trades (last 90 days, ordered ASC)
+    since_ts = (datetime.now() - timedelta(days=90)).isoformat()
+    trade_rows = conn.execute(
+        "SELECT timestamp, pnl, pnl_pct, reasons FROM trades "
+        "WHERE timestamp >= ? AND action != 'BUY' ORDER BY timestamp ASC",
+        (since_ts,),
+    ).fetchall()
+    conn.close()
+
+    daily_dicts = [dict(r) for r in daily_rows]
+    trade_dicts = [dict(r) for r in trade_rows]
+
+    result = compute_regime_from_trades(trade_dicts, daily_dicts)
+
+    # Save to history
+    strategy_rotator.save_to_history(result)
+
+    # Get optimal weights
+    weights = strategy_rotator.get_optimal_weights(result.regime, result.confidence)
+
+    # Get display metadata
+    display = get_regime_display(result.regime)
+
+    return {
+        "regime": result.regime.value,
+        "confidence": result.confidence,
+        "indicators": result.indicators,
+        "timestamp": result.timestamp,
+        "display": display,
+        "recommended_weights": weights,
+    }
+
+
+@app.get("/api/regime/history")
+async def get_dashboard_regime_history(days: int = Query(30)):
+    """Regime history for the last N days."""
+    history = strategy_rotator.get_history(days=days)
+    return {"history": history, "days": days}
+
+
+@app.post("/api/regime/apply-weights")
+async def apply_regime_weights():
+    """Apply recommended regime weights to strategy config.
+    Re-computes the current regime, generates optimal weights,
+    and saves them as enabled/weight config.
+    """
+    conn = get_connection()
+    since_date = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+    daily_rows = conn.execute(
+        "SELECT date, total_assets, total_pnl, total_pnl_pct, cash, invested "
+        "FROM daily_performance WHERE date >= ? ORDER BY date ASC",
+        (since_date,),
+    ).fetchall()
+
+    since_ts = (datetime.now() - timedelta(days=90)).isoformat()
+    trade_rows = conn.execute(
+        "SELECT timestamp, pnl, pnl_pct, reasons FROM trades "
+        "WHERE timestamp >= ? AND action != 'BUY' ORDER BY timestamp ASC",
+        (since_ts,),
+    ).fetchall()
+    conn.close()
+
+    daily_dicts = [dict(r) for r in daily_rows]
+    trade_dicts = [dict(r) for r in trade_rows]
+
+    result = compute_regime_from_trades(trade_dicts, daily_dicts)
+    weights = strategy_rotator.get_optimal_weights(result.regime, result.confidence)
+
+    # Load current strategy config and update
+    config = _load_strategy_config()
+    for name in STRATEGY_NAMES:
+        if name not in config:
+            config[name] = True
+    _save_strategy_config(config)
+
+    # Save the weights to a separate JSON file for runtime use
+    weights_config_path = os.path.join(
+        os.path.dirname(__file__), "..", "strategy_weights.json"
+    )
+    weights_data = {
+        "regime": result.regime.value,
+        "confidence": result.confidence,
+        "weights": weights,
+        "applied_at": datetime.now().isoformat(),
+    }
+    with open(weights_config_path, "w", encoding="utf-8") as f:
+        json.dump(weights_data, f, indent=2, ensure_ascii=False)
+
+    return {
+        "status": "applied",
+        "regime": result.regime.value,
+        "confidence": result.confidence,
+        "weights": weights,
+        "applied_at": weights_data["applied_at"],
+    }
 
 
 # =====================================================================
@@ -638,6 +766,35 @@ DASHBOARD_HTML = """
         .status-active { color: #3fb950; font-weight: 600; font-size: 0.75rem; }
         .status-disabled { color: #f85149; font-weight: 600; font-size: 0.75rem; }
 
+        /* Dashboard Regime section styles */
+        .regime-section { margin-bottom: 12px; }
+        .regime-section .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .regime-section .section-title { color: #f97316; font-size: 1.1rem; font-weight: 700; }
+        .regime-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .regime-badge-lg { display: inline-block; padding: 8px 20px; border-radius: 8px; font-size: 1.1rem; font-weight: 700;
+                           letter-spacing: 0.5px; }
+        .regime-bull-trend { background: #23863633; color: #3fb950; border: 1px solid #238636; }
+        .regime-bear-trend { background: #f8514933; color: #f85149; border: 1px solid #f85149; }
+        .regime-ranging { background: #d2992233; color: #d29922; border: 1px solid #d29922; }
+        .regime-high-vol { background: #f9731633; color: #f97316; border: 1px solid #f97316; }
+        .regime-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .regime-info-item { background: #0d1117; border-radius: 6px; padding: 8px 12px; }
+        .regime-info-item .info-label { font-size: 0.72rem; color: #8b949e; margin-bottom: 2px; }
+        .regime-info-item .info-value { font-size: 0.9rem; font-weight: 600; color: #c9d1d9; }
+        .regime-confidence-bar { width: 100%; height: 8px; background: #21262d; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+        .regime-confidence-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .weight-compare-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.78rem; }
+        .weight-compare-row .wc-name { width: 110px; font-weight: 600; color: #c9d1d9; text-align: right; }
+        .weight-compare-bars { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .weight-bar-row { display: flex; align-items: center; gap: 4px; }
+        .weight-bar-label { width: 60px; font-size: 0.68rem; color: #8b949e; text-align: right; }
+        .weight-bar-track { flex: 1; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
+        .weight-bar-fill-rec { height: 100%; background: #58a6ff; border-radius: 3px; transition: width 0.5s ease; }
+        .weight-bar-fill-cur { height: 100%; background: #8b949e; border-radius: 3px; transition: width 0.5s ease; }
+        .weight-pct { width: 36px; font-size: 0.68rem; color: #8b949e; }
+        .btn-apply { background: #f97316; color: #fff; }
+        .btn-apply:hover { opacity: 0.85; }
+
         @media (max-width: 900px) {
             .grid-2 { grid-template-columns: 1fr; }
             .perf-grid { grid-template-columns: 1fr; }
@@ -645,6 +802,7 @@ DASHBOARD_HTML = """
             .perf-grid-bottom { grid-template-columns: 1fr; }
             .sa-grid-top { grid-template-columns: 1fr; }
             .sa-grid-bottom { grid-template-columns: 1fr; }
+            .regime-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -781,6 +939,56 @@ DASHBOARD_HTML = """
                     <h2>Strategy Ranking (by Sharpe Ratio)</h2>
                     <div class="scroll-table" id="strategyRanking">
                         <p class="neu">Loading ranking data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Regime Detection Section -->
+        <div class="regime-section">
+            <div class="section-header">
+                <span class="section-title">Market Regime Detection</span>
+                <button class="btn btn-apply" onclick="applyRegimeWeights()">Apply Weights</button>
+            </div>
+            <div class="regime-grid">
+                <div class="card">
+                    <h2>Current Regime</h2>
+                    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                        <span class="regime-badge-lg regime-ranging" id="dashRegimeBadge">RANGING</span>
+                        <div style="flex:1;min-width:120px">
+                            <div style="font-size:0.78rem;color:#8b949e">Confidence</div>
+                            <div style="font-size:1.3rem;font-weight:700" id="dashRegimeConf">0%</div>
+                            <div class="regime-confidence-bar">
+                                <div class="regime-confidence-fill" id="dashRegimeConfBar" style="width:0%;background:#d29922"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="regime-info-grid" id="dashRegimeIndicators">
+                        <div class="regime-info-item"><div class="info-label">20D Return</div><div class="info-value" id="drInd20dRet">-</div></div>
+                        <div class="regime-info-item"><div class="info-label">Recent Vol</div><div class="info-value" id="drIndRecentVol">-</div></div>
+                        <div class="regime-info-item"><div class="info-label">Vol Z-Score</div><div class="info-value" id="drIndVolZ">-</div></div>
+                        <div class="regime-info-item"><div class="info-label">Price vs MA50</div><div class="info-value" id="drIndPriceMa">-</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Regime Timeline (30 Days)</h2>
+                    <div class="chart-container" style="height:180px">
+                        <canvas id="regimeTimelineChart"></canvas>
+                        <div class="chart-empty" id="regimeTimelineEmpty">No regime history available yet</div>
+                    </div>
+                </div>
+            </div>
+            <div class="regime-grid">
+                <div class="card">
+                    <h2>Recommended vs Current Weights</h2>
+                    <div id="weightCompareContainer">
+                        <p class="neu">Loading weight comparison...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Regime History Log</h2>
+                    <div class="scroll-table" id="regimeHistoryLog" style="max-height:250px">
+                        <p class="neu">Loading regime history...</p>
                     </div>
                 </div>
             </div>
@@ -1605,12 +1813,288 @@ DASHBOARD_HTML = """
             loadStrategyRanking();
         }
 
+        /* ========== Dashboard Regime Detection ========== */
+        let regimeTimelineChartInst = null;
+        let lastRegimeWeights = {};
+
+        const REGIME_COLORS = {
+            'BULL_TREND': '#3fb950',
+            'BEAR_TREND': '#f85149',
+            'RANGING': '#d29922',
+            'HIGH_VOLATILITY': '#f97316',
+        };
+        const REGIME_CSS = {
+            'BULL_TREND': 'regime-bull-trend',
+            'BEAR_TREND': 'regime-bear-trend',
+            'RANGING': 'regime-ranging',
+            'HIGH_VOLATILITY': 'regime-high-vol',
+        };
+        const REGIME_LABELS_KO = {
+            'BULL_TREND': 'Bull Trend',
+            'BEAR_TREND': 'Bear Trend',
+            'RANGING': 'Ranging',
+            'HIGH_VOLATILITY': 'High Vol',
+        };
+
+        async function loadDashboardRegime() {
+            try {
+                const r = await fetch('/api/regime/current');
+                const d = await r.json();
+                const regime = d.regime || 'RANGING';
+                const confidence = d.confidence || 0;
+                const indicators = d.indicators || {};
+                const weights = d.recommended_weights || {};
+                lastRegimeWeights = weights;
+
+                // Update badge
+                const badge = document.getElementById('dashRegimeBadge');
+                badge.textContent = (REGIME_LABELS_KO[regime] || regime);
+                badge.className = 'regime-badge-lg ' + (REGIME_CSS[regime] || 'regime-ranging');
+
+                // Update confidence
+                const confPct = Math.round(confidence * 100);
+                document.getElementById('dashRegimeConf').textContent = confPct + '%';
+                const confBar = document.getElementById('dashRegimeConfBar');
+                confBar.style.width = confPct + '%';
+                confBar.style.background = REGIME_COLORS[regime] || '#d29922';
+
+                // Update indicators
+                const ret20d = indicators.return_20d;
+                document.getElementById('drInd20dRet').textContent = ret20d !== null && ret20d !== undefined ? (ret20d >= 0 ? '+' : '') + ret20d.toFixed(2) + '%' : '-';
+                document.getElementById('drInd20dRet').style.color = ret20d > 0 ? '#3fb950' : ret20d < 0 ? '#f85149' : '#c9d1d9';
+
+                const recentVol = indicators.recent_vol;
+                document.getElementById('drIndRecentVol').textContent = recentVol !== null && recentVol !== undefined ? recentVol.toFixed(3) : '-';
+
+                const volZ = indicators.vol_z_score;
+                document.getElementById('drIndVolZ').textContent = volZ !== null && volZ !== undefined ? volZ.toFixed(2) : '-';
+                const volZEl = document.getElementById('drIndVolZ');
+                if (volZ > 2) volZEl.style.color = '#f85149';
+                else if (volZ > 1) volZEl.style.color = '#f97316';
+                else volZEl.style.color = '#c9d1d9';
+
+                const priceMa = indicators.price_above_ma50;
+                document.getElementById('drIndPriceMa').textContent = priceMa === true ? 'Above' : priceMa === false ? 'Below' : '-';
+                document.getElementById('drIndPriceMa').style.color = priceMa === true ? '#3fb950' : priceMa === false ? '#f85149' : '#c9d1d9';
+
+                // Update weight comparison
+                loadWeightComparison(weights);
+            } catch(e) { console.error('Dashboard regime error:', e); }
+        }
+
+        async function loadWeightComparison(recommendedWeights) {
+            const el = document.getElementById('weightCompareContainer');
+            try {
+                const r = await fetch('/api/strategy-config');
+                const d = await r.json();
+                const config = d.config || {};
+
+                // Equal weight for "current" display
+                const equalWeight = 1.0 / 8;
+                const strategies = ['Bollinger', 'RSI', 'MACD', 'MA', 'InstitutionalFlow', 'Momentum', 'DualMomentum', 'VolatilityTarget'];
+                const maxW = Math.max(...Object.values(recommendedWeights || {}), equalWeight) || 0.25;
+
+                let html = '';
+                for (const name of strategies) {
+                    const rec = recommendedWeights[name] || equalWeight;
+                    const cur = equalWeight;
+                    const recPct = Math.round(rec * 100);
+                    const curPct = Math.round(cur * 100);
+                    const recBarW = Math.round((rec / maxW) * 100);
+                    const curBarW = Math.round((cur / maxW) * 100);
+                    const enabled = config[name] !== false;
+                    const nameColor = enabled ? '#c9d1d9' : '#484f58';
+
+                    html += '<div class="weight-compare-row">'
+                         + '<div class="wc-name" style="color:' + nameColor + '">' + name + '</div>'
+                         + '<div class="weight-compare-bars">'
+                         + '<div class="weight-bar-row"><div class="weight-bar-label" style="color:#58a6ff">Rec</div>'
+                         + '<div class="weight-bar-track"><div class="weight-bar-fill-rec" style="width:' + recBarW + '%"></div></div>'
+                         + '<div class="weight-pct" style="color:#58a6ff">' + recPct + '%</div></div>'
+                         + '<div class="weight-bar-row"><div class="weight-bar-label">Cur</div>'
+                         + '<div class="weight-bar-track"><div class="weight-bar-fill-cur" style="width:' + curBarW + '%"></div></div>'
+                         + '<div class="weight-pct">' + curPct + '%</div></div>'
+                         + '</div></div>';
+                }
+                el.innerHTML = html;
+            } catch(e) {
+                console.error('Weight comparison error:', e);
+                el.innerHTML = '<p class="neu">Failed to load weight comparison</p>';
+            }
+        }
+
+        async function loadRegimeTimeline() {
+            try {
+                const r = await fetch('/api/regime/history?days=30');
+                const d = await r.json();
+                const history = d.history || [];
+                const emptyEl = document.getElementById('regimeTimelineEmpty');
+                const canvas = document.getElementById('regimeTimelineChart');
+
+                if (!history.length) {
+                    emptyEl.style.display = 'flex';
+                    canvas.style.display = 'none';
+                    if (regimeTimelineChartInst) { regimeTimelineChartInst.destroy(); regimeTimelineChartInst = null; }
+                    return;
+                }
+                emptyEl.style.display = 'none';
+                canvas.style.display = 'block';
+
+                // Group by date, take the latest regime per day
+                const byDate = {};
+                for (const entry of history) {
+                    const ts = entry.timestamp || '';
+                    const dateStr = ts.substring(0, 10);
+                    if (dateStr) {
+                        byDate[dateStr] = entry;
+                    }
+                }
+                const dates = Object.keys(byDate).sort();
+                const regimeValues = { 'BULL_TREND': 4, 'RANGING': 3, 'HIGH_VOLATILITY': 2, 'BEAR_TREND': 1 };
+                const dataPoints = dates.map(dt => regimeValues[byDate[dt].regime] || 3);
+                const bgColors = dates.map(dt => REGIME_COLORS[byDate[dt].regime] || '#d29922');
+                const confData = dates.map(dt => Math.round((byDate[dt].confidence || 0) * 100));
+                const shortDates = dates.map(dt => { const p = dt.split('-'); return p[1] + '-' + p[2]; });
+
+                if (regimeTimelineChartInst) regimeTimelineChartInst.destroy();
+                regimeTimelineChartInst = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: shortDates,
+                        datasets: [
+                            {
+                                label: 'Regime',
+                                data: dataPoints,
+                                backgroundColor: bgColors,
+                                borderRadius: 3,
+                                yAxisID: 'y',
+                                order: 2,
+                            },
+                            {
+                                label: 'Confidence',
+                                data: confData,
+                                type: 'line',
+                                borderColor: '#8b949e',
+                                backgroundColor: 'transparent',
+                                tension: 0.3,
+                                pointRadius: 2,
+                                pointBackgroundColor: '#8b949e',
+                                borderWidth: 1.5,
+                                yAxisID: 'y1',
+                                order: 1,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: true, position: 'top', labels: { boxWidth: 10, padding: 6, font: { size: 9 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        if (ctx.datasetIndex === 0) {
+                                            const dateKey = dates[ctx.dataIndex];
+                                            return 'Regime: ' + (byDate[dateKey] ? byDate[dateKey].regime : '-');
+                                        }
+                                        return 'Confidence: ' + ctx.raw + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { maxTicksLimit: 15, font: { size: 9 } } },
+                            y: {
+                                position: 'left',
+                                min: 0, max: 5,
+                                grid: { color: '#21262d' },
+                                ticks: {
+                                    stepSize: 1,
+                                    font: { size: 9 },
+                                    callback: function(v) {
+                                        const labels = { 1: 'BEAR', 2: 'HIGH VOL', 3: 'RANGE', 4: 'BULL' };
+                                        return labels[v] || '';
+                                    }
+                                }
+                            },
+                            y1: {
+                                position: 'right',
+                                min: 0, max: 100,
+                                grid: { display: false },
+                                ticks: { callback: v => v + '%', font: { size: 9 } }
+                            }
+                        }
+                    }
+                });
+            } catch(e) { console.error('Regime timeline error:', e); }
+        }
+
+        async function loadRegimeHistory() {
+            try {
+                const r = await fetch('/api/regime/history?days=30');
+                const d = await r.json();
+                const history = d.history || [];
+                const el = document.getElementById('regimeHistoryLog');
+
+                if (!history.length) {
+                    el.innerHTML = '<p class="neu">No regime history available</p>';
+                    return;
+                }
+
+                // Show last 30 entries, newest first
+                const recent = history.slice(-30).reverse();
+                let html = '<table><thead><tr><th>Time</th><th>Regime</th><th>Confidence</th><th>20D Return</th></tr></thead><tbody>';
+                for (const entry of recent) {
+                    const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString('ko', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+                    const regime = entry.regime || 'RANGING';
+                    const css = REGIME_CSS[regime] || 'regime-ranging';
+                    const conf = entry.confidence ? Math.round(entry.confidence * 100) + '%' : '-';
+                    const ind = entry.indicators || {};
+                    const ret20d = ind.return_20d !== null && ind.return_20d !== undefined ? (ind.return_20d >= 0 ? '+' : '') + ind.return_20d.toFixed(2) + '%' : '-';
+                    const retColor = (ind.return_20d || 0) >= 0 ? '#3fb950' : '#f85149';
+
+                    html += '<tr><td>' + ts + '</td>'
+                         + '<td><span class="badge-regime ' + css + '" style="font-size:0.7rem;padding:2px 6px">' + (REGIME_LABELS_KO[regime] || regime) + '</span></td>'
+                         + '<td>' + conf + '</td>'
+                         + '<td style="color:' + retColor + '">' + ret20d + '</td></tr>';
+                }
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } catch(e) { console.error('Regime history error:', e); }
+        }
+
+        async function applyRegimeWeights() {
+            if (!confirm('Apply recommended regime weights to strategy configuration?')) return;
+            try {
+                const r = await fetch('/api/regime/apply-weights', { method: 'POST' });
+                const d = await r.json();
+                if (d.status === 'applied') {
+                    alert('Weights applied successfully!\\nRegime: ' + d.regime + '\\nConfidence: ' + Math.round(d.confidence * 100) + '%');
+                    loadDashboardRegime();
+                    loadStrategyToggles();
+                } else {
+                    alert('Failed to apply weights');
+                }
+            } catch(e) {
+                console.error('Apply weights error:', e);
+                alert('Error applying weights');
+            }
+        }
+
+        function loadAllRegimeData() {
+            loadDashboardRegime();
+            loadRegimeTimeline();
+            loadRegimeHistory();
+        }
+
         /* ========== Initialize ========== */
-        fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis();
+        fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis(); loadAllRegimeData();
         setInterval(fetchStatus, 15000);
         setInterval(fetchStats, 60000);
         setInterval(loadAllCharts, 120000);
         setInterval(loadAllStrategyAnalysis, 120000);
+        setInterval(loadAllRegimeData, 120000);
     </script>
 </body>
 </html>

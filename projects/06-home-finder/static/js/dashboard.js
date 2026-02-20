@@ -249,6 +249,141 @@ function _renderFilteredActivities() {
     container.innerHTML = html;
 }
 
+// ──────── 가격 예측 테이블 로드 ────────
+
+async function loadDistrictForecast() {
+    const tbody = document.getElementById('forecastTable');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">로딩중...</td></tr>';
+
+    try {
+        const resp = await fetch(`${API_BASE}/predictions/district-forecast`);
+        if (!resp.ok) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">데이터를 불러올 수 없습니다</td></tr>';
+            return;
+        }
+        const data = await resp.json();
+
+        if (!data.forecasts || data.forecasts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">예측 데이터가 없습니다</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        for (const f of data.forecasts) {
+            const changePct = f.change_pct || 0;
+            const isUp = f.trend_direction === 'up';
+            const isDown = f.trend_direction === 'down';
+            const trendColor = isUp ? 'text-danger' : (isDown ? 'text-primary' : 'text-muted');
+            const trendIcon = isUp ? 'bi-arrow-up-circle-fill' : (isDown ? 'bi-arrow-down-circle-fill' : 'bi-dash-circle');
+            const changeColor = changePct > 0 ? 'text-danger' : (changePct < 0 ? 'text-primary' : 'text-muted');
+
+            // Confidence bar
+            const confPct = Math.round((f.confidence || 0) * 100);
+            const confColor = confPct >= 60 ? 'bg-success' : (confPct >= 30 ? 'bg-warning' : 'bg-secondary');
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="fw-bold">${f.district || '-'}</td>
+                    <td>${f.property_count || '-'}</td>
+                    <td class="text-end">${formatPrice(f.current_avg)}</td>
+                    <td class="text-end">${formatPrice(f.predicted_avg)}</td>
+                    <td class="text-end ${changeColor} fw-bold">
+                        ${changePct > 0 ? '+' : ''}${changePct.toFixed(1)}%
+                    </td>
+                    <td class="text-center">
+                        <i class="bi ${trendIcon} ${trendColor}" style="font-size:1.2rem;" title="${f.trend_direction}"></i>
+                    </td>
+                    <td class="text-center">
+                        <div class="progress" style="height:6px;min-width:50px;" title="${confPct}%">
+                            <div class="progress-bar ${confColor}" style="width:${confPct}%"></div>
+                        </div>
+                        <small class="text-muted" style="font-size:0.7rem;">${confPct}%</small>
+                    </td>
+                </tr>`;
+        }
+    } catch (e) {
+        console.error('District forecast load error:', e);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">로드 오류</td></tr>';
+    }
+}
+
+// ──────── 기회 매물 카드 로드 ────────
+
+async function loadOpportunities() {
+    const container = document.getElementById('opportunityCards');
+    if (!container) return;
+
+    container.innerHTML = '<div class="col-12 text-center text-muted">로딩중...</div>';
+
+    try {
+        const resp = await fetch(`${API_BASE}/predictions/opportunities?limit=5`);
+        if (!resp.ok) {
+            container.innerHTML = '<div class="col-12 text-center text-muted">데이터를 불러올 수 없습니다</div>';
+            return;
+        }
+        const data = await resp.json();
+
+        if (!data.opportunities || data.opportunities.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted">기회 매물이 없습니다</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        for (const opp of data.opportunities) {
+            const name = opp.complex_name || opp.address || '매물 #' + opp.id;
+            const location = [opp.district, opp.dong].filter(Boolean).join(' ');
+            const oppScore = opp.opportunity_score || 0;
+            const discount = opp.discount_pct || 0;
+            const composite = opp.score_composite || 0;
+
+            // Opportunity badge color
+            let badgeBg = 'bg-secondary';
+            if (oppScore >= 70) badgeBg = 'bg-danger';
+            else if (oppScore >= 50) badgeBg = 'bg-warning text-dark';
+            else if (oppScore >= 30) badgeBg = 'bg-info text-dark';
+
+            // Discount display
+            const discountDisplay = discount > 0
+                ? `<span class="text-success fw-bold">-${discount.toFixed(1)}%</span>`
+                : (discount < 0 ? `<span class="text-danger">+${Math.abs(discount).toFixed(1)}%</span>` : '<span class="text-muted">-</span>');
+
+            container.innerHTML += `
+                <div class="col-md-4 col-lg mb-2">
+                    <div class="card h-100 border-0 shadow-sm" style="cursor:pointer;transition:transform .15s,box-shadow .15s;"
+                         onclick="showPropertyModal(${opp.id})"
+                         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.15)'"
+                         onmouseout="this.style.transform='';this.style.boxShadow='0 .125rem .25rem rgba(0,0,0,.075)'">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="card-title mb-0 text-truncate" style="max-width:160px;" title="${name}">${name}</h6>
+                                    <small class="text-muted">${location}</small>
+                                </div>
+                                <span class="badge ${badgeBg} rounded-pill" style="font-size:0.85rem;" title="기회 점수">
+                                    ${oppScore.toFixed(0)}
+                                </span>
+                            </div>
+                            <div class="mb-1">
+                                <span class="text-primary fw-bold">${formatPrice(opp.price_krw)}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center" style="font-size:0.8rem;">
+                                <span>할인 ${discountDisplay}</span>
+                                <span class="text-muted" title="종합점수">
+                                    <i class="bi bi-star-fill" style="font-size:0.7rem;"></i> ${composite.toFixed(0)}점
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+    } catch (e) {
+        console.error('Opportunities load error:', e);
+        container.innerHTML = '<div class="col-12 text-center text-danger">로드 오류</div>';
+    }
+}
+
 // ──────── 마지막 업데이트 시간 표시 ────────
 
 function updateLastUpdateTime() {
@@ -272,6 +407,8 @@ if (districtSelect) {
 
 loadDashboardSummary();
 loadTopProperties();
+loadDistrictForecast();
+loadOpportunities();
 loadPriceChart('서울');
 loadRecentActivity();
 updateLastUpdateTime();

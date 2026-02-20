@@ -26,6 +26,7 @@ from .circuit_breaker import CircuitBreaker
 from .alert_system import AlertSystem
 from .market_scanner import MarketScanner
 from .optimizer import WalkForwardOptimizer
+from .portfolio_manager import PortfolioRiskManager
 
 logger = logging.getLogger("scalper.trader")
 
@@ -84,6 +85,8 @@ class ScalpTrader:
         self.scanner = MarketScanner() if config.DYNAMIC_MARKETS_ENABLED else None
         # Walk-forward optimizer
         self.optimizer = WalkForwardOptimizer() if config.OPTIMIZER_ENABLED else None
+        # Portfolio risk manager
+        self.portfolio_mgr = PortfolioRiskManager() if getattr(config, 'PORTFOLIO_RISK_ENABLED', False) else None
 
         # Stats
         self.total_wins = 0
@@ -109,6 +112,8 @@ class ScalpTrader:
             mode_info.append(f"Scanner(top{config.SCANNER_TOP_N})")
         if self.optimizer:
             mode_info.append("Optimizer")
+        if self.portfolio_mgr:
+            mode_info.append("PortfolioRisk")
         logger.info(f"ScalpTrader initialized. Balance: {initial_balance:,.0f} KRW, "
                      f"Paper: {paper}, Markets: {config.MARKETS}, "
                      f"Modules: {', '.join(mode_info) or 'none'}")
@@ -228,6 +233,14 @@ class ScalpTrader:
         if df is None:
             return
 
+        # --- Feed closes to portfolio correlation matrix ---
+        if self.portfolio_mgr is not None:
+            try:
+                closes = df["close"].tolist()
+                self.portfolio_mgr.feed_closes(market, closes)
+            except Exception as e:
+                logger.debug(f"Portfolio feed_closes failed for {market}: {e}")
+
         # --- Multi-timeframe analysis (cached, runs before ensemble) ---
         mtf_signal = None
         mtf_dict = None
@@ -286,6 +299,20 @@ class ScalpTrader:
 
     def _execute_buy(self, market: str, df, signal):
         """Execute a buy order with risk management."""
+        # --- Portfolio risk gate ---
+        if self.portfolio_mgr is not None:
+            try:
+                pos_dict = self._build_positions_dict()
+                balance_for_check = self.client.get_krw_balance()
+                allowed, reason = self.portfolio_mgr.should_allow_trade(
+                    market, pos_dict, balance_for_check,
+                )
+                if not allowed:
+                    logger.info(f"[{market}] Portfolio risk blocked trade: {reason}")
+                    return
+            except Exception as e:
+                logger.warning(f"Portfolio risk check failed for {market}: {e}")
+
         balance = self.client.get_krw_balance()
         # 다중 포지션 시 잔고를 남은 슬롯 수로 나눠서 사용
         max_pos = getattr(config, 'MAX_OPEN_POSITIONS', 3)
@@ -490,6 +517,18 @@ class ScalpTrader:
         except Exception as e:
             logger.error(f"Failed to save trade: {e}")
 
+    def _build_positions_dict(self) -> dict[str, dict]:
+        """Build a lightweight positions dict for portfolio risk calculations."""
+        result = {}
+        for m, p in self.positions.items():
+            cur_price = self._last_prices.get(m) or p.entry_price
+            result[m] = {
+                "entry_price": p.entry_price,
+                "current_price": cur_price,
+                "amount": p.amount,
+            }
+        return result
+
     def _print_summary(self):
         total = self.total_wins + self.total_losses
         win_rate = (self.total_wins / total * 100) if total > 0 else 0
@@ -563,6 +602,17 @@ class ScalpTrader:
                 "sufficient_data": False,
             }
 
+        # Portfolio risk stats
+        if self.portfolio_mgr:
+            try:
+                pos_dict = self._build_positions_dict()
+                portfolio_stats = self.portfolio_mgr.get_portfolio_stats(pos_dict, balance)
+            except Exception as e:
+                logger.debug(f"Portfolio stats error: {e}")
+                portfolio_stats = {"enabled": True, "error": str(e)}
+        else:
+            portfolio_stats = {"enabled": False}
+
         return {
             "running": self.running,
             "paper": self.client.paper,
@@ -586,6 +636,7 @@ class ScalpTrader:
             "mtf_status": self.mtf_analyzer.get_status() if self.mtf_analyzer else {"enabled": False},
             "mtf_data": dict(self._last_mtf),
             "kelly_status": kelly_status,
+            "portfolio_stats": portfolio_stats,
         }
 
     def get_market_watch(self) -> dict:

@@ -91,6 +91,59 @@
     </div>
 </div>
 
+<!-- District Price Forecast -->
+<div class="row mb-4">
+    <div class="col-12 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-graph-up-arrow"></i> 가격 예측 <small class="text-muted ms-1">(6개월)</small></span>
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadDistrictForecast()" title="새로고침">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>구/시</th>
+                                <th>매물수</th>
+                                <th class="text-end">현재 평균</th>
+                                <th class="text-end">6개월 예측</th>
+                                <th class="text-end">변동률</th>
+                                <th class="text-center">추세</th>
+                                <th class="text-center">신뢰도</th>
+                            </tr>
+                        </thead>
+                        <tbody id="forecastTable">
+                            <tr><td colspan="7" class="text-center text-muted">로딩중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hot Opportunities -->
+<div class="row mb-4">
+    <div class="col-12 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-lightning-charge-fill text-warning"></i> 기회 매물 <small class="text-muted ms-1">TOP 5</small></span>
+                <button class="btn btn-outline-secondary btn-sm" onclick="loadOpportunities()" title="새로고침">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row" id="opportunityCards">
+                    <div class="col-12 text-center text-muted">로딩중...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Price Chart + Recent Activity -->
 <div class="row mb-4">
     <div class="col-md-6 mb-3">

@@ -20,6 +20,7 @@ from services import (
     search_events,
 )
 from deploy import deploy_router, get_deploy_manager
+from anomaly import get_alert_manager, get_collector, MaintenanceWindow
 
 app = FastAPI(title="Server Monitor")
 app.include_router(deploy_router)
@@ -78,6 +79,44 @@ async def api_uptime():
     return JSONResponse(get_uptime_stats())
 
 
+# === 알림 & 이상 탐지 API ===
+
+@app.get("/api/alerts")
+async def api_alerts(limit: int = 50):
+    return JSONResponse(get_alert_manager().get_recent_alerts(limit))
+
+@app.get("/api/alerts/stats")
+async def api_alert_stats():
+    return JSONResponse(get_alert_manager().get_alert_stats())
+
+@app.get("/api/metrics/history")
+async def api_metrics_history(minutes: int = None):
+    history = get_collector().get_history(minutes=minutes)
+    return JSONResponse(history)
+
+@app.get("/api/alerts/thresholds")
+async def api_alert_thresholds():
+    return JSONResponse(get_alert_manager().get_thresholds())
+
+@app.post("/api/maintenance/start")
+async def api_maintenance_start(request: Request):
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    hours = body.get("hours", 2)
+    mw = MaintenanceWindow()
+    mw.start(hours=hours)
+    return JSONResponse({"ok": True, "msg": f"유지보수 윈도우 시작 ({hours}시간)"})
+
+@app.post("/api/maintenance/stop")
+async def api_maintenance_stop():
+    mw = MaintenanceWindow()
+    mw.stop()
+    return JSONResponse({"ok": True, "msg": "유지보수 윈도우 종료"})
+
+
 # === 대시보드 UI ===
 
 @app.get("/", response_class=HTMLResponse)
@@ -89,6 +128,13 @@ async def dashboard(request: Request):
     sys_info = get_system_info()
     uptime_stats = get_uptime_stats()
     recent_events = get_event_history(limit=30)
+
+    # 알림 데이터
+    alert_mgr = get_alert_manager()
+    recent_alerts = alert_mgr.get_recent_alerts(20)
+    alert_stats = alert_mgr.get_alert_stats()
+    maintenance_status = MaintenanceWindow().get_status()
+    unresolved_critical = alert_stats.get("unresolved_critical", 0)
 
     def _time_ago(iso_str: str) -> str:
         """ISO 시간 문자열을 '~전' 형식으로 변환"""
@@ -180,6 +226,31 @@ async def dashboard(request: Request):
     else:
         event_timeline_html = '<div style="color:#666;font-size:0.8rem;padding:8px 0;">이벤트 기록이 없습니다.</div>'
 
+    # 알림 타임라인 HTML 생성
+    alert_level_icons = {"CRITICAL": "\U0001f6a8", "WARNING": "\u26a0\ufe0f", "INFO": "\u2139\ufe0f"}
+    alert_timeline_html = ""
+    if recent_alerts:
+        for al in recent_alerts[:20]:
+            al_level = al.get("level", "INFO")
+            al_icon = alert_level_icons.get(al_level, "\U0001f4e2")
+            al_time = _time_ago(al.get("timestamp", ""))
+            al_ts = al.get("timestamp", "")[:19].replace("T", " ")
+            al_type = al.get("type", "")
+            al_msg = al.get("message", "")
+            al_msg_escaped = al_msg.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            alert_timeline_html += f"""<div class="alert-item {al_level}">
+              <span class="alert-level">{al_icon}</span>
+              <span class="alert-time" title="{al_ts}">{al_time}</span>
+              <span class="alert-type">{al_type}</span>
+              <span class="alert-msg">{al_msg_escaped}</span>
+            </div>\n"""
+    else:
+        alert_timeline_html = '<div style="color:#666;font-size:0.8rem;padding:8px 0;">알림 기록이 없습니다.</div>'
+
+    maint_active = maintenance_status.get("active", False)
+    maint_end = maintenance_status.get("end", "")
+    maint_end_display = _time_ago(maint_end) if maint_end else ""
+
     # 배포 상태 카드 생성
     deploy_mgr = get_deploy_manager()
     last_deploy = deploy_mgr.get_last_deploy()
@@ -224,7 +295,7 @@ async def dashboard(request: Request):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Server Monitor</title>
+<title>{"🚨 (" + str(unresolved_critical) + ") " if unresolved_critical > 0 else ""}Server Monitor</title>
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{ font-family: -apple-system, 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; padding: 16px; }}
@@ -303,6 +374,30 @@ async def dashboard(request: Request):
   .refresh-toggle.paused {{ border-color: #f44336; color: #f44336; }}
   .refresh-toggle .indicator {{ width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }}
   .refresh-toggle.paused .indicator {{ background: #f44336; }}
+
+  /* 알림 섹션 */
+  .alerts-section {{ margin-top: 24px; background: #1a1d27; border-radius: 12px; padding: 16px; }}
+  .alerts-section h2 {{ font-size: 1.1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }}
+  .critical-badge {{ background: #f44336; color: #fff; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; }}
+  .alert-item {{ display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2a2d37; font-size: 0.8rem; }}
+  .alert-item:last-child {{ border-bottom: none; }}
+  .alert-item.CRITICAL {{ border-left: 3px solid #f44336; padding-left: 8px; }}
+  .alert-item.WARNING {{ border-left: 3px solid #ff9800; padding-left: 8px; }}
+  .alert-item.INFO {{ border-left: 3px solid #64b5f6; padding-left: 8px; }}
+  .alert-level {{ font-size: 1rem; min-width: 24px; text-align: center; }}
+  .alert-time {{ color: #666; min-width: 130px; font-size: 0.72rem; }}
+  .alert-type {{ color: #64b5f6; min-width: 110px; font-weight: 600; font-size: 0.75rem; }}
+  .alert-msg {{ color: #aaa; flex: 1; }}
+  .sparkline-row {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px; }}
+  .sparkline-card {{ background: #15171e; border-radius: 10px; padding: 12px; }}
+  .sparkline-card h4 {{ color: #aaa; font-size: 0.72rem; margin-bottom: 6px; text-transform: uppercase; }}
+  .sparkline-card canvas {{ width: 100%; height: 60px; }}
+  .maint-toggle {{ display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 10px; background: #15171e; border-radius: 10px; }}
+  .maint-toggle .maint-status {{ font-size: 0.8rem; flex: 1; }}
+  .maint-btn {{ padding: 6px 14px; border: none; border-radius: 8px; font-size: 0.78rem; cursor: pointer; font-weight: 600; }}
+  .maint-btn.start {{ background: #2a2a1b; color: #ff9800; }}
+  .maint-btn.stop {{ background: #3a1b1b; color: #f44336; }}
+  .maint-msg {{ font-size: 0.72rem; color: #aaa; min-height: 16px; }}
 </style>
 </head>
 <body>
@@ -380,6 +475,43 @@ async def dashboard(request: Request):
   <div class="filter-summary" id="filterSummary"></div>
   <div id="eventTimeline">
     {event_timeline_html}
+  </div>
+</div>
+
+<div class="alerts-section">
+  <h2>
+    \U0001f6a8 Alerts
+    {"<span class='critical-badge'>" + str(unresolved_critical) + " CRITICAL</span>" if unresolved_critical > 0 else ""}
+  </h2>
+
+  <!-- 유지보수 윈도우 토글 -->
+  <div class="maint-toggle">
+    <div class="maint-status">
+      \U0001f527 유지보수 윈도우: <strong>{"활성 (종료: " + maint_end[:19].replace("T"," ") + ")" if maint_active else "비활성"}</strong>
+    </div>
+    {"<button class='maint-btn stop' onclick='maintStop()'>윈도우 종료</button>" if maint_active else "<button class='maint-btn start' onclick='maintStart()'>윈도우 시작 (2h)</button>"}
+    <span class="maint-msg" id="maintMsg"></span>
+  </div>
+
+  <!-- 메트릭 스파크라인 -->
+  <div class="sparkline-row">
+    <div class="sparkline-card">
+      <h4>CPU %</h4>
+      <canvas id="sparkCpu"></canvas>
+    </div>
+    <div class="sparkline-card">
+      <h4>Memory %</h4>
+      <canvas id="sparkMem"></canvas>
+    </div>
+    <div class="sparkline-card">
+      <h4>Disk %</h4>
+      <canvas id="sparkDisk"></canvas>
+    </div>
+  </div>
+
+  <!-- 알림 타임라인 -->
+  <div id="alertTimeline">
+    {alert_timeline_html}
   </div>
 </div>
 
@@ -581,6 +713,75 @@ function startAutoRefresh() {{
 // 초기화
 updateRefreshUI();
 if (!autoRefreshPaused) startAutoRefresh();
+
+/* === 유지보수 윈도우 토글 === */
+async function maintStart() {{
+  const msg = document.getElementById('maintMsg');
+  msg.textContent = '시작 중...';
+  try {{
+    const res = await fetch('/api/maintenance/start', {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify({{hours:2}})}});
+    const data = await res.json();
+    msg.textContent = data.msg;
+    setTimeout(() => location.reload(), 1500);
+  }} catch(e) {{ msg.textContent = '실패: ' + e; }}
+}}
+async function maintStop() {{
+  const msg = document.getElementById('maintMsg');
+  msg.textContent = '종료 중...';
+  try {{
+    const res = await fetch('/api/maintenance/stop', {{method:'POST'}});
+    const data = await res.json();
+    msg.textContent = data.msg;
+    setTimeout(() => location.reload(), 1500);
+  }} catch(e) {{ msg.textContent = '실패: ' + e; }}
+}}
+
+/* === 메트릭 스파크라인 === */
+function drawSparkline(canvasId, data, color) {{
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !data.length) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const step = w / (data.length - 1 || 1);
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  data.forEach((v, i) => {{
+    const x = i * step;
+    const y = h - ((v - min) / range) * (h - 4) - 2;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }});
+  ctx.stroke();
+  // 마지막 값 표시
+  if (data.length > 0) {{
+    const last = data[data.length - 1];
+    ctx.fillStyle = color;
+    ctx.font = '11px sans-serif';
+    ctx.fillText(last.toFixed(1) + '%', w - 45, 12);
+  }}
+}}
+// 메트릭 데이터 로드 및 스파크라인 렌더링
+(async function() {{
+  try {{
+    const res = await fetch('/api/metrics/history?minutes=120');
+    const metrics = await res.json();
+    if (metrics && metrics.length > 0) {{
+      const cpuData = metrics.map(m => m.cpu_percent || 0);
+      const memData = metrics.map(m => m.memory_percent || 0);
+      const diskData = metrics.map(m => m.disk_percent || 0);
+      drawSparkline('sparkCpu', cpuData, '#64b5f6');
+      drawSparkline('sparkMem', memData, '#4caf50');
+      drawSparkline('sparkDisk', diskData, '#ff9800');
+    }}
+  }} catch(e) {{ console.log('sparkline error:', e); }}
+}})();
 </script>
 </body>
 </html>"""

@@ -143,5 +143,12 @@ MTF_TIMEFRAMES = ["minute15", "minute60", "minute240"]  # 15m, 1h, 4h
 MTF_MIN_CONFLUENCE = 2           # 최소 2개 타임프레임 정렬 필요
 MTF_CACHE_SEC = 300              # 상위 TF 캐시 5분 (15m 루프에서 반복 호출 방지)
 
+# === Portfolio Risk Management ===
+PORTFOLIO_RISK_ENABLED = True
+MAX_PORTFOLIO_VAR_PCT = 0.05        # 5% max portfolio VaR
+CORRELATION_WINDOW = 96             # Rolling correlation window (96 x 15min = 24h)
+MAX_CORRELATED_POSITIONS = 2        # Max positions in correlated (>threshold) assets
+CONCENTRATION_THRESHOLD = 0.8       # Pearson corr above this = "highly correlated"
+
 # === Logging ===
 LOG_LEVEL = os.getenv("SCALPER_LOG_LEVEL", "INFO")

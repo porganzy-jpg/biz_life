@@ -149,4 +149,30 @@ const API = {
     useDiscount(storeId, discountId, savedAmount = 0) {
         return this.request(`notifications/use?store_id=${storeId}&discount_id=${discountId}&saved_amount=${savedAmount}`, { method: 'POST' });
     },
+
+    // Redemption (할인 코드 발급/사용)
+    generateRedemptionCode(storeId, discountId) {
+        return this.request('redeem/generate', {
+            method: 'POST',
+            body: JSON.stringify({ store_id: storeId, discount_id: discountId }),
+        });
+    },
+    validateRedemptionCode(code) {
+        return this.request('redeem/validate', {
+            method: 'POST',
+            body: JSON.stringify({ code }),
+        });
+    },
+    completeRedemption(code, amount) {
+        return this.request('redeem/complete', {
+            method: 'POST',
+            body: JSON.stringify({ code, amount: amount || 0 }),
+        });
+    },
+    getRedemptionHistory() {
+        return this.request('redeem/history');
+    },
+    getRedemptionStats() {
+        return this.request('redeem/stats');
+    },
 };

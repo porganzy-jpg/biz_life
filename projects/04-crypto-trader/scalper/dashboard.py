@@ -401,6 +401,21 @@ tr:hover{background:rgba(88,166,255,.04)}
 .mtf-tf-detail{font-size:11px;color:var(--text2);flex:1}
 .mtf-sr{font-size:11px;color:var(--text2);margin-top:4px;display:flex;gap:16px}
 .mtf-sr-label{color:var(--text2)}.mtf-sr-val{font-family:monospace;font-weight:600}
+/* Portfolio Risk */
+.pf-panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.pf-title{color:var(--purple);font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.pf-title .pf-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700}
+.pf-badge-ok{background:#1a3a1a;color:var(--green)}.pf-badge-warn{background:#3a3a1a;color:var(--yellow)}.pf-badge-danger{background:#3a1a1a;color:var(--red)}
+.pf-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:12px}
+.pf-stat{text-align:center}
+.pf-stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.pf-stat-value{font-size:18px;font-weight:700}
+.pf-gauge{height:8px;border-radius:4px;background:var(--bg);margin:4px 0;position:relative;overflow:hidden}
+.pf-gauge-fill{height:100%;border-radius:4px;transition:width .5s}
+.pf-heatmap{display:inline-grid;gap:2px;margin-top:8px}
+.pf-hm-cell{width:48px;height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:monospace}
+.pf-hm-header{width:48px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text2);font-weight:600;overflow:hidden}
+.pf-conc-group{font-size:11px;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;margin:4px 0}
 /* Positions */
 .pos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
 .pos-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px}
@@ -568,9 +583,11 @@ table{min-width:600px}
   <div class="card" style="flex:2"><div class="card-label">Active Markets (Scanner)</div><div class="card-value" id="sc-active-markets" style="font-size:13px;color:var(--accent)">-</div><div class="card-sub" id="sc-scanner-sub">-</div></div>
   <div class="card" style="flex:2"><div class="card-label">Optimizer Status</div><div class="card-value" id="sc-optimizer" style="font-size:13px">-</div><div class="card-sub" id="sc-optimizer-sub">-</div></div>
   <div class="card" style="flex:2"><div class="card-label">Kelly Criterion Risk</div><div class="card-value" id="sc-kelly-risk" style="font-size:16px">-</div><div class="card-sub" id="sc-kelly-sub">-</div></div>
+  <div class="card" style="flex:2"><div class="card-label">Portfolio VaR</div><div class="card-value" id="sc-portfolio-var" style="font-size:16px;color:var(--purple)">-</div><div class="card-sub" id="sc-portfolio-var-sub">-</div></div>
 </div>
 <div class="tabs">
   <div class="tab active" data-tab="realtime">Real-time</div>
+  <div class="tab" data-tab="portfolio">Portfolio Risk</div>
   <div class="tab" data-tab="performance">Performance</div>
   <div class="tab" data-tab="strategy">Strategy</div>
   <div class="tab" data-tab="history">Trade History</div>
@@ -582,6 +599,50 @@ table{min-width:600px}
   <div class="panel-title">Market Watch</div>
   <div class="mw-grid" id="marketWatch"></div>
   <div style="margin-top:20px"><div class="panel-title">Open Positions</div><div id="positions"><p style="color:var(--text2)">No open positions</p></div></div>
+</div>
+
+<!-- Tab: Portfolio Risk -->
+<div id="tab-portfolio" class="tab-content">
+  <div class="pf-panel">
+    <div class="pf-title">Portfolio Risk Overview <span class="pf-badge pf-badge-ok" id="pf-status-badge">OK</span></div>
+    <div class="pf-row">
+      <div class="pf-stat">
+        <div class="pf-stat-label">Total Exposure</div>
+        <div class="pf-stat-value" id="pf-exposure" style="color:var(--accent)">-</div>
+      </div>
+      <div class="pf-stat">
+        <div class="pf-stat-label">Portfolio VaR (95%)</div>
+        <div class="pf-stat-value" id="pf-var-value">-</div>
+        <div class="pf-gauge"><div class="pf-gauge-fill" id="pf-var-gauge" style="width:0%;background:var(--green)"></div></div>
+        <div style="font-size:10px;color:var(--text2)" id="pf-var-detail">-</div>
+      </div>
+      <div class="pf-stat">
+        <div class="pf-stat-label">Diversification Ratio</div>
+        <div class="pf-stat-value" id="pf-div-ratio" style="color:var(--green)">-</div>
+        <div style="font-size:10px;color:var(--text2)" id="pf-div-detail">-</div>
+      </div>
+    </div>
+    <div class="pf-row">
+      <div class="pf-stat">
+        <div class="pf-stat-label">Concentration Risk</div>
+        <div class="pf-stat-value" id="pf-conc-status">-</div>
+        <div id="pf-conc-groups"></div>
+      </div>
+      <div class="pf-stat">
+        <div class="pf-stat-label">Max Correlated Pair</div>
+        <div class="pf-stat-value" id="pf-max-corr" style="font-size:14px">-</div>
+      </div>
+      <div class="pf-stat">
+        <div class="pf-stat-label">Markets Tracked</div>
+        <div class="pf-stat-value" id="pf-markets-tracked" style="color:var(--accent)">-</div>
+        <div style="font-size:10px;color:var(--text2)" id="pf-data-status">-</div>
+      </div>
+    </div>
+  </div>
+  <div class="pf-panel">
+    <div class="pf-title">Correlation Heatmap</div>
+    <div id="pf-heatmap" style="overflow-x:auto"></div>
+  </div>
 </div>
 
 <!-- Tab 2: Performance -->
@@ -819,6 +880,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
     if(tab.dataset.tab==='strategy')loadStrategy();
     if(tab.dataset.tab==='history')loadHistory(1);
     if(tab.dataset.tab==='guide')refreshGuideLive();
+    if(tab.dataset.tab==='portfolio')refreshStatus();
   });
 });
 document.querySelectorAll('.period-btn').forEach(btn=>{
@@ -889,11 +951,126 @@ function applyStatus(d){
       kellySub.textContent='Kelly disabled in config';
     }
   }
+  // Portfolio Risk status card + panel
+  applyPortfolioRisk(d.portfolio_stats||{});
   renderPositions(d.open_positions||{});
   _prevStatus=d;
 }
 async function refreshStatus(){
   const d=await api('/api/status');applyStatus(d);
+}
+
+function applyPortfolioRisk(ps){
+  // Top status card
+  const varEl=document.getElementById('sc-portfolio-var');
+  const varSub=document.getElementById('sc-portfolio-var-sub');
+  if(varEl){
+    if(ps.enabled){
+      const pct=(ps.var_pct||0)*100;
+      const maxPct=(ps.max_var_pct||0.05)*100;
+      const color=pct>=maxPct?'var(--red)':pct>=maxPct*0.7?'var(--yellow)':'var(--green)';
+      varEl.textContent=pct.toFixed(2)+'%';varEl.style.color=color;
+    }else{varEl.textContent='Disabled';varEl.style.color='var(--text2)'}
+  }
+  if(varSub){
+    if(ps.enabled){
+      const expStr=fmt(ps.total_exposure_krw||0);
+      const conc=ps.is_concentrated?'CONCENTRATED':'OK';
+      varSub.textContent='Exp: '+expStr+' | Conc: '+conc;
+    }else{varSub.textContent='Portfolio risk disabled'}
+  }
+  // Tab panel detail
+  if(!ps.enabled)return;
+  // Exposure
+  const expEl=document.getElementById('pf-exposure');
+  if(expEl)expEl.textContent=fmt(ps.total_exposure_krw||0)+' KRW';
+  // VaR
+  const pfVar=document.getElementById('pf-var-value');
+  if(pfVar){
+    const pct=(ps.var_pct||0)*100;const maxPct=(ps.max_var_pct||5)*100;
+    const color=pct>=maxPct?'var(--red)':pct>=maxPct*0.7?'var(--yellow)':'var(--green)';
+    pfVar.textContent=pct.toFixed(2)+'% ('+fmt(ps.var_krw||0)+' KRW)';pfVar.style.color=color;pfVar.style.fontSize='15px';
+  }
+  const pfGauge=document.getElementById('pf-var-gauge');
+  if(pfGauge){
+    const pct=(ps.var_pct||0)*100;const maxPct=(ps.max_var_pct||5)*100;
+    const w=Math.min(100,pct/maxPct*100);
+    const gc=pct>=maxPct?'var(--red)':pct>=maxPct*0.7?'var(--yellow)':'var(--green)';
+    pfGauge.style.width=w+'%';pfGauge.style.background=gc;
+  }
+  const pfVarD=document.getElementById('pf-var-detail');
+  if(pfVarD)pfVarD.textContent='Limit: '+((ps.max_var_pct||0.05)*100).toFixed(1)+'% | Undiv: '+fmt(ps.undiversified_var_krw||0)+' KRW';
+  // Div ratio
+  const drEl=document.getElementById('pf-div-ratio');
+  if(drEl){const r=ps.diversification_ratio||1;drEl.textContent=r.toFixed(2)+'x';drEl.style.color=r>=1.3?'var(--green)':r>=1.1?'var(--yellow)':'var(--red)'}
+  const drD=document.getElementById('pf-div-detail');
+  if(drD)drD.textContent=ps.diversification_ratio>=1.1?'Well diversified':'Low diversification';
+  // Concentration
+  const concEl=document.getElementById('pf-conc-status');
+  if(concEl){
+    if(ps.is_concentrated){concEl.innerHTML='<span style="color:var(--red)">ALERT</span>';concEl.style.fontSize='18px'}
+    else{concEl.innerHTML='<span style="color:var(--green)">OK</span>';concEl.style.fontSize='18px'}
+  }
+  const concG=document.getElementById('pf-conc-groups');
+  if(concG){
+    const groups=ps.correlated_groups||[];
+    if(groups.length){
+      concG.innerHTML=groups.map(g=>'<div class="pf-conc-group"><span style="color:var(--yellow)">'+g.markets.join(' + ')+'</span> corr='+g.max_corr+' ('+Math.round(g.exposure_pct*100)+'% exposure)</div>').join('');
+    }else{concG.innerHTML='<div style="font-size:11px;color:var(--text2)">No concentrated groups</div>'}
+  }
+  // Max corr pair
+  const mcEl=document.getElementById('pf-max-corr');
+  if(mcEl){
+    const mc=ps.max_corr_pair||{};
+    if(mc.a&&mc.b){
+      const short_a=(mc.a||'').replace('KRW-','');const short_b=(mc.b||'').replace('KRW-','');
+      const cc=mc.corr>=0.8?'var(--red)':mc.corr>=0.5?'var(--yellow)':'var(--green)';
+      mcEl.innerHTML='<span style="color:'+cc+'">'+short_a+'/'+short_b+': '+mc.corr.toFixed(3)+'</span>';
+    }else{mcEl.textContent='N/A'}
+  }
+  // Markets tracked
+  const mtEl=document.getElementById('pf-markets-tracked');
+  if(mtEl)mtEl.textContent=String(ps.markets_tracked||0);
+  const dsEl=document.getElementById('pf-data-status');
+  if(dsEl)dsEl.textContent=(ps.markets_with_data||0)+' with sufficient data';
+  // Status badge
+  const badge=document.getElementById('pf-status-badge');
+  if(badge){
+    if(ps.is_concentrated||(ps.var_pct||0)>=(ps.max_var_pct||0.05)){badge.textContent='DANGER';badge.className='pf-badge pf-badge-danger'}
+    else if((ps.var_pct||0)>=(ps.max_var_pct||0.05)*0.7){badge.textContent='WARN';badge.className='pf-badge pf-badge-warn'}
+    else{badge.textContent='OK';badge.className='pf-badge pf-badge-ok'}
+  }
+  // Heatmap
+  renderCorrelationHeatmap(ps.correlation_matrix||{});
+}
+function renderCorrelationHeatmap(matrix){
+  const el=document.getElementById('pf-heatmap');if(!el)return;
+  const mkts=Object.keys(matrix);
+  if(!mkts.length){el.innerHTML='<p style="color:var(--text2);font-size:12px">Waiting for correlation data...</p>';return}
+  const labels=mkts.map(m=>m.replace('KRW-',''));
+  const n=mkts.length;
+  // Build grid: (n+1) columns for header col + data cols
+  let html='<div class="pf-heatmap" style="grid-template-columns:repeat('+(n+1)+',48px)">';
+  // Header row: empty corner + column labels
+  html+='<div class="pf-hm-header"></div>';
+  for(let j=0;j<n;j++)html+='<div class="pf-hm-header">'+labels[j]+'</div>';
+  // Data rows
+  for(let i=0;i<n;i++){
+    html+='<div class="pf-hm-header" style="text-align:right;padding-right:4px">'+labels[i]+'</div>';
+    for(let j=0;j<n;j++){
+      const v=matrix[mkts[i]][mkts[j]]||0;
+      const abs=Math.abs(v);
+      let bg,fg;
+      if(i===j){bg='var(--accent)';fg='#fff'}
+      else if(abs>=0.8){bg='rgba(248,81,73,'+Math.min(1,abs*0.9)+')';fg='#fff'}
+      else if(abs>=0.5){bg='rgba(210,153,34,'+Math.min(1,abs*0.8)+')';fg='#fff'}
+      else if(abs>=0.3){bg='rgba(88,166,255,'+Math.min(0.5,abs*0.6)+')';fg='var(--text)'}
+      else{bg='var(--bg)';fg='var(--text2)'}
+      html+='<div class="pf-hm-cell" style="background:'+bg+';color:'+fg+'">'+v.toFixed(2)+'</div>';
+    }
+  }
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 function renderPositions(positions){

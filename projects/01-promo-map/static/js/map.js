@@ -322,12 +322,22 @@ function renderStoreModal(store) {
     if (store.discounts && store.discounts.length > 0) {
         discountsHtml = store.discounts.map(d => {
             const expiryHtml = getExpiryBadgeHtml(d.valid_until);
+            const days = getDaysRemaining(d.valid_until);
+            const isExpired = days !== null && days <= 0;
+            const redeemBtn = (!isExpired && API.isLoggedIn())
+                ? '<button class="btn-redeem" onclick="event.stopPropagation();startRedemption(' + store.id + ',' + d.id + ',\'' + d.description.replace(/'/g, "\\'") + '\',' + d.value + ')">'
+                  + '할인 사용하기</button>'
+                : '';
             return '<div class="discount-item">'
+                + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">'
                 + '<span class="disc-desc">' + d.description + '</span>'
                 + '<div style="display:flex;align-items:center;gap:6px;">'
                 + (expiryHtml ? expiryHtml : '')
                 + '<span class="disc-badge">' + d.value + '%</span>'
                 + '</div>'
+                + '</div>'
+                + redeemBtn
+                + '<div id="redeemArea_' + d.id + '"></div>'
                 + '</div>';
         }).join('');
     } else {
@@ -442,5 +452,130 @@ async function toggleFavorite(storeId, btn) {
 }
 
 function closeStoreModal() {
+    // 열려있는 카운트다운 타이머 정리
+    if (window._redemptionTimer) {
+        clearInterval(window._redemptionTimer);
+        window._redemptionTimer = null;
+    }
     document.getElementById('storeModal').style.display = 'none';
+}
+
+// === 할인 코드 발급/사용 ===
+
+let _activeRedemptionCode = null;
+
+async function startRedemption(storeId, discountId, discountDesc, discountValue) {
+    if (!API.isLoggedIn()) {
+        showToast('로그인이 필요합니다');
+        return;
+    }
+
+    const area = document.getElementById('redeemArea_' + discountId);
+    if (!area) return;
+
+    area.innerHTML = '<div style="text-align:center;padding:12px;color:#999;font-size:0.85rem;">코드 발급 중...</div>';
+
+    try {
+        const result = await API.generateRedemptionCode(storeId, discountId);
+        _activeRedemptionCode = result.code;
+        showRedemptionCode(area, result.code, result.expires_at, storeId, discountId, discountDesc, discountValue);
+    } catch (err) {
+        area.innerHTML = '<div style="text-align:center;padding:8px;color:#FF3B30;font-size:0.85rem;">'
+            + (err.detail || '코드 발급 실패') + '</div>';
+    }
+}
+
+function showRedemptionCode(area, code, expiresAt, storeId, discountId, discountDesc, discountValue) {
+    // 이전 타이머 정리
+    if (window._redemptionTimer) {
+        clearInterval(window._redemptionTimer);
+        window._redemptionTimer = null;
+    }
+
+    const expiresDate = new Date(expiresAt + (expiresAt.endsWith('Z') ? '' : 'Z'));
+
+    area.innerHTML =
+        '<div class="redeem-code-box">'
+        + '<div class="redeem-label">할인 코드</div>'
+        + '<div class="redeem-code" id="redeemCodeDisplay">' + code + '</div>'
+        + '<div class="redeem-timer" id="redeemTimerDisplay">05:00</div>'
+        + '<div class="redeem-hint">매장 직원에게 이 코드를 보여주세요</div>'
+        + '<div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">'
+        + '<button class="btn-redeem-complete" onclick="completeRedemptionCode(\'' + code + '\')">사용 완료</button>'
+        + '</div>'
+        + '</div>';
+
+    // 카운트다운 타이머 시작
+    window._redemptionTimer = setInterval(function() {
+        const now = new Date();
+        const diff = expiresDate.getTime() - now.getTime();
+
+        if (diff <= 0) {
+            clearInterval(window._redemptionTimer);
+            window._redemptionTimer = null;
+            showExpiredCode(area, storeId, discountId, discountDesc, discountValue);
+            return;
+        }
+
+        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        const timerEl = document.getElementById('redeemTimerDisplay');
+        if (timerEl) {
+            const timeStr = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+            timerEl.textContent = timeStr;
+
+            // 1분 미만이면 빨간색
+            if (diff < 60000) {
+                timerEl.style.color = '#FF3B30';
+            }
+        }
+    }, 1000);
+}
+
+function showExpiredCode(area, storeId, discountId, discountDesc, discountValue) {
+    _activeRedemptionCode = null;
+    area.innerHTML =
+        '<div class="redeem-code-box expired">'
+        + '<div class="redeem-label" style="color:#FF3B30;">만료됨</div>'
+        + '<div class="redeem-code" style="color:#ccc;text-decoration:line-through;">--------</div>'
+        + '<button class="btn-redeem" onclick="event.stopPropagation();startRedemption('
+        + storeId + ',' + discountId + ',\'' + discountDesc.replace(/'/g, "\\'") + '\',' + discountValue + ')">'
+        + '재발급</button>'
+        + '</div>';
+}
+
+async function completeRedemptionCode(code) {
+    if (!code) return;
+
+    // 사용 금액 입력 (선택)
+    let amount = 0;
+    const inputAmount = prompt('결제 금액을 입력해주세요 (원, 선택사항)', '0');
+    if (inputAmount !== null) {
+        amount = parseFloat(inputAmount) || 0;
+    }
+
+    try {
+        const result = await API.completeRedemption(code, amount);
+        showToast(result.message || '할인이 적용되었습니다');
+
+        // 타이머 정리
+        if (window._redemptionTimer) {
+            clearInterval(window._redemptionTimer);
+            window._redemptionTimer = null;
+        }
+        _activeRedemptionCode = null;
+
+        // 코드 영역을 완료 상태로 변경
+        const codeBoxes = document.querySelectorAll('.redeem-code-box');
+        codeBoxes.forEach(function(box) {
+            box.innerHTML =
+                '<div class="redeem-label" style="color:#34C759;">사용 완료</div>'
+                + '<div style="font-size:0.85rem;color:#666;text-align:center;padding:4px 0;">'
+                + (result.store_name || '') + ' - ' + (result.discount_value || '') + '% 할인 적용'
+                + (result.saved_amount ? '<br>절약: ' + Number(result.saved_amount).toLocaleString() + '원' : '')
+                + '</div>';
+        });
+    } catch (err) {
+        showToast(err.detail || '사용 완료 처리 실패');
+    }
 }

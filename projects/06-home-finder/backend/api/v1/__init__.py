@@ -10,6 +10,7 @@ from api.v1.search import router as search_router
 from api.v1.scoring import router as scoring_router
 from api.v1.dashboard import router as dashboard_router
 from api.v1.scraper import router as scraper_router
+from api.v1.predictions import router as predictions_router
 
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(properties_router, prefix="/properties", tags=["Properties"])
@@ -23,3 +24,4 @@ v1_router.include_router(search_router, prefix="/search", tags=["Search"])
 v1_router.include_router(scoring_router, prefix="/scoring", tags=["Scoring"])
 v1_router.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
 v1_router.include_router(scraper_router, prefix="/scraper", tags=["Scraper"])
+v1_router.include_router(predictions_router, prefix="/predictions", tags=["Predictions"])

@@ -48,9 +48,16 @@ async function loadMypage() {
                 </div>
             </div>
 
+            <div id="redemptionStatsSection"></div>
+
             <div id="savingsAnalytics"></div>
 
+            <div id="redemptionHistorySection"></div>
+
             <div class="menu-list">
+                <div class="menu-item" onclick="showRedemptionHistory()">
+                    <span>할인 코드 사용 내역</span><span>→</span>
+                </div>
                 <div class="menu-item" onclick="showUsageHistory()">
                     <span>사용 이력</span><span>→</span>
                 </div>
@@ -68,6 +75,10 @@ async function loadMypage() {
 
         // 절약 분석 로드
         loadSavingsAnalytics();
+
+        // 코드 기반 절약 통계 + 최근 내역 로드
+        loadRedemptionStats();
+        loadRedemptionHistoryPreview();
     } catch (e) {
         container.innerHTML = '<div class="empty-state">정보를 불러올 수 없습니다</div>';
     }
@@ -410,4 +421,193 @@ function renderSavingsLineChart(monthlyTrend) {
             }
         }
     });
+}
+
+// === 할인 코드 사용 내역 (Redemption) ===
+
+async function loadRedemptionStats() {
+    const container = document.getElementById('redemptionStatsSection');
+    if (!container) return;
+
+    try {
+        const stats = await API.getRedemptionStats();
+
+        if (stats.count === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const catMap = {
+            food: '음식점', cafe: '카페', shopping: '쇼핑',
+            convenience: '편의점', entertainment: '엔터', general: '기타'
+        };
+
+        // 카테고리별 최다 절약 계산
+        let topCategory = '';
+        let topCategoryValue = 0;
+        for (const [cat, val] of Object.entries(stats.by_category || {})) {
+            if (val > topCategoryValue) {
+                topCategoryValue = val;
+                topCategory = catMap[cat] || cat;
+            }
+        }
+
+        container.innerHTML =
+            '<div class="redemption-stats-section">'
+            + '<h3>코드 사용 절약 현황</h3>'
+            + '<div class="savings-stats-grid">'
+            + '<div class="savings-stat-card">'
+            + '<div class="savings-stat-value">' + formatCurrency(stats.this_month || 0) + '</div>'
+            + '<div class="savings-stat-label">이번달 절약</div>'
+            + '</div>'
+            + '<div class="savings-stat-card">'
+            + '<div class="savings-stat-value">' + formatCurrency(stats.total_saved || 0) + '</div>'
+            + '<div class="savings-stat-label">총 절약</div>'
+            + '</div>'
+            + '<div class="savings-stat-card">'
+            + '<div class="savings-stat-value">' + (stats.count || 0) + '회</div>'
+            + '<div class="savings-stat-label">코드 사용</div>'
+            + '</div>'
+            + '</div>'
+            + (topCategory
+                ? '<div style="text-align:center;margin-top:8px;font-size:0.8rem;color:#666;">'
+                  + '가장 많이 절약한 카테고리: <strong>' + topCategory + '</strong> ('
+                  + formatCurrency(topCategoryValue) + ')</div>'
+                : '')
+            + '</div>';
+    } catch (e) {
+        console.error('Redemption stats error:', e);
+        container.innerHTML = '';
+    }
+}
+
+async function loadRedemptionHistoryPreview() {
+    const container = document.getElementById('redemptionHistorySection');
+    if (!container) return;
+
+    try {
+        const data = await API.getRedemptionHistory();
+        const items = data.items || [];
+
+        if (items.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // 최근 3건만 미리보기
+        const preview = items.slice(0, 3);
+
+        let html = '<div class="redemption-history-preview">'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+            + '<h4 style="margin:0;font-size:0.95rem;">최근 코드 사용</h4>'
+            + '<a href="#" onclick="showRedemptionHistory();return false;" style="font-size:0.8rem;color:#4285f4;text-decoration:none;">전체보기</a>'
+            + '</div>';
+
+        html += preview.map(function(item) {
+            const usedDate = item.used_at ? item.used_at.split('T')[0] : '';
+            return '<div class="redemption-history-item">'
+                + '<div style="flex:1;">'
+                + '<div style="font-weight:600;font-size:0.88rem;">' + (item.store_name || '매장') + '</div>'
+                + '<div style="font-size:0.78rem;color:#888;">' + (item.discount_description || '') + '</div>'
+                + '<div style="font-size:0.72rem;color:#aaa;">' + usedDate + '</div>'
+                + '</div>'
+                + '<div style="text-align:right;">'
+                + '<div style="font-weight:700;color:#FF6B35;">' + (item.discount_value || 0) + '% OFF</div>'
+                + '<div style="font-size:0.75rem;color:#34C759;">-' + formatCurrency(item.saved_amount || 0) + '</div>'
+                + '</div>'
+                + '</div>';
+        }).join('');
+
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (e) {
+        console.error('Redemption history preview error:', e);
+        container.innerHTML = '';
+    }
+}
+
+async function showRedemptionHistory() {
+    const container = document.getElementById('mypageContent');
+    container.innerHTML = '<div class="loading-text">불러오는 중...</div>';
+
+    try {
+        const [historyData, statsData] = await Promise.all([
+            API.getRedemptionHistory(),
+            API.getRedemptionStats(),
+        ]);
+
+        const items = historyData.items || [];
+
+        const catMap = {
+            food: '음식점', cafe: '카페', shopping: '쇼핑',
+            convenience: '편의점', entertainment: '엔터', general: '기타'
+        };
+
+        let html = '<div style="margin-bottom:12px;">'
+            + '<button class="btn-primary" style="font-size:0.8rem;padding:6px 12px;" onclick="loadMypage()">← 돌아가기</button>'
+            + '<h3 style="margin-top:12px;">할인 코드 사용 내역</h3>'
+            + '</div>';
+
+        // 통계 요약
+        html += '<div class="savings-stats-grid" style="margin-bottom:16px;">'
+            + '<div class="savings-stat-card">'
+            + '<div class="savings-stat-value">' + formatCurrency(statsData.total_saved || 0) + '</div>'
+            + '<div class="savings-stat-label">총 절약</div>'
+            + '</div>'
+            + '<div class="savings-stat-card">'
+            + '<div class="savings-stat-value">' + formatCurrency(statsData.this_month || 0) + '</div>'
+            + '<div class="savings-stat-label">이번달</div>'
+            + '</div>'
+            + '<div class="savings-stat-card">'
+            + '<div class="savings-stat-value">' + (statsData.count || 0) + '회</div>'
+            + '<div class="savings-stat-label">총 사용</div>'
+            + '</div>'
+            + '</div>';
+
+        // 카테고리별 분석
+        if (statsData.by_category && Object.keys(statsData.by_category).length > 0) {
+            html += '<div class="profile-card" style="margin-bottom:12px;">'
+                + '<h4 style="margin:0 0 8px;font-size:0.9rem;">카테고리별 절약</h4>';
+            for (const [cat, val] of Object.entries(statsData.by_category)) {
+                const catName = catMap[cat] || cat;
+                const pct = statsData.total_saved > 0 ? Math.round((val / statsData.total_saved) * 100) : 0;
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem;">'
+                    + '<span>' + catName + '</span>'
+                    + '<div style="display:flex;align-items:center;gap:8px;">'
+                    + '<div style="width:80px;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden;">'
+                    + '<div style="width:' + pct + '%;height:100%;background:#FF6B35;border-radius:3px;"></div>'
+                    + '</div>'
+                    + '<span style="font-weight:600;min-width:60px;text-align:right;">' + formatCurrency(val) + '</span>'
+                    + '</div>'
+                    + '</div>';
+            }
+            html += '</div>';
+        }
+
+        // 내역 리스트
+        if (items.length === 0) {
+            html += '<div class="empty-state">할인 코드 사용 내역이 없습니다</div>';
+        } else {
+            html += items.map(function(item) {
+                const usedDate = item.used_at ? item.used_at.split('T')[0] : '';
+                const usedTime = item.used_at ? item.used_at.split('T')[1]?.substring(0, 5) || '' : '';
+                return '<div class="history-item">'
+                    + '<div>'
+                    + '<div class="history-store">' + (item.store_name || '매장') + '</div>'
+                    + '<div class="history-desc">' + (item.discount_description || '') + '</div>'
+                    + '<div class="history-date">' + usedDate + (usedTime ? ' ' + usedTime : '')
+                    + ' | 코드: ' + (item.code || '') + '</div>'
+                    + '</div>'
+                    + '<div style="text-align:right;">'
+                    + '<div class="history-amount">' + (item.discount_value || 0) + '% OFF</div>'
+                    + '<div style="font-size:0.78rem;color:#34C759;font-weight:600;">-' + formatCurrency(item.saved_amount || 0) + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        }
+
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="empty-state">내역을 불러올 수 없습니다</div>';
+    }
 }

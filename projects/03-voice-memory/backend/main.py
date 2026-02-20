@@ -28,6 +28,7 @@ from persona_chat import PersonaChat
 from transcription_service import (
     TranscriptionService, queue_transcription, start_transcription_worker,
 )
+from memory_engine import MemoryEngine
 import json as _json
 
 app = FastAPI(title="VoiceMemory API", version="1.0.0")
@@ -633,6 +634,18 @@ async def chat(data: ChatRequest, db: Session = Depends(get_db)):
         "relationship_type": person.relationship_type,
     }
 
+    # Generate memory context for the chat
+    memory_ctx = {}
+    source_sessions = []
+    try:
+        memory_ctx = MemoryEngine.generate_context(data.person_id, data.message, db)
+        if memory_ctx.get("memory_context"):
+            person_dict["memory_context"] = memory_ctx["memory_context"]
+        source_sessions = memory_ctx.get("source_sessions", [])
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Memory context generation failed: {e}")
+
     result = persona_chat.chat(person_dict, data.message)
 
     # 대화 기록 저장
@@ -651,7 +664,51 @@ async def chat(data: ChatRequest, db: Session = Depends(get_db)):
         "user_message": data.message,
         "ai_response": result["response"],
         "emotion": result["emotion"],
+        "memory_sources": source_sessions,
     }
+
+
+# === Memory Search & Profile API ===
+@app.get("/api/persons/{person_id}/memories")
+async def search_memories(
+    person_id: int,
+    q: str = Query(default="", description="Search query for memory search"),
+    top_k: int = Query(default=5, description="Number of results"),
+    db: Session = Depends(get_db),
+):
+    """Semantic memory search across person's recordings."""
+    person = db.query(Person).filter(Person.id == person_id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found")
+
+    query = q.strip()
+    if not query:
+        return {"results": [], "count": 0, "person_name": person.name}
+
+    try:
+        results = MemoryEngine.search_memories(person_id, query, db, top_k=top_k)
+        return {
+            "results": results,
+            "count": len(results),
+            "person_name": person.name,
+            "query": query,
+        }
+    except Exception as e:
+        return {"results": [], "count": 0, "error": str(e)}
+
+
+@app.get("/api/persons/{person_id}/profile")
+async def get_person_profile(person_id: int, db: Session = Depends(get_db)):
+    """Get aggregated person knowledge profile."""
+    person = db.query(Person).filter(Person.id == person_id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found")
+
+    try:
+        profile = MemoryEngine.get_person_profile(person_id, db)
+        return profile
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/chat/history/{person_id}")
@@ -1080,6 +1137,143 @@ TEMPLATE_HTML = """
             background: linear-gradient(90deg, #8e6b47, #d7c4a8);
             transition: width 0.5s ease;
         }
+
+        /* ====== Memory Search Styles ====== */
+        .memory-search-card {
+            background: linear-gradient(135deg, #f0f7ff, #e8f0fe);
+            border: 1px solid #c8d6e5; border-radius: 14px;
+            padding: 16px; margin-bottom: 12px;
+        }
+        .memory-search-card h3 {
+            font-size: 0.95rem; color: #2c3e50; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .memory-search-bar {
+            display: flex; gap: 8px;
+        }
+        .memory-search-bar input {
+            flex: 1; padding: 10px 14px; border: 1px solid #c8d6e5; border-radius: 20px;
+            font-size: 0.9rem; background: white;
+        }
+        .memory-search-bar button {
+            padding: 8px 18px; border: none; border-radius: 20px;
+            background: #2980b9; color: white; font-weight: 600; cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .memory-search-bar button:hover { background: #2472a4; }
+        .memory-results { margin-top: 10px; }
+        .memory-result-item {
+            background: white; border-radius: 10px; padding: 12px; margin-bottom: 8px;
+            border: 1px solid #d5e1ed; position: relative;
+        }
+        .memory-result-item .mr-score {
+            position: absolute; top: 8px; right: 10px;
+            font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
+            border-radius: 8px; background: #e3f2fd; color: #1565c0;
+        }
+        .memory-result-item .mr-header {
+            font-weight: 600; color: #2c3e50; font-size: 0.85rem;
+        }
+        .memory-result-item .mr-meta {
+            font-size: 0.72rem; color: #999; margin-top: 2px;
+        }
+        .memory-result-item .mr-text {
+            font-size: 0.82rem; color: #444; margin-top: 6px; line-height: 1.5;
+            padding: 8px 10px; background: #f8fafc; border-radius: 8px;
+            border-left: 3px solid #2980b9;
+        }
+        .memory-result-item .mr-keywords {
+            margin-top: 4px; display: flex; flex-wrap: wrap; gap: 3px;
+        }
+
+        /* ====== Profile Card Styles ====== */
+        .profile-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .profile-panel {
+            background: #f8f6f4; border-radius: 18px; width: 100%; max-width: 560px;
+            max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white; padding: 18px 20px; border-radius: 18px 18px 0 0;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .profile-header h3 { font-size: 1.05rem; font-weight: 700; margin: 0; }
+        .profile-close {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            width: 32px; height: 32px; border-radius: 50%; font-size: 1.1rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .profile-close:hover { background: rgba(255,255,255,0.35); }
+        .profile-body { padding: 16px 20px 20px; }
+        .profile-section {
+            background: white; border-radius: 12px; padding: 14px;
+            margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .profile-section h4 {
+            font-size: 0.85rem; font-weight: 700; color: #2c3e50;
+            margin: 0 0 8px 0;
+        }
+        .profile-personality {
+            font-size: 0.85rem; color: #444; line-height: 1.6;
+            padding: 10px; background: #f0f7ff; border-radius: 8px;
+            border-left: 3px solid #3498db;
+        }
+        .profile-topics-list {
+            display: flex; flex-wrap: wrap; gap: 5px;
+        }
+        .profile-topic-chip {
+            padding: 3px 10px; border-radius: 12px; font-size: 0.75rem;
+            font-weight: 600; background: #e8f5e9; color: #2e7d32;
+        }
+        .profile-summary-item {
+            padding: 8px 10px; margin-bottom: 6px; background: #faf8f5;
+            border-radius: 8px; font-size: 0.8rem; color: #555;
+            border-left: 3px solid #d7c4a8;
+        }
+        .profile-summary-item .psi-topic {
+            font-weight: 600; color: #5d4037; font-size: 0.78rem;
+        }
+
+        /* ====== Chat Suggestions ====== */
+        .chat-suggestions {
+            padding: 8px 0; margin-bottom: 8px;
+        }
+        .chat-suggestions-label {
+            font-size: 0.75rem; color: #999; margin-bottom: 6px;
+        }
+        .chat-suggestion-chips {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .chat-suggestion-chip {
+            padding: 6px 12px; border: 1px solid #d7c4a8; border-radius: 16px;
+            font-size: 0.78rem; color: #5d4037; background: #faf5f0;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .chat-suggestion-chip:hover {
+            background: #8e6b47; color: white; border-color: #8e6b47;
+        }
+
+        /* ====== Memory Source Tag ====== */
+        .memory-source-tag {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 0.62rem; color: #2980b9; background: #e3f2fd;
+            padding: 1px 7px; border-radius: 8px; margin-top: 4px;
+            font-weight: 600;
+        }
+
+        /* ====== Profile Button on Person Card ====== */
+        .btn-profile {
+            padding: 5px 12px; border: 1px solid #c8d6e5; border-radius: 8px;
+            background: #f0f7ff; color: #2980b9; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-profile:hover { background: #dbeafe; border-color: #2980b9; }
     </style>
 </head>
 <body>
@@ -1174,6 +1368,16 @@ TEMPLATE_HTML = """
                 </div>
                 <button class="btn btn-primary" style="margin-top:10px;width:100%;" id="startSessionBtn" onclick="startRecordingSession()">Start New Session</button>
             </div>
+            <!-- Memory Search -->
+            <div class="memory-search-card" id="memorySearchCard" style="display:none;">
+                <h3>&#x1F50D; 기억 검색 (Memory Search)</h3>
+                <div class="memory-search-bar">
+                    <input id="memorySearchInput" placeholder="기억을 검색하세요... (예: 어린 시절, 좋아하는 음식)" onkeypress="if(event.key==='Enter')searchMemories()" />
+                    <button onclick="searchMemories()">검색</button>
+                </div>
+                <div class="memory-results" id="memoryResults"></div>
+            </div>
+
             <!-- Past recordings -->
             <div class="card">
                 <h3>Past Recordings</h3>
@@ -1185,6 +1389,10 @@ TEMPLATE_HTML = """
         <div class="panel" id="panel-chat">
             <div class="card">
                 <h3 id="chatTitle">Select a person to chat</h3>
+                <div class="chat-suggestions" id="chatSuggestions" style="display:none;">
+                    <div class="chat-suggestions-label">이런 질문을 해보세요:</div>
+                    <div class="chat-suggestion-chips" id="chatSuggestionChips"></div>
+                </div>
                 <div class="chat-area" id="chatArea">
                     <div class="empty-state">인물을 선택하고 대화를 시작하세요.</div>
                 </div>
@@ -1204,6 +1412,19 @@ TEMPLATE_HTML = """
                 <button class="analytics-close" onclick="closeAnalytics()">&times;</button>
             </div>
             <div class="analytics-body" id="analyticsBody">
+                <div class="empty-state">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile overlay (hidden by default) -->
+    <div class="profile-overlay" id="profileOverlay" style="display:none;" onclick="if(event.target===this)closeProfile()">
+        <div class="profile-panel">
+            <div class="profile-header">
+                <h3 id="profileTitle">Profile</h3>
+                <button class="profile-close" onclick="closeProfile()">&times;</button>
+            </div>
+            <div class="profile-body" id="profileBody">
                 <div class="empty-state">Loading...</div>
             </div>
         </div>
@@ -1261,6 +1482,7 @@ TEMPLATE_HTML = """
                 `<div class="person-card">
                     <div class="person-avatar" onclick="selectPerson(${p.id},'${p.name}')">${p.name[0]}</div>
                     <div class="person-info" onclick="selectPerson(${p.id},'${p.name}')"><div class="name">${p.name}</div><div class="sub">${p.relationship_type} | Sessions: ${p.session_count} | Chats: ${p.conversation_count}</div></div>
+                    <button class="btn-profile" onclick="event.stopPropagation();openProfile(${p.id},'${p.name}')" title="프로필">&#x1F4CB; 프로필</button>
                     <button class="btn-analytics" onclick="event.stopPropagation();openAnalytics(${p.id},'${p.name}')"><svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:-1px;margin-right:3px;"><rect x="1" y="7" width="2" height="4" fill="#8e6b47"/><rect x="5" y="4" width="2" height="7" fill="#8e6b47"/><rect x="9" y="1" width="2" height="10" fill="#8e6b47"/></svg>&#xBD84;&#xC11D;</button>
                 </div>`
             ).join('');
@@ -1277,9 +1499,12 @@ TEMPLATE_HTML = """
             if (!selectedPersonId) {
                 document.getElementById('consentList').innerHTML='<p style="color:#aaa">먼저 인물을 선택하세요 (Persons 탭).</p>';
                 document.getElementById('startSessionBtn').disabled = true;
+                document.getElementById('memorySearchCard').style.display = 'none';
                 return;
             }
             document.getElementById('startSessionBtn').disabled = false;
+            // Show memory search card
+            document.getElementById('memorySearchCard').style.display = 'block';
             // Consent
             const cr = await fetch('/api/consents/required');
             const cd = await cr.json();
@@ -1980,6 +2205,8 @@ TEMPLATE_HTML = """
                 '<div class="chat-msg ai"><div class="bubble">' + escapeHtml(c.ai_response) + '</div></div>'
             ).join('');
             area.scrollTop = area.scrollHeight;
+            // Load chat suggestions
+            loadChatSuggestions();
         }
 
         async function sendChat() {
@@ -1995,8 +2222,23 @@ TEMPLATE_HTML = """
 
             const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_id:selectedPersonId,message:msg})});
             const d = await r.json();
-            document.getElementById('typing').textContent = d.ai_response;
-            document.getElementById('typing').removeAttribute('id');
+            const typingEl = document.getElementById('typing');
+            let responseHtml = escapeHtml(d.ai_response);
+            // Add memory source tags if AI referenced specific recordings
+            if (d.memory_sources && d.memory_sources.length > 0) {
+                const sourceTags = d.memory_sources
+                    .filter(function(s) { return s.score > 0.1; })
+                    .slice(0, 2)
+                    .map(function(s) {
+                        return '<span class="memory-source-tag" title="Session #' + s.session_number + ': ' + escapeHtml(s.topic) + '">' +
+                            '&#x1F4DD; #' + s.session_number + ' ' + escapeHtml(s.topic) + '</span>';
+                    }).join(' ');
+                if (sourceTags) {
+                    responseHtml += '<div style="margin-top:4px;">' + sourceTags + '</div>';
+                }
+            }
+            typingEl.innerHTML = responseHtml;
+            typingEl.removeAttribute('id');
             area.scrollTop = area.scrollHeight;
         }
 
@@ -2149,6 +2391,192 @@ TEMPLATE_HTML = """
             html += '</div>';
 
             body.innerHTML = html;
+        }
+
+        // ====== Memory Search ======
+        async function searchMemories() {
+            if (!selectedPersonId) { alert('인물을 먼저 선택하세요!'); return; }
+            const q = document.getElementById('memorySearchInput').value.trim();
+            if (!q) {
+                document.getElementById('memoryResults').innerHTML = '';
+                return;
+            }
+            document.getElementById('memoryResults').innerHTML = '<div class="empty-state">검색 중...</div>';
+            try {
+                const r = await fetch('/api/persons/' + selectedPersonId + '/memories?q=' + encodeURIComponent(q) + '&top_k=8');
+                const d = await r.json();
+                const el = document.getElementById('memoryResults');
+                if (!d.results || !d.results.length) {
+                    el.innerHTML = '<div class="empty-state">관련 기억을 찾지 못했습니다.</div>';
+                    return;
+                }
+                el.innerHTML = '<div style="font-size:0.78rem;color:#666;margin-bottom:6px;">' + d.count + '개의 관련 기억을 찾았습니다</div>' +
+                    d.results.map(function(m) {
+                        const scorePct = Math.round(m.score * 100);
+                        const kwHtml = (m.keywords || []).slice(0, 5).map(function(kw) {
+                            return '<span class="keyword-badge">' + escapeHtml(kw) + '</span>';
+                        }).join('');
+                        const toneLabel = m.emotional_tone ? '<span style="font-size:0.7rem;color:#8e44ad;margin-left:6px;">' + escapeHtml(m.emotional_tone) + '</span>' : '';
+                        // Highlight query terms in text
+                        let textHtml = escapeHtml(m.text);
+                        const queryTerms = q.split(/\s+/).filter(function(t){ return t.length >= 2; });
+                        queryTerms.forEach(function(term) {
+                            const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                            textHtml = textHtml.replace(re, '<mark>$1</mark>');
+                        });
+                        return '<div class="memory-result-item">' +
+                            '<span class="mr-score">' + scorePct + '% 관련</span>' +
+                            '<div class="mr-header">#' + m.session_number + ' ' + escapeHtml(m.topic) + toneLabel + '</div>' +
+                            '<div class="mr-text">' + textHtml + '</div>' +
+                            (kwHtml ? '<div class="mr-keywords">' + kwHtml + '</div>' : '') +
+                        '</div>';
+                    }).join('');
+            } catch (err) {
+                document.getElementById('memoryResults').innerHTML =
+                    '<div class="empty-state">검색 오류: ' + escapeHtml(err.message) + '</div>';
+            }
+        }
+
+        // ====== Person Profile ======
+        function openProfile(personId, personName) {
+            document.getElementById('profileOverlay').style.display = 'flex';
+            document.getElementById('profileTitle').textContent = personName + ' - 프로필';
+            document.getElementById('profileBody').innerHTML = '<div class="empty-state">Loading...</div>';
+            document.body.style.overflow = 'hidden';
+            loadProfile(personId);
+        }
+
+        function closeProfile() {
+            document.getElementById('profileOverlay').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        async function loadProfile(personId) {
+            try {
+                const r = await fetch('/api/persons/' + personId + '/profile');
+                if (!r.ok) throw new Error('Failed to load profile');
+                const d = await r.json();
+                renderProfile(d);
+            } catch (err) {
+                document.getElementById('profileBody').innerHTML =
+                    '<div class="empty-state">프로필 로드 실패: ' + escapeHtml(err.message) + '</div>';
+            }
+        }
+
+        function renderProfile(data) {
+            const body = document.getElementById('profileBody');
+            let html = '';
+
+            // Personality summary
+            if (data.personality_summary) {
+                html += '<div class="profile-section">';
+                html += '<h4>인물 요약</h4>';
+                html += '<div class="profile-personality">' + escapeHtml(data.personality_summary) + '</div>';
+                html += '</div>';
+            }
+
+            // Stats row
+            html += '<div class="stats-row">';
+            html += '<div class="stat-card"><div class="stat-value">' + (data.total_memories || 0) +
+                    '</div><div class="stat-label">기억 조각</div></div>';
+            html += '<div class="stat-card"><div class="stat-value">' + (data.topics_discussed ? data.topics_discussed.length : 0) +
+                    '</div><div class="stat-label">대화 주제</div></div>';
+            html += '</div>';
+
+            // Topics discussed
+            if (data.topics_discussed && data.topics_discussed.length) {
+                html += '<div class="profile-section">';
+                html += '<h4>다룬 주제</h4>';
+                html += '<div class="profile-topics-list">';
+                data.topics_discussed.forEach(function(topic) {
+                    html += '<span class="profile-topic-chip">' + escapeHtml(topic) + '</span>';
+                });
+                html += '</div></div>';
+            }
+
+            // Emotional patterns
+            if (data.emotional_patterns && data.emotional_patterns.length) {
+                html += '<div class="profile-section">';
+                html += '<h4>감정 패턴</h4>';
+                html += '<div class="tone-badge-list">';
+                data.emotional_patterns.forEach(function(item) {
+                    const info = TONE_MAP[item.tone] || {cls: 'tone-badge-default', label: item.tone};
+                    html += '<span class="tone-badge ' + info.cls + '">' +
+                            escapeHtml(info.label) +
+                            '<span class="tone-count">' + item.count + '</span></span>';
+                });
+                html += '</div></div>';
+            }
+
+            // Key facts / keywords
+            if (data.key_facts && data.key_facts.length) {
+                html += '<div class="profile-section">';
+                html += '<h4>주요 키워드</h4>';
+                html += '<div class="kw-tag-cloud">';
+                const KW_STYLES = ['kw-tag-1','kw-tag-2','kw-tag-3','kw-tag-4','kw-tag-5','kw-tag-6'];
+                data.key_facts.forEach(function(item, idx) {
+                    const sizeClass = KW_STYLES[idx % KW_STYLES.length];
+                    const fontSize = Math.max(0.7, Math.min(1.05, 0.7 + (item.count - 1) * 0.08));
+                    html += '<span class="kw-tag ' + sizeClass + '" style="font-size:' + fontSize + 'rem;">' +
+                            escapeHtml(item.keyword) +
+                            '<span style="opacity:0.6;font-size:0.6rem;margin-left:2px;">(' + item.count + ')</span></span>';
+                });
+                html += '</div></div>';
+            }
+
+            // Session summaries
+            if (data.summaries && data.summaries.length) {
+                html += '<div class="profile-section">';
+                html += '<h4>녹음 요약</h4>';
+                data.summaries.slice(0, 8).forEach(function(s) {
+                    html += '<div class="profile-summary-item">' +
+                        '<div class="psi-topic">#' + s.session_number + ' ' + escapeHtml(s.topic) + '</div>' +
+                        '<div>' + escapeHtml(s.summary) + '</div>' +
+                    '</div>';
+                });
+                html += '</div>';
+            }
+
+            // Suggested questions
+            if (data.suggested_questions && data.suggested_questions.length) {
+                html += '<div class="profile-section">';
+                html += '<h4>추천 질문</h4>';
+                html += '<div class="chat-suggestion-chips">';
+                data.suggested_questions.forEach(function(q) {
+                    html += '<span class="chat-suggestion-chip" onclick="closeProfile();selectPerson(' + data.person_id + ',\'' + escapeHtml(data.person_name) + '\');showTab(\'chat\');useSuggestion(\'' + escapeHtml(q).replace(/'/g, "\\'") + '\')">' + escapeHtml(q) + '</span>';
+                });
+                html += '</div></div>';
+            }
+
+            body.innerHTML = html;
+        }
+
+        // ====== Chat Suggestions ======
+        async function loadChatSuggestions() {
+            if (!selectedPersonId) {
+                document.getElementById('chatSuggestions').style.display = 'none';
+                return;
+            }
+            try {
+                const r = await fetch('/api/persons/' + selectedPersonId + '/profile');
+                const d = await r.json();
+                const suggestions = d.suggested_questions || [];
+                if (suggestions.length === 0) {
+                    document.getElementById('chatSuggestions').style.display = 'none';
+                    return;
+                }
+                document.getElementById('chatSuggestions').style.display = 'block';
+                document.getElementById('chatSuggestionChips').innerHTML = suggestions.map(function(q) {
+                    return '<span class="chat-suggestion-chip" onclick="useSuggestion(\'' + escapeHtml(q).replace(/'/g, "\\'") + '\')">' + escapeHtml(q) + '</span>';
+                }).join('');
+            } catch (err) {
+                document.getElementById('chatSuggestions').style.display = 'none';
+            }
+        }
+
+        function useSuggestion(text) {
+            document.getElementById('chatInput').value = text;
+            document.getElementById('chatInput').focus();
         }
 
         loadPersons();

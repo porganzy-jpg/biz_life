@@ -1,5 +1,5 @@
 """
-BarcodeQuest - FastAPI 게임 서버 v2.2
+BarcodeQuest - FastAPI 게임 서버 v2.3
 
 v2.0 시스템:
   - 방치형 탐험 (ExpeditionSystem)
@@ -13,6 +13,10 @@ v2.1 변경:
 
 v2.2 변경:
   - PvP 아레나 시스템 (ELO 매치메이킹, 글로벌 리더보드)
+
+v2.3 변경:
+  - 길드 시스템 (길드 생성/가입/탈퇴, 보스전, 랭킹)
+  - 몬스터 거래소 (마켓플레이스 등록/구매/취소, 거래내역)
 """
 import sys
 import os
@@ -39,8 +43,10 @@ from bus_system import BusSystem, calculate_affinity, get_room_suggestion, ROOM_
 
 import persistence
 from pvp_system import ArenaManager
+from guild_system import GuildManager
+from trading_system import TradeManager
 
-app = FastAPI(title="BarcodeQuest Game Server v2.2")
+app = FastAPI(title="BarcodeQuest Game Server v2.3")
 
 # 게임 엔진 인스턴스 (stateless singletons)
 generator = BarcodeMonsterGenerator()
@@ -49,6 +55,10 @@ evolution_system = EvolutionSystem()
 
 # PvP 아레나 매니저
 arena_manager = ArenaManager()
+
+# 길드 & 거래 매니저
+guild_manager = GuildManager()
+trade_manager = TradeManager()
 
 # Sub-systems that hold per-session state in memory (loaded from DB on access)
 expedition_system = ExpeditionSystem()
@@ -113,6 +123,8 @@ def get_inventory(session_id: str = "default") -> ItemInventory:
 @app.on_event("startup")
 async def startup():
     import pvp_models  # noqa: F401  (테이블 생성을 위해 모델 import)
+    import guild_system  # noqa: F401  (Guild, GuildMember, GuildBossLog 테이블 생성)
+    import trading_system  # noqa: F401  (TradeListing, TradeHistory 테이블 생성)
     init_db()
 
 
@@ -953,6 +965,201 @@ async def pvp_history(
 ):
     """내 최근 PvP 배틀 기록"""
     history = arena_manager.get_recent_battles(session, limit)
+    return {"history": history, "total": len(history)}
+
+
+# =====================================================
+#  신규 API: 길드 시스템
+# =====================================================
+
+@app.post("/api/guild/create")
+async def guild_create(
+    name: str = Query(..., min_length=2, max_length=20, description="길드 이름"),
+    session: str = Query("default"),
+):
+    """길드 생성 (5000 골드)"""
+    player, _ = get_or_create_player(session)
+    result = guild_manager.create_guild(session, name, player.gold)
+    if result.get("ok"):
+        player.spend_gold(result["cost"])
+        persistence.save_player(session, player)
+        result["player"] = player.to_dict()
+    return result
+
+
+@app.post("/api/guild/join/{guild_id}")
+async def guild_join(
+    guild_id: int,
+    session: str = Query("default"),
+):
+    """길드 가입"""
+    get_or_create_player(session)
+    result = guild_manager.join_guild(session, guild_id)
+    return result
+
+
+@app.post("/api/guild/leave")
+async def guild_leave(
+    session: str = Query("default"),
+):
+    """길드 탈퇴"""
+    get_or_create_player(session)
+    result = guild_manager.leave_guild(session)
+    return result
+
+
+@app.get("/api/guild/info")
+async def guild_info(
+    session: str = Query("default"),
+):
+    """내 길드 정보 조회"""
+    get_or_create_player(session)
+    result = guild_manager.get_guild_info(session)
+    return result
+
+
+@app.get("/api/guild/ranking")
+async def guild_ranking(
+    limit: int = Query(20, ge=1, le=50),
+):
+    """길드 랭킹"""
+    ranking = guild_manager.guild_ranking(limit)
+    return {"ranking": ranking, "total": len(ranking)}
+
+
+@app.get("/api/guild/available")
+async def guild_available(
+    limit: int = Query(20, ge=1, le=50),
+):
+    """가입 가능한 길드 목록"""
+    guilds = guild_manager.get_available_guilds(limit)
+    return {"guilds": guilds}
+
+
+@app.post("/api/guild/boss")
+async def guild_boss(
+    session: str = Query("default"),
+):
+    """길드 보스전"""
+    player, _ = get_or_create_player(session)
+    if not player.party:
+        return {"error": "파티에 몬스터가 없습니다!"}
+
+    result = guild_manager.guild_boss_battle(session, player.party[:3])
+    if result.get("ok"):
+        # Apply rewards to player
+        rewards = result.get("rewards", {})
+        if rewards.get("gold"):
+            player.gain_gold(rewards["gold"])
+        if rewards.get("exp"):
+            player.gain_exp(rewards["exp"])
+        persistence.save_player(session, player)
+        result["player"] = player.to_dict()
+    return result
+
+
+# =====================================================
+#  신규 API: 몬스터 거래소
+# =====================================================
+
+@app.post("/api/trade/list")
+async def trade_list(
+    monster_index: int = Query(..., description="몬스터 인덱스"),
+    price: int = Query(..., ge=10, le=999999, description="판매 가격"),
+    source: str = Query("inventory", description="'party' 또는 'inventory'"),
+    session: str = Query("default"),
+):
+    """몬스터를 거래소에 등록"""
+    player, _ = get_or_create_player(session)
+
+    monster_list = player.party if source == "party" else player.inventory
+    if monster_index < 0 or monster_index >= len(monster_list):
+        return {"error": "유효하지 않은 몬스터 인덱스입니다."}
+
+    # Prevent listing the last party monster
+    if source == "party" and len(player.party) <= 1:
+        return {"error": "파티에 최소 1마리는 남겨야 합니다."}
+
+    monster_data = monster_list[monster_index]
+
+    result = trade_manager.list_monster(session, monster_data, monster_index, price, source)
+    if result.get("ok"):
+        # Remove monster from player
+        monster_list.pop(monster_index)
+        persistence.save_player(session, player)
+        result["player"] = player.to_dict()
+    return result
+
+
+@app.post("/api/trade/buy/{listing_id}")
+async def trade_buy(
+    listing_id: int,
+    session: str = Query("default"),
+):
+    """거래소에서 몬스터 구매"""
+    player, _ = get_or_create_player(session)
+
+    result = trade_manager.buy_monster(session, listing_id, player.gold)
+    if result.get("ok"):
+        # Deduct gold from buyer
+        player.spend_gold(result["price"])
+        # Add monster to buyer
+        monster = result["monster"]
+        add_result = player.add_monster(monster)
+        result["add_result"] = add_result
+
+        # Give gold to seller (minus fee)
+        seller_id = result["seller_id"]
+        seller_receives = result["seller_receives"]
+        seller_player, _ = get_or_create_player(seller_id)
+        seller_player.gain_gold(seller_receives)
+        persistence.save_player(seller_id, seller_player)
+
+        # Save buyer
+        persistence.save_player(session, player)
+        result["player"] = player.to_dict()
+    return result
+
+
+@app.post("/api/trade/cancel/{listing_id}")
+async def trade_cancel(
+    listing_id: int,
+    session: str = Query("default"),
+):
+    """거래소 등록 취소 (몬스터 복구)"""
+    player, _ = get_or_create_player(session)
+
+    result = trade_manager.cancel_listing(session, listing_id)
+    if result.get("ok"):
+        # Restore monster to player
+        monster = result["monster"]
+        add_result = player.add_monster(monster)
+        result["add_result"] = add_result
+        persistence.save_player(session, player)
+        result["player"] = player.to_dict()
+    return result
+
+
+@app.get("/api/trade/marketplace")
+async def trade_marketplace(
+    sort: str = Query("newest", description="newest, price_low, price_high, level_high, rarity"),
+    filter_type: str = Query("", description="몬스터 타입 필터"),
+    filter_rarity: str = Query("", description="등급 필터"),
+    session: str = Query("default"),
+):
+    """거래소 목록 조회"""
+    listings = trade_manager.get_marketplace(sort, filter_type, filter_rarity)
+    my_listings = trade_manager.get_my_listings(session)
+    return {"listings": listings, "my_listings": my_listings}
+
+
+@app.get("/api/trade/history")
+async def trade_history(
+    session: str = Query("default"),
+    limit: int = Query(20, ge=1, le=50),
+):
+    """거래 내역 조회"""
+    history = trade_manager.get_trade_history(session, limit)
     return {"history": history, "total": len(history)}
 
 

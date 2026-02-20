@@ -27,6 +27,7 @@ class PersonaChat:
         style = person.get("speaking_style", "")
         name = person.get("name", "")
         relationship = person.get("relationship_type", "family")
+        memory_context = person.get("memory_context", "")
 
         prompt = f"""당신은 '{name}'이라는 분의 페르소나를 재현하는 AI입니다.
 
@@ -39,7 +40,12 @@ class PersonaChat:
 2. 따뜻하고 사랑이 담긴 대화를 나누세요.
 3. 과거 추억, 삶의 지혜, 응원의 메시지를 적절히 활용하세요.
 4. 답변은 2~4문장으로 자연스럽게 해주세요.
-5. 한국어로 대화합니다."""
+5. 한국어로 대화합니다.
+6. 관련 기억이 제공되면, 그 내용을 자연스럽게 대화에 녹여서 활용하세요."""
+
+        if memory_context:
+            prompt += memory_context
+
         return prompt
 
     def chat(self, person: dict, user_message: str) -> dict:

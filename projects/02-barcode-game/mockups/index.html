@@ -341,6 +341,96 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 .arena-result-card h2{margin-bottom:10px;}
 .arena-result-card .reward-line{font-size:.78rem;margin:4px 0;}
 .arena-result-card .close-btn{margin-top:14px;padding:10px 30px;border:none;border-radius:var(--radius-sm);background:var(--primary);color:#fff;font-weight:700;cursor:pointer;font-family:inherit;}
+/* === Guild System === */
+.guild-pad{padding:16px 16px 24px;}
+.guild-header{background:linear-gradient(135deg,#6c5ce7,#0984e3);border-radius:var(--radius);padding:18px 16px;color:#fff;text-align:center;margin-bottom:14px;position:relative;overflow:hidden;}
+.guild-header h2{font-size:1.1rem;margin-bottom:4px;}
+.guild-header .guild-level{font-size:1.6rem;font-weight:900;}
+.guild-header .guild-sub{font-size:.72rem;opacity:.85;margin-top:4px;}
+.guild-exp-bar{height:8px;background:rgba(255,255,255,.25);border-radius:4px;margin-top:8px;overflow:hidden;}
+.guild-exp-fill{height:100%;background:linear-gradient(90deg,#fdcb6e,#f9ca24);border-radius:4px;transition:width .5s;}
+.guild-stats-row{display:flex;gap:8px;margin-bottom:14px;}
+.guild-stat-card{flex:1;background:var(--card);border-radius:var(--radius-sm);padding:12px 8px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.guild-stat-card .sv{font-size:1.2rem;font-weight:900;color:var(--primary);}
+.guild-stat-card .sl{font-size:.62rem;color:var(--text-light);margin-top:2px;}
+.guild-section{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.guild-section h3{font-size:.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.guild-member-list{list-style:none;padding:0;margin:0;}
+.guild-member-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--card-border);font-size:.72rem;}
+.guild-member-item:last-child{border-bottom:none;}
+.guild-member-item .role-badge{padding:2px 8px;border-radius:8px;font-size:.58rem;font-weight:700;color:#fff;}
+.guild-member-item .role-badge.leader{background:#f9ca24;color:#333;}
+.guild-member-item .role-badge.officer{background:#0984e3;}
+.guild-member-item .role-badge.member{background:#636e72;}
+.guild-member-item .contrib{margin-left:auto;font-size:.65rem;color:var(--primary);font-weight:600;}
+.guild-btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .15s;min-height:48px;color:#fff;}
+.guild-btn:active{transform:scale(.97);}
+.guild-btn.create{background:linear-gradient(135deg,#6c5ce7,#a29bfe);}
+.guild-btn.boss{background:linear-gradient(135deg,#e74c3c,#fd79a8);margin-top:8px;}
+.guild-btn.leave{background:#636e72;margin-top:8px;font-size:.78rem;padding:10px;}
+.guild-btn:disabled{opacity:.5;cursor:not-allowed;}
+.guild-no-guild{text-align:center;padding:30px 16px;}
+.guild-no-guild p{font-size:.78rem;color:var(--text-light);margin-bottom:14px;}
+.guild-create-form{margin-bottom:14px;}
+.guild-create-form input{width:100%;padding:12px;border:2px solid var(--card-border);border-radius:var(--radius-sm);font-family:inherit;font-size:.88rem;text-align:center;background:var(--card);color:var(--text);margin-bottom:8px;}
+.guild-create-form input:focus{border-color:var(--primary);outline:none;}
+.guild-list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .15s;}
+.guild-list-item:active{transform:scale(.98);}
+.guild-list-item .gl-info{flex:1;}
+.guild-list-item .gl-name{font-size:.78rem;font-weight:700;}
+.guild-list-item .gl-meta{font-size:.62rem;color:var(--text-light);margin-top:2px;}
+.guild-list-item .gl-join{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:32px;}
+.guild-rank-table{width:100%;border-collapse:collapse;font-size:.68rem;}
+.guild-rank-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--card-border);color:var(--text-light);font-weight:600;}
+.guild-rank-table td{padding:8px 6px;border-bottom:1px solid var(--card-border);}
+.guild-boss-overlay{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;opacity:0;pointer-events:none;transition:opacity .3s;}
+.guild-boss-overlay.show{opacity:1;pointer-events:auto;}
+.guild-boss-result{background:var(--card);border-radius:var(--radius);padding:20px;text-align:center;color:var(--text);max-width:340px;width:90%;}
+.guild-boss-result h2{margin-bottom:10px;}
+.guild-boss-result .reward-line{font-size:.78rem;margin:4px 0;}
+.guild-boss-result .close-btn{margin-top:14px;padding:10px 30px;border:none;border-radius:var(--radius-sm);background:var(--primary);color:#fff;font-weight:700;cursor:pointer;font-family:inherit;}
+/* === Trading System === */
+.trade-pad{padding:16px 16px 24px;}
+.trade-header{background:linear-gradient(135deg,#00b894,#00cec9);border-radius:var(--radius);padding:18px 16px;color:#fff;text-align:center;margin-bottom:14px;position:relative;overflow:hidden;}
+.trade-header h2{font-size:1.1rem;margin-bottom:4px;}
+.trade-header .trade-sub{font-size:.72rem;opacity:.85;margin-top:4px;}
+.trade-tabs{display:flex;gap:0;margin-bottom:14px;background:rgba(0,184,148,.1);border-radius:var(--radius-sm);overflow:hidden;}
+.trade-tabs .ttab{flex:1;padding:10px;text-align:center;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text-light);min-height:44px;display:flex;align-items:center;justify-content:center;}
+.trade-tabs .ttab.active{background:#00b894;color:#fff;}
+.trade-filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.trade-filter-btn{background:var(--card);border:1px solid var(--card-border);border-radius:6px;padding:4px 10px;font-size:.62rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text-light);transition:all .15s;min-height:28px;}
+.trade-filter-btn.active{background:#00b894;color:#fff;border-color:#00b894;}
+.trade-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+.trade-card{background:var(--card);border-radius:var(--radius-sm);padding:12px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .2s;position:relative;overflow:hidden;}
+.trade-card:active{transform:scale(.97);}
+.trade-card .tc-name{font-size:.78rem;font-weight:700;margin-bottom:2px;}
+.trade-card .tc-type{font-size:.58rem;color:var(--text-light);margin-bottom:4px;}
+.trade-card .tc-rarity{font-size:.55rem;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:6px;}
+.tc-rarity.Common{background:rgba(200,200,200,.2);color:#999;}
+.tc-rarity.Uncommon{background:rgba(0,206,201,.15);color:#00cec9;}
+.tc-rarity.Rare{background:rgba(108,92,231,.15);color:#6c5ce7;}
+.tc-rarity.Epic{background:rgba(253,121,168,.15);color:#fd79a8;}
+.tc-rarity.Legendary{background:rgba(249,202,36,.15);color:#f9ca24;}
+.trade-card .tc-level{font-size:.62rem;color:var(--text-light);margin-bottom:6px;}
+.trade-card .tc-price{font-size:.82rem;font-weight:900;color:#f9ca24;display:flex;align-items:center;justify-content:center;gap:4px;}
+.trade-card .tc-seller{font-size:.55rem;color:var(--text-light);margin-top:4px;}
+.trade-card .tc-buy{width:100%;padding:8px;border:none;border-radius:8px;background:#00b894;color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;min-height:32px;}
+.trade-card .tc-cancel{width:100%;padding:8px;border:none;border-radius:8px;background:#636e72;color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;min-height:32px;}
+.trade-list-form{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.trade-list-form h3{font-size:.82rem;font-weight:700;margin-bottom:10px;}
+.trade-list-form select,.trade-list-form input{width:100%;padding:10px;border:2px solid var(--card-border);border-radius:var(--radius-sm);font-family:inherit;font-size:.82rem;background:var(--card);color:var(--text);margin-bottom:8px;}
+.trade-list-form select:focus,.trade-list-form input:focus{border-color:#00b894;outline:none;}
+.trade-list-btn{width:100%;padding:12px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,#00b894,#00cec9);color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px;}
+.trade-list-btn:disabled{opacity:.5;cursor:not-allowed;}
+.trade-history-item{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:1px solid var(--card-border);box-shadow:var(--card-shadow);}
+.trade-history-item .th-role{padding:3px 10px;border-radius:8px;font-size:.65rem;font-weight:700;color:#fff;min-width:36px;text-align:center;}
+.trade-history-item .th-role.seller{background:#e17055;}
+.trade-history-item .th-role.buyer{background:#00b894;}
+.trade-history-item .th-detail{flex:1;font-size:.68rem;}
+.trade-history-item .th-detail .th-name{font-weight:600;}
+.trade-history-item .th-detail .th-meta{color:var(--text-light);font-size:.6rem;margin-top:2px;}
+.trade-history-item .th-price{font-weight:700;font-size:.75rem;color:#f9ca24;}
+.trade-empty{text-align:center;padding:30px 16px;color:var(--text-light);font-size:.78rem;}
 </style>
 </head>
 <body>
@@ -501,6 +591,49 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 </div>
 
 <!-- ARENA -->
+<!-- GUILD -->
+<div class="screen" id="screen-guild">
+  <div class="guild-pad" id="guild-content">
+    <!-- Dynamic content rendered by JS -->
+    <div class="guild-header">
+      <h2>&#x1F6E1;&#xFE0F; Guild</h2>
+      <div class="guild-sub">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE -->
+<div class="screen" id="screen-trade">
+  <div class="trade-pad">
+    <div class="trade-header">
+      <h2>&#x1F4B1; Marketplace</h2>
+      <div class="trade-sub" id="trade-sub-info">Browse and trade monsters</div>
+    </div>
+    <div class="trade-tabs">
+      <div class="ttab active" onclick="switchTradeTab('browse')" id="trade-tab-browse">Browse</div>
+      <div class="ttab" onclick="switchTradeTab('sell')" id="trade-tab-sell">Sell</div>
+      <div class="ttab" onclick="switchTradeTab('history')" id="trade-tab-history">History</div>
+    </div>
+    <div id="trade-sort-filters">
+      <div class="trade-filters">
+        <div class="trade-filter-btn active" onclick="setTradeSort('newest')">Latest</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('price_low')">Price &#x2191;</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('price_high')">Price &#x2193;</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('level_high')">Level</div>
+        <div class="trade-filter-btn" onclick="setTradeSort('rarity')">Rarity</div>
+      </div>
+    </div>
+    <div id="trade-body">
+      <!-- Dynamic: marketplace grid, sell form, or history -->
+    </div>
+  </div>
+</div>
+
+<!-- GUILD BOSS OVERLAY -->
+<div class="guild-boss-overlay" id="guild-boss-overlay">
+  <div id="guild-boss-content"></div>
+</div>
+
 <div class="screen" id="screen-arena">
   <div class="arena-pad">
     <div class="arena-header" id="arena-header">
@@ -572,6 +705,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   <div class="nav-item" onclick="navTo('bus')" data-screen="bus"><div class="ni">🚌</div><div class="nl">버스</div></div>
   <div class="nav-item" onclick="navTo('map')" data-screen="map"><div class="ni">🗺️</div><div class="nl">지도</div></div>
   <div class="nav-item" onclick="navTo('collection')" data-screen="collection"><div class="ni">📚</div><div class="nl">도감</div></div>
+  <div class="nav-item" onclick="navTo('guild')" data-screen="guild"><div class="ni">&#x1F6E1;&#xFE0F;</div><div class="nl">길드</div></div>
+  <div class="nav-item" onclick="navTo('trade')" data-screen="trade"><div class="ni">&#x1F4B1;</div><div class="nl">거래소</div></div>
   <div class="nav-item" onclick="navTo('arena')" data-screen="arena"><div class="ni">&#x2694;&#xFE0F;</div><div class="nl">아레나</div></div>
 </div>
 
@@ -916,7 +1051,7 @@ function navTo(id){
   const next=document.getElementById('screen-'+id);
   if(!next)return;
   // determine direction
-  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings','arena'];
+  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings','guild','trade','arena'];
   const pi=navOrder.indexOf(currentScreen),ni=navOrder.indexOf(id);
   const forward=ni>=pi||ni<0;
   if(prev){
@@ -955,6 +1090,8 @@ function renderScreen(id){
     case'shop':renderShop();break;
     case'achievements':renderAchievements();break;
     case'settings':renderSettings();break;
+    case'guild':renderGuild();break;
+    case'trade':renderTrade();break;
     case'arena':renderArena();break;
   }
 }
@@ -3070,9 +3207,427 @@ document.addEventListener('click',(e)=>{
 },{passive:true});
 
 // ============================================================
-// PVP ARENA
+// SHARED API HELPERS
 // ============================================================
 const API_BASE='';  // same-origin
+
+async function apiFetch(url,opts={}){
+  try{
+    const res=await fetch(API_BASE+url,opts);
+    return await res.json();
+  }catch(e){
+    console.error('API error:',e);
+    return {error:'Server connection failed'};
+  }
+}
+
+function getTypeEmoji(type){
+  const map={Fire:'🔥',Water:'💧',Nature:'🌿',Tech:'⚙️',Spirit:'👻',Dark:'🌑',Earth:'🪨',Wind:'💨',Food:'🍖',Light:'✨'};
+  return map[type]||'❓';
+}
+
+// ============================================================
+// GUILD SYSTEM
+// ============================================================
+let guildState={
+  info:null,
+  ranking:[],
+  available:[]
+};
+
+async function renderGuild(){
+  const infoRes=await apiFetch('/api/guild/info?session=default');
+  guildState.info=infoRes;
+
+  const container=document.getElementById('guild-content');
+
+  if(infoRes.in_guild){
+    const g=infoRes.guild;
+    const members=infoRes.members||[];
+    const expPct=g.exp_needed>0?Math.min(100,Math.round(g.exp/g.exp_needed*100)):100;
+
+    // Load ranking
+    const rankRes=await apiFetch('/api/guild/ranking?limit=20');
+    guildState.ranking=rankRes.ranking||[];
+
+    container.innerHTML=`
+      <div class="guild-header">
+        <h2>&#x1F6E1;&#xFE0F; ${g.name}</h2>
+        <div class="guild-level">Lv.${g.level}</div>
+        <div class="guild-sub">${g.member_count}/${g.max_members} members</div>
+        <div class="guild-exp-bar"><div class="guild-exp-fill" style="width:${expPct}%"></div></div>
+        <div style="font-size:.6rem;opacity:.7;margin-top:4px;">EXP: ${g.exp}/${g.exp_needed}</div>
+      </div>
+      <div class="guild-stats-row">
+        <div class="guild-stat-card"><div class="sv">${g.level}</div><div class="sl">Level</div></div>
+        <div class="guild-stat-card"><div class="sv">${g.member_count}</div><div class="sl">Members</div></div>
+        <div class="guild-stat-card"><div class="sv">${infoRes.my_contribution||0}</div><div class="sl">My Contrib.</div></div>
+      </div>
+      <div class="guild-section">
+        <h3>&#x1F464; Members</h3>
+        <ul class="guild-member-list">
+          ${members.map(m=>`
+            <li class="guild-member-item">
+              <span class="role-badge ${m.role}">${m.role==='leader'?'Guild Master':m.role==='officer'?'Officer':'Member'}</span>
+              <span>${m.session_id==='default'?'<b>Me</b>':m.session_id.substring(0,10)}</span>
+              <span class="contrib">&#x2B50; ${m.contribution}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+      <button class="guild-btn boss" onclick="guildBossBattle()">&#x1F409; Guild Boss Battle!</button>
+      <button class="guild-btn leave" onclick="guildLeave()">Leave Guild</button>
+      <div class="guild-section" style="margin-top:14px;">
+        <h3>&#x1F3C6; Guild Ranking</h3>
+        <table class="guild-rank-table">
+          <thead><tr><th>#</th><th>Guild</th><th>Lv</th><th>Members</th></tr></thead>
+          <tbody>
+            ${guildState.ranking.length===0?
+              '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">No guilds yet</td></tr>':
+              guildState.ranking.map(r=>`
+                <tr class="${r.name===g.name?'me':''}">
+                  <td><span class="lb-rank ${r.rank<=3?['','gold','silver','bronze'][r.rank]:''}">${r.rank}</span></td>
+                  <td style="font-weight:${r.name===g.name?'700':'400'}">${r.name}</td>
+                  <td>${r.level}</td>
+                  <td>${r.member_count}</td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    `;
+  }else{
+    // Not in a guild: show create/join
+    const availRes=await apiFetch('/api/guild/available?limit=20');
+    guildState.available=availRes.guilds||[];
+
+    const rankRes=await apiFetch('/api/guild/ranking?limit=20');
+    guildState.ranking=rankRes.ranking||[];
+
+    container.innerHTML=`
+      <div class="guild-header">
+        <h2>&#x1F6E1;&#xFE0F; Guild</h2>
+        <div class="guild-sub">Join or create a guild!</div>
+      </div>
+      <div class="guild-no-guild">
+        <p>You are not in a guild. Create one or join an existing guild.</p>
+      </div>
+      <div class="guild-section">
+        <h3>&#x2728; Create Guild</h3>
+        <div class="guild-create-form">
+          <input type="text" id="guild-name-input" maxlength="20" placeholder="Guild name (2-20 chars)">
+          <button class="guild-btn create" onclick="guildCreate()">Create Guild (5,000G)</button>
+        </div>
+      </div>
+      ${guildState.available.length>0?`
+        <div class="guild-section">
+          <h3>&#x1F4CB; Available Guilds</h3>
+          ${guildState.available.map(g=>`
+            <div class="guild-list-item">
+              <div class="gl-info">
+                <div class="gl-name">&#x1F6E1;&#xFE0F; ${g.name}</div>
+                <div class="gl-meta">Lv.${g.level} | ${g.member_count}/${g.max_members} members</div>
+              </div>
+              <button class="gl-join" onclick="guildJoin(${g.guild_id})">Join</button>
+            </div>
+          `).join('')}
+        </div>
+      `:''}
+      <div class="guild-section">
+        <h3>&#x1F3C6; Guild Ranking</h3>
+        <table class="guild-rank-table">
+          <thead><tr><th>#</th><th>Guild</th><th>Lv</th><th>Members</th></tr></thead>
+          <tbody>
+            ${guildState.ranking.length===0?
+              '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;font-size:.72rem;">No guilds yet</td></tr>':
+              guildState.ranking.map(r=>`
+                <tr>
+                  <td><span class="lb-rank ${r.rank<=3?['','gold','silver','bronze'][r.rank]:''}">${r.rank}</span></td>
+                  <td>${r.name}</td>
+                  <td>${r.level}</td>
+                  <td>${r.member_count}</td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+}
+
+async function guildCreate(){
+  const nameInput=document.getElementById('guild-name-input');
+  const name=nameInput?nameInput.value.trim():'';
+  if(!name||name.length<2){
+    showToast('Guild name must be at least 2 characters.');
+    return;
+  }
+  const res=await apiFetch(`/api/guild/create?name=${encodeURIComponent(name)}&session=default`,{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    return;
+  }
+  showToast(res.message||'Guild created!');
+  if(res.player) updatePlayerUI(res.player);
+  await renderGuild();
+}
+
+async function guildJoin(guildId){
+  const res=await apiFetch(`/api/guild/join/${guildId}?session=default`,{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    return;
+  }
+  showToast(res.message||'Joined guild!');
+  await renderGuild();
+}
+
+async function guildLeave(){
+  if(!confirm('Are you sure you want to leave the guild?')) return;
+  const res=await apiFetch('/api/guild/leave?session=default',{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    return;
+  }
+  showToast(res.message||'Left guild.');
+  await renderGuild();
+}
+
+async function guildBossBattle(){
+  const overlay=document.getElementById('guild-boss-overlay');
+  const content=document.getElementById('guild-boss-content');
+  content.innerHTML=`<div style="font-size:2rem;animation:vsPulse 1s infinite;">&#x1F409;</div><p style="margin-top:12px;font-size:.8rem;">Engaging guild boss...</p>`;
+  overlay.classList.add('show');
+
+  const res=await apiFetch('/api/guild/boss?session=default',{method:'POST'});
+
+  if(res.error){
+    overlay.classList.remove('show');
+    showToast(res.error);
+    return;
+  }
+
+  await new Promise(r=>setTimeout(r,1500));
+
+  const won=res.result==='WIN';
+  const boss=res.boss||{};
+  const rewards=res.rewards||{};
+
+  content.innerHTML=`
+    <div class="guild-boss-result">
+      <h2 style="color:${won?'#00b894':'#d63031'};font-size:1.5rem;">${won?'Boss Defeated!':'Retreated...'}</h2>
+      <p style="font-size:.88rem;margin:8px 0;">${boss.emoji||''} ${boss.name||'???'} Lv.${boss.level||1}</p>
+      <div class="reward-line">Damage: ${res.total_damage||0} (${res.damage_ratio||0}%)</div>
+      <div class="reward-line">&#x1F4B0; ${rewards.gold||0} Gold</div>
+      <div class="reward-line">&#x2B50; ${rewards.exp||0} EXP</div>
+      <div class="reward-line">&#x1F6E1;&#xFE0F; Guild +${rewards.guild_exp||0} EXP</div>
+      ${res.guild_leveled_up?'<div class="reward-line" style="color:#f9ca24;font-weight:700;">Guild Level Up!</div>':''}
+      ${(res.battle_log||[]).map(l=>`<div class="reward-line" style="font-size:.68rem;color:var(--text-light);">${l.message}</div>`).join('')}
+      <button class="close-btn" onclick="closeGuildBoss()">OK</button>
+    </div>`;
+
+  if(won){try{launchConfetti();}catch(e){}}
+  if(res.player) updatePlayerUI(res.player);
+  await renderGuild();
+}
+
+function closeGuildBoss(){
+  document.getElementById('guild-boss-overlay').classList.remove('show');
+}
+
+function updatePlayerUI(p){
+  if(!p) return;
+  const goldEl=document.getElementById('gold-display');
+  if(goldEl) goldEl.textContent=p.gold.toLocaleString();
+}
+
+// ============================================================
+// TRADING SYSTEM
+// ============================================================
+let tradeState={
+  currentTab:'browse',
+  sort:'newest',
+  filterType:'',
+  filterRarity:'',
+  listings:[],
+  myListings:[],
+  history:[]
+};
+
+function switchTradeTab(tab){
+  tradeState.currentTab=tab;
+  document.querySelectorAll('.trade-tabs .ttab').forEach(t=>t.classList.remove('active'));
+  const tabEl=document.getElementById('trade-tab-'+tab);
+  if(tabEl) tabEl.classList.add('active');
+
+  const sortFilters=document.getElementById('trade-sort-filters');
+  if(sortFilters) sortFilters.style.display=tab==='browse'?'block':'none';
+
+  renderTradeBody();
+}
+
+function setTradeSort(sort){
+  tradeState.sort=sort;
+  document.querySelectorAll('.trade-filters .trade-filter-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderTrade();
+}
+
+async function renderTrade(){
+  const mpRes=await apiFetch(`/api/trade/marketplace?sort=${tradeState.sort}&filter_type=${tradeState.filterType}&filter_rarity=${tradeState.filterRarity}&session=default`);
+  tradeState.listings=mpRes.listings||[];
+  tradeState.myListings=mpRes.my_listings||[];
+
+  const histRes=await apiFetch('/api/trade/history?session=default&limit=20');
+  tradeState.history=histRes.history||[];
+
+  renderTradeBody();
+}
+
+async function renderTradeBody(){
+  const body=document.getElementById('trade-body');
+  if(!body) return;
+
+  if(tradeState.currentTab==='browse'){
+    if(tradeState.listings.length===0){
+      body.innerHTML='<div class="trade-empty">&#x1F4AD; No monsters listed yet. Be the first to list one!</div>';
+    }else{
+      body.innerHTML=`<div class="trade-grid">
+        ${tradeState.listings.map(l=>{
+          const isMine=l.seller_id==='default';
+          return `<div class="trade-card">
+            <div class="tc-name">${getTypeEmoji(l.monster_type)} ${l.monster_name}</div>
+            <div class="tc-rarity ${l.monster_rarity}">${l.monster_rarity}</div>
+            <div class="tc-level">Lv.${l.monster_level}</div>
+            <div class="tc-type">${l.monster_type||'???'}</div>
+            <div class="tc-price">&#x1F4B0; ${l.price.toLocaleString()}G</div>
+            <div class="tc-seller">${isMine?'My listing':l.seller_id.substring(0,8)}</div>
+            ${isMine?
+              `<button class="tc-cancel" onclick="tradeCancelListing(${l.listing_id})">Cancel</button>`:
+              `<button class="tc-buy" onclick="tradeBuy(${l.listing_id})">Buy</button>`
+            }
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+  }else if(tradeState.currentTab==='sell'){
+    // Build sell form with monster selection
+    const partyRes=await apiFetch('/api/party?session=default');
+    const party=partyRes.party||[];
+    const inv=partyRes.inventory||[];
+    const allMonsters=[];
+    party.forEach((m,i)=>allMonsters.push({...m,source:'party',idx:i}));
+    inv.forEach((m,i)=>allMonsters.push({...m,source:'inventory',idx:i}));
+
+    let myListingsHtml='';
+    if(tradeState.myListings.length>0){
+      myListingsHtml=`
+        <div class="guild-section" style="margin-bottom:14px;">
+          <h3>&#x1F4E6; My Listings (${tradeState.myListings.length}/5)</h3>
+          ${tradeState.myListings.map(l=>`
+            <div class="trade-history-item">
+              <div class="th-detail">
+                <div class="th-name">${l.monster_name} <span class="tc-rarity ${l.monster_rarity}" style="font-size:.5rem;">${l.monster_rarity}</span></div>
+                <div class="th-meta">Lv.${l.monster_level}</div>
+              </div>
+              <div class="th-price">&#x1F4B0; ${l.price.toLocaleString()}G</div>
+              <button class="tc-cancel" style="width:auto;margin:0;padding:4px 10px;font-size:.6rem;" onclick="tradeCancelListing(${l.listing_id})">Cancel</button>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+
+    body.innerHTML=`
+      ${myListingsHtml}
+      <div class="trade-list-form">
+        <h3>&#x1F4E4; List a Monster for Sale</h3>
+        ${allMonsters.length===0?'<p style="font-size:.72rem;color:var(--text-light);text-align:center;">No monsters available to sell.</p>':`
+          <select id="trade-monster-select">
+            ${allMonsters.map((m,i)=>`<option value="${i}">[${m.source==='party'?'Party':'Inv'}] ${m.name} Lv.${m.level||1} (${m.rarity||'Common'})</option>`).join('')}
+          </select>
+          <input type="number" id="trade-price-input" min="10" max="999999" placeholder="Price (10 ~ 999,999 G)">
+          <button class="trade-list-btn" onclick="tradeListMonster()">List for Sale</button>
+        `}
+      </div>`;
+
+    // Store for reference
+    window._tradeMonsterList=allMonsters;
+  }else if(tradeState.currentTab==='history'){
+    if(tradeState.history.length===0){
+      body.innerHTML='<div class="trade-empty">&#x1F4AD; No trade history yet.</div>';
+    }else{
+      body.innerHTML=tradeState.history.map(h=>`
+        <div class="trade-history-item">
+          <div class="th-role ${h.role}">${h.role==='seller'?'SOLD':'BOUGHT'}</div>
+          <div class="th-detail">
+            <div class="th-name">${h.monster_name} <span class="tc-rarity ${h.monster_rarity}" style="font-size:.5rem;">${h.monster_rarity}</span></div>
+            <div class="th-meta">${h.role==='seller'?'to':'from'} ${h.counterpart==='default'?'Me':h.counterpart.substring(0,8)}</div>
+          </div>
+          <div class="th-price">&#x1F4B0; ${h.price.toLocaleString()}G</div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+async function tradeBuy(listingId){
+  if(!confirm('Purchase this monster?')) return;
+  const res=await apiFetch(`/api/trade/buy/${listingId}?session=default`,{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    return;
+  }
+  showToast(res.message||'Purchase successful!');
+  if(res.player) updatePlayerUI(res.player);
+  await renderTrade();
+}
+
+async function tradeCancelListing(listingId){
+  if(!confirm('Cancel this listing? Monster will be returned.')) return;
+  const res=await apiFetch(`/api/trade/cancel/${listingId}?session=default`,{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    return;
+  }
+  showToast(res.message||'Listing cancelled.');
+  if(res.player) updatePlayerUI(res.player);
+  await renderTrade();
+}
+
+async function tradeListMonster(){
+  const selectEl=document.getElementById('trade-monster-select');
+  const priceEl=document.getElementById('trade-price-input');
+  if(!selectEl||!priceEl) return;
+
+  const monsterIdx=parseInt(selectEl.value);
+  const price=parseInt(priceEl.value);
+  if(isNaN(price)||price<10||price>999999){
+    showToast('Price must be between 10 and 999,999 G.');
+    return;
+  }
+
+  const allMonsters=window._tradeMonsterList||[];
+  if(monsterIdx<0||monsterIdx>=allMonsters.length){
+    showToast('Invalid monster selection.');
+    return;
+  }
+
+  const m=allMonsters[monsterIdx];
+  const res=await apiFetch(`/api/trade/list?monster_index=${m.idx}&price=${price}&source=${m.source}&session=default`,{method:'POST'});
+  if(res.error){
+    showToast(res.error);
+    return;
+  }
+  showToast(res.message||'Monster listed!');
+  if(res.player) updatePlayerUI(res.player);
+  await renderTrade();
+}
+
+// ============================================================
+// PVP ARENA
+// ============================================================
 
 let arenaState={
   registered:false,
@@ -3081,16 +3636,6 @@ let arenaState={
   history:[],
   defenseParty:[]
 };
-
-async function apiFetch(url,opts={}){
-  try{
-    const res=await fetch(API_BASE+url,opts);
-    return await res.json();
-  }catch(e){
-    console.error('API error:',e);
-    return {error:'서버 연결 실패'};
-  }
-}
 
 async function renderArena(){
   // Load stats
@@ -3190,11 +3735,6 @@ function updateArenaUI(){
       </div>`;
     }).join('');
   }
-}
-
-function getTypeEmoji(type){
-  const map={Fire:'🔥',Water:'💧',Nature:'🌿',Tech:'⚙️',Spirit:'👻',Dark:'🌑',Earth:'🪨',Wind:'💨',Food:'🍖',Light:'✨'};
-  return map[type]||'❓';
 }
 
 async function arenaRegister(){

@@ -25,6 +25,7 @@ from services import (
     search_events,
 )
 from deploy import bot_deploy_trigger, bot_deploy_status
+from anomaly import get_alert_manager, MaintenanceWindow
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -73,7 +74,12 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "배포:\n"
         "/deploy - 수동 배포 (git pull + 전체 재시작)\n"
         "/deploy <이름> - 특정 프로젝트만 배포\n"
-        "/deploystatus - 마지막 배포 상태"
+        "/deploystatus - 마지막 배포 상태\n\n"
+        "알림 & 이상 탐지:\n"
+        "/alerts - 최근 알림 조회\n"
+        "/maintenance start 2h - 유지보수 윈도우 시작\n"
+        "/maintenance stop - 유지보수 윈도우 종료\n"
+        "/thresholds - 알림 임계치 조회"
     )
 
 
@@ -350,6 +356,91 @@ async def cmd_deploy_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ 배포 상태 조회 실패: {e}")
 
 
+async def cmd_alerts(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """최근 알림 조회: /alerts"""
+    if not is_authorized(update):
+        return
+    alert_mgr = get_alert_manager()
+    alerts = alert_mgr.get_recent_alerts(10)
+    if not alerts:
+        await update.message.reply_text("🔔 최근 알림이 없습니다.")
+        return
+
+    level_icons = {"CRITICAL": "🚨", "WARNING": "⚠️", "INFO": "ℹ️"}
+    lines = ["🔔 최근 알림 (10개)\n"]
+    for al in alerts:
+        icon = level_icons.get(al.get("level", "INFO"), "📢")
+        ts = al.get("timestamp", "")[:19].replace("T", " ")
+        msg = al.get("message", "")
+        lines.append(f"{icon} [{ts}] {msg}")
+
+    stats = alert_mgr.get_alert_stats()
+    unresolved = stats.get("unresolved_critical", 0)
+    if unresolved > 0:
+        lines.append(f"\n🚨 미해결 CRITICAL: {unresolved}건")
+
+    await update.message.reply_text("\n".join(lines))
+
+
+async def cmd_maintenance(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """유지보수 윈도우 제어: /maintenance start 2h | /maintenance stop"""
+    if not is_authorized(update):
+        return
+    args = ctx.args or []
+    mw = MaintenanceWindow()
+
+    if not args:
+        status = mw.get_status()
+        if status.get("active"):
+            end = status.get("end", "")[:19].replace("T", " ")
+            await update.message.reply_text(f"🔧 유지보수 윈도우: 활성\n종료 예정: {end}")
+        else:
+            await update.message.reply_text(
+                "🔧 유지보수 윈도우: 비활성\n\n"
+                "사용법:\n/maintenance start 2h\n/maintenance stop"
+            )
+        return
+
+    action = args[0].lower()
+    if action == "start":
+        hours = 2.0
+        if len(args) > 1:
+            duration = args[1].lower()
+            if duration.endswith("h") and duration[:-1].replace(".", "").isdigit():
+                hours = float(duration[:-1])
+            elif duration.replace(".", "").isdigit():
+                hours = float(duration)
+        mw.start(hours=hours)
+        await update.message.reply_text(f"🔧 유지보수 윈도우 시작 ({hours}시간)\n알림이 억제됩니다.")
+    elif action == "stop":
+        mw.stop()
+        await update.message.reply_text("🔧 유지보수 윈도우 종료\n알림이 다시 활성화됩니다.")
+    else:
+        await update.message.reply_text("사용법: /maintenance start 2h | /maintenance stop")
+
+
+async def cmd_thresholds(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """현재 알림 임계치 조회: /thresholds"""
+    if not is_authorized(update):
+        return
+    thresholds = get_alert_manager().get_thresholds()
+    lines = [
+        "📊 알림 임계치\n",
+        f"CPU 임계치: {thresholds.get('cpu_threshold')}%",
+        f"Memory 임계치: {thresholds.get('memory_threshold')}%",
+        f"Disk 임계치: {thresholds.get('disk_threshold')}%",
+        f"Disk 포화 예측: {thresholds.get('disk_predict_target')}%",
+        f"CPU 표준편차 배수: {thresholds.get('cpu_std_multiplier')}",
+        f"CPU 연속 이상 최소: {thresholds.get('cpu_consecutive_min')}회",
+        f"메모리 누수 판단: {thresholds.get('memory_leak_minutes')}분",
+        f"디스크 증가율: {thresholds.get('disk_growth_rate_threshold')}%/h",
+        f"재시작 폭풍: {thresholds.get('restart_storm_count')}회/{thresholds.get('restart_storm_window_minutes')}분",
+        f"알림 쿨다운: {thresholds.get('alert_cooldown_minutes')}분",
+        f"알림 활성: {'예' if thresholds.get('alert_enabled') else '아니오'}",
+    ]
+    await update.message.reply_text("\n".join(lines))
+
+
 async def cmd_panel(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update):
         return
@@ -456,6 +547,9 @@ def main():
     app.add_handler(CommandHandler("uptime", cmd_uptime))
     app.add_handler(CommandHandler("deploy", cmd_deploy))
     app.add_handler(CommandHandler("deploystatus", cmd_deploy_status))
+    app.add_handler(CommandHandler("alerts", cmd_alerts))
+    app.add_handler(CommandHandler("maintenance", cmd_maintenance))
+    app.add_handler(CommandHandler("thresholds", cmd_thresholds))
     app.add_handler(CommandHandler("panel", cmd_panel))
     app.add_handler(CallbackQueryHandler(button_handler))
 
