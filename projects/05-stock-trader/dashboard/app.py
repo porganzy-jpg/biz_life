@@ -1434,7 +1434,44 @@ DASHBOARD_HTML = """
     </div>
     <script>
         const fmt = n => n ? n.toLocaleString('ko-KR') : '0';
-        const fmtW = n => { if(!n) return '0'; if(Math.abs(n)>=1e8) return (n/1e8).toFixed(1)+'\\uc5b5'; if(Math.abs(n)>=1e4) return (n/1e4).toFixed(0)+'\\ub9cc'; return fmt(n); };
+        const fmtW = n => { if(!n) return '0'; if(Math.abs(n)>=1e8) return (n/1e8).toFixed(1)+'\uc5b5'; if(Math.abs(n)>=1e4) return (n/1e4).toFixed(0)+'\ub9cc'; return fmt(n); };
+
+        /* ========== Shared Regime Labels & CSS Map ========== */
+        const REGIME_LABELS = {
+            'BULL': '\uac15\uc138',
+            'BEAR': '\uc57d\uc138',
+            'SIDEWAYS': '\ud69f\ubcf4',
+            'BULL_TREND': '\uac15\uc138 \ucd94\uc138',
+            'BEAR_TREND': '\uc57d\uc138 \ucd94\uc138',
+            'RANGING': '\ud69f\ubcf4',
+            'HIGH_VOLATILITY': '\uace0\ubcc0\ub3d9\uc131',
+        };
+        const REGIME_CLASS_MAP = {
+            'BULL': 'regime-bull',
+            'BEAR': 'regime-bear',
+            'SIDEWAYS': 'regime-sideways',
+            'BULL_TREND': 'regime-bull-trend',
+            'BEAR_TREND': 'regime-bear-trend',
+            'RANGING': 'regime-ranging',
+            'HIGH_VOLATILITY': 'regime-high-vol',
+        };
+
+        /* ========== HTML escape helper (XSS prevention) ========== */
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        /* ========== Toast notification ========== */
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            const bg = type === 'success' ? '#238636' : type === 'error' ? '#da3633' : '#1f6feb';
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-size:0.85rem;font-weight:600;z-index:9999;transition:opacity 0.5s;background:' + bg;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+            setTimeout(() => { toast.remove(); }, 3000);
+        }
 
         /* ========== Chart.js global defaults for dark theme ========== */
         Chart.defaults.color = '#8b949e';
@@ -1463,6 +1500,7 @@ DASHBOARD_HTML = """
         async function loadEquityChart() {
             try {
                 const r = await fetch('/api/equity-curve?period=' + currentPeriod);
+                if (!r.ok) throw new Error('HTTP ' + r.status);
                 const d = await r.json();
                 const data = d.data || [];
                 const emptyEl = document.getElementById('equityEmpty');
@@ -1521,7 +1559,7 @@ DASHBOARD_HTML = """
                             tooltip: {
                                 callbacks: {
                                     label: function(ctx) {
-                                        if (ctx.datasetIndex === 0) return '\uc190\uc775: ' + fmtW(ctx.raw) + '\\uc6d0';
+                                        if (ctx.datasetIndex === 0) return '\uc190\uc775: ' + fmtW(ctx.raw) + '\uc6d0';
                                         return '\ub0a8\ud3ed: ' + ctx.raw.toFixed(2) + '%';
                                     }
                                 }
@@ -1563,13 +1601,20 @@ DASHBOARD_HTML = """
                         }
                     }]
                 });
-            } catch(e) { console.error('Equity chart error:', e); }
+            } catch(e) {
+                console.error('Equity chart error:', e);
+                const emptyEl = document.getElementById('equityEmpty');
+                emptyEl.style.display = 'flex';
+                emptyEl.innerHTML = '\ub370\uc774\ud130 \ub85c\ub4dc \uc2e4\ud328. \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694. <button class="btn btn-sm btn-scan" onclick="loadEquityChart()" style="margin-left:8px">\uc7ac\uc2dc\ub3c4</button>';
+                document.getElementById('equityChart').style.display = 'none';
+            }
         }
 
         /* ========== Daily P&L Bar Chart ========== */
         async function loadDailyPnlChart() {
             try {
                 const r = await fetch('/api/daily-pnl?period=' + currentPeriod);
+                if (!r.ok) throw new Error('HTTP ' + r.status);
                 const d = await r.json();
                 const data = d.data || [];
                 const emptyEl = document.getElementById('pnlEmpty');
@@ -1626,7 +1671,7 @@ DASHBOARD_HTML = """
                             tooltip: {
                                 callbacks: {
                                     label: function(ctx) {
-                                        return ctx.dataset.label + ': ' + fmtW(ctx.raw) + '\\uc6d0';
+                                        return ctx.dataset.label + ': ' + fmtW(ctx.raw) + '\uc6d0';
                                     }
                                 }
                             }
@@ -1638,13 +1683,20 @@ DASHBOARD_HTML = """
                         }
                     }
                 });
-            } catch(e) { console.error('Daily PnL chart error:', e); }
+            } catch(e) {
+                console.error('Daily PnL chart error:', e);
+                const emptyEl = document.getElementById('pnlEmpty');
+                emptyEl.style.display = 'flex';
+                emptyEl.innerHTML = '\ub370\uc774\ud130 \ub85c\ub4dc \uc2e4\ud328. \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694. <button class="btn btn-sm btn-scan" onclick="loadDailyPnlChart()" style="margin-left:8px">\uc7ac\uc2dc\ub3c4</button>';
+                document.getElementById('dailyPnlChart').style.display = 'none';
+            }
         }
 
         /* ========== Strategy Doughnut Chart ========== */
         async function loadStrategyChart() {
             try {
                 const r = await fetch('/api/strategy-stats?period=' + currentPeriod);
+                if (!r.ok) throw new Error('HTTP ' + r.status);
                 const d = await r.json();
                 const strategies = d.strategies || {};
                 const emptyEl = document.getElementById('strategyEmpty');
@@ -1729,18 +1781,25 @@ DASHBOARD_HTML = """
                     const pnlClass = (s.total_pnl||0) >= 0 ? 'pos' : 'neg';
                     html += '<tr><td>' + name + '</td><td class="green">' + Math.round(s.wins) + '</td><td class="pos">' + Math.round(s.losses) + '</td>'
                          + '<td class="green">' + s.win_rate + '%</td>'
-                         + '<td class="' + pnlClass + '">' + fmtW(s.total_pnl) + '\\uc6d0</td></tr>';
+                         + '<td class="' + pnlClass + '">' + fmtW(s.total_pnl) + '\uc6d0</td></tr>';
                 }
                 html += '</tbody></table>';
                 tableEl.innerHTML = html;
 
-            } catch(e) { console.error('Strategy chart error:', e); }
+            } catch(e) {
+                console.error('Strategy chart error:', e);
+                const emptyEl = document.getElementById('strategyEmpty');
+                emptyEl.style.display = 'flex';
+                emptyEl.innerHTML = '\ub370\uc774\ud130 \ub85c\ub4dc \uc2e4\ud328. \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694. <button class="btn btn-sm btn-scan" onclick="loadStrategyChart()" style="margin-left:8px">\uc7ac\uc2dc\ub3c4</button>';
+                document.getElementById('strategyChart').style.display = 'none';
+            }
         }
 
         /* ========== Trade Distribution Histogram ========== */
         async function loadDistChart() {
             try {
                 const r = await fetch('/api/trade-distribution?period=' + currentPeriod);
+                if (!r.ok) throw new Error('HTTP ' + r.status);
                 const d = await r.json();
                 const emptyEl = document.getElementById('distEmpty');
                 const canvas = document.getElementById('distChart');
@@ -1817,7 +1876,13 @@ DASHBOARD_HTML = """
                         }
                     }]
                 });
-            } catch(e) { console.error('Distribution chart error:', e); }
+            } catch(e) {
+                console.error('Distribution chart error:', e);
+                const emptyEl = document.getElementById('distEmpty');
+                emptyEl.style.display = 'flex';
+                emptyEl.innerHTML = '\ub370\uc774\ud130 \ub85c\ub4dc \uc2e4\ud328. \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694. <button class="btn btn-sm btn-scan" onclick="loadDistChart()" style="margin-left:8px">\uc7ac\uc2dc\ub3c4</button>';
+                document.getElementById('distChart').style.display = 'none';
+            }
         }
 
         /* ========== Load All Charts ========== */
@@ -1835,13 +1900,13 @@ DASHBOARD_HTML = """
                 const d = await r.json();
                 const mt = document.getElementById('modeTag');
                 mt.textContent = d.scheduler?.running ? '\uc790\ub3d9\ub9e4\ub9e4 \uc911' : d.mode;
-                mt.className = 'mode ' + (d.mode==='\\uc2e4\\uc804\\ud22c\\uc790'?'mode-live':'mode-paper');
+                mt.className = 'mode ' + (d.mode==='\uc2e4\uc804\ud22c\uc790'?'mode-live':'mode-paper');
                 if(d.scheduler?.running) { mt.className='mode'; mt.style.cssText='padding:4px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;background:#23863633;color:#3fb950;border:1px solid #238636'; }
-                document.getElementById('totalAssets').textContent = fmtW(d.balance?.total_eval||0)+'\\uc6d0';
-                document.getElementById('cash').textContent = fmtW(d.balance?.cash||0)+'\\uc6d0';
+                document.getElementById('totalAssets').textContent = fmtW(d.balance?.total_eval||0)+'\uc6d0';
+                document.getElementById('cash').textContent = fmtW(d.balance?.cash||0)+'\uc6d0';
                 const pnl = d.total_pnl||0; const pnlPct = d.total_pnl_pct||0;
                 const pnlEl = document.getElementById('totalPnl');
-                pnlEl.textContent = (pnl>=0?'+':'')+fmtW(pnl)+'\\uc6d0 ('+(pnlPct>=0?'+':'')+pnlPct.toFixed(2)+'%)';
+                pnlEl.textContent = (pnl>=0?'+':'')+fmtW(pnl)+'\uc6d0 ('+(pnlPct>=0?'+':'')+pnlPct.toFixed(2)+'%)';
                 pnlEl.className = 'value '+(pnl>=0?'pos':'neg');
                 document.getElementById('posCount').textContent = Object.keys(d.positions||{}).length;
                 document.getElementById('winRate').textContent = (d.win_rate||0)+'%';
@@ -1850,7 +1915,7 @@ DASHBOARD_HTML = """
                 if(cb.tripped) { cbEl.classList.add('active'); document.getElementById('cbReason').textContent=cb.reason; }
                 else { cbEl.classList.remove('active'); }
                 const si = d.scheduler||{};
-                document.getElementById('schedInfo').textContent = (si.is_market_hours?'\\uc7a5\\uc911':'\\uc7a5\\uc678')+' | '+si.time_until_open;
+                document.getElementById('schedInfo').textContent = (si.is_market_hours?'\uc7a5\uc911':'\uc7a5\uc678')+' | '+si.time_until_open;
                 const posEl = document.getElementById('positions');
                 const pe = Object.entries(d.positions||{});
                 if(!pe.length) { posEl.innerHTML='<p class="neu">\ubcf4\uc720 \uc885\ubaa9 \uc5c6\uc74c</p>'; }
@@ -1858,7 +1923,7 @@ DASHBOARD_HTML = """
                     posEl.innerHTML = '<table><thead><tr><th>\uc885\ubaa9</th><th>\uc218\ub7c9</th><th>\ud3c9\uade0\uac00</th><th>\ud3c9\uac00\uae08\uc561</th></tr></thead><tbody>'
                         + pe.map(([s,p]) => {
                             const val = (p.qty||0)*(p.avg_price||0);
-                            return '<tr><td><b>'+(p.name||s)+'</b><br><span class="neu" style="font-size:0.72rem">'+s+'</span></td><td>'+fmt(p.qty)+'</td><td>'+fmt(p.avg_price)+'</td><td>'+fmtW(val)+'\\uc6d0</td></tr>';
+                            return '<tr><td><b>'+(p.name||s)+'</b><br><span class="neu" style="font-size:0.72rem">'+s+'</span></td><td>'+fmt(p.qty)+'</td><td>'+fmt(p.avg_price)+'</td><td>'+fmtW(val)+'\uc6d0</td></tr>';
                         }).join('')+'</tbody></table>';
                 }
                 const tb = document.getElementById('recentTrades');
@@ -1875,9 +1940,8 @@ DASHBOARD_HTML = """
                 const rg = d.regime||{};
                 const rgBadge = document.getElementById('regimeBadge');
                 const rgName = rg.regime||'SIDEWAYS';
-                const REGIME_KO = {'BULL':'\uac15\uc138','BEAR':'\uc57d\uc138','SIDEWAYS':'\ud69f\ubcf4'};
-                rgBadge.textContent = REGIME_KO[rgName] || rgName;
-                rgBadge.className = 'badge-regime regime-'+rgName.toLowerCase();
+                rgBadge.textContent = REGIME_LABELS[rgName] || rgName;
+                rgBadge.className = 'badge-regime ' + (REGIME_CLASS_MAP[rgName] || 'regime-sideways');
                 const rgDet = rg.details||{};
                 document.getElementById('regimeADX').textContent = rgDet.adx!==undefined ? rgDet.adx : '-';
                 document.getElementById('regimeVol').textContent = rgDet.recent_volatility!==undefined ? rgDet.recent_volatility+'%' : '-';
@@ -1885,7 +1949,7 @@ DASHBOARD_HTML = """
                 document.getElementById('regimeMaDiff').textContent = rgDet.ma_diff_pct!==undefined ? (rgDet.ma_diff_pct>=0?'+':'')+rgDet.ma_diff_pct+'%' : '-';
                 document.getElementById('regimeSince').textContent = rg.regime_since ? '\uc2dc\uc791: '+new Date(rg.regime_since).toLocaleString('ko',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
                 const rgStatEl = document.getElementById('regimeStat');
-                rgStatEl.textContent = REGIME_KO[rgName] || rgName;
+                rgStatEl.textContent = REGIME_LABELS[rgName] || rgName;
                 rgStatEl.className = 'value '+(rgName==='BULL'?'green':rgName==='BEAR'?'pos':'yellow');
                 // Regime weights
                 const rgw = rg.weights||{};
@@ -1910,9 +1974,9 @@ DASHBOARD_HTML = """
                     +'<tr><td>\uac70\ub798</td><td>'+(s7.total||0)+'</td><td>'+(s30.total||0)+'</td><td>'+(sa.total||0)+'</td></tr>'
                     +'<tr><td>\uc2b9\ub9ac</td><td>'+(s7.wins||0)+'</td><td>'+(s30.wins||0)+'</td><td>'+(sa.wins||0)+'</td></tr>'
                     +'<tr><td>\uc2b9\ub960</td><td class="green">'+(s7.win_rate||0)+'%</td><td class="green">'+(s30.win_rate||0)+'%</td><td class="green">'+(sa.win_rate||0)+'%</td></tr>'
-                    +'<tr><td>\ub204\uc801 \uc190\uc775</td><td class="'+((s7.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(s7.total_pnl||0)+'\\uc6d0</td>'
-                    +'<td class="'+((s30.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(s30.total_pnl||0)+'\\uc6d0</td>'
-                    +'<td class="'+((sa.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(sa.total_pnl||0)+'\\uc6d0</td></tr>'
+                    +'<tr><td>\ub204\uc801 \uc190\uc775</td><td class="'+((s7.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(s7.total_pnl||0)+'\uc6d0</td>'
+                    +'<td class="'+((s30.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(s30.total_pnl||0)+'\uc6d0</td>'
+                    +'<td class="'+((sa.total_pnl||0)>=0?'pos':'neg')+'">'+fmtW(sa.total_pnl||0)+'\uc6d0</td></tr>'
                     +'<tr><td>\ud3c9\uade0 \uc218\uc775</td><td>'+(s7.avg_pnl_pct||0)+'%</td><td>'+(s30.avg_pnl_pct||0)+'%</td><td>'+(sa.avg_pnl_pct||0)+'%</td></tr></table>';
             } catch(e) {}
         }
@@ -1936,12 +2000,36 @@ DASHBOARD_HTML = """
             }).join('');
         }
 
-        async function startBot() { await fetch('/api/bot/start',{method:'POST'}); fetchStatus(); }
-        async function stopBot() { await fetch('/api/bot/stop',{method:'POST'}); fetchStatus(); }
+        async function startBot() {
+            const btn = document.querySelector('.btn-start');
+            const origText = btn.textContent;
+            btn.disabled = true; btn.textContent = '\uc2dc\uc791 \uc911...';
+            try {
+                await fetch('/api/bot/start',{method:'POST'});
+                fetchStatus();
+            } catch(e) { console.error(e); showToast('\uc790\ub3d9\ub9e4\ub9e4 \uc2dc\uc791 \uc2e4\ud328', 'error'); }
+            finally { btn.disabled = false; btn.textContent = origText; }
+        }
+        async function stopBot() {
+            const btn = document.querySelector('.btn-stop');
+            const origText = btn.textContent;
+            btn.disabled = true; btn.textContent = '\uc911\uc9c0 \uc911...';
+            try {
+                await fetch('/api/bot/stop',{method:'POST'});
+                fetchStatus();
+            } catch(e) { console.error(e); showToast('\uc911\uc9c0 \uc2e4\ud328', 'error'); }
+            finally { btn.disabled = false; btn.textContent = origText; }
+        }
         async function runCycle() {
+            const btn = document.querySelector('.btn-cycle');
+            const origText = btn.textContent;
+            btn.disabled = true; btn.textContent = '\uc2e4\ud589 \uc911...';
             document.getElementById('scanResults').innerHTML='<tr><td colspan="6">\ub9e4\ub9e4 \uc0ac\uc774\ud074 \uc2e4\ud589 \uc911...</td></tr>';
-            await fetch('/api/cycle',{method:'POST'});
-            fetchStatus(); fetchStats();
+            try {
+                await fetch('/api/cycle',{method:'POST'});
+                fetchStatus(); fetchStats();
+            } catch(e) { console.error(e); showToast('1\ud68c \uc2e4\ud589 \uc2e4\ud328', 'error'); }
+            finally { btn.disabled = false; btn.textContent = origText; }
         }
         async function resetCB() { await fetch('/api/circuit-breaker/reset',{method:'POST'}); fetchStatus(); }
 
@@ -2170,6 +2258,8 @@ DASHBOARD_HTML = """
                 }
                 // Update checkbox to reflect actual server state
                 checkbox.checked = d.enabled;
+                // Show success toast
+                showToast(name + ' \uc804\ub7b5\uc774 ' + (d.enabled ? '\ud65c\uc131\ud654' : '\ube44\ud65c\uc131\ud654') + '\ub418\uc5c8\uc2b5\ub2c8\ub2e4.', 'success');
                 // Reload ranking to reflect status changes
                 loadStrategyRanking();
             } catch(e) {
@@ -2238,19 +2328,6 @@ DASHBOARD_HTML = """
             'RANGING': '#d29922',
             'HIGH_VOLATILITY': '#f97316',
         };
-        const REGIME_CSS = {
-            'BULL_TREND': 'regime-bull-trend',
-            'BEAR_TREND': 'regime-bear-trend',
-            'RANGING': 'regime-ranging',
-            'HIGH_VOLATILITY': 'regime-high-vol',
-        };
-        const REGIME_LABELS_KO = {
-            'BULL_TREND': '\uac15\uc138 \ucd94\uc138',
-            'BEAR_TREND': '\uc57d\uc138 \ucd94\uc138',
-            'RANGING': '\ud69f\ubcf4',
-            'HIGH_VOLATILITY': '\uace0\ubcc0\ub3d9\uc131',
-        };
-
         async function loadDashboardRegime() {
             try {
                 const r = await fetch('/api/regime/current');
@@ -2263,8 +2340,8 @@ DASHBOARD_HTML = """
 
                 // Update badge
                 const badge = document.getElementById('dashRegimeBadge');
-                badge.textContent = (REGIME_LABELS_KO[regime] || regime);
-                badge.className = 'regime-badge-lg ' + (REGIME_CSS[regime] || 'regime-ranging');
+                badge.textContent = (REGIME_LABELS[regime] || regime);
+                badge.className = 'regime-badge-lg ' + (REGIME_CLASS_MAP[regime] || 'regime-ranging');
 
                 // Update confidence
                 const confPct = Math.round(confidence * 100);
@@ -2412,7 +2489,7 @@ DASHBOARD_HTML = """
                                         if (ctx.datasetIndex === 0) {
                                             const dateKey = dates[ctx.dataIndex];
                                             const r = byDate[dateKey] ? byDate[dateKey].regime : '-';
-                                            return '\uad6d\uba74: ' + (REGIME_LABELS_KO[r] || r);
+                                            return '\uad6d\uba74: ' + (REGIME_LABELS[r] || r);
                                         }
                                         return '\uc2e0\ub8b0\ub3c4: ' + ctx.raw + '%';
                                     }
@@ -2464,14 +2541,14 @@ DASHBOARD_HTML = """
                 for (const entry of recent) {
                     const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString('ko', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
                     const regime = entry.regime || 'RANGING';
-                    const css = REGIME_CSS[regime] || 'regime-ranging';
+                    const css = REGIME_CLASS_MAP[regime] || 'regime-ranging';
                     const conf = entry.confidence ? Math.round(entry.confidence * 100) + '%' : '-';
                     const ind = entry.indicators || {};
                     const ret20d = ind.return_20d !== null && ind.return_20d !== undefined ? (ind.return_20d >= 0 ? '+' : '') + ind.return_20d.toFixed(2) + '%' : '-';
                     const retColor = (ind.return_20d || 0) >= 0 ? '#3fb950' : '#f85149';
 
                     html += '<tr><td>' + ts + '</td>'
-                         + '<td><span class="badge-regime ' + css + '" style="font-size:0.7rem;padding:2px 6px">' + (REGIME_LABELS_KO[regime] || regime) + '</span></td>'
+                         + '<td><span class="badge-regime ' + css + '" style="font-size:0.7rem;padding:2px 6px">' + (REGIME_LABELS[regime] || regime) + '</span></td>'
                          + '<td>' + conf + '</td>'
                          + '<td style="color:' + retColor + '">' + ret20d + '</td></tr>';
                 }
@@ -2486,7 +2563,7 @@ DASHBOARD_HTML = """
                 const r = await fetch('/api/regime/apply-weights', { method: 'POST' });
                 const d = await r.json();
                 if (d.status === 'applied') {
-                    alert('\uac00\uc911\uce58 \uc801\uc6a9 \uc644\ub8cc!\\n\uad6d\uba74: ' + (REGIME_LABELS_KO[d.regime] || d.regime) + '\\n\uc2e0\ub8b0\ub3c4: ' + Math.round(d.confidence * 100) + '%');
+                    alert('\uac00\uc911\uce58 \uc801\uc6a9 \uc644\ub8cc!\\n\uad6d\uba74: ' + (REGIME_LABELS[d.regime] || d.regime) + '\\n\uc2e0\ub8b0\ub3c4: ' + Math.round(d.confidence * 100) + '%');
                     loadDashboardRegime();
                     loadStrategyToggles();
                 } else {
@@ -2530,6 +2607,7 @@ DASHBOARD_HTML = """
         async function loadCorrelationHeatmap() {
             try {
                 const r = await fetch('/api/correlation-matrix?lookback=20');
+                if (!r.ok) throw new Error('HTTP ' + r.status);
                 const d = await r.json();
                 const el = document.getElementById('corrHeatmap');
                 const symbols = d.symbols || [];
@@ -2564,7 +2642,10 @@ DASHBOARD_HTML = """
                 }
                 html += '</tbody></table>';
                 el.innerHTML = html;
-            } catch(e) { console.error('Correlation heatmap error:', e); }
+            } catch(e) {
+                console.error('Correlation heatmap error:', e);
+                document.getElementById('corrHeatmap').innerHTML = '\ub370\uc774\ud130 \ub85c\ub4dc \uc2e4\ud328. \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694. <button class="btn btn-sm btn-scan" onclick="loadCorrelationHeatmap()" style="margin-left:8px">\uc7ac\uc2dc\ub3c4</button>';
+            }
         }
 
         async function loadSectorPie() {
@@ -2635,7 +2716,7 @@ DASHBOARD_HTML = """
                 const score = divData.score || 0;
                 const grade = divData.grade || '-';
                 const circumference = 2 * Math.PI * 58; // 364.42
-                const offset = circumference * (1 - score / 100);
+                const offset = circumference * (1 - Math.max(0, Math.min(1, score / 100)));
                 const gaugeFill = document.getElementById('divGaugeFill');
 
                 let gaugeColor = '#f85149';
@@ -2910,6 +2991,7 @@ DASHBOARD_HTML = """
         async function loadExecutionStats() {
             try {
                 const res = await fetch('/api/execution/stats');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
                 const s = data.stats || {};
                 document.getElementById('execTotalOrders').textContent = (s.total_orders || 0).toLocaleString();
@@ -2932,14 +3014,16 @@ DASHBOARD_HTML = """
                         const fillPct = ((o.fill_rate || 0) * 100).toFixed(0);
                         const sideClass = o.side === 'BUY' ? 'badge-buy' : 'badge-sell';
                         const sideKo = o.side === 'BUY' ? '\ub9e4\uc218' : '\ub9e4\ub3c4';
+                        const safeSymbol = escapeHtml(o.symbol);
+                        const safeType = escapeHtml(o.order_type);
                         return `<div class="active-order-item">
                             <div>
-                                <span class="ao-symbol">${o.symbol}</span>
-                                <span class="ao-type">${o.order_type}</span>
+                                <span class="ao-symbol">${safeSymbol}</span>
+                                <span class="ao-type">${safeType}</span>
                                 <span class="badge ${sideClass}" style="margin-left:4px">${sideKo}</span>
                             </div>
                             <div class="ao-progress">
-                                ${o.filled_qty || 0}/${o.total_qty}\uc8fc
+                                ${parseInt(o.filled_qty) || 0}/${parseInt(o.total_qty) || 0}\uc8fc
                                 <div class="ao-bar"><div class="ao-bar-fill" style="width:${fillPct}%"></div></div>
                                 ${fillPct}%
                             </div>
@@ -2948,7 +3032,10 @@ DASHBOARD_HTML = """
                 }
 
                 document.getElementById('execLastUpdate').textContent = '\uac31\uc2e0: ' + new Date().toLocaleTimeString('ko-KR');
-            } catch(e) { console.error('Exec stats error:', e); }
+            } catch(e) {
+                console.error('Exec stats error:', e);
+                document.getElementById('execActiveList').innerHTML = '\ub370\uc774\ud130 \ub85c\ub4dc \uc2e4\ud328. \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694. <button class="btn btn-sm btn-scan" onclick="loadExecutionStats()" style="margin-left:8px">\uc7ac\uc2dc\ub3c4</button>';
+            }
         }
 
         async function loadExecutionHistory() {
@@ -2960,7 +3047,7 @@ DASHBOARD_HTML = """
                 // Execution quality gauge
                 const fillRate = summary.fill_rate_pct || 0;
                 const circumference = 314.16;
-                const offset = circumference * (1 - fillRate / 100);
+                const offset = circumference * (1 - Math.max(0, Math.min(1, fillRate / 100)));
                 const gaugeFill = document.getElementById('eqGaugeFill');
                 gaugeFill.setAttribute('stroke-dashoffset', offset.toFixed(2));
                 const gaugeColor = fillRate >= 90 ? '#3fb950' : fillRate >= 70 ? '#d29922' : '#f85149';
@@ -3103,6 +3190,14 @@ DASHBOARD_HTML = """
         }
 
         populateVPSymbolSelect();
+
+        /* ========== Chart resize handler ========== */
+        window.addEventListener('resize', () => {
+            const charts = [equityChartInst, dailyPnlChartInst, strategyChartInst, distChartInst,
+                            rollingChartInst, regimeTimelineChartInst, sectorPieChartInst,
+                            corrTrendChartInst, divTrendChartInst, slippageHistChartInst];
+            charts.forEach(c => { if (c) c.resize(); });
+        });
 
         /* ========== Initialize ========== */
         fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis(); loadAllRegimeData(); loadAllPortfolioRisk(); loadAllExecution();

@@ -94,20 +94,7 @@
 
 {% block scripts %}
 <script>
-function formatPrice(krw) {
-    if (!krw) return '가격미정';
-    const eok = Math.floor(krw / 100000000);
-    const man = Math.floor((krw % 100000000) / 10000);
-    if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만`;
-    if (eok > 0) return `${eok}억`;
-    return `${man.toLocaleString()}만`;
-}
-
-function formatDate(iso) {
-    if (!iso) return '-';
-    const d = new Date(iso);
-    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-}
+// formatPrice, formatDate는 utils.js에서 제공
 
 function getCompClass(rate) {
     if (!rate) return '';
@@ -172,11 +159,12 @@ async function loadActive() {
     container.innerHTML = '<p class="text-muted text-center py-4">로딩중...</p>';
     try {
         const resp = await fetch('/api/v1/subscriptions/');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
         document.getElementById('subActive').textContent = data.count || 0;
         renderSubList(data.items || []);
     } catch (e) {
-        container.innerHTML = `<div class="alert alert-danger">오류: ${e.message}</div>`;
+        container.innerHTML = `<div class="text-center py-5"><i class="bi bi-exclamation-triangle text-danger" style="font-size:2rem;"></i><p class="mt-2 text-danger">접수중 데이터를 불러올 수 없습니다: ${e.message}</p><button class="btn btn-outline-primary btn-sm" onclick="loadActive()"><i class="bi bi-arrow-clockwise"></i> 다시 시도</button></div>`;
     }
 }
 
@@ -185,11 +173,12 @@ async function loadUpcoming() {
     container.innerHTML = '<p class="text-muted text-center py-4">로딩중...</p>';
     try {
         const resp = await fetch('/api/v1/subscriptions/upcoming?days=30');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
         document.getElementById('subUpcoming').textContent = data.count || 0;
         renderSubList(data.items || []);
     } catch (e) {
-        container.innerHTML = `<div class="alert alert-danger">오류: ${e.message}</div>`;
+        container.innerHTML = `<div class="text-center py-5"><i class="bi bi-exclamation-triangle text-danger" style="font-size:2rem;"></i><p class="mt-2 text-danger">예정 청약 데이터를 불러올 수 없습니다: ${e.message}</p><button class="btn btn-outline-primary btn-sm" onclick="loadUpcoming()"><i class="bi bi-arrow-clockwise"></i> 다시 시도</button></div>`;
     }
 }
 
@@ -258,13 +247,15 @@ async function showSubDetail(id) {
             fetch('/api/v1/subscriptions/'),
             fetch('/api/v1/subscriptions/upcoming?days=30')
         ]);
+        if (!activeResp.ok) throw new Error('접수중 데이터를 불러올 수 없습니다 (HTTP ' + activeResp.status + ')');
+        if (!upResp.ok) throw new Error('예정 청약 데이터를 불러올 수 없습니다 (HTTP ' + upResp.status + ')');
         const activeData = await activeResp.json();
         const upData = await upResp.json();
         document.getElementById('subActive').textContent = activeData.count || 0;
         document.getElementById('subUpcoming').textContent = upData.count || 0;
         renderSubList(activeData.items || []);
     } catch (e) {
-        document.getElementById('subList').innerHTML = `<div class="alert alert-danger">오류: ${e.message}</div>`;
+        document.getElementById('subList').innerHTML = `<div class="text-center py-5"><i class="bi bi-exclamation-triangle text-danger" style="font-size:2rem;"></i><p class="mt-2 text-danger">데이터를 불러올 수 없습니다: ${e.message}</p><button class="btn btn-outline-primary btn-sm" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> 새로고침</button></div>`;
     }
 })();
 </script>

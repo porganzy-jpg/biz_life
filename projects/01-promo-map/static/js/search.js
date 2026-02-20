@@ -127,7 +127,22 @@ function debouncedSuggest(query) {
     searchDebounceTimer = setTimeout(async () => {
         try {
             const data = await API.searchStores(query.trim(), 1);
-            showSearchSuggestions(data.items || [], query.trim());
+            const items = data.items || [];
+            if (items.length === 0 && query.trim().length > 0) {
+                const suggestionsEl = document.getElementById('searchSuggestions');
+                if (suggestionsEl) {
+                    suggestionsEl.innerHTML =
+                        '<div class="suggestion-section">'
+                        + '<div class="suggestion-section-title">검색 결과 없음</div>'
+                        + '<div style="padding:12px 14px;color:var(--text-muted);font-size:0.85rem;">'
+                        + '"' + escapeHtml(query.trim()) + '"에 대한 검색 결과가 없습니다'
+                        + '</div>'
+                        + '</div>';
+                    suggestionsEl.style.display = 'block';
+                }
+            } else {
+                showSearchSuggestions(items, query.trim());
+            }
         } catch {
             showSearchSuggestions([], query.trim());
         }

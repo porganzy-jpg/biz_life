@@ -508,8 +508,16 @@ async function doSearch(page) {
 
     const spinner = document.getElementById('loadingSpinner');
     const resultList = document.getElementById('resultList');
+    const searchBtn = document.querySelector('button[onclick="doSearch()"]');
     spinner.classList.add('active');
     resultList.innerHTML = '';
+
+    // 검색 버튼 비활성화 및 스피너 표시
+    if (searchBtn) {
+        searchBtn.disabled = true;
+        searchBtn._origHTML = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 검색중...';
+    }
 
     try {
         const resp = await fetch(API_SEARCH, {
@@ -528,6 +536,11 @@ async function doSearch(page) {
         resultList.innerHTML = `<div class="alert alert-danger">검색 오류: ${e.message}</div>`;
     } finally {
         spinner.classList.remove('active');
+        // 검색 버튼 다시 활성화
+        if (searchBtn) {
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = searchBtn._origHTML || '<i class="bi bi-search"></i> 검색';
+        }
     }
 }
 

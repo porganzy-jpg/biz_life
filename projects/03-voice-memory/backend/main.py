@@ -901,7 +901,7 @@ TEMPLATE_HTML = """
         .btn-sm { padding: 6px 16px; font-size: 0.8rem; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         /* Chat */
-        .chat-area { max-height: 400px; overflow-y: auto; padding: 10px 0; }
+        .chat-area { max-height: calc(100vh - 300px); overflow-y: auto; padding: 10px 0; }
         .chat-msg { margin-bottom: 10px; display: flex; }
         .chat-msg.user { justify-content: flex-end; }
         .chat-msg .bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 0.9rem; line-height: 1.5; }
@@ -1627,8 +1627,8 @@ TEMPLATE_HTML = """
                 <div class="input-group"><label>\uAD00\uACC4</label>
                     <select id="pRel"><option value="family">\uAC00\uC871</option><option value="friend">\uCE5C\uAD6C</option><option value="mentor">\uC2A4\uC2B9</option></select>
                 </div>
-                <div class="input-group"><label>\uC131\uACA9</label><input id="pTraits" placeholder="\uB530\uB73B\uD55C, \uC720\uBA38\uB7EC\uC2A4, \uB2E4\uC815\uD55C" /></div>
-                <div class="input-group"><label>\uB9D0\uD22C</label><input id="pStyle" placeholder="\uB9D0\uD22C \uD2B9\uC9D5 (\uC608: ~\uB780\uB2E4, ~\uD558\uB834)" /></div>
+                <div class="input-group"><label>\uC131\uACA9</label><input id="pTraits" placeholder="\uC608: \uB530\uB73B\uD55C, \uC720\uBA38\uB7EC\uC2A4, \uB2E4\uC815\uD55C" /></div>
+                <div class="input-group"><label>\uB9D0\uD22C</label><input id="pStyle" placeholder="\uC608: ~\uB780\uB2E4, ~\uD558\uB834, \uC874\uB313\uB9D0 \uC0AC\uC6A9" maxlength="200" /></div>
                 <button class="btn btn-primary" onclick="createPerson()">\uB4F1\uB85D</button>
             </div>
             <div id="personList"></div>
@@ -1828,7 +1828,7 @@ TEMPLATE_HTML = """
         let audioStream = null;
         let recordingStartTime = null;
         let timerInterval = null;
-        let currentSessionId = null;
+        let currentSessionId = localStorage.getItem('vm_currentSessionId') || null;
         let analyserNode = null;
         let audioContext = null;
         let animFrameId = null;
@@ -1845,6 +1845,8 @@ TEMPLATE_HTML = """
 
         // ====== Person Management ======
         async function createPerson() {
+            const nameVal = document.getElementById('pName').value.trim();
+            if (!nameVal) { alert('\uC774\uB984\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694.'); return; }
             const traits = document.getElementById('pTraits').value.split(',').map(s=>s.trim()).filter(Boolean);
             const r = await fetch('/api/persons', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
                 name: document.getElementById('pName').value,
@@ -1861,7 +1863,7 @@ TEMPLATE_HTML = """
             const r = await fetch('/api/persons');
             const d = await r.json();
             const el = document.getElementById('personList');
-            if (!d.persons.length) { el.innerHTML='<div class="empty-state">등록된 인물이 없습니다.</div>'; return; }
+            if (!d.persons.length) { el.innerHTML='<div class="empty-state">\uB4F1\uB85D\uB41C \uC778\uBB3C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.<br><button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="document.getElementById(\'pName\').focus();window.scrollTo({top:0,behavior:\'smooth\'})">\uC0C8 \uC778\uBB3C \uB4F1\uB85D</button></div>'; return; }
             el.innerHTML = d.persons.map(p=>{
                 const safeName = escapeHtml(p.name).replace(/'/g, '&#39;');
                 return `<div class="person-card">
@@ -1931,10 +1933,12 @@ TEMPLATE_HTML = """
         async function startRecordingSession() {
             if (!selectedPersonId) { alert('인물을 먼저 선택하세요!'); return; }
             const r = await fetch('/api/recording/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_id:selectedPersonId})});
+            if (!r.ok) { alert('\uC138\uC158 \uC0DD\uC131\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694.'); return; }
             const d = await r.json();
             if (d.error) { alert(d.error); return; }
 
             currentSessionId = d.session_id;
+            localStorage.setItem('vm_currentSessionId', currentSessionId);
             document.getElementById('recorderTitle').textContent = '\uC138\uC158 #' + d.session_number + ': ' + d.topic;
             document.getElementById('recorderGuide').textContent = '\uB179\uC74C \uBC84\uD2BC\uC744 \uB204\uB974\uACE0 \uC544\uB798 \uC9C8\uBB38\uC5D0 \uB300\uB2F5\uD574 \uC8FC\uC138\uC694.';
             document.getElementById('sessionQuestions').style.display = 'block';
@@ -2101,6 +2105,12 @@ TEMPLATE_HTML = """
                     method: 'POST',
                     body: formData,
                 });
+                if (!r.ok) {
+                    const errData = await r.json().catch(function() { return {}; });
+                    statusEl.innerHTML = '<div class="upload-status error">\uC5C5\uB85C\uB4DC \uC2E4\uD328: ' + (errData.detail || '\uC11C\uBC84 \uC624\uB958 (' + r.status + ')') + '</div>';
+                    document.getElementById('uploadBtn').disabled = false;
+                    return;
+                }
                 const d = await r.json();
 
                 if (r.ok) {
@@ -2117,6 +2127,7 @@ TEMPLATE_HTML = """
                     loadSessionList();
                     // Reset for next recording
                     currentSessionId = null;
+                    localStorage.removeItem('vm_currentSessionId');
                     document.getElementById('recBtn').disabled = true;
                     document.getElementById('recStatus').textContent = '\uC5C5\uB85C\uB4DC \uC644\uB8CC! \uC0C8 \uC138\uC158\uC744 \uC2DC\uC791\uD558\uC5EC \uB2E4\uC2DC \uB179\uC74C\uD558\uC138\uC694.';
                 } else {
@@ -2589,14 +2600,14 @@ TEMPLATE_HTML = """
                 chatAudioPlayer.volume = chatVolume;
                 chatAudioPlayer.addEventListener('ended', function() {
                     if (currentPlayBtnEl) {
-                        currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                        currentPlayBtnEl.innerHTML = '\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD';
                         currentPlayBtnEl.classList.remove('playing');
                         currentPlayBtnEl = null;
                     }
                 });
                 chatAudioPlayer.addEventListener('error', function() {
                     if (currentPlayBtnEl) {
-                        currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                        currentPlayBtnEl.innerHTML = '\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD';
                         currentPlayBtnEl.classList.remove('playing', 'loading');
                         currentPlayBtnEl = null;
                     }
@@ -2626,7 +2637,7 @@ TEMPLATE_HTML = """
                 var safeText = escapeHtml(c.ai_response).replace(/"/g, '&quot;');
                 return '<div class="chat-msg user"><div class="bubble">' + escapeHtml(c.user_message) + '</div></div>' +
                     '<div class="chat-msg ai"><div class="bubble">' + escapeHtml(c.ai_response) +
-                    '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + safeText + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">&#x1F50A; \uB4E4\uAE30</button></div>' +
+                    '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + safeText + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD</button></div>' +
                     '</div></div>';
             }).join('');
             area.scrollTop = area.scrollHeight;
@@ -2638,9 +2649,8 @@ TEMPLATE_HTML = """
             // If this button is already playing, toggle pause/resume
             if (currentPlayBtnEl === btnEl && !player.paused) {
                 player.pause();
-                btnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                btnEl.innerHTML = '&#x25B6; \uC7AC\uAC1C';
                 btnEl.classList.remove('playing');
-                currentPlayBtnEl = null;
                 return;
             }
             if (currentPlayBtnEl === btnEl && player.paused && player.currentTime > 0) {
@@ -2663,7 +2673,7 @@ TEMPLATE_HTML = """
             player.pause();
             player.currentTime = 0;
             if (currentPlayBtnEl) {
-                currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                currentPlayBtnEl.innerHTML = '\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD';
                 currentPlayBtnEl.classList.remove('playing', 'loading');
             }
 
@@ -2694,7 +2704,7 @@ TEMPLATE_HTML = """
                 btnEl.classList.add('playing');
             } catch (err) {
                 console.error('TTS error:', err);
-                btnEl.innerHTML = '&#x1F50A; \uB4E4\uAE30';
+                btnEl.innerHTML = '\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD';
                 btnEl.classList.remove('loading', 'playing');
                 currentPlayBtnEl = null;
                 btnEl.title = err.message || '\uC74C\uC131 \uD569\uC131 \uC2E4\uD328';
@@ -2764,37 +2774,62 @@ TEMPLATE_HTML = """
             area.innerHTML += '<div class="chat-msg ai"><div class="bubble" id="typing">...</div></div>';
             area.scrollTop = area.scrollHeight;
 
-            const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_id:selectedPersonId,message:msg})});
-            const d = await r.json();
-            const typingEl = document.getElementById('typing');
-            ttsIdCounter++;
-            const ttsId = 'tts-' + ttsIdCounter;
-            let responseHtml = escapeHtml(d.ai_response);
+            try {
+                const sendBtn = document.querySelector('.send-btn');
+                input.disabled = true;
+                if (sendBtn) sendBtn.disabled = true;
 
-            // Play button for TTS
-            responseHtml += '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + escapeHtml(d.ai_response).replace(/"/g, '&quot;') + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">&#x1F50A; \uB4E4\uAE30</button></div>';
+                const r = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({person_id:selectedPersonId,message:msg})});
+                const d = await r.json();
+                const typingEl = document.getElementById('typing');
+                ttsIdCounter++;
+                const ttsId = 'tts-' + ttsIdCounter;
 
-            // Memory attribution section
-            if (d.memory_attribution && d.memory_attribution.length > 0) {
-                responseHtml += buildMemoryAttributionHtml(d.memory_attribution, msg);
-            }
-            // Also show old-style source tags for backward compat
-            if (d.memory_sources && d.memory_sources.length > 0) {
-                const sourceTags = d.memory_sources
-                    .filter(function(s) { return s.score > 0.1; })
-                    .slice(0, 2)
-                    .map(function(s) {
-                        return '<span class="memory-source-tag" title="Session #' + s.session_number + ': ' + escapeHtml(s.topic) + '">' +
-                            '&#x1F4DD; #' + s.session_number + ' ' + escapeHtml(s.topic) + '</span>';
-                    }).join(' ');
-                if (sourceTags) {
-                    responseHtml += '<div style="margin-top:4px;">' + sourceTags + '</div>';
+                if (!d.ai_response) {
+                    typingEl.innerHTML = '\uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694.';
+                    typingEl.removeAttribute('id');
+                    area.scrollTop = area.scrollHeight;
+                    return;
                 }
-            }
 
-            typingEl.innerHTML = responseHtml;
-            typingEl.removeAttribute('id');
-            area.scrollTop = area.scrollHeight;
+                let responseHtml = escapeHtml(d.ai_response);
+
+                // Play button for TTS
+                responseHtml += '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + escapeHtml(d.ai_response).replace(/"/g, '&quot;') + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD</button></div>';
+
+                // Memory attribution section
+                if (d.memory_attribution && d.memory_attribution.length > 0) {
+                    responseHtml += buildMemoryAttributionHtml(d.memory_attribution, msg);
+                }
+                // Also show old-style source tags for backward compat
+                if (d.memory_sources && d.memory_sources.length > 0) {
+                    const sourceTags = d.memory_sources
+                        .filter(function(s) { return s.score > 0.1; })
+                        .slice(0, 2)
+                        .map(function(s) {
+                            return '<span class="memory-source-tag" title="Session #' + s.session_number + ': ' + escapeHtml(s.topic) + '">' +
+                                '&#x1F4DD; #' + s.session_number + ' ' + escapeHtml(s.topic) + '</span>';
+                        }).join(' ');
+                    if (sourceTags) {
+                        responseHtml += '<div style="margin-top:4px;">' + sourceTags + '</div>';
+                    }
+                }
+
+                typingEl.innerHTML = responseHtml;
+                typingEl.removeAttribute('id');
+                area.scrollTop = area.scrollHeight;
+            } catch (err) {
+                const typingEl = document.getElementById('typing');
+                if (typingEl) {
+                    typingEl.innerHTML = '\uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694.';
+                    typingEl.removeAttribute('id');
+                }
+            } finally {
+                const sendBtn = document.querySelector('.send-btn');
+                input.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+                input.focus();
+            }
         }
 
         function escapeHtml(text) {
@@ -2956,7 +2991,7 @@ TEMPLATE_HTML = """
                 document.getElementById('memoryResults').innerHTML = '';
                 return;
             }
-            document.getElementById('memoryResults').innerHTML = '<div class="empty-state">검색 중...</div>';
+            document.getElementById('memoryResults').innerHTML = '<div class="empty-state"><span class="spinner" style="display:inline-block;margin-right:6px;"></span>\uD83D\uDD0D \uAC80\uC0C9 \uC911...</div>';
             try {
                 const r = await fetch('/api/persons/' + selectedPersonId + '/memories?q=' + encodeURIComponent(q) + '&top_k=8');
                 const d = await r.json();
@@ -3149,7 +3184,7 @@ TEMPLATE_HTML = """
         let vcSilenceTimer = null;    // silence detection timer
         let vcSilenceStart = 0;       // when silence began
         const VC_SILENCE_THRESHOLD = 0.02;   // RMS threshold
-        const VC_SILENCE_DURATION = 2000;    // 2 seconds of silence to auto-stop
+        const VC_SILENCE_DURATION = 3500;    // 3.5 seconds of silence to auto-stop
 
         // --- Mode switching ---
         function switchChatMode(mode) {
@@ -3274,6 +3309,12 @@ TEMPLATE_HTML = """
             }
             if (vcIsProcessing) return;
 
+            // Check MediaRecorder support BEFORE requesting microphone access
+            if (typeof MediaRecorder === 'undefined') {
+                alert('\uC774 \uBE0C\uB77C\uC6B0\uC800\uB294 \uC74C\uC131 \uB179\uC74C\uC744 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.');
+                return;
+            }
+
             try {
                 vcStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -3290,11 +3331,6 @@ TEMPLATE_HTML = """
                 vcAnalyser = vcAudioCtx.createAnalyser();
                 vcAnalyser.fftSize = 2048;
                 source.connect(vcAnalyser);
-
-                // Setup MediaRecorder
-                if (typeof MediaRecorder === 'undefined') {
-                    throw {name: 'NotSupportedError', message: '\uC774 \uBE0C\uB77C\uC6B0\uC800\uB294 \uC74C\uC131 \uB179\uC74C\uC744 \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.'};
-                }
                 let mimeType = 'audio/webm;codecs=opus';
                 if (!MediaRecorder.isTypeSupported(mimeType)) {
                     mimeType = 'audio/webm';
@@ -3488,7 +3524,7 @@ TEMPLATE_HTML = """
                 player.pause();
                 player.currentTime = 0;
                 if (currentPlayBtnEl) {
-                    currentPlayBtnEl.innerHTML = '&#x1F50A; \uB4E3\uAE30';
+                    currentPlayBtnEl.innerHTML = '\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD';
                     currentPlayBtnEl.classList.remove('playing', 'loading');
                     currentPlayBtnEl = null;
                 }
@@ -3529,7 +3565,7 @@ TEMPLATE_HTML = """
                 ttsIdCounter++;
                 var ttsId = 'vc-tts-' + ttsIdCounter;
                 var safeText = escapeHtml(text).replace(/"/g, '&quot;');
-                html += '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + safeText + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">&#x1F50A; \uB2E4\uC2DC \uB4E3\uAE30</button></div>';
+                html += '<div><button class="voice-play-btn" id="' + ttsId + '" data-tts-text="' + safeText + '" onclick="synthesizeAndPlay(' + selectedPersonId + ', this, this.dataset.ttsText)">\uD83D\uDD0A \uC74C\uC131 \uC7AC\uC0DD</button></div>';
             }
 
             // Memory attribution

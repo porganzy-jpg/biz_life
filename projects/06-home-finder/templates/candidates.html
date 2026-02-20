@@ -298,13 +298,39 @@ function getScoreBadge(score) {
     return 'bg-secondary';
 }
 
-function formatPrice(krw) {
-    if (!krw) return '가격미정';
-    const eok = Math.floor(krw / 100000000);
-    const man = Math.floor((krw % 100000000) / 10000);
-    if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만`;
-    if (eok > 0) return `${eok}억`;
-    return `${man.toLocaleString()}만`;
+// formatPrice는 utils.js에서 제공
+
+function showCompareModal() {
+    // 비교 모드에서 선택된 매물들을 세션스토리지에 동기화 후 공통 비교 모달 호출
+    const list = _getCompareList();
+    if (list.length < 2) {
+        alert('비교하려면 최소 2개의 매물을 선택해주세요.');
+        return;
+    }
+    // compare.js의 showCompareModal 호출 (전역 함수)
+    const compareModal = document.getElementById('compareModal');
+    if (compareModal) {
+        // compare.js에 정의된 전역 showCompareModal이 이미 존재하므로
+        // 세션스토리지 기반으로 동작함 - 직접 모달을 열어 데이터를 로드
+        const modalEl = document.getElementById('compareModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        const body = document.getElementById('compare-modal-body');
+        body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2">매물 데이터를 불러오는 중...</p></div>';
+        modal.show();
+
+        Promise.all(
+            list.map(function(id) {
+                return fetch('/api/v1/properties/' + id).then(function(r) {
+                    if (!r.ok) throw new Error('매물 #' + id + ' 로드 실패');
+                    return r.json();
+                });
+            })
+        ).then(function(properties) {
+            _renderCompareContent(properties, body);
+        }).catch(function(e) {
+            body.innerHTML = '<div class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle" style="font-size:2rem;"></i><p class="mt-2">' + e.message + '</p></div>';
+        });
+    }
 }
 
 function showStatusModal(id, currentStatus) {

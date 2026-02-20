@@ -802,6 +802,7 @@ class ExecutionEngine:
             self._orders[order_id] = parent
 
         self._save_parent_db(parent)
+        self._ensure_daily_stats_current()
         self._daily_stats["total_orders"] += 1
         return order_id
 
@@ -844,7 +845,8 @@ class ExecutionEngine:
 
             parent.completed_at = datetime.now().isoformat()
 
-            # 일일 통계 업데이트
+            # 일일 통계 업데이트 (날짜 변경 확인)
+            self._ensure_daily_stats_current()
             if parent.status == OrderStatus.FILLED.value:
                 self._daily_stats["filled_orders"] += 1
             elif parent.status in (OrderStatus.FAILED.value,
@@ -979,9 +981,8 @@ class ExecutionEngine:
             logger.error(f"실행 리포트 DB 조회 실패: {e}")
             return None
 
-    def get_daily_stats(self) -> dict:
-        """오늘의 실행 통계를 반환한다."""
-        # 날짜가 바뀌었으면 리셋
+    def _ensure_daily_stats_current(self):
+        """날짜가 바뀌었으면 일일 통계를 리셋한다."""
         today = datetime.now().strftime("%Y-%m-%d")
         if self._daily_stats["date"] != today:
             self._daily_stats = {
@@ -993,6 +994,10 @@ class ExecutionEngine:
                 "total_volume": 0,
                 "avg_fill_rate": 0.0,
             }
+
+    def get_daily_stats(self) -> dict:
+        """오늘의 실행 통계를 반환한다."""
+        self._ensure_daily_stats_current()
 
         stats = self._daily_stats.copy()
         filled = stats["filled_orders"]

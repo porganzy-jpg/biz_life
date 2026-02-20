@@ -426,15 +426,7 @@ async function api(url, method='GET', body=null) {
     return res.json();
 }
 
-function formatPrice(krw) {
-    if (!krw) return '가격미정';
-    const eok = Math.floor(krw / 100000000);
-    const man = Math.floor((krw % 100000000) / 10000);
-    if (eok > 0 && man > 0) return eok + '억 ' + man.toLocaleString() + '만';
-    if (eok > 0) return eok + '억';
-    if (man > 0) return man.toLocaleString() + '만';
-    return krw.toLocaleString();
-}
+// formatPrice는 utils.js에서 제공
 
 function formatArea(m2) {
     if (!m2) return '';
@@ -464,13 +456,21 @@ async function loadMatches() {
     document.getElementById('matchesEmpty').style.display = 'none';
 
     try {
-        const data = await api('/api/v1/matching/top?limit=50');
+        const data = await Promise.race([
+            api('/api/v1/matching/top?limit=50'),
+            new Promise(function(_, reject) {
+                setTimeout(function() { reject(new Error('timeout')); }, 10000);
+            })
+        ]);
         allMatches = data.matches || [];
         filterMatches();
     } catch (e) {
         document.getElementById('matchesLoading').style.display = 'none';
         document.getElementById('matchCount').textContent = '0';
-        document.getElementById('matchesList').innerHTML = '<div class="alert alert-danger">매칭 데이터를 불러올 수 없습니다: ' + e.message + '</div>';
+        var errorMsg = e.message === 'timeout'
+            ? '매칭 데이터를 불러올 수 없습니다. 새로고침해 주세요.'
+            : '매칭 데이터를 불러올 수 없습니다: ' + e.message;
+        document.getElementById('matchesList').innerHTML = '<div class="alert alert-danger">' + errorMsg + '</div>';
         document.getElementById('matchesList').style.display = '';
     }
 }
@@ -804,6 +804,23 @@ async function loadAlerts() {
 async function markRead(alertId) {
     try {
         await api('/api/v1/matching/alerts/' + alertId + '/read', 'POST');
+        // UI에서 읽음 상태 반영
+        var alertCards = document.querySelectorAll('.alert-card.unread');
+        alertCards.forEach(function(card) {
+            if (card.getAttribute('onclick') && card.getAttribute('onclick').indexOf('markRead(' + alertId + ')') !== -1) {
+                card.classList.remove('unread');
+            }
+        });
+        // 뱃지 카운트 감소
+        var badge = document.getElementById('unreadCount');
+        if (badge && badge.style.display !== 'none') {
+            var current = parseInt(badge.textContent) || 0;
+            if (current > 1) {
+                badge.textContent = current - 1;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
     } catch (e) { /* ignore */ }
 }
 

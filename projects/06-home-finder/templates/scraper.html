@@ -498,9 +498,9 @@ function updateProgress(completed, total, current) {
 }
 
 async function pollStatus() {
-    // Poll status every 3 seconds while scanning
+    // Poll status every 1.5 seconds while scanning
     for (let i = 0; i < 30; i++) {
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 1500));
         const resp = await fetch(`${API_BASE}/status`);
         const data = await resp.json();
         loadStatus();
@@ -524,15 +524,7 @@ function formatDateTime(isoStr) {
     } catch { return isoStr; }
 }
 
-function formatPrice(krw) {
-    if (!krw) return '-';
-    const eok = Math.floor(krw / 100000000);
-    const man = Math.floor((krw % 100000000) / 10000);
-    if (eok > 0 && man > 0) return `${eok}억 ${man}만`;
-    if (eok > 0) return `${eok}억`;
-    if (man > 0) return `${man}만`;
-    return '-';
-}
+// formatPrice는 utils.js에서 제공
 
 function showToast(type, message) {
     // Simple alert-based toast (could be replaced with Bootstrap toast)

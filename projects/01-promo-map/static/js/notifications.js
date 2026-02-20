@@ -638,7 +638,7 @@ const NotificationManager = (() => {
             });
             _preferences = result.preferences;
             showToast('알림 설정이 저장되었습니다');
-            _closeSettings();
+            setTimeout(function() { _closeSettings(); }, 500);
         } catch (err) {
             showToast(err.detail || '설정 저장 실패');
         }

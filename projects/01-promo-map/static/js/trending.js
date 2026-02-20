@@ -19,7 +19,12 @@ async function loadTrending() {
     } catch (e) {
         console.warn('Trending discounts load failed:', e);
         var trendingSec = document.getElementById('trendingSection');
-        if (trendingSec) trendingSec.style.display = 'none';
+        if (trendingSec) {
+            var trendingCarousel = document.getElementById('trendingCarousel');
+            if (trendingCarousel) {
+                trendingCarousel.innerHTML = '<div class="empty-state" style="padding:20px;font-size:0.85rem;">인기 할인을 불러올 수 없습니다</div>';
+            }
+        }
     }
 
     try {
@@ -27,8 +32,10 @@ async function loadTrending() {
         renderPopularStores(popularRes.items || []);
     } catch (e) {
         console.warn('Popular stores load failed:', e);
-        var popularSec = document.getElementById('popularStoresSection');
-        if (popularSec) popularSec.style.display = 'none';
+        var popularList = document.getElementById('popularStoresList');
+        if (popularList) {
+            popularList.innerHTML = '<div class="empty-state" style="padding:20px;font-size:0.85rem;">인기 매장을 불러올 수 없습니다</div>';
+        }
     }
 
     try {
@@ -36,8 +43,10 @@ async function loadTrending() {
         renderHotDeals(hotDealsRes.items || []);
     } catch (e) {
         console.warn('Hot deals load failed:', e);
-        var hotDealsSec = document.getElementById('hotDealsSection');
-        if (hotDealsSec) hotDealsSec.style.display = 'none';
+        var hotDealsList = document.getElementById('hotDealsList');
+        if (hotDealsList) {
+            hotDealsList.innerHTML = '<div class="empty-state" style="padding:20px;font-size:0.85rem;">핫딜을 불러올 수 없습니다</div>';
+        }
     }
 }
 

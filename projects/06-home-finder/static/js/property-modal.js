@@ -29,7 +29,7 @@ async function showPropertyModal(propertyId) {
     modal.show();
 
     try {
-        const resp = await fetch(`/api/v1/properties/${propertyId}`);
+        const resp = await fetchWithTimeout(`/api/v1/properties/${propertyId}`, {}, 5000);
         if (!resp.ok) throw new Error('매물을 찾을 수 없습니다');
         const p = await resp.json();
         _renderPropertyModal(p);

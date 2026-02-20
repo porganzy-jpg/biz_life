@@ -31,7 +31,7 @@
                 <div id="buildingInfo" class="row">
                     <div class="col-md-6">
                         <table class="table table-sm">
-                            <tr><th>주소</th><td id="propAddress">-</td></tr>
+                            <tr><th>주소</th><td id="propAddress">-<button class="btn btn-sm btn-outline-secondary ms-2 py-0 px-1 copy-addr-btn" style="font-size:0.7rem;" onclick="copyAddress('propAddress')" title="주소 복사"><i class="bi bi-clipboard"></i></button></td></tr>
                             <tr><th>가격</th><td id="propPrice" class="fw-bold text-primary">-</td></tr>
                             <tr><th>전용면적</th><td id="propArea">-</td></tr>
                             <tr><th>층수</th><td id="propFloor">-</td></tr>
@@ -58,7 +58,7 @@
                 <div id="landInfo" style="display:none;" class="row">
                     <div class="col-md-6">
                         <table class="table table-sm">
-                            <tr><th>주소</th><td id="landAddress">-</td></tr>
+                            <tr><th>주소</th><td id="landAddress">-<button class="btn btn-sm btn-outline-secondary ms-2 py-0 px-1 copy-addr-btn" style="font-size:0.7rem;" onclick="copyAddress('landAddress')" title="주소 복사"><i class="bi bi-clipboard"></i></button></td></tr>
                             <tr><th>가격</th><td id="landPrice" class="fw-bold text-primary">-</td></tr>
                             <tr><th>면적</th><td id="landArea">-</td></tr>
                             <tr><th>지목</th><td id="landUse">-</td></tr>
@@ -214,13 +214,25 @@ async function loadProperty() {
         [p.score_location||0, p.score_price||0, p.score_property||0, p.score_area||0]);
 }
 
-function formatPrice(krw) {
-    if (!krw) return '가격미정';
-    const eok = Math.floor(krw / 100000000);
-    const man = Math.floor((krw % 100000000) / 10000);
-    if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만`;
-    if (eok > 0) return `${eok}억`;
-    return `${man.toLocaleString()}만`;
+// formatPrice는 utils.js에서 제공
+
+function copyAddress(elementId) {
+    var el = document.getElementById(elementId);
+    if (!el) return;
+    // 버튼 텍스트를 제외한 주소 텍스트만 가져옴
+    var text = el.childNodes[0] ? el.childNodes[0].textContent.trim() : el.textContent.trim();
+    navigator.clipboard.writeText(text).then(function() {
+        // 토스트 표시
+        var toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 bg-dark text-white rounded-pill shadow';
+        toast.style.zIndex = '9999';
+        toast.style.fontSize = '0.9rem';
+        toast.textContent = '복사되었습니다!';
+        document.body.appendChild(toast);
+        setTimeout(function() { toast.remove(); }, 2000);
+    }).catch(function() {
+        alert('복사에 실패했습니다.');
+    });
 }
 
 async function addToCandidate() {

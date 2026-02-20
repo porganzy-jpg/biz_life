@@ -506,12 +506,26 @@ tr:hover{background:rgba(88,166,255,.04)}
 .guide-buy{color:var(--green);font-weight:600}
 .guide-sell{color:var(--red);font-weight:600}
 /* Expandable chart panel */
-.mw-card{cursor:pointer;transition:all .2s}
-.mw-card.expanded{grid-column:1/-1}
-.mw-detail{display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;max-height:550px;overflow-y:auto}
+.mw-card{cursor:pointer;transition:all .3s ease, grid-column .3s ease, box-shadow .3s ease}
+.mw-card.expanded{grid-column:1/-1;box-shadow:0 0 0 1px var(--accent)}
+.mw-detail{display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px;max-height:550px;overflow-y:auto;animation:fadeSlideIn .3s ease}
 .mw-card.expanded .mw-detail{display:block}
 .mw-expand-hint{font-size:10px;color:var(--text2);text-align:center;margin-top:4px}
 .mw-card.expanded .mw-expand-hint{display:none}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+/* WS status badge */
+.ws-badge{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.ws-badge-live{background:#1a3a1a;color:var(--green);border:1px solid var(--green)}
+.ws-badge-polling{background:#2a2a1a;color:var(--yellow);border:1px solid var(--yellow)}
+/* Toast notifications */
+.toast-container{position:fixed;top:60px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:10px 16px;border-radius:6px;font-size:12px;font-weight:600;color:#fff;pointer-events:auto;animation:toastIn .3s ease,toastOut .3s ease 3s forwards;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.toast-success{background:var(--green)}
+.toast-error{background:var(--red)}
+.toast-info{background:var(--accent)}
+.toast-warn{background:var(--yellow);color:#000}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(-10px)}}
 /* Candlestick chart containers */
 .tv-chart-wrap{width:100%;height:300px;border-radius:4px;overflow:hidden;background:var(--bg)}
 .subchart-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
@@ -635,11 +649,12 @@ table{min-width:600px}
   <span id="modeBadge" class="badge badge-paper">PAPER</span>
   <span id="statusBadge" class="badge badge-stopped">STOPPED</span>
   <div class="topbar-right">
+    <span id="ws-status-badge" class="ws-badge ws-badge-polling">Polling</span>
     <span id="uptime">00:00:00</span>
-    <button class="btn btn-green" onclick="api('/api/bot/start','POST')">Start</button>
-    <button class="btn btn-red" onclick="api('/api/bot/stop','POST')">Stop</button>
-    <button class="btn" onclick="api('/api/bot/halt','POST')">Halt</button>
-    <button class="btn" onclick="api('/api/bot/resume','POST')">Resume</button>
+    <button class="btn btn-green" id="btn-start" onclick="botControl('start')">Start</button>
+    <button class="btn btn-red" id="btn-stop" onclick="botControl('stop')">Stop</button>
+    <button class="btn" id="btn-halt" onclick="botControl('halt')">Halt</button>
+    <button class="btn" id="btn-resume" onclick="botControl('resume')">Resume</button>
   </div>
 </div>
 <div class="container">
@@ -788,7 +803,7 @@ table{min-width:600px}
     <button class="btn" onclick="exportCSV()">Export CSV</button>
   </div>
   <div class="scroll-table"><table>
-    <thead><tr><th>Time</th><th>Market</th><th>Entry</th><th>Exit</th><th>PnL %</th><th>PnL KRW</th><th>Fee</th><th>Exit Type</th><th>Duration</th></tr></thead>
+    <thead><tr><th>시간</th><th>마켓</th><th>진입</th><th>탈출</th><th>손익%</th><th>손익KRW</th><th>수수료</th><th>탈출종류</th><th>지속시간</th></tr></thead>
     <tbody id="historyBody"></tbody>
   </table></div>
   <div class="pagination" id="pagination"></div>
@@ -1038,6 +1053,7 @@ table{min-width:600px}
 </div>
 
 </div>
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
 let charts={},currentPeriod='today',historyPage=1;
@@ -1046,7 +1062,36 @@ const fmtPct=n=>(n>=0?'+':'')+n.toFixed(2)+'%';
 const cls=n=>n>=0?'positive':'negative';
 function fmtDuration(s){if(s<60)return Math.round(s)+'s';if(s<3600)return Math.round(s/60)+'m';return Math.round(s/3600)+'h '+Math.round((s%3600)/60)+'m'}
 function fmtUptime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.floor(s%60);return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`}
-async function api(url,method='GET'){try{const r=await fetch(url,{method});return await r.json()}catch(e){console.error(url,e);return null}}
+async function api(url,method='GET'){try{const r=await fetch(url,{method});if(!r.ok){console.error(url,'HTTP',r.status);return{_error:r.status}}return await r.json()}catch(e){console.error(url,e);return{_error:'network',message:e.message}}}
+
+// ── Toast notification helper ──
+function showToast(msg,type='success'){
+  const container=document.getElementById('toastContainer');
+  if(!container)return;
+  const el=document.createElement('div');
+  el.className='toast toast-'+type;
+  el.textContent=msg;
+  container.appendChild(el);
+  setTimeout(()=>{if(el.parentNode)el.remove()},3500);
+}
+
+// ── Bot control with feedback (P1 #5) ──
+async function botControl(action){
+  const labelMap={start:'시작 중...',stop:'중지 중...',halt:'정지 중...',resume:'재개 중...'};
+  const originalMap={start:'Start',stop:'Stop',halt:'Halt',resume:'Resume'};
+  const btn=document.getElementById('btn-'+action);
+  if(!btn)return;
+  btn.disabled=true;
+  const origText=btn.textContent;
+  btn.textContent=labelMap[action]||'처리 중...';
+  try{
+    const r=await api('/api/bot/'+action,'POST');
+    if(r._error){showToast('오류: '+action+' 실패 ('+r._error+')','error')}
+    else if(r.error){showToast('오류: '+r.error,'error')}
+    else{showToast(action+' 완료: '+(r.status||'OK'),'success');refreshStatus()}
+  }catch(e){showToast('네트워크 오류: '+e.message,'error')}
+  finally{btn.disabled=false;btn.textContent=originalMap[action]||origText}
+}
 
 // Tabs
 document.querySelectorAll('.tab').forEach(tab=>{
@@ -1075,7 +1120,7 @@ document.querySelectorAll('.period-btn').forEach(btn=>{
 let _prevStatus=null;
 function setEl(id,text,cls){const e=document.getElementById(id);if(!e)return;if(e.textContent!==text)e.textContent=text;if(cls!==undefined)e.className='card-value '+cls}
 function applyStatus(d){
-  if(!d)return;
+  if(!d||d._error)return;
   const mb=document.getElementById('modeBadge');mb.textContent=d.paper?'PAPER':'LIVE';mb.className='badge '+(d.paper?'badge-paper':'badge-live');
   const sb=document.getElementById('statusBadge');sb.textContent=d.running?'RUNNING':'STOPPED';sb.className='badge '+(d.running?'badge-running':'badge-stopped');
   document.getElementById('uptime').textContent=fmtUptime(d.uptime_sec||0);
@@ -1113,7 +1158,7 @@ function applyStatus(d){
       const defRisk=ks.default_risk_pct||0;
       const diff=curRisk-defRisk;
       const kellyColor=diff>=0?'var(--green)':'var(--red)';
-      kellyEl.innerHTML=curRisk.toFixed(2)+'% <span style="font-size:11px;color:'+kellyColor+'">'+(diff>=0?'+':'')+diff.toFixed(2)+'%</span>';
+      kellyEl.textContent=curRisk.toFixed(2)+'% ('+(diff>=0?'+':'')+diff.toFixed(2)+'%)';
       kellyEl.style.color=kellyColor;
     }else if(ks.enabled){
       kellyEl.textContent=ks.default_risk_pct?.toFixed(2)+'%';
@@ -1275,7 +1320,7 @@ function renderPositions(positions){
 let miniCharts={},_mwCache={};
 function mwHash(m){const i=m.indicators||{};return [m.price,m.trend,m.ensemble_signal,i.rsi?.toFixed(1),i.bb_pctb?.toFixed(3),i.stoch_k?.toFixed(1),i.vol_ratio?.toFixed(2)].join('|')}
 function applyMarketWatch(d){
-  if(!d)return;
+  if(!d||d._error)return;
   const el=document.getElementById('marketWatch');const markets=Object.values(d);
   markets.forEach(m=>{_lastMW[m.market]=m});
   if(!markets.length){el.innerHTML='<p style="color:var(--text2)">Waiting for market data...</p>';return}
@@ -1389,7 +1434,7 @@ function renderMTFPanel(m){
   if(!mtf||!mtf.available){el.innerHTML='';return}
   const sc=mtf.confluence_score;
   const badgeCls='mtf-badge-'+sc;
-  const recMap={strong_buy:'Strong Buy',buy:'Buy',neutral:'Neutral',sell:'Sell',strong_sell:'Strong Sell'};
+  const recMap={strong_buy:'강력 매수',buy:'매수',neutral:'중립',sell:'매도',strong_sell:'강력 매도'};
   const recLabel=recMap[mtf.recommendation]||mtf.recommendation;
   function tfRow(label,tf){
     if(!tf)return `<div class="mtf-tf-row"><span class="mtf-tf-label">${label}</span><span style="color:var(--text2);font-size:11px">N/A</span></div>`;
@@ -1632,7 +1677,8 @@ function makeVolGauge(label,ratio,threshold){
 
 // ── Performance ──
 async function loadPerformance(){
-  const d=await api(`/api/trades/stats?period=${currentPeriod}`);if(!d)return;
+  document.getElementById('perfStats').innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text2)">데이터 로딩 중...</div>';
+  const d=await api(`/api/trades/stats?period=${currentPeriod}`);if(!d||d._error)return;
   if(!d.total_trades||d.total_trades===0){
     document.getElementById('perfStats').innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:24px"><div style="color:var(--text2);font-size:14px">선택한 기간에 거래 기록이 없습니다.</div></div>';
     ['equityChart','dailyPnlChart','exitTypeChart','marketPnlChart'].forEach(id=>{if(charts[id]){charts[id].destroy();delete charts[id]}});
@@ -1750,9 +1796,19 @@ function renderChart(id,type,data,extra={}){
 // ── Analytics ──
 const analyticsChartIds=['analyticsStrategyBar','analyticsCumLine','analyticsDrawdown','analyticsDistribution','analyticsDowBar'];
 async function loadAnalytics(){
-  const d=await api('/api/analytics');if(!d)return;
+  document.getElementById('analyticsRiskCards').innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text2)">데이터 로딩 중...</div>';
+  const d=await api('/api/analytics');
+  if(!d||d._error){showToast('분석 데이터 로딩 실패','error');return}
   if(!d.total_trades||d.total_trades===0){
-    document.getElementById('analyticsRiskCards').innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:24px"><div class="card-label">Analytics</div><div style="color:var(--text2);font-size:14px;margin-top:8px">거래 기록이 없습니다. 봇이 거래를 시작하면 분석 데이터가 표시됩니다.</div></div>';
+    const statusD=_prevStatus;
+    const isRunning=statusD&&statusD.running;
+    let emptyMsg='';
+    if(!statusD||!statusD.running){
+      emptyMsg='<div style="font-size:14px;color:var(--text2);margin-top:8px">봇이 아직 실행되지 않았습니다.</div><div style="font-size:12px;color:var(--text2);margin-top:6px">상단의 <b>Start</b> 버튼을 눌러 봇을 시작하세요. 거래가 실행되면 분석 데이터가 여기에 표시됩니다.</div>';
+    }else{
+      emptyMsg='<div style="font-size:14px;color:var(--text2);margin-top:8px">봇이 실행 중이지만 아직 거래가 없습니다.</div><div style="font-size:12px;color:var(--text2);margin-top:6px">시장 조건이 매매 기준에 도달하면 자동으로 거래가 시작됩니다. 앙상블 투표에서 최소 2개 전략이 동의해야 진입합니다.</div>';
+    }
+    document.getElementById('analyticsRiskCards').innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;padding:24px"><div class="card-label">Analytics</div>'+emptyMsg+'</div>';
     analyticsChartIds.forEach(id=>{if(charts[id]){charts[id].destroy();delete charts[id]}});
     const emptyBoxes=['analyticsMonthlyTable','analyticsAttribution','analyticsCorrelation','analyticsEnsembleAccuracy','analyticsHourlyHeatmap'];
     emptyBoxes.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div style="color:var(--text2);text-align:center;padding:20px">데이터 대기중</div>'});
@@ -1986,7 +2042,8 @@ async function loadAnalytics(){
 
 // ── Strategy ──
 async function loadStrategy(){
-  const d=await api('/api/status');if(!d||!d.ensemble){
+  document.getElementById('strategyTable').innerHTML='<div class="panel-title">Strategy Details</div><p style="color:var(--text2);padding:20px;text-align:center">데이터 로딩 중...</p>';
+  const d=await api('/api/status');if(!d||d._error||!d.ensemble){
     document.getElementById('strategyTable').innerHTML='<div class="panel-title">Strategy Details</div><p style="color:var(--text2);padding:20px;text-align:center">봇이 초기화되면 전략 데이터가 표시됩니다.</p>';
     return;
   }const ens=d.ensemble;
@@ -2006,7 +2063,8 @@ async function loadStrategy(){
 // ── History ──
 async function loadHistory(page){
   historyPage=page||1;const market=document.getElementById('filterMarket').value;const exit=document.getElementById('filterExit').value;
-  const d=await api(`/api/trades/history?page=${historyPage}&market=${market}&exit_type=${exit}`);if(!d)return;
+  document.getElementById('historyBody').innerHTML='<tr><td colspan="9" style="color:var(--text2);text-align:center">데이터 로딩 중...</td></tr>';
+  const d=await api(`/api/trades/history?page=${historyPage}&market=${market}&exit_type=${exit}`);if(!d||d._error)return;
   const tbody=document.getElementById('historyBody');
   if(!d.trades||!d.trades.length){tbody.innerHTML='<tr><td colspan="9" style="color:var(--text2);text-align:center">No trades found</td></tr>'}
   else{tbody.innerHTML=d.trades.map(t=>{const c=cls(t.pnl_krw||0);return `<tr><td style="font-size:11px">${t.exit_time||''}</td><td>${t.market}</td><td>${fmt(t.entry_price)}</td><td>${fmt(t.exit_price)}</td><td class="${c}">${fmtPct(t.pnl_pct||0)}</td><td class="${c}">${(t.pnl_krw||0)>=0?'+':''}${fmt(t.pnl_krw||0)}</td><td style="color:var(--yellow)">${fmt(t.fee_krw||0)}</td><td>${t.exit_type||''}</td><td>${fmtDuration(t.duration_sec||0)}</td></tr>`}).join('')}
@@ -2019,9 +2077,14 @@ async function populateFilters(){
   const rt=await api('/api/runtime');if(rt&&rt.markets)rt.markets.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;ms.appendChild(o)});
   ['stop_loss','take_profit','trailing_stop','signal_sell','breakeven_stop'].forEach(et=>{const o=document.createElement('option');o.value=et;o.textContent=et;es.appendChild(o)});
 }
-function exportCSV(){
+async function exportCSV(){
   const market=document.getElementById('filterMarket').value;
   const exit=document.getElementById('filterExit').value;
+  // Check if trades exist before downloading
+  const check=await api(`/api/trades/history?page=1&page_size=10&market=${market}&exit_type=${exit}`);
+  if(!check||check._error||!check.trades||check.trades.length===0){
+    showToast('내보낼 거래 기록이 없습니다.','warn');return;
+  }
   const params=new URLSearchParams();
   if(market)params.set('market',market);
   if(exit)params.set('exit_type',exit);
@@ -2066,7 +2129,7 @@ async function refreshGuideLive(){
 // ── Optimizer Tab (전략 최적화) ──
 async function loadOptimizerTab(){
   const d=await api('/api/optimizer/status');
-  if(!d||!d.enabled){
+  if(!d||d._error||!d.enabled){
     document.getElementById('opt-regime').textContent='비활성';
     document.getElementById('opt-regime').style.color='var(--text2)';
     document.getElementById('opt-run-count').textContent='0';
@@ -2254,11 +2317,16 @@ async function triggerOptimization(btn){
   if(!confirm('수동 최적화를 실행하시겠습니까? (현재 열린 포지션에 사용 중인 전략은 건너뜁니다)'))return;
   if(!btn)btn=document.getElementById('opt-trigger-btn');
   if(btn){btn.disabled=true;btn.textContent='최적화 실행 중...'}
+  const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),30000));
   try{
-    const r=await api('/api/optimizer/trigger','POST');
-    if(r&&r.error){alert('오류: '+r.error)}
-    else{alert('최적화 완료. 결과를 확인하세요.');loadOptimizerTab()}
-  }catch(e){alert('최적화 실패: '+e)}
+    const r=await Promise.race([api('/api/optimizer/trigger','POST'),timeout]);
+    if(r&&r._error){showToast('최적화 요청 실패: '+r._error,'error')}
+    else if(r&&r.error){showToast('오류: '+r.error,'error')}
+    else{showToast('최적화 완료. 결과를 확인하세요.','success');loadOptimizerTab()}
+  }catch(e){
+    if(e.message==='timeout'){showToast('최적화 시간 초과 (30초). 서버에서 계속 실행 중일 수 있습니다.','warn')}
+    else{showToast('최적화 실패: '+e.message,'error')}
+  }
   finally{if(btn){btn.disabled=false;btn.textContent='수동 최적화 실행'}}
 }
 
@@ -2273,12 +2341,20 @@ async function resetParams(strategy){
 
 // ── WebSocket Client ──
 let _ws=null,_wsRetry=0,_wsMaxRetry=30000,_wsTimer=null,_useWS=false;
+function updateWSBadge(connected){
+  const badge=document.getElementById('ws-status-badge');
+  if(!badge)return;
+  if(connected){badge.textContent='Live';badge.className='ws-badge ws-badge-live'}
+  else{badge.textContent='Polling';badge.className='ws-badge ws-badge-polling'}
+}
 function connectWS(){
+  if(_ws&&(_ws.readyState===WebSocket.CONNECTING||_ws.readyState===WebSocket.OPEN))return;
   const proto=location.protocol==='https:'?'wss:':'ws:';
   const url=proto+'//'+location.host+'/ws';
-  try{_ws=new WebSocket(url)}catch(e){console.warn('WS connect failed',e);return}
+  try{_ws=new WebSocket(url)}catch(e){console.warn('WS connect failed',e);updateWSBadge(false);return}
   _ws.onopen=()=>{
     console.log('WS connected');_wsRetry=0;_useWS=true;
+    updateWSBadge(true);
     stopPolling();
   };
   _ws.onmessage=(e)=>{
@@ -2286,11 +2362,13 @@ function connectWS(){
   };
   _ws.onclose=()=>{
     console.log('WS closed');_ws=null;_useWS=false;
+    updateWSBadge(false);
     startPolling();
     _wsRetry=Math.min(_wsRetry?_wsRetry*2:1000,_wsMaxRetry);
+    if(_wsTimer)clearTimeout(_wsTimer);
     _wsTimer=setTimeout(connectWS,_wsRetry);
   };
-  _ws.onerror=(e)=>{console.warn('WS error',e)};
+  _ws.onerror=(e)=>{console.warn('WS error',e);updateWSBadge(false)};
 }
 function handleWSMessage(msg){
   switch(msg.type){
@@ -2322,17 +2400,26 @@ function showCircuitAlert(data){
 
 // ── Init with visibility-aware polling + WebSocket ──
 let _timers=[];
+let _pollingActive=false;
 function startPolling(){
   if(_useWS)return;
-  _timers.forEach(clearInterval);_timers=[];
+  if(_pollingActive&&_timers.length>0)return;
+  stopPolling();
+  _pollingActive=true;
   _timers.push(setInterval(refreshStatus,5000));
   _timers.push(setInterval(refreshMarketWatch,5000));
   _timers.push(setInterval(refreshGuideLive,5000));
 }
-function stopPolling(){_timers.forEach(clearInterval);_timers=[]}
+function stopPolling(){_timers.forEach(clearInterval);_timers=[];_pollingActive=false}
+let _visDebounce=null;
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){stopPolling();if(_ws)_ws.close()}
-  else{refreshStatus();refreshMarketWatch();if(!_useWS)startPolling();connectWS()}
+  else{
+    if(_visDebounce)clearTimeout(_visDebounce);
+    _visDebounce=setTimeout(()=>{
+      refreshStatus();refreshMarketWatch();if(!_useWS)startPolling();connectWS();
+    },300);
+  }
 });
 async function init(){await refreshStatus();await refreshMarketWatch();startPolling();connectWS()}
 init();

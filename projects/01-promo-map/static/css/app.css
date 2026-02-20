@@ -102,8 +102,15 @@ body {
     overflow-x: auto; white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    position: relative;
+    mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 32px), transparent 100%);
 }
 .category-chips::-webkit-scrollbar { display: none; }
+.category-chips.scrolled-end {
+    mask-image: none;
+    -webkit-mask-image: none;
+}
 .category-chip {
     background: #f0f0f0; border: none; border-radius: 20px;
     padding: 6px 14px; font-size: 0.8rem; cursor: pointer;
@@ -233,7 +240,7 @@ body {
     background: none; border: none; font-size: 1.5rem;
     color: var(--text-muted); cursor: pointer; padding: 4px;
 }
-.modal-body { padding: 20px; }
+.modal-body { padding: 20px; max-height: calc(85vh - 60px); overflow-y: auto; }
 /* 폼 */
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary); }

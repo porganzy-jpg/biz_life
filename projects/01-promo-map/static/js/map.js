@@ -391,7 +391,8 @@ function renderStoreModal(store) {
             + [1,2,3,4,5].map(i => '<span data-rating="' + i + '" onclick="setRating(' + i + ')">\u2606</span>').join('')
             + '</div>'
             + '<div class="form-group" style="margin-bottom:8px;">'
-            + '<textarea id="reviewContent" rows="2" placeholder="리뷰를 작성해주세요..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;"></textarea>'
+            + '<textarea id="reviewContent" rows="2" maxlength="200" placeholder="리뷰를 작성해주세요..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;" oninput="document.getElementById(\'reviewCharCounter\').textContent=this.value.length+\' / 200\'"></textarea>'
+            + '<div id="reviewCharCounter" style="text-align:right;font-size:0.75rem;color:#999;margin-top:4px;">0 / 200</div>'
             + '</div>'
             + '<button class="btn-primary" onclick="submitReview(' + store.id + ')" style="font-size:0.85rem;padding:8px 16px;">리뷰 작성</button>'
             + '</div>' : '')
@@ -437,6 +438,12 @@ async function submitReview(storeId) {
     if (selectedRating === 0) { showToast('별점을 선택해주세요'); return; }
     if (_reviewSubmitting) return;
     _reviewSubmitting = true;
+    const submitBtn = document.querySelector('.review-form .btn-primary');
+    const originalBtnText = submitBtn ? submitBtn.textContent : '리뷰 작성';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '등록 중...';
+    }
     const content = document.getElementById('reviewContent').value;
     try {
         await API.createReview({ store_id: storeId, rating: selectedRating, content });
@@ -444,15 +451,22 @@ async function submitReview(storeId) {
         loadStoreReviews(storeId);
         selectedRating = 0;
         document.getElementById('reviewContent').value = '';
+        const counterEl = document.getElementById('reviewCharCounter');
+        if (counterEl) counterEl.textContent = '0 / 200';
         document.querySelectorAll('#starRating span').forEach(el => { el.textContent = '\u2606'; el.classList.remove('active'); });
     } catch (err) {
         showToast(err.detail || '리뷰 작성 실패');
     } finally {
         _reviewSubmitting = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+        }
     }
 }
 
 async function toggleFavorite(storeId, btn) {
+    btn.disabled = true;
     try {
         if (btn.classList.contains('active')) {
             await API.removeFavorite(storeId);
@@ -467,6 +481,8 @@ async function toggleFavorite(storeId, btn) {
         }
     } catch (err) {
         showToast(err.detail || '처리 실패');
+    } finally {
+        btn.disabled = false;
     }
 }
 
@@ -520,6 +536,7 @@ function showRedemptionCode(area, code, expiresAt, storeId, discountId, discount
         + '<div class="redeem-timer" id="redeemTimerDisplay">05:00</div>'
         + '<div class="redeem-hint">매장 직원에게 이 코드를 보여주세요</div>'
         + '<div style="display:flex;gap:8px;justify-content:center;margin-top:8px;">'
+        + '<button class="btn-redeem-copy" onclick="copyRedemptionCode(\'' + code + '\', this)" style="background:#f0f0f0;border:none;border-radius:8px;padding:8px 14px;font-size:0.82rem;font-weight:600;cursor:pointer;color:#333;">복사</button>'
         + '<button class="btn-redeem-complete" onclick="completeRedemptionCode(\'' + code + '\')">사용 완료</button>'
         + '</div>'
         + '</div>';
@@ -563,16 +580,120 @@ function showExpiredCode(area, storeId, discountId, discountDesc, discountValue)
         + '</div>';
 }
 
+function copyRedemptionCode(code, btn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(function() {
+            showToast('복사되었습니다!');
+        }).catch(function() {
+            _fallbackCopyCode(code);
+        });
+    } else {
+        _fallbackCopyCode(code);
+    }
+}
+
+function _fallbackCopyCode(code) {
+    var textArea = document.createElement('textarea');
+    textArea.value = code;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showToast('복사되었습니다!');
+    } catch (e) {
+        showToast('복사에 실패했습니다');
+    }
+    document.body.removeChild(textArea);
+}
+
 async function completeRedemptionCode(code) {
     if (!code) return;
 
-    // 사용 금액 입력 (선택)
-    let amount = 0;
-    const inputAmount = prompt('결제 금액을 입력해주세요 (원, 선택사항)', '0');
-    if (inputAmount !== null) {
-        amount = parseFloat(inputAmount) || 0;
-    }
+    // 결제 금액 입력 모달 표시
+    _showRedemptionAmountModal(code);
+}
 
+function _showRedemptionAmountModal(code) {
+    // 기존 모달 제거
+    var existing = document.getElementById('redemptionAmountModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'redemptionAmountModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2500;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML =
+        '<div style="background:white;border-radius:16px;width:100%;max-width:360px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,0.2);">'
+        + '<h4 style="font-size:1rem;font-weight:700;margin-bottom:4px;">결제 금액 입력</h4>'
+        + '<p style="font-size:0.8rem;color:#999;margin-bottom:16px;">(선택사항)</p>'
+        + '<div style="position:relative;margin-bottom:8px;">'
+        + '<input type="text" id="redemptionAmountInput" inputmode="numeric" placeholder="0" '
+        + 'style="width:100%;padding:12px 40px 12px 14px;border:1px solid #ddd;border-radius:10px;font-size:1rem;outline:none;transition:border 0.2s;" />'
+        + '<span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#999;font-size:0.9rem;">원</span>'
+        + '</div>'
+        + '<div id="redemptionAmountError" style="font-size:0.78rem;color:#FF3B30;min-height:20px;margin-bottom:12px;"></div>'
+        + '<div style="display:flex;gap:8px;">'
+        + '<button id="redemptionAmountCancel" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;background:white;font-size:0.9rem;font-weight:600;cursor:pointer;color:#666;">취소</button>'
+        + '<button id="redemptionAmountConfirm" style="flex:1;padding:12px;border:none;border-radius:10px;background:#FF6B35;color:white;font-size:0.9rem;font-weight:600;cursor:pointer;">확인</button>'
+        + '</div>'
+        + '</div>';
+
+    document.body.appendChild(modal);
+
+    var input = document.getElementById('redemptionAmountInput');
+    var errorEl = document.getElementById('redemptionAmountError');
+
+    // 한국 원화 포맷팅 (숫자 입력 시 콤마 추가)
+    input.addEventListener('input', function() {
+        var raw = this.value.replace(/[^0-9]/g, '');
+        if (raw === '') {
+            this.value = '';
+            errorEl.textContent = '';
+            return;
+        }
+        var num = parseInt(raw, 10);
+        if (isNaN(num) || num < 0) {
+            errorEl.textContent = '올바른 금액을 입력해주세요';
+            return;
+        }
+        errorEl.textContent = '';
+        this.value = num.toLocaleString('ko-KR');
+    });
+
+    // 취소 버튼
+    document.getElementById('redemptionAmountCancel').addEventListener('click', function() {
+        modal.remove();
+    });
+
+    // 모달 배경 클릭으로 닫기
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.remove();
+    });
+
+    // 확인 버튼
+    document.getElementById('redemptionAmountConfirm').addEventListener('click', function() {
+        var raw = input.value.replace(/[^0-9]/g, '');
+        var amount = raw === '' ? 0 : parseInt(raw, 10);
+        if (isNaN(amount) || amount < 0) {
+            errorEl.textContent = '올바른 금액을 입력해주세요';
+            return;
+        }
+        modal.remove();
+        _processRedemptionComplete(code, amount);
+    });
+
+    // Enter 키 지원
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('redemptionAmountConfirm').click();
+        }
+    });
+
+    input.focus();
+}
+
+async function _processRedemptionComplete(code, amount) {
     try {
         const result = await API.completeRedemption(code, amount);
         showToast(result.message || '할인이 적용되었습니다');

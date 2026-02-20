@@ -575,6 +575,52 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 /* Dungeon leaderboard */
 .dg-lb-section{margin-top:16px;}
 .dg-lb-section h3{font-size:.82rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+/* === Onboarding / Coach Mark Overlay === */
+.onboarding-overlay{position:fixed;inset:0;z-index:9800;pointer-events:auto;transition:opacity .4s;}
+.onboarding-overlay .ob-dim{position:absolute;inset:0;background:rgba(0,0,0,.7);}
+.onboarding-overlay .ob-spotlight{position:absolute;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.7);z-index:1;transition:all .4s;}
+.onboarding-overlay .ob-tooltip{position:absolute;z-index:2;background:var(--card);color:var(--text);border-radius:var(--radius);padding:18px 16px;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:fadeUp .4s forwards;}
+.onboarding-overlay .ob-tooltip h3{font-size:.95rem;font-weight:700;margin-bottom:6px;}
+.onboarding-overlay .ob-tooltip p{font-size:.78rem;color:var(--text-light);line-height:1.6;margin-bottom:12px;}
+.onboarding-overlay .ob-tooltip .ob-btn{padding:10px 24px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:40px;}
+.onboarding-overlay .ob-tooltip .ob-skip{background:none;border:none;color:var(--text-light);font-size:.7rem;cursor:pointer;font-family:inherit;margin-left:8px;padding:6px 10px;}
+.onboarding-overlay .ob-step{font-size:.6rem;color:var(--text-light);margin-top:8px;}
+/* === Confirmation Dialog === */
+.confirm-dialog-overlay{position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;padding:16px;}
+.confirm-dialog-overlay.show{opacity:1;pointer-events:auto;}
+.confirm-dialog{background:var(--card);color:var(--text);border-radius:var(--radius);padding:24px 20px;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.confirm-dialog h3{font-size:.95rem;font-weight:700;margin-bottom:8px;}
+.confirm-dialog p{font-size:.78rem;color:var(--text-light);line-height:1.5;margin-bottom:16px;}
+.confirm-dialog .cd-btns{display:flex;gap:8px;}
+.confirm-dialog .cd-btns button{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:44px;}
+.confirm-dialog .cd-cancel{background:rgba(108,92,231,.1);color:var(--text);}
+.confirm-dialog .cd-confirm{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;}
+/* === Locked Nav Tab === */
+.nav-item.locked{opacity:.4;position:relative;}
+.nav-item.locked .nav-lock-badge{position:absolute;top:2px;right:2px;font-size:.45rem;background:var(--primary);color:#fff;border-radius:8px;padding:1px 5px;font-weight:700;line-height:1.3;}
+/* === More Screen === */
+.more-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;}
+.more-card{background:var(--card);border-radius:var(--radius-sm);padding:20px 12px;text-align:center;border:1px solid var(--card-border);box-shadow:var(--card-shadow);cursor:pointer;transition:transform .15s;}
+.more-card:active{transform:scale(.95);}
+.more-card .mc-icon{font-size:1.6rem;margin-bottom:6px;}
+.more-card .mc-label{font-size:.78rem;font-weight:600;}
+.more-card .mc-desc{font-size:.62rem;color:var(--text-light);margin-top:4px;}
+.more-card.locked-card{opacity:.4;pointer-events:none;}
+/* === Adventure Screen Sub-Tabs === */
+.adv-tabs{display:flex;gap:0;margin-bottom:14px;background:rgba(231,76,60,.1);border-radius:var(--radius-sm);overflow:hidden;}
+.adv-tabs .adv-tab{flex:1;padding:10px;text-align:center;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--text-light);min-height:44px;display:flex;align-items:center;justify-content:center;}
+.adv-tabs .adv-tab.active{background:#e74c3c;color:#fff;}
+/* === Interactive Battle === */
+.dg-target-select{text-align:center;padding:8px 16px;font-size:.72rem;color:#fdcb6e;font-weight:600;background:rgba(253,203,110,.1);margin:0;}
+.dg-enemy-unit.targetable{cursor:pointer;border:2px dashed #fdcb6e;animation:targetPulse 1s infinite alternate;}
+.dg-enemy-unit.targeted{border:2px solid #fdcb6e;box-shadow:0 0 12px rgba(253,203,110,.4);}
+@keyframes targetPulse{0%{box-shadow:0 0 4px rgba(253,203,110,.2)}100%{box-shadow:0 0 12px rgba(253,203,110,.5)}}
+.type-matchup{font-size:.55rem;padding:1px 6px;border-radius:6px;display:inline-block;margin-top:3px;font-weight:600;}
+.type-matchup.effective{background:rgba(0,184,148,.2);color:#00b894;}
+.type-matchup.not-effective{background:rgba(231,76,60,.2);color:#e74c3c;}
+.type-matchup.neutral{background:rgba(150,150,150,.15);color:#999;}
+/* === Barcode display on monster card === */
+.barcode-display{font-family:'Courier New',monospace;font-size:.65rem;color:var(--text-light);margin-top:4px;letter-spacing:1px;background:rgba(108,92,231,.05);padding:2px 8px;border-radius:6px;display:inline-block;}
 </style>
 </head>
 <body>
@@ -641,9 +687,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
       <div id="scan-result" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.7);z-index:2;border-radius:var(--radius);"></div>
     </div>
     <div style="display:flex;gap:6px;align-items:center;justify-content:center;margin:8px 0;font-size:.65rem;color:var(--text-light);">
-      <span>❤️ 에너지: <strong id="scan-energy-display">5</strong></span>
+      <span>에너지: <strong id="scan-energy-display">5</strong></span>
       <span>·</span>
-      <span>🐾 미발견: <strong id="scan-remaining">0</strong>마리</span>
+      <span>수집: <strong id="scan-remaining">0</strong></span>
     </div>
     <button class="scan-btn" id="scan-btn-main" onclick="doScan()">바코드 스캔하기</button>
     <button class="manual-toggle" onclick="toggleManual()">직접 입력하기</button>
@@ -729,7 +775,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
     <h2 style="margin-bottom:14px;font-size:1rem;">⚙️ 설정</h2>
     <div id="settings-list"></div>
     <div style="margin-top:20px;text-align:center;font-size:.7rem;color:var(--text-light);">
-      <p>천국행 버스 v3.2 (던전 캠페인)</p>
+      <p>천국행 버스 v4.0 (바코드 몬스터)</p>
       <p style="margin-top:4px;">치유의 여정 - 모든 영혼에게 평화를</p>
     </div>
   </div>
@@ -779,51 +825,73 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   <div id="guild-boss-content"></div>
 </div>
 
-<div class="screen" id="screen-arena">
-  <div class="arena-pad">
-    <div class="arena-header" id="arena-header">
-      <h2>PvP 아레나</h2>
-      <div class="rating-big" id="arena-my-rating">1000</div>
-      <div class="rank-info" id="arena-rank-info">순위: - / -</div>
+<!-- old arena screen removed, merged into adventure -->
+
+<!-- ADVENTURE (combined Dungeon + Arena) -->
+<div class="screen" id="screen-adventure">
+  <div style="padding:16px 16px 0;">
+    <h2 style="text-align:center;margin-bottom:10px;font-size:1rem;">모험</h2>
+    <div class="adv-tabs">
+      <div class="adv-tab active" onclick="switchAdvTab('dungeon')" id="adv-tab-dungeon">던전</div>
+      <div class="adv-tab" onclick="switchAdvTab('arena')" id="adv-tab-arena">아레나</div>
     </div>
-    <div class="arena-stats-row" id="arena-stats-row">
-      <div class="arena-stat-card"><div class="sv" id="arena-wins">0</div><div class="sl">승리</div></div>
-      <div class="arena-stat-card"><div class="sv" id="arena-losses">0</div><div class="sl">패배</div></div>
-      <div class="arena-stat-card"><div class="sv" id="arena-winrate">0%</div><div class="sl">승률</div></div>
-      <div class="arena-stat-card"><div class="sv" id="arena-streak">0</div><div class="sl">연승</div></div>
-    </div>
-    <div class="arena-team-section">
-      <h3>방어 파티</h3>
-      <div class="arena-party-slots" id="arena-party-slots">
-        <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
-        <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
-        <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
+  </div>
+  <div id="adv-dungeon-content">
+    <div class="dg-pad">
+      <div class="dg-energy-bar" id="dg-energy-bar">
+        <div class="dg-ei">&#x26A1;</div>
+        <div class="dg-etrack"><div class="dg-efill" id="dg-efill" style="width:100%"></div></div>
+        <div class="dg-etxt" id="dg-etxt">50/50</div>
+        <div class="dg-eregen" id="dg-eregen"></div>
       </div>
-      <button class="arena-btn register" id="arena-register-btn" onclick="arenaRegister()">방어 파티 등록</button>
-      <button class="arena-btn battle" id="arena-battle-btn" onclick="arenaBattle()">배틀!</button>
+      <div class="dg-stars-summary" id="dg-stars-summary"></div>
+      <div id="dg-main-view"></div>
     </div>
-    <div class="arena-section-title">리더보드</div>
-    <table class="lb-table" id="arena-leaderboard">
-      <thead><tr><th>#</th><th>플레이어</th><th>레이팅</th><th>승률</th><th>연승</th></tr></thead>
-      <tbody id="arena-lb-body"></tbody>
-    </table>
-    <div class="arena-section-title" style="margin-top:18px;">최근 전적</div>
-    <div id="arena-history"></div>
+  </div>
+  <div id="adv-arena-content" style="display:none;">
+    <div class="arena-pad">
+      <div class="arena-header" id="arena-header">
+        <h2>PvP 아레나</h2>
+        <div class="rating-big" id="arena-my-rating">1000</div>
+        <div class="rank-info" id="arena-rank-info">순위: - / -</div>
+      </div>
+      <div class="arena-stats-row" id="arena-stats-row">
+        <div class="arena-stat-card"><div class="sv" id="arena-wins">0</div><div class="sl">승리</div></div>
+        <div class="arena-stat-card"><div class="sv" id="arena-losses">0</div><div class="sl">패배</div></div>
+        <div class="arena-stat-card"><div class="sv" id="arena-winrate">0%</div><div class="sl">승률</div></div>
+        <div class="arena-stat-card"><div class="sv" id="arena-streak">0</div><div class="sl">연승</div></div>
+      </div>
+      <div class="arena-team-section">
+        <h3>방어 파티</h3>
+        <div class="arena-party-slots" id="arena-party-slots">
+          <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
+          <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
+          <div class="arena-slot"><div class="slot-icon">?</div><div class="slot-name">빈 슬롯</div></div>
+        </div>
+        <button class="arena-btn register" id="arena-register-btn" onclick="arenaRegister()">방어 파티 등록</button>
+        <button class="arena-btn battle" id="arena-battle-btn" onclick="arenaBattle()">배틀!</button>
+      </div>
+      <div class="arena-section-title">리더보드</div>
+      <table class="lb-table" id="arena-leaderboard">
+        <thead><tr><th>#</th><th>플레이어</th><th>레이팅</th><th>승률</th><th>연승</th></tr></thead>
+        <tbody id="arena-lb-body"></tbody>
+      </table>
+      <div class="arena-section-title" style="margin-top:18px;">최근 전적</div>
+      <div id="arena-history"></div>
+    </div>
   </div>
 </div>
 
-<!-- DUNGEON -->
-<div class="screen" id="screen-dungeon">
-  <div class="dg-pad">
-    <div class="dg-energy-bar" id="dg-energy-bar">
-      <div class="dg-ei">&#x26A1;</div>
-      <div class="dg-etrack"><div class="dg-efill" id="dg-efill" style="width:100%"></div></div>
-      <div class="dg-etxt" id="dg-etxt">50/50</div>
-      <div class="dg-eregen" id="dg-eregen"></div>
-    </div>
-    <div class="dg-stars-summary" id="dg-stars-summary"></div>
-    <div id="dg-main-view"></div>
+<!-- MORE SCREEN -->
+<div class="screen" id="screen-more">
+  <div style="padding:16px 16px 0;">
+    <h2 style="text-align:center;margin-bottom:14px;font-size:1rem;">더보기</h2>
   </div>
+  <div class="more-grid" id="more-grid"></div>
+</div>
+
+<!-- DUNGEON (kept for backward compat, hidden) -->
+<div class="screen" id="screen-dungeon" style="display:none;">
 </div>
 
 <!-- DUNGEON STAGE DETAIL MODAL -->
@@ -891,13 +959,17 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 <div id="navbar">
   <div class="nav-item active" onclick="navTo('home')" data-screen="home"><div class="ni">🏠</div><div class="nl">홈</div></div>
   <div class="nav-item" onclick="navTo('scan')" data-screen="scan"><div class="ni">🔍</div><div class="nl">스캔</div></div>
-  <div class="nav-item" onclick="navTo('bus')" data-screen="bus"><div class="ni">🚌</div><div class="nl">버스</div></div>
-  <div class="nav-item" onclick="navTo('map')" data-screen="map"><div class="ni">🗺️</div><div class="nl">지도</div></div>
   <div class="nav-item" onclick="navTo('collection')" data-screen="collection"><div class="ni">📚</div><div class="nl">도감</div></div>
-  <div class="nav-item" onclick="navTo('dungeon')" data-screen="dungeon"><div class="ni">&#x1F3F0;</div><div class="nl">던전</div></div>
-  <div class="nav-item" onclick="navTo('guild')" data-screen="guild"><div class="ni">&#x1F6E1;&#xFE0F;</div><div class="nl">길드</div></div>
-  <div class="nav-item" onclick="navTo('trade')" data-screen="trade"><div class="ni">&#x1F4B1;</div><div class="nl">거래소</div></div>
-  <div class="nav-item" onclick="navTo('arena')" data-screen="arena"><div class="ni">&#x2694;&#xFE0F;</div><div class="nl">아레나</div></div>
+  <div class="nav-item" onclick="navToLocked('adventure',3)" data-screen="adventure"><div class="ni">&#x2694;&#xFE0F;</div><div class="nl">모험</div></div>
+  <div class="nav-item" onclick="navTo('more')" data-screen="more"><div class="ni">&#x2022;&#x2022;&#x2022;</div><div class="nl">더보기</div></div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div class="onboarding-overlay" id="onboarding-overlay" style="display:none;"></div>
+
+<!-- CONFIRMATION DIALOG -->
+<div class="confirm-dialog-overlay" id="confirm-dialog-overlay">
+  <div class="confirm-dialog" id="confirm-dialog-content"></div>
 </div>
 
 </div><!-- end #app -->
@@ -1191,6 +1263,110 @@ const ENCOUNTER_EVENTS = [
 ];
 
 // ============================================================
+// BARCODE MONSTER GENERATOR (Client-side, deterministic)
+// ============================================================
+const BARCODE_TYPES = ['불','물','자연','바람','영혼','빛','어둠','대지','기계','음식'];
+const BARCODE_SPECIES = ['드래곤','슬라임','고블린','페어리','골렘','엘프','그리핀','유니콘','피닉스','스프라이트','임프','트롤','니심프','위스프','키메라','코볼트'];
+const BARCODE_NAME_PARTS1 = ['빛나','그림','별빛','달빛','불꽃','물결','바람','꽃잎','이슬','구름','번개','무지개','눈꽃','새벽','황혼','미르','노을','은빛','금빛','푸른'];
+const BARCODE_NAME_PARTS2 = ['이','아','온','별','솔','린','라','미','루','니','다','해','찬','비','울','단','글','피','샘','풀'];
+const BARCODE_RARITIES = ['Common','Common','Common','Common','Uncommon','Uncommon','Uncommon','Rare','Rare','Epic'];
+const BARCODE_RARITY_KR = {Common:'일반',Uncommon:'고급',Rare:'희귀',Epic:'전설',Legendary:'전설'};
+const BARCODE_RARITY_CSS = {Common:'common',Uncommon:'uncommon',Rare:'rare',Epic:'epic',Legendary:'epic'};
+const BARCODE_EMOJIS = ['🐉','🦎','👾','🧚','🗿','🧝','🦅','🦄','🔥','✨','👹','🪨','🌸','💀','🐺','🦊','🐱','🐕','🦋','🐰'];
+
+function barcodeHash(barcode){
+  // Simple deterministic hash from barcode string
+  let h=0;
+  for(let i=0;i<barcode.length;i++){
+    h=((h<<5)-h+barcode.charCodeAt(i))|0;
+  }
+  return Math.abs(h);
+}
+
+function barcodeDigitSum(barcode){
+  let s=0;
+  for(let i=0;i<barcode.length;i++){
+    const d=parseInt(barcode[i]);
+    if(!isNaN(d)) s+=d;
+  }
+  return s;
+}
+
+function generateMonsterFromBarcode(barcode){
+  // Ensure barcode is a string of digits
+  const bc=String(barcode).replace(/\D/g,'');
+  if(bc.length<4) return null;
+
+  const h=barcodeHash(bc);
+  const ds=barcodeDigitSum(bc);
+  const digits=bc.split('').map(Number);
+
+  // Name: deterministic from barcode
+  const p1=BARCODE_NAME_PARTS1[h%BARCODE_NAME_PARTS1.length];
+  const p2=BARCODE_NAME_PARTS2[(h>>>4)%BARCODE_NAME_PARTS2.length];
+  const name=p1+p2;
+
+  // Type from digit patterns
+  const typeIdx=(digits[0]||0)%BARCODE_TYPES.length;
+  const type=BARCODE_TYPES[typeIdx];
+
+  // Species
+  const specIdx=((digits[1]||0)*10+(digits[2]||0))%BARCODE_SPECIES.length;
+  const species=BARCODE_SPECIES[specIdx];
+
+  // Rarity based on digit sum and special patterns
+  let rarIdx=ds%BARCODE_RARITIES.length;
+  // Boost rarity for special patterns
+  const hasTriple=bc.match(/(\d)\1\1/);
+  const hasSequence=bc.match(/012|123|234|345|456|567|678|789/);
+  if(hasTriple) rarIdx=Math.min(9,rarIdx+2);
+  if(hasSequence) rarIdx=Math.min(9,rarIdx+1);
+  // All same digits = Legendary
+  const allSame=bc.split('').every(d=>d===bc[0]);
+  const rarity=allSame?'Legendary':BARCODE_RARITIES[rarIdx];
+
+  // Stats derived from digits
+  const hp=50+(ds*3)%151; // 50-200
+  const atk=10+((digits[3]||0)*10+(digits[4]||0))%91; // 10-100
+  const def=10+((digits[5]||0)*10+(digits[6]||0))%91;
+  const spd=10+((digits[7]||0)*10+(digits[8]||0))%91;
+  const special=10+((digits[9]||0)*10+(digits[10]||0))%91;
+
+  // Emoji
+  const emojiIdx=(h>>>8)%BARCODE_EMOJIS.length;
+  const emoji=BARCODE_EMOJIS[emojiIdx];
+
+  // Heal/peace/vitality for bus system (mapped from combat stats)
+  const heal=Math.min(100,Math.round(hp/2));
+  const peace=Math.min(100,Math.round((def+spd)/2));
+  const vitality=Math.min(100,Math.round((atk+special)/2));
+
+  return {
+    barcode:bc,
+    id:'bc_'+bc,
+    name:name,
+    species:species,
+    type:type,
+    rarity:rarity.toLowerCase(),
+    rarityEn:rarity,
+    emoji:emoji,
+    heal:heal,peace:peace,vitality:vitality,
+    hp:hp,atk:atk,def:def,spd:spd,special:special,
+    backstory:`바코드 [${bc}]에서 태어난 ${species}. ${type} 속성의 힘을 가지고 있어요.`,
+    dreams:`${name}은(는) 넓은 세상을 여행하며 강해지는 꿈을 꿔요.`,
+    journal:[`${name}이(가) 처음으로 버스에 올라탔어요!`],
+    room:null,
+    isBarcodeMonster:true
+  };
+}
+
+function generateRandomBarcode(){
+  let bc='';
+  for(let i=0;i<13;i++) bc+=Math.floor(Math.random()*10);
+  return bc;
+}
+
+// ============================================================
 // GAME STATE
 // ============================================================
 let GS;
@@ -1216,7 +1392,13 @@ function defaultState(){
     compareChars:[],
     collTab:'chars',
     charStats:{},
-    affinity:{}
+    affinity:{},
+    barcodeMonsters:{}, // barcode -> monster data
+    playerLevel:1,
+    playerExp:0,
+    onboardingDone:false,
+    onboardingStep:0,
+    firstScanDone:false
   };
 }
 function loadState(){
@@ -1225,11 +1407,32 @@ function loadState(){
     if(s){GS=Object.assign(defaultState(),JSON.parse(s));}
     else{GS=defaultState();}
   }catch(e){GS=defaultState();}
+  // Backward compat: ensure new fields exist
+  if(!GS.barcodeMonsters) GS.barcodeMonsters={};
+  if(!GS.playerLevel) GS.playerLevel=1;
+  if(!GS.playerExp) GS.playerExp=0;
+  if(GS.onboardingDone===undefined) GS.onboardingDone=true; // existing players skip onboarding
+  if(GS.onboardingStep===undefined) GS.onboardingStep=0;
+  if(GS.firstScanDone===undefined) GS.firstScanDone=GS.discovered.length>0;
+  // Restore barcode monsters into CHARACTERS array
+  Object.values(GS.barcodeMonsters).forEach(m=>{
+    if(!CHARACTERS.find(c=>c.id===m.id)){
+      CHARACTERS.push(m);
+    }
+  });
+}
+
+function isFirstLaunch(){
+  return !localStorage.getItem('hbus_state');
 }
 function saveState(){
   // Sync character stats to GS before saving
   CHARACTERS.forEach(c=>{
     GS.charStats[c.id]={heal:c.heal,peace:c.peace,vitality:c.vitality,room:c.room};
+    // Also update barcode monster cache
+    if(c.isBarcodeMonster&&c.barcode){
+      GS.barcodeMonsters[c.barcode]=Object.assign({},c);
+    }
   });
   try{localStorage.setItem('hbus_state',JSON.stringify(GS));}catch(e){}
 }
@@ -1248,6 +1451,18 @@ let currentScreen='home';
 let screenHistory=['home'];
 
 function navTo(id){
+  // Redirect old screen names to new structure
+  if(id==='dungeon'||id==='arena'){
+    id='adventure';
+    // Set sub-tab
+    setTimeout(()=>{
+      if(id==='arena') switchAdvTab('arena');
+    },50);
+  }
+  if(id==='guild'||id==='trade'||id==='map'||id==='shop'||id==='achievements'||id==='settings'||id==='bus'||id==='quest'){
+    // These are accessible from More screen or directly
+    // For guild/trade, they need level check in More, but direct nav is ok
+  }
   if(id===currentScreen)return;
   if(currentScreen==='bus')stopBusSimulation();
   if(currentScreen==='home')stopHomeScene();
@@ -1256,7 +1471,7 @@ function navTo(id){
   const next=document.getElementById('screen-'+id);
   if(!next)return;
   // determine direction
-  const navOrder=['home','scan','bus','map','quest','collection','shop','achievements','settings','dungeon','guild','trade','arena'];
+  const navOrder=['home','scan','collection','adventure','more','bus','map','quest','shop','achievements','settings','guild','trade'];
   const pi=navOrder.indexOf(currentScreen),ni=navOrder.indexOf(id);
   const forward=ni>=pi||ni<0;
   if(prev){
@@ -1274,14 +1489,52 @@ function navTo(id){
   });
   currentScreen=id;
   screenHistory.push(id);
-  // Update nav highlights
+  // Update nav highlights - map some screens to their parent nav
+  const navMap={bus:'more',map:'more',quest:'more',shop:'more',achievements:'more',settings:'more',guild:'more',trade:'more'};
+  const navScreen=navMap[id]||id;
   document.querySelectorAll('.nav-item').forEach(n=>{
-    n.classList.toggle('active',n.dataset.screen===id);
+    n.classList.toggle('active',n.dataset.screen===navScreen);
   });
   // Render screen content
   renderScreen(id);
   // Scroll reveal
   setTimeout(()=>initScrollReveal(next),100);
+}
+
+function navToLocked(id,requiredLevel){
+  const lv=GS.playerLevel||1;
+  if(lv<requiredLevel){
+    showToast(`Lv.${requiredLevel}에서 해금됩니다! (현재 Lv.${lv})`);
+    return;
+  }
+  navTo(id);
+}
+
+function updateNavLocks(){
+  const lv=GS.playerLevel||1;
+  const locks=[
+    {screen:'adventure',level:3},
+  ];
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    const scr=n.dataset.screen;
+    const lockInfo=locks.find(l=>l.screen===scr);
+    if(lockInfo){
+      if(lv<lockInfo.level){
+        n.classList.add('locked');
+        let badge=n.querySelector('.nav-lock-badge');
+        if(!badge){
+          badge=document.createElement('div');
+          badge.className='nav-lock-badge';
+          n.appendChild(badge);
+        }
+        badge.textContent='Lv.'+lockInfo.level;
+      }else{
+        n.classList.remove('locked');
+        const badge=n.querySelector('.nav-lock-badge');
+        if(badge) badge.remove();
+      }
+    }
+  });
 }
 
 function renderScreen(id){
@@ -1295,11 +1548,55 @@ function renderScreen(id){
     case'shop':renderShop();break;
     case'achievements':renderAchievements();break;
     case'settings':renderSettings();break;
+    case'adventure':renderAdventure();break;
+    case'more':renderMore();break;
     case'dungeon':renderDungeon();break;
     case'guild':renderGuild();break;
     case'trade':renderTrade();break;
     case'arena':renderArena();break;
   }
+}
+
+// Adventure screen (combined dungeon + arena)
+let advCurrentTab='dungeon';
+function switchAdvTab(tab){
+  advCurrentTab=tab;
+  document.querySelectorAll('.adv-tabs .adv-tab').forEach(t=>t.classList.remove('active'));
+  const tabEl=document.getElementById('adv-tab-'+tab);
+  if(tabEl) tabEl.classList.add('active');
+  document.getElementById('adv-dungeon-content').style.display=tab==='dungeon'?'':'none';
+  document.getElementById('adv-arena-content').style.display=tab==='arena'?'':'none';
+  if(tab==='dungeon') renderDungeon();
+  else renderArena();
+}
+
+function renderAdventure(){
+  if(advCurrentTab==='dungeon') renderDungeon();
+  else renderArena();
+}
+
+// More screen
+function renderMore(){
+  const lv=GS.playerLevel||1;
+  const items=[
+    {icon:'🚌',label:'버스',desc:'치유의 공간',screen:'bus',level:1},
+    {icon:'🗺️',label:'지도',desc:'여행지 탐험',screen:'map',level:1},
+    {icon:'🏪',label:'상점',desc:'아이템 구매',screen:'shop',level:1},
+    {icon:'📋',label:'퀘스트',desc:'임무 수행',screen:'quest',level:1},
+    {icon:'🏆',label:'업적',desc:'도전 달성',screen:'achievements',level:1},
+    {icon:'🛡️',label:'길드',desc:'함께하는 모험',screen:'guild',level:5},
+    {icon:'💱',label:'거래소',desc:'몬스터 거래',screen:'trade',level:8},
+    {icon:'⚙️',label:'설정',desc:'게임 설정',screen:'settings',level:1},
+  ];
+  const grid=document.getElementById('more-grid');
+  grid.innerHTML=items.map(item=>{
+    const locked=lv<item.level;
+    return `<div class="more-card${locked?' locked-card':''}" onclick="${locked?`showToast('Lv.${item.level}에서 해금됩니다!')`:`navTo('${item.screen}')`}">
+      <div class="mc-icon">${item.icon}</div>
+      <div class="mc-label">${item.label}${locked?` <span style="font-size:.6rem;color:var(--primary);">Lv.${item.level}</span>`:''}</div>
+      <div class="mc-desc">${locked?'잠김':item.desc}</div>
+    </div>`;
+  }).join('');
 }
 
 // ============================================================
@@ -1336,19 +1633,22 @@ function renderHome(){
   const dest2=DESTINATIONS.find(d=>d.id===GS.travelDest);
   const sLbl=document.getElementById('scene-label');
   if(sLbl&&dest2) sLbl.textContent=`🚌 ${dest2.name}(으)로 이동 중... (터치해서 버스 내부 보기)`;
-  // Action grid
+  // Action grid - simplified for new nav
+  const lv=GS.playerLevel||1;
   const actions=[
-    {icon:'🏪',label:'상점',screen:'shop',badge:''},
-    {icon:'🏆',label:'업적',screen:'achievements',badge:checkNewAchievements()?'!':''},
-    {icon:'📋',label:'퀘스트',screen:'quest',badge:''},
-    {icon:'🗺️',label:'지도',screen:'map',badge:''},
+    {icon:'🔍',label:'스캔',screen:'scan',badge:''},
     {icon:'🚌',label:'버스',screen:'bus',badge:''},
     {icon:'📚',label:'도감',screen:'collection',badge:''},
-    {icon:'\u2694\uFE0F',label:'아레나',screen:'arena',badge:'PvP'},
-    {icon:'\uD83C\uDFF0',label:'던전',screen:'dungeon',badge:'PvE'}
+    {icon:'📋',label:'퀘스트',screen:'quest',badge:''},
+    {icon:'🏪',label:'상점',screen:'shop',badge:''},
+    {icon:'\u2694\uFE0F',label:'모험',screen:'adventure',badge:lv>=3?'':'Lv.3'}
   ];
-  document.getElementById('action-grid').innerHTML=actions.map(a=>
-    `<div class="action-card ripple" onclick="navTo('${a.screen}')">
+  document.getElementById('action-grid').innerHTML=`
+    <div style="grid-column:1/-1;text-align:center;font-size:.68rem;color:var(--text-light);margin-bottom:2px;">
+      Lv.${lv} <span style="font-size:.58rem;">(${GS.playerExp||0}/${getExpForLevel(lv)} EXP)</span>
+    </div>
+  `+actions.map(a=>
+    `<div class="action-card ripple" onclick="${a.badge==='Lv.3'?`showToast('Lv.3에서 해금됩니다!')`:`navTo('${a.screen}')`}">
       <div class="icon">${a.icon}</div><div class="label">${a.label}</div>
       ${a.badge?`<div class="badge">${a.badge}</div>`:''}
     </div>`
@@ -1366,7 +1666,10 @@ function renderScan(){
   const se=document.getElementById('scan-energy-display');
   const sr=document.getElementById('scan-remaining');
   if(se) se.textContent=GS.energy;
-  if(sr) sr.textContent=CHARACTERS.filter(c=>!GS.discovered.includes(c.id)).length;
+  // Show total discovered barcode monsters and remaining story chars
+  const barcodeCount=Object.keys(GS.barcodeMonsters||{}).length;
+  const storyRemaining=CHARACTERS.filter(c=>!c.isBarcodeMonster&&!GS.discovered.includes(c.id)).length;
+  if(sr) sr.textContent=`${barcodeCount}마리 수집 / 특별 ${storyRemaining}`;
 }
 
 // ============================================================
@@ -2288,16 +2591,23 @@ function renderChars(){
     </button>
   </div>`;
   html+=`<div class="char-grid">`;
-  CHARACTERS.forEach(c=>{
+  // Show discovered characters first, then undiscovered story characters
+  const discoveredChars=CHARACTERS.filter(c=>GS.discovered.includes(c.id));
+  const undiscoveredStory=CHARACTERS.filter(c=>!c.isBarcodeMonster&&!GS.discovered.includes(c.id));
+  const allToShow=[...discoveredChars,...undiscoveredStory];
+  allToShow.forEach(c=>{
     const disc=GS.discovered.includes(c.id);
     const sel=GS.compareChars.includes(c.id);
+    const isBc=c.isBarcodeMonster;
+    const artHtml=disc?(isBc?`<div style="font-size:2rem;">${c.emoji}</div>`:makePixelArtSVG(c.id,48)):'';
     html+=`<div class="char-card scroll-reveal${disc?'':' undiscovered'}${sel?' selected':''}"
       onclick="${disc?`showCharDetail('${c.id}')`:''}">
       <div class="mi">${disc?getMood(c):'?'}</div>
-      <div class="pa">${disc?makePixelArtSVG(c.id,48):''}</div>
+      <div class="pa">${artHtml}</div>
       <div class="cn">${disc?c.name:'???'}</div>
       <div class="ct">${disc?c.species+' · '+c.type:'미발견'}</div>
-      ${disc?`<div class="hb"><div class="hf" style="width:${c.heal}%"></div></div>
+      ${disc?`${isBc?`<div class="barcode-display">${c.barcode||''}</div>`:''}
+      <div class="hb"><div class="hf" style="width:${c.heal}%"></div></div>
       ${renderAffinityBar(c.id,true)}
       <div class="fr">${getFriendship(c.id)}</div>`:''}
     </div>`;
@@ -2571,12 +2881,14 @@ function renderSettings(){
   html+=`<div style="margin-top:18px;padding:14px;background:var(--card);border-radius:var(--radius-sm);border:1px solid var(--card-border);">
     <h3 style="font-size:.82rem;margin-bottom:8px;">📊 게임 통계</h3>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:.7rem;">
-      <div>🗓 연속 출석: <strong>${playDays}일</strong></div>
-      <div>🐾 발견 영혼: <strong>${totalChars}/10</strong></div>
-      <div>🏆 달성 업적: <strong>${totalAch}/${ACHIEVEMENTS.length}</strong></div>
-      <div>💰 보유 골드: <strong>${GS.gold}</strong></div>
-      <div>💌 보낸 편지: <strong>${GS.lettersSent||0}</strong></div>
-      <div>📦 인벤토리: <strong>${GS.inventory.length}개</strong></div>
+      <div>레벨: <strong>Lv.${GS.playerLevel||1}</strong></div>
+      <div>연속 출석: <strong>${playDays}일</strong></div>
+      <div>발견 영혼: <strong>${totalChars}</strong></div>
+      <div>바코드 몬스터: <strong>${Object.keys(GS.barcodeMonsters||{}).length}</strong></div>
+      <div>달성 업적: <strong>${totalAch}/${ACHIEVEMENTS.length}</strong></div>
+      <div>보유 골드: <strong>${GS.gold}</strong></div>
+      <div>보낸 편지: <strong>${GS.lettersSent||0}</strong></div>
+      <div>인벤토리: <strong>${GS.inventory.length}개</strong></div>
     </div>
   </div>`;
   // Data management
@@ -2619,6 +2931,10 @@ function resetGame(){
   if(!confirm('정말 게임을 초기화하시겠어요?\n모든 진행 상황이 사라집니다.'))return;
   localStorage.removeItem('hbus_state');
   GS=defaultState();
+  // Remove barcode monsters from CHARACTERS array
+  for(let i=CHARACTERS.length-1;i>=0;i--){
+    if(CHARACTERS[i].isBarcodeMonster) CHARACTERS.splice(i,1);
+  }
   CHARACTERS.forEach(c=>{
     const def=[{id:'nabi',heal:65,peace:50,vitality:70,room:'garden'},
       {id:'haru',heal:40,peace:35,vitality:55,room:'kitchen'},
@@ -2633,8 +2949,8 @@ function resetGame(){
     ].find(d=>d.id===c.id);
     if(def){c.heal=def.heal;c.peace=def.peace;c.vitality=def.vitality;c.room=def.room;}
   });
-  updateEnergyUI();updateGoldUI();updateDayNight();
-  showToast('🗑️ 게임이 초기화되었어요!');
+  updateEnergyUI();updateGoldUI();updateDayNight();updateNavLocks();
+  showToast('게임이 초기화되었어요!');
   navTo('home');
 }
 
@@ -2749,9 +3065,9 @@ function renderAffinityBar(id,compact){
   </div>`;
 }
 
-function doScan(){
+function doScan(barcodeOverride){
   if(GS.energy<=0){
-    showToast('💔 에너지가 부족해요! 잠시 기다려주세요.');
+    showToast('에너지가 부족해요! 잠시 기다려주세요.');
     return;
   }
   // Disable button during animation
@@ -2766,53 +3082,142 @@ function doScan(){
     sr.style.display='flex';
     sr.innerHTML='<div style="color:#0f0;font-size:2rem;animation:dpulse 1s infinite;">🔍</div><div style="color:#fff;font-size:.8rem;margin-top:6px;">영혼을 감지하는 중...</div>';
   }
+  // Generate or use provided barcode
+  const barcode=barcodeOverride||generateRandomBarcode();
   // Delayed reveal for dramatic effect
   setTimeout(()=>{
     if(sr) sr.style.display='none';
     if(btn){btn.disabled=false;btn.textContent='바코드 스캔하기';}
-    // Pick a random undiscovered character, or random if all discovered
-    const undiscovered=CHARACTERS.filter(c=>!GS.discovered.includes(c.id));
-    let char;
-    if(undiscovered.length>0){
-      char=undiscovered[Math.floor(Math.random()*undiscovered.length)];
-    } else {
-      char=CHARACTERS[Math.floor(Math.random()*CHARACTERS.length)];
-      showToast(`${char.emoji} ${char.name}를 다시 만났어요! 치유+5`);
-      char.heal=Math.min(100,char.heal+5);
-      addGold(50);
-      gainAffinityLocal(char.id,2);
-      saveState();
-      renderScan();
+
+    // Small chance (5%) to discover a special story character (the original 10)
+    const storyUndiscovered=CHARACTERS.filter(c=>!c.isBarcodeMonster&&!GS.discovered.includes(c.id));
+    if(storyUndiscovered.length>0&&Math.random()<0.05){
+      const char=storyUndiscovered[Math.floor(Math.random()*storyUndiscovered.length)];
+      GS.discovered.push(char.id);
+      if(!char.room){
+        const emptyRooms=ROOMS.filter(r=>CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id)).length<3);
+        if(emptyRooms.length>0) char.room=emptyRooms[0].id;
+      }
+      const randItem=INVENTORY_ITEMS[Math.floor(Math.random()*INVENTORY_ITEMS.length)];
+      GS.inventory.push(randItem.id);
+      addGold(150);
+      gainAffinityLocal(char.id,3);
+      showToast('특별한 치유 영혼을 만났어요!');
+      saveState();renderScan();
+      showDiscovery(char);
+      gainPlayerExp(20);
+      checkAchievements();
+      // Onboarding step 2
+      if(!GS.firstScanDone){GS.firstScanDone=true;saveState();setTimeout(()=>advanceOnboarding(2),1500);}
       return;
     }
+
+    // Barcode-based monster generation (deterministic)
+    let monster;
+    if(GS.barcodeMonsters[barcode]){
+      // Already scanned this barcode - same monster, give bonuses
+      monster=GS.barcodeMonsters[barcode];
+      const existing=CHARACTERS.find(c=>c.id===monster.id);
+      if(existing){
+        existing.heal=Math.min(100,existing.heal+5);
+        showToast(`${monster.emoji} ${monster.name}을(를) 다시 만났어요! 치유+5`);
+        addGold(50);
+        gainAffinityLocal(monster.id,2);
+        saveState();renderScan();
+        // Onboarding step 2
+        if(!GS.firstScanDone){GS.firstScanDone=true;saveState();setTimeout(()=>advanceOnboarding(2),1500);}
+        return;
+      }
+    }
+
+    monster=generateMonsterFromBarcode(barcode);
+    if(!monster){
+      showToast('유효하지 않은 바코드예요.');
+      return;
+    }
+
+    // Store in barcode monsters cache (deterministic)
+    GS.barcodeMonsters[barcode]=monster;
+    // Add to CHARACTERS array if not there
+    if(!CHARACTERS.find(c=>c.id===monster.id)){
+      CHARACTERS.push(monster);
+    }
     // Discover
-    GS.discovered.push(char.id);
-    // Assign to a room if there's space
-    if(!char.room){
+    if(!GS.discovered.includes(monster.id)){
+      GS.discovered.push(monster.id);
+    }
+    // Assign room if space
+    if(!monster.room){
       const emptyRooms=ROOMS.filter(r=>CHARACTERS.filter(c=>c.room===r.id&&GS.discovered.includes(c.id)).length<3);
-      if(emptyRooms.length>0) char.room=emptyRooms[0].id;
+      if(emptyRooms.length>0){
+        monster.room=emptyRooms[0].id;
+        const inChars=CHARACTERS.find(c=>c.id===monster.id);
+        if(inChars) inChars.room=monster.room;
+      }
     }
     // Random inventory item
     const randItem=INVENTORY_ITEMS[Math.floor(Math.random()*INVENTORY_ITEMS.length)];
     GS.inventory.push(randItem.id);
     addGold(100);
-    gainAffinityLocal(char.id,3);
-    saveState();
-    renderScan();
-    // Show discovery
-    showDiscovery(char);
+    gainAffinityLocal(monster.id,3);
+    gainPlayerExp(15);
+    saveState();renderScan();
+    // Show discovery with barcode info
+    showBarcodeDiscovery(monster);
     checkAchievements();
+    // Onboarding step 2
+    if(!GS.firstScanDone){GS.firstScanDone=true;saveState();setTimeout(()=>advanceOnboarding(2),1500);}
   },1200);
 }
 
 function doManualScan(){
   const input=document.getElementById('barcode-input');
   if(!input.value||input.value.length<4){
-    showToast('바코드를 입력해주세요');
+    showToast('바코드를 입력해주세요 (최소 4자리)');
     return;
   }
-  doScan();
+  const barcode=input.value.replace(/\D/g,'');
   input.value='';
+  doScan(barcode);
+}
+
+function showBarcodeDiscovery(monster){
+  const ov=document.getElementById('discovery-overlay');
+  const rarKr=BARCODE_RARITY_KR[monster.rarityEn]||'일반';
+  const rarCss=BARCODE_RARITY_CSS[monster.rarityEn]||'common';
+  document.getElementById('disc-img').outerHTML=`<div class="pa" id="disc-img" style="font-size:3.5rem;display:flex;align-items:center;justify-content:center;">${monster.emoji}</div>`;
+  document.getElementById('disc-name').textContent=monster.name;
+  document.getElementById('disc-sub').innerHTML=`${monster.species} · ${monster.type} 타입<br><span class="barcode-display">${monster.barcode}</span>`;
+  const rarEl=document.getElementById('disc-rar');
+  rarEl.textContent=rarKr;
+  rarEl.className='rar rar-'+rarCss;
+  // Add stats to discovery
+  let statsHtml=`<div style="display:flex;gap:8px;margin-top:10px;font-size:.65rem;color:rgba(255,255,255,.7);">
+    <span>HP:${monster.hp}</span><span>ATK:${monster.atk}</span><span>DEF:${monster.def}</span><span>SPD:${monster.spd}</span>
+  </div>`;
+  const existingSub=document.getElementById('disc-sub');
+  // Insert stats after rarity
+  const existingStats=document.getElementById('disc-stats');
+  if(existingStats) existingStats.remove();
+  rarEl.insertAdjacentHTML('afterend',`<div id="disc-stats">${statsHtml}</div>`);
+  ov.classList.add('show');
+}
+
+function gainPlayerExp(amount){
+  GS.playerExp=(GS.playerExp||0)+amount;
+  const needed=getExpForLevel(GS.playerLevel);
+  while(GS.playerExp>=needed&&GS.playerLevel<30){
+    GS.playerExp-=needed;
+    GS.playerLevel++;
+    showToast(`레벨 업! Lv.${GS.playerLevel} 달성!`);
+    fireConfetti();
+    updateNavLocks();
+  }
+  saveState();
+}
+
+function getExpForLevel(lv){
+  return 50+lv*30; // simple curve
 }
 
 function toggleManual(){
@@ -2845,15 +3250,32 @@ function showCharDetail(id){
   }
   const c=CHARACTERS.find(ch=>ch.id===id);
   if(!c)return;
+  const isBc=c.isBarcodeMonster;
   const stats=[
     {name:'치유',val:c.heal,color:'var(--heal)'},
     {name:'평온',val:c.peace,color:'var(--primary)'},
     {name:'활력',val:c.vitality,color:'var(--accent)'}
   ];
   let html=`<div class="char-detail"><button class="cbtn" onclick="closeModal()">✕</button>`;
-  html+=`<div style="text-align:center;"><div class="pa-lg">${makePixelArtSVG(c.id,72)}</div>`;
+  html+=`<div style="text-align:center;">`;
+  if(isBc){
+    html+=`<div class="pa-lg" style="font-size:3.5rem;">${c.emoji}</div>`;
+  }else{
+    html+=`<div class="pa-lg">${makePixelArtSVG(c.id,72)}</div>`;
+  }
   html+=`<h2 style="margin-bottom:2px;">${c.emoji} ${c.name}</h2>`;
-  html+=`<div style="font-size:.7rem;color:var(--text-light);margin-bottom:10px;">${c.species} · ${c.type} 타입 · <span class="rar rar-${c.rarity}" style="font-size:.65rem;padding:2px 8px;">${{common:'일반',uncommon:'고급',rare:'희귀',epic:'전설'}[c.rarity]}</span></div></div>`;
+  const rarKr=BARCODE_RARITY_KR?.[c.rarityEn]||{common:'일반',uncommon:'고급',rare:'희귀',epic:'전설'}[c.rarity]||'일반';
+  const rarCss=BARCODE_RARITY_CSS?.[c.rarityEn]||c.rarity||'common';
+  html+=`<div style="font-size:.7rem;color:var(--text-light);margin-bottom:4px;">${c.species} · ${c.type} 타입 · <span class="rar rar-${rarCss}" style="font-size:.65rem;padding:2px 8px;">${rarKr}</span></div>`;
+  if(isBc&&c.barcode){
+    html+=`<div class="barcode-display" style="margin-bottom:8px;">${c.barcode}</div>`;
+  }
+  if(isBc){
+    html+=`<div style="display:flex;gap:6px;justify-content:center;font-size:.62rem;color:var(--text-light);margin-bottom:6px;">
+      <span>HP:${c.hp||'?'}</span><span>ATK:${c.atk||'?'}</span><span>DEF:${c.def||'?'}</span><span>SPD:${c.spd||'?'}</span>
+    </div>`;
+  }
+  html+=`</div>`;
   html+=`<p style="font-size:.75rem;line-height:1.6;margin-bottom:12px;color:var(--text-light);">${c.backstory}</p>`;
   stats.forEach(s=>{
     html+=`<div class="sr"><span>${s.name}</span><div class="sb"><div class="sf" style="width:${s.val}%;background:${s.color}"></div></div><span style="font-size:.65rem;">${s.val}%</span></div>`;
@@ -2912,13 +3334,21 @@ function upgradeRoom(roomId){
   if(lv>=4){showToast('이미 최대 레벨이에요!');return;}
   const cost=[0,500,1500,3000][lv];
   if(GS.gold<cost){showToast('골드가 부족해요!');return;}
-  GS.gold-=cost;
-  GS.roomLevels[r.id]=lv+1;
-  updateGoldUI();
-  saveState();
-  showToast(`${r.name} 레벨 ${lv+1}로 업그레이드! 🎉`);
-  checkAchievements();
-  renderBus();
+  showConfirmDialog(
+    '업그레이드 확인',
+    `${r.name}을(를) Lv.${lv+1}로 업그레이드하시겠어요?\n비용: ${cost}G`,
+    ()=>{
+      if(GS.gold<cost){showToast('골드가 부족해요!');return;}
+      GS.gold-=cost;
+      GS.roomLevels[r.id]=lv+1;
+      updateGoldUI();
+      saveState();
+      showToast(`${r.name} 레벨 ${lv+1}로 업그레이드!`);
+      checkAchievements();
+      renderBus();
+    },
+    '업그레이드','취소'
+  );
 }
 
 function setBusColor(i){
@@ -2961,40 +3391,53 @@ function buyItem(sid){
   const item=SHOP_ITEMS.find(s=>s.id===sid);
   if(!item)return;
   if(GS.gold<item.price){showToast('골드가 부족해요!');return;}
-  GS.gold-=item.price;
-  updateGoldUI();
-  // Apply effect
-  if(item.effect==='heal'){
-    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.heal=Math.min(100,c.heal+item.amount);});
-    showToast(`${item.icon} ${item.name} 사용! 모든 영혼 치유+${item.amount}`);
-  } else if(item.effect==='peace'){
-    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.peace=Math.min(100,c.peace+item.amount);});
-    showToast(`${item.icon} ${item.name} 사용! 모든 영혼 평온+${item.amount}`);
-  } else if(item.effect==='vitality'){
-    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.vitality=Math.min(100,c.vitality+item.amount);});
-    showToast(`${item.icon} ${item.name} 사용! 모든 영혼 활력+${item.amount}`);
-  } else if(item.effect==='all'){
-    GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c){c.heal=Math.min(100,c.heal+item.amount);c.peace=Math.min(100,c.peace+item.amount);c.vitality=Math.min(100,c.vitality+item.amount);}});
-    showToast(`${item.icon} ${item.name} 사용! 모든 능력+${item.amount}`);
-  }
-  saveState();
-  renderShop();
+  showConfirmDialog(
+    '구매 확인',
+    `${item.icon} ${item.name}을(를) ${item.price}G에 구매하시겠어요?`,
+    ()=>{
+      if(GS.gold<item.price){showToast('골드가 부족해요!');return;}
+      GS.gold-=item.price;
+      updateGoldUI();
+      if(item.effect==='heal'){
+        GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.heal=Math.min(100,c.heal+item.amount);});
+        showToast(`${item.icon} ${item.name} 사용! 모든 영혼 치유+${item.amount}`);
+      } else if(item.effect==='peace'){
+        GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.peace=Math.min(100,c.peace+item.amount);});
+        showToast(`${item.icon} ${item.name} 사용! 모든 영혼 평온+${item.amount}`);
+      } else if(item.effect==='vitality'){
+        GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c)c.vitality=Math.min(100,c.vitality+item.amount);});
+        showToast(`${item.icon} ${item.name} 사용! 모든 영혼 활력+${item.amount}`);
+      } else if(item.effect==='all'){
+        GS.discovered.forEach(id=>{const c=CHARACTERS.find(ch=>ch.id===id);if(c){c.heal=Math.min(100,c.heal+item.amount);c.peace=Math.min(100,c.peace+item.amount);c.vitality=Math.min(100,c.vitality+item.amount);}});
+        showToast(`${item.icon} ${item.name} 사용! 모든 능력+${item.amount}`);
+      }
+      saveState();
+      renderShop();
+    },
+    '구매','취소'
+  );
 }
 
 function doCraft(idx){
   const recipe=CRAFTING[idx];
-  // Check ingredients (simplified: just costs some gold)
   if(GS.gold<150){showToast('재료(골드 150)가 부족해요!');return;}
-  GS.gold-=150;
-  // Apply effect
-  GS.discovered.forEach(id=>{
-    const c=CHARACTERS.find(ch=>ch.id===id);
-    if(c) c[recipe.stat]=Math.min(100,c[recipe.stat]+recipe.amount);
-  });
-  updateGoldUI();
-  showToast(`${recipe.icon} ${recipe.name} 제작 완료! ${recipe.effect}`);
-  saveState();
-  renderCollection();
+  showConfirmDialog(
+    '제작 확인',
+    `${recipe.icon} ${recipe.name}을(를) 150G로 제작하시겠어요?\n효과: ${recipe.effect}`,
+    ()=>{
+      if(GS.gold<150){showToast('재료(골드 150)가 부족해요!');return;}
+      GS.gold-=150;
+      GS.discovered.forEach(id=>{
+        const c=CHARACTERS.find(ch=>ch.id===id);
+        if(c) c[recipe.stat]=Math.min(100,c[recipe.stat]+recipe.amount);
+      });
+      updateGoldUI();
+      showToast(`${recipe.icon} ${recipe.name} 제작 완료! ${recipe.effect}`);
+      saveState();
+      renderCollection();
+    },
+    '제작','취소'
+  );
 }
 
 function startTravel(destId){
@@ -3103,6 +3546,30 @@ function closeModal(){
 
 function closeModalBackdrop(e){
   if(e.target===document.getElementById('modal-backdrop')) closeModal();
+}
+
+// ============================================================
+// CONFIRMATION DIALOG (FIX 5)
+// ============================================================
+function showConfirmDialog(title,message,onConfirm,confirmText,cancelText){
+  const overlay=document.getElementById('confirm-dialog-overlay');
+  const content=document.getElementById('confirm-dialog-content');
+  content.innerHTML=`
+    <h3>${title}</h3>
+    <p>${message}</p>
+    <div class="cd-btns">
+      <button class="cd-cancel" onclick="closeConfirmDialog();">${cancelText||'취소'}</button>
+      <button class="cd-confirm" id="cd-confirm-btn">${confirmText||'확인'}</button>
+    </div>`;
+  overlay.classList.add('show');
+  document.getElementById('cd-confirm-btn').onclick=function(){
+    closeConfirmDialog();
+    if(onConfirm) onConfirm();
+  };
+}
+
+function closeConfirmDialog(){
+  document.getElementById('confirm-dialog-overlay').classList.remove('show');
 }
 
 function showToast(msg){
@@ -4356,17 +4823,30 @@ function renderDungeonBattle(){
   document.getElementById('dg-bstage').textContent=`${bd.chapter_name} - ${bd.stage_name}`;
   document.getElementById('dg-bturn').textContent=`턴 ${bd.turn}`;
 
-  // Enemies
+  // Enemies with type matchup indicators
   const enemyEl=document.getElementById('dg-battle-enemies');
-  enemyEl.innerHTML=(bd.enemies||[]).map(e=>{
+  // Get first alive party member type for matchup display
+  const firstAliveParty=(bd.party||[]).find(p=>p.is_alive!==false&&p.current_hp>0);
+  const partyType=firstAliveParty?firstAliveParty.primary_type:'';
+
+  enemyEl.innerHTML=(bd.enemies||[]).map((e,idx)=>{
     const hpPct=e.max_hp>0?Math.round(e.current_hp/e.max_hp*100):0;
-    const deadCls=e.is_alive===false||e.current_hp<=0?'dead':'';
+    const isDead=e.is_alive===false||e.current_hp<=0;
+    const deadCls=isDead?'dead':'';
     const bossCls=e.is_boss?'boss':'';
     const enragedCls=e.is_boss&&bd.boss_enraged?'enraged':'';
+    const targetedCls=idx===battleTargetIdx&&!isDead?'targeted':'';
     const typeEmoji=getTypeEmoji(e.primary_type);
-    return `<div class="dg-enemy-unit ${deadCls} ${bossCls} ${enragedCls}">
+    // Type matchup indicator
+    let matchupHtml='';
+    if(partyType&&!isDead){
+      const mult=getTypeMatchup(partyType,e.primary_type);
+      matchupHtml=getMatchupLabel(mult);
+    }
+    return `<div class="dg-enemy-unit ${deadCls} ${bossCls} ${enragedCls} ${targetedCls}" onclick="${isDead?'':`selectBattleTarget(${idx})`}" style="${isDead?'':'cursor:pointer;'}">
       <div class="eu-icon">${e.is_boss?'\uD83D\uDC80':typeEmoji}</div>
       <div class="eu-name">${e.name}</div>
+      ${matchupHtml}
       <div class="eu-hpbar"><div class="eu-hpfill" style="width:${hpPct}%"></div></div>
       <div class="eu-hptxt">${Math.max(0,e.current_hp)}/${e.max_hp}</div>
     </div>`;
@@ -4405,7 +4885,8 @@ async function dungeonBattleTurn(action){
   const btns=document.querySelectorAll('.dg-battle-actions .dg-abtn');
   btns.forEach(b=>b.disabled=true);
 
-  const res=await apiFetch(`/api/dungeon/battle?action=${action}&target=0&session=default`,{method:'POST'});
+  const targetIdx=battleTargetIdx||0;
+  const res=await apiFetch(`/api/dungeon/battle?action=${action}&target=${targetIdx}&session=default`,{method:'POST'});
   if(res.error){
     showToast(res.error);
     btns.forEach(b=>b.disabled=false);
@@ -4720,9 +5201,208 @@ function closeArenaResult(){
 }
 
 // ============================================================
+// ONBOARDING SYSTEM (FIX 3)
+// ============================================================
+const ONBOARDING_STEPS=[
+  {
+    step:1,
+    title:'천국행 버스에 오신 것을 환영해요!',
+    text:'바코드를 스캔하면 새로운 몬스터를 만날 수 있어요.\n첫 번째 바코드를 스캔해보세요!',
+    targetSelector:'#fab-scan',
+    position:'above'
+  },
+  {
+    step:2,
+    title:'나만의 몬스터를 만났어요!',
+    text:'모든 바코드는 고유한 몬스터를 만들어요.\n같은 바코드를 스캔하면 항상 같은 몬스터가 나와요!',
+    targetSelector:null,
+    position:'center'
+  },
+  {
+    step:3,
+    title:'버스에서 쉬고 있어요',
+    text:'도감에서 수집한 몬스터들을 확인하고,\n버스에서 치유되는 모습을 볼 수 있어요.',
+    targetSelector:'.nav-item[data-screen="collection"]',
+    position:'above'
+  },
+  {
+    step:4,
+    title:'모험을 떠나볼까요?',
+    text:'레벨이 오르면 던전과 아레나가 해금돼요.\n바코드를 더 스캔하고 경험치를 모아보세요!',
+    targetSelector:null,
+    position:'center'
+  }
+];
+
+function startOnboarding(){
+  if(GS.onboardingDone) return;
+  GS.onboardingStep=1;
+  showOnboardingStep(1);
+}
+
+function showOnboardingStep(step){
+  const overlay=document.getElementById('onboarding-overlay');
+  const stepData=ONBOARDING_STEPS.find(s=>s.step===step);
+  if(!stepData){
+    finishOnboarding();
+    return;
+  }
+
+  overlay.style.display='block';
+  let html='';
+
+  if(stepData.targetSelector){
+    const target=document.querySelector(stepData.targetSelector);
+    if(target){
+      const rect=target.getBoundingClientRect();
+      const appRect=document.getElementById('app').getBoundingClientRect();
+      const sx=rect.left-appRect.left-8;
+      const sy=rect.top-appRect.top-8;
+      const sw=rect.width+16;
+      const sh=rect.height+16;
+
+      html+=`<div class="ob-spotlight" style="left:${sx}px;top:${sy}px;width:${sw}px;height:${sh}px;"></div>`;
+
+      // Tooltip position
+      let tx=sx,ty;
+      if(stepData.position==='above'){
+        ty=sy-160;
+        if(ty<10) ty=sy+sh+16;
+      }else{
+        ty=sy+sh+16;
+      }
+      tx=Math.max(16,Math.min(tx,300));
+
+      html+=`<div class="ob-tooltip" style="left:${tx}px;top:${ty}px;">
+        <h3>${stepData.title}</h3>
+        <p>${stepData.text.replace(/\n/g,'<br>')}</p>
+        <div>
+          <button class="ob-btn" onclick="advanceOnboarding(${step+1})">${step<4?'다음':'시작하기!'}</button>
+          <button class="ob-skip" onclick="finishOnboarding()">건너뛰기</button>
+        </div>
+        <div class="ob-step">${step} / 4</div>
+      </div>`;
+    }else{
+      // Fallback to center
+      html+=`<div class="ob-dim"></div>`;
+      html+=`<div class="ob-tooltip" style="left:50%;top:50%;transform:translate(-50%,-50%);">
+        <h3>${stepData.title}</h3>
+        <p>${stepData.text.replace(/\n/g,'<br>')}</p>
+        <div>
+          <button class="ob-btn" onclick="advanceOnboarding(${step+1})">${step<4?'다음':'시작하기!'}</button>
+          <button class="ob-skip" onclick="finishOnboarding()">건너뛰기</button>
+        </div>
+        <div class="ob-step">${step} / 4</div>
+      </div>`;
+    }
+  }else{
+    html+=`<div class="ob-dim"></div>`;
+    html+=`<div class="ob-tooltip" style="left:50%;top:50%;transform:translate(-50%,-50%);">
+      <h3>${stepData.title}</h3>
+      <p>${stepData.text.replace(/\n/g,'<br>')}</p>
+      <div>
+        <button class="ob-btn" onclick="advanceOnboarding(${step+1})">${step<4?'다음':'시작하기!'}</button>
+        <button class="ob-skip" onclick="finishOnboarding()">건너뛰기</button>
+      </div>
+      <div class="ob-step">${step} / 4</div>
+    </div>`;
+  }
+
+  overlay.innerHTML=html;
+}
+
+function advanceOnboarding(nextStep){
+  if(nextStep>4){
+    finishOnboarding();
+    return;
+  }
+  GS.onboardingStep=nextStep;
+  saveState();
+  showOnboardingStep(nextStep);
+}
+
+function finishOnboarding(){
+  GS.onboardingDone=true;
+  GS.onboardingStep=0;
+  saveState();
+  const overlay=document.getElementById('onboarding-overlay');
+  overlay.style.display='none';
+  overlay.innerHTML='';
+}
+
+// ============================================================
+// INTERACTIVE BATTLE SYSTEM (FIX 4)
+// ============================================================
+let battleTargetIdx=0;
+let battleSelectingTarget=false;
+
+function getTypeMatchup(attackerType,defenderType){
+  // Simple type effectiveness chart
+  const chart={
+    'Fire':{'Nature':2,'Water':0.5,'Tech':0.5,'Spirit':1,'Dark':1,'Earth':1,'Wind':1,'Food':1,'Light':1},
+    'Water':{'Fire':2,'Nature':0.5,'Earth':2,'Tech':1,'Spirit':1,'Dark':1,'Wind':1,'Food':1,'Light':1},
+    'Nature':{'Water':2,'Fire':0.5,'Earth':2,'Tech':0.5,'Spirit':1,'Dark':1,'Wind':1,'Food':1,'Light':1},
+    'Tech':{'Nature':2,'Fire':0.5,'Spirit':2,'Water':1,'Dark':1,'Earth':1,'Wind':1,'Food':1,'Light':1},
+    'Spirit':{'Dark':2,'Light':0.5,'Tech':0.5,'Fire':1,'Water':1,'Nature':1,'Earth':1,'Wind':1,'Food':1},
+    'Dark':{'Light':2,'Spirit':0.5,'Nature':1,'Fire':1,'Water':1,'Tech':1,'Earth':1,'Wind':1,'Food':1},
+    'Light':{'Spirit':2,'Dark':0.5,'Nature':1,'Fire':1,'Water':1,'Tech':1,'Earth':1,'Wind':1,'Food':1},
+    'Earth':{'Fire':2,'Water':0.5,'Wind':0.5,'Nature':1,'Tech':1,'Spirit':1,'Dark':1,'Food':1,'Light':1},
+    'Wind':{'Earth':2,'Nature':1,'Fire':1,'Water':1,'Tech':1,'Spirit':1,'Dark':1,'Food':1,'Light':1},
+    'Food':{'Spirit':2,'Fire':0.5,'Water':1,'Nature':1,'Tech':1,'Dark':1,'Earth':1,'Wind':1,'Light':1},
+  };
+  // Map Korean types to English for lookup
+  const krToEn={'불':'Fire','물':'Water','자연':'Nature','바람':'Wind','영혼':'Spirit','빛':'Light','어둠':'Dark','대지':'Earth','기계':'Tech','음식':'Food'};
+  const aType=krToEn[attackerType]||attackerType;
+  const dType=krToEn[defenderType]||defenderType;
+  const row=chart[aType];
+  if(!row) return 1;
+  return row[dType]||1;
+}
+
+function getMatchupLabel(mult){
+  if(mult>=2) return '<span class="type-matchup effective">효과적!</span>';
+  if(mult<=0.5) return '<span class="type-matchup not-effective">비효과적</span>';
+  return '<span class="type-matchup neutral">보통</span>';
+}
+
+function enableTargetSelection(){
+  battleSelectingTarget=true;
+  const bd=dgState.battleData;
+  if(!bd) return;
+  // Show target selection prompt
+  const actionsEl=document.getElementById('dg-battle-actions');
+  const existingPrompt=document.getElementById('dg-target-prompt');
+  if(!existingPrompt){
+    actionsEl.insertAdjacentHTML('beforebegin','<div class="dg-target-select" id="dg-target-prompt">공격할 대상을 선택하세요!</div>');
+  }
+  // Make alive enemies targetable
+  const enemyEls=document.querySelectorAll('.dg-enemy-unit:not(.dead)');
+  enemyEls.forEach((el,i)=>{
+    el.classList.add('targetable');
+    el.onclick=function(){selectBattleTarget(i);};
+  });
+}
+
+function selectBattleTarget(idx){
+  battleTargetIdx=idx;
+  battleSelectingTarget=false;
+  // Visual feedback
+  document.querySelectorAll('.dg-enemy-unit').forEach(el=>{
+    el.classList.remove('targetable','targeted');
+    el.onclick=null;
+  });
+  const enemyEls=document.querySelectorAll('.dg-enemy-unit:not(.dead)');
+  if(enemyEls[idx]) enemyEls[idx].classList.add('targeted');
+  // Remove prompt
+  const prompt=document.getElementById('dg-target-prompt');
+  if(prompt) prompt.remove();
+}
+
+// ============================================================
 // INITIALIZATION
 // ============================================================
 function init(){
+  const firstLaunch=isFirstLaunch();
   loadState();
   restoreCharStats();
   // Seed affinity data for discovered characters if not already set
@@ -4736,7 +5416,15 @@ function init(){
   function dismissSplash(){
     if(splashDone)return;splashDone=true;
     document.getElementById('splash').classList.add('hide');
-    setTimeout(()=>document.getElementById('splash').style.display='none',800);
+    setTimeout(()=>{
+      document.getElementById('splash').style.display='none';
+      // Start onboarding for first-time players (after splash)
+      if(firstLaunch||!GS.onboardingDone){
+        GS.onboardingDone=false;
+        saveState();
+        setTimeout(startOnboarding,500);
+      }
+    },800);
   }
   setTimeout(dismissSplash,3000);
   document.getElementById('splash').addEventListener('click',dismissSplash,{once:true});
@@ -4749,6 +5437,7 @@ function init(){
   // UI
   updateEnergyUI();
   updateGoldUI();
+  updateNavLocks();
   // Render home
   renderHome();
   initScrollReveal(document.getElementById('screen-home'));
@@ -4771,7 +5460,7 @@ function init(){
       const remaining=Math.max(0,180000-elapsed);
       const rm=Math.floor(remaining/60000),rs=Math.floor((remaining%60000)/1000);
       const el=document.getElementById('heal-timer');
-      if(el) el.textContent=`🌿 다음 치유까지 ${rm}:${String(rs).padStart(2,'0')}`;
+      if(el) el.textContent=`다음 치유까지 ${rm}:${String(rs).padStart(2,'0')}`;
     }
   },1000);
   // Story rotation

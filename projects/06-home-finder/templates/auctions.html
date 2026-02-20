@@ -106,20 +106,7 @@
 
 {% block scripts %}
 <script>
-function formatPrice(krw) {
-    if (!krw) return '가격미정';
-    const eok = Math.floor(krw / 100000000);
-    const man = Math.floor((krw % 100000000) / 10000);
-    if (eok > 0 && man > 0) return `${eok}억 ${man.toLocaleString()}만`;
-    if (eok > 0) return `${eok}억`;
-    return `${man.toLocaleString()}만`;
-}
-
-function formatDate(iso) {
-    if (!iso) return '-';
-    const d = new Date(iso);
-    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-}
+// formatPrice, formatDate는 utils.js에서 제공
 
 function daysUntil(iso) {
     if (!iso) return '';
@@ -163,7 +150,7 @@ async function loadAuctions() {
                 <div class="row align-items-center">
                     <div class="col-md-5">
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="status-badge status-${a.auction_status || '진행중'}">${a.auction_status || '진행중'}</span>
+                            <span class="status-badge ${'status-' + (a.auction_status || '진행중')} ${['진행중','낙찰','유찰','취하'].includes(a.auction_status) ? '' : 'bg-secondary text-white'}">${a.auction_status || '진행중'}</span>
                             ${a.discount_rate >= 0.3 ? `<span class="discount-badge">-${discount}</span>` : ''}
                             <small class="text-muted">${a.case_number || ''}</small>
                         </div>
@@ -222,7 +209,7 @@ async function showAuctionDetail(id) {
                         <tr><th>할인율</th><td class="text-danger fw-bold">${discount}</td></tr>
                         <tr><th>입찰회차</th><td>${a.current_bid_round || 1}회차</td></tr>
                         <tr><th>경매일</th><td>${formatDate(a.auction_date)}</td></tr>
-                        <tr><th>상태</th><td><span class="status-badge status-${a.auction_status || '진행중'}">${a.auction_status || '-'}</span></td></tr>
+                        <tr><th>상태</th><td><span class="status-badge ${'status-' + (a.auction_status || '진행중')} ${['진행중','낙찰','유찰','취하'].includes(a.auction_status) ? '' : 'bg-secondary text-white'}">${a.auction_status || '-'}</span></td></tr>
                         <tr><th>리스크</th><td class="risk-${a.risk_level || '보통'}">${a.risk_level || '-'}</td></tr>
                     </table>
                 </div>

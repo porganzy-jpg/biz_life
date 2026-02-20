@@ -55,7 +55,7 @@ const API = {
         }
 
         if (!response.ok) {
-            const err = await response.json().catch(() => ({ detail: 'Request failed' }));
+            const err = await response.json().catch(() => ({ detail: '요청 실패' }));
             throw { status: response.status, ...err };
         }
         return response.json();
@@ -68,12 +68,21 @@ const API = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refresh_token: this.getRefreshToken() }),
             });
-            if (!res.ok) { this.clearTokens(); return false; }
+            if (!res.ok) {
+                if (typeof showToast === 'function') {
+                    showToast('세션이 만료되었습니다. 다시 로그인해주세요.');
+                }
+                this.clearTokens();
+                return false;
+            }
             const data = await res.json();
             this.setTokens(data.access_token, data.refresh_token);
             this.setUser(data.user);
             return true;
         } catch {
+            if (typeof showToast === 'function') {
+                showToast('세션이 만료되었습니다. 다시 로그인해주세요.');
+            }
             this.clearTokens();
             return false;
         }
