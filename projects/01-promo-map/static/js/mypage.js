@@ -48,6 +48,8 @@ async function loadMypage() {
                 </div>
             </div>
 
+            <div id="savingsAnalytics"></div>
+
             <div class="menu-list">
                 <div class="menu-item" onclick="showUsageHistory()">
                     <span>사용 이력</span><span>→</span>
@@ -63,6 +65,9 @@ async function loadMypage() {
                 </div>
             </div>
         `;
+
+        // 절약 분석 로드
+        loadSavingsAnalytics();
     } catch (e) {
         container.innerHTML = '<div class="empty-state">정보를 불러올 수 없습니다</div>';
     }
@@ -174,4 +179,235 @@ async function handleUpdateProfile(e) {
         showToast(err.detail || '수정 실패');
     }
     return false;
+}
+
+/**
+ * 절약 분석 - 사용 이력 기반 통계 및 차트
+ */
+let savingsPieChart = null;
+let savingsLineChart = null;
+
+async function loadSavingsAnalytics() {
+    const container = document.getElementById('savingsAnalytics');
+    if (!container) return;
+
+    try {
+        const data = await API.getUsageHistory();
+        const items = data.items || [];
+
+        if (items.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // 통계 계산
+        const stats = computeSavingsStats(items);
+
+        // 요약 카드 + 차트 컨테이너 렌더링
+        container.innerHTML = `
+            <div class="savings-section">
+                <h3>절약 분석</h3>
+                <div class="savings-stats-grid">
+                    <div class="savings-stat-card">
+                        <div class="savings-stat-value">${formatCurrency(stats.monthlySavings)}</div>
+                        <div class="savings-stat-label">이번달 절약</div>
+                    </div>
+                    <div class="savings-stat-card">
+                        <div class="savings-stat-value">${formatCurrency(stats.totalSavings)}</div>
+                        <div class="savings-stat-label">총 절약</div>
+                    </div>
+                    <div class="savings-stat-card">
+                        <div class="savings-stat-value">${stats.usageCount}회</div>
+                        <div class="savings-stat-label">사용 횟수</div>
+                    </div>
+                </div>
+                <div class="savings-chart-card">
+                    <h4>카테고리별 절약</h4>
+                    <canvas id="savingsPieChart"></canvas>
+                </div>
+                <div class="savings-chart-card">
+                    <h4>월별 절약 추이</h4>
+                    <canvas id="savingsLineChart"></canvas>
+                </div>
+            </div>
+        `;
+
+        // 차트 렌더링
+        renderSavingsPieChart(stats.byCategory);
+        renderSavingsLineChart(stats.monthlyTrend);
+    } catch (e) {
+        console.error('Savings analytics error:', e);
+        container.innerHTML = '';
+    }
+}
+
+function computeSavingsStats(items) {
+    const now = new Date();
+    const currentMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+    let totalSavings = 0;
+    let monthlySavings = 0;
+    const byCategory = {};
+    const monthlyTrend = {};
+
+    items.forEach(item => {
+        // saved_amount가 있으면 사용, 없으면 discount_value 기반 추정 (할인율 * 1000원 기본 단가)
+        const saved = item.saved_amount || (item.discount_value || 0) * 100;
+        totalSavings += saved;
+
+        // 이번달 절약
+        const usedAt = item.used_at || '';
+        const itemMonth = usedAt.substring(0, 7); // "YYYY-MM"
+        if (itemMonth === currentMonth) {
+            monthlySavings += saved;
+        }
+
+        // 카테고리별
+        const cat = item.category || item.store_category || '기타';
+        byCategory[cat] = (byCategory[cat] || 0) + saved;
+
+        // 월별 추이
+        if (itemMonth) {
+            monthlyTrend[itemMonth] = (monthlyTrend[itemMonth] || 0) + saved;
+        }
+    });
+
+    return {
+        totalSavings,
+        monthlySavings,
+        usageCount: items.length,
+        byCategory,
+        monthlyTrend,
+    };
+}
+
+function formatCurrency(amount) {
+    if (amount >= 10000) {
+        return (amount / 10000).toFixed(1).replace(/\.0$/, '') + '만원';
+    }
+    return amount.toLocaleString('ko-KR') + '원';
+}
+
+function renderSavingsPieChart(byCategory) {
+    const canvas = document.getElementById('savingsPieChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // 이전 차트 파기
+    if (savingsPieChart) {
+        savingsPieChart.destroy();
+        savingsPieChart = null;
+    }
+
+    const labels = Object.keys(byCategory).map(cat => {
+        const catMap = {
+            food: '음식점', cafe: '카페', shopping: '쇼핑',
+            convenience: '편의점', entertainment: '엔터', general: '기타'
+        };
+        return catMap[cat] || cat;
+    });
+    const values = Object.values(byCategory);
+    const colors = ['#FF6B35', '#4285f4', '#34C759', '#FF9500', '#AF52DE', '#FF3B30', '#5AC8FA', '#FFB800'];
+
+    savingsPieChart = new Chart(canvas, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { size: 11 },
+                        padding: 12,
+                        usePointStyle: true,
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const val = ctx.parsed;
+                            return ctx.label + ': ' + formatCurrency(val);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderSavingsLineChart(monthlyTrend) {
+    const canvas = document.getElementById('savingsLineChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    // 이전 차트 파기
+    if (savingsLineChart) {
+        savingsLineChart.destroy();
+        savingsLineChart = null;
+    }
+
+    // 월별 정렬 (최근 6개월)
+    const sortedMonths = Object.keys(monthlyTrend).sort();
+    const recentMonths = sortedMonths.slice(-6);
+    const labels = recentMonths.map(m => {
+        const parts = m.split('-');
+        return parts[1] + '월';
+    });
+    const values = recentMonths.map(m => monthlyTrend[m]);
+
+    savingsLineChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '월별 절약액',
+                data: values,
+                borderColor: '#FF6B35',
+                backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#FF6B35',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                fill: true,
+                tension: 0.3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return '절약: ' + formatCurrency(ctx.parsed.y);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        font: { size: 10 },
+                        callback: function(val) { return formatCurrency(val); }
+                    },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    ticks: { font: { size: 11 } },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
 }

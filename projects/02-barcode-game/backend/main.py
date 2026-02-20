@@ -272,6 +272,8 @@ async def start_battle(
     quest_updates = daily_quest_system.update_progress(session, "battle")
 
     monster_level_result = None
+    affinity_result = None
+    affinity_heal_result = None
     if is_player_win:
         player.total_wins += 1
         rewards = battle_system.get_battle_reward(p1, p2)
@@ -282,9 +284,15 @@ async def start_battle(
         monster_level_result = player.gain_monster_exp(player_monster_data, monster_exp)
         rewards["monster_exp"] = monster_exp
         quest_updates += daily_quest_system.update_progress(session, "battle_win")
+        # Affinity gain: 3 AP per win
+        affinity_result = player.gain_affinity(monster_idx, 3, source="party")
+        # Post-battle passive heal (affinity level >= 7)
+        affinity_heal_result = player.apply_post_battle_affinity_heal(monster_idx, source="party")
     else:
         player.gain_exp(5)
         player.gain_monster_exp(player_monster_data, 3)
+        # Affinity gain: 1 AP per loss
+        affinity_result = player.gain_affinity(monster_idx, 1, source="party")
 
     # --- DB Persist ---
     persistence.save_player(session, player)
@@ -297,6 +305,8 @@ async def start_battle(
         "battle_log": battle_log,
         "rewards": rewards,
         "monster_level": monster_level_result,
+        "affinity": affinity_result,
+        "affinity_heal": affinity_heal_result,
         "player": player.to_dict(),
         "quest_updates": quest_updates,
     }
@@ -315,6 +325,41 @@ async def get_collection(session: str = "default", sort: str = "rarity"):
         "stats": collection.get_completion_stats(),
         "rewards": collection.check_rewards(),
         "monsters": monsters[:50],
+    }
+
+
+# =====================================================
+#  Monster Affinity / Bonding
+# =====================================================
+
+@app.get("/api/monster/{index}/affinity")
+async def get_monster_affinity(
+    index: int,
+    source: str = Query("party", description="'party' 또는 'inventory'"),
+    session: str = Query("default"),
+):
+    """몬스터 유대(친밀도) 상세 조회"""
+    player, _ = get_or_create_player(session)
+
+    monster_list = player.party if source == "party" else player.inventory
+    if index < 0 or index >= len(monster_list):
+        return {"error": "유효하지 않은 몬스터 인덱스입니다."}
+
+    monster = monster_list[index]
+    bonus = player.get_affinity_bonus(monster)
+
+    return {
+        "monster_name": monster.get("name", "Unknown"),
+        "monster_index": index,
+        "source": source,
+        "affinity_level": bonus["affinity_level"],
+        "affinity_exp": bonus["affinity_exp"],
+        "exp_to_next_level": 100 - bonus["affinity_exp"] if bonus["affinity_level"] < 10 else 0,
+        "max_level": 10,
+        "stat_multiplier": bonus["multiplier"],
+        "passive_heal": bonus["passive_heal"],
+        "heal_pct": bonus["heal_pct"],
+        "bonus_description": bonus["bonus_description"],
     }
 
 
@@ -435,6 +480,12 @@ async def collect_expedition(session: str = "default"):
     # 퀘스트 업데이트
     daily_quest_system.update_progress(session, "expedition_collect")
 
+    # Affinity gain: 2 AP for all party monsters on expedition collect
+    affinity_results = []
+    for idx in range(len(player.party)):
+        aff = player.gain_affinity(idx, 2, source="party")
+        affinity_results.append(aff)
+
     # --- DB Persist ---
     persistence.save_player(session, player)
     persistence.save_inventory(session, inv)
@@ -452,6 +503,7 @@ async def collect_expedition(session: str = "default"):
             "party_used": result.party_used,
         },
         "items_added": items_added,
+        "affinity_updates": affinity_results,
         "player": player.to_dict(),
     }
 

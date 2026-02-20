@@ -1,7 +1,8 @@
 """
 ATR-based Risk Manager.
 
-Handles position sizing, stop-loss, take-profit, and trailing stop.
+Handles position sizing, stop-loss, take-profit, trailing stop,
+and Kelly Criterion adaptive position sizing.
 """
 import logging
 from dataclasses import dataclass
@@ -12,6 +13,12 @@ import pandas as pd
 from . import config
 
 logger = logging.getLogger("scalper.risk")
+
+
+@dataclass
+class KellyResult:
+    kelly_risk_pct: float
+    stats: dict
 
 
 @dataclass
@@ -48,8 +55,122 @@ class RiskManager:
 
         return float(atr) if not pd.isna(atr) else 0.0
 
-    def calculate_risk_levels(self, df: pd.DataFrame, balance_krw: float, side: str = "buy") -> Optional[RiskLevels]:
-        """Calculate position size and risk levels for a new trade."""
+    def calculate_kelly_risk(self, trade_history, window: int = None) -> KellyResult:
+        """Calculate Kelly Criterion-based optimal risk percentage.
+
+        Args:
+            trade_history: list of TradeRecord objects (must have pnl_pct attribute)
+            window: number of recent trades to consider
+
+        Returns:
+            KellyResult with kelly_risk_pct and stats dict
+        """
+        window = window or getattr(config, 'KELLY_WINDOW', 50)
+        safety = getattr(config, 'KELLY_SAFETY_FACTOR', 0.5)
+        min_risk = getattr(config, 'KELLY_MIN_RISK', 0.005)
+        max_risk = getattr(config, 'KELLY_MAX_RISK', 0.04)
+
+        default_stats = {
+            "trades_used": 0,
+            "win_rate": 0.0,
+            "avg_win_pct": 0.0,
+            "avg_loss_pct": 0.0,
+            "raw_kelly": 0.0,
+            "half_kelly": 0.0,
+            "clamped_kelly": config.RISK_PER_TRADE,
+            "sufficient_data": False,
+        }
+
+        # Need at least 10 trades for meaningful Kelly calculation
+        if len(trade_history) < 10:
+            logger.debug("Kelly: insufficient trade history (%d trades), using default risk",
+                         len(trade_history))
+            return KellyResult(
+                kelly_risk_pct=config.RISK_PER_TRADE,
+                stats=default_stats,
+            )
+
+        # Take the most recent `window` trades
+        recent = trade_history[-window:]
+
+        # Separate wins and losses (pnl_pct is in percentage, e.g. +1.5 means +1.5%)
+        wins = [t for t in recent if t.pnl_pct > 0]
+        losses = [t for t in recent if t.pnl_pct <= 0]
+
+        total = len(recent)
+        win_count = len(wins)
+        loss_count = len(losses)
+
+        if win_count == 0 or loss_count == 0:
+            # Edge cases: all wins or all losses
+            if win_count == 0:
+                # All losses -> minimum risk
+                kelly_clamped = min_risk
+            else:
+                # All wins -> use max risk
+                kelly_clamped = max_risk
+
+            stats = {
+                "trades_used": total,
+                "win_rate": round(win_count / total * 100, 1),
+                "avg_win_pct": round(sum(t.pnl_pct for t in wins) / win_count, 2) if wins else 0.0,
+                "avg_loss_pct": round(abs(sum(t.pnl_pct for t in losses) / loss_count), 2) if losses else 0.0,
+                "raw_kelly": 0.0 if win_count == 0 else 1.0,
+                "half_kelly": 0.0 if win_count == 0 else 0.5,
+                "clamped_kelly": round(kelly_clamped, 4),
+                "sufficient_data": True,
+            }
+            return KellyResult(kelly_risk_pct=kelly_clamped, stats=stats)
+
+        # Core Kelly calculation
+        p = win_count / total          # win probability
+        q = 1 - p                      # loss probability
+        avg_win = sum(t.pnl_pct for t in wins) / win_count     # average win % (positive)
+        avg_loss = abs(sum(t.pnl_pct for t in losses) / loss_count)  # average loss % (positive)
+
+        b = avg_win / avg_loss if avg_loss > 0 else 0.0  # win/loss ratio
+
+        if b <= 0:
+            raw_kelly = 0.0
+        else:
+            raw_kelly = (b * p - q) / b  # Kelly formula: f* = (b*p - q) / b
+
+        # Apply safety factor (half-Kelly)
+        half_kelly = raw_kelly * safety
+
+        # Clamp between min and max risk
+        kelly_clamped = max(min_risk, min(max_risk, half_kelly))
+
+        stats = {
+            "trades_used": total,
+            "win_rate": round(p * 100, 1),
+            "avg_win_pct": round(avg_win, 2),
+            "avg_loss_pct": round(avg_loss, 2),
+            "raw_kelly": round(raw_kelly, 4),
+            "half_kelly": round(half_kelly, 4),
+            "clamped_kelly": round(kelly_clamped, 4),
+            "sufficient_data": True,
+        }
+
+        logger.info(
+            f"Kelly: p={p:.2f}, b={b:.2f}, raw={raw_kelly:.4f}, "
+            f"half={half_kelly:.4f}, clamped={kelly_clamped:.4f} "
+            f"(from {total} trades)"
+        )
+
+        return KellyResult(kelly_risk_pct=kelly_clamped, stats=stats)
+
+    def calculate_risk_levels(self, df: pd.DataFrame, balance_krw: float,
+                              side: str = "buy",
+                              risk_override: float = None) -> Optional[RiskLevels]:
+        """Calculate position size and risk levels for a new trade.
+
+        Args:
+            df: OHLCV DataFrame
+            balance_krw: available balance in KRW
+            side: "buy" or "sell"
+            risk_override: if provided, use this instead of config.RISK_PER_TRADE
+        """
         atr = self.calculate_atr(df)
         current_price = float(df["close"].iloc[-1])
 
@@ -87,7 +208,8 @@ class RiskManager:
             take_profit_price = current_price - tp_distance
 
         # Position sizing: risk per trade / stop distance
-        risk_amount_krw = balance_krw * config.RISK_PER_TRADE
+        risk_pct = risk_override if risk_override is not None else config.RISK_PER_TRADE
+        risk_amount_krw = balance_krw * risk_pct
         position_size_krw = risk_amount_krw / stop_loss_pct if stop_loss_pct > 0 else 0
 
         # Cap at available balance (leave buffer for commission)

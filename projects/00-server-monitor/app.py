@@ -17,6 +17,7 @@ from services import (
     start_project,
     stop_project,
     restart_project,
+    search_events,
 )
 from deploy import deploy_router, get_deploy_manager
 
@@ -50,6 +51,27 @@ async def api_status():
 @app.get("/api/events")
 async def api_events(project: str = None, limit: int = 50):
     return JSONResponse(get_event_history(project_name=project, limit=limit))
+
+@app.get("/api/events/search")
+async def api_events_search(
+    project: str = None,
+    event_type: str = None,
+    days: int = None,
+    hours: int = None,
+    limit: int = 100,
+):
+    """이벤트 검색 API - event_type은 쉼표 구분 (예: error,restart)"""
+    type_list = None
+    if event_type:
+        type_list = [t.strip() for t in event_type.split(",") if t.strip()]
+    results = search_events(
+        project_name=project if project else None,
+        event_types=type_list,
+        days=days,
+        hours=hours,
+        limit=limit,
+    )
+    return JSONResponse(results)
 
 @app.get("/api/uptime")
 async def api_uptime():
@@ -246,13 +268,41 @@ async def dashboard(request: Request):
   .all-controls {{ text-align: center; margin-bottom: 16px; }}
   .all-controls .btn {{ padding: 8px 20px; font-size: 0.85rem; }}
   .events-section {{ margin-top: 24px; background: #1a1d27; border-radius: 12px; padding: 16px; }}
-  .events-section h2 {{ font-size: 1.1rem; margin-bottom: 12px; }}
+  .events-section h2 {{ font-size: 1.1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }}
   .event-item {{ display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2a2d37; font-size: 0.8rem; }}
   .event-item:last-child {{ border-bottom: none; }}
   .event-icon {{ font-size: 1rem; min-width: 24px; text-align: center; }}
   .event-time {{ color: #666; min-width: 130px; font-size: 0.72rem; }}
   .event-project {{ color: #64b5f6; min-width: 110px; font-weight: 600; font-size: 0.75rem; }}
   .event-details {{ color: #aaa; flex: 1; }}
+
+  /* 필터 패널 */
+  .filter-toggle {{ background: #2a2d37; color: #aaa; border: none; padding: 4px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; }}
+  .filter-toggle:hover {{ background: #3a3d47; color: #e0e0e0; }}
+  .filter-panel {{ background: #15171e; border-radius: 10px; padding: 14px; margin-bottom: 14px; display: none; }}
+  .filter-panel.open {{ display: block; }}
+  .filter-row {{ display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }}
+  .filter-row:last-child {{ margin-bottom: 0; }}
+  .filter-label {{ color: #888; font-size: 0.72rem; min-width: 60px; text-transform: uppercase; font-weight: 600; }}
+  .filter-row select {{ background: #1a1d27; color: #e0e0e0; border: 1px solid #2a2d37; border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; }}
+  .filter-row label {{ display: flex; align-items: center; gap: 4px; color: #ccc; font-size: 0.72rem; cursor: pointer; }}
+  .filter-row input[type="checkbox"] {{ accent-color: #64b5f6; }}
+  .time-btn {{ background: #2a2d37; color: #aaa; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; transition: all 0.15s; }}
+  .time-btn:hover {{ background: #3a3d47; color: #e0e0e0; }}
+  .time-btn.active {{ background: #1b2a3a; color: #64b5f6; border: 1px solid #64b5f6; }}
+  .filter-summary {{ color: #888; font-size: 0.72rem; padding: 6px 0 4px; }}
+  .filter-actions {{ display: flex; gap: 8px; align-items: center; }}
+  .filter-apply {{ background: #1b2a3a; color: #64b5f6; border: 1px solid #64b5f6; padding: 4px 14px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; font-weight: 600; }}
+  .filter-apply:hover {{ background: #264a6a; }}
+  .filter-reset {{ background: none; color: #888; border: 1px solid #2a2d37; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; }}
+  .filter-reset:hover {{ color: #e0e0e0; border-color: #555; }}
+
+  /* 자동 새로고침 토글 */
+  .refresh-toggle {{ display: inline-flex; align-items: center; gap: 6px; background: #1a1d27; border: 1px solid #2a2d37; padding: 4px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; color: #aaa; }}
+  .refresh-toggle:hover {{ border-color: #555; color: #e0e0e0; }}
+  .refresh-toggle.paused {{ border-color: #f44336; color: #f44336; }}
+  .refresh-toggle .indicator {{ width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }}
+  .refresh-toggle.paused .indicator {{ background: #f44336; }}
 </style>
 </head>
 <body>
@@ -290,13 +340,59 @@ async def dashboard(request: Request):
 </div>
 
 <div class="events-section">
-  <h2>이벤트 히스토리</h2>
-  {event_timeline_html}
+  <h2>
+    이벤트 히스토리
+    <button class="filter-toggle" onclick="toggleFilterPanel()">필터</button>
+  </h2>
+  <div class="filter-panel" id="filterPanel">
+    <div class="filter-row">
+      <span class="filter-label">프로젝트</span>
+      <select id="filterProject">
+        <option value="">전체</option>
+        {"".join(f'<option value="{n}">{n}</option>' for n in PROJECTS.keys())}
+      </select>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">이벤트</span>
+      <label><input type="checkbox" class="evt-type-cb" value="start" checked> start</label>
+      <label><input type="checkbox" class="evt-type-cb" value="stop" checked> stop</label>
+      <label><input type="checkbox" class="evt-type-cb" value="restart" checked> restart</label>
+      <label><input type="checkbox" class="evt-type-cb" value="auto_restart" checked> auto_restart</label>
+      <label><input type="checkbox" class="evt-type-cb" value="error" checked> error</label>
+      <label><input type="checkbox" class="evt-type-cb" value="resource_alert" checked> resource_alert</label>
+      <label><input type="checkbox" class="evt-type-cb" value="deploy" checked> deploy</label>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">기간</span>
+      <button class="time-btn" data-hours="1" onclick="setTimeFilter(this)">1h</button>
+      <button class="time-btn" data-hours="24" onclick="setTimeFilter(this)">24h</button>
+      <button class="time-btn active" data-days="7" onclick="setTimeFilter(this)">7d</button>
+      <button class="time-btn" data-days="30" onclick="setTimeFilter(this)">30d</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label"></span>
+      <div class="filter-actions">
+        <button class="filter-apply" onclick="applyFilter()">검색</button>
+        <button class="filter-reset" onclick="resetFilter()">초기화</button>
+      </div>
+    </div>
+  </div>
+  <div class="filter-summary" id="filterSummary"></div>
+  <div id="eventTimeline">
+    {event_timeline_html}
+  </div>
 </div>
 
-<p class="refresh">30초마다 자동 새로고침 &middot; <a href="/" style="color:#64b5f6">수동 새로고침</a></p>
+<p class="refresh">
+  <button class="refresh-toggle" id="refreshToggle" onclick="toggleAutoRefresh()">
+    <span class="indicator"></span>
+    <span id="refreshLabel">자동 새로고침 켜짐 (30초)</span>
+  </button>
+  &middot; <a href="/" style="color:#64b5f6">수동 새로고침</a>
+</p>
 
 <script>
+/* === 프로젝트 제어 === */
 async function ctrl(name, action) {{
   const msg = document.getElementById('msg-' + name);
   msg.textContent = action + ' 중...';
@@ -349,6 +445,142 @@ async function gitPull() {{
     msg.className = 'action-msg err';
   }}
 }}
+
+/* === 이벤트 필터 === */
+const eventIcons = {{
+  start: "\\u25b6\\ufe0f", stop: "\\u23f9\\ufe0f", restart: "\\ud83d\\udd04",
+  auto_restart: "\\ud83e\\udd16", resource_alert: "\\u26a0\\ufe0f", error: "\\u274c", deploy: "\\ud83d\\ude80"
+}};
+let activeTimeBtn = document.querySelector('.time-btn.active');
+
+function toggleFilterPanel() {{
+  document.getElementById('filterPanel').classList.toggle('open');
+}}
+
+function setTimeFilter(btn) {{
+  document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeTimeBtn = btn;
+}}
+
+function resetFilter() {{
+  document.getElementById('filterProject').value = '';
+  document.querySelectorAll('.evt-type-cb').forEach(cb => cb.checked = true);
+  document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+  const def = document.querySelector('.time-btn[data-days="7"]');
+  if (def) {{ def.classList.add('active'); activeTimeBtn = def; }}
+  document.getElementById('filterSummary').textContent = '';
+  applyFilter();
+}}
+
+function timeAgo(isoStr) {{
+  if (!isoStr) return "기록 없음";
+  try {{
+    const dt = new Date(isoStr);
+    const secs = Math.floor((Date.now() - dt.getTime()) / 1000);
+    if (secs < 60) return secs + "초 전";
+    if (secs < 3600) return Math.floor(secs / 60) + "분 전";
+    if (secs < 86400) return Math.floor(secs / 3600) + "시간 전";
+    return Math.floor(secs / 86400) + "일 전";
+  }} catch(e) {{ return "기록 없음"; }}
+}}
+
+function escapeHtml(str) {{
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}}
+
+async function applyFilter() {{
+  const project = document.getElementById('filterProject').value;
+  const types = Array.from(document.querySelectorAll('.evt-type-cb:checked')).map(cb => cb.value);
+  const btn = document.querySelector('.time-btn.active');
+
+  let params = new URLSearchParams();
+  if (project) params.set('project', project);
+  if (types.length > 0 && types.length < 7) params.set('event_type', types.join(','));
+  if (btn) {{
+    if (btn.dataset.days) params.set('days', btn.dataset.days);
+    else if (btn.dataset.hours) params.set('hours', btn.dataset.hours);
+  }}
+  params.set('limit', '100');
+
+  try {{
+    const res = await fetch('/api/events/search?' + params.toString());
+    const events = await res.json();
+    renderTimeline(events);
+
+    // 필터 요약
+    const parts = [events.length + '개 이벤트'];
+    if (project) parts.push('프로젝트: ' + project);
+    if (types.length < 7) parts.push('타입: ' + types.join(', '));
+    if (btn) parts.push('기간: ' + btn.textContent);
+    document.getElementById('filterSummary').textContent = parts.join(' | ');
+  }} catch(e) {{
+    document.getElementById('eventTimeline').innerHTML = '<div style="color:#f44336;font-size:0.8rem">검색 실패: ' + e + '</div>';
+  }}
+}}
+
+function renderTimeline(events) {{
+  const container = document.getElementById('eventTimeline');
+  if (!events || events.length === 0) {{
+    container.innerHTML = '<div style="color:#666;font-size:0.8rem;padding:8px 0;">조건에 맞는 이벤트가 없습니다.</div>';
+    return;
+  }}
+  let html = '';
+  events.forEach(ev => {{
+    const icon = eventIcons[ev.type] || "\\ud83d\\udccb";
+    const evTime = timeAgo(ev.timestamp);
+    const evTs = (ev.timestamp || '').substring(0, 19).replace('T', ' ');
+    const evProject = ev.project || '';
+    const evDetails = escapeHtml(ev.details || ev.type || '');
+    html += '<div class="event-item">' +
+      '<span class="event-icon">' + icon + '</span>' +
+      '<span class="event-time" title="' + evTs + '">' + evTime + '</span>' +
+      '<span class="event-project">' + evProject + '</span>' +
+      '<span class="event-details">' + evDetails + '</span>' +
+      '</div>';
+  }});
+  container.innerHTML = html;
+}}
+
+/* === 자동 새로고침 토글 === */
+let autoRefreshPaused = localStorage.getItem('autoRefreshPaused') === 'true';
+let refreshTimer = null;
+
+function updateRefreshUI() {{
+  const btn = document.getElementById('refreshToggle');
+  const label = document.getElementById('refreshLabel');
+  if (autoRefreshPaused) {{
+    btn.classList.add('paused');
+    label.textContent = '자동 새로고침 꺼짐';
+  }} else {{
+    btn.classList.remove('paused');
+    label.textContent = '자동 새로고침 켜짐 (30초)';
+  }}
+}}
+
+function toggleAutoRefresh() {{
+  autoRefreshPaused = !autoRefreshPaused;
+  localStorage.setItem('autoRefreshPaused', autoRefreshPaused);
+  updateRefreshUI();
+  if (autoRefreshPaused) {{
+    if (refreshTimer) {{ clearInterval(refreshTimer); refreshTimer = null; }}
+  }} else {{
+    startAutoRefresh();
+  }}
+}}
+
+function startAutoRefresh() {{
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {{
+    if (!autoRefreshPaused) location.reload();
+  }}, 30000);
+}}
+
+// 초기화
+updateRefreshUI();
+if (!autoRefreshPaused) startAutoRefresh();
 </script>
 </body>
 </html>"""

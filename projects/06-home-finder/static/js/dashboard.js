@@ -5,6 +5,8 @@
 const API_BASE = '/api/v1';
 let pipelineChart = null;
 let priceChart = null;
+let _allActivities = [];  // Store activities for filtering
+let _currentActivityFilter = 'all';
 
 // ──────── 대시보드 요약 로드 ────────
 
@@ -136,17 +138,104 @@ async function loadRecentActivity() {
         if (!container) return;
 
         if (!data.activities || data.activities.length === 0) {
+            _allActivities = [];
             container.innerHTML = '<p class="text-muted text-center">최근 활동이 없습니다</p>';
             return;
         }
 
-        container.innerHTML = '';
-        for (const a of data.activities) {
-            const icon = a.type === 'new_property' ? 'bi-house-add text-primary' :
-                         a.type === 'property_updated' ? 'bi-pencil-square text-warning' :
-                         a.type === 'new_candidate' ? 'bi-star text-success' :
-                         'bi-circle text-muted';
-            container.innerHTML += `
+        _allActivities = data.activities;
+        _renderFilteredActivities();
+    } catch (e) {
+        console.error('Recent activity load error:', e);
+    }
+}
+
+// ──────── 활동 필터링 ────────
+
+function _getActivityFilterCategory(type) {
+    if (type === 'new_property' || type === 'property_updated') return 'property';
+    if (type === 'new_candidate' || type === 'candidate_status') return 'candidate';
+    if (type === 'price_change' || type === 'price_updated') return 'price';
+    return 'other';
+}
+
+function _getActivityIcon(type) {
+    switch (type) {
+        case 'new_property':       return 'bi-house-add text-primary';
+        case 'property_updated':   return 'bi-pencil-square text-info';
+        case 'new_candidate':      return 'bi-star-fill text-success';
+        case 'candidate_status':   return 'bi-arrow-right-circle text-success';
+        case 'price_change':       return 'bi-graph-up-arrow text-warning';
+        case 'price_updated':      return 'bi-currency-exchange text-warning';
+        default:                   return 'bi-circle text-muted';
+    }
+}
+
+function _getDateGroup(isoStr) {
+    if (!isoStr) return '이전';
+    const now = new Date();
+    const date = new Date(isoStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    // Check if same calendar day
+    const isToday = now.toDateString() === date.toDateString();
+    if (isToday) return '오늘';
+
+    // Check if within this week (7 days)
+    if (diffDays < 7) return '이번주';
+
+    return '이전';
+}
+
+function filterActivities(filter) {
+    _currentActivityFilter = filter;
+
+    // Update button states
+    const group = document.getElementById('activityFilterGroup');
+    if (group) {
+        group.querySelectorAll('button').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
+        });
+    }
+
+    _renderFilteredActivities();
+}
+
+function _renderFilteredActivities() {
+    const container = document.getElementById('recentActivity');
+    if (!container) return;
+
+    // Filter activities
+    let filtered = _allActivities;
+    if (_currentActivityFilter !== 'all') {
+        filtered = _allActivities.filter(a => _getActivityFilterCategory(a.type) === _currentActivityFilter);
+    }
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">해당 활동이 없습니다</p>';
+        return;
+    }
+
+    // Group by date
+    const groups = { '오늘': [], '이번주': [], '이전': [] };
+    for (const a of filtered) {
+        const group = _getDateGroup(a.timestamp);
+        groups[group].push(a);
+    }
+
+    let html = '';
+    const groupOrder = ['오늘', '이번주', '이전'];
+    const groupIcons = { '오늘': 'bi-calendar-check', '이번주': 'bi-calendar-week', '이전': 'bi-calendar' };
+
+    for (const g of groupOrder) {
+        if (groups[g].length === 0) continue;
+
+        html += `<div class="mb-2"><div class="small fw-bold text-muted mb-1"><i class="bi ${groupIcons[g]} me-1"></i>${g} <span class="badge bg-light text-dark">${groups[g].length}</span></div>`;
+
+        for (const a of groups[g]) {
+            const icon = _getActivityIcon(a.type);
+            html += `
                 <div class="activity-item">
                     <i class="bi ${icon} activity-icon"></i>
                     <span>${a.description}</span>
@@ -154,9 +243,10 @@ async function loadRecentActivity() {
                     <div class="activity-time">${timeAgo(a.timestamp)}</div>
                 </div>`;
         }
-    } catch (e) {
-        console.error('Recent activity load error:', e);
+        html += '</div>';
     }
+
+    container.innerHTML = html;
 }
 
 // ──────── 마지막 업데이트 시간 표시 ────────

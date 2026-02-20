@@ -9,6 +9,7 @@ let radiusCircle = null;
 let userLat = 37.5005, userLon = 127.0365;
 let mapStores = [];
 let activeCategoryFilter = 'all';
+let activePromoSort = localStorage.getItem('pm_promo_sort') || 'nearest';
 
 // 카테고리 설정
 const CATEGORY_MAP = {
@@ -113,6 +114,50 @@ function initCategoryFilter() {
             applyFilterAndRender();
         });
     });
+
+    // 정렬 드롭다운 초기화
+    initPromoSort();
+}
+
+function initPromoSort() {
+    const sortSelect = document.getElementById('promoSortSelect');
+    if (!sortSelect) return;
+    sortSelect.value = activePromoSort;
+    sortSelect.addEventListener('change', function() {
+        activePromoSort = this.value;
+        localStorage.setItem('pm_promo_sort', activePromoSort);
+        applyFilterAndRender();
+    });
+}
+
+/**
+ * 프로모 리스트를 현재 정렬 기준에 따라 정렬
+ */
+function sortPromoStores(stores) {
+    const sorted = [...stores];
+    switch (activePromoSort) {
+        case 'discount':
+            sorted.sort((a, b) => {
+                const aVal = (a.discounts && a.discounts.length > 0) ? a.discounts[0].value : 0;
+                const bVal = (b.discounts && b.discounts.length > 0) ? b.discounts[0].value : 0;
+                return bVal - aVal;
+            });
+            break;
+        case 'expiring':
+            sorted.sort((a, b) => {
+                const aDate = (a.discounts && a.discounts.length > 0 && a.discounts[0].valid_until)
+                    ? new Date(a.discounts[0].valid_until).getTime() : Infinity;
+                const bDate = (b.discounts && b.discounts.length > 0 && b.discounts[0].valid_until)
+                    ? new Date(b.discounts[0].valid_until).getTime() : Infinity;
+                return aDate - bDate;
+            });
+            break;
+        case 'nearest':
+        default:
+            sorted.sort((a, b) => (a.distance_m || 0) - (b.distance_m || 0));
+            break;
+    }
+    return sorted;
 }
 
 function applyFilterAndRender() {
@@ -213,15 +258,18 @@ function renderPromoList(stores) {
     const list = document.getElementById('promoList');
     const nearby = stores.filter(s => s.discounts && s.discounts.length > 0);
 
-    document.getElementById('promoTitle').textContent = '주변 할인 혜택 ' + nearby.length + '건';
+    // 선택된 정렬 기준 적용
+    const sorted = sortPromoStores(nearby);
+
+    document.getElementById('promoTitle').textContent = '주변 할인 혜택 ' + sorted.length + '건';
     document.getElementById('promoSubtitle').textContent = '임직원 전용 할인';
 
-    if (nearby.length === 0) {
+    if (sorted.length === 0) {
         list.innerHTML = '<div class="loading-text">주변에 할인 매장이 없습니다</div>';
         return;
     }
 
-    list.innerHTML = nearby.map(s => {
+    list.innerHTML = sorted.map(s => {
         const d = s.discounts[0];
         const catInfo = getCategoryInfo(s.category);
         const walkTime = getWalkingTime(s.distance_m);

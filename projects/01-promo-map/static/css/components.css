@@ -142,6 +142,59 @@
 .history-date { color: #999; font-size: 0.72rem; }
 .history-amount { color: var(--primary); font-weight: 700; font-size: 0.88rem; }
 
+/* 정렬 컨트롤 */
+.promo-sort-controls {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px 10px;
+}
+.sort-label {
+    font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);
+    white-space: nowrap;
+}
+.sort-select {
+    flex: 1; max-width: 160px;
+    padding: 6px 10px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 0.8rem; color: var(--text); background: white;
+    outline: none; cursor: pointer;
+    transition: border-color 0.2s;
+}
+.sort-select:focus { border-color: var(--primary); }
+
+/* 절약 분석 (마이페이지) */
+.savings-section {
+    margin-bottom: 16px;
+}
+.savings-section h3 {
+    font-size: 1rem; font-weight: 700; margin-bottom: 12px;
+}
+.savings-stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin-bottom: 16px;
+}
+.savings-stat-card {
+    background: white; border-radius: 12px; padding: 14px 10px;
+    text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.savings-stat-card .savings-stat-value {
+    font-size: 1.1rem; font-weight: 700; color: var(--primary);
+    word-break: break-all;
+}
+.savings-stat-card .savings-stat-label {
+    font-size: 0.7rem; color: #999; margin-top: 4px;
+}
+.savings-chart-card {
+    background: white; border-radius: 12px; padding: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px;
+}
+.savings-chart-card h4 {
+    font-size: 0.88rem; font-weight: 600; margin-bottom: 10px;
+    color: var(--text);
+}
+.savings-chart-card canvas {
+    width: 100% !important;
+    max-height: 220px;
+}
+
 /* 탭 내 로그인 안내 */
 .login-prompt {
     text-align: center; padding: 60px 20px;

@@ -2,10 +2,12 @@
 StockBot v2.1 대시보드
 8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 일일성과 + 시장국면감지
 + 성과 차트 (Equity Curve, Daily PnL, Strategy Stats, Trade Distribution)
++ 전략 분석 (Strategy Heatmap, Rolling Performance, Toggle, Ranking)
 """
 import sys
 import os
 import json
+import math
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "trading-bot"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "strategy"))
@@ -26,6 +28,42 @@ from backtest_portal import backtest_router
 app = FastAPI(title="StockBot v2.1 Dashboard")
 app.include_router(backtest_router)
 trader = StockTrader(paper_trading=False)
+
+# --- Strategy toggle state (in-memory, persisted to JSON) ---
+STRATEGY_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "strategy_config.json")
+STRATEGY_NAMES = [
+    "Bollinger", "RSI", "MACD", "MA", "InstitutionalFlow",
+    "Momentum", "DualMomentum", "VolatilityTarget",
+]
+
+
+def _load_strategy_config() -> dict:
+    """Load strategy enable/disable config from JSON file."""
+    if os.path.exists(STRATEGY_CONFIG_PATH):
+        try:
+            with open(STRATEGY_CONFIG_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    # Default: all strategies enabled
+    return {name: True for name in STRATEGY_NAMES}
+
+
+def _save_strategy_config(config: dict):
+    """Save strategy enable/disable config to JSON file."""
+    with open(STRATEGY_CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2)
+
+
+def _parse_strategy_from_reasons(reasons: list, strategy_names: list) -> list:
+    """Parse reason strings to find matching strategy names."""
+    matched = []
+    for sname in strategy_names:
+        for reason in reasons:
+            if sname.lower() in str(reason).lower():
+                matched.append(sname)
+                break
+    return matched
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -279,6 +317,207 @@ async def reset_circuit_breaker():
     return {"status": "reset"}
 
 
+# =====================================================================
+# Strategy Analysis API Endpoints
+# =====================================================================
+
+@app.get("/api/strategy-heatmap")
+async def get_strategy_heatmap(period: str = Query("7d")):
+    """Win rate per strategy per day as a 2D matrix.
+    period: 7d, 14d, 30d, 90d
+    """
+    days_map = {"7d": 7, "14d": 14, "30d": 30, "90d": 90}
+    days = days_map.get(period, 7)
+    conn = get_connection()
+    since = (datetime.now() - timedelta(days=days)).isoformat()
+    rows = conn.execute(
+        "SELECT DATE(timestamp) as trade_date, pnl, reasons FROM trades "
+        "WHERE timestamp >= ? AND action != 'BUY'",
+        (since,),
+    ).fetchall()
+    conn.close()
+
+    # Build per-strategy-per-day win/total counters
+    # {strategy: {date: {"wins": int, "total": int}}}
+    heatmap_data = {name: {} for name in STRATEGY_NAMES}
+    all_dates = set()
+
+    for r in rows:
+        trade_date = r["trade_date"]
+        all_dates.add(trade_date)
+        is_win = (r["pnl"] or 0) > 0
+        try:
+            reasons = json.loads(r["reasons"]) if r["reasons"] else []
+        except (json.JSONDecodeError, TypeError):
+            reasons = []
+
+        matched = _parse_strategy_from_reasons(reasons, STRATEGY_NAMES)
+        if not matched:
+            # If no match, attribute to all strategies proportionally
+            matched = STRATEGY_NAMES
+
+        for sname in matched:
+            if trade_date not in heatmap_data[sname]:
+                heatmap_data[sname][trade_date] = {"wins": 0, "total": 0}
+            heatmap_data[sname][trade_date]["total"] += 1
+            if is_win:
+                heatmap_data[sname][trade_date]["wins"] += 1
+
+    # Sort dates
+    sorted_dates = sorted(all_dates)
+
+    # Build matrix: rows=strategies, cols=dates, values=win_rate (null if no trades)
+    matrix = {}
+    for sname in STRATEGY_NAMES:
+        row = []
+        for d in sorted_dates:
+            if d in heatmap_data[sname] and heatmap_data[sname][d]["total"] > 0:
+                wr = round(heatmap_data[sname][d]["wins"] / heatmap_data[sname][d]["total"] * 100, 1)
+                row.append(wr)
+            else:
+                row.append(None)
+        matrix[sname] = row
+
+    return {"dates": sorted_dates, "strategies": STRATEGY_NAMES, "matrix": matrix}
+
+
+@app.get("/api/strategy-rolling")
+async def get_strategy_rolling(window: int = Query(20)):
+    """Rolling win rate for each strategy over the last N trades."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT timestamp, pnl, reasons FROM trades "
+        "WHERE action != 'BUY' ORDER BY timestamp ASC"
+    ).fetchall()
+    conn.close()
+
+    # Collect per-strategy ordered list of (timestamp, is_win)
+    strategy_trades = {name: [] for name in STRATEGY_NAMES}
+
+    for r in rows:
+        is_win = 1 if (r["pnl"] or 0) > 0 else 0
+        ts = r["timestamp"]
+        try:
+            reasons = json.loads(r["reasons"]) if r["reasons"] else []
+        except (json.JSONDecodeError, TypeError):
+            reasons = []
+
+        matched = _parse_strategy_from_reasons(reasons, STRATEGY_NAMES)
+        if not matched:
+            matched = STRATEGY_NAMES
+
+        for sname in matched:
+            strategy_trades[sname].append({"timestamp": ts, "win": is_win})
+
+    # Compute rolling win rate
+    result = {}
+    for sname in STRATEGY_NAMES:
+        trades_list = strategy_trades[sname]
+        rolling = []
+        for i in range(len(trades_list)):
+            start = max(0, i - window + 1)
+            window_slice = trades_list[start:i + 1]
+            win_count = sum(t["win"] for t in window_slice)
+            wr = round(win_count / len(window_slice) * 100, 1)
+            rolling.append({
+                "index": i,
+                "timestamp": trades_list[i]["timestamp"],
+                "win_rate": wr,
+            })
+        result[sname] = rolling
+
+    return {"window": window, "strategies": result}
+
+
+@app.post("/api/strategy/{name}/toggle")
+async def toggle_strategy(name: str):
+    """Enable/disable a strategy from the ensemble."""
+    if name not in STRATEGY_NAMES:
+        return {"error": f"Unknown strategy: {name}", "valid": STRATEGY_NAMES}
+
+    config = _load_strategy_config()
+    current = config.get(name, True)
+    config[name] = not current
+    _save_strategy_config(config)
+    return {"strategy": name, "enabled": config[name], "config": config}
+
+
+@app.get("/api/strategy-config")
+async def get_strategy_config():
+    """Return current strategy enable/disable states."""
+    config = _load_strategy_config()
+    # Ensure all strategy names are present
+    for name in STRATEGY_NAMES:
+        if name not in config:
+            config[name] = True
+    return {"config": config}
+
+
+@app.get("/api/strategy-ranking")
+async def get_strategy_ranking(period: str = Query("ALL")):
+    """Rank strategies by Sharpe ratio with detailed metrics."""
+    days_map = {"1W": 7, "1M": 30, "3M": 90, "ALL": 3650}
+    days = days_map.get(period, 3650)
+    conn = get_connection()
+    since = (datetime.now() - timedelta(days=days)).isoformat()
+    rows = conn.execute(
+        "SELECT pnl, pnl_pct, reasons FROM trades "
+        "WHERE timestamp >= ? AND action != 'BUY'",
+        (since,),
+    ).fetchall()
+    conn.close()
+
+    config = _load_strategy_config()
+
+    # Collect per-strategy return streams
+    strategy_returns = {name: [] for name in STRATEGY_NAMES}
+
+    for r in rows:
+        pnl_pct = r["pnl_pct"] or 0
+        is_win = (r["pnl"] or 0) > 0
+        try:
+            reasons = json.loads(r["reasons"]) if r["reasons"] else []
+        except (json.JSONDecodeError, TypeError):
+            reasons = []
+
+        matched = _parse_strategy_from_reasons(reasons, STRATEGY_NAMES)
+        if not matched:
+            matched = STRATEGY_NAMES
+
+        for sname in matched:
+            strategy_returns[sname].append({"pnl_pct": pnl_pct, "win": is_win})
+
+    ranking = []
+    for sname in STRATEGY_NAMES:
+        returns = strategy_returns[sname]
+        total = len(returns)
+        if total == 0:
+            ranking.append({
+                "strategy": sname,
+                "trades": 0, "win_rate": 0, "avg_return": 0,
+                "sharpe": 0, "enabled": config.get(sname, True),
+            })
+            continue
+
+        wins = sum(1 for r in returns if r["win"])
+        avg_ret = sum(r["pnl_pct"] for r in returns) / total
+        std_ret = math.sqrt(sum((r["pnl_pct"] - avg_ret) ** 2 for r in returns) / total) if total > 1 else 0
+        sharpe = round(avg_ret / std_ret, 2) if std_ret > 0 else 0
+
+        ranking.append({
+            "strategy": sname,
+            "trades": total,
+            "win_rate": round(wins / total * 100, 1),
+            "avg_return": round(avg_ret, 2),
+            "sharpe": sharpe,
+            "enabled": config.get(sname, True),
+        })
+
+    # Sort by Sharpe descending
+    ranking.sort(key=lambda x: x["sharpe"], reverse=True)
+    return {"ranking": ranking}
+
+
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html lang="ko">
@@ -360,11 +599,52 @@ DASHBOARD_HTML = """
                        color: #484f58; font-size: 0.82rem; font-style: italic; }
         .perf-grid-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 
+        /* Strategy Analysis section styles */
+        .sa-section { margin-bottom: 12px; }
+        .sa-section .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .sa-section .section-title { color: #d29922; font-size: 1.1rem; font-weight: 700; }
+        .sa-grid-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .sa-grid-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+
+        /* Heatmap styles */
+        .heatmap-wrap { overflow-x: auto; }
+        .heatmap-table { border-collapse: collapse; font-size: 0.75rem; width: 100%; }
+        .heatmap-table th, .heatmap-table td { padding: 5px 8px; text-align: center; border: 1px solid #21262d; white-space: nowrap; }
+        .heatmap-table th { background: #0d1117; color: #8b949e; font-weight: 600; }
+        .heatmap-table td.strategy-name { text-align: left; font-weight: 600; color: #c9d1d9; background: #0d1117; min-width: 110px; }
+        .heatmap-cell { min-width: 50px; font-weight: 600; border-radius: 2px; }
+
+        /* Toggle switch styles */
+        .toggle-controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+        .toggle-item { display: flex; align-items: center; justify-content: space-between; background: #0d1117;
+                       padding: 8px 12px; border-radius: 6px; border: 1px solid #21262d; }
+        .toggle-item .name { font-size: 0.82rem; font-weight: 600; color: #c9d1d9; }
+        .toggle-switch { position: relative; width: 40px; height: 22px; cursor: pointer; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #484f58;
+                         border-radius: 11px; transition: 0.3s; }
+        .toggle-slider:before { content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px;
+                                background: #c9d1d9; border-radius: 50%; transition: 0.3s; }
+        .toggle-switch input:checked + .toggle-slider { background: #238636; }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+        /* Ranking table */
+        .rank-badge { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center;
+                      border-radius: 50%; font-size: 0.72rem; font-weight: 700; }
+        .rank-1 { background: #d29922; color: #0a0e17; }
+        .rank-2 { background: #8b949e; color: #0a0e17; }
+        .rank-3 { background: #a0522d; color: #fff; }
+        .rank-n { background: #21262d; color: #8b949e; }
+        .status-active { color: #3fb950; font-weight: 600; font-size: 0.75rem; }
+        .status-disabled { color: #f85149; font-weight: 600; font-size: 0.75rem; }
+
         @media (max-width: 900px) {
             .grid-2 { grid-template-columns: 1fr; }
             .perf-grid { grid-template-columns: 1fr; }
             .perf-right { grid-template-rows: auto auto; }
             .perf-grid-bottom { grid-template-columns: 1fr; }
+            .sa-grid-top { grid-template-columns: 1fr; }
+            .sa-grid-bottom { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -464,6 +744,48 @@ DASHBOARD_HTML = """
             </div>
         </div>
 
+        <!-- Strategy Analysis Section -->
+        <div class="sa-section">
+            <div class="section-header">
+                <span class="section-title">Strategy Analysis</span>
+                <div class="period-selector">
+                    <button class="period-btn sa-period-btn" data-sa-period="7d" onclick="setSAPeriod('7d')">7D</button>
+                    <button class="period-btn sa-period-btn active" data-sa-period="14d" onclick="setSAPeriod('14d')">14D</button>
+                    <button class="period-btn sa-period-btn" data-sa-period="30d" onclick="setSAPeriod('30d')">30D</button>
+                    <button class="period-btn sa-period-btn" data-sa-period="90d" onclick="setSAPeriod('90d')">90D</button>
+                </div>
+            </div>
+            <div class="sa-grid-top">
+                <div class="card">
+                    <h2>Strategy Heatmap (Win Rate by Day)</h2>
+                    <div class="heatmap-wrap" id="strategyHeatmap">
+                        <p class="neu">Loading heatmap data...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Rolling Win Rate (Last N Trades)</h2>
+                    <div class="chart-container large">
+                        <canvas id="rollingChart"></canvas>
+                        <div class="chart-empty" id="rollingEmpty">No rolling data available yet</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sa-grid-bottom">
+                <div class="card">
+                    <h2>Strategy Toggle Controls</h2>
+                    <div class="toggle-controls" id="strategyToggles">
+                        <p class="neu">Loading strategy config...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Strategy Ranking (by Sharpe Ratio)</h2>
+                    <div class="scroll-table" id="strategyRanking">
+                        <p class="neu">Loading ranking data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="grid-2">
             <div class="card">
                 <h2>Watchlist Analysis</h2>
@@ -511,10 +833,11 @@ DASHBOARD_HTML = """
         /* ========== Period selector ========== */
         function setPeriod(period) {
             currentPeriod = period;
-            document.querySelectorAll('.period-btn').forEach(b => {
+            document.querySelectorAll('.period-btn[data-period]').forEach(b => {
                 b.classList.toggle('active', b.dataset.period === period);
             });
             loadAllCharts();
+            loadStrategyRanking();
         }
 
         /* ========== Equity Curve Chart ========== */
@@ -999,11 +1322,295 @@ DASHBOARD_HTML = """
         }
         async function resetCB() { await fetch('/api/circuit-breaker/reset',{method:'POST'}); fetchStatus(); }
 
+        /* ========== Strategy Analysis Variables ========== */
+        let rollingChartInst = null;
+        let currentSAPeriod = '14d';
+        let rollingWindow = 20;
+
+        /* ========== Strategy Analysis Period Selector ========== */
+        function setSAPeriod(period) {
+            currentSAPeriod = period;
+            document.querySelectorAll('.sa-period-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.saPeriod === period);
+            });
+            loadStrategyHeatmap();
+        }
+
+        /* ========== Strategy Heatmap ========== */
+        async function loadStrategyHeatmap() {
+            try {
+                const r = await fetch('/api/strategy-heatmap?period=' + currentSAPeriod);
+                const d = await r.json();
+                const el = document.getElementById('strategyHeatmap');
+
+                const dates = d.dates || [];
+                const strategies = d.strategies || [];
+                const matrix = d.matrix || {};
+
+                if (!dates.length) {
+                    el.innerHTML = '<p class="neu">No heatmap data for this period</p>';
+                    return;
+                }
+
+                // Build heatmap table
+                let html = '<table class="heatmap-table"><thead><tr><th>Strategy</th>';
+                for (const dt of dates) {
+                    // Show short date MM-DD
+                    const parts = dt.split('-');
+                    html += '<th>' + parts[1] + '-' + parts[2] + '</th>';
+                }
+                html += '</tr></thead><tbody>';
+
+                for (const sname of strategies) {
+                    html += '<tr><td class="strategy-name">' + sname + '</td>';
+                    const row = matrix[sname] || [];
+                    for (let i = 0; i < dates.length; i++) {
+                        const val = row[i];
+                        if (val === null || val === undefined) {
+                            html += '<td class="heatmap-cell" style="background:#161b28;color:#484f58">-</td>';
+                        } else {
+                            const bg = heatmapColor(val);
+                            const textColor = val > 60 ? '#0a0e17' : '#c9d1d9';
+                            html += '<td class="heatmap-cell" style="background:' + bg + ';color:' + textColor + '">' + val + '%</td>';
+                        }
+                    }
+                    html += '</tr>';
+                }
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } catch(e) { console.error('Heatmap error:', e); }
+        }
+
+        function heatmapColor(value) {
+            // Interpolate from red (0%) -> yellow (50%) -> green (100%)
+            const v = Math.max(0, Math.min(100, value));
+            let r, g, b;
+            if (v <= 50) {
+                // Red to Yellow
+                const t = v / 50;
+                r = 200 + Math.round(55 * t);   // 200 -> 255
+                g = Math.round(180 * t);          // 0 -> 180
+                b = 50;
+            } else {
+                // Yellow to Green
+                const t = (v - 50) / 50;
+                r = 255 - Math.round(200 * t);   // 255 -> 55
+                g = 180 + Math.round(5 * t);      // 180 -> 185
+                b = 50 + Math.round(30 * t);      // 50 -> 80
+            }
+            return 'rgba(' + r + ',' + g + ',' + b + ',0.85)';
+        }
+
+        /* ========== Rolling Win Rate Chart ========== */
+        async function loadRollingChart() {
+            try {
+                const r = await fetch('/api/strategy-rolling?window=' + rollingWindow);
+                const d = await r.json();
+                const strategiesData = d.strategies || {};
+                const emptyEl = document.getElementById('rollingEmpty');
+                const canvas = document.getElementById('rollingChart');
+
+                // Check if any strategy has data
+                const hasData = Object.values(strategiesData).some(arr => arr.length > 0);
+                if (!hasData) {
+                    emptyEl.style.display = 'flex';
+                    canvas.style.display = 'none';
+                    if (rollingChartInst) { rollingChartInst.destroy(); rollingChartInst = null; }
+                    return;
+                }
+                emptyEl.style.display = 'none';
+                canvas.style.display = 'block';
+
+                const chartColors = [
+                    '#58a6ff', '#3fb950', '#d29922', '#f85149',
+                    '#bc8cff', '#39d2c0', '#f778ba', '#79c0ff'
+                ];
+
+                const strategyNames = Object.keys(strategiesData);
+                const datasets = strategyNames.map((name, idx) => {
+                    const trades = strategiesData[name] || [];
+                    return {
+                        label: name,
+                        data: trades.map(t => t.win_rate),
+                        borderColor: chartColors[idx % chartColors.length],
+                        backgroundColor: 'transparent',
+                        tension: 0.3,
+                        pointRadius: 0,
+                        pointHoverRadius: 3,
+                        borderWidth: 1.5,
+                    };
+                });
+
+                // Use the longest strategy's indices as labels
+                let maxLen = 0;
+                let maxName = strategyNames[0];
+                for (const name of strategyNames) {
+                    if ((strategiesData[name] || []).length > maxLen) {
+                        maxLen = (strategiesData[name] || []).length;
+                        maxName = name;
+                    }
+                }
+                const labels = (strategiesData[maxName] || []).map((t, i) => i + 1);
+
+                if (rollingChartInst) rollingChartInst.destroy();
+                rollingChartInst = new Chart(canvas, {
+                    type: 'line',
+                    data: { labels: labels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                display: true, position: 'top',
+                                labels: { boxWidth: 10, padding: 6, font: { size: 9 } }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        return ctx.dataset.label + ': ' + ctx.raw + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: '#21262d' },
+                                title: { display: true, text: 'Trade #', font: { size: 10 } },
+                                ticks: { maxTicksLimit: 12 }
+                            },
+                            y: {
+                                grid: { color: '#21262d' },
+                                title: { display: true, text: 'Win Rate %', font: { size: 10 } },
+                                min: 0, max: 100,
+                                ticks: { callback: v => v + '%' }
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'fiftyLine',
+                        afterDraw(chart) {
+                            const yScale = chart.scales.y;
+                            const yPixel = yScale.getPixelForValue(50);
+                            const ctx = chart.ctx;
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.moveTo(chart.chartArea.left, yPixel);
+                            ctx.lineTo(chart.chartArea.right, yPixel);
+                            ctx.strokeStyle = '#484f58';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([4, 4]);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }]
+                });
+            } catch(e) { console.error('Rolling chart error:', e); }
+        }
+
+        /* ========== Strategy Toggle Controls ========== */
+        async function loadStrategyToggles() {
+            try {
+                const r = await fetch('/api/strategy-config');
+                const d = await r.json();
+                const config = d.config || {};
+                const el = document.getElementById('strategyToggles');
+
+                let html = '';
+                for (const [name, enabled] of Object.entries(config)) {
+                    const checked = enabled ? 'checked' : '';
+                    html += '<div class="toggle-item">'
+                         + '<span class="name">' + name + '</span>'
+                         + '<label class="toggle-switch">'
+                         + '<input type="checkbox" ' + checked + ' onchange="toggleStrategy(\\'' + name + '\\', this)">'
+                         + '<span class="toggle-slider"></span>'
+                         + '</label></div>';
+                }
+                el.innerHTML = html;
+            } catch(e) { console.error('Toggle load error:', e); }
+        }
+
+        async function toggleStrategy(name, checkbox) {
+            const action = checkbox.checked ? 'enable' : 'disable';
+            const confirmed = confirm('Are you sure you want to ' + action + ' strategy "' + name + '"?');
+            if (!confirmed) {
+                checkbox.checked = !checkbox.checked;
+                return;
+            }
+            try {
+                const r = await fetch('/api/strategy/' + name + '/toggle', { method: 'POST' });
+                const d = await r.json();
+                if (d.error) {
+                    alert('Error: ' + d.error);
+                    checkbox.checked = !checkbox.checked;
+                    return;
+                }
+                // Update checkbox to reflect actual server state
+                checkbox.checked = d.enabled;
+                // Reload ranking to reflect status changes
+                loadStrategyRanking();
+            } catch(e) {
+                console.error('Toggle error:', e);
+                checkbox.checked = !checkbox.checked;
+            }
+        }
+
+        /* ========== Strategy Ranking Table ========== */
+        async function loadStrategyRanking() {
+            try {
+                const r = await fetch('/api/strategy-ranking?period=' + currentPeriod);
+                const d = await r.json();
+                const ranking = d.ranking || [];
+                const el = document.getElementById('strategyRanking');
+
+                if (!ranking.length) {
+                    el.innerHTML = '<p class="neu">No ranking data available</p>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th>#</th><th>Strategy</th><th>Trades</th><th>Win Rate</th><th>Avg Return</th><th>Sharpe</th><th>Status</th></tr></thead><tbody>';
+                ranking.forEach((s, idx) => {
+                    const rank = idx + 1;
+                    let rankClass = 'rank-n';
+                    if (rank === 1) rankClass = 'rank-1';
+                    else if (rank === 2) rankClass = 'rank-2';
+                    else if (rank === 3) rankClass = 'rank-3';
+
+                    const wrClass = s.win_rate >= 50 ? 'green' : s.win_rate > 0 ? 'yellow' : 'neu';
+                    const retClass = s.avg_return >= 0 ? 'green' : 'pos';
+                    const sharpeClass = s.sharpe > 0 ? 'green' : s.sharpe < 0 ? 'pos' : 'neu';
+                    const statusClass = s.enabled ? 'status-active' : 'status-disabled';
+                    const statusText = s.enabled ? 'Active' : 'Disabled';
+
+                    html += '<tr>'
+                         + '<td><span class="rank-badge ' + rankClass + '">' + rank + '</span></td>'
+                         + '<td><b>' + s.strategy + '</b></td>'
+                         + '<td>' + s.trades + '</td>'
+                         + '<td class="' + wrClass + '">' + s.win_rate + '%</td>'
+                         + '<td class="' + retClass + '">' + (s.avg_return >= 0 ? '+' : '') + s.avg_return + '%</td>'
+                         + '<td class="' + sharpeClass + '">' + s.sharpe + '</td>'
+                         + '<td class="' + statusClass + '">' + statusText + '</td>'
+                         + '</tr>';
+                });
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } catch(e) { console.error('Ranking error:', e); }
+        }
+
+        /* ========== Load All Strategy Analysis ========== */
+        function loadAllStrategyAnalysis() {
+            loadStrategyHeatmap();
+            loadRollingChart();
+            loadStrategyToggles();
+            loadStrategyRanking();
+        }
+
         /* ========== Initialize ========== */
-        fetchStatus(); fetchStats(); loadAllCharts();
+        fetchStatus(); fetchStats(); loadAllCharts(); loadAllStrategyAnalysis();
         setInterval(fetchStatus, 15000);
         setInterval(fetchStats, 60000);
         setInterval(loadAllCharts, 120000);
+        setInterval(loadAllStrategyAnalysis, 120000);
     </script>
 </body>
 </html>

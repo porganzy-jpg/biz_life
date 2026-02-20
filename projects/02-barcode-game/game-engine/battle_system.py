@@ -59,13 +59,31 @@ class BattleMonster:
         self.primary_type = monster["primary_type"]
         self.secondary_type = monster["secondary_type"]
         self.level = monster.get("level", 1)
-        self.max_hp = monster["stats"]["hp"]
+
+        # Apply affinity stat bonus if present
+        affinity_level = monster.get("affinity_level", 1)
+        affinity_multiplier = self._get_affinity_multiplier(affinity_level)
+
+        self.max_hp = int(monster["stats"]["hp"] * affinity_multiplier)
         self.current_hp = self.max_hp
-        self.attack = monster["stats"]["attack"]
-        self.defense = monster["stats"]["defense"]
-        self.speed = monster["stats"]["speed"]
-        self.special = monster["stats"]["special"]
+        self.attack = int(monster["stats"]["attack"] * affinity_multiplier)
+        self.defense = int(monster["stats"]["defense"] * affinity_multiplier)
+        self.speed = int(monster["stats"]["speed"] * affinity_multiplier)
+        self.special = int(monster["stats"]["special"] * affinity_multiplier)
         self.is_defending = False
+        self.affinity_level = affinity_level
+
+    @staticmethod
+    def _get_affinity_multiplier(affinity_level: int) -> float:
+        """Return stat multiplier based on affinity level."""
+        bonuses = {
+            1: 1.0, 2: 1.0,
+            3: 1.03, 4: 1.03,
+            5: 1.05, 6: 1.05,
+            7: 1.08, 8: 1.08, 9: 1.08,
+            10: 1.12,
+        }
+        return bonuses.get(max(1, min(10, affinity_level)), 1.0)
 
     @property
     def is_alive(self) -> bool:

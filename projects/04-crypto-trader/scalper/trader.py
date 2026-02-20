@@ -21,7 +21,7 @@ from .upbit_client import UpbitClient
 from .strategies.ensemble import EnsembleStrategy
 from .strategies.base import SignalType
 from .strategies.mtf_analyzer import MultiTimeframeAnalyzer
-from .risk_manager import RiskManager, RiskLevels
+from .risk_manager import RiskManager, RiskLevels, KellyResult
 from .circuit_breaker import CircuitBreaker
 from .alert_system import AlertSystem
 from .market_scanner import MarketScanner
@@ -88,6 +88,10 @@ class ScalpTrader:
         # Stats
         self.total_wins = 0
         self.total_losses = 0
+
+        # Kelly Criterion state
+        self._kelly_result: Optional[KellyResult] = None
+        self._kelly_risk_pct: float = config.RISK_PER_TRADE  # current effective risk
 
         # Dashboard tracking
         self.start_time = time.time()
@@ -287,7 +291,27 @@ class ScalpTrader:
         max_pos = getattr(config, 'MAX_OPEN_POSITIONS', 3)
         remaining_slots = max(1, max_pos - len(self.positions))
         available_balance = balance * min(1.0, remaining_slots / max_pos)
-        risk_levels = self.risk_mgr.calculate_risk_levels(df, available_balance, side="buy")
+
+        # Kelly Criterion: compute dynamic risk percentage if enabled
+        risk_override = None
+        if getattr(config, 'KELLY_ENABLED', False) and self.trade_history:
+            try:
+                kelly = self.risk_mgr.calculate_kelly_risk(
+                    self.trade_history,
+                    window=getattr(config, 'KELLY_WINDOW', 50),
+                )
+                self._kelly_result = kelly
+                self._kelly_risk_pct = kelly.kelly_risk_pct
+                risk_override = kelly.kelly_risk_pct
+                logger.info(f"[{market}] Kelly risk: {kelly.kelly_risk_pct*100:.2f}% "
+                            f"(default: {config.RISK_PER_TRADE*100:.1f}%)")
+            except Exception as e:
+                logger.warning(f"Kelly calculation failed: {e}, using default risk")
+                self._kelly_risk_pct = config.RISK_PER_TRADE
+
+        risk_levels = self.risk_mgr.calculate_risk_levels(
+            df, available_balance, side="buy", risk_override=risk_override
+        )
 
         if risk_levels is None:
             return
@@ -515,6 +539,30 @@ class ScalpTrader:
         scanner_status = self.scanner.get_status() if self.scanner else {"enabled": False}
         optimizer_status = self.optimizer.get_status() if self.optimizer else {"enabled": False}
 
+        # Kelly Criterion status
+        kelly_enabled = getattr(config, 'KELLY_ENABLED', False)
+        if kelly_enabled and self._kelly_result:
+            kelly_status = {
+                "enabled": True,
+                "current_risk_pct": round(self._kelly_risk_pct * 100, 2),
+                "default_risk_pct": round(config.RISK_PER_TRADE * 100, 2),
+                **self._kelly_result.stats,
+            }
+        else:
+            kelly_status = {
+                "enabled": kelly_enabled,
+                "current_risk_pct": round(config.RISK_PER_TRADE * 100, 2),
+                "default_risk_pct": round(config.RISK_PER_TRADE * 100, 2),
+                "trades_used": 0,
+                "win_rate": 0.0,
+                "avg_win_pct": 0.0,
+                "avg_loss_pct": 0.0,
+                "raw_kelly": 0.0,
+                "half_kelly": 0.0,
+                "clamped_kelly": round(config.RISK_PER_TRADE, 4),
+                "sufficient_data": False,
+            }
+
         return {
             "running": self.running,
             "paper": self.client.paper,
@@ -537,6 +585,7 @@ class ScalpTrader:
             "optimizer_status": optimizer_status,
             "mtf_status": self.mtf_analyzer.get_status() if self.mtf_analyzer else {"enabled": False},
             "mtf_data": dict(self._last_mtf),
+            "kelly_status": kelly_status,
         }
 
     def get_market_watch(self) -> dict:

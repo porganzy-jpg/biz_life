@@ -83,6 +83,14 @@
                     <div class="subtitle" id="promoSubtitle">위치를 확인 중...</div>
                 </div>
             </div>
+            <div class="promo-sort-controls" id="promoSortControls">
+                <label for="promoSortSelect" class="sort-label">정렬:</label>
+                <select id="promoSortSelect" class="sort-select">
+                    <option value="nearest">가까운순</option>
+                    <option value="discount">할인율순</option>
+                    <option value="expiring">마감임박순</option>
+                </select>
+            </div>
             <div class="promo-list" id="promoList">
                 <div class="loading-text">매장 정보를 불러오는 중...</div>
             </div>
@@ -165,6 +173,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
     <!-- 카카오맵 SDK -->
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services"></script>

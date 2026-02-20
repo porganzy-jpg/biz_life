@@ -22,6 +22,7 @@ from services import (
     get_recent_logs,
     get_event_history,
     get_uptime_stats,
+    search_events,
 )
 from deploy import bot_deploy_trigger, bot_deploy_status
 
@@ -59,7 +60,7 @@ async def cmd_start_bot(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "/status - 전체 프로젝트 상태\n"
         "/system - 시스템 리소스 (CPU/RAM/Disk)\n"
         "/report - 서버 일일 리포트\n"
-        "/history - 최근 이벤트 히스토리\n"
+        "/history [프로젝트] [타입] [기간] - 이벤트 검색\n"
         "/uptime - 가동률 통계\n"
         "/panel - 인라인 제어 패널\n\n"
         "프로젝트 제어:\n"
@@ -193,13 +194,52 @@ async def cmd_report(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def cmd_events(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """최근 이벤트 히스토리 (최대 10개)"""
+    """최근 이벤트 히스토리 (필터 지원)
+    사용법: /history [프로젝트명] [이벤트타입] [기간]
+    예: /history
+        /history 04-crypto-trader
+        /history 04-crypto-trader error
+        /history 04-crypto-trader error 7d
+        /history error 24h
+        /history all restart 30d
+    기간 형식: 1h, 24h, 7d, 30d 등
+    """
     if not is_authorized(update):
         return
 
-    events = get_event_history(limit=10)
+    # 인자 파싱: [project] [event_type] [duration]
+    args = ctx.args or []
+    project_filter = None
+    type_filter = None
+    days_filter = None
+    hours_filter = None
+
+    valid_types = {"start", "stop", "restart", "auto_restart", "error", "resource_alert", "deploy"}
+
+    for arg in args:
+        arg_lower = arg.lower()
+        # 기간 파싱 (예: 7d, 24h, 1h, 30d)
+        if arg_lower.endswith("d") and arg_lower[:-1].isdigit():
+            days_filter = int(arg_lower[:-1])
+        elif arg_lower.endswith("h") and arg_lower[:-1].isdigit():
+            hours_filter = int(arg_lower[:-1])
+        # 이벤트 타입
+        elif arg_lower in valid_types:
+            type_filter = [arg_lower]
+        # 프로젝트명 ('all'이면 전체)
+        elif arg_lower != "all":
+            project_filter = arg
+
+    events = search_events(
+        project_name=project_filter,
+        event_types=type_filter,
+        days=days_filter,
+        hours=hours_filter,
+        limit=15,
+    )
+
     if not events:
-        await update.message.reply_text("📋 이벤트 기록이 없습니다.")
+        await update.message.reply_text("📋 조건에 맞는 이벤트가 없습니다.")
         return
 
     event_icons = {
@@ -209,9 +249,22 @@ async def cmd_events(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "auto_restart": "🤖",
         "resource_alert": "⚠️",
         "error": "❌",
+        "deploy": "🚀",
     }
 
-    lines = ["📋 최근 이벤트 (최대 10개)\n"]
+    # 필터 요약 생성
+    summary_parts = [f"{len(events)}개"]
+    if project_filter:
+        summary_parts.append(f"프로젝트: {project_filter}")
+    if type_filter:
+        summary_parts.append(f"타입: {', '.join(type_filter)}")
+    if days_filter:
+        summary_parts.append(f"기간: {days_filter}일")
+    elif hours_filter:
+        summary_parts.append(f"기간: {hours_filter}시간")
+    summary = " | ".join(summary_parts)
+
+    lines = [f"📋 이벤트 ({summary})\n"]
     for ev in events:
         icon = event_icons.get(ev.get("type", ""), "📋")
         ts = ev.get("timestamp", "")[:19].replace("T", " ")

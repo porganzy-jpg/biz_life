@@ -197,6 +197,11 @@ async def api_runtime():
         "loop_interval_sec": config.LOOP_INTERVAL_SEC,
         "candle_interval": config.CANDLE_INTERVAL,
         "risk_per_trade": config.RISK_PER_TRADE,
+        "kelly_enabled": getattr(config, 'KELLY_ENABLED', False),
+        "kelly_window": getattr(config, 'KELLY_WINDOW', 50),
+        "kelly_safety_factor": getattr(config, 'KELLY_SAFETY_FACTOR', 0.5),
+        "kelly_min_risk": getattr(config, 'KELLY_MIN_RISK', 0.005),
+        "kelly_max_risk": getattr(config, 'KELLY_MAX_RISK', 0.04),
         "stop_loss_hard_cap": config.STOP_LOSS_HARD_CAP,
         "take_profit_pct": config.TAKE_PROFIT_PCT,
         "trailing_activate_pct": config.TRAILING_ACTIVATE_PCT,
@@ -562,6 +567,7 @@ table{min-width:600px}
 <div class="cards" id="v4StatusBar" style="margin-top:8px">
   <div class="card" style="flex:2"><div class="card-label">Active Markets (Scanner)</div><div class="card-value" id="sc-active-markets" style="font-size:13px;color:var(--accent)">-</div><div class="card-sub" id="sc-scanner-sub">-</div></div>
   <div class="card" style="flex:2"><div class="card-label">Optimizer Status</div><div class="card-value" id="sc-optimizer" style="font-size:13px">-</div><div class="card-sub" id="sc-optimizer-sub">-</div></div>
+  <div class="card" style="flex:2"><div class="card-label">Kelly Criterion Risk</div><div class="card-value" id="sc-kelly-risk" style="font-size:16px">-</div><div class="card-sub" id="sc-kelly-sub">-</div></div>
 </div>
 <div class="tabs">
   <div class="tab active" data-tab="realtime">Real-time</div>
@@ -854,6 +860,35 @@ function applyStatus(d){
   if(osEl){if(os.enabled){osEl.textContent='Score: '+os.best_score+' (#'+os.run_count+')';osEl.className='card-value '+(os.best_score>0?'positive':'')}else{osEl.textContent='Disabled';osEl.className='card-value'}}
   const osSub=document.getElementById('sc-optimizer-sub');
   if(osSub){if(os.enabled&&os.best_profile){const bp=os.best_profile;osSub.textContent='SL:'+((bp.sl_cap||0)*100).toFixed(1)+'% TP:'+((bp.tp||0)*100).toFixed(1)+'% Trail:'+((bp.trail_act||0)*100).toFixed(1)+'%'}else{osSub.textContent=os.enabled?'Waiting for first run...':'Optimizer disabled'}}
+  // Kelly Criterion status
+  const ks=d.kelly_status||{};
+  const kellyEl=document.getElementById('sc-kelly-risk');
+  const kellySub=document.getElementById('sc-kelly-sub');
+  if(kellyEl){
+    if(ks.enabled&&ks.sufficient_data){
+      const curRisk=ks.current_risk_pct||0;
+      const defRisk=ks.default_risk_pct||0;
+      const diff=curRisk-defRisk;
+      const kellyColor=diff>=0?'var(--green)':'var(--red)';
+      kellyEl.innerHTML=curRisk.toFixed(2)+'% <span style="font-size:11px;color:'+kellyColor+'">'+(diff>=0?'+':'')+diff.toFixed(2)+'%</span>';
+      kellyEl.style.color=kellyColor;
+    }else if(ks.enabled){
+      kellyEl.textContent=ks.default_risk_pct?.toFixed(2)+'%';
+      kellyEl.style.color='var(--text2)';
+    }else{
+      kellyEl.textContent='Disabled';
+      kellyEl.style.color='var(--text2)';
+    }
+  }
+  if(kellySub){
+    if(ks.enabled&&ks.sufficient_data){
+      kellySub.textContent='WR: '+ks.win_rate.toFixed(1)+'% | W/L: '+(ks.avg_win_pct||0).toFixed(1)+'/'+(ks.avg_loss_pct||0).toFixed(1)+'% | '+ks.trades_used+' trades';
+    }else if(ks.enabled){
+      kellySub.textContent='Waiting for 10+ trades...';
+    }else{
+      kellySub.textContent='Kelly disabled in config';
+    }
+  }
   renderPositions(d.open_positions||{});
   _prevStatus=d;
 }

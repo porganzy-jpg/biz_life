@@ -120,7 +120,7 @@ function toggleCompareMode() {
     compareMode = !compareMode;
     const label = document.getElementById('compareBtnLabel');
     if (compareMode) {
-        label.textContent = '비교 취소';
+        label.textContent = '비교 취소 (매물을 2~3개 클릭)';
         compareList = [];
     } else {
         label.textContent = '비교하기';
@@ -163,6 +163,9 @@ async function refreshPipeline() {
                         <button class="btn btn-outline-secondary btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); showStatusModal(${c.id}, '${s}')">
                             <i class="bi bi-arrow-right-circle"></i> 이동
                         </button>
+                        <button class="btn btn-outline-info btn-sm py-0 px-1" style="font-size:0.7rem;" onclick="event.stopPropagation(); addToCompare(${c.property_id})" title="비교함에 추가">
+                            <i class="bi bi-layout-split"></i>
+                        </button>
                     </div>
                 </div>`;
         }
@@ -176,16 +179,22 @@ function onCardClick(event, candidateId, status, propertyId) {
             compareList = compareList.filter(id => id !== propertyId);
             card.classList.remove('selected-compare');
         } else {
+            if (compareList.length >= 3) {
+                alert('비교는 최대 3개까지 가능합니다.');
+                return;
+            }
             compareList.push(propertyId);
             card.classList.add('selected-compare');
         }
         if (compareList.length >= 2) {
-            // Open first two in new tabs for comparison
-            compareList.slice(0, 2).forEach(pid => window.open(`/property/${pid}`, '_blank'));
+            // Clear sessionStorage and sync selected items, then open shared comparison modal
+            _setCompareList([]);
+            compareList.forEach(pid => addToCompare(pid));
+            showCompareModal();
             toggleCompareMode();
         }
     } else {
-        window.location.href = `/property/${propertyId}`;
+        showPropertyModal(propertyId);
     }
 }
 

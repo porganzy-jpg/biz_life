@@ -111,9 +111,27 @@
     </div>
     <div class="col-md-6 mb-3">
         <div class="card h-100">
-            <div class="card-header"><i class="bi bi-clock-history"></i> 최근 활동</div>
-            <div class="card-body" id="recentActivity">
-                <p class="text-muted">로딩중...</p>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history"></i> 최근 활동</span>
+            </div>
+            <div class="card-body">
+                <!-- Activity filter buttons -->
+                <div class="btn-group btn-group-sm mb-3 w-100" role="group" id="activityFilterGroup">
+                    <button type="button" class="btn btn-outline-secondary active" data-filter="all" onclick="filterActivities('all')">모두</button>
+                    <button type="button" class="btn btn-outline-primary" data-filter="property" onclick="filterActivities('property')">
+                        <i class="bi bi-house"></i> 매물
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-filter="candidate" onclick="filterActivities('candidate')">
+                        <i class="bi bi-star"></i> 후보
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" data-filter="price" onclick="filterActivities('price')">
+                        <i class="bi bi-graph-up-arrow"></i> 가격변동
+                    </button>
+                </div>
+                <!-- Activity list -->
+                <div id="recentActivity">
+                    <p class="text-muted">로딩중...</p>
+                </div>
             </div>
         </div>
     </div>

@@ -40,6 +40,10 @@ class Player:
 
     def add_monster(self, monster: dict) -> dict:
         """몬스터 획득"""
+        # Ensure affinity tracking fields exist on the monster
+        monster.setdefault("affinity_level", 1)
+        monster.setdefault("affinity_exp", 0)
+
         if len(self.party) < self.MAX_PARTY_SIZE:
             self.party.append(monster)
             return {"location": "party", "slot": len(self.party) - 1}
@@ -78,6 +82,133 @@ class Player:
             leveled_up = True
             needed = monster["level"] * 50
         return {"leveled_up": leveled_up, "monster_level": monster["level"], "monster_exp": monster["exp"]}
+
+    # === Affinity / Bonding System ===
+
+    # Affinity level thresholds: each level requires 100 affinity EXP
+    AFFINITY_MAX_LEVEL = 10
+    AFFINITY_EXP_PER_LEVEL = 100
+
+    # Stat multiplier bonuses by affinity level
+    # Level 3 → +3%, Level 5 → +5%, Level 7 → +8%, Level 10 → +12%
+    AFFINITY_BONUSES = {
+        1: 1.0, 2: 1.0,
+        3: 1.03, 4: 1.03,
+        5: 1.05, 6: 1.05,
+        7: 1.08, 8: 1.08, 9: 1.08,
+        10: 1.12,
+    }
+
+    def gain_affinity(self, monster_index: int, amount: int, source: str = "party") -> dict:
+        """
+        Add affinity EXP to a monster and handle level-ups.
+
+        Args:
+            monster_index: Index into party or inventory list.
+            amount: Amount of affinity EXP to grant.
+            source: "party" or "inventory" to pick the correct list.
+
+        Returns:
+            dict with affinity state and whether a level-up occurred.
+        """
+        monster_list = self.party if source == "party" else self.inventory
+        if monster_index < 0 or monster_index >= len(monster_list):
+            return {"ok": False, "msg": "잘못된 몬스터 인덱스"}
+
+        monster = monster_list[monster_index]
+        monster.setdefault("affinity_level", 1)
+        monster.setdefault("affinity_exp", 0)
+
+        old_level = monster["affinity_level"]
+        if old_level >= self.AFFINITY_MAX_LEVEL:
+            return {
+                "ok": True,
+                "leveled_up": False,
+                "affinity_level": old_level,
+                "affinity_exp": monster["affinity_exp"],
+                "monster_name": monster.get("name", "Unknown"),
+            }
+
+        monster["affinity_exp"] += amount
+        leveled_up = False
+
+        while (monster["affinity_exp"] >= self.AFFINITY_EXP_PER_LEVEL
+               and monster["affinity_level"] < self.AFFINITY_MAX_LEVEL):
+            monster["affinity_exp"] -= self.AFFINITY_EXP_PER_LEVEL
+            monster["affinity_level"] += 1
+            leveled_up = True
+
+        # Cap EXP at 0 if max level reached
+        if monster["affinity_level"] >= self.AFFINITY_MAX_LEVEL:
+            monster["affinity_exp"] = 0
+
+        return {
+            "ok": True,
+            "leveled_up": leveled_up,
+            "old_level": old_level,
+            "affinity_level": monster["affinity_level"],
+            "affinity_exp": monster["affinity_exp"],
+            "monster_name": monster.get("name", "Unknown"),
+        }
+
+    @staticmethod
+    def get_affinity_bonus(monster: dict) -> dict:
+        """
+        Return the stat multiplier and bonus description for a monster's affinity level.
+
+        Returns:
+            dict with 'multiplier' (float), 'passive_heal' (bool), 'heal_pct' (int),
+            'bonus_description' (str), 'affinity_level' (int), 'affinity_exp' (int).
+        """
+        level = monster.get("affinity_level", 1)
+        level = max(1, min(10, level))
+
+        bonuses = {
+            1: 1.0, 2: 1.0,
+            3: 1.03, 4: 1.03,
+            5: 1.05, 6: 1.05,
+            7: 1.08, 8: 1.08, 9: 1.08,
+            10: 1.12,
+        }
+        multiplier = bonuses.get(level, 1.0)
+        passive_heal = level >= 7
+        heal_pct = 5 if passive_heal else 0
+
+        # Build description
+        if level >= 10:
+            desc = "최대 유대! 스탯 +12%"
+        elif level >= 7:
+            desc = f"스탯 +{int((multiplier - 1) * 100)}%, 전투 후 HP 5% 회복"
+        elif level >= 3:
+            desc = f"스탯 +{int((multiplier - 1) * 100)}%"
+        else:
+            desc = "보너스 없음"
+
+        return {
+            "multiplier": multiplier,
+            "passive_heal": passive_heal,
+            "heal_pct": heal_pct,
+            "bonus_description": desc,
+            "affinity_level": level,
+            "affinity_exp": monster.get("affinity_exp", 0),
+        }
+
+    def apply_post_battle_affinity_heal(self, monster_index: int, source: str = "party"):
+        """
+        If monster has affinity level >= 7, heal 5% of max HP after battle.
+        This modifies the monster's current HP in place (for display purposes).
+        """
+        monster_list = self.party if source == "party" else self.inventory
+        if monster_index < 0 or monster_index >= len(monster_list):
+            return None
+
+        monster = monster_list[monster_index]
+        bonus = self.get_affinity_bonus(monster)
+        if bonus["passive_heal"] and "stats" in monster:
+            max_hp = monster["stats"].get("hp", 0)
+            heal_amount = int(max_hp * bonus["heal_pct"] / 100)
+            return {"healed": True, "heal_amount": heal_amount, "monster_name": monster.get("name")}
+        return {"healed": False}
 
     def check_passive_recovery(self):
         """
@@ -157,6 +288,16 @@ class Player:
         return False
 
     def to_dict(self) -> dict:
+        # Build affinity summary for each party monster
+        party_affinity = []
+        for m in self.party:
+            party_affinity.append({
+                "name": m.get("name", "Unknown"),
+                "affinity_level": m.get("affinity_level", 1),
+                "affinity_exp": m.get("affinity_exp", 0),
+                "bonus": self.get_affinity_bonus(m)["bonus_description"],
+            })
+
         return {
             "id": self.id,
             "name": self.name,
@@ -171,4 +312,5 @@ class Player:
             "total_scans": self.total_scans,
             "total_battles": self.total_battles,
             "total_wins": self.total_wins,
+            "party_affinity": party_affinity,
         }

@@ -12,6 +12,8 @@ from fastapi import FastAPI, Depends, Query, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
+from datetime import datetime, timedelta
+from collections import Counter
 import uvicorn
 
 from database import init_db, get_db
@@ -91,6 +93,95 @@ async def get_person(person_id: int, db: Session = Depends(get_db)):
         "speaking_style": person.speaking_style,
         "consents": consents,
         "session_count": len(person.sessions),
+    }
+
+
+# === Person Analytics API ===
+@app.get("/api/persons/{person_id}/analytics")
+async def get_person_analytics(person_id: int, db: Session = Depends(get_db)):
+    person = db.query(Person).filter(Person.id == person_id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found")
+
+    sessions = db.query(RecordingSession).filter(
+        RecordingSession.person_id == person_id
+    ).all()
+
+    # --- Basic stats ---
+    total_duration = sum(s.duration_seconds or 0 for s in sessions)
+    session_count = len(sessions)
+    avg_duration = round(total_duration / session_count) if session_count else 0
+
+    # --- Topic coverage ---
+    from recording_service import GUIDED_TOPICS
+    total_topics = len(GUIDED_TOPICS)
+    all_topic_names = {t["topic"] for t in GUIDED_TOPICS}
+    covered_topics = {s.topic for s in sessions if s.status == "completed" and s.topic}
+    topic_coverage_pct = round(len(covered_topics & all_topic_names) / total_topics * 100) if total_topics else 0
+    uncovered_topics = list(all_topic_names - covered_topics)[:5]
+
+    # --- Last recording date & days since ---
+    recorded_dates = [s.recorded_at for s in sessions if s.recorded_at]
+    last_recording_date = None
+    days_since_last = None
+    if recorded_dates:
+        last_dt = max(recorded_dates)
+        last_recording_date = last_dt.isoformat()
+        days_since_last = (datetime.utcnow() - last_dt).days
+
+    # --- Emotional tone distribution ---
+    tone_counter = Counter()
+    for s in sessions:
+        if s.emotional_tone and s.emotional_tone.strip():
+            tone_counter[s.emotional_tone.strip()] += 1
+    tone_distribution = [{"tone": t, "count": c} for t, c in tone_counter.most_common()]
+
+    # --- Transcription completion rate ---
+    sessions_with_audio = [s for s in sessions if s.audio_file_path]
+    transcribed = [s for s in sessions_with_audio if s.transcription_status == "completed"]
+    transcription_rate = round(len(transcribed) / len(sessions_with_audio) * 100) if sessions_with_audio else 0
+
+    # --- Keywords frequency (top 20) ---
+    keyword_counter = Counter()
+    for s in sessions:
+        if s.keywords:
+            try:
+                kw_list = _json.loads(s.keywords)
+                for kw in kw_list:
+                    keyword_counter[kw.strip()] += 1
+            except (ValueError, TypeError):
+                pass
+    top_keywords = [{"keyword": k, "count": c} for k, c in keyword_counter.most_common(20)]
+
+    # --- Recording frequency by week (last 8 weeks) ---
+    now = datetime.utcnow()
+    weekly_counts = []
+    for i in range(7, -1, -1):
+        week_start = now - timedelta(weeks=i+1)
+        week_end = now - timedelta(weeks=i)
+        count = sum(
+            1 for s in sessions
+            if s.recorded_at and week_start <= s.recorded_at < week_end
+        )
+        label = week_start.strftime("%m/%d")
+        weekly_counts.append({"week_label": label, "count": count})
+
+    return {
+        "person_id": person_id,
+        "person_name": person.name,
+        "total_duration_seconds": total_duration,
+        "session_count": session_count,
+        "avg_duration_seconds": avg_duration,
+        "topic_coverage_pct": topic_coverage_pct,
+        "total_topics": total_topics,
+        "covered_topic_count": len(covered_topics & all_topic_names),
+        "last_recording_date": last_recording_date,
+        "days_since_last_recording": days_since_last,
+        "tone_distribution": tone_distribution,
+        "transcription_completion_rate": transcription_rate,
+        "top_keywords": top_keywords,
+        "weekly_recording_frequency": weekly_counts,
+        "suggested_topics": uncovered_topics,
     }
 
 
@@ -849,6 +940,146 @@ TEMPLATE_HTML = """
         }
         .transcript-search-result .tsr-snippet mark { background: #ffe082; padding: 0 2px; border-radius: 2px; }
         .transcript-search-result .tsr-keywords { margin-top: 4px; }
+
+        /* ====== Analytics Panel ====== */
+        .analytics-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .analytics-panel {
+            background: #f8f6f4; border-radius: 18px; width: 100%; max-width: 560px;
+            max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            padding: 0;
+        }
+        .analytics-header {
+            background: linear-gradient(135deg, #5d4037, #8e6b47);
+            color: white; padding: 18px 20px; border-radius: 18px 18px 0 0;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .analytics-header h3 { font-size: 1.05rem; font-weight: 700; margin: 0; }
+        .analytics-close {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            width: 32px; height: 32px; border-radius: 50%; font-size: 1.1rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .analytics-close:hover { background: rgba(255,255,255,0.35); }
+        .analytics-body { padding: 16px 20px 20px; }
+
+        /* Stats cards row */
+        .stats-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: white; border-radius: 12px; padding: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06); text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 1.5rem; font-weight: 800; color: #5d4037;
+            line-height: 1.2;
+        }
+        .stat-card .stat-label {
+            font-size: 0.72rem; color: #999; margin-top: 2px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .stat-card .stat-sub {
+            font-size: 0.7rem; color: #bbb; margin-top: 2px;
+        }
+
+        /* Analytics section card */
+        .analytics-section {
+            background: white; border-radius: 12px; padding: 14px;
+            margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .analytics-section h4 {
+            font-size: 0.85rem; font-weight: 700; color: #5d4037;
+            margin: 0 0 10px 0;
+        }
+
+        /* Tone badges */
+        .tone-badge-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tone-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border-radius: 20px; font-size: 0.78rem;
+            font-weight: 600; color: white;
+        }
+        .tone-badge .tone-count {
+            background: rgba(255,255,255,0.3); border-radius: 50%;
+            width: 20px; height: 20px; display: inline-flex;
+            align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 700;
+        }
+        .tone-badge-happy { background: #f39c12; }
+        .tone-badge-sad { background: #3498db; }
+        .tone-badge-grateful { background: #27ae60; }
+        .tone-badge-nostalgic { background: #8e44ad; }
+        .tone-badge-calm { background: #16a085; }
+        .tone-badge-default { background: #7f8c8d; }
+
+        /* Keyword tags */
+        .kw-tag-cloud { display: flex; flex-wrap: wrap; gap: 5px; }
+        .kw-tag {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 0.73rem; font-weight: 600; cursor: default;
+            transition: transform 0.15s;
+        }
+        .kw-tag:hover { transform: scale(1.05); }
+        .kw-tag-1 { background: #e8eaf6; color: #3949ab; }
+        .kw-tag-2 { background: #fff3e0; color: #e65100; }
+        .kw-tag-3 { background: #e8f5e9; color: #2e7d32; }
+        .kw-tag-4 { background: #fce4ec; color: #c62828; }
+        .kw-tag-5 { background: #f3e5f5; color: #7b1fa2; }
+        .kw-tag-6 { background: #e0f7fa; color: #00838f; }
+
+        /* Frequency bar chart */
+        .freq-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; padding-top: 8px; }
+        .freq-bar-col {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-end; height: 100%;
+        }
+        .freq-bar {
+            width: 100%; border-radius: 5px 5px 0 0;
+            background: linear-gradient(180deg, #8e6b47, #a0845c);
+            min-height: 2px; transition: height 0.4s ease;
+        }
+        .freq-bar-label {
+            font-size: 0.6rem; color: #999; margin-top: 4px;
+            white-space: nowrap; text-align: center;
+        }
+        .freq-bar-count {
+            font-size: 0.65rem; color: #5d4037; font-weight: 700;
+            margin-bottom: 2px; min-height: 14px;
+        }
+
+        /* Recommendation */
+        .recommendation-box {
+            background: #faf5f0; border-radius: 10px; padding: 12px;
+            border-left: 4px solid #d7c4a8; font-size: 0.82rem;
+            color: #5d4037; line-height: 1.5;
+        }
+        .recommendation-box strong { color: #8e6b47; }
+
+        /* Analytics button on person card */
+        .btn-analytics {
+            padding: 5px 12px; border: 1px solid #d7c4a8; border-radius: 8px;
+            background: #faf5f0; color: #8e6b47; font-size: 0.75rem;
+            font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-analytics:hover { background: #f0e6d6; border-color: #8e6b47; }
+
+        /* Progress bar */
+        .progress-bar-bg {
+            background: #e0d5c8; border-radius: 6px; height: 8px;
+            overflow: hidden; margin-top: 6px;
+        }
+        .progress-bar-fill {
+            height: 100%; border-radius: 6px;
+            background: linear-gradient(90deg, #8e6b47, #d7c4a8);
+            transition: width 0.5s ease;
+        }
     </style>
 </head>
 <body>
@@ -965,6 +1196,19 @@ TEMPLATE_HTML = """
         </div>
     </div>
 
+    <!-- Analytics overlay (hidden by default) -->
+    <div class="analytics-overlay" id="analyticsOverlay" style="display:none;" onclick="if(event.target===this)closeAnalytics()">
+        <div class="analytics-panel">
+            <div class="analytics-header">
+                <h3 id="analyticsTitle">Analytics</h3>
+                <button class="analytics-close" onclick="closeAnalytics()">&times;</button>
+            </div>
+            <div class="analytics-body" id="analyticsBody">
+                <div class="empty-state">Loading...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden audio player for session playback -->
     <audio id="sessionAudioPlayer" style="display:none;"></audio>
 
@@ -1014,9 +1258,10 @@ TEMPLATE_HTML = """
             const el = document.getElementById('personList');
             if (!d.persons.length) { el.innerHTML='<div class="empty-state">등록된 인물이 없습니다.</div>'; return; }
             el.innerHTML = d.persons.map(p=>
-                `<div class="person-card" onclick="selectPerson(${p.id},'${p.name}')">
-                    <div class="person-avatar">${p.name[0]}</div>
-                    <div class="person-info"><div class="name">${p.name}</div><div class="sub">${p.relationship_type} | Sessions: ${p.session_count} | Chats: ${p.conversation_count}</div></div>
+                `<div class="person-card">
+                    <div class="person-avatar" onclick="selectPerson(${p.id},'${p.name}')">${p.name[0]}</div>
+                    <div class="person-info" onclick="selectPerson(${p.id},'${p.name}')"><div class="name">${p.name}</div><div class="sub">${p.relationship_type} | Sessions: ${p.session_count} | Chats: ${p.conversation_count}</div></div>
+                    <button class="btn-analytics" onclick="event.stopPropagation();openAnalytics(${p.id},'${p.name}')"><svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:-1px;margin-right:3px;"><rect x="1" y="7" width="2" height="4" fill="#8e6b47"/><rect x="5" y="4" width="2" height="7" fill="#8e6b47"/><rect x="9" y="1" width="2" height="10" fill="#8e6b47"/></svg>&#xBD84;&#xC11D;</button>
                 </div>`
             ).join('');
         }
@@ -1759,6 +2004,151 @@ TEMPLATE_HTML = """
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ====== Analytics ======
+        function openAnalytics(personId, personName) {
+            document.getElementById('analyticsOverlay').style.display = 'flex';
+            document.getElementById('analyticsTitle').textContent = personName + ' - 분석';
+            document.getElementById('analyticsBody').innerHTML = '<div class="empty-state">Loading analytics...</div>';
+            document.body.style.overflow = 'hidden';
+            loadAnalytics(personId);
+        }
+
+        function closeAnalytics() {
+            document.getElementById('analyticsOverlay').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Tone display mapping
+        const TONE_MAP = {
+            '행복': {cls: 'tone-badge-happy', label: '행복'},
+            '슬픔': {cls: 'tone-badge-sad', label: '슬픔'},
+            '감사': {cls: 'tone-badge-grateful', label: '감사'},
+            '그리움': {cls: 'tone-badge-nostalgic', label: '그리움'},
+            '평온': {cls: 'tone-badge-calm', label: '평온'},
+        };
+
+        function formatDuration(totalSec) {
+            if (totalSec < 60) return totalSec + '초';
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            if (h > 0) return h + '시간 ' + m + '분';
+            return m + '분 ' + s + '초';
+        }
+
+        async function loadAnalytics(personId) {
+            try {
+                const r = await fetch('/api/persons/' + personId + '/analytics');
+                if (!r.ok) throw new Error('Failed to load analytics');
+                const d = await r.json();
+                renderAnalytics(d);
+            } catch (err) {
+                document.getElementById('analyticsBody').innerHTML =
+                    '<div class="empty-state">Failed to load analytics: ' + escapeHtml(err.message) + '</div>';
+            }
+        }
+
+        function renderAnalytics(data) {
+            const body = document.getElementById('analyticsBody');
+            let html = '';
+
+            // --- Stats Cards Row ---
+            const lastRecStr = data.last_recording_date
+                ? new Date(data.last_recording_date).toLocaleDateString('ko-KR')
+                : '-';
+            const daysSinceStr = data.days_since_last_recording !== null
+                ? data.days_since_last_recording + '일 전'
+                : '-';
+
+            html += '<div class="stats-row">';
+            html += '<div class="stat-card"><div class="stat-value">' + formatDuration(data.total_duration_seconds) +
+                    '</div><div class="stat-label">총 녹음 시간</div></div>';
+            html += '<div class="stat-card"><div class="stat-value">' + data.session_count +
+                    '</div><div class="stat-label">세션 수</div>' +
+                    '<div class="stat-sub">평균 ' + formatDuration(data.avg_duration_seconds) + '</div></div>';
+            html += '<div class="stat-card"><div class="stat-value">' + data.topic_coverage_pct + '%' +
+                    '</div><div class="stat-label">주제 커버리지</div>' +
+                    '<div class="stat-sub">' + data.covered_topic_count + ' / ' + data.total_topics + ' 주제</div>' +
+                    '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + data.topic_coverage_pct + '%"></div></div></div>';
+            html += '<div class="stat-card"><div class="stat-value">' + daysSinceStr +
+                    '</div><div class="stat-label">마지막 녹음</div>' +
+                    '<div class="stat-sub">' + lastRecStr + '</div></div>';
+            html += '</div>';
+
+            // --- Transcription completion rate ---
+            html += '<div class="analytics-section">';
+            html += '<h4>전사 완료율</h4>';
+            html += '<div style="display:flex;align-items:center;gap:10px;">';
+            html += '<div style="font-size:1.3rem;font-weight:800;color:#2980b9;">' + data.transcription_completion_rate + '%</div>';
+            html += '<div style="flex:1;"><div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + data.transcription_completion_rate + '%;background:linear-gradient(90deg,#2980b9,#5dade2);"></div></div></div>';
+            html += '</div></div>';
+
+            // --- Emotional Tone Distribution ---
+            if (data.tone_distribution && data.tone_distribution.length) {
+                html += '<div class="analytics-section">';
+                html += '<h4>감정 톤 분포</h4>';
+                html += '<div class="tone-badge-list">';
+                data.tone_distribution.forEach(function(item) {
+                    const info = TONE_MAP[item.tone] || {cls: 'tone-badge-default', label: item.tone};
+                    html += '<span class="tone-badge ' + info.cls + '">' +
+                            escapeHtml(info.label) +
+                            '<span class="tone-count">' + item.count + '</span></span>';
+                });
+                html += '</div></div>';
+            }
+
+            // --- Top Keywords ---
+            if (data.top_keywords && data.top_keywords.length) {
+                html += '<div class="analytics-section">';
+                html += '<h4>주요 키워드 (Top ' + Math.min(20, data.top_keywords.length) + ')</h4>';
+                html += '<div class="kw-tag-cloud">';
+                const KW_STYLES = ['kw-tag-1','kw-tag-2','kw-tag-3','kw-tag-4','kw-tag-5','kw-tag-6'];
+                data.top_keywords.forEach(function(item, idx) {
+                    const sizeClass = KW_STYLES[idx % KW_STYLES.length];
+                    const fontSize = Math.max(0.68, Math.min(1.05, 0.68 + (item.count - 1) * 0.08));
+                    html += '<span class="kw-tag ' + sizeClass + '" style="font-size:' + fontSize + 'rem;" title="' + item.count + '회">' +
+                            escapeHtml(item.keyword) +
+                            '<span style="opacity:0.6;font-size:0.6rem;margin-left:2px;">(' + item.count + ')</span></span>';
+                });
+                html += '</div></div>';
+            }
+
+            // --- Recording Frequency (last 8 weeks) ---
+            if (data.weekly_recording_frequency && data.weekly_recording_frequency.length) {
+                html += '<div class="analytics-section">';
+                html += '<h4>주간 녹음 빈도 (최근 8주)</h4>';
+                const maxCount = Math.max(1, Math.max.apply(null, data.weekly_recording_frequency.map(function(w){return w.count;})));
+                html += '<div class="freq-chart">';
+                data.weekly_recording_frequency.forEach(function(w) {
+                    const heightPct = (w.count / maxCount) * 100;
+                    const barHeight = Math.max(2, heightPct * 0.75);
+                    html += '<div class="freq-bar-col">' +
+                            '<div class="freq-bar-count">' + (w.count > 0 ? w.count : '') + '</div>' +
+                            '<div class="freq-bar" style="height:' + barHeight + 'px;' + (w.count === 0 ? 'opacity:0.25;' : '') + '"></div>' +
+                            '<div class="freq-bar-label">' + escapeHtml(w.week_label) + '</div>' +
+                            '</div>';
+                });
+                html += '</div></div>';
+            }
+
+            // --- Recommendation ---
+            html += '<div class="analytics-section">';
+            html += '<h4>추천</h4>';
+            if (data.suggested_topics && data.suggested_topics.length) {
+                html += '<div class="recommendation-box">';
+                html += '<strong>다음 주제를 시도해보세요:</strong><br>';
+                data.suggested_topics.forEach(function(topic) {
+                    html += '<span style="display:inline-block;margin:3px 4px 3px 0;padding:2px 10px;background:#e8eaf6;border-radius:10px;font-size:0.78rem;color:#3949ab;">' + escapeHtml(topic) + '</span>';
+                });
+                html += '</div>';
+            } else {
+                html += '<div class="recommendation-box"><strong>모든 주제를 완료했습니다!</strong> 훌륭합니다.</div>';
+            }
+            html += '</div>';
+
+            body.innerHTML = html;
         }
 
         loadPersons();

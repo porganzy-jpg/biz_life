@@ -101,6 +101,13 @@ BREAKEVEN_BUFFER = 0.002      # 0.2% 버퍼 (0.1% → 0.2%)
 COMMISSION_RATE = 0.0005      # 업비트 편도 0.05%
 ROUND_TRIP_COMMISSION = 0.001 # 왕복 0.1%
 
+# === Kelly Criterion Adaptive Position Sizing ===
+KELLY_ENABLED = True
+KELLY_WINDOW = 50                 # 최근 N개 트레이드 기반 계산
+KELLY_SAFETY_FACTOR = 0.5         # Half-Kelly (안전계수 50%)
+KELLY_MIN_RISK = 0.005            # 최소 리스크 0.5%
+KELLY_MAX_RISK = 0.04             # 최대 리스크 4.0%
+
 # === Circuit Breaker ===
 DAILY_LOSS_LIMIT = 0.05       # 일일 손실 5% (3% → 5%: 여유 확대)
 MAX_CONSECUTIVE_LOSSES = 5    # 연속 5패 시 쿨다운 (4 → 5)

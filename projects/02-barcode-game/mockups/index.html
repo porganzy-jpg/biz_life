@@ -146,6 +146,34 @@ body{display:flex;justify-content:center;background:#1a1a2e;}
 .char-card .hf{height:100%;background:linear-gradient(90deg,var(--heal),var(--accent2));border-radius:2px;transition:width .5s;}
 .char-card .fr{font-size:.58rem;color:var(--accent);margin-top:4px;}
 .char-card .mi{position:absolute;top:5px;right:5px;font-size:.65rem;}
+/* Affinity meter on monster cards */
+.affinity-bar{display:flex;align-items:center;gap:4px;margin-top:5px;font-size:.58rem;}
+.affinity-bar .af-icon{font-size:.7rem;line-height:1;}
+.affinity-bar .af-lv{font-weight:700;min-width:14px;}
+.affinity-bar .af-track{flex:1;height:4px;background:#eee;border-radius:2px;overflow:hidden;}
+.affinity-bar .af-fill{height:100%;border-radius:2px;transition:width .5s;}
+.af-color-gray .af-fill{background:linear-gradient(90deg,#aaa,#ccc);}
+.af-color-gray .af-lv,.af-color-gray .af-icon{color:#999;}
+.af-color-blue .af-fill{background:linear-gradient(90deg,#74b9ff,#0984e3);}
+.af-color-blue .af-lv,.af-color-blue .af-icon{color:#0984e3;}
+.af-color-purple .af-fill{background:linear-gradient(90deg,#a29bfe,#6c5ce7);}
+.af-color-purple .af-lv,.af-color-purple .af-icon{color:#6c5ce7;}
+.af-color-gold .af-fill{background:linear-gradient(90deg,#fdcb6e,#f9ca24,#e17055);}
+.af-color-gold .af-lv,.af-color-gold .af-icon{color:#f9ca24;}
+/* Affinity detail section in modal */
+.affinity-detail{margin:12px 0;padding:12px;background:rgba(108,92,231,.06);border-radius:var(--radius-sm);border:1px solid rgba(108,92,231,.12);}
+.affinity-detail h4{font-size:.78rem;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.affinity-detail .ad-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.72rem;}
+.affinity-detail .ad-track{flex:1;height:8px;background:#eee;border-radius:4px;overflow:hidden;}
+.affinity-detail .af-fill{height:100%;border-radius:4px;transition:width .5s;}
+.affinity-detail .ad-desc{font-size:.68rem;color:var(--text-light);margin-top:4px;line-height:1.5;}
+.affinity-detail .ad-bonus{font-size:.72rem;font-weight:600;margin-top:6px;padding:6px 10px;border-radius:8px;display:inline-block;}
+.ad-bonus.af-color-gray{background:rgba(150,150,150,.1);color:#999;}
+.ad-bonus.af-color-blue{background:rgba(9,132,227,.1);color:#0984e3;}
+.ad-bonus.af-color-purple{background:rgba(108,92,231,.1);color:#6c5ce7;}
+.ad-bonus.af-color-gold{background:rgba(249,202,36,.15);color:#b8860b;}
+/* Affinity level-up toast styling */
+.toast.affinity-up{border-left-color:#f9ca24;background:linear-gradient(135deg,var(--card),rgba(249,202,36,.08));}
 .empty-state{text-align:center;padding:40px 20px;color:var(--text-light);}
 .empty-state .ei{font-size:2.5rem;margin-bottom:10px;opacity:.5;}
 .empty-state p{font-size:.82rem;}
@@ -847,7 +875,8 @@ function defaultState(){
     friendships:{},
     compareChars:[],
     collTab:'chars',
-    charStats:{}
+    charStats:{},
+    affinity:{}
   };
 }
 function loadState(){
@@ -1925,6 +1954,7 @@ function renderChars(){
       <div class="cn">${disc?c.name:'???'}</div>
       <div class="ct">${disc?c.species+' · '+c.type:'미발견'}</div>
       ${disc?`<div class="hb"><div class="hf" style="width:${c.heal}%"></div></div>
+      ${renderAffinityBar(c.id,true)}
       <div class="fr">${getFriendship(c.id)}</div>`:''}
     </div>`;
   });
@@ -2192,6 +2222,88 @@ function getFriendship(id){
   return '♡'.repeat(hearts)+' '+roommates.map(r=>r.name).join(',');
 }
 
+// ============================================================
+// AFFINITY / BONDING SYSTEM (UI helpers)
+// ============================================================
+function getAffinity(id){
+  if(!GS.affinity[id]) GS.affinity[id]={level:1,exp:0};
+  return GS.affinity[id];
+}
+
+function getAffinityColorClass(level){
+  if(level>=10) return 'af-color-gold';
+  if(level>=7) return 'af-color-purple';
+  if(level>=4) return 'af-color-blue';
+  return 'af-color-gray';
+}
+
+function getAffinityBonusDesc(level){
+  if(level>=10) return '최대 유대! 스탯 +12%';
+  if(level>=7) return '스탯 +8%, 전투 후 HP 5% 회복';
+  if(level>=5) return '스탯 +5%';
+  if(level>=3) return '스탯 +3%';
+  return '보너스 없음';
+}
+
+function gainAffinityLocal(id,amount){
+  const a=getAffinity(id);
+  if(a.level>=10)return false;
+  a.exp+=amount;
+  let leveled=false;
+  while(a.exp>=100&&a.level<10){
+    a.exp-=100;
+    a.level++;
+    leveled=true;
+  }
+  if(a.level>=10) a.exp=0;
+  if(leveled){
+    const c=CHARACTERS.find(ch=>ch.id===id);
+    const cname=c?c.name:id;
+    showAffinityToast(cname,a.level);
+  }
+  saveState();
+  return leveled;
+}
+
+function showAffinityToast(name,level){
+  if(!GS.settings.notifications)return;
+  const colorClass=getAffinityColorClass(level);
+  const container=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast affinity-up';
+  t.innerHTML=`<span style="font-size:.9rem;">💖</span> <strong>${name}</strong> 유대 레벨 ${level} 달성! <span style="font-size:.7rem;opacity:.7;">${getAffinityBonusDesc(level)}</span>`;
+  container.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},4000);
+}
+
+function renderAffinityBar(id,compact){
+  const a=getAffinity(id);
+  const colorClass=getAffinityColorClass(a.level);
+  const pct=a.level>=10?100:(a.exp);
+  if(compact){
+    return `<div class="affinity-bar ${colorClass}">
+      <span class="af-icon">💖</span>
+      <span class="af-lv">${a.level}</span>
+      <div class="af-track"><div class="af-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+  return `<div class="affinity-detail ${colorClass}">
+    <h4><span>💖</span> 유대 레벨</h4>
+    <div class="ad-row">
+      <span class="af-lv" style="font-size:.9rem;font-weight:900;">Lv.${a.level}</span>
+      <div class="ad-track"><div class="af-fill" style="width:${pct}%"></div></div>
+      <span style="font-size:.65rem;color:var(--text-light);">${a.level>=10?'MAX':a.exp+'/100'}</span>
+    </div>
+    <div class="ad-desc">
+      ${a.level<10?`다음 레벨까지 ${100-a.exp} EXP 필요`:'최대 유대 달성!'}
+    </div>
+    <div class="ad-bonus ${colorClass}">
+      ${getAffinityBonusDesc(a.level)}
+    </div>
+  </div>`;
+}
+
 function doScan(){
   if(GS.energy<=0){
     showToast('💔 에너지가 부족해요! 잠시 기다려주세요.');
@@ -2223,6 +2335,7 @@ function doScan(){
       showToast(`${char.emoji} ${char.name}를 다시 만났어요! 치유+5`);
       char.heal=Math.min(100,char.heal+5);
       addGold(50);
+      gainAffinityLocal(char.id,2);
       saveState();
       renderScan();
       return;
@@ -2238,6 +2351,7 @@ function doScan(){
     const randItem=INVENTORY_ITEMS[Math.floor(Math.random()*INVENTORY_ITEMS.length)];
     GS.inventory.push(randItem.id);
     addGold(100);
+    gainAffinityLocal(char.id,3);
     saveState();
     renderScan();
     // Show discovery
@@ -2299,6 +2413,8 @@ function showCharDetail(id){
   stats.forEach(s=>{
     html+=`<div class="sr"><span>${s.name}</span><div class="sb"><div class="sf" style="width:${s.val}%;background:${s.color}"></div></div><span style="font-size:.65rem;">${s.val}%</span></div>`;
   });
+  // Affinity / Bonding detail
+  html+=renderAffinityBar(c.id,false);
   // Journal
   if(c.journal){
     html+=`<h3 style="font-size:.82rem;margin:12px 0 6px;">📔 일지</h3>`;
@@ -2498,6 +2614,7 @@ function sendLetter(charId){
   c.heal=Math.min(100,c.heal+5);
   c.peace=Math.min(100,c.peace+5);
   GS.lettersSent=(GS.lettersSent||0)+1;
+  gainAffinityLocal(charId,2);
   closeModal();
   showToast(`💌 ${c.name}에게 편지를 보냈어요! 치유+5, 평온+5`);
   saveState();
@@ -3163,6 +3280,11 @@ function closeArenaResult(){
 function init(){
   loadState();
   restoreCharStats();
+  // Seed affinity data for discovered characters if not already set
+  if(!GS.affinity) GS.affinity={};
+  GS.discovered.forEach(id=>{
+    if(!GS.affinity[id]) GS.affinity[id]={level:1,exp:0};
+  });
   initSpriteCache();
   // Splash (auto 3s or tap to skip)
   let splashDone=false;

@@ -53,13 +53,63 @@ def log_event(project_name: str, event_type: str, details: str = ""):
         _save_events(events)
 
 
-def get_event_history(project_name: str = None, limit: int = 50) -> list:
-    """최근 이벤트 목록 반환 (project_name 필터 가능)"""
+def get_event_history(
+    project_name: str = None,
+    limit: int = 50,
+    event_types: list = None,
+    date_from: datetime = None,
+    date_to: datetime = None,
+) -> list:
+    """최근 이벤트 목록 반환 (project_name, event_types, date_from/date_to 필터 가능)"""
     with _events_lock:
         events = _load_events()
     if project_name:
         events = [e for e in events if e["project"] == project_name]
+    if event_types:
+        events = [e for e in events if e.get("type") in event_types]
+    if date_from:
+        events = [
+            e for e in events
+            if _parse_iso(e.get("timestamp", "")) and _parse_iso(e["timestamp"]) >= date_from
+        ]
+    if date_to:
+        events = [
+            e for e in events
+            if _parse_iso(e.get("timestamp", "")) and _parse_iso(e["timestamp"]) <= date_to
+        ]
     return events[-limit:][::-1]  # 최신순
+
+
+def _parse_iso(iso_str: str):
+    """ISO 문자열을 datetime으로 변환 (실패시 None)"""
+    try:
+        return datetime.fromisoformat(iso_str)
+    except (ValueError, TypeError):
+        return None
+
+
+def search_events(
+    project_name: str = None,
+    event_types: list = None,
+    days: int = None,
+    hours: int = None,
+    limit: int = 100,
+) -> list:
+    """이벤트 검색 - days/hours 기반 시간 범위 + 필터. 대시보드/봇 공용."""
+    from datetime import timedelta
+
+    date_from = None
+    if days is not None:
+        date_from = datetime.now() - timedelta(days=days)
+    elif hours is not None:
+        date_from = datetime.now() - timedelta(hours=hours)
+
+    return get_event_history(
+        project_name=project_name,
+        limit=limit,
+        event_types=event_types,
+        date_from=date_from,
+    )
 
 
 def get_uptime_stats() -> dict:
