@@ -298,7 +298,7 @@ class ExecutionEngine:
         # 시장 충격 추정: impact = k * sqrt(participation_rate)
         # participation_rate = qty / avg_daily_vol
         participation = qty / avg_daily_vol
-        impact_bps = 30.0 * np.sqrt(participation) * 100  # bp 단위
+        impact_bps = 30.0 * np.sqrt(participation)  # bp 단위 (C4 Fix: *100 제거)
 
         is_large = pct_of_daily > 5.0
 
@@ -613,6 +613,7 @@ class ExecutionEngine:
         스마트 실행: 상황에 따라 최적의 실행 전략을 자동 선택한다.
 
         판단 기준:
+        - qty <= 5 (소규모) -> 직접 시장가 주문 (TWAP/VWAP 분할 무의미)
         - urgency="low"  -> TWAP 30분
         - urgency="normal" -> VWAP 15분
         - urgency="high" -> 시장가 (슬리피지 상한 적용)
@@ -628,6 +629,15 @@ class ExecutionEngine:
         Returns:
             str: 부모 주문 ID
         """
+        # 소규모 주문 바이패스: 5주 이하는 직접 시장가 주문
+        if qty <= 5:
+            logger.info(
+                f"소규모 주문: {name or symbol} {side} {qty}주 → 직접 시장가"
+            )
+            return self._execute_market_with_guard(
+                symbol=symbol, qty=qty, side=side, name=name,
+            )
+
         # 슬리피지 추정 및 대량 주문 감지
         slip_est = self.estimate_slippage(symbol, qty)
         is_large = slip_est["is_large_order"]

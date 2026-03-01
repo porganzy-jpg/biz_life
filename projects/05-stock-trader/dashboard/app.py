@@ -1,5 +1,5 @@
 """
-StockBot v2.2 대시보드
+StockBot v3.3 대시보드
 8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 일일성과 + 시장국면감지
 + 성과 차트 (Equity Curve, Daily PnL, Strategy Stats, Trade Distribution)
 + 전략 분석 (Strategy Heatmap, Rolling Performance, Toggle, Ranking)
@@ -11,9 +11,24 @@ import os
 import json
 import math
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "trading-bot"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "strategy"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "news"))
+# dashboard/regime_detector.py를 trader.py import 전에 먼저 로드 (이름 충돌 방지)
+import importlib.util as _ilu
+_dashboard_dir = os.path.dirname(__file__)
+_spec = _ilu.spec_from_file_location(
+    "dashboard_regime", os.path.join(_dashboard_dir, "regime_detector.py"))
+_drm = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_drm)
+
+DashboardRegimeDetector = _drm.RegimeDetector
+StrategyRotator = _drm.StrategyRotator
+DashboardRegime = _drm.DashboardRegime
+compute_regime_from_trades = _drm.compute_regime_from_trades
+get_regime_display = _drm.get_regime_display
+REGIME_STRATEGY_NAMES = _drm.STRATEGY_NAMES
+
+sys.path.insert(0, os.path.join(_dashboard_dir, "..", "trading-bot"))
+sys.path.insert(0, os.path.join(_dashboard_dir, "..", "strategy"))
+sys.path.insert(0, os.path.join(_dashboard_dir, "..", "news"))
 
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
@@ -21,24 +36,17 @@ import uvicorn
 
 from trader import StockTrader
 from database import get_connection
-from config import DASHBOARD_HOST, DASHBOARD_PORT, WATCHLIST
+from config import DASHBOARD_HOST, DASHBOARD_PORT, WATCHLIST, TRADING_MODE, LIVE_TRADING_CONFIRMED
 
 from datetime import datetime, timedelta
 
 from backtest_portal import backtest_router
-from regime_detector import (
-    RegimeDetector as DashboardRegimeDetector,
-    StrategyRotator,
-    DashboardRegime,
-    compute_regime_from_trades,
-    get_regime_display,
-    STRATEGY_NAMES as REGIME_STRATEGY_NAMES,
-)
 from correlation_monitor import CorrelationMonitor
 
-app = FastAPI(title="StockBot v2.2 Dashboard")
+app = FastAPI(title="StockBot v3.3 Dashboard")
 app.include_router(backtest_router)
-trader = StockTrader(paper_trading=False)
+_is_live = (TRADING_MODE == "live" and LIVE_TRADING_CONFIRMED)
+trader = StockTrader(paper_trading=not _is_live)
 
 # --- Dashboard regime detector & strategy rotator ---
 dashboard_regime_detector = DashboardRegimeDetector()
@@ -784,7 +792,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockBot v2.2</title>
+    <title>StockBot v3.3</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1019,7 +1027,10 @@ DASHBOARD_HTML = """
 </head>
 <body>
     <div class="header">
-        <h1>StockBot v2.2</h1>
+        <div style="display:flex;align-items:center;gap:10px">
+            <h1>StockBot v3.3</h1>
+            <button onclick="document.getElementById('glossaryModal').style.display='flex'" style="background:#1f6feb33;color:#58a6ff;border:1px solid #1f6feb;border-radius:50%;width:28px;height:28px;cursor:pointer;font-weight:700;font-size:0.9rem" title="주식 용어 사전">?</button>
+        </div>
         <div class="header-right">
             <a href="/backtest" style="color:#58a6ff;text-decoration:none;font-size:0.85rem;padding:4px 12px;border:1px solid #1f6feb;border-radius:6px;margin-right:10px;">\ubc31\ud14c\uc2a4\ud2b8</a>
             <span class="refresh-info" id="lastUpdate">-</span>
@@ -1043,21 +1054,21 @@ DASHBOARD_HTML = """
             <h2>\uc2dc\uc7a5 \uad6d\uba74</h2>
             <div class="regime-panel">
                 <span class="badge-regime regime-sideways" id="regimeBadge">SIDEWAYS</span>
-                <div class="regime-detail">ADX: <span id="regimeADX">-</span></div>
-                <div class="regime-detail">\ubcc0\ub3d9\uc131: <span id="regimeVol">-</span></div>
-                <div class="regime-detail">20\uc77c \uc218\uc775\ub960: <span id="regimeReturn">-</span></div>
-                <div class="regime-detail">MA \uad34\ub9ac: <span id="regimeMaDiff">-</span></div>
+                <div class="regime-detail" title="&#xcd94;&#xc138; &#xac15;&#xb3c4; &#xc9c0;&#xd45c;. 25&#xc774;&#xc0c1;=&#xb73b;&#xb837;&#xd55c; &#xcd94;&#xc138;, 50&#xc774;&#xc0c1;=&#xb9e4;&#xc6b0; &#xac15;&#xd55c; &#xcd94;&#xc138;">ADX: <span id="regimeADX">-</span></div>
+                <div class="regime-detail" title="&#xac00;&#xaca9; &#xbcc0;&#xb3d9; &#xd3ed;. &#xb192;&#xc744;&#xc218;&#xb85d; &#xac00;&#xaca9;&#xc774; &#xb9ce;&#xc774; &#xc624;&#xb974;&#xb0b4;&#xb9b4;">&#xbcc0;&#xb3d9;&#xc131;: <span id="regimeVol">-</span></div>
+                <div class="regime-detail" title="&#xcd5c;&#xadfc; 20&#xac70;&#xb798;&#xc77c;&#xac04; &#xc8fc;&#xac00; &#xc0c1;&#xc2b9;/&#xd558;&#xb77d; &#xbe44;&#xc728;">20&#xc77c; &#xc218;&#xc775;&#xb960;: <span id="regimeReturn">-</span></div>
+                <div class="regime-detail" title="&#xd604;&#xc7ac; &#xc8fc;&#xac00;&#xc640; 50&#xc77c; &#xc774;&#xb3d9;&#xd3c9;&#xade0;&#xc758; &#xcc28;&#xc774;. +&#xba74; &#xd3c9;&#xade0; &#xc704;(&#xac15;&#xc138;)">MA &#xad34;&#xb9ac;: <span id="regimeMaDiff">-</span></div>
                 <div class="regime-detail" id="regimeSince" style="margin-left:auto"></div>
             </div>
             <div id="regimeWeights" style="margin-top:10px;font-size:0.75rem;color:#8b949e"></div>
         </div>
         <div class="grid-6">
-            <div class="card stat-card"><div class="label">\ucd1d \uc790\uc0b0</div><div class="value accent" id="totalAssets">-</div></div>
-            <div class="card stat-card"><div class="label">\ud604\uae08</div><div class="value" id="cash">-</div></div>
-            <div class="card stat-card"><div class="label">\ub204\uc801 \uc190\uc775</div><div class="value" id="totalPnl">-</div></div>
-            <div class="card stat-card"><div class="label">\ubcf4\uc720 \uc885\ubaa9</div><div class="value" id="posCount">0</div></div>
-            <div class="card stat-card"><div class="label">\uc2b9\ub960 (30\uc77c)</div><div class="value green" id="winRate">-</div></div>
-            <div class="card stat-card"><div class="label">\uad6d\uba74</div><div class="value" id="regimeStat">-</div></div>
+            <div class="card stat-card" title="&#xd604;&#xae08; + &#xc8fc;&#xc2dd; &#xd3c9;&#xac00;&#xc561;&#xc758; &#xd569;&#xacc4;"><div class="label">&#xcd1d; &#xc790;&#xc0b0; &#x24d8;</div><div class="value accent" id="totalAssets">-</div></div>
+            <div class="card stat-card" title="&#xd604;&#xc7ac; &#xb9e4;&#xc218;&#xc5d0; &#xc0ac;&#xc6a9; &#xac00;&#xb2a5;&#xd55c; &#xd604;&#xae08;"><div class="label">&#xd604;&#xae08; &#x24d8;</div><div class="value" id="cash">-</div></div>
+            <div class="card stat-card" title="&#xcd08;&#xae30; &#xc790;&#xbcf8; &#xb300;&#xbe44; &#xc5bc;&#xb9c8;&#xb098; &#xbc8c;&#xc5c8;&#xb294;&#xc9c0;(+) &#xb610;&#xb294; &#xc78e;&#xc5c8;&#xb294;&#xc9c0;(-)"><div class="label">&#xb204;&#xc801; &#xc190;&#xc775; &#x24d8;</div><div class="value" id="totalPnl">-</div></div>
+            <div class="card stat-card" title="&#xd604;&#xc7ac; &#xbcf4;&#xc720; &#xc911;&#xc778; &#xc8fc;&#xc2dd; &#xc885;&#xbaa9; &#xc218; (&#xcd5c;&#xb300; 4&#xac1c;)"><div class="label">&#xbcf4;&#xc720; &#xc885;&#xbaa9; &#x24d8;</div><div class="value" id="posCount">0</div></div>
+            <div class="card stat-card" title="&#xcd5c;&#xadfc; 30&#xc77c;&#xac04; &#xb9e4;&#xb3c4; &#xc911; &#xc218;&#xc775;&#xc73c;&#xb85c; &#xb05d;&#xb09c; &#xbe44;&#xc728;. 50% &#xc774;&#xc0c1;&#xc774;&#xba74; &#xc591;&#xd638;"><div class="label">&#xc2b9;&#xb960; (30&#xc77c;) &#x24d8;</div><div class="value green" id="winRate">-</div></div>
+            <div class="card stat-card" title="&#xd604;&#xc7ac; &#xc2dc;&#xc7a5; &#xc0c1;&#xd0dc;. &#xac15;&#xc138;=&#xc0c1;&#xc2b9;&#xc7a5;, &#xc57d;&#xc138;=&#xd558;&#xb77d;&#xc7a5;, &#xd69f;&#xbcf4;=&#xbc29;&#xd5a5; &#xc5c6;&#xc74c;"><div class="label">&#xad6d;&#xba74; &#x24d8;</div><div class="value" id="regimeStat">-</div></div>
         </div>
 
         <!-- Performance Charts Section -->
@@ -1073,7 +1084,7 @@ DASHBOARD_HTML = """
             </div>
             <div class="perf-grid">
                 <div class="card">
-                    <h2>\uc790\uc0b0 \uace1\uc120</h2>
+                    <h2 title="시간에 따른 총 자산(현금+주식) 변화 그래프. 빨간 영역은 낙폭(MDD: 최고점 대비 하락폭)">\uc790\uc0b0 \uace1\uc120 \u24d8</h2>
                     <div class="chart-container large">
                         <canvas id="equityChart"></canvas>
                         <div class="chart-empty" id="equityEmpty">\uc790\uc0b0 \ub370\uc774\ud130 \uc5c6\uc74c</div>
@@ -1081,14 +1092,14 @@ DASHBOARD_HTML = """
                 </div>
                 <div class="perf-right">
                     <div class="card">
-                        <h2>\uc77c\ubcc4 \uc190\uc775</h2>
+                        <h2 title="날짜별 수익/손실 금액. 초록=수익, 빨강=손실">\uc77c\ubcc4 \uc190\uc775 \u24d8</h2>
                         <div class="chart-container medium">
                             <canvas id="dailyPnlChart"></canvas>
                             <div class="chart-empty" id="pnlEmpty">\uac70\ub798 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                         </div>
                     </div>
                     <div class="card">
-                        <h2>\uc804\ub7b5 \uc2b9\ub960 \uae30\uc5ec</h2>
+                        <h2 title="각 전략(볼린저, RSI, MACD 등)이 전체 수익에 기여한 비율">\uc804\ub7b5 \uc2b9\ub960 \uae30\uc5ec \u24d8</h2>
                         <div class="chart-container medium">
                             <canvas id="strategyChart"></canvas>
                             <div class="chart-empty" id="strategyEmpty">\uc804\ub7b5 \ub370\uc774\ud130 \uc5c6\uc74c</div>
@@ -1098,14 +1109,14 @@ DASHBOARD_HTML = """
             </div>
             <div class="perf-grid-bottom">
                 <div class="card">
-                    <h2>\uac70\ub798 \uc218\uc775\ub960 \ubd84\ud3ec</h2>
+                    <h2 title="각 거래의 수익률 분포. 대부분 0% 근처에 모이면 안정적, 넓게 퍼지면 변동성이 큰 매매">\uac70\ub798 \uc218\uc775\ub960 \ubd84\ud3ec \u24d8</h2>
                     <div class="chart-container" style="height:200px">
                         <canvas id="distChart"></canvas>
                         <div class="chart-empty" id="distEmpty">\uac70\ub798 \ub370\uc774\ud130 \uc5c6\uc74c</div>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>\uc804\ub7b5\ubcc4 \uc2b9\ub960</h2>
+                    <h2 title="8개 전략(볼린저, RSI, MACD 등) 각각의 승률 비교">\uc804\ub7b5\ubcc4 \uc2b9\ub960 \u24d8</h2>
                     <div class="scroll-table" id="strategyTable">
                         <p class="neu">\uc804\ub7b5 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
                     </div>
@@ -1126,13 +1137,13 @@ DASHBOARD_HTML = """
             </div>
             <div class="sa-grid-top">
                 <div class="card">
-                    <h2>\uc804\ub7b5 \ud788\ud2b8\ub9f5 (\uc77c\ubcc4 \uc2b9\ub960)</h2>
+                    <h2 title="날짜별로 각 전략의 승/패를 색상으로 표시. 초록=승, 빨강=패">\uc804\ub7b5 \ud788\ud2b8\ub9f5 (\uc77c\ubcc4 \uc2b9\ub960) \u24d8</h2>
                     <div class="heatmap-wrap" id="strategyHeatmap">
                         <p class="neu">\ud788\ud2b8\ub9f5 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>\ub864\ub9c1 \uc2b9\ub960 (\ucd5c\uadfc N\uac74)</h2>
+                    <h2 title="최근 거래 기준 이동 승률. 추세가 올라가면 전략이 잘 맞는 중">\ub864\ub9c1 \uc2b9\ub960 (\ucd5c\uadfc N\uac74) \u24d8</h2>
                     <div class="chart-container large">
                         <canvas id="rollingChart"></canvas>
                         <div class="chart-empty" id="rollingEmpty">\ub864\ub9c1 \ub370\uc774\ud130 \uc5c6\uc74c</div>
@@ -1141,13 +1152,13 @@ DASHBOARD_HTML = """
             </div>
             <div class="sa-grid-bottom">
                 <div class="card">
-                    <h2>\uc804\ub7b5 \ud1a0\uae00 \uc124\uc815</h2>
+                    <h2 title="각 전략을 켜거나 끌 수 있는 설정. 특정 전략이 계속 지면 끄기 가능">\uc804\ub7b5 \ud1a0\uae00 \uc124\uc815 \u24d8</h2>
                     <div class="toggle-controls" id="strategyToggles">
                         <p class="neu">\uc804\ub7b5 \uc124\uc815 \ub85c\ub529 \uc911...</p>
                     </div>
                 </div>
                 <div class="card">
-                    <h2>\uc804\ub7b5 \ub7ad\ud0b9 (\uc0e4\ud504 \ube44\uc728)</h2>
+                    <h2 title="샤프 비율(위험 대비 수익률) 기준 전략 순위. 1이상 양호, 2이상 우수">\uc804\ub7b5 \ub7ad\ud0b9 (\uc0e4\ud504 \ube44\uc728) \u24d8</h2>
                     <div class="scroll-table" id="strategyRanking">
                         <p class="neu">\ub7ad\ud0b9 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
                     </div>
@@ -1182,7 +1193,7 @@ DASHBOARD_HTML = """
                     </div>
                 </div>
                 <div class="card">
-                    <h2>\uad6d\uba74 \ud0c0\uc784\ub77c\uc778 (30\uc77c)</h2>
+                    <h2 title="최근 30일간 시장 국면(강세/약세/횡보) 변화 추이">\uad6d\uba74 \ud0c0\uc784\ub77c\uc778 (30\uc77c) \u24d8</h2>
                     <div class="chart-container" style="height:180px">
                         <canvas id="regimeTimelineChart"></canvas>
                         <div class="chart-empty" id="regimeTimelineEmpty">\uad6d\uba74 \uc774\ub825 \ub370\uc774\ud130 \uc5c6\uc74c</div>
@@ -1191,7 +1202,7 @@ DASHBOARD_HTML = """
             </div>
             <div class="regime-grid">
                 <div class="card">
-                    <h2>\uad8c\uc7a5 vs \ud604\uc7ac \uac00\uc911\uce58</h2>
+                    <h2 title="현재 시장 국면에 따라 AI가 추천하는 전략 가중치와 현재 설정 비교">\uad8c\uc7a5 vs \ud604\uc7ac \uac00\uc911\uce58 \u24d8</h2>
                     <div id="weightCompareContainer">
                         <p class="neu">\uac00\uc911\uce58 \ube44\uad50 \ub85c\ub529 \uc911...</p>
                     </div>
@@ -1213,7 +1224,7 @@ DASHBOARD_HTML = """
             </div>
             <div class="pr-grid">
                 <div class="card">
-                    <h2>\uc0c1\uad00\uad00\uacc4 \ud788\ud2b8\ub9f5</h2>
+                    <h2 title="보유 종목 간 가격 상관관계. 빨간색(높은 상관)이 많으면 위험 분산이 안 됨">\uc0c1\uad00\uad00\uacc4 \ud788\ud2b8\ub9f5 \u24d8</h2>
                     <div class="heatmap-wrap" id="corrHeatmap">
                         <p class="neu">\ubcf4\uc720 \uc885\ubaa9 \ub370\uc774\ud130 \ub85c\ub529 \uc911...</p>
                     </div>
@@ -1223,7 +1234,7 @@ DASHBOARD_HTML = """
                     </div>
                 </div>
                 <div class="card">
-                    <h2>\uc139\ud130 \ubc30\ubd84 \ud604\ud669</h2>
+                    <h2 title="보유 종목의 산업 분야(반도체/금융/자동차 등) 비중. 한 섹터에 쏠리면 위험">\uc139\ud130 \ubc30\ubd84 \ud604\ud669 \u24d8</h2>
                     <div class="chart-container" style="height:240px">
                         <canvas id="sectorPieChart"></canvas>
                         <div class="chart-empty" id="sectorPieEmpty">\ubcf4\uc720 \uc885\ubaa9 \uc5c6\uc74c</div>
@@ -1232,7 +1243,7 @@ DASHBOARD_HTML = """
             </div>
             <div class="pr-grid-3">
                 <div class="card">
-                    <h2>\ubd84\uc0b0\ud22c\uc790 \uc810\uc218</h2>
+                    <h2 title="포트폴리오가 얼마나 잘 분산되었는지 점수. 100에 가까울수록 잘 분산됨">\ubd84\uc0b0\ud22c\uc790 \uc810\uc218 \u24d8</h2>
                     <div class="gauge-container">
                         <div class="gauge-ring">
                             <svg width="140" height="140" viewBox="0 0 140 140">
@@ -1249,7 +1260,7 @@ DASHBOARD_HTML = """
                     </div>
                 </div>
                 <div class="card">
-                    <h2>\uc9d1\uc911\ub3c4 \ub9ac\uc2a4\ud06c (HHI)</h2>
+                    <h2 title="HHI(허핀달-허쉬만 지수): 포트폴리오 집중도. 높을수록 한 종목에 쏠려 위험">\uc9d1\uc911\ub3c4 \ub9ac\uc2a4\ud06c (HHI) \u24d8</h2>
                     <div style="text-align:center;padding-top:10px">
                         <div style="font-size:2rem;font-weight:700" id="hhiValue">-</div>
                         <div style="font-size:0.82rem;margin-top:2px" id="hhiLevel">-</div>
@@ -1338,7 +1349,7 @@ DASHBOARD_HTML = """
                     </div>
                 </div>
                 <div class="card">
-                    <h2>\uc2e4\ud589 \ud488\uc9c8 \uac8c\uc774\uc9c0</h2>
+                    <h2 title="주문 실행의 전체적인 품질 점수. 체결률과 슬리피지를 종합 평가">\uc2e4\ud589 \ud488\uc9c8 \uac8c\uc774\uc9c0 \u24d8</h2>
                     <div class="exec-quality-gauge">
                         <div class="eq-ring">
                             <svg width="120" height="120" viewBox="0 0 120 120">
@@ -1352,19 +1363,19 @@ DASHBOARD_HTML = """
                             </div>
                         </div>
                         <div style="width:100%;margin-top:8px">
-                            <div class="exec-stat-row">
+                            <div class="exec-stat-row" title="주문이 실제로 체결된 비율. 100%면 모든 주문이 성공">
                                 <span class="exec-stat-label">\uccb4\uacb0\ub960</span>
                                 <span class="exec-stat-value" id="eqFillRate">-</span>
                             </div>
-                            <div class="exec-stat-row">
+                            <div class="exec-stat-row" title="슬리피지: 주문 가격과 실제 체결 가격의 차이. 낮을수록 좋음">
                                 <span class="exec-stat-label">\ud3c9\uade0 \uc2ac\ub9ac\ud53c\uc9c0</span>
                                 <span class="exec-stat-value" id="eqAvgSlip">-</span>
                             </div>
-                            <div class="exec-stat-row">
+                            <div class="exec-stat-row" title="가장 유리했던 슬리피지 (가장 좋은 가격에 체결)">
                                 <span class="exec-stat-label">\ucd5c\uc120 \uc2ac\ub9ac\ud53c\uc9c0</span>
                                 <span class="exec-stat-value" id="eqBestSlip">-</span>
                             </div>
-                            <div class="exec-stat-row">
+                            <div class="exec-stat-row" title="가장 불리했던 슬리피지 (가장 나쁜 가격에 체결)">
                                 <span class="exec-stat-label">\ucd5c\uc545 \uc2ac\ub9ac\ud53c\uc9c0</span>
                                 <span class="exec-stat-value" id="eqWorstSlip">-</span>
                             </div>
@@ -1385,7 +1396,7 @@ DASHBOARD_HTML = """
             </div>
             <div class="exec-grid">
                 <div class="card">
-                    <h2>\uc2ac\ub9ac\ud53c\uc9c0 \ubd84\ud3ec (30\uc77c)</h2>
+                    <h2 title="슬리피지: 주문가격과 체결가격의 차이. 0에 가까울수록 좋음">\uc2ac\ub9ac\ud53c\uc9c0 \ubd84\ud3ec (30\uc77c) \u24d8</h2>
                     <div class="chart-container" style="height:200px">
                         <canvas id="slippageHistChart"></canvas>
                         <div class="chart-empty" id="slippageHistEmpty">\ub370\uc774\ud130 \uc5c6\uc74c</div>
@@ -1409,8 +1420,8 @@ DASHBOARD_HTML = """
             <div class="card">
                 <h2>\uad00\uc2ec\uc885\ubaa9 \ubd84\uc11d</h2>
                 <div class="scroll-table">
-                <table><thead><tr><th>\uc885\ubaa9</th><th>\uc810\uc218</th><th>\uc2e0\ud638</th><th>\uac00\uaca9</th><th>\uac10\uc131</th><th>\uc0ac\uc720</th></tr></thead>
-                <tbody id="scanResults"><tr><td colspan="6" class="neu">"\uc885\ubaa9 \uc2a4\uce94" \ubc84\ud2bc\uc744 \ud074\ub9ad\ud558\uc138\uc694</td></tr></tbody></table>
+                <table><thead><tr><th>\uc885\ubaa9</th><th title="5\uac1c \uc804\ub7b5\uc758 \uac00\uc911 \ud3c9\uade0 \uc810\uc218. 58\uc774\uc0c1=\ub9e4\uc218, 42\uc774\ud558=\ub9e4\ub3c4">\uc810\uc218 \u24d8</th><th>\uc2e0\ud638</th><th>\uac00\uaca9</th><th title="\ub9ce\uc774 \ube60\uc9c4 \uac74 \ub2e4\uc2dc \uc624\ub974\uace0, \ub9ce\uc774 \uc624\ub978 \uac74 \ube60\uc9c4\ub2e4\ub294 \uc6d0\ub9ac. RSI\uc640 \ubcfc\ub9b0\uc800\ubc34\ub4dc \uae30\ubc18">\ud3c9\uade0\ud68c\uadc0 \u24d8</th><th title="\uc624\ub974\ub294 \uc8fc\uc2dd\uc740 \uacc4\uc18d \uc624\ub978\ub2e4\ub294 \uc6d0\ub9ac. MACD\uc640 \uc774\ub3d9\ud3c9\uade0\uc120 \ubc30\uc5f4 \uae30\ubc18">\ucd94\uc138 \u24d8</th><th title="\ud55c\uad6d \uc2dc\uc7a5 \ud2b9\uc131 \ubc18\uc601. \ucd5c\uadfc \uae09\ub4f1\uc8fc\ub294 \ub2e8\uae30 \ud558\ub77d \uac00\ub2a5\uc131 \ud3c9\uac00">\ubaa8\uba58\ud140 \u24d8</th><th title="\uac70\ub798\ub7c9\uc774 \ud3c9\uc18c\ubcf4\ub2e4 \ub9ce\uc73c\uba74\uc11c \uc0c1\uc2b9\ud558\uba74 \uae0d\uc815\uc801">\uac70\ub798\ub7c9 \u24d8</th><th title="\uac00\uaca9 \ubcc0\ub3d9 \ud3ed\uc774 \uc904\uc5b4\ub4e4\uba74 \uc548\uc815\uc801(\uae0d\uc815), \ub298\uc5b4\ub098\uba74 \ubd88\uc548\uc815(\ubd80\uc815)">\ubcc0\ub3d9\uc131 \u24d8</th><th>\uc0ac\uc720</th></tr></thead>
+                <tbody id="scanResults"><tr><td colspan="10" class="neu">"\uc885\ubaa9 \uc2a4\uce94" \ubc84\ud2bc\uc744 \ud074\ub9ad\ud558\uc138\uc694</td></tr></tbody></table>
                 </div>
             </div>
             <div class="card">
@@ -1438,12 +1449,12 @@ DASHBOARD_HTML = """
 
         /* ========== Shared Regime Labels & CSS Map ========== */
         const REGIME_LABELS = {
-            'BULL': '\uac15\uc138',
-            'BEAR': '\uc57d\uc138',
-            'SIDEWAYS': '\ud69f\ubcf4',
+            'BULL': '\uac15\uc138(\uc0c1\uc2b9\uc7a5)',
+            'BEAR': '\uc57d\uc138(\ud558\ub77d\uc7a5)',
+            'SIDEWAYS': '\ud6a1\ubcf4(\ubcf4\ud569\uc7a5)',
             'BULL_TREND': '\uac15\uc138 \ucd94\uc138',
             'BEAR_TREND': '\uc57d\uc138 \ucd94\uc138',
-            'RANGING': '\ud69f\ubcf4',
+            'RANGING': '\ud6a1\ubcf4(\ubcf4\ud569\uc7a5)',
             'HIGH_VOLATILITY': '\uace0\ubcc0\ub3d9\uc131',
         };
         const REGIME_CLASS_MAP = {
@@ -1982,7 +1993,7 @@ DASHBOARD_HTML = """
         }
 
         async function scanAll() {
-            document.getElementById('scanResults').innerHTML='<tr><td colspan="6">15\uac1c \uc885\ubaa9 \uc2a4\uce94 \uc911...</td></tr>';
+            document.getElementById('scanResults').innerHTML='<tr><td colspan="10">15\uac1c \uc885\ubaa9 \uc2a4\uce94 \uc911...</td></tr>';
             const r = await fetch('/api/scan');
             const d = await r.json();
             const tb = document.getElementById('scanResults');
@@ -1990,12 +2001,22 @@ DASHBOARD_HTML = """
             tb.innerHTML = (d.results||[]).map(s => {
                 const badge = s.action==='BUY'?'badge-buy':s.action==='SELL'?'badge-sell':'badge-hold';
                 const barW = Math.max(0,Math.min(100,s.score));
-                const barC = s.score>=65?'#3fb950':s.score<=35?'#f85149':'#8b949e';
-                const sent = s.sentiment ? '<span class="'+(s.sentiment.overall>0?'green':s.sentiment.overall<0?'pos':'neu')+'">'+(s.sentiment.overall>0?'+':'')+(s.sentiment.overall*100).toFixed(0)+'</span>' : '-';
+                const barC = s.score>=58?'#3fb950':s.score<=42?'#f85149':'#8b949e';
+                const ss = s.sub_scores||{};
+                const subCell = (v) => {
+                    const val = (v||50).toFixed(0);
+                    const c = v>=58?'green':v<=42?'pos':'neu';
+                    return '<span class="'+c+'">'+val+'</span>';
+                };
                 return '<tr><td><b>'+s.name+'</b><br><span class="neu" style="font-size:0.7rem">'+s.symbol+'</span></td>'
                     +'<td><div class="score-bar"><div class="score-fill" style="width:'+barW+'%;background:'+barC+'"></div></div> '+s.score+'</td>'
                     +'<td><span class="badge '+badge+'">'+(SCAN_ACTION_KO[s.action]||s.action)+'</span></td>'
-                    +'<td>'+fmt(s.current_price)+'</td><td>'+sent+'</td>'
+                    +'<td>'+fmt(s.current_price)+'</td>'
+                    +'<td>'+subCell(ss['\ud3c9\uade0\ud68c\uadc0'])+'</td>'
+                    +'<td>'+subCell(ss['\ucd94\uc138\ucd94\uc885'])+'</td>'
+                    +'<td>'+subCell(ss['\ud55c\uad6d\ud615\ubaa8\uba58\ud140'])+'</td>'
+                    +'<td>'+subCell(ss['\uac70\ub798\ub7c9'])+'</td>'
+                    +'<td>'+subCell(ss['\ubcc0\ub3d9\uc131'])+'</td>'
                     +'<td style="font-size:0.72rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">'+(s.reasons||[]).slice(0,2).join(', ')+'</td></tr>';
             }).join('');
         }
@@ -2024,7 +2045,7 @@ DASHBOARD_HTML = """
             const btn = document.querySelector('.btn-cycle');
             const origText = btn.textContent;
             btn.disabled = true; btn.textContent = '\uc2e4\ud589 \uc911...';
-            document.getElementById('scanResults').innerHTML='<tr><td colspan="6">\ub9e4\ub9e4 \uc0ac\uc774\ud074 \uc2e4\ud589 \uc911...</td></tr>';
+            document.getElementById('scanResults').innerHTML='<tr><td colspan="10">\ub9e4\ub9e4 \uc0ac\uc774\ud074 \uc2e4\ud589 \uc911...</td></tr>';
             try {
                 await fetch('/api/cycle',{method:'POST'});
                 fetchStatus(); fetchStats();
@@ -2281,7 +2302,7 @@ DASHBOARD_HTML = """
                     return;
                 }
 
-                let html = '<table><thead><tr><th>#</th><th>\uc804\ub7b5</th><th>\uac70\ub798</th><th>\uc2b9\ub960</th><th>\ud3c9\uade0 \uc218\uc775</th><th>\uc0e4\ud504</th><th>\uc0c1\ud0dc</th></tr></thead><tbody>';
+                let html = '<table><thead><tr><th>#</th><th>\uc804\ub7b5</th><th title="\ud574\ub2f9 \uc804\ub7b5\uc73c\ub85c \ubc1c\uc0dd\ud55c \ucd1d \uac70\ub798 \ud69f\uc218">\uac70\ub798</th><th title="\ub9e4\ub3c4 \uc911 \uc218\uc775\uc73c\ub85c \ub05d\ub09c \ube44\uc728. 50% \uc774\uc0c1\uc774\uba74 \uc591\ud638">\uc2b9\ub960</th><th title="\uac70\ub798\ub2f9 \ud3c9\uade0 \uc218\uc775\ub960">\ud3c9\uade0 \uc218\uc775</th><th title="\uc0e4\ud504 \ube44\uc728(Sharpe Ratio): \uc704\ud5d8 \ub300\ube44 \uc218\uc775\ub960. 1\uc774\uc0c1 \uc591\ud638, 2\uc774\uc0c1 \uc6b0\uc218. \ub192\uc744\uc218\ub85d \uc548\uc815\uc801\uc73c\ub85c \ubc88\ub2e4\ub294 \ub73b">\uc0e4\ud504</th><th title="\uc804\ub7b5 \ud65c\uc131/\ube44\ud65c\uc131 \uc0c1\ud0dc">\uc0c1\ud0dc</th></tr></thead><tbody>';
                 ranking.forEach((s, idx) => {
                     const rank = idx + 1;
                     let rankClass = 'rank-n';
@@ -2506,7 +2527,7 @@ DASHBOARD_HTML = """
                                     stepSize: 1,
                                     font: { size: 9 },
                                     callback: function(v) {
-                                        const labels = { 1: '\uc57d\uc138', 2: '\uace0\ubcc0\ub3d9', 3: '\ud69f\ubcf4', 4: '\uac15\uc138' };
+                                        const labels = { 1: '\uc57d\uc138', 2: '\uace0\ubcc0\ub3d9', 3: '\ud6a1\ubcf4', 4: '\uac15\uc138' };
                                         return labels[v] || '';
                                     }
                                 }
@@ -3209,6 +3230,229 @@ DASHBOARD_HTML = """
         setInterval(loadAllPortfolioRisk, 120000);
         setInterval(loadAllExecution, 30000);
     </script>
+<div id="glossaryModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;justify-content:center;align-items:center" onclick="if(event.target===this)this.style.display='none'">
+<div style="background:#161b28;border:1px solid #21262d;border-radius:12px;max-width:850px;width:92%;max-height:88vh;overflow-y:auto;padding:24px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<h2 style="color:#58a6ff;font-size:1.2rem">📖 주식 용어 사전 (초심자용)</h2>
+<button onclick="this.parentElement.parentElement.parentElement.style.display='none'" style="background:none;border:none;color:#8b949e;font-size:1.5rem;cursor:pointer">&times;</button>
+</div>
+<div style="font-size:0.85rem;line-height:1.8;color:#c9d1d9">
+
+<h3 style="color:#3fb950;margin:12px 0 6px;font-size:0.95rem">🎯 매매 신호</h3>
+<p><b style="color:#3fb950">BUY (매수)</b> — 종합 점수가 기준(58점) 이상일 때 "사세요" 신호. 5개 전략의 가중 평균 점수가 높으면 발생합니다.</p>
+<p><b style="color:#f85149">SELL (매도)</b> — 종합 점수가 42점 이하일 때 "파세요" 신호. 또는 손절(-5%)/익절(+15%) 조건 충족 시.</p>
+<p><b style="color:#8b949e">HOLD (보류)</b> — 42~58점 사이. 뚜렷한 방향이 없어 지켜보는 구간.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #3fb950;margin:6px 0">
+<b>종합 점수 계산:</b><br>
+최종점수 = 평균회귀×25% + 추세×20% + 모멘텀×20% + 거래량×20% + 변동성×15%<br>
+예) 평균회귀 70 × 0.25 + 추세 60 × 0.20 + 모멘텀 55 × 0.20 + 거래량 50 × 0.20 + 변동성 65 × 0.15 = <b>60.25점 → BUY</b><br>
+※ 시장 국면(상승/하락/횡보)에 따라 가중치가 자동 조정됩니다
+</p>
+
+<h3 style="color:#58a6ff;margin:16px 0 6px;font-size:0.95rem">📊 5대 전략 상세 (수학 공식 포함)</h3>
+
+<p><b style="color:#d29922;font-size:0.95rem">1. 평균회귀 (Mean Reversion) — 가중치 25%</b></p>
+<p>"많이 빠진 건 다시 오르고, 많이 오른 건 빠진다"는 원리.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #d29922;margin:6px 0">
+<b>RSI (상대강도지수):</b><br>
+RS = (14일간 평균 상승폭) ÷ (14일간 평균 하락폭)<br>
+RSI = 100 - (100 ÷ (1 + RS))<br>
+→ 30 이하: "너무 빠졌다" = 매수 기회 / 70 이상: "너무 올랐다" = 주의<br><br>
+<b>볼린저밴드 %B:</b><br>
+중심선 = 20일 이동평균<br>
+상단 = 중심선 + (20일 표준편차 × 2)<br>
+하단 = 중심선 - (20일 표준편차 × 2)<br>
+%B = (현재가격 - 하단) ÷ (상단 - 하단)<br>
+→ 0 이하: 밴드 아래 = 싸다 / 1 이상: 밴드 위 = 비싸다<br><br>
+<b>점수화:</b> RSI와 %B를 Z-score(표준화)로 변환 후 50점 기준으로 환산
+</p>
+
+<p><b style="color:#d29922;font-size:0.95rem">2. 추세추종 (Trend Following) — 가중치 20%</b></p>
+<p>"오르는 주식은 계속 오른다"는 원리.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #d29922;margin:6px 0">
+<b>MACD:</b><br>
+MACD선 = 12일 이동평균 - 26일 이동평균<br>
+시그널선 = MACD의 9일 이동평균<br>
+히스토그램 = MACD선 - 시그널선<br>
+→ MACD가 시그널 위로 교차 = 골든크로스(매수 신호)<br>
+→ MACD가 시그널 아래로 교차 = 데드크로스(매도 신호)<br><br>
+<b>MA 정배열 점수:</b><br>
+5일선 > 20일선 → +25점<br>
+20일선 > 60일선 → +25점<br>
+60일선 > 120일선 → +25점<br>
+현재가 > 5일선 → +25점<br>
+→ 정배열 = 100점(강한 상승), 역배열 = 0점(강한 하락)<br><br>
+<b>이동평균(MA) 계산:</b><br>
+MA(N) = 최근 N일 종가의 합 ÷ N<br>
+예) 5일 MA = (오늘 + 어제 + ... + 4일전 종가) ÷ 5
+</p>
+
+<p><b style="color:#d29922;font-size:0.95rem">3. 한국형 모멘텀 (Korean Momentum) — 가중치 20%</b></p>
+<p>한국 시장의 "역전 효과" 반영. 최근 급등주는 단기 하락 가능성 평가.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #d29922;margin:6px 0">
+<b>20일 수익률:</b> (오늘 종가 - 20일 전 종가) ÷ 20일 전 종가 × 100<br>
+<b>60일 수익률:</b> (오늘 종가 - 60일 전 종가) ÷ 60일 전 종가 × 100<br><br>
+→ 20일 수익률이 너무 높으면(예: +30%) 점수 하락 (과열 주의)<br>
+→ 적당한 상승(5~15%)이면 점수 상승 (건강한 모멘텀)<br><br>
+<b>폭락 가드:</b> 20일간 -25% 이상 하락한 종목은 자동으로 매수 차단<br>
+→ "떨어지는 칼날을 잡지 마라"는 원칙
+</p>
+
+<p><b style="color:#d29922;font-size:0.95rem">4. 거래량 (Volume Analysis) — 가중치 20%</b></p>
+<p>거래량은 주가의 "연료". 거래량 없는 상승은 지속되기 어렵습니다.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #d29922;margin:6px 0">
+<b>거래량 비율:</b> 오늘 거래량 ÷ 20일 평균 거래량<br>
+→ 1.5 이상이면서 상승 = 강한 매수세 (긍정)<br>
+→ 1.5 이상이면서 하락 = 강한 매도세 (부정)<br><br>
+<b>OBV (On-Balance Volume):</b><br>
+상승한 날: OBV = 전일 OBV + 오늘 거래량<br>
+하락한 날: OBV = 전일 OBV - 오늘 거래량<br>
+→ OBV가 상승 추세이면 = 매수세력이 모이는 중<br>
+→ OBV가 하락 추세이면 = 매도세력이 빠지는 중
+</p>
+
+<p><b style="color:#d29922;font-size:0.95rem">5. 변동성 (Volatility) — 가중치 15%</b></p>
+<p>가격 변동 폭이 줄어들면 안정, 늘어나면 위험.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #d29922;margin:6px 0">
+<b>변동성 계산:</b><br>
+일간 수익률 = (오늘 종가 - 어제 종가) ÷ 어제 종가<br>
+N일 변동성 = 최근 N일 일간수익률의 표준편차 × √252<br>
+(252 = 1년 거래일 수, 연율화)<br><br>
+<b>변동성 비율:</b> 20일 변동성 ÷ 60일 변동성<br>
+→ 1 미만: 최근 변동이 줄어듦 = 안정적 (긍정)<br>
+→ 1 이상: 최근 변동이 늘어남 = 불안정 (부정)<br><br>
+예) 20일 변동성 15%, 60일 변동성 20% → 비율 0.75 = 안정화 중 ✓
+</p>
+
+<h3 style="color:#f85149;margin:16px 0 6px;font-size:0.95rem">🛡️ 리스크 관리</h3>
+<p><b>손절 (Stop Loss) -5%</b> — 매수가 대비 -5% 하락 시 자동 전량 매도.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #f85149;margin:6px 0">
+예) 삼성전자 60,000원에 매수 → 57,000원(-5%)이면 자동 매도<br>
+왜?: 작은 손실에서 끊어야 큰 손실 방지. -50%가 되면 원금 회복에 +100% 필요!
+</p>
+<p><b>익절 (Take Profit) +15%</b> — 매수가 대비 +15% 수익 시 전량 매도.</p>
+<p><b>트레일링 스탑 (Trailing Stop) -5%</b> — 보유 중 최고가 기준 -5% 하락 시 매도.</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #f85149;margin:6px 0">
+예) 60,000원 매수 → 70,000원까지 상승(최고가 갱신)<br>
+→ 트레일링 기준 = 70,000 × 0.95 = 66,500원<br>
+→ 66,500원 이하로 떨어지면 매도 (수익 +10.8% 확보)<br>
+핵심: 상승할 때는 따라가고, 하락 전환 시 수익을 지켜줌
+</p>
+<p><b>서킷브레이커</b> — 하루 -3% 손실 / 연속 5패 / 일 20거래 초과 시 자동 매매 중단 (30분 쿨다운).</p>
+
+<h3 style="color:#d29922;margin:16px 0 6px;font-size:0.95rem">📈 시장 국면 (Regime)</h3>
+<p><b style="color:#3fb950">BULL (상승장)</b> — 주가가 이동평균선 위, ADX 25+ 추세 강도. 추세추종 가중치↑</p>
+<p><b style="color:#f85149">BEAR (하락장)</b> — 주가가 이동평균선 아래, 하락 추세. 평균회귀·변동성 가중치↑</p>
+<p><b style="color:#d29922">SIDEWAYS (횡보장)</b> — 뚜렷한 방향 없이 좁은 범위에서 등락 반복. 평균회귀·거래량 가중치↑</p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #d29922;margin:6px 0">
+<b>국면 판단 기준:</b><br>
+1) 현재가가 50일 MA 위? → 상승 경향<br>
+2) 50일 MA가 200일 MA 위? → 장기 상승 추세<br>
+3) ADX > 25? → 추세가 뚜렷함<br>
+4) 변동성이 높은가? → 급등/급락 구간<br><br>
+<b>ADX (Average Directional Index) 계산:</b><br>
++DI = 상승 방향 움직임의 14일 평균<br>
+-DI = 하락 방향 움직임의 14일 평균<br>
+ADX = |+DI - -DI| ÷ (+DI + -DI)의 14일 평균 × 100<br>
+→ 20 미만: 추세 없음(횡보) / 25~50: 추세 있음 / 50+: 매우 강한 추세
+</p>
+
+<h3 style="color:#58a6ff;margin:16px 0 6px;font-size:0.95rem">📐 성과 지표 (수학 공식)</h3>
+<p><b>수익률 (Return)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+수익률(%) = (현재 자산 - 초기 자본) ÷ 초기 자본 × 100<br>
+예) 초기 200만원, 현재 230만원 → (230-200)÷200×100 = <b>+15%</b>
+</p>
+
+<p><b>승률 (Win Rate)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+승률(%) = 수익 거래 수 ÷ 전체 매도 수 × 100<br>
+예) 10번 매도 중 6번 수익 → 60% 승률<br>
+※ 승률이 높아도 1번의 큰 손실이 있으면 전체 수익이 마이너스일 수 있음<br>
+→ 그래서 샤프 비율과 PF를 함께 봐야 합니다
+</p>
+
+<p><b>MDD (Maximum Drawdown, 최대 낙폭)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+MDD = (최저점 - 최고점) ÷ 최고점 × 100<br>
+예) 자산이 250만원(최고)까지 올랐다가 225만원(최저)까지 빠짐<br>
+→ (225-250)÷250×100 = <b>-10% MDD</b><br>
+의미: "최악의 경우 10%까지 떨어질 수 있다"<br>
+-5% 이내면 안정적, -10% 이상이면 변동성 큰 전략
+</p>
+
+<p><b>샤프 비율 (Sharpe Ratio)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+샤프 = (평균 수익률 - 무위험 수익률) ÷ 수익률의 표준편차<br><br>
+쉽게: "1%를 벌기 위해 얼마나 출렁거렸는가?"<br>
+→ 평균 수익 10%, 표준편차 5% → 샤프 = 10÷5 = <b>2.0 (우수)</b><br>
+→ 평균 수익 10%, 표준편차 20% → 샤프 = 10÷20 = <b>0.5 (불안정)</b><br><br>
+판단 기준: 0 이하 = 나쁨 / 0~1 = 보통 / 1~2 = 양호 / 2+ = 우수
+</p>
+
+<p><b>PF (Profit Factor, 손익비)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+PF = 총 수익 금액 ÷ 총 손실 금액<br>
+예) 수익 합계 50만원, 손실 합계 30만원 → PF = 50÷30 = <b>1.67</b><br>
+→ 1 미만: 손실이 더 큼 / 1.0: 본전 / 1.5+: 양호 / 2+: 우수
+</p>
+
+<p><b>롤링 승률 (Rolling Win Rate)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+최근 N건의 거래만 보고 승률을 계산한 것 (이동 승률)<br>
+예) 최근 10건 중 7건 수익 → 롤링 승률 70%<br>
+→ 전체 승률은 55%여도 최근 롤링이 70%면 = 전략이 최근에 잘 맞고 있음<br>
+→ 반대로 롤링이 30%로 떨어지면 = 전략이 현재 시장에 안 맞고 있음
+</p>
+
+<h3 style="color:#58a6ff;margin:16px 0 6px;font-size:0.95rem">🔧 기술적 용어</h3>
+
+<p><b>Z-score (표준화 점수)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+Z = (현재값 - 평균) ÷ 표준편차<br>
+→ "지금 값이 평소와 얼마나 다른가?"<br>
+예) RSI 평균 50, 표준편차 10, 현재 RSI 30 → Z = (30-50)÷10 = <b>-2.0</b><br>
+→ -2 이하: 극단적으로 낮음(매수 기회) / +2 이상: 극단적으로 높음(매도 기회)<br>
+본 시스템에서는 Z-score를 tanh 함수로 변환해 50점 기준 0~100점으로 환산합니다
+</p>
+
+<p><b>표준편차 (Standard Deviation)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+"평균에서 얼마나 퍼져있는가" = 변동 폭의 크기<br>
+예) A주식 수익률: +1%, +2%, -1%, +1% → 표준편차 작음 (안정적)<br>
+예) B주식 수익률: +10%, -8%, +12%, -15% → 표준편차 큼 (변동 심함)
+</p>
+
+<h3 style="color:#58a6ff;margin:16px 0 6px;font-size:0.95rem">🏗️ 포트폴리오 관리</h3>
+<p><b>상관관계 (Correlation)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+-1 ~ +1 사이 값. 두 종목이 얼마나 같이 움직이는지<br>
++1: 완전히 같이 움직임 (분산 효과 없음, 위험)<br>
+0: 관계 없음 (이상적인 분산)<br>
+-1: 반대로 움직임 (완벽한 헷지)<br>
+예) 삼성전자↔SK하이닉스 = 0.85 (둘 다 반도체, 같이 움직임 → 위험)<br>
+예) 삼성전자↔KB금융 = 0.2 (다른 산업, 분산 효과 좋음)
+</p>
+
+<p><b>HHI (허핀달-허쉬만 지수, 집중도)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+HHI = 각 종목 비중(%)의 제곱의 합<br>
+예) 2종목, 50%씩 → 50² + 50² = <b>5,000</b><br>
+예) 4종목, 25%씩 → 25²×4 = <b>2,500</b> (더 분산됨)<br>
+예) 1종목 100% → 100² = <b>10,000</b> (최대 집중, 위험)<br>
+→ 낮을수록 잘 분산된 포트폴리오
+</p>
+
+<p><b>슬리피지 (Slippage)</b></p>
+<p style="background:#1c2333;padding:8px 12px;border-radius:6px;border-left:3px solid #58a6ff;margin:6px 0">
+주문 가격과 실제 체결 가격의 차이<br>
+예) 60,000원에 매수 주문 → 60,050원에 체결 → 슬리피지 +0.08%<br>
+→ 양수: 불리하게 체결 / 음수: 유리하게 체결 / 0에 가까울수록 좋음
+</p>
+
+</div>
+</div>
+</div>
 </body>
 </html>
 """
@@ -3218,7 +3462,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     print("=" * 50)
-    print(f"  StockBot v2.2 Dashboard")
+    print(f"  StockBot v3.3 Dashboard")
     print(f"  http://localhost:{DASHBOARD_PORT}")
     print("=" * 50)
     uvicorn.run(app, host=DASHBOARD_HOST, port=DASHBOARD_PORT)

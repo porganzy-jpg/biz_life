@@ -183,13 +183,9 @@ class BacktestEngine:
     # ---- helpers ----
 
     def _get_selector(self):
-        """Lazily import and configure the ensemble selector."""
+        """Lazily import and configure the ensemble selector (v3.1)."""
         from stock_selector import StockSelectorEnsemble
         selector = StockSelectorEnsemble()
-        if self.strategy_weights:
-            for strat in selector.strategies:
-                if strat.name in self.strategy_weights:
-                    strat.weight = self.strategy_weights[strat.name]
         return selector
 
     def _report_progress(self, pct: int, msg: str = ""):

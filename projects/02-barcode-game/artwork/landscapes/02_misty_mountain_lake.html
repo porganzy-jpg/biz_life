@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Misty Mountain Lake - BarcodeQuest Landscape</title>
+<style>
+    body { margin: 0; background: #0d1520; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    canvas { border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .info { position: fixed; bottom: 20px; color: #aaa; font-family: sans-serif; font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div class="info">Misty Mountain Lake Dawn (1280x720) - 우클릭 → 이미지 저장 가능</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let seed = 7777;
+function rng() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+function rr(a, b) { return a + rng() * (b - a); }
+function lerpC(c1, c2, t) { return [c1[0]+(c2[0]-c1[0])*t, c1[1]+(c2[1]-c1[1])*t, c1[2]+(c2[2]-c1[2])*t]; }
+function rgba(c, a) { return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`; }
+
+function brush(x, y, w, h, c, a, ang) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang || 0);
+    ctx.fillStyle = rgba(c, a);
+    ctx.beginPath(); ctx.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+}
+function oilBrush(x, y, w, h, c, a, ang) {
+    for (let i = 0; i < 3; i++) {
+        brush(x+rr(-2,2), y+rr(-1,1), w*rr(0.8,1.2), h*rr(0.7,1.1),
+            [c[0]+rr(-12,12), c[1]+rr(-8,8), c[2]+rr(-8,8)], a*rr(0.6,1), (ang||0)+rr(-0.08,0.08));
+    }
+}
+
+// ─── SKY ───
+function paintSky() {
+    const colors = [
+        [15, 20, 50],     // deep night blue
+        [40, 50, 90],     // dark blue
+        [90, 80, 120],    // purple
+        [180, 120, 100],  // warm mauve
+        [230, 170, 120],  // peach
+        [250, 210, 160],  // warm light
+    ];
+    for (let y = 0; y < H * 0.45; y++) {
+        const t = y / (H * 0.45);
+        const seg = t * (colors.length - 1);
+        const i = Math.min(Math.floor(seg), colors.length - 2);
+        const c = lerpC(colors[i], colors[i+1], seg - i);
+        for (let x = 0; x < W; x += rr(10, 22)) {
+            oilBrush(x, y, rr(22, 50), rr(5, 12), c, rr(0.5, 0.85), rr(-0.04, 0.04));
+        }
+    }
+}
+
+// ─── MOUNTAINS ───
+function paintMountains() {
+    const mtConfigs = [
+        { peaks: [[200,0.28],[500,0.22],[750,0.18],[1050,0.25]], color: [60,60,90], haze: 0.6 },
+        { peaks: [[100,0.32],[400,0.26],[700,0.30],[950,0.24],[1200,0.28]], color: [50,65,70], haze: 0.4 },
+        { peaks: [[50,0.38],[350,0.34],[600,0.36],[850,0.32],[1100,0.35],[1280,0.33]], color: [35,55,50], haze: 0.2 },
+    ];
+
+    for (const mt of mtConfigs) {
+        for (let x = 0; x < W; x += rr(2, 5)) {
+            // Interpolate mountain height
+            let y = H * 0.45;
+            for (let p = 0; p < mt.peaks.length - 1; p++) {
+                const [px1, ph1] = mt.peaks[p];
+                const [px2, ph2] = mt.peaks[p + 1];
+                if (x >= px1 && x <= px2) {
+                    const t = (x - px1) / (px2 - px1);
+                    const smooth = t * t * (3 - 2 * t); // smoothstep
+                    const peakH = ph1 + (ph2 - ph1) * smooth;
+                    y = H * peakH + Math.sin(x * 0.02) * 8 + Math.sin(x * 0.05) * 4;
+                    break;
+                }
+            }
+
+            const snowLine = H * 0.25;
+            for (let py = y; py < H * 0.5; py += rr(3, 7)) {
+                const depth = (py - y) / (H * 0.5 - y);
+                let c = [...mt.color];
+                // Snow on peaks
+                if (py < snowLine + rr(-10, 10)) {
+                    c = lerpC(c, [220, 225, 235], Math.max(0, 1 - (py - y) / 60));
+                }
+                // Atmospheric haze
+                c = lerpC(c, [180, 170, 190], mt.haze * (1 - depth * 0.5));
+                oilBrush(x + rr(-3, 3), py, rr(6, 14), rr(5, 12), c, rr(0.4, 0.75), rr(-0.15, 0.15));
+            }
+        }
+    }
+}
+
+// ─── LAKE ───
+function paintLake() {
+    const waterLine = H * 0.5;
+
+    for (let y = waterLine; y < H * 0.82; y++) {
+        const t = (y - waterLine) / (H * 0.32);
+        for (let x = 0; x < W; x += rr(4, 12)) {
+            // Mirror sky colors darkened
+            const skyT = 1 - t;
+            const c = lerpC(
+                lerpC([20, 40, 60], [60, 80, 100], skyT),
+                [180, 160, 130],
+                skyT * 0.3
+            );
+            // Ripple effect
+            const ripple = Math.sin(x * 0.03 + y * 0.1) * 3;
+            oilBrush(x + ripple, y, rr(15, 35), rr(3, 6), c, rr(0.5, 0.8), rr(-0.02, 0.02));
+
+            // Specular highlights
+            if (rng() > 0.95 && t < 0.3) {
+                brush(x + ripple, y, rr(8, 20), rr(2, 4), [255, 230, 180], rr(0.05, 0.15), 0);
+            }
+        }
+    }
+}
+
+// ─── MIST ───
+function paintMist() {
+    for (let i = 0; i < 200; i++) {
+        const x = rr(-50, W + 50);
+        const y = H * 0.4 + rr(-30, 60);
+        const c = [200, 200, 210];
+        brush(x, y, rr(60, 200), rr(15, 40), c, rr(0.03, 0.1), rr(-0.1, 0.1));
+    }
+    // Low mist on water
+    for (let i = 0; i < 100; i++) {
+        const x = rr(-50, W + 50);
+        const y = H * 0.52 + rr(-10, 30);
+        brush(x, y, rr(80, 250), rr(10, 30), [190, 195, 210], rr(0.03, 0.08), 0);
+    }
+}
+
+// ─── PINE TREES (Shore) ───
+function paintPines() {
+    const treePositions = [
+        [30, 0.82, 1.4], [80, 0.80, 1.1], [140, 0.78, 0.8],
+        [1100, 0.80, 1.2], [1160, 0.78, 0.9], [1230, 0.82, 1.3],
+        [550, 0.48, 0.3], [620, 0.47, 0.25], [680, 0.49, 0.35], // distant
+    ];
+
+    for (const [tx, ty, scale] of treePositions) {
+        const baseY = H * ty;
+        // Trunk
+        for (let i = 0; i < 8; i++) {
+            brush(tx + rr(-1, 1) * scale, baseY - rr(0, 50) * scale,
+                rr(2, 4) * scale, rr(10, 20) * scale,
+                [rr(30, 50), rr(25, 40), rr(15, 25)], rr(0.5, 0.8), rr(-0.05, 0.05));
+        }
+        // Pine layers
+        for (let layer = 0; layer < 6; layer++) {
+            const ly = baseY - (20 + layer * 12) * scale;
+            const width = (25 - layer * 3) * scale;
+            for (let i = 0; i < 12; i++) {
+                const c = scale < 0.5
+                    ? [rr(40, 60), rr(60, 80), rr(50, 70)] // distant = more blue
+                    : [rr(15, 40), rr(50, 80), rr(20, 40)]; // close = rich green
+                oilBrush(tx + rr(-width, width), ly + rr(-4, 4),
+                    rr(8, 16) * scale, rr(5, 10) * scale, c, rr(0.4, 0.7), rr(-0.3, 0.3));
+            }
+        }
+    }
+}
+
+// ─── FOREGROUND ROCKS & GRASS ───
+function paintForeground() {
+    // Shore
+    for (let x = 0; x < W; x += rr(2, 6)) {
+        const shoreY = H * 0.82 + Math.sin(x * 0.01) * 5;
+        for (let y = shoreY; y < H; y += rr(3, 8)) {
+            const depth = (y - shoreY) / (H - shoreY);
+            const c = lerpC([80, 90, 60], [40, 50, 30], depth);
+            oilBrush(x + rr(-2, 2), y, rr(6, 14), rr(4, 10), c, rr(0.5, 0.85), rr(-0.2, 0.2));
+        }
+    }
+
+    // Rocks
+    const rocks = [[100, H*0.85], [200, H*0.88], [1050, H*0.84], [1150, H*0.87]];
+    for (const [rx, ry] of rocks) {
+        for (let i = 0; i < 40; i++) {
+            const c = [rr(70, 100), rr(75, 95), rr(80, 100)];
+            oilBrush(rx + rr(-15, 15), ry + rr(-12, 8), rr(6, 16), rr(5, 12), c, rr(0.5, 0.8), rr(-0.3, 0.3));
+        }
+    }
+
+    // Grass tufts
+    for (let i = 0; i < 200; i++) {
+        const x = rr(0, W);
+        const y = H * 0.82 + rr(0, H * 0.18);
+        for (let g = 0; g < 5; g++) {
+            brush(x + rr(-3, 3), y - rr(2, 12), rr(1, 3), rr(5, 15),
+                [rr(40, 70), rr(80, 120), rr(20, 40)], rr(0.3, 0.6), rr(-0.4, 0.4));
+        }
+    }
+}
+
+// ─── RENDER ───
+ctx.fillStyle = '#0f1528';
+ctx.fillRect(0, 0, W, H);
+paintSky();
+paintMountains();
+paintLake();
+paintMist();
+paintPines();
+paintForeground();
+
+// Warm dawn overlay
+const dawn = ctx.createRadialGradient(W*0.5, H*0.35, 50, W*0.5, H*0.35, W*0.6);
+dawn.addColorStop(0, 'rgba(255,180,100,0.06)');
+dawn.addColorStop(1, 'rgba(0,0,0,0)');
+ctx.fillStyle = dawn;
+ctx.fillRect(0, 0, W, H);
+
+// Vignette
+const vg = ctx.createRadialGradient(W/2, H/2, W*0.25, W/2, H/2, W*0.8);
+vg.addColorStop(0, 'rgba(0,0,0,0)');
+vg.addColorStop(1, 'rgba(0,0,10,0.4)');
+ctx.fillStyle = vg;
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>

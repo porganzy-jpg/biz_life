@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarcodeQuest - 3층 여행 버스 컨셉 아트</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(180deg, #87CEEB 0%, #B8E6F0 40%, #7BC67E 40%, #5BA65E 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Press Start 2P', monospace;
+    overflow-x: hidden;
+    image-rendering: pixelated;
+  }
+
+  h1 {
+    color: #2C3E6B;
+    font-size: 16px;
+    margin: 20px 0 5px;
+    text-shadow: 2px 2px 0 #FFB347;
+    letter-spacing: 2px;
+  }
+  .subtitle {
+    color: #E8734A;
+    font-size: 9px;
+    margin-bottom: 15px;
+  }
+
+  /* === CLOUDS === */
+  .sky { position: fixed; top: 0; left: 0; width: 100%; height: 40vh; pointer-events: none; z-index: 0; }
+  .cloud {
+    position: absolute;
+    background: #fff;
+    border-radius: 20px;
+    opacity: 0.8;
+    animation: drift linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .cloud1 { width: 80px; height: 30px; top: 30px; left: -100px; animation-duration: 25s; }
+  .cloud1::before { width: 40px; height: 40px; top: -20px; left: 10px; }
+  .cloud1::after { width: 30px; height: 30px; top: -15px; left: 40px; }
+  .cloud2 { width: 60px; height: 24px; top: 80px; left: -80px; animation-duration: 35s; animation-delay: 5s; }
+  .cloud2::before { width: 30px; height: 30px; top: -16px; left: 8px; }
+  .cloud2::after { width: 24px; height: 24px; top: -12px; left: 30px; }
+  .cloud3 { width: 100px; height: 32px; top: 50px; left: -120px; animation-duration: 30s; animation-delay: 12s; }
+  .cloud3::before { width: 50px; height: 50px; top: -28px; left: 15px; }
+  .cloud3::after { width: 36px; height: 36px; top: -18px; left: 55px; }
+
+  @keyframes drift { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 200px)); } }
+
+  /* === GROUND / ROAD === */
+  .ground {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 25vh;
+    background: linear-gradient(180deg, #7BC67E 0%, #5BA65E 30%, #8B7355 30%, #6B5B45 100%);
+    z-index: 0;
+  }
+  .road {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 40px;
+    background: #4A4A4A;
+    border-top: 4px solid #FFB347;
+  }
+  .road::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: repeating-linear-gradient(90deg, #FFD54F 0px, #FFD54F 20px, transparent 20px, transparent 40px);
+    animation: roadMove 1s linear infinite;
+  }
+  @keyframes roadMove { from { transform: translateX(0); } to { transform: translateX(-40px); } }
+
+  /* === MAIN BUS CONTAINER === */
+  .bus-scene {
+    position: relative;
+    z-index: 1;
+    margin: 10px auto 30px;
+  }
+
+  .bus-wrapper {
+    position: relative;
+    width: 820px;
+    filter: drop-shadow(4px 8px 0 rgba(0,0,0,0.15));
+  }
+
+  /* === BUS EXTERIOR === */
+  .bus-body {
+    position: relative;
+    background: #E8734A;
+    border: 4px solid #C0552E;
+    border-radius: 16px 16px 8px 8px;
+    overflow: hidden;
+  }
+
+  /* Roof */
+  .bus-roof {
+    height: 20px;
+    background: linear-gradient(180deg, #D4633A 0%, #E8734A 100%);
+    border-bottom: 3px solid #C0552E;
+    position: relative;
+  }
+  .chimney {
+    position: absolute;
+    right: 80px;
+    top: -16px;
+    width: 16px;
+    height: 20px;
+    background: #795548;
+    border: 2px solid #5D4037;
+    border-radius: 2px 2px 0 0;
+  }
+  .smoke {
+    position: absolute;
+    top: -10px;
+    left: 2px;
+    width: 8px;
+    height: 8px;
+    background: rgba(200,200,200,0.6);
+    border-radius: 50%;
+    animation: smokeRise 2s ease-out infinite;
+  }
+  .smoke:nth-child(2) { left: 6px; animation-delay: 0.7s; top: -6px; }
+  .smoke:nth-child(3) { left: 0px; animation-delay: 1.4s; top: -4px; }
+  @keyframes smokeRise {
+    0% { transform: translateY(0) scale(1); opacity: 0.6; }
+    100% { transform: translateY(-30px) scale(2); opacity: 0; }
+  }
+
+  /* Decorations on exterior */
+  .bus-banner {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FFD54F;
+    color: #C0552E;
+    font-size: 7px;
+    padding: 2px 12px;
+    border-radius: 4px;
+    border: 2px solid #FFB347;
+    z-index: 5;
+  }
+
+  .laundry {
+    position: absolute;
+    top: -8px;
+    left: 200px;
+    z-index: 5;
+  }
+  .laundry-line {
+    width: 120px;
+    height: 2px;
+    background: #795548;
+  }
+  .cloth {
+    display: inline-block;
+    width: 14px;
+    height: 18px;
+    border-radius: 0 0 3px 3px;
+    margin: 0 8px;
+    animation: sway 3s ease-in-out infinite;
+  }
+  .cloth:nth-child(2) { background: #FF7043; animation-delay: 0.5s; height: 14px; }
+  .cloth:nth-child(3) { background: #42A5F5; animation-delay: 1s; }
+  .cloth:nth-child(4) { background: #66BB6A; animation-delay: 1.5s; height: 16px; }
+  .cloth:nth-child(5) { background: #AB47BC; animation-delay: 2s; }
+  @keyframes sway { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+
+  /* === FLOORS === */
+  .floor {
+    display: flex;
+    border-bottom: 4px solid #C0552E;
+    min-height: 120px;
+    position: relative;
+  }
+  .floor:last-child { border-bottom: none; }
+
+  .floor-label {
+    position: absolute;
+    left: -2px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    font-size: 7px;
+    color: #FFD54F;
+    text-shadow: 1px 1px 0 #C0552E;
+    z-index: 10;
+    letter-spacing: 1px;
+  }
+
+  /* === ROOMS === */
+  .room {
+    flex: 1;
+    min-width: 130px;
+    max-width: 200px;
+    border-right: 3px solid #C0552E;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .room:last-child { border-right: none; }
+  .room:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+    z-index: 10;
+  }
+  .room:hover .room-name {
+    background: #FFD54F;
+    color: #5D4037;
+  }
+
+  .room-name {
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 6px;
+    color: #FFE0BD;
+    background: rgba(0,0,0,0.4);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    z-index: 5;
+    transition: all 0.2s;
+  }
+
+  /* Room backgrounds */
+  .room-cockpit { background: linear-gradient(180deg, #3E2723 0%, #4E342E 100%); }
+  .room-living { background: linear-gradient(180deg, #FFF8E1 0%, #FFECB3 100%); }
+  .room-bedroom { background: linear-gradient(180deg, #E8EAF6 0%, #C5CAE9 100%); }
+  .room-storage { background: linear-gradient(180deg, #D7CCC8 0%, #BCAAA4 100%); }
+  .room-shop { background: linear-gradient(180deg, #FFF3E0 0%, #FFE0B2 100%); }
+  .room-kitchen { background: linear-gradient(180deg, #FBE9E7 0%, #FFCCBC 100%); }
+  .room-workshop { background: linear-gradient(180deg, #F3E5F5 0%, #E1BEE7 100%); }
+  .room-bedroom2 { background: linear-gradient(180deg, #E0F7FA 0%, #B2EBF2 100%); }
+  .room-storage2 { background: linear-gradient(180deg, #EFEBE9 0%, #D7CCC8 100%); }
+  .room-observatory { background: linear-gradient(180deg, #E3F2FD 0%, #BBDEFB 100%); }
+  .room-lounge { background: linear-gradient(180deg, #F1F8E9 0%, #DCEDC8 100%); }
+  .room-special { background: linear-gradient(180deg, #FCE4EC 0%, #F8BBD0 100%); }
+  .room-vip { background: linear-gradient(180deg, #FFF8E1 0%, #FFE082 100%); }
+
+  /* Window on exterior side */
+  .window-frame {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 36px;
+    background: linear-gradient(180deg, #87CEEB 0%, #B8E6F0 100%);
+    border: 3px solid #C0552E;
+    border-radius: 4px 4px 2px 2px;
+    z-index: 3;
+    overflow: hidden;
+  }
+  .window-frame::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+  }
+
+  /* === PIXEL CHARACTERS === */
+  .pixel-char {
+    position: absolute;
+    z-index: 4;
+    image-rendering: pixelated;
+  }
+
+  /* Character using CSS pixel art */
+  .char-body {
+    position: relative;
+    width: 24px;
+    height: 32px;
+  }
+  /* Head */
+  .char-head {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    position: absolute;
+    top: 0;
+    left: 4px;
+    border: 2px solid rgba(0,0,0,0.2);
+  }
+  .char-eye {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #2C3E6B;
+    border-radius: 1px;
+    top: 7px;
+  }
+  .char-eye.left { left: 3px; }
+  .char-eye.right { right: 3px; }
+  .char-mouth {
+    position: absolute;
+    width: 4px;
+    height: 2px;
+    background: #E57373;
+    border-radius: 0 0 2px 2px;
+    bottom: 2px;
+    left: 6px;
+  }
+  /* Body */
+  .char-torso {
+    width: 14px;
+    height: 10px;
+    position: absolute;
+    top: 15px;
+    left: 5px;
+    border-radius: 2px;
+  }
+  /* Legs */
+  .char-legs {
+    position: absolute;
+    bottom: 0;
+    left: 5px;
+    display: flex;
+    gap: 2px;
+  }
+  .char-leg {
+    width: 5px;
+    height: 8px;
+    border-radius: 0 0 2px 2px;
+  }
+
+  /* Job-specific hats/accessories */
+  .hat-chef {
+    position: absolute;
+    top: -8px;
+    left: 3px;
+    width: 12px;
+    height: 10px;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 4px 4px 0 0;
+    z-index: 1;
+  }
+  .hat-driver {
+    position: absolute;
+    top: -4px;
+    left: 2px;
+    width: 14px;
+    height: 6px;
+    background: #2C3E6B;
+    border-radius: 6px 6px 0 0;
+    z-index: 1;
+  }
+  .hat-driver::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: -2px;
+    width: 18px;
+    height: 3px;
+    background: #2C3E6B;
+    border-radius: 2px;
+  }
+  .apron {
+    position: absolute;
+    top: 14px;
+    left: 4px;
+    width: 16px;
+    height: 14px;
+    background: #BCAAA4;
+    border: 1px solid #8D6E63;
+    border-radius: 2px;
+    z-index: 1;
+  }
+  .hat-merchant {
+    position: absolute;
+    top: -3px;
+    left: 1px;
+    width: 16px;
+    height: 5px;
+    background: #FFB347;
+    border-radius: 8px;
+    z-index: 1;
+  }
+
+  /* Character animations */
+  .anim-idle {
+    animation: charIdle 2s ease-in-out infinite;
+  }
+  .anim-work {
+    animation: charWork 1s ease-in-out infinite;
+  }
+  .anim-walk {
+    animation: charWalk 0.8s steps(2) infinite;
+  }
+  @keyframes charIdle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+  @keyframes charWork {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-1px) rotate(-3deg); }
+    75% { transform: translateY(-1px) rotate(3deg); }
+  }
+  @keyframes charWalk {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(3px); }
+  }
+
+  /* === ROOM FURNITURE (pixel-style) === */
+  .furniture {
+    position: absolute;
+    image-rendering: pixelated;
+  }
+
+  /* Steering wheel */
+  .steering {
+    width: 20px; height: 20px;
+    border: 3px solid #5D4037;
+    border-radius: 50%;
+    position: absolute;
+    left: 15px; top: 30px;
+  }
+  .steering::after {
+    content: '';
+    position: absolute;
+    width: 3px; height: 14px;
+    background: #5D4037;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+  }
+  .dashboard {
+    position: absolute;
+    left: 8px; top: 55px;
+    width: 40px; height: 20px;
+    background: #3E2723;
+    border: 2px solid #5D4037;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .dash-light {
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    margin: 4px 2px;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  .dash-light.green { background: #66BB6A; }
+  .dash-light.yellow { background: #FFD54F; animation-delay: 0.5s; }
+  .dash-light.red { background: #EF5350; animation-delay: 1s; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* Sofa */
+  .sofa {
+    width: 40px; height: 24px;
+    background: #FF8A65;
+    border: 2px solid #E64A19;
+    border-radius: 6px 6px 3px 3px;
+    position: absolute;
+  }
+  .sofa::before {
+    content: '';
+    position: absolute;
+    bottom: -6px; left: 4px;
+    width: 8px; height: 6px;
+    background: #E64A19;
+    border-radius: 0 0 2px 2px;
+  }
+  .sofa::after {
+    content: '';
+    position: absolute;
+    bottom: -6px; right: 4px;
+    width: 8px; height: 6px;
+    background: #E64A19;
+    border-radius: 0 0 2px 2px;
+  }
+
+  /* Bed */
+  .bed {
+    width: 44px; height: 22px;
+    background: #E8EAF6;
+    border: 2px solid #9FA8DA;
+    border-radius: 4px;
+    position: absolute;
+  }
+  .pillow {
+    position: absolute;
+    left: 3px; top: 3px;
+    width: 12px; height: 10px;
+    background: #fff;
+    border: 1px solid #C5CAE9;
+    border-radius: 3px;
+  }
+  .blanket {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 65%;
+    background: #7986CB;
+    border-radius: 0 3px 3px 0;
+    opacity: 0.7;
+  }
+
+  /* Crates */
+  .crate {
+    width: 20px; height: 18px;
+    background: #A1887F;
+    border: 2px solid #795548;
+    border-radius: 2px;
+    position: absolute;
+  }
+  .crate::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 2px; right: 2px;
+    height: 2px;
+    background: #795548;
+  }
+
+  /* Stove */
+  .stove {
+    width: 32px; height: 28px;
+    background: #ECEFF1;
+    border: 2px solid #90A4AE;
+    border-radius: 3px;
+    position: absolute;
+  }
+  .burner {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: #EF5350;
+    border-radius: 50%;
+    margin: 3px 2px;
+    animation: burnerGlow 2s ease-in-out infinite;
+  }
+  @keyframes burnerGlow {
+    0%,100% { box-shadow: 0 0 2px #EF5350; }
+    50% { box-shadow: 0 0 6px #FF7043, 0 0 10px #FFB347; }
+  }
+
+  .pot {
+    width: 16px; height: 12px;
+    background: #78909C;
+    border: 2px solid #546E7A;
+    border-radius: 2px 2px 4px 4px;
+    position: absolute;
+  }
+  .steam {
+    position: absolute;
+    top: -8px;
+    width: 4px; height: 8px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    animation: steamUp 1.5s ease-out infinite;
+  }
+  .steam:nth-child(1) { left: 3px; }
+  .steam:nth-child(2) { left: 8px; animation-delay: 0.5s; }
+  @keyframes steamUp {
+    0% { transform: translateY(0) scaleX(1); opacity: 0.6; }
+    100% { transform: translateY(-12px) scaleX(2); opacity: 0; }
+  }
+
+  /* Workbench */
+  .workbench {
+    width: 44px; height: 20px;
+    background: #8D6E63;
+    border: 2px solid #5D4037;
+    border-radius: 2px;
+    position: absolute;
+  }
+  .tool { position: absolute; }
+  .hammer {
+    width: 4px; height: 14px;
+    background: #795548;
+    position: absolute;
+  }
+  .hammer::after {
+    content: '';
+    position: absolute;
+    top: -2px; left: -4px;
+    width: 12px; height: 6px;
+    background: #90A4AE;
+    border-radius: 2px;
+  }
+
+  /* Shop shelf */
+  .shelf {
+    width: 50px; height: 40px;
+    background: #8D6E63;
+    border: 2px solid #5D4037;
+    position: absolute;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 2px;
+    padding: 3px;
+  }
+  .shelf-item {
+    border-radius: 2px;
+    animation: itemShine 3s ease-in-out infinite;
+  }
+  @keyframes itemShine {
+    0%,100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+
+  /* Telescope */
+  .telescope {
+    position: absolute;
+    width: 6px; height: 24px;
+    background: #FFD54F;
+    border: 1px solid #FFA000;
+    border-radius: 2px;
+    transform: rotate(-30deg);
+    transform-origin: bottom center;
+  }
+  .telescope::after {
+    content: '';
+    position: absolute;
+    top: -4px; left: -3px;
+    width: 12px; height: 8px;
+    background: #FFD54F;
+    border: 1px solid #FFA000;
+    border-radius: 3px;
+  }
+
+  /* Cozy items */
+  .plant {
+    position: absolute;
+    width: 10px; height: 16px;
+  }
+  .plant-pot {
+    width: 10px; height: 8px;
+    background: #A1887F;
+    border-radius: 0 0 3px 3px;
+    position: absolute;
+    bottom: 0;
+  }
+  .plant-leaf {
+    width: 8px; height: 10px;
+    background: #66BB6A;
+    border-radius: 50% 50% 0 0;
+    position: absolute;
+    top: 0;
+    left: 1px;
+  }
+
+  /* === WHEELS === */
+  .wheels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 80px;
+    margin-top: -6px;
+    position: relative;
+    z-index: 2;
+  }
+  .wheel {
+    width: 36px;
+    height: 36px;
+    background: #333;
+    border: 4px solid #555;
+    border-radius: 50%;
+    position: relative;
+    animation: wheelSpin 2s linear infinite;
+  }
+  .wheel::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px; height: 12px;
+    background: #888;
+    border-radius: 50%;
+    border: 2px solid #666;
+  }
+  .wheel::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px; height: 28px;
+    background: #666;
+  }
+  @keyframes wheelSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* === TOOLTIP === */
+  .tooltip {
+    display: none;
+    position: fixed;
+    background: #2C3E6B;
+    color: #FFE0BD;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 7px;
+    line-height: 1.6;
+    z-index: 100;
+    max-width: 200px;
+    border: 2px solid #FFB347;
+    pointer-events: none;
+  }
+  .tooltip.active { display: block; }
+
+  /* === LEGEND === */
+  .legend {
+    background: rgba(44, 62, 107, 0.9);
+    color: #FFE0BD;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 7px;
+    line-height: 2;
+    margin: 15px auto;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    border: 2px solid #FFB347;
+    max-width: 800px;
+    z-index: 1;
+    position: relative;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  /* === INFO PANEL === */
+  .info-panel {
+    background: rgba(44, 62, 107, 0.95);
+    color: #FFE0BD;
+    padding: 16px 24px;
+    border-radius: 10px;
+    font-size: 7px;
+    line-height: 2.2;
+    margin: 10px auto 30px;
+    max-width: 800px;
+    border: 2px solid #E8734A;
+    z-index: 1;
+    position: relative;
+  }
+  .info-panel h3 {
+    font-size: 10px;
+    color: #FFD54F;
+    margin-bottom: 8px;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .info-card {
+    background: rgba(255,255,255,0.08);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,180,71,0.3);
+  }
+  .info-card strong {
+    color: #FFB347;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Stars decoration */
+  .stars {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 6px;
+    color: #FFD54F;
+  }
+</style>
+</head>
+<body>
+
+<!-- Sky elements -->
+<div class="sky">
+  <div class="cloud cloud1"></div>
+  <div class="cloud cloud2"></div>
+  <div class="cloud cloud3"></div>
+</div>
+
+<h1>BARCODE QUEST</h1>
+<div class="subtitle">3-STORY TRAVEL BUS - CROSS SECTION CONCEPT ART</div>
+
+<div class="bus-scene">
+  <div class="bus-wrapper">
+
+    <!-- Exterior decorations -->
+    <div class="laundry">
+      <div class="laundry-line"></div>
+      <div style="margin-top: -2px;">
+        <span class="cloth"></span>
+        <span class="cloth"></span>
+        <span class="cloth"></span>
+        <span class="cloth"></span>
+      </div>
+    </div>
+
+    <div class="bus-body">
+      <!-- Roof with chimney -->
+      <div class="bus-roof">
+        <div class="chimney">
+          <div class="smoke"></div>
+          <div class="smoke"></div>
+          <div class="smoke"></div>
+        </div>
+        <div class="bus-banner">BARCODE TRAVEL CO.</div>
+      </div>
+
+      <!-- 3F - Premium Floor -->
+      <div class="floor" data-floor="3F">
+        <div class="floor-label">3F</div>
+
+        <!-- Observatory -->
+        <div class="room room-observatory" data-room="observatory" style="min-width: 160px;">
+          <div class="window-frame" style="width: 50px; height: 80px; right: 8px; border-radius: 8px 8px 4px 4px; background: linear-gradient(180deg, #FFB347 0%, #FF7043 30%, #87CEEB 60%, #5BA65E 100%);">
+            <div style="position:absolute; bottom:4px; left:8px; width:6px; height:10px; background:#7BC67E; border-radius:3px 3px 0 0;"></div>
+            <div style="position:absolute; bottom:4px; left:18px; width:5px; height:14px; background:#5BA65E; border-radius:3px 3px 0 0;"></div>
+            <div style="position:absolute; bottom:4px; left:28px; width:6px; height:8px; background:#7BC67E; border-radius:3px 3px 0 0;"></div>
+          </div>
+          <div class="telescope" style="left: 25px; top: 30px;"></div>
+          <!-- Character: Artist -->
+          <div class="pixel-char anim-idle" style="left: 55px; top: 50px;">
+            <div class="char-body">
+              <div class="hat-merchant"></div>
+              <div class="char-head" style="background: #FFE0BD;">
+                <div class="char-eye left"></div>
+                <div class="char-eye right"></div>
+                <div class="char-mouth"></div>
+              </div>
+              <div class="char-torso" style="background: #AB47BC;"></div>
+              <div class="char-legs">
+                <div class="char-leg" style="background: #7B1FA2;"></div>
+                <div class="char-leg" style="background: #7B1FA2;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="room-name">OBSERVATORY</div>
+          <div class="stars">SCENERY +</div>
+        </div>
+
+        <!-- Lounge -->
+        <div class="room room-lounge" style="min-width: 160px;">
+          <div class="sofa" style="left: 15px; top: 55px;"></div>
+          <div class="plant" style="right: 30px; top: 45px;">
+            <div class="plant-leaf"></div>
+            <div class="plant-pot"></div>
+          </div>
+          <div class="plant" style="right: 50px; top: 50px;">
+            <div class="plant-leaf" style="background: #81C784;"></div>
+            <div class="plant-pot" style="background: #795548;"></div>
+          </div>
+          <!-- Bookshelf -->
+          <div style="position:absolute; left:65px; top:20px; width:30px; height:40px; background:#8D6E63; border:2px solid #5D4037; border-radius:2px;">
+            <div style="margin:3px; height:6px; background:#E57373; border-radius:1px;"></div>
+            <div style="margin:3px; height:6px; background:#42A5F5; border-radius:1px;"></div>
+            <div style="margin:3px; height:6px; background:#66BB6A; border-radius:1px;"></div>
+            <div style="margin:3px; height:6px; background:#FFD54F; border-radius:1px;"></div>
+          </div>
+          <div class="room-name">LOUNGE</div>
+        </div>
+
+        <!-- Special Workshop -->
+        <div class="room room-special" style="min-width: 170px;">
+          <div class="workbench" style="left: 12px; top: 60px;">
+            <div style="position:absolute; top:-8px; left:5px; width:8px; height:8px; background:#FFD54F; border-radius:50%; animation: itemShine 2s infinite;"></div>
+            <div style="position:absolute; top:-8px; left:20px; width:8px; height:8px; background:#E040FB; border-radius:50%; animation: itemShine 2s infinite 0.5s;"></div>
+            <div style="position:absolute; top:-6px; left:32px; width:6px; height:10px; background:#90A4AE; border-radius:2px;"></div>
+          </div>
+          <!-- Character: Crafter -->
+          <div class="pixel-char anim-work" style="left: 70px; top: 50px;">
+            <div class="char-body">
+              <div class="apron"></div>
+              <div class="char-head" style="background: #F5C48E;">
+                <div class="char-eye left"></div>
+                <div class="char-eye right"></div>
+                <div class="char-mouth" style="width:6px; left:5px;"></div>
+              </div>
+              <div class="char-torso" style="background: #66BB6A;"></div>
+              <div class="char-legs">
+                <div class="char-leg" style="background: #388E3C;"></div>
+                <div class="char-leg" style="background: #388E3C;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="room-name">SPECIAL WORKSHOP</div>
+          <div class="stars">PREMIUM +</div>
+        </div>
+
+        <!-- VIP Room -->
+        <div class="room room-vip" style="min-width: 150px;">
+          <!-- Fancy chair -->
+          <div style="position:absolute; left:20px; top:40px; width:30px; height:30px; background:#FF8F00; border:2px solid #E65100; border-radius:6px 6px 3px 3px;"></div>
+          <div style="position:absolute; left:28px; top:28px; width:14px; height:14px; background:#FFD54F; border-radius:50%; border:2px solid #FFA000;"></div>
+          <!-- Table with tea -->
+          <div style="position:absolute; right:20px; top:55px; width:30px; height:16px; background:#8D6E63; border:2px solid #5D4037; border-radius:3px;">
+            <div style="position:absolute; top:-8px; left:5px; width:6px; height:8px; background:#BBDEFB; border:1px solid #90CAF9; border-radius:2px;"></div>
+            <div style="position:absolute; top:-6px; right:5px; width:8px; height:6px; background:#FFCC02; border-radius:2px; border:1px solid #FFB347;"></div>
+          </div>
+          <div class="window-frame" style="top: 20px;"></div>
+          <div class="room-name">VIP ROOM</div>
+          <div class="stars">QUEST +</div>
+        </div>
+      </div>
+
+      <!-- 2F - Production Floor -->
+      <div class="floor" data-floor="2F">
+        <div class="floor-label">2F</div>
+
+        <!-- Kitchen -->
+        <div class="room room-kitchen" style="min-width: 160px;">
+          <div class="stove" style="left: 10px; top: 20px;">
+            <div class="burner"></div>
+            <div class="burner"></div>
+            <div class="burner"></div>
+          </div>
+          <div class="pot" style="left: 16px; top: 10px;">
+            <div class="steam"></div>
+            <div class="steam"></div>
+          </div>
+          <!-- Shelf with food -->
+          <div style="position:absolute; right:15px; top:15px; width:25px; height:35px; background:#8D6E63; border:2px solid #5D4037;">
+            <div style="margin:3px; width:8px; height:8px; background:#FF6B6B; border-radius:50%;"></div>
+            <div style="margin:3px; width:8px; height:8px; background:#FFCC02; border-radius:3px;"></div>
+            <div style="margin:3px; width:8px; height:8px; background:#8BC34A; border-radius:2px;"></div>
+          </div>
+          <!-- Character: Chef -->
+          <div class="pixel-char anim-work" style="left: 55px; top: 50px;">
+            <div class="char-body">
+              <div class="hat-chef"></div>
+              <div class="char-head" style="background: #FFE0BD;">
+                <div class="char-eye left"></div>
+                <div class="char-eye right"></div>
+                <div class="char-mouth"></div>
+              </div>
+              <div class="char-torso" style="background: #fff; border: 1px solid #ddd;"></div>
+              <div class="char-legs">
+                <div class="char-leg" style="background: #333;"></div>
+                <div class="char-leg" style="background: #333;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="room-name">KITCHEN</div>
+        </div>
+
+        <!-- Workshop 1 -->
+        <div class="room room-workshop" style="min-width: 160px;">
+          <div class="workbench" style="left: 10px; top: 55px;"></div>
+          <div class="hammer" style="left: 60px; top: 35px; transform: rotate(-45deg);"></div>
+          <!-- Items on bench -->
+          <div style="position:absolute; left:15px; top:42px; width:10px; height:10px; background:#90CAF9; border-radius:50%; border:1px solid #42A5F5;"></div>
+          <div style="position:absolute; left:30px; top:44px; width:8px; height:8px; background:#CE93D8; border-radius:2px; border:1px solid #AB47BC;"></div>
+          <!-- Character: Crafter -->
+          <div class="pixel-char anim-work" style="left: 75px; top: 48px;">
+            <div class="char-body">
+              <div class="apron"></div>
+              <div class="char-head" style="background: #D4A574;">
+                <div class="char-eye left"></div>
+                <div class="char-eye right"></div>
+                <div class="char-mouth"></div>
+              </div>
+              <div class="char-torso" style="background: #42A5F5;"></div>
+              <div class="char-legs">
+                <div class="char-leg" style="background: #1565C0;"></div>
+                <div class="char-leg" style="background: #1565C0;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="window-frame"></div>
+          <div class="room-name">WORKSHOP 1</div>
+        </div>
+
+        <!-- Workshop 2 -->
+        <div class="room room-workshop" style="min-width: 160px; background: linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 100%);">
+          <div class="workbench" style="left: 15px; top: 60px; background: #5D4037;"></div>
+          <!-- Pottery items -->
+          <div style="position:absolute; left:20px; top:40px; width:12px; height:14px; background:#FFCC80; border-radius:4px 4px 2px 2px; border:2px solid #FFB347;"></div>
+          <div style="position:absolute; left:38px; top:42px; width:10px; height:12px; background:#BCAAA4; border-radius:3px; border:2px solid #8D6E63;"></div>
+          <div class="window-frame"></div>
+          <div class="room-name">WORKSHOP 2</div>
+        </div>
+
+        <!-- Storage -->
+        <div class="room room-storage2" style="min-width: 140px;">
+          <div class="crate" style="left: 10px; top: 25px;"></div>
+          <div class="crate" style="left: 35px; top: 25px; background: #BCAAA4;"></div>
+          <div class="crate" style="left: 10px; top: 48px;"></div>
+          <div class="crate" style="left: 35px; top: 48px;"></div>
+          <div class="crate" style="left: 22px; top: 8px; background: #8D6E63;"></div>
+          <!-- Barrel -->
+          <div style="position:absolute; right:15px; top:30px; width:18px; height:24px; background:#A1887F; border:2px solid #795548; border-radius:4px;">
+            <div style="position:absolute; top:4px; left:0; right:0; height:2px; background:#795548;"></div>
+            <div style="position:absolute; bottom:4px; left:0; right:0; height:2px; background:#795548;"></div>
+          </div>
+          <div class="room-name">STORAGE</div>
+        </div>
+
+        <!-- Bedroom 2 -->
+        <div class="room room-bedroom2" style="min-width: 140px;">
+          <div class="bed" style="left: 10px; top: 55px;">
+            <div class="pillow"></div>
+            <div class="blanket" style="background: #4DD0E1;"></div>
+          </div>
+          <div class="bed" style="left: 10px; top: 25px;">
+            <div class="pillow"></div>
+            <div class="blanket" style="background: #81D4FA;"></div>
+          </div>
+          <!-- Sleeping character -->
+          <div class="pixel-char" style="left: 30px; top: 58px; opacity: 0.7;">
+            <div class="char-body" style="transform: rotate(90deg) scale(0.8);">
+              <div class="char-head" style="background: #FFE0BD;">
+                <div class="char-eye left" style="height: 1px;"></div>
+                <div class="char-eye right" style="height: 1px;"></div>
+              </div>
+              <div class="char-torso" style="background: #90CAF9;"></div>
+            </div>
+          </div>
+          <div style="position:absolute; left:60px; top:48px; font-size:10px; animation: charIdle 3s infinite; color: #90CAF9;">z z z</div>
+          <div class="window-frame"></div>
+          <div class="room-name">BEDROOM 2</div>
+        </div>
+      </div>
+
+      <!-- 1F - Base Floor -->
+      <div class="floor" data-floor="1F">
+        <div class="floor-label">1F</div>
+
+        <!-- Cockpit -->
+        <div class="room room-cockpit" style="min-width: 130px;">
+          <div class="steering"></div>
+          <div class="dashboard">
+            <div class="dash-light green"></div>
+            <div class="dash-light yellow"></div>
+            <div class="dash-light red"></div>
+          </div>
+          <!-- Windshield -->
+          <div style="position:absolute; right:0; top:8px; bottom:8px; width:35px; background: linear-gradient(180deg, #87CEEB 0%, #B8E6F0 50%, #7BC67E 100%); border-left:3px solid #5D4037; border-radius: 0 4px 4px 0;">
+            <div style="position:absolute; bottom:5px; left:5px; width:100%; height:3px; background: #4A4A4A; opacity:0.5;"></div>
+          </div>
+          <!-- Character: Driver -->
+          <div class="pixel-char anim-idle" style="left: 35px; top: 40px;">
+            <div class="char-body">
+              <div class="hat-driver"></div>
+              <div class="char-head" style="background: #FFE0BD;">
+                <div class="char-eye left"></div>
+                <div class="char-eye right"></div>
+                <div class="char-mouth"></div>
+              </div>
+              <div class="char-torso" style="background: #2C3E6B;"></div>
+              <div class="char-legs">
+                <div class="char-leg" style="background: #1A237E;"></div>
+                <div class="char-leg" style="background: #1A237E;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="room-name">COCKPIT</div>
+        </div>
+
+        <!-- Living Room -->
+        <div class="room room-living" style="min-width: 160px;">
+          <div class="sofa" style="left: 20px; top: 50px;"></div>
+          <!-- Table -->
+          <div style="position:absolute; left: 70px; top: 55px; width: 30px; height: 20px; background: #8D6E63; border: 2px solid #5D4037; border-radius: 3px;">
+            <div style="position:absolute; top:-4px; left:6px; width:6px; height:6px; background:#FFCC02; border-radius:50%;"></div>
+            <div style="position:absolute; top:-4px; right:6px; width:6px; height:6px; background:#8BC34A; border-radius:2px;"></div>
+          </div>
+          <!-- Rug -->
+          <div style="position:absolute; bottom:4px; left:30px; width:60px; height:8px; background:#FFB347; border-radius:4px; opacity:0.5;"></div>
+          <div class="plant" style="right:15px; top: 30px;">
+            <div class="plant-leaf"></div>
+            <div class="plant-pot"></div>
+          </div>
+          <!-- Character walking -->
+          <div class="pixel-char anim-walk" style="left: 45px; top: 48px;">
+            <div class="char-body">
+              <div class="char-head" style="background: #F5C48E;">
+                <div class="char-eye left"></div>
+                <div class="char-eye right"></div>
+                <div class="char-mouth"></div>
+              </div>
+              <div class="char-torso" style="background: #FF7043;"></div>
+              <div class="char-legs">
+                <div class="char-leg" style="background: #E64A19;"></div>
+                <div class="char-leg" style="background: #E64A19;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="window-frame"></div>
+          <div class="room-name">LIVING ROOM</div>
+        </div>
+
+        <!-- Bedroom 1 -->
+        <div class="room room-bedroom" style="min-width: 150px;">
+          <div class="bed" style="left: 10px; top: 25px;">
+            <div class="pillow"></div>
+            <div class="blanket"></div>
+          </div>
+          <div class="bed" style="left: 10px; top: 60px;">
+            <div class="pillow"></div>
+            <div class="blanket" style="background:#EF5350; opacity:0.6;"></div>
+          </div>
+          <!-- Lamp -->
+          <div style="position:absolute; right:20px; top:20px; width:4px; height:20px; background:#FFD54F;">
+            <div style="position:absolute; top:-8px; left:-6px; width:16px; height:10px; background:#FFF9C4; border-radius:8px 8px 0 0; border:2px solid #FFD54F; box-shadow: 0 0 10px rgba(255,213,79,0.5);"></div>
+          </div>
+          <div class="window-frame"></div>
+          <div class="room-name">BEDROOM 1</div>
+        </div>
+
+        <!-- Storage 1 -->
+        <div class="room room-storage" style="min-width: 130px;">
+          <div class="crate" style="left: 8px; top: 20px;"></div>
+          <div class="crate" style="left: 32px; top: 20px;"></div>
+          <div class="crate" style="left: 8px; top: 45px;"></div>
+          <div class="crate" style="left: 32px; top: 45px;"></div>
+          <div class="crate" style="left: 20px; top: 70px; background:#BCAAA4;"></div>
+          <!-- Sacks -->
+          <div style="position:absolute; right:15px; top:35px; width:16px; height:20px; background:#D7CCC8; border-radius:4px 4px 0 0; border:2px solid #BCAAA4;"></div>
+          <div style="position:absolute; right:10px; top:60px; width:16px; height:20px; background:#EFEBE9; border-radius:4px 4px 0 0; border:2px solid #D7CCC8;"></div>
+          <div class="room-name">STORAGE 1</div>
+        </div>
+
+        <!-- Shop -->
+        <div class="room room-shop" style="min-width: 150px;">
+          <div class="shelf" style="left: 10px; top: 15px;">
+            <div class="shelf-item" style="background: #EF5350;"></div>
+            <div class="shelf-item" style="background: #42A5F5;"></div>
+            <div class="shelf-item" style="background: #66BB6A;"></div>
+            <div class="shelf-item" style="background: #FFD54F;"></div>
+            <div class="shelf-item" style="background: #AB47BC;"></div>
+            <div class="shelf-item" style="background: #FF7043;"></div>
+          </div>
+          <!-- Counter -->
+          <div style="position:absolute; left: 10px; bottom: 18px; width: 80px; height: 16px; background: #8D6E63; border: 2px solid #5D4037; border-radius: 3px;">
+            <div style="position:absolute; top:-4px; left:10px; width:8px; height:6px; background:#FFD54F; border-radius:2px;"></div>
+          </div>
+          <!-- Character: Merchant -->
+          <div class="pixel-char anim-idle" style="right: 20px; top: 45px;">
+            <div class="char-body">
+              <div class="hat-merchant"></div>
+              <div class="char-head" style="background: #D4A574;">
+                <div class="char-eye left"></div>
+                <div class="char-eye right"></div>
+                <div class="char-mouth" style="width:6px; background:#FFB347; left:5px;"></div>
+              </div>
+              <div class="char-torso" style="background: #FFB347;"></div>
+              <div class="char-legs">
+                <div class="char-leg" style="background: #F57F17;"></div>
+                <div class="char-leg" style="background: #F57F17;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="window-frame"></div>
+          <div class="room-name">SHOP</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wheels -->
+    <div class="wheels">
+      <div class="wheel"></div>
+      <div class="wheel"></div>
+      <div class="wheel"></div>
+      <div class="wheel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-color" style="background: #3E2723;"></div>
+    <span>COCKPIT (Drive)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #FFF8E1;"></div>
+    <span>LIVING (Morale)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #E8EAF6;"></div>
+    <span>BEDROOM (Rest)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #D7CCC8;"></div>
+    <span>STORAGE (Items)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #FFF3E0;"></div>
+    <span>SHOP (Sales)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #FBE9E7;"></div>
+    <span>KITCHEN (Cook)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #F3E5F5;"></div>
+    <span>WORKSHOP (Craft)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #E3F2FD;"></div>
+    <span>OBSERVATORY (View)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #F1F8E9;"></div>
+    <span>LOUNGE (Event)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #FCE4EC;"></div>
+    <span>SPECIAL (Premium)</span>
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background: #FFF8E1; border-color: #FFD54F;"></div>
+    <span>VIP (Quest)</span>
+  </div>
+</div>
+
+<!-- Info Panel -->
+<div class="info-panel">
+  <h3>BUS PROGRESSION SYSTEM</h3>
+  <div class="info-grid">
+    <div class="info-card">
+      <strong>EARLY GAME</strong>
+      1F Only: Cockpit + Living + Storage<br>
+      2 Characters, 3 Rooms<br>
+      Local routes between nearby towns
+    </div>
+    <div class="info-card">
+      <strong>MID GAME</strong>
+      + 2F: Kitchen, Workshop, Bedroom<br>
+      10+ Characters, 8 Rooms<br>
+      Mountain, Lake, Coastal regions
+    </div>
+    <div class="info-card">
+      <strong>LATE GAME</strong>
+      + 3F: Observatory, Special, VIP<br>
+      20+ Characters, 11 Rooms<br>
+      Desert, Volcano, Snow Mountain
+    </div>
+  </div>
+</div>
+
+<!-- Ground -->
+<div class="ground">
+  <div class="road"></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+  // Room hover tooltips
+  const roomInfo = {
+    'cockpit': 'COCKPIT\nDriver operates here\nSpeed & fuel efficiency\nHigher Drive stat = faster travel',
+    'living': 'LIVING ROOM\nCharacter morale recovery\nSofa & table for rest\nBoosts happiness & productivity',
+    'bedroom': 'BEDROOM\nSleep & stamina recovery\nEXP bonus while resting\n2 beds per room',
+    'storage': 'STORAGE\nMaterials & products storage\nCrates & barrels\nUpgrade for more capacity',
+    'shop': 'SHOP\nAuto-sell at destinations\nDisplay crafted goods\nSocial stat = better prices',
+    'kitchen': 'KITCHEN\nCook meals for buffs\nIngredients from barcodes\nChef hat = quality boost',
+    'workshop': 'WORKSHOP\nCraft delivery goods\nTools & workbench\nCraft stat = quality + speed',
+    'observatory': 'OBSERVATORY\nCollect scenery cards\nTelescope for rare views\nSunset, rain, aurora...',
+    'lounge': 'LOUNGE\nSpecial events & stories\nCharacter bonding\nBooks, plants, cozy vibes',
+    'special': 'SPECIAL WORKSHOP\nPremium item crafting\nLegendary materials\nMaster-level recipes',
+    'vip': 'VIP ROOM\nSpecial NPC guests\nUnique quest triggers\nRare rewards & stories',
+  };
+
+  document.querySelectorAll('.room').forEach(room => {
+    room.addEventListener('mouseenter', (e) => {
+      const key = room.dataset.room || room.className.match(/room-(\w+)/)?.[1] || '';
+      const info = roomInfo[key];
+      if (info) {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.textContent = info;
+        tooltip.style.whiteSpace = 'pre-line';
+        tooltip.classList.add('active');
+        tooltip.style.left = e.clientX + 15 + 'px';
+        tooltip.style.top = e.clientY - 10 + 'px';
+      }
+    });
+    room.addEventListener('mousemove', (e) => {
+      const tooltip = document.getElementById('tooltip');
+      tooltip.style.left = e.clientX + 15 + 'px';
+      tooltip.style.top = e.clientY - 10 + 'px';
+    });
+    room.addEventListener('mouseleave', () => {
+      document.getElementById('tooltip').classList.remove('active');
+    });
+  });
+</script>
+
+</body>
+</html>

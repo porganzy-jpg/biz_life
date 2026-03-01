@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>BarcodeQuest - Landscape Artwork Gallery</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        background: #0a0a0f;
+        color: #ddd;
+        font-family: 'Segoe UI', sans-serif;
+        padding: 40px 20px;
+    }
+    h1 {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, #ff9a56, #ff6b6b, #a855f7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+        text-align: center;
+        color: #888;
+        margin-bottom: 40px;
+        font-size: 0.95rem;
+    }
+    .gallery {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 30px;
+    }
+    .card {
+        background: #14141f;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #222;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+    .card a {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    .card .preview {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+    .card.vertical .preview {
+        aspect-ratio: 9/16;
+        max-height: 500px;
+    }
+    .card .badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.6);
+        color: #aaa;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+    }
+    .card .info {
+        padding: 16px;
+    }
+    .card .info h3 {
+        font-size: 1.1rem;
+        margin-bottom: 6px;
+    }
+    .card .info p {
+        font-size: 0.85rem;
+        color: #888;
+        line-height: 1.5;
+    }
+    .card .info .tags {
+        margin-top: 8px;
+    }
+    .card .info .tag {
+        display: inline-block;
+        background: #1e1e30;
+        color: #7ee8fa;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        margin: 2px;
+    }
+    .note {
+        text-align: center;
+        color: #555;
+        margin-top: 40px;
+        font-size: 0.85rem;
+    }
+    iframe {
+        width: 100%;
+        border: none;
+    }
+    .preview-frame {
+        width: 100%;
+        border: none;
+        pointer-events: none;
+    }
+</style>
+</head>
+<body>
+
+<h1>BarcodeQuest Landscape Artwork</h1>
+<p class="subtitle">Oil Painting Style Game Backgrounds - Canvas Procedural Art</p>
+
+<div class="gallery">
+
+    <div class="card">
+        <a href="01_golden_hills_sunset.html" target="_blank">
+            <div class="preview" style="background: linear-gradient(180deg, #2d1440 0%, #dc6440 40%, #60a030 70%, #304010 100%)">
+                <span class="badge">1280 x 720</span>
+            </div>
+            <div class="info">
+                <h3>01. Golden Hills Sunset</h3>
+                <p>토스카나풍 황금빛 노을이 물드는 녹색 언덕. 유화 붓터치로 표현한 따뜻한 저녁 풍경. 들꽃과 나무, 오솔길이 어우러진 목가적 장면.</p>
+                <div class="tags">
+                    <span class="tag">가로</span>
+                    <span class="tag">석양</span>
+                    <span class="tag">언덕</span>
+                    <span class="tag">따뜻한톤</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <a href="02_misty_mountain_lake.html" target="_blank">
+            <div class="preview" style="background: linear-gradient(180deg, #0f1528 0%, #5a5078 25%, #b4786e 40%, #2a4060 60%, #405040 100%)">
+                <span class="badge">1280 x 720</span>
+            </div>
+            <div class="info">
+                <h3>02. Misty Mountain Lake Dawn</h3>
+                <p>안개 낀 새벽 산악 호수. 설산과 소나무가 잔잔한 수면에 비치고, 여명의 따뜻한 빛이 안개 사이로 스며드는 고요한 풍경.</p>
+                <div class="tags">
+                    <span class="tag">가로</span>
+                    <span class="tag">새벽</span>
+                    <span class="tag">호수</span>
+                    <span class="tag">안개</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="card vertical">
+        <a href="03_cherry_blossom_path_vertical.html" target="_blank">
+            <div class="preview" style="background: linear-gradient(180deg, #94b4dc 0%, #a0aa b4 25%, #ffc8d5 40%, #80b060 70%, #506830 100%)">
+                <span class="badge">720 x 1280 (세로)</span>
+            </div>
+            <div class="info">
+                <h3>03. Cherry Blossom Path</h3>
+                <p>벚꽃이 흐드러지게 핀 봄날의 산책길. 돌길 양쪽으로 벚나무가 아치를 이루고, 분홍 꽃잎이 바람에 날리는 몽환적인 장면. 석등이 포인트.</p>
+                <div class="tags">
+                    <span class="tag">세로</span>
+                    <span class="tag">봄</span>
+                    <span class="tag">벚꽃</span>
+                    <span class="tag">핑크톤</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="card vertical">
+        <a href="04_coastal_cliff_sunset_vertical.html" target="_blank">
+            <div class="preview" style="background: linear-gradient(180deg, #1e1440 0%, #b44a50 25%, #f0a040 40%, #203060 55%, #406040 80%, #304020 100%)">
+                <span class="badge">720 x 1280 (세로)</span>
+            </div>
+            <div class="info">
+                <h3>04. Coastal Cliff Sunset</h3>
+                <p>극적인 해안 절벽 위의 석양. 등대가 서있는 절벽, 부서지는 파도, 날아가는 새떼. 인디고-크림슨-골드 그라데이션의 드라마틱한 하늘.</p>
+                <div class="tags">
+                    <span class="tag">세로</span>
+                    <span class="tag">바다</span>
+                    <span class="tag">절벽</span>
+                    <span class="tag">등대</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <a href="05_autumn_forest_stream.html" target="_blank">
+            <div class="preview" style="background: linear-gradient(180deg, #1a2010 0%, #3a5020 25%, #c06420 45%, #405060 60%, #302818 100%)">
+                <span class="badge">1280 x 720</span>
+            </div>
+            <div class="info">
+                <h3>05. Autumn Forest Stream</h3>
+                <p>단풍이 물든 깊은 숲 속 계곡. 주황-금-적색 나뭇잎이 물에 비치고, 이끼 낀 바위 사이로 맑은 물이 흐르는 가을 숲. 빛줄기가 캐노피 사이로 쏟아짐.</p>
+                <div class="tags">
+                    <span class="tag">가로</span>
+                    <span class="tag">가을</span>
+                    <span class="tag">숲</span>
+                    <span class="tag">계곡</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="card">
+        <a href="06_aurora_snowy_village.html" target="_blank">
+            <div class="preview" style="background: linear-gradient(180deg, #050510 0%, #0f1938 20%, #103020 40%, #152840 55%, #a0b0c8 80%, #c0c8d8 100%)">
+                <span class="badge">1280 x 720</span>
+            </div>
+            <div class="info">
+                <h3>06. Aurora Snowy Village</h3>
+                <p>오로라가 춤추는 겨울 밤, 눈 덮인 마을. 따뜻한 창문 불빛, 얼어붙은 호수, 눈 쌓인 소나무. 초록-보라 오로라가 밤하늘을 수놓는 환상적 풍경.</p>
+                <div class="tags">
+                    <span class="tag">가로</span>
+                    <span class="tag">겨울</span>
+                    <span class="tag">오로라</span>
+                    <span class="tag">마을</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+</div>
+
+<p class="note">
+    각 이미지를 클릭하면 전체 화면 Canvas로 열립니다. 우클릭 → "이미지를 다른 이름으로 저장"으로 PNG 파일로 저장 가능합니다.<br>
+    모든 아트웍은 HTML5 Canvas + JavaScript로 프로시저럴 생성됩니다. 유화(Oil Painting) 스타일 붓터치를 시뮬레이션합니다.
+</p>
+
+</body>
+</html>

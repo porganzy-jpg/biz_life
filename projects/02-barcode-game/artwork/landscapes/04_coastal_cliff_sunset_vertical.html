@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Coastal Cliff Sunset - BarcodeQuest Landscape (Vertical)</title>
+<style>
+    body { margin: 0; background: #1a1020; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    canvas { border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .info { position: fixed; bottom: 20px; color: #aaa; font-family: sans-serif; font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="c" width="720" height="1280"></canvas>
+<div class="info">Coastal Cliff Sunset (720x1280 세로) - 우클릭 → 이미지 저장 가능</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let seed = 9999;
+function rng() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+function rr(a, b) { return a + rng() * (b - a); }
+function lerpC(a, b, t) { return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+function rgba(c, a) { return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`; }
+
+function brush(x, y, w, h, c, a, ang) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang || 0);
+    ctx.fillStyle = rgba(c, a);
+    ctx.beginPath(); ctx.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+}
+function oilBrush(x, y, w, h, c, a, ang) {
+    for (let i = 0; i < 3; i++) {
+        brush(x+rr(-2,2), y+rr(-1,1), w*rr(0.8,1.2), h*rr(0.7,1.1),
+            [c[0]+rr(-12,12), c[1]+rr(-10,10), c[2]+rr(-10,10)], a*rr(0.5,1), (ang||0)+rr(-0.08,0.08));
+    }
+}
+
+// ─── SKY ───
+function paintSky() {
+    const colors = [
+        [30, 20, 60],     // deep indigo
+        [80, 40, 90],     // purple
+        [180, 70, 80],    // crimson
+        [240, 130, 60],   // orange
+        [255, 190, 80],   // gold
+        [255, 230, 150],  // pale gold (horizon)
+    ];
+
+    for (let y = 0; y < H * 0.4; y++) {
+        const t = y / (H * 0.4);
+        const seg = t * (colors.length - 1);
+        const i = Math.min(Math.floor(seg), colors.length - 2);
+        const c = lerpC(colors[i], colors[i+1], seg - i);
+        for (let x = 0; x < W; x += rr(8, 18)) {
+            oilBrush(x, y, rr(18, 45), rr(5, 12), c, rr(0.5, 0.85), rr(-0.04, 0.04));
+        }
+    }
+}
+
+// ─── SUN ───
+function paintSun() {
+    const cx = W * 0.4, cy = H * 0.3;
+    for (let r = 100; r > 0; r -= 2) {
+        const t = 1 - r / 100;
+        const c = lerpC([255, 180, 60], [255, 255, 230], t);
+        ctx.fillStyle = rgba(c, 0.02 + t * 0.2);
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    }
+    // Rays
+    for (let i = 0; i < 40; i++) {
+        const angle = rr(0, Math.PI * 2);
+        const dist = rr(30, 180);
+        brush(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist,
+            rr(25, 70), rr(3, 8), [255, rr(190, 230), rr(80, 140)], rr(0.02, 0.07), angle);
+    }
+}
+
+// ─── OCEAN ───
+function paintOcean() {
+    const oceanTop = H * 0.38;
+    const oceanBot = H * 0.7;
+
+    for (let y = oceanTop; y < oceanBot; y++) {
+        const t = (y - oceanTop) / (oceanBot - oceanTop);
+        for (let x = 0; x < W; x += rr(5, 14)) {
+            // Sun reflection path
+            const sunDist = Math.abs(x - W * 0.4);
+            const reflectionStrength = Math.max(0, 1 - sunDist / (80 + t * 100));
+
+            let c;
+            if (reflectionStrength > 0.2) {
+                c = lerpC([40, 60, 100], [255, 200, 100], reflectionStrength * 0.6);
+            } else {
+                c = lerpC([20, 45, 80], [30, 70, 110], t);
+            }
+
+            // Wave motion
+            const wave = Math.sin(x * 0.05 + y * 0.03) * 2;
+            oilBrush(x + wave, y, rr(12, 30), rr(3, 6), c, rr(0.5, 0.8), rr(-0.02, 0.02));
+
+            // White caps
+            if (rng() > 0.97 && t > 0.3) {
+                brush(x + wave, y, rr(8, 20), rr(2, 4), [255, 255, 255], rr(0.1, 0.25), 0);
+            }
+        }
+    }
+
+    // Horizon shimmer
+    for (let x = 0; x < W; x += rr(3, 8)) {
+        brush(x, oceanTop + rr(-2, 2), rr(6, 15), rr(2, 4), [255, 220, 160], rr(0.05, 0.15), 0);
+    }
+}
+
+// ─── CLIFF ───
+function paintCliff() {
+    // Right cliff face
+    const cliffLeft = W * 0.55;
+    for (let y = H * 0.25; y < H; y += rr(2, 5)) {
+        const t = (y - H * 0.25) / (H * 0.75);
+        const edgeX = cliffLeft + Math.sin(y * 0.008) * 20 - t * 30;
+
+        for (let x = edgeX; x < W; x += rr(3, 8)) {
+            const depth = (x - edgeX) / (W - edgeX);
+            const sunFacing = x < edgeX + 30;
+
+            let c;
+            if (sunFacing) {
+                c = lerpC([180, 140, 100], [140, 100, 70], depth);
+            } else {
+                c = lerpC([120, 90, 65], [70, 55, 40], depth);
+            }
+
+            // Rocky texture variation
+            if (rng() > 0.7) {
+                c = [c[0] + rr(-20, 20), c[1] + rr(-15, 15), c[2] + rr(-15, 15)];
+            }
+
+            oilBrush(x, y, rr(6, 14), rr(5, 12), c, rr(0.5, 0.85), rr(-0.3, 0.3));
+        }
+    }
+
+    // Cliff top grass
+    for (let x = cliffLeft - 10; x < W; x += rr(2, 5)) {
+        const t = (x - cliffLeft) / (W - cliffLeft);
+        const topY = H * 0.25 + Math.sin(x * 0.008) * 20 - (x - cliffLeft) * 0.04;
+
+        for (let i = 0; i < 4; i++) {
+            const c = [rr(50, 80), rr(90, 130), rr(30, 50)];
+            oilBrush(x + rr(-3, 3), topY - rr(0, 15), rr(5, 12), rr(4, 10), c, rr(0.4, 0.7), rr(-0.3, 0.3));
+        }
+    }
+}
+
+// ─── LIGHTHOUSE ───
+function paintLighthouse() {
+    const lx = W * 0.72, ly = H * 0.22;
+    const scale = 1.0;
+
+    // Tower
+    for (let i = 0; i < 40; i++) {
+        const t = i / 40;
+        const taper = 1 - t * 0.3;
+        brush(lx + rr(-1, 1), ly + t * 60 * scale,
+            rr(6, 10) * taper * scale, rr(4, 8),
+            t % 2 < 0.5 ? [rr(230, 250), rr(230, 245), rr(225, 240)] : [rr(180, 200), rr(50, 70), rr(40, 60)],
+            rr(0.6, 0.9), rr(-0.05, 0.05));
+    }
+
+    // Top/lamp
+    for (let i = 0; i < 15; i++) {
+        brush(lx + rr(-5, 5), ly - rr(0, 8) * scale, rr(4, 8) * scale, rr(3, 6),
+            [rr(50, 70), rr(50, 65), rr(55, 70)], rr(0.5, 0.8), rr(-0.1, 0.1));
+    }
+
+    // Light beam
+    for (let i = 0; i < 30; i++) {
+        const angle = rr(-0.8, -0.3);
+        const dist = rr(5, 80);
+        brush(lx + Math.cos(angle) * dist, ly - 4 + Math.sin(angle) * dist,
+            rr(10, 30), rr(3, 8), [255, 240, 180], rr(0.02, 0.08), angle);
+    }
+}
+
+// ─── WAVES ON ROCKS ───
+function paintWavesOnRocks() {
+    const baseY = H * 0.65;
+    // Rocks at cliff base
+    for (let i = 0; i < 60; i++) {
+        const x = W * 0.5 + rr(0, W * 0.15);
+        const y = baseY + rr(-10, 40);
+        const c = [rr(60, 90), rr(55, 75), rr(50, 70)];
+        oilBrush(x, y, rr(8, 20), rr(6, 14), c, rr(0.5, 0.8), rr(-0.3, 0.3));
+    }
+
+    // Splash/foam
+    for (let i = 0; i < 100; i++) {
+        const x = W * 0.48 + rr(0, W * 0.2);
+        const y = baseY + rr(-20, 20);
+        brush(x, y, rr(4, 12), rr(3, 6), [rr(220, 255), rr(230, 255), rr(240, 255)], rr(0.1, 0.35), rr(0, Math.PI));
+    }
+}
+
+// ─── FOREGROUND (left cliff edge with flowers) ───
+function paintForeground() {
+    // Left cliff edge
+    for (let y = H * 0.5; y < H; y += rr(2, 5)) {
+        for (let x = 0; x < W * 0.15 + Math.sin(y * 0.01) * 20; x += rr(3, 7)) {
+            const c = [rr(50, 80), rr(70, 100), rr(30, 50)];
+            oilBrush(x, y, rr(6, 14), rr(5, 12), c, rr(0.5, 0.85), rr(-0.2, 0.2));
+        }
+    }
+
+    // Wildflowers on left edge
+    const flowerColors = [[255, 100, 120], [255, 200, 80], [200, 130, 255], [255, 255, 150]];
+    for (let i = 0; i < 60; i++) {
+        const x = rr(10, W * 0.12);
+        const y = rr(H * 0.55, H * 0.9);
+        const c = flowerColors[Math.floor(rr(0, flowerColors.length))];
+        brush(x, y - rr(2, 8), 1, rr(4, 12), [60, 90, 40], 0.4, rr(-0.3, 0.3)); // stem
+        for (let p = 0; p < 3; p++) {
+            brush(x + rr(-3, 3), y - rr(8, 14), rr(2, 5), rr(2, 4), c, rr(0.4, 0.7), rr(0, Math.PI));
+        }
+    }
+}
+
+// ─── BIRDS ───
+function paintBirds() {
+    const birds = [[180, 200], [220, 180], [260, 210], [300, 190], [150, 230]];
+    for (const [bx, by] of birds) {
+        ctx.strokeStyle = rgba([40, 30, 50], 0.6);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(bx - 6, by + 3);
+        ctx.quadraticCurveTo(bx - 2, by - 3, bx, by);
+        ctx.quadraticCurveTo(bx + 2, by - 3, bx + 6, by + 3);
+        ctx.stroke();
+    }
+}
+
+// ─── RENDER ───
+ctx.fillStyle = '#1e1030';
+ctx.fillRect(0, 0, W, H);
+
+paintSky();
+paintSun();
+paintOcean();
+paintCliff();
+paintLighthouse();
+paintWavesOnRocks();
+paintForeground();
+paintBirds();
+
+// Warm golden overlay
+ctx.fillStyle = 'rgba(255, 180, 80, 0.03)';
+ctx.fillRect(0, 0, W, H);
+
+// Vignette
+const vg = ctx.createRadialGradient(W*0.35, H*0.35, H*0.15, W*0.5, H*0.5, H*0.7);
+vg.addColorStop(0, 'rgba(0,0,0,0)');
+vg.addColorStop(1, 'rgba(10,5,20,0.35)');
+ctx.fillStyle = vg;
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>

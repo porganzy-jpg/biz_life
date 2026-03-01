@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarcodeQuest - Characters & Scenery Concept Art</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #FFE0BD;
+    font-family: 'Press Start 2P', monospace;
+    padding: 20px;
+    image-rendering: pixelated;
+  }
+  h1 { font-size: 14px; text-align: center; color: #FFD54F; margin: 10px 0; text-shadow: 2px 2px 0 #E8734A; }
+  h2 { font-size: 11px; color: #E8734A; margin: 25px 0 15px; padding-bottom: 6px; border-bottom: 3px solid #E8734A; }
+  h3 { font-size: 9px; color: #FFB347; margin: 15px 0 8px; }
+
+  /* === CHARACTER CARDS === */
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .char-card {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,180,71,0.3);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .char-card:hover {
+    border-color: #FFB347;
+    background: rgba(255,180,71,0.1);
+    transform: translateY(-3px);
+  }
+  .char-card .rarity {
+    font-size: 6px;
+    position: absolute;
+    top: 4px;
+    right: 6px;
+  }
+  .rarity-common { color: #9E9E9E; }
+  .rarity-uncommon { color: #66BB6A; }
+  .rarity-rare { color: #42A5F5; }
+  .rarity-epic { color: #AB47BC; }
+  .rarity-legendary { color: #FFD54F; }
+
+  .char-name { font-size: 7px; margin-top: 8px; color: #FFE0BD; }
+  .char-job { font-size: 6px; margin-top: 4px; color: #90A4AE; }
+  .char-stats { font-size: 5px; margin-top: 6px; line-height: 1.8; color: #78909C; }
+
+  /* === PIXEL CHARACTER SPRITES === */
+  .sprite-container {
+    width: 64px;
+    height: 80px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* Pixel art character builder */
+  .px { position: absolute; image-rendering: pixelated; }
+
+  /* Chef Character */
+  .chef-sprite .hat { width: 28px; height: 20px; background: #fff; border: 2px solid #e0e0e0; border-radius: 8px 8px 2px 2px; left: 18px; top: 2px; }
+  .chef-sprite .hat-band { width: 24px; height: 4px; background: #EF5350; left: 20px; top: 18px; }
+  .chef-sprite .face { width: 24px; height: 22px; background: #FFE0BD; border: 2px solid #F5C48E; border-radius: 6px; left: 20px; top: 20px; }
+  .chef-sprite .eye-l { width: 4px; height: 5px; background: #2C3E6B; border-radius: 2px; left: 26px; top: 30px; }
+  .chef-sprite .eye-r { width: 4px; height: 5px; background: #2C3E6B; border-radius: 2px; left: 36px; top: 30px; }
+  .chef-sprite .mouth { width: 6px; height: 3px; background: #E57373; border-radius: 0 0 3px 3px; left: 30px; top: 37px; }
+  .chef-sprite .blush-l { width: 5px; height: 3px; background: #FFAB91; border-radius: 50%; left: 23px; top: 35px; opacity: 0.6; }
+  .chef-sprite .blush-r { width: 5px; height: 3px; background: #FFAB91; border-radius: 50%; left: 38px; top: 35px; opacity: 0.6; }
+  .chef-sprite .body { width: 26px; height: 18px; background: #fff; border: 2px solid #e0e0e0; border-radius: 4px; left: 19px; top: 41px; }
+  .chef-sprite .apron { width: 20px; height: 14px; background: #FFCCBC; border: 1px solid #FFAB91; border-radius: 3px; left: 22px; top: 44px; }
+  .chef-sprite .leg-l { width: 10px; height: 14px; background: #333; border-radius: 0 0 4px 4px; left: 21px; top: 58px; }
+  .chef-sprite .leg-r { width: 10px; height: 14px; background: #333; border-radius: 0 0 4px 4px; left: 33px; top: 58px; }
+  .chef-sprite .shoe-l { width: 12px; height: 5px; background: #5D4037; border-radius: 3px; left: 19px; top: 70px; }
+  .chef-sprite .shoe-r { width: 12px; height: 5px; background: #5D4037; border-radius: 3px; left: 33px; top: 70px; }
+
+  /* Driver Character */
+  .driver-sprite .cap { width: 28px; height: 10px; background: #2C3E6B; border-radius: 10px 10px 0 0; left: 18px; top: 10px; }
+  .driver-sprite .cap-brim { width: 32px; height: 5px; background: #2C3E6B; border-radius: 3px; left: 16px; top: 18px; }
+  .driver-sprite .cap-badge { width: 6px; height: 6px; background: #FFD54F; border-radius: 50%; left: 29px; top: 12px; }
+  .driver-sprite .face { width: 24px; height: 22px; background: #FFE0BD; border: 2px solid #F5C48E; border-radius: 6px; left: 20px; top: 22px; }
+  .driver-sprite .eye-l { width: 4px; height: 5px; background: #2C3E6B; border-radius: 2px; left: 26px; top: 32px; }
+  .driver-sprite .eye-r { width: 4px; height: 5px; background: #2C3E6B; border-radius: 2px; left: 36px; top: 32px; }
+  .driver-sprite .mouth { width: 4px; height: 2px; background: #E57373; border-radius: 0 0 2px 2px; left: 31px; top: 39px; }
+  .driver-sprite .body { width: 26px; height: 18px; background: #2C3E6B; border: 2px solid #1A237E; border-radius: 4px; left: 19px; top: 43px; }
+  .driver-sprite .badge { width: 4px; height: 4px; background: #FFD54F; border-radius: 1px; left: 23px; top: 47px; }
+  .driver-sprite .leg-l { width: 10px; height: 14px; background: #1A237E; border-radius: 0 0 4px 4px; left: 21px; top: 60px; }
+  .driver-sprite .leg-r { width: 10px; height: 14px; background: #1A237E; border-radius: 0 0 4px 4px; left: 33px; top: 60px; }
+  .driver-sprite .shoe-l { width: 12px; height: 5px; background: #333; border-radius: 3px; left: 19px; top: 72px; }
+  .driver-sprite .shoe-r { width: 12px; height: 5px; background: #333; border-radius: 3px; left: 33px; top: 72px; }
+
+  /* Crafter Character */
+  .crafter-sprite .hair { width: 28px; height: 14px; background: #FFD54F; border-radius: 8px 8px 0 0; left: 18px; top: 10px; }
+  .crafter-sprite .hair-side-l { width: 6px; height: 10px; background: #FFD54F; border-radius: 0 0 4px 4px; left: 16px; top: 22px; }
+  .crafter-sprite .hair-side-r { width: 6px; height: 10px; background: #FFD54F; border-radius: 0 0 4px 4px; left: 42px; top: 22px; }
+  .crafter-sprite .face { width: 24px; height: 22px; background: #F5C48E; border: 2px solid #D4A574; border-radius: 6px; left: 20px; top: 20px; }
+  .crafter-sprite .eye-l { width: 4px; height: 5px; background: #2C3E6B; border-radius: 2px; left: 26px; top: 30px; }
+  .crafter-sprite .eye-r { width: 4px; height: 5px; background: #2C3E6B; border-radius: 2px; left: 36px; top: 30px; }
+  .crafter-sprite .mouth { width: 8px; height: 4px; background: #E57373; border-radius: 0 0 4px 4px; left: 29px; top: 37px; }
+  .crafter-sprite .goggles { width: 30px; height: 8px; background: rgba(255,255,255,0.3); border: 2px solid #90A4AE; border-radius: 4px; left: 17px; top: 14px; }
+  .crafter-sprite .body { width: 26px; height: 18px; background: #66BB6A; border: 2px solid #43A047; border-radius: 4px; left: 19px; top: 41px; }
+  .crafter-sprite .apron { width: 22px; height: 16px; background: #BCAAA4; border: 2px solid #8D6E63; border-radius: 2px; left: 21px; top: 42px; }
+  .crafter-sprite .pocket { width: 8px; height: 5px; background: #8D6E63; border-radius: 0 0 2px 2px; left: 28px; top: 50px; }
+  .crafter-sprite .leg-l { width: 10px; height: 14px; background: #5D4037; border-radius: 0 0 4px 4px; left: 21px; top: 58px; }
+  .crafter-sprite .leg-r { width: 10px; height: 14px; background: #5D4037; border-radius: 0 0 4px 4px; left: 33px; top: 58px; }
+  .crafter-sprite .shoe-l { width: 12px; height: 6px; background: #795548; border-radius: 3px; left: 19px; top: 70px; }
+  .crafter-sprite .shoe-r { width: 12px; height: 6px; background: #795548; border-radius: 3px; left: 33px; top: 70px; }
+
+  /* Merchant Character */
+  .merchant-sprite .hat { width: 32px; height: 8px; background: #FFB347; border-radius: 16px; left: 16px; top: 12px; }
+  .merchant-sprite .hat-top { width: 20px; height: 12px; background: #FFB347; border: 2px solid #FF9800; border-radius: 6px 6px 0 0; left: 22px; top: 2px; }
+  .merchant-sprite .face { width: 24px; height: 22px; background: #D4A574; border: 2px solid #A1887F; border-radius: 6px; left: 20px; top: 20px; }
+  .merchant-sprite .eye-l { width: 3px; height: 3px; background: #2C3E6B; border-radius: 50%; left: 27px; top: 30px; }
+  .merchant-sprite .eye-r { width: 3px; height: 3px; background: #2C3E6B; border-radius: 50%; left: 36px; top: 30px; }
+  .merchant-sprite .mouth { width: 8px; height: 4px; background: #FF8A65; border-radius: 0 0 4px 4px; left: 29px; top: 36px; }
+  .merchant-sprite .body { width: 28px; height: 18px; background: #FF7043; border: 2px solid #E64A19; border-radius: 4px; left: 18px; top: 41px; }
+  .merchant-sprite .belt { width: 28px; height: 4px; background: #5D4037; left: 18px; top: 53px; }
+  .merchant-sprite .pouch { width: 8px; height: 8px; background: #8D6E63; border: 1px solid #5D4037; border-radius: 3px; left: 38px; top: 48px; }
+  .merchant-sprite .leg-l { width: 10px; height: 14px; background: #795548; border-radius: 0 0 4px 4px; left: 21px; top: 58px; }
+  .merchant-sprite .leg-r { width: 10px; height: 14px; background: #795548; border-radius: 0 0 4px 4px; left: 33px; top: 58px; }
+  .merchant-sprite .shoe-l { width: 12px; height: 5px; background: #4E342E; border-radius: 3px; left: 19px; top: 70px; }
+  .merchant-sprite .shoe-r { width: 12px; height: 5px; background: #4E342E; border-radius: 3px; left: 33px; top: 70px; }
+
+  /* Mechanic Character */
+  .mechanic-sprite .bandana { width: 26px; height: 8px; background: #EF5350; border-radius: 3px; left: 19px; top: 12px; }
+  .mechanic-sprite .bandana-tail { width: 10px; height: 6px; background: #EF5350; border-radius: 0 4px 4px 0; left: 40px; top: 14px; }
+  .mechanic-sprite .face { width: 24px; height: 22px; background: #FFE0BD; border: 2px solid #F5C48E; border-radius: 6px; left: 20px; top: 18px; }
+  .mechanic-sprite .eye-l { width: 5px; height: 4px; background: #2C3E6B; border-radius: 2px; left: 25px; top: 28px; }
+  .mechanic-sprite .eye-r { width: 5px; height: 4px; background: #2C3E6B; border-radius: 2px; left: 35px; top: 28px; }
+  .mechanic-sprite .mouth { width: 4px; height: 3px; background: #E57373; border-radius: 2px; left: 31px; top: 34px; }
+  .mechanic-sprite .body { width: 28px; height: 20px; background: #42A5F5; border: 2px solid #1E88E5; border-radius: 4px; left: 18px; top: 39px; }
+  .mechanic-sprite .wrench { width: 4px; height: 16px; background: #90A4AE; border-radius: 2px; left: 44px; top: 40px; transform: rotate(15deg); }
+  .mechanic-sprite .wrench-head { width: 10px; height: 6px; background: #90A4AE; border-radius: 2px; left: 41px; top: 38px; }
+  .mechanic-sprite .leg-l { width: 10px; height: 14px; background: #1565C0; border-radius: 0 0 4px 4px; left: 21px; top: 58px; }
+  .mechanic-sprite .leg-r { width: 10px; height: 14px; background: #1565C0; border-radius: 0 0 4px 4px; left: 33px; top: 58px; }
+  .mechanic-sprite .boot-l { width: 13px; height: 7px; background: #5D4037; border-radius: 3px; left: 18px; top: 70px; }
+  .mechanic-sprite .boot-r { width: 13px; height: 7px; background: #5D4037; border-radius: 3px; left: 33px; top: 70px; }
+
+  /* Character idle animation */
+  .sprite-container { animation: spriteIdle 2s ease-in-out infinite; }
+  @keyframes spriteIdle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+  /* === STAT BARS === */
+  .stat-bar-container { display: flex; align-items: center; gap: 3px; margin: 1px 0; }
+  .stat-label { width: 30px; text-align: right; font-size: 5px; color: #90A4AE; }
+  .stat-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; border-radius: 2px; transition: width 1s; }
+  .stat-cook { background: linear-gradient(90deg, #FF7043, #EF5350); }
+  .stat-craft { background: linear-gradient(90deg, #66BB6A, #43A047); }
+  .stat-drive { background: linear-gradient(90deg, #42A5F5, #1E88E5); }
+  .stat-stamina { background: linear-gradient(90deg, #FFA726, #F57C00); }
+  .stat-social { background: linear-gradient(90deg, #AB47BC, #7B1FA2); }
+
+  /* === SCENERY SECTION === */
+  .scenery-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .scenery-card {
+    border: 3px solid rgba(255,180,71,0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .scenery-card:hover {
+    border-color: #FFD54F;
+    transform: scale(1.03);
+    box-shadow: 0 0 15px rgba(255,213,79,0.3);
+  }
+  .scenery-canvas {
+    width: 100%;
+    height: 140px;
+    position: relative;
+    overflow: hidden;
+  }
+  .scenery-info {
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.6);
+    font-size: 6px;
+    line-height: 1.8;
+  }
+  .scenery-name { color: #FFD54F; font-size: 7px; }
+  .scenery-time { color: #90A4AE; }
+
+  /* === PIXEL SCENERY ELEMENTS === */
+  /* Sunset Beach */
+  .scene-sunset {
+    background: linear-gradient(180deg, #FF6B35 0%, #FFB347 25%, #FFD54F 40%, #87CEEB 40%, #42A5F5 70%, #FFE082 70%, #F5DEB3 100%);
+  }
+  .sun {
+    position: absolute;
+    width: 30px; height: 30px;
+    background: #FFD54F;
+    border-radius: 50%;
+    box-shadow: 0 0 20px #FFB347, 0 0 40px rgba(255,179,71,0.3);
+  }
+  .wave {
+    position: absolute;
+    width: 120%;
+    height: 8px;
+    background: rgba(66,165,245,0.4);
+    border-radius: 50%;
+    animation: waveMove 3s ease-in-out infinite;
+  }
+  @keyframes waveMove { 0%,100% { transform: translateX(-5%); } 50% { transform: translateX(5%); } }
+  .palm {
+    position: absolute;
+    bottom: 20px;
+    width: 6px;
+    height: 40px;
+    background: #795548;
+    border-radius: 3px;
+  }
+  .palm-leaf {
+    position: absolute;
+    top: -8px;
+    width: 24px;
+    height: 12px;
+    background: #66BB6A;
+    border-radius: 50% 50% 0 50%;
+  }
+
+  /* Rainy Village */
+  .scene-rain {
+    background: linear-gradient(180deg, #546E7A 0%, #78909C 30%, #90A4AE 50%, #7BC67E 50%, #5BA65E 100%);
+  }
+  .raindrop {
+    position: absolute;
+    width: 2px;
+    height: 8px;
+    background: rgba(144,202,249,0.6);
+    border-radius: 0 0 2px 2px;
+    animation: rain 0.8s linear infinite;
+  }
+  @keyframes rain { 0% { transform: translateY(-10px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(140px); opacity: 0; } }
+  .house {
+    position: absolute;
+    bottom: 20px;
+    width: 28px;
+    height: 22px;
+    background: #FFCC80;
+    border: 2px solid #FFB74D;
+    border-radius: 2px;
+  }
+  .roof {
+    position: absolute;
+    top: -10px;
+    left: -4px;
+    width: 36px;
+    height: 14px;
+    background: #EF5350;
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  }
+  .house-window {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: #FFF9C4;
+    border: 1px solid #FFD54F;
+    top: 6px;
+    box-shadow: 0 0 4px rgba(255,249,196,0.5);
+  }
+
+  /* Starry Night */
+  .scene-stars {
+    background: linear-gradient(180deg, #0D1B2A 0%, #1B2838 30%, #2C3E6B 60%, #1a3a1a 60%, #0d260d 100%);
+  }
+  .star {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: #FFD54F;
+    border-radius: 50%;
+    animation: twinkle 2s ease-in-out infinite;
+  }
+  @keyframes twinkle { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.5); } }
+  .moon {
+    position: absolute;
+    width: 24px; height: 24px;
+    background: #FFF9C4;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(255,249,196,0.5);
+  }
+  .moon-shadow {
+    position: absolute;
+    width: 20px; height: 20px;
+    background: #1B2838;
+    border-radius: 50%;
+    top: -2px; left: 6px;
+  }
+
+  /* Cherry Blossom */
+  .scene-cherry {
+    background: linear-gradient(180deg, #F8BBD0 0%, #FCE4EC 25%, #87CEEB 25%, #87CEEB 55%, #7BC67E 55%, #5BA65E 100%);
+  }
+  .petal {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: #F48FB1;
+    border-radius: 50% 0 50% 50%;
+    animation: petalFall 4s ease-in-out infinite;
+    opacity: 0.8;
+  }
+  @keyframes petalFall {
+    0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+    20% { opacity: 0.8; }
+    100% { transform: translateY(150px) rotate(360deg) translateX(20px); opacity: 0; }
+  }
+  .tree-trunk {
+    position: absolute;
+    width: 8px;
+    background: #795548;
+    border-radius: 3px;
+  }
+  .tree-canopy {
+    position: absolute;
+    background: #F48FB1;
+    border-radius: 50%;
+  }
+
+  /* Mountain Morning */
+  .scene-mountain {
+    background: linear-gradient(180deg, #FFE0B2 0%, #FFCC80 15%, #87CEEB 15%, #87CEEB 45%, #7BC67E 65%, #5BA65E 100%);
+  }
+  .mountain {
+    position: absolute;
+    width: 0; height: 0;
+    border-style: solid;
+  }
+  .mountain-snow { position: absolute; background: #fff; }
+
+  /* Snowy Village */
+  .scene-snow {
+    background: linear-gradient(180deg, #B0BEC5 0%, #CFD8DC 30%, #ECEFF1 50%, #ECEFF1 100%);
+  }
+  .snowflake {
+    position: absolute;
+    width: 4px; height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    animation: snowFall 3s linear infinite;
+  }
+  @keyframes snowFall {
+    0% { transform: translateY(-10px) translateX(0); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translateY(150px) translateX(15px); opacity: 0.3; }
+  }
+
+  /* Aurora */
+  .scene-aurora {
+    background: linear-gradient(180deg, #0D1B2A 0%, #1B2838 50%, #1a2a1a 50%, #ECEFF1 80%, #ECEFF1 100%);
+  }
+  .aurora-band {
+    position: absolute;
+    height: 30px;
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: auroraShimmer 4s ease-in-out infinite;
+    filter: blur(3px);
+  }
+  @keyframes auroraShimmer {
+    0%,100% { opacity: 0.3; transform: scaleX(1); }
+    50% { opacity: 0.6; transform: scaleX(1.1); }
+  }
+
+  /* Lavender */
+  .scene-lavender {
+    background: linear-gradient(180deg, #87CEEB 0%, #B3E5FC 40%, #CE93D8 40%, #AB47BC 100%);
+  }
+
+  /* === BARCODE DEMO === */
+  .barcode-demo {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid #E8734A;
+    border-radius: 10px;
+    padding: 16px;
+    max-width: 900px;
+    margin: 20px auto;
+  }
+  .barcode-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  .barcode-input {
+    background: #0D1B2A;
+    border: 2px solid #FFB347;
+    color: #FFD54F;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    width: 200px;
+    text-align: center;
+    letter-spacing: 3px;
+  }
+  .barcode-btn {
+    background: #E8734A;
+    color: #fff;
+    border: 2px solid #C0552E;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 7px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .barcode-btn:hover { background: #FF8A65; transform: translateY(-2px); }
+  .barcode-result {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    font-size: 6px;
+    line-height: 2;
+    min-height: 60px;
+  }
+
+  /* === ITEM SPRITES === */
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .item-card {
+    background: rgba(255,255,255,0.05);
+    border: 2px solid rgba(255,180,71,0.2);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .item-card:hover {
+    border-color: #FFB347;
+    background: rgba(255,180,71,0.1);
+  }
+  .item-icon {
+    width: 32px; height: 32px;
+    margin: 0 auto 6px;
+    position: relative;
+    image-rendering: pixelated;
+  }
+  .item-name { font-size: 5px; color: #FFE0BD; }
+  .item-type { font-size: 4px; color: #78909C; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<h1>BARCODE QUEST - CHARACTER & SCENERY ASSETS</h1>
+
+<!-- ============ CHARACTERS ============ -->
+<h2>CHARACTER SPRITES - JOB TYPES</h2>
+
+<div class="char-grid">
+
+  <!-- CHEF -->
+  <div class="char-card">
+    <span class="rarity rarity-rare">RARE</span>
+    <div class="sprite-container chef-sprite">
+      <div class="px hat"></div>
+      <div class="px hat-band"></div>
+      <div class="px face"></div>
+      <div class="px eye-l"></div>
+      <div class="px eye-r"></div>
+      <div class="px mouth"></div>
+      <div class="px blush-l"></div>
+      <div class="px blush-r"></div>
+      <div class="px body"></div>
+      <div class="px apron"></div>
+      <div class="px leg-l"></div>
+      <div class="px leg-r"></div>
+      <div class="px shoe-l"></div>
+      <div class="px shoe-r"></div>
+    </div>
+    <div class="char-name">MISO</div>
+    <div class="char-job">CHEF (880-KR)</div>
+    <div class="char-stats">
+      <div class="stat-bar-container"><span class="stat-label">COOK</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-cook" style="width:85%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">CRAFT</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-craft" style="width:30%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">DRIVE</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-drive" style="width:20%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">STMNA</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-stamina" style="width:60%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">SOCL</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-social" style="width:50%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- DRIVER -->
+  <div class="char-card">
+    <span class="rarity rarity-epic">EPIC</span>
+    <div class="sprite-container driver-sprite">
+      <div class="px cap"></div>
+      <div class="px cap-brim"></div>
+      <div class="px cap-badge"></div>
+      <div class="px face"></div>
+      <div class="px eye-l"></div>
+      <div class="px eye-r"></div>
+      <div class="px mouth"></div>
+      <div class="px body"></div>
+      <div class="px badge"></div>
+      <div class="px leg-l"></div>
+      <div class="px leg-r"></div>
+      <div class="px shoe-l"></div>
+      <div class="px shoe-r"></div>
+    </div>
+    <div class="char-name">BOLT</div>
+    <div class="char-job">DRIVER (000-US)</div>
+    <div class="char-stats">
+      <div class="stat-bar-container"><span class="stat-label">COOK</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-cook" style="width:20%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">CRAFT</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-craft" style="width:35%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">DRIVE</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-drive" style="width:90%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">STMNA</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-stamina" style="width:70%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">SOCL</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-social" style="width:40%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- CRAFTER -->
+  <div class="char-card">
+    <span class="rarity rarity-uncommon">UNCOMMON</span>
+    <div class="sprite-container crafter-sprite">
+      <div class="px hair"></div>
+      <div class="px hair-side-l"></div>
+      <div class="px hair-side-r"></div>
+      <div class="px goggles"></div>
+      <div class="px face"></div>
+      <div class="px eye-l"></div>
+      <div class="px eye-r"></div>
+      <div class="px mouth"></div>
+      <div class="px body"></div>
+      <div class="px apron"></div>
+      <div class="px pocket"></div>
+      <div class="px leg-l"></div>
+      <div class="px leg-r"></div>
+      <div class="px shoe-l"></div>
+      <div class="px shoe-r"></div>
+    </div>
+    <div class="char-name">HANA</div>
+    <div class="char-job">CRAFTER (490-JP)</div>
+    <div class="char-stats">
+      <div class="stat-bar-container"><span class="stat-label">COOK</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-cook" style="width:25%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">CRAFT</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-craft" style="width:88%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">DRIVE</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-drive" style="width:15%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">STMNA</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-stamina" style="width:55%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">SOCL</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-social" style="width:45%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- MERCHANT -->
+  <div class="char-card">
+    <span class="rarity rarity-rare">RARE</span>
+    <div class="sprite-container merchant-sprite" style="animation-delay: 0.3s;">
+      <div class="px hat-top"></div>
+      <div class="px hat"></div>
+      <div class="px face"></div>
+      <div class="px eye-l"></div>
+      <div class="px eye-r"></div>
+      <div class="px mouth"></div>
+      <div class="px body"></div>
+      <div class="px belt"></div>
+      <div class="px pouch"></div>
+      <div class="px leg-l"></div>
+      <div class="px leg-r"></div>
+      <div class="px shoe-l"></div>
+      <div class="px shoe-r"></div>
+    </div>
+    <div class="char-name">MARCO</div>
+    <div class="char-job">MERCHANT (690-CN)</div>
+    <div class="char-stats">
+      <div class="stat-bar-container"><span class="stat-label">COOK</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-cook" style="width:30%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">CRAFT</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-craft" style="width:25%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">DRIVE</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-drive" style="width:40%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">STMNA</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-stamina" style="width:50%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">SOCL</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-social" style="width:92%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- MECHANIC -->
+  <div class="char-card">
+    <span class="rarity rarity-legendary">LEGENDARY</span>
+    <div class="sprite-container mechanic-sprite" style="animation-delay: 0.6s;">
+      <div class="px bandana"></div>
+      <div class="px bandana-tail"></div>
+      <div class="px face"></div>
+      <div class="px eye-l"></div>
+      <div class="px eye-r"></div>
+      <div class="px mouth"></div>
+      <div class="px body"></div>
+      <div class="px wrench"></div>
+      <div class="px wrench-head"></div>
+      <div class="px leg-l"></div>
+      <div class="px leg-r"></div>
+      <div class="px boot-l"></div>
+      <div class="px boot-r"></div>
+    </div>
+    <div class="char-name">AXEL</div>
+    <div class="char-job">MECHANIC (400-DE)</div>
+    <div class="char-stats">
+      <div class="stat-bar-container"><span class="stat-label">COOK</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-cook" style="width:15%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">CRAFT</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-craft" style="width:75%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">DRIVE</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-drive" style="width:50%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">STMNA</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-stamina" style="width:95%"></div></div></div>
+      <div class="stat-bar-container"><span class="stat-label">SOCL</span><div class="stat-bar-bg"><div class="stat-bar-fill stat-social" style="width:30%"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ITEMS ============ -->
+<h2>CRAFTABLE ITEMS & MATERIALS</h2>
+
+<div class="item-grid">
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:4px;top:2px;width:24px;height:18px;background:#FFB74D;border:2px solid #FF9800;border-radius:8px 8px 4px 4px;"></div>
+      <div style="position:absolute;left:8px;top:6px;width:4px;height:4px;background:#8D6E63;border-radius:50%;"></div>
+      <div style="position:absolute;left:16px;top:8px;width:3px;height:3px;background:#8D6E63;border-radius:50%;"></div>
+      <div style="position:absolute;left:4px;top:20px;width:24px;height:3px;background:#FF9800;border-radius:2px;"></div>
+    </div>
+    <div class="item-name">BREAD</div>
+    <div class="item-type">Food</div>
+  </div>
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:6px;top:4px;width:20px;height:20px;background:#BCAAA4;border:2px solid #8D6E63;border-radius:50% 50% 4px 4px;"></div>
+      <div style="position:absolute;left:10px;top:0px;width:12px;height:6px;background:#8D6E63;border-radius:4px 4px 0 0;"></div>
+      <div style="position:absolute;left:11px;top:24px;width:10px;height:4px;background:#8D6E63;border-radius:0 0 3px 3px;"></div>
+    </div>
+    <div class="item-name">POTTERY</div>
+    <div class="item-type">Craft</div>
+  </div>
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:8px;top:2px;width:16px;height:24px;background:#81D4FA;border:2px solid #4FC3F7;border-radius:4px;"></div>
+      <div style="position:absolute;left:12px;top:6px;width:8px;height:8px;background:#B3E5FC;border-radius:50%;"></div>
+      <div style="position:absolute;left:10px;top:26px;width:12px;height:3px;background:#4FC3F7;border-radius:2px;"></div>
+    </div>
+    <div class="item-name">POTION</div>
+    <div class="item-type">Medicine</div>
+  </div>
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:4px;top:6px;width:24px;height:18px;background:#A1887F;border:2px solid #795548;border-radius:3px;"></div>
+      <div style="position:absolute;left:8px;top:2px;width:16px;height:6px;background:#795548;border-radius:3px 3px 0 0;"></div>
+      <div style="position:absolute;left:8px;top:10px;width:16px;height:2px;background:#5D4037;"></div>
+    </div>
+    <div class="item-name">CRATE</div>
+    <div class="item-type">Material</div>
+  </div>
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:8px;top:4px;width:16px;height:22px;background:#FFF9C4;border:2px solid #FFD54F;border-radius:2px;"></div>
+      <div style="position:absolute;left:10px;top:8px;width:12px;height:2px;background:#FFB347;"></div>
+      <div style="position:absolute;left:10px;top:12px;width:10px;height:2px;background:#FFB347;"></div>
+      <div style="position:absolute;left:10px;top:16px;width:8px;height:2px;background:#FFB347;"></div>
+    </div>
+    <div class="item-name">RECIPE</div>
+    <div class="item-type">Blueprint</div>
+  </div>
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:10px;top:10px;width:14px;height:14px;background:#FFD54F;border:2px solid #FFA000;border-radius:50%;box-shadow:0 0 8px rgba(255,213,79,0.5);"></div>
+      <div style="position:absolute;left:14px;top:14px;width:6px;height:6px;background:#FFA000;border-radius:50%;"></div>
+    </div>
+    <div class="item-name">GOLD COIN</div>
+    <div class="item-type">Currency</div>
+  </div>
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:4px;top:8px;width:10px;height:16px;background:#66BB6A;border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute;left:16px;top:6px;width:12px;height:18px;background:#81C784;border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute;left:8px;top:22px;width:16px;height:6px;background:#A1887F;border:1px solid #795548;border-radius:0 0 3px 3px;"></div>
+    </div>
+    <div class="item-name">HERB</div>
+    <div class="item-type">Ingredient</div>
+  </div>
+  <div class="item-card">
+    <div class="item-icon">
+      <div style="position:absolute;left:6px;top:6px;width:20px;height:14px;background:#90A4AE;border:2px solid #607D8B;border-radius:3px;"></div>
+      <div style="position:absolute;left:0px;top:10px;width:8px;height:4px;background:#607D8B;border-radius:2px;"></div>
+      <div style="position:absolute;left:10px;top:20px;width:12px;height:6px;background:#795548;border-radius:2px;"></div>
+    </div>
+    <div class="item-name">WRENCH</div>
+    <div class="item-type">Tool</div>
+  </div>
+</div>
+
+<!-- ============ SCENERY ============ -->
+<h2>SCENERY COLLECTION - TRAVEL DESTINATIONS</h2>
+
+<div class="scenery-grid">
+
+  <!-- Sunset Beach -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-sunset">
+      <div class="sun" style="top:15px; left:40%;"></div>
+      <div class="wave" style="top:58%; left:-5%;"></div>
+      <div class="wave" style="top:62%; left:-10%; animation-delay:1s;"></div>
+      <div class="wave" style="top:66%; left:-3%; animation-delay:2s;"></div>
+      <div class="palm" style="left:15%;">
+        <div class="palm-leaf"></div>
+        <div class="palm-leaf" style="transform:scaleX(-1); left:-16px;"></div>
+      </div>
+      <div class="palm" style="right:20%; height:35px;">
+        <div class="palm-leaf" style="width:20px; height:10px;"></div>
+      </div>
+      <!-- Tiny bus silhouette -->
+      <div style="position:absolute; bottom:16px; right:10px; width:28px; height:16px; background:#E8734A; border-radius:4px 4px 2px 2px; border:1px solid #C0552E;">
+        <div style="position:absolute; bottom:-3px; left:3px; width:5px; height:5px; background:#333; border-radius:50%;"></div>
+        <div style="position:absolute; bottom:-3px; right:3px; width:5px; height:5px; background:#333; border-radius:50%;"></div>
+      </div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">SUNSET BEACH</div>
+      <div class="scenery-time">Evening | Coastal Route</div>
+    </div>
+  </div>
+
+  <!-- Rainy Village -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-rain">
+      <div class="raindrop" style="left:10%; animation-delay:0.1s;"></div>
+      <div class="raindrop" style="left:20%; animation-delay:0.3s;"></div>
+      <div class="raindrop" style="left:35%; animation-delay:0.5s;"></div>
+      <div class="raindrop" style="left:50%; animation-delay:0.2s;"></div>
+      <div class="raindrop" style="left:65%; animation-delay:0.7s;"></div>
+      <div class="raindrop" style="left:80%; animation-delay:0.4s;"></div>
+      <div class="raindrop" style="left:90%; animation-delay:0.6s;"></div>
+      <div class="raindrop" style="left:45%; animation-delay:0.8s;"></div>
+      <div class="raindrop" style="left:15%; animation-delay:0.9s;"></div>
+      <div class="raindrop" style="left:70%; animation-delay:0.15s;"></div>
+      <div class="house" style="left:15%;">
+        <div class="roof"></div>
+        <div class="house-window" style="left:4px;"></div>
+        <div class="house-window" style="right:4px;"></div>
+      </div>
+      <div class="house" style="left:50%; bottom:18px; width:24px; height:28px;">
+        <div class="roof" style="width:32px; left:-4px;"></div>
+        <div class="house-window" style="left:4px;"></div>
+        <div class="house-window" style="right:4px;"></div>
+      </div>
+      <div class="house" style="right:10%; bottom:22px; width:22px; height:18px;">
+        <div class="roof" style="width:30px; left:-4px; height:12px;"></div>
+        <div class="house-window" style="left:6px;"></div>
+      </div>
+      <!-- Puddle -->
+      <div style="position:absolute; bottom:8px; left:45%; width:30px; height:6px; background:rgba(144,202,249,0.3); border-radius:50%;"></div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">RAINY VILLAGE</div>
+      <div class="scenery-time">Rainy Day | Forest Route</div>
+    </div>
+  </div>
+
+  <!-- Starry Night -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-stars">
+      <div class="star" style="left:10%;top:8%;"></div>
+      <div class="star" style="left:25%;top:15%; animation-delay:0.5s;"></div>
+      <div class="star" style="left:45%;top:5%; animation-delay:1s;"></div>
+      <div class="star" style="left:60%;top:18%; animation-delay:0.3s;"></div>
+      <div class="star" style="left:75%;top:8%; animation-delay:0.7s;"></div>
+      <div class="star" style="left:85%;top:22%; animation-delay:1.5s;"></div>
+      <div class="star" style="left:35%;top:25%; animation-delay:0.9s;"></div>
+      <div class="star" style="left:55%;top:30%; animation-delay:1.2s;"></div>
+      <div class="star" style="left:15%;top:30%; animation-delay:0.2s; width:2px; height:2px;"></div>
+      <div class="star" style="left:70%;top:12%; animation-delay:0.8s; width:2px; height:2px;"></div>
+      <div class="moon" style="right:15%;top:8%;">
+        <div class="moon-shadow"></div>
+      </div>
+      <!-- Silhouette trees -->
+      <div style="position:absolute; bottom:0; left:10%; width:20px; height:50px; background:#0d260d; border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute; bottom:0; left:25%; width:16px; height:40px; background:#0d260d; border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute; bottom:0; right:20%; width:24px; height:55px; background:#0d260d; border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute; bottom:0; right:35%; width:18px; height:35px; background:#0d260d; border-radius:50% 50% 0 0;"></div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">STARRY NIGHT</div>
+      <div class="scenery-time">Night | Mountain Route</div>
+    </div>
+  </div>
+
+  <!-- Cherry Blossom -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-cherry">
+      <div class="petal" style="left:15%; animation-delay:0s;"></div>
+      <div class="petal" style="left:30%; animation-delay:0.8s;"></div>
+      <div class="petal" style="left:50%; animation-delay:1.5s;"></div>
+      <div class="petal" style="left:65%; animation-delay:0.4s;"></div>
+      <div class="petal" style="left:80%; animation-delay:2s;"></div>
+      <div class="petal" style="left:40%; animation-delay:2.5s;"></div>
+      <div class="petal" style="left:70%; animation-delay:1s;"></div>
+      <!-- Trees -->
+      <div class="tree-trunk" style="left:15%; bottom:28px; height:35px;"></div>
+      <div class="tree-canopy" style="left:5%; bottom:58px; width:30px; height:25px;"></div>
+      <div class="tree-canopy" style="left:0%; bottom:52px; width:20px; height:18px;"></div>
+      <div class="tree-trunk" style="right:20%; bottom:28px; height:40px;"></div>
+      <div class="tree-canopy" style="right:12%; bottom:64px; width:35px; height:28px;"></div>
+      <!-- Path -->
+      <div style="position:absolute; bottom:0; left:0; right:0; height:28px; background:linear-gradient(180deg, #7BC67E, #BCAAA4); border-top:2px solid #8D6E63;"></div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">CHERRY BLOSSOM PATH</div>
+      <div class="scenery-time">Spring | Village Route</div>
+    </div>
+  </div>
+
+  <!-- Mountain Morning -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-mountain">
+      <!-- Sun rays -->
+      <div style="position:absolute; top:8px; left:40%; width:24px; height:24px; background:#FFD54F; border-radius:50%; box-shadow: 0 0 20px #FFB347;"></div>
+      <!-- Mountains -->
+      <div style="position:absolute; bottom:30px; left:5%; width:0; height:0; border-left:40px solid transparent; border-right:40px solid transparent; border-bottom:60px solid #78909C;"></div>
+      <div style="position:absolute; bottom:30px; left:25%; width:0; height:0; border-left:50px solid transparent; border-right:50px solid transparent; border-bottom:80px solid #607D8B;"></div>
+      <div style="position:absolute; bottom:30px; right:5%; width:0; height:0; border-left:35px solid transparent; border-right:35px solid transparent; border-bottom:55px solid #90A4AE;"></div>
+      <!-- Snow caps -->
+      <div style="position:absolute; bottom:80px; left:34%; width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent; border-bottom:18px solid #fff;"></div>
+      <div style="position:absolute; bottom:100px; left:57%; width:0; height:0; border-left:15px solid transparent; border-right:15px solid transparent; border-bottom:22px solid #fff;"></div>
+      <!-- Grass -->
+      <div style="position:absolute; bottom:0; left:0; right:0; height:30px; background:linear-gradient(180deg, #7BC67E, #5BA65E);"></div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">MOUNTAIN SUNRISE</div>
+      <div class="scenery-time">Dawn | Highland Route</div>
+    </div>
+  </div>
+
+  <!-- Snow Village -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-snow">
+      <div class="snowflake" style="left:10%; animation-delay:0.2s;"></div>
+      <div class="snowflake" style="left:25%; animation-delay:0.8s;"></div>
+      <div class="snowflake" style="left:40%; animation-delay:1.4s;"></div>
+      <div class="snowflake" style="left:55%; animation-delay:0.5s;"></div>
+      <div class="snowflake" style="left:70%; animation-delay:1.1s;"></div>
+      <div class="snowflake" style="left:85%; animation-delay:0.3s;"></div>
+      <div class="snowflake" style="left:15%; animation-delay:1.8s; width:3px; height:3px;"></div>
+      <div class="snowflake" style="left:60%; animation-delay:2.2s; width:3px; height:3px;"></div>
+      <!-- Snowy houses -->
+      <div style="position:absolute; bottom:10px; left:15%; width:28px; height:22px; background:#FFCC80; border:2px solid #FFB74D; border-radius:2px;">
+        <div style="position:absolute; top:-12px; left:-4px; width:36px; height:0; border-left:18px solid transparent; border-right:18px solid transparent; border-bottom:14px solid #B71C1C;"></div>
+        <div style="position:absolute; top:-14px; left:-6px; width:40px; height:4px; background:#fff; border-radius:2px;"></div>
+        <div style="position:absolute; width:8px; height:8px; background:#FFF9C4; border:1px solid #FFD54F; top:6px; left:4px; box-shadow:0 0 4px rgba(255,249,196,0.5);"></div>
+      </div>
+      <div style="position:absolute; bottom:8px; right:20%; width:24px; height:26px; background:#FFCC80; border:2px solid #FFB74D; border-radius:2px;">
+        <div style="position:absolute; top:-10px; left:-3px; width:30px; height:0; border-left:15px solid transparent; border-right:15px solid transparent; border-bottom:12px solid #1B5E20;"></div>
+        <div style="position:absolute; top:-12px; left:-5px; width:34px; height:4px; background:#fff; border-radius:2px;"></div>
+      </div>
+      <!-- Snow ground -->
+      <div style="position:absolute; bottom:0; left:0; right:0; height:12px; background:#fff; border-radius:20px 20px 0 0;"></div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">SNOW VILLAGE</div>
+      <div class="scenery-time">Winter | Mountain Route</div>
+    </div>
+  </div>
+
+  <!-- Aurora -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-aurora">
+      <div class="aurora-band" style="top:5%; left:10%; width:80%; background:linear-gradient(90deg, #66BB6A, #42A5F5, #AB47BC);"></div>
+      <div class="aurora-band" style="top:15%; left:5%; width:70%; background:linear-gradient(90deg, #42A5F5, #66BB6A, #FFD54F); animation-delay:1s;"></div>
+      <div class="aurora-band" style="top:25%; left:15%; width:60%; background:linear-gradient(90deg, #AB47BC, #42A5F5, #66BB6A); animation-delay:2s;"></div>
+      <!-- Stars -->
+      <div class="star" style="left:10%;top:8%; width:2px; height:2px;"></div>
+      <div class="star" style="left:80%;top:12%; width:2px; height:2px; animation-delay:1s;"></div>
+      <div class="star" style="left:50%;top:5%; width:2px; height:2px; animation-delay:0.5s;"></div>
+      <!-- Snow ground -->
+      <div style="position:absolute; bottom:0; left:0; right:0; height:28px; background:#ECEFF1;"></div>
+      <div style="position:absolute; bottom:24px; left:0; right:0; height:10px; background:linear-gradient(180deg, transparent, #ECEFF1);"></div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">AURORA VIEWPOINT</div>
+      <div class="scenery-time">Night | Endgame Route</div>
+    </div>
+  </div>
+
+  <!-- Lavender Field -->
+  <div class="scenery-card">
+    <div class="scenery-canvas scene-lavender">
+      <!-- Lavender rows -->
+      <div style="position:absolute; bottom:0; left:0; right:0; height:60%;">
+        <div style="position:absolute; bottom:40px; left:0; right:0; height:8px; background:repeating-linear-gradient(90deg, #CE93D8 0px, #CE93D8 6px, #AB47BC 6px, #AB47BC 8px);"></div>
+        <div style="position:absolute; bottom:28px; left:0; right:0; height:8px; background:repeating-linear-gradient(90deg, #AB47BC 0px, #AB47BC 6px, #9C27B0 6px, #9C27B0 8px);"></div>
+        <div style="position:absolute; bottom:16px; left:0; right:0; height:8px; background:repeating-linear-gradient(90deg, #9C27B0 0px, #9C27B0 6px, #7B1FA2 6px, #7B1FA2 8px);"></div>
+        <div style="position:absolute; bottom:4px; left:0; right:0; height:8px; background:repeating-linear-gradient(90deg, #7B1FA2 0px, #7B1FA2 6px, #6A1B9A 6px, #6A1B9A 8px);"></div>
+      </div>
+      <!-- Butterfly -->
+      <div style="position:absolute; top:30%; left:30%; width:8px; height:4px; background:#FFD54F; border-radius:50%; animation: spriteIdle 2s infinite;"></div>
+      <!-- Windmill -->
+      <div style="position:absolute; right:15%; bottom:40px; width:6px; height:35px; background:#8D6E63;"></div>
+      <div style="position:absolute; right:10%; bottom:70px; width:30px; height:30px; border:2px solid #BCAAA4; border-radius:50%; animation: wheelSpin 4s linear infinite;">
+        <div style="position:absolute; top:50%; left:50%; width:2px; height:14px; background:#BCAAA4; transform-origin:top; transform:translate(-50%, 0);"></div>
+        <div style="position:absolute; top:50%; left:50%; width:2px; height:14px; background:#BCAAA4; transform-origin:top; transform:translate(-50%, 0) rotate(90deg);"></div>
+      </div>
+    </div>
+    <div class="scenery-info">
+      <div class="scenery-name">LAVENDER FIELD</div>
+      <div class="scenery-time">Afternoon | Prairie Route</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ BARCODE DEMO ============ -->
+<h2>BARCODE SCAN DEMO</h2>
+
+<div class="barcode-demo">
+  <h3>SCAN A BARCODE TO GENERATE CHARACTER</h3>
+  <div class="barcode-input-row">
+    <input type="text" class="barcode-input" id="barcodeInput" value="8801234567890" maxlength="13" placeholder="13-digit barcode">
+    <button class="barcode-btn" onclick="generateCharacter()">SCAN!</button>
+    <button class="barcode-btn" onclick="randomBarcode()" style="background:#42A5F5; border-color:#1E88E5;">RANDOM</button>
+  </div>
+  <div class="barcode-result" id="barcodeResult">
+    Enter a 13-digit barcode and click SCAN to generate a character!
+  </div>
+</div>
+
+<script>
+const COUNTRY_MAP = {
+  '880': {region: 'Korea', job: 'Chef', emoji: '🍳', bonus: 'cook'},
+  '490': {region: 'Japan', job: 'Crafter', emoji: '🔨', bonus: 'craft'},
+  '690': {region: 'China', job: 'Merchant', emoji: '💰', bonus: 'social'},
+  '000': {region: 'USA', job: 'Driver', emoji: '🚗', bonus: 'drive'},
+  '300': {region: 'France', job: 'Artist', emoji: '🎨', bonus: 'social'},
+  '400': {region: 'Germany', job: 'Mechanic', emoji: '🔧', bonus: 'craft'},
+  '471': {region: 'Taiwan', job: 'Healer', emoji: '💊', bonus: 'stamina'},
+  '890': {region: 'India', job: 'Sage', emoji: '📚', bonus: 'social'},
+};
+
+const NAMES = {
+  'Chef': ['MISO','BORI','NURI','DURI','SOMI','RAMI'],
+  'Crafter': ['HANA','TERU','KAZE','YUKI','SORA','MORI'],
+  'Merchant': ['MARCO','LIAN','CHEN','MING','JADE','FENG'],
+  'Driver': ['BOLT','DASH','AXLE','TURBO','BLAZE','STORM'],
+  'Artist': ['CIEL','LUNA','REVE','FLEUR','NOEL','BIJOU'],
+  'Mechanic': ['AXEL','GEAR','RUST','STEEL','VOLT','SPARK'],
+  'Healer': ['SAGE','LEAF','BLOOM','PETAL','HERB','BALM'],
+  'Sage': ['GURU','RISHI','BODHI','KARMA','SUTRA','VEDA'],
+};
+
+const FACES = ['Round','Sharp','Fluffy','Tall','Small','Chubby','Elegant','Jolly','Stern','Gentle'];
+const COLORS = ['Crimson','Azure','Emerald','Golden','Violet','Obsidian','Crystal','Amber','Silver','Rose'];
+const ACCESSORIES = ['Crown','Scarf','Shield','Wings','Horns','Ring','Amulet','Cape','Goggles','Bell'];
+
+function generateCharacter() {
+  const barcode = document.getElementById('barcodeInput').value.trim();
+  if (barcode.length !== 13 || !/^\d+$/.test(barcode)) {
+    document.getElementById('barcodeResult').innerHTML = '<span style="color:#EF5350">ERROR: Please enter a valid 13-digit barcode!</span>';
+    return;
+  }
+
+  const country = barcode.substring(0, 3);
+  const mfr = barcode.substring(3, 7);
+  const product = barcode.substring(7, 12);
+  const checksum = parseInt(barcode[12]);
+
+  const info = COUNTRY_MAP[country] || {region: 'Unknown', job: 'Traveler', emoji: '🌍', bonus: 'stamina'};
+  const mfrNum = parseInt(mfr);
+  const digits = [...product].map(Number);
+
+  const stats = {
+    cook: digits[0] * 8 + 20,
+    craft: digits[1] * 8 + 20,
+    drive: digits[2] * 6 + 15,
+    stamina: digits[3] * 10 + 30,
+    social: digits[4] * 7 + 15,
+  };
+  stats[info.bonus] = Math.min(99, stats[info.bonus] + 15);
+
+  let rarityScore = checksum * 100 + digits.reduce((a,b) => a+b, 0) * 10;
+  if (mfr === mfr.split('').reverse().join('')) rarityScore += 150;
+  if (new Set(product).size <= 2) rarityScore += 200;
+
+  let rarity, rarityColor;
+  if (rarityScore >= 900) { rarity = 'LEGENDARY'; rarityColor = '#FFD54F'; }
+  else if (rarityScore >= 750) { rarity = 'EPIC'; rarityColor = '#AB47BC'; }
+  else if (rarityScore >= 550) { rarity = 'RARE'; rarityColor = '#42A5F5'; }
+  else if (rarityScore >= 300) { rarity = 'UNCOMMON'; rarityColor = '#66BB6A'; }
+  else { rarity = 'COMMON'; rarityColor = '#9E9E9E'; }
+
+  const faceIdx = mfrNum % 10;
+  const colorIdx = (parseInt(mfr.substring(0,2)) + checksum) % 10;
+  const accIdx = (parseInt(mfr.substring(2,4)) + digits[0]) % 10;
+  const nameList = NAMES[info.job] || NAMES['Chef'];
+  const name = nameList[(digits[0] + digits[4]) % nameList.length];
+
+  const statBar = (label, value, color) => {
+    const pct = Math.round(value / 99 * 100);
+    return `<div style="display:flex;align-items:center;gap:4px;margin:2px 0;">
+      <span style="width:35px;text-align:right;color:#90A4AE;">${label}</span>
+      <div style="flex:1;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
+      </div>
+      <span style="width:20px;color:${color};">${value}</span>
+    </div>`;
+  };
+
+  document.getElementById('barcodeResult').innerHTML = `
+    <div style="display:flex; gap:20px; align-items:start;">
+      <div style="text-align:center; min-width:80px;">
+        <div style="font-size:28px; margin:5px 0;">${info.emoji}</div>
+        <div style="color:${rarityColor}; font-size:8px; font-weight:bold;">${rarity}</div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:10px; color:#FFD54F; margin-bottom:6px;">${name}</div>
+        <div style="color:#FFB347; margin-bottom:4px;">Job: ${info.job} | Origin: ${info.region} (${country})</div>
+        <div style="color:#78909C;">Face: ${FACES[faceIdx]} | Color: ${COLORS[colorIdx]} | Accessory: ${ACCESSORIES[accIdx]}</div>
+        <div style="margin-top:8px;">
+          ${statBar('COOK', stats.cook, '#FF7043')}
+          ${statBar('CRAFT', stats.craft, '#66BB6A')}
+          ${statBar('DRIVE', stats.drive, '#42A5F5')}
+          ${statBar('STMNA', stats.stamina, '#FFA726')}
+          ${statBar('SOCL', stats.social, '#AB47BC')}
+        </div>
+      </div>
+      <div style="text-align:right; color:#546E7A; font-size:5px; line-height:2;">
+        Barcode: ${barcode}<br>
+        Country: ${country}<br>
+        Manufacturer: ${mfr}<br>
+        Product: ${product}<br>
+        Checksum: ${checksum}<br>
+        Rarity Score: ${rarityScore}
+      </div>
+    </div>
+  `;
+}
+
+function randomBarcode() {
+  const countries = ['880','490','690','000','300','400'];
+  const country = countries[Math.floor(Math.random() * countries.length)];
+  let code = country;
+  for (let i = 0; i < 9; i++) code += Math.floor(Math.random() * 10);
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += parseInt(code[i]) * (i % 2 === 0 ? 1 : 3);
+  code += ((10 - (sum % 10)) % 10).toString();
+  document.getElementById('barcodeInput').value = code;
+  generateCharacter();
+}
+
+// Auto-generate on load
+generateCharacter();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Cherry Blossom Path - BarcodeQuest Landscape (Vertical)</title>
+<style>
+    body { margin: 0; background: #1a1020; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    canvas { border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .info { position: fixed; bottom: 20px; color: #aaa; font-family: sans-serif; font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="c" width="720" height="1280"></canvas>
+<div class="info">Cherry Blossom Path (720x1280 세로) - 우클릭 → 이미지 저장 가능</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let seed = 2024;
+function rng() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+function rr(a, b) { return a + rng() * (b - a); }
+function lerpC(a, b, t) { return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+function rgba(c, a) { return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`; }
+
+function brush(x, y, w, h, c, a, ang) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang || 0);
+    ctx.fillStyle = rgba(c, a);
+    ctx.beginPath(); ctx.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+}
+function oilBrush(x, y, w, h, c, a, ang) {
+    for (let i = 0; i < 3; i++) {
+        brush(x+rr(-2,2), y+rr(-1,1), w*rr(0.8,1.2), h*rr(0.7,1.1),
+            [c[0]+rr(-12,12), c[1]+rr(-10,10), c[2]+rr(-10,10)], a*rr(0.5,1), (ang||0)+rr(-0.1,0.1));
+    }
+}
+
+// ─── SKY ───
+function paintSky() {
+    const colors = [
+        [100, 140, 200],  // blue
+        [150, 180, 220],  // light blue
+        [200, 210, 230],  // pale
+        [230, 220, 220],  // warm white
+    ];
+    for (let y = 0; y < H * 0.35; y++) {
+        const t = y / (H * 0.35);
+        const seg = t * (colors.length - 1);
+        const i = Math.min(Math.floor(seg), colors.length - 2);
+        const c = lerpC(colors[i], colors[i+1], seg - i);
+        for (let x = 0; x < W; x += rr(8, 18)) {
+            oilBrush(x, y, rr(18, 40), rr(5, 12), c, rr(0.5, 0.85), rr(-0.04, 0.04));
+        }
+    }
+}
+
+// ─── DISTANT HILLS ───
+function paintDistantHills() {
+    for (let x = 0; x < W; x += rr(2, 5)) {
+        const hillH = Math.sin(x * 0.008) * 20 + Math.sin(x * 0.02) * 10;
+        const y = H * 0.3 - hillH;
+        for (let dy = 0; dy < 40; dy += rr(3, 7)) {
+            const c = lerpC([160, 170, 195], [140, 155, 175], dy / 40);
+            oilBrush(x, y + dy, rr(6, 14), rr(5, 10), c, rr(0.3, 0.6), rr(-0.1, 0.1));
+        }
+    }
+}
+
+// ─── PATH (Perspective) ───
+function paintPath() {
+    for (let d = 0; d < 600; d++) {
+        const t = d / 600;
+        const perspective = 1 - t * 0.7; // narrows toward distance
+        const cx = W * 0.5 + Math.sin(t * 3) * 30 * perspective;
+        const cy = H * 0.35 + t * (H * 0.65);
+        const width = 15 + t * 120;
+
+        for (let i = 0; i < 6; i++) {
+            const wx = rr(-width / 2, width / 2);
+            // Stone path colors
+            const isStone = Math.abs(wx) < width * 0.35;
+            const c = isStone
+                ? [rr(170, 200), rr(160, 185), rr(150, 175)]
+                : [rr(100, 130), rr(120, 150), rr(80, 100)]; // grass edges
+            oilBrush(cx + wx, cy + rr(-3, 3), rr(8, 20), rr(4, 10), c, rr(0.4, 0.7), rr(-0.1, 0.1));
+        }
+    }
+}
+
+// ─── CHERRY TREES ───
+function paintCherryTree(tx, ty, scale, side) {
+    // Trunk - elegant curve
+    for (let i = 0; i < 30; i++) {
+        const t = i / 30;
+        const lean = side * 15 * scale * Math.sin(t * Math.PI * 0.6);
+        const bx = tx + lean;
+        const by = ty - t * 120 * scale;
+        const c = [rr(60, 80), rr(35, 50), rr(30, 45)];
+        oilBrush(bx + rr(-2, 2), by, rr(5, 10) * scale * (1 - t * 0.5), rr(8, 16), c, rr(0.5, 0.85), rr(-0.1, 0.1));
+    }
+
+    // Branches
+    const branchCount = 5;
+    for (let b = 0; b < branchCount; b++) {
+        const startT = 0.4 + b * 0.12;
+        const branchAngle = side * (0.3 + b * 0.15) + rr(-0.2, 0.2);
+        const startX = tx + side * 15 * scale * Math.sin(startT * Math.PI * 0.6);
+        const startY = ty - startT * 120 * scale;
+
+        for (let i = 0; i < 15; i++) {
+            const t = i / 15;
+            const bx = startX + Math.cos(branchAngle) * t * 60 * scale;
+            const by = startY - Math.sin(0.5) * t * 30 * scale + t * t * 20 * scale;
+            brush(bx, by, rr(2, 5) * scale * (1 - t * 0.5), rr(3, 6),
+                [rr(55, 75), rr(35, 50), rr(25, 40)], rr(0.4, 0.7), branchAngle);
+        }
+    }
+
+    // Cherry blossom canopy
+    const blossomColors = [
+        [255, 200, 210],  // light pink
+        [255, 170, 190],  // pink
+        [255, 140, 170],  // deep pink
+        [255, 230, 235],  // white-pink
+        [240, 160, 180],  // mauve pink
+    ];
+
+    const canopyCX = tx + side * 30 * scale;
+    const canopyCY = ty - 100 * scale;
+
+    for (let i = 0; i < 400 * scale; i++) {
+        const angle = rr(0, Math.PI * 2);
+        const dist = rr(0, 70) * scale;
+        const x = canopyCX + Math.cos(angle) * dist * 1.3;
+        const y = canopyCY + Math.sin(angle) * dist * 0.8;
+
+        const c = blossomColors[Math.floor(rr(0, blossomColors.length))];
+        const sunlit = y < canopyCY ? 0.2 : 0;
+        const fc = [Math.min(255, c[0] + sunlit * 20), Math.min(255, c[1] + sunlit * 20), Math.min(255, c[2] + sunlit * 20)];
+        oilBrush(x, y, rr(5, 14) * scale, rr(4, 10) * scale, fc, rr(0.3, 0.7), rr(-0.3, 0.3));
+    }
+}
+
+// ─── FALLING PETALS ───
+function paintPetals() {
+    const petalColors = [
+        [255, 200, 215], [255, 180, 200], [255, 220, 230], [255, 160, 185],
+    ];
+    for (let i = 0; i < 150; i++) {
+        const x = rr(0, W);
+        const y = rr(0, H * 0.85);
+        const c = petalColors[Math.floor(rr(0, petalColors.length))];
+        const size = rr(2, 6);
+        const angle = rr(0, Math.PI);
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.fillStyle = rgba(c, rr(0.3, 0.7));
+        ctx.beginPath();
+        // Petal shape
+        ctx.moveTo(0, -size);
+        ctx.quadraticCurveTo(size * 0.8, -size * 0.3, 0, size * 0.5);
+        ctx.quadraticCurveTo(-size * 0.8, -size * 0.3, 0, -size);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// ─── GRASS & FLOWERS ───
+function paintGroundDetails() {
+    // Grass
+    for (let i = 0; i < 500; i++) {
+        const x = rr(0, W);
+        const y = rr(H * 0.5, H);
+        if (Math.abs(x - W * 0.5) < 30 + (y - H * 0.5) * 0.15) continue; // avoid path center
+
+        for (let g = 0; g < 3; g++) {
+            brush(x + rr(-2, 2), y - rr(2, 15), rr(1, 3), rr(5, 18),
+                [rr(60, 90), rr(110, 150), rr(40, 70)], rr(0.3, 0.6), rr(-0.4, 0.4));
+        }
+    }
+
+    // Small flowers along path
+    const flowerColors = [[255, 255, 100], [255, 200, 50], [200, 150, 255], [255, 255, 255]];
+    for (let i = 0; i < 80; i++) {
+        const t = rr(0, 1);
+        const pathX = W * 0.5 + Math.sin(t * 3) * 30 * (1 - t * 0.7);
+        const pathY = H * 0.35 + t * H * 0.65;
+        const side = rr(0, 1) > 0.5 ? 1 : -1;
+        const width = 15 + t * 120;
+        const x = pathX + side * (width * 0.4 + rr(5, 30));
+        const y = pathY + rr(-5, 5);
+
+        const c = flowerColors[Math.floor(rr(0, flowerColors.length))];
+        for (let p = 0; p < 4; p++) {
+            brush(x + rr(-2, 2), y + rr(-2, 2), rr(2, 5), rr(2, 4), c, rr(0.4, 0.7), rr(0, Math.PI));
+        }
+    }
+}
+
+// ─── STONE LANTERN ───
+function paintLantern(lx, ly, scale) {
+    // Base
+    for (let i = 0; i < 15; i++) {
+        brush(lx + rr(-8, 8) * scale, ly + rr(-3, 3), rr(6, 12) * scale, rr(4, 8),
+            [rr(140, 160), rr(140, 155), rr(130, 150)], rr(0.5, 0.8), rr(-0.1, 0.1));
+    }
+    // Pillar
+    for (let i = 0; i < 10; i++) {
+        brush(lx + rr(-2, 2), ly - rr(5, 30) * scale, rr(3, 6) * scale, rr(6, 12),
+            [rr(150, 170), rr(148, 165), rr(140, 158)], rr(0.5, 0.8), rr(-0.05, 0.05));
+    }
+    // Roof
+    for (let i = 0; i < 20; i++) {
+        brush(lx + rr(-12, 12) * scale, ly - 32 * scale + rr(-3, 3), rr(5, 12) * scale, rr(3, 7),
+            [rr(130, 150), rr(130, 148), rr(120, 140)], rr(0.5, 0.8), rr(-0.2, 0.2));
+    }
+    // Warm glow
+    for (let i = 0; i < 8; i++) {
+        brush(lx + rr(-3, 3), ly - 22 * scale + rr(-3, 3), rr(4, 10), rr(3, 8),
+            [255, rr(200, 230), rr(100, 150)], rr(0.1, 0.3), 0);
+    }
+}
+
+// ─── RENDER ───
+ctx.fillStyle = '#c0d0e0';
+ctx.fillRect(0, 0, W, H);
+
+paintSky();
+paintDistantHills();
+paintPath();
+paintGroundDetails();
+paintCherryTree(W * 0.1, H * 0.55, 1.5, 1);   // left tree leaning right
+paintCherryTree(W * 0.85, H * 0.5, 1.6, -1);   // right tree leaning left
+paintCherryTree(W * 0.25, H * 0.4, 0.8, 1);    // distant left
+paintCherryTree(W * 0.7, H * 0.38, 0.7, -1);   // distant right
+paintLantern(W * 0.35, H * 0.72, 1.2);
+paintPetals();
+
+// Soft pink overlay
+ctx.fillStyle = 'rgba(255, 200, 210, 0.04)';
+ctx.fillRect(0, 0, W, H);
+
+// Soft light from above
+const light = ctx.createRadialGradient(W * 0.5, H * 0.15, 30, W * 0.5, H * 0.15, W * 0.6);
+light.addColorStop(0, 'rgba(255,255,240,0.08)');
+light.addColorStop(1, 'rgba(0,0,0,0)');
+ctx.fillStyle = light;
+ctx.fillRect(0, 0, W, H);
+
+// Vignette
+const vg = ctx.createRadialGradient(W/2, H/2, H*0.25, W/2, H/2, H*0.7);
+vg.addColorStop(0, 'rgba(0,0,0,0)');
+vg.addColorStop(1, 'rgba(20,10,20,0.25)');
+ctx.fillStyle = vg;
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>

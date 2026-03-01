@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Autumn Forest Stream - BarcodeQuest Landscape</title>
+<style>
+    body { margin: 0; background: #1a1510; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    canvas { border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .info { position: fixed; bottom: 20px; color: #aaa; font-family: sans-serif; font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div class="info">Autumn Forest Stream (1280x720) - 우클릭 → 이미지 저장 가능</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+let seed = 3456;
+function rng() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+function rr(a, b) { return a + rng() * (b - a); }
+function lerpC(a, b, t) { return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+function rgba(c, a) { return `rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`; }
+
+function brush(x, y, w, h, c, a, ang) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang || 0);
+    ctx.fillStyle = rgba(c, a);
+    ctx.beginPath(); ctx.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+}
+function oilBrush(x, y, w, h, c, a, ang) {
+    for (let i = 0; i < 3; i++) {
+        brush(x+rr(-2,2), y+rr(-1,1), w*rr(0.8,1.2), h*rr(0.7,1.1),
+            [c[0]+rr(-12,12), c[1]+rr(-10,10), c[2]+rr(-10,10)], a*rr(0.5,1), (ang||0)+rr(-0.08,0.08));
+    }
+}
+
+// ─── CANOPY / SKY ───
+function paintCanopy() {
+    // Mostly covered by trees, just hints of sky
+    const skyColors = [[180, 200, 220], [200, 210, 225], [160, 185, 210]];
+    for (let i = 0; i < 300; i++) {
+        const x = rr(0, W);
+        const y = rr(0, H * 0.2);
+        const c = skyColors[Math.floor(rr(0, skyColors.length))];
+        oilBrush(x, y, rr(20, 60), rr(10, 25), c, rr(0.2, 0.5), rr(-0.1, 0.1));
+    }
+}
+
+// ─── DEEP FOREST BACKGROUND ───
+function paintForestBG() {
+    // Dense forest wall
+    for (let y = 0; y < H * 0.5; y += rr(2, 5)) {
+        for (let x = 0; x < W; x += rr(3, 8)) {
+            const depth = y / (H * 0.5);
+            const c = lerpC([25, 40, 20], [60, 80, 30], depth);
+            oilBrush(x, y, rr(8, 18), rr(6, 14), c, rr(0.4, 0.7), rr(-0.2, 0.2));
+        }
+    }
+}
+
+// ─── AUTUMN TREES ───
+function paintAutumnTree(tx, ty, scale, palette) {
+    // Trunk
+    for (let i = 0; i < 25 * scale; i++) {
+        const t = i / (25 * scale);
+        const sway = Math.sin(t * 2) * 3 * scale;
+        brush(tx + sway + rr(-2, 2), ty - t * 100 * scale,
+            rr(4, 8) * scale * (1 - t * 0.4), rr(8, 15),
+            [rr(55, 75), rr(35, 50), rr(20, 30)], rr(0.5, 0.85), rr(-0.08, 0.08));
+    }
+
+    // Branches
+    for (let b = 0; b < 6; b++) {
+        const startT = 0.3 + b * 0.1;
+        const angle = rr(-1.2, 1.2);
+        const len = rr(20, 50) * scale;
+        const sx = tx + Math.sin(startT * 2) * 3 * scale;
+        const sy = ty - startT * 100 * scale;
+        for (let i = 0; i < 8; i++) {
+            const t = i / 8;
+            brush(sx + Math.cos(angle) * len * t, sy + Math.sin(angle) * len * t - t * 10,
+                rr(2, 4) * scale * (1 - t * 0.5), rr(3, 6),
+                [rr(50, 70), rr(35, 50), rr(20, 30)], rr(0.4, 0.7), angle);
+        }
+    }
+
+    // Foliage
+    const foliageColors = palette || [
+        [220, 100, 30],  // orange
+        [240, 160, 40],  // gold
+        [200, 60, 30],   // red
+        [180, 130, 30],  // bronze
+        [250, 200, 50],  // bright yellow
+        [160, 40, 20],   // deep red
+    ];
+
+    for (let i = 0; i < 300 * scale * scale; i++) {
+        const angle = rr(0, Math.PI * 2);
+        const dist = rr(0, 55) * scale;
+        const x = tx + Math.cos(angle) * dist * 1.2;
+        const y = ty - 80 * scale + Math.sin(angle) * dist * 0.7;
+
+        const c = foliageColors[Math.floor(rr(0, foliageColors.length))];
+        // Light from upper left
+        const lit = (x < tx && y < ty - 80 * scale) ? 1.2 : 0.8;
+        const fc = [Math.min(255, c[0] * lit), Math.min(255, c[1] * lit), Math.min(255, c[2] * lit)];
+
+        oilBrush(x, y, rr(6, 16) * scale, rr(5, 12) * scale, fc, rr(0.3, 0.7), rr(-0.4, 0.4));
+    }
+}
+
+// ─── STREAM ───
+function paintStream() {
+    // Stream bed
+    const streamCX = W * 0.5;
+    const streamTop = H * 0.45;
+
+    for (let d = 0; d < 400; d++) {
+        const t = d / 400;
+        const cx = streamCX + Math.sin(t * 4) * (30 + t * 40);
+        const cy = streamTop + t * (H - streamTop);
+        const width = 20 + t * 80;
+
+        for (let i = 0; i < 8; i++) {
+            const wx = rr(-width / 2, width / 2);
+            const x = cx + wx;
+            const y = cy + rr(-2, 2);
+
+            // Reflection of autumn colors
+            const reflectionChance = rng();
+            let c;
+            if (reflectionChance > 0.85) {
+                c = [rr(200, 240), rr(120, 180), rr(30, 60)]; // autumn reflection
+            } else if (reflectionChance > 0.75) {
+                c = [rr(160, 200), rr(180, 210), rr(200, 225)]; // sky reflection
+            } else {
+                c = [rr(40, 70), rr(70, 100), rr(90, 120)]; // water base
+            }
+
+            // Shimmer
+            const wave = Math.sin(x * 0.05 + y * 0.03) * 2;
+            oilBrush(x + wave, y, rr(10, 25), rr(3, 6), c, rr(0.4, 0.7), rr(-0.03, 0.03));
+        }
+
+        // White water over rocks
+        if (rng() > 0.9) {
+            for (let i = 0; i < 5; i++) {
+                brush(cx + rr(-width * 0.3, width * 0.3), cy + rr(-3, 3),
+                    rr(6, 15), rr(2, 5), [255, 255, 255], rr(0.15, 0.35), rr(-0.1, 0.1));
+            }
+        }
+    }
+}
+
+// ─── ROCKS ───
+function paintRocks() {
+    const rockPositions = [
+        [W*0.42, H*0.55, 1.0], [W*0.58, H*0.52, 0.8], [W*0.35, H*0.7, 1.2],
+        [W*0.62, H*0.68, 0.9], [W*0.5, H*0.6, 0.7], [W*0.48, H*0.75, 1.1],
+    ];
+
+    for (const [rx, ry, scale] of rockPositions) {
+        for (let i = 0; i < 25 * scale; i++) {
+            const c = [rr(80, 110), rr(80, 100), rr(75, 95)];
+            // Moss on top
+            const isTop = rng() > 0.7;
+            const mc = isTop ? [rr(60, 90), rr(100, 130), rr(40, 60)] : c;
+            oilBrush(rx + rr(-12, 12) * scale, ry + rr(-10, 8) * scale,
+                rr(6, 14) * scale, rr(5, 10) * scale, mc, rr(0.5, 0.8), rr(-0.3, 0.3));
+        }
+    }
+}
+
+// ─── FALLEN LEAVES ───
+function paintFallenLeaves() {
+    const leafColors = [
+        [220, 100, 30], [240, 160, 40], [200, 60, 30], [180, 130, 30], [250, 200, 50],
+    ];
+
+    // On ground
+    for (let i = 0; i < 300; i++) {
+        const x = rr(0, W);
+        const y = rr(H * 0.45, H);
+        // Avoid stream center
+        const streamX = W * 0.5 + Math.sin((y - H * 0.45) / (H * 0.55) * 4) * (30 + (y - H * 0.45) / (H * 0.55) * 40);
+        const streamW = 20 + (y - H * 0.45) / (H * 0.55) * 80;
+        if (Math.abs(x - streamX) < streamW * 0.4) continue;
+
+        const c = leafColors[Math.floor(rr(0, leafColors.length))];
+        brush(x, y, rr(3, 7), rr(2, 5), c, rr(0.3, 0.6), rr(0, Math.PI));
+    }
+
+    // Floating on water
+    for (let i = 0; i < 40; i++) {
+        const t = rr(0, 1);
+        const streamX = W * 0.5 + Math.sin(t * 4) * (30 + t * 40);
+        const streamY = H * 0.45 + t * (H * 0.55);
+        const x = streamX + rr(-20, 20);
+        const c = leafColors[Math.floor(rr(0, leafColors.length))];
+        brush(x, streamY, rr(3, 6), rr(2, 4), c, rr(0.3, 0.6), rr(0, Math.PI));
+    }
+
+    // Falling in air
+    for (let i = 0; i < 30; i++) {
+        const x = rr(0, W);
+        const y = rr(0, H * 0.5);
+        const c = leafColors[Math.floor(rr(0, leafColors.length))];
+        brush(x, y, rr(3, 6), rr(2, 4), c, rr(0.2, 0.5), rr(0, Math.PI));
+    }
+}
+
+// ─── FOREST FLOOR ───
+function paintForestFloor() {
+    for (let y = H * 0.45; y < H; y += rr(2, 5)) {
+        for (let x = 0; x < W; x += rr(3, 8)) {
+            const streamX = W * 0.5 + Math.sin((y - H * 0.45) / (H * 0.55) * 4) * (30 + (y - H * 0.45) / (H * 0.55) * 40);
+            const streamW = 20 + (y - H * 0.45) / (H * 0.55) * 80;
+            if (Math.abs(x - streamX) < streamW * 0.5) continue;
+
+            const c = lerpC([60, 50, 30], [40, 35, 20], rng());
+            oilBrush(x, y, rr(6, 14), rr(4, 10), c, rr(0.3, 0.6), rr(-0.2, 0.2));
+        }
+    }
+}
+
+// ─── LIGHT RAYS ───
+function paintLightRays() {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    for (let i = 0; i < 8; i++) {
+        const x = W * 0.3 + rr(-50, 100);
+        const angle = rr(0.6, 1.0);
+        const len = rr(200, 500);
+
+        ctx.save();
+        ctx.translate(x, 0);
+        ctx.rotate(angle);
+
+        const grad = ctx.createLinearGradient(0, 0, 0, len);
+        grad.addColorStop(0, 'rgba(255,230,150,0.05)');
+        grad.addColorStop(0.5, 'rgba(255,220,130,0.03)');
+        grad.addColorStop(1, 'rgba(255,210,100,0)');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(-15, 0, 30, len);
+        ctx.restore();
+    }
+    ctx.restore();
+}
+
+// ─── RENDER ───
+ctx.fillStyle = '#1a2010';
+ctx.fillRect(0, 0, W, H);
+
+paintCanopy();
+paintForestBG();
+paintForestFloor();
+paintStream();
+paintRocks();
+
+// Trees - back to front
+const greenPalette = [[40, 80, 30], [50, 90, 35], [60, 100, 40], [35, 70, 25], [55, 95, 38]];
+paintAutumnTree(W * 0.08, H * 0.4, 0.6, greenPalette); // green (background)
+paintAutumnTree(W * 0.92, H * 0.38, 0.6, greenPalette);
+
+paintAutumnTree(W * 0.25, H * 0.42, 0.9, null); // mid
+paintAutumnTree(W * 0.75, H * 0.4, 0.85, null);
+
+const redPalette = [[200, 50, 25], [180, 30, 20], [220, 80, 30], [160, 40, 20], [190, 60, 25]];
+paintAutumnTree(W * 0.12, H * 0.48, 1.3, redPalette); // front left
+paintAutumnTree(W * 0.88, H * 0.46, 1.2, null); // front right
+
+const goldPalette = [[250, 200, 50], [240, 180, 40], [255, 220, 60], [230, 160, 30], [245, 190, 45]];
+paintAutumnTree(W * 0.4, H * 0.38, 0.7, goldPalette); // back center
+
+paintFallenLeaves();
+paintLightRays();
+
+// Warm forest glow
+ctx.fillStyle = 'rgba(200, 150, 50, 0.03)';
+ctx.fillRect(0, 0, W, H);
+
+// Vignette
+const vg = ctx.createRadialGradient(W/2, H/2, W*0.2, W/2, H/2, W*0.7);
+vg.addColorStop(0, 'rgba(0,0,0,0)');
+vg.addColorStop(1, 'rgba(10,8,5,0.45)');
+ctx.fillStyle = vg;
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 """
-StockBot 설정 파일 v2.0
+StockBot 설정 파일 v3.1
 한국투자증권 API + 매매 + 리스크 + 알림 설정
+200만원 소규모 자본 최적화
+v3.1: 5전략 통합앙상블 반영 (임계값 조정)
 """
 import os
 from dotenv import load_dotenv
@@ -13,31 +15,78 @@ KIS_APP_SECRET = os.getenv("KIS_APP_SECRET", "")
 KIS_ACCOUNT_NO = os.getenv("KIS_ACCOUNT_NO", "")
 KIS_IS_PAPER = os.getenv("KIS_IS_PAPER", "true").lower() == "true"
 
+# === 트레이딩 모드 (이중 안전장치) ===
+# paper: 페이퍼 트레이딩 (기본값), live: 실전 매매
+TRADING_MODE = os.getenv("TRADING_MODE", "paper")
+# 라이브 전환 시 이중 확인 (TRADING_MODE=live + 이 값도 true여야 실전 매매)
+LIVE_TRADING_CONFIRMED = os.getenv("LIVE_TRADING_CONFIRMED", "false").lower() == "true"
+
+# === 초기 자본 ===
+# 환경변수로 설정 가능, 기본값 200만원
+INITIAL_CAPITAL = int(os.getenv("INITIAL_CAPITAL", "2000000"))
+
+# === 자본 규모별 자동 조정 ===
+def _auto_adjust_config(capital: int) -> dict:
+    """자본 규모에 따라 매매 설정 자동 조정"""
+    if capital <= 3_000_000:  # 300만원 이하 소규모
+        return {
+            "max_positions": 4,
+            "max_single_pct": 30.0,
+            "max_sector_pct": 50.0,
+            "min_cash_reserve_pct": 15.0,
+            "take_profit_pct": 15.0,  # v3.2: 10→15 (1년 백테스트 최적)
+            "min_buy_score": 58,  # v3.1: 62→58 (서브스코어 범위 확대 반영)
+        }
+    elif capital <= 10_000_000:  # 1000만원 이하 중규모
+        return {
+            "max_positions": 8,
+            "max_single_pct": 20.0,
+            "max_sector_pct": 40.0,
+            "min_cash_reserve_pct": 18.0,
+            "take_profit_pct": 12.0,
+            "min_buy_score": 59,  # v3.1: 63→59
+        }
+    else:  # 대규모
+        return {
+            "max_positions": 15,
+            "max_single_pct": 10.0,
+            "max_sector_pct": 30.0,
+            "min_cash_reserve_pct": 20.0,
+            "take_profit_pct": 15.0,
+            "min_buy_score": 60,  # v3.1: 65→60
+        }
+
+_auto = _auto_adjust_config(INITIAL_CAPITAL)
+
 # === 매매 설정 ===
 STOCK_TRADING_CONFIG = {
-    "max_positions": 15,              # 최대 동시 보유 종목
-    "max_single_pct": 10.0,          # 단일 종목 최대 비율 (%)
-    "max_sector_pct": 30.0,          # 단일 섹터 최대 비율 (%)
-    "min_cash_reserve_pct": 20.0,    # 최소 현금 보유 비율 (%)
-    "stop_loss_pct": -5.0,           # 손절 라인 (%)
-    "take_profit_pct": 15.0,         # 익절 라인 (%)
-    "trailing_stop_pct": -5.0,       # 트레일링 스탑 (고점 대비 %)
-    "trade_interval_minutes": 5,      # 매매 체크 간격 (분)
-    "min_buy_score": 65,             # 최소 매수 점수
-    "min_confidence": 0.3,           # 최소 신뢰도
+    "max_positions": _auto["max_positions"],
+    "max_single_pct": _auto["max_single_pct"],
+    "max_sector_pct": _auto["max_sector_pct"],
+    "min_cash_reserve_pct": _auto["min_cash_reserve_pct"],
+    "stop_loss_pct": -5.0,
+    "take_profit_pct": _auto["take_profit_pct"],
+    "trailing_stop_pct": -5.0,
+    "trade_interval_minutes": 5,
+    "min_buy_score": _auto["min_buy_score"],
+    "min_confidence": 0.15,  # v3.1: 0.3→0.15 (서브스코어 범위 확대 반영)
 }
 
 # === 서킷브레이커 설정 ===
 CIRCUIT_BREAKER_CONFIG = {
-    "max_daily_loss_pct": -3.0,      # 일일 최대 손실
-    "max_consecutive_losses": 5,      # 최대 연속 손실
-    "max_daily_trades": 20,          # 일일 최대 거래 횟수
-    "cooldown_minutes": 30,          # 발동 후 쿨다운 (분)
+    "max_daily_loss_pct": -3.0,
+    "max_consecutive_losses": 5,
+    "max_daily_trades": 20,
+    "cooldown_minutes": 30,
 }
+
+# === 손실 한도 (KRW 절대값) ===
+MAX_DAILY_LOSS_KRW = int(os.getenv("MAX_DAILY_LOSS_KRW", str(int(INITIAL_CAPITAL * 0.03))))
+MAX_WEEKLY_LOSS_KRW = int(os.getenv("MAX_WEEKLY_LOSS_KRW", str(int(INITIAL_CAPITAL * 0.07))))
 
 # === 분석 설정 ===
 ANALYSIS_CONFIG = {
-    # 퀀트 점수 가중치 (8전략)
+    # 퀀트 점수 가중치 (v3.1: 5전략 통합, 국면별 자동 조정)
     "weight_technical": 0.25,
     "weight_sentiment": 0.20,
     "weight_flow": 0.20,
@@ -62,6 +111,8 @@ ANALYSIS_CONFIG = {
 }
 
 # === 관심 종목 ===
+# 200만원 기준: 1주당 30만원 이하 종목만 (삼성바이오, LG에너지 제외)
+# 대체 종목: 하나금융, SK, 삼성생명, SK텔레콤
 WATCHLIST = [
     {"code": "005930", "name": "삼성전자", "sector": "반도체"},
     {"code": "000660", "name": "SK하이닉스", "sector": "반도체"},
@@ -73,11 +124,13 @@ WATCHLIST = [
     {"code": "028260", "name": "삼성물산", "sector": "건설"},
     {"code": "105560", "name": "KB금융", "sector": "금융"},
     {"code": "055550", "name": "신한지주", "sector": "금융"},
+    {"code": "086790", "name": "하나금융지주", "sector": "금융"},
     {"code": "005380", "name": "현대자동차", "sector": "자동차"},
     {"code": "000270", "name": "기아", "sector": "자동차"},
-    {"code": "207940", "name": "삼성바이오로직스", "sector": "바이오"},
     {"code": "068270", "name": "셀트리온", "sector": "바이오"},
-    {"code": "373220", "name": "LG에너지솔루션", "sector": "2차전지"},
+    {"code": "034730", "name": "SK", "sector": "지주"},
+    {"code": "032830", "name": "삼성생명", "sector": "보험"},
+    {"code": "017670", "name": "SK텔레콤", "sector": "통신"},
 ]
 
 # === 대시보드 ===

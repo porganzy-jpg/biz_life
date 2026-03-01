@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Golden Hills Sunset - BarcodeQuest Landscape</title>
+<style>
+    body { margin: 0; background: #1a1a2e; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    canvas { border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.6); }
+    .info { position: fixed; bottom: 20px; color: #aaa; font-family: sans-serif; font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div class="info">Golden Hills Sunset (1280x720) - 우클릭 → 이미지 저장 가능</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// Seeded random for reproducibility
+let seed = 42;
+function rng() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
+function rr(a, b) { return a + rng() * (b - a); }
+
+// Color utilities
+function lerpColor(c1, c2, t) {
+    return [
+        c1[0] + (c2[0] - c1[0]) * t,
+        c1[1] + (c2[1] - c1[1]) * t,
+        c1[2] + (c2[2] - c1[2]) * t
+    ];
+}
+function toRgba(c, a) { return `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`; }
+
+// Oil brush stroke
+function brushStroke(x, y, w, h, color, alpha, angle) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle || 0);
+    ctx.fillStyle = toRgba(color, alpha);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function thickBrush(x, y, w, h, color, alpha, angle) {
+    const vary = 0.15;
+    for (let i = 0; i < 3; i++) {
+        const c = [
+            color[0] + rr(-15, 15),
+            color[1] + rr(-10, 10),
+            color[2] + rr(-10, 10)
+        ];
+        brushStroke(x + rr(-2, 2), y + rr(-1, 1), w * rr(0.8, 1.2), h * rr(0.7, 1.1), c, alpha * rr(0.6, 1), angle + rr(-0.1, 0.1));
+    }
+}
+
+// ─── SKY ───
+function paintSky() {
+    const skyColors = [
+        [45, 20, 60],    // deep purple top
+        [120, 50, 80],   // warm purple
+        [220, 100, 60],  // orange-red
+        [250, 170, 60],  // golden
+        [255, 220, 130], // light gold near horizon
+    ];
+
+    for (let y = 0; y < H * 0.55; y++) {
+        const t = y / (H * 0.55);
+        let c;
+        if (t < 0.25) c = lerpColor(skyColors[0], skyColors[1], t / 0.25);
+        else if (t < 0.5) c = lerpColor(skyColors[1], skyColors[2], (t - 0.25) / 0.25);
+        else if (t < 0.75) c = lerpColor(skyColors[2], skyColors[3], (t - 0.5) / 0.25);
+        else c = lerpColor(skyColors[3], skyColors[4], (t - 0.75) / 0.25);
+
+        for (let x = 0; x < W; x += rr(8, 20)) {
+            thickBrush(x, y, rr(20, 45), rr(4, 10), c, rr(0.6, 0.9), rr(-0.05, 0.05));
+        }
+    }
+}
+
+// ─── SUN ───
+function paintSun() {
+    const cx = W * 0.65, cy = H * 0.32;
+    for (let r = 120; r > 0; r -= 2) {
+        const t = 1 - r / 120;
+        const c = lerpColor([255, 200, 80], [255, 255, 220], t);
+        ctx.fillStyle = toRgba(c, 0.03 + t * 0.15);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    // Sun rays
+    for (let i = 0; i < 60; i++) {
+        const angle = rr(0, Math.PI * 2);
+        const dist = rr(20, 200);
+        const c = [255, rr(200, 240), rr(80, 150)];
+        brushStroke(cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, rr(30, 80), rr(3, 8), c, rr(0.02, 0.08), angle);
+    }
+}
+
+// ─── CLOUDS ───
+function paintClouds() {
+    const cloudDefs = [
+        { x: 150, y: 80, scale: 1.2 },
+        { x: 400, y: 120, scale: 0.8 },
+        { x: 900, y: 60, scale: 1.0 },
+        { x: 1100, y: 140, scale: 0.6 },
+    ];
+    for (const cd of cloudDefs) {
+        for (let i = 0; i < 80; i++) {
+            const x = cd.x + rr(-80, 80) * cd.scale;
+            const y = cd.y + rr(-20, 25) * cd.scale;
+            const lit = rr(0, 1) > 0.5;
+            const c = lit ? [255, rr(210, 240), rr(160, 200)] : [rr(200, 230), rr(150, 180), rr(130, 160)];
+            thickBrush(x, y, rr(20, 50) * cd.scale, rr(8, 18) * cd.scale, c, rr(0.15, 0.4), rr(-0.1, 0.1));
+        }
+    }
+}
+
+// ─── DISTANT HILLS ───
+function paintDistantHills() {
+    // Far hills - bluish/purple atmospheric perspective
+    for (let layer = 0; layer < 3; layer++) {
+        const baseY = H * (0.42 + layer * 0.05);
+        const haze = 1 - layer * 0.3;
+        const baseColor = lerpColor([140, 120, 160], [80, 100, 60], layer / 2);
+
+        for (let x = 0; x < W; x += rr(3, 8)) {
+            const hillH = Math.sin(x * 0.003 + layer * 2) * 30 + Math.sin(x * 0.008 + layer) * 15;
+            const y = baseY - hillH;
+            const c = [baseColor[0] + rr(-10, 10), baseColor[1] + rr(-10, 10), baseColor[2] + rr(-10, 10)];
+            thickBrush(x, y, rr(8, 18), rr(15, 35), c, rr(0.3, 0.6) * haze, rr(-0.1, 0.1));
+        }
+    }
+}
+
+// ─── ROLLING GREEN HILLS (FOREGROUND) ───
+function paintHills() {
+    // Main rolling hills
+    const hillConfigs = [
+        { baseY: H * 0.55, amp: 40, freq: 0.004, color: [100, 140, 50], h: 200 },
+        { baseY: H * 0.6, amp: 50, freq: 0.003, color: [80, 130, 40], h: 220 },
+        { baseY: H * 0.7, amp: 35, freq: 0.005, color: [60, 110, 30], h: 250 },
+    ];
+
+    for (const hc of hillConfigs) {
+        for (let x = 0; x < W; x += rr(2, 6)) {
+            const hillY = hc.baseY - Math.sin(x * hc.freq + 1) * hc.amp - Math.sin(x * hc.freq * 2.5) * hc.amp * 0.3;
+            const sunInfluence = Math.max(0, 1 - Math.abs(x - W * 0.65) / (W * 0.5));
+
+            for (let y = hillY; y < hillY + hc.h; y += rr(3, 8)) {
+                const depth = (y - hillY) / hc.h;
+                const sunC = lerpColor(hc.color, [180, 170, 50], sunInfluence * 0.4 * (1 - depth));
+                const c = lerpColor(sunC, [40, 60, 20], depth * 0.5);
+                thickBrush(x + rr(-3, 3), y, rr(6, 16), rr(4, 10), c, rr(0.5, 0.85), rr(-0.3, 0.3));
+            }
+        }
+    }
+}
+
+// ─── WILDFLOWERS ───
+function paintFlowers() {
+    const flowerColors = [
+        [255, 100, 80],  // red poppies
+        [255, 200, 50],  // yellow
+        [255, 255, 200], // white
+        [200, 100, 200], // purple
+    ];
+
+    for (let i = 0; i < 400; i++) {
+        const x = rr(0, W);
+        const baseY = H * 0.65 + rr(0, H * 0.25);
+        const hillY = baseY - Math.sin(x * 0.003 + 1) * 35;
+        const y = Math.min(hillY + rr(-5, 30), H - 10);
+        if (y < H * 0.6) continue;
+
+        const c = flowerColors[Math.floor(rr(0, flowerColors.length))];
+        const size = rr(2, 6) * (1 + (y - H * 0.6) / (H * 0.4));
+
+        // Stem
+        brushStroke(x, y - size, 1, size * 1.5, [60, 100, 30], 0.5, rr(-0.2, 0.2));
+        // Petals
+        for (let p = 0; p < 4; p++) {
+            const angle = p * Math.PI / 2 + rr(-0.3, 0.3);
+            brushStroke(x + Math.cos(angle) * size * 0.4, y - size * 2 + Math.sin(angle) * size * 0.4,
+                size * 0.8, size * 0.5, c, rr(0.5, 0.8), angle);
+        }
+    }
+}
+
+// ─── SINGLE TREE ───
+function paintTree(tx, ty, scale) {
+    // Trunk
+    for (let i = 0; i < 20; i++) {
+        const c = [rr(60, 80), rr(40, 55), rr(20, 35)];
+        brushStroke(tx + rr(-3, 3) * scale, ty - rr(0, 60) * scale, rr(4, 8) * scale, rr(10, 20) * scale, c, rr(0.6, 0.9), rr(-0.1, 0.1));
+    }
+    // Canopy
+    for (let i = 0; i < 150; i++) {
+        const angle = rr(0, Math.PI * 2);
+        const dist = rr(0, 35) * scale;
+        const x = tx + Math.cos(angle) * dist;
+        const y = ty - 70 * scale + Math.sin(angle) * dist * 0.6;
+        const sunSide = (x - tx) > 0 ? 1 : 0;
+        const c = sunSide
+            ? [rr(80, 140), rr(130, 180), rr(30, 60)]
+            : [rr(30, 70), rr(70, 110), rr(15, 40)];
+        thickBrush(x, y, rr(8, 18) * scale, rr(6, 14) * scale, c, rr(0.4, 0.8), rr(-0.3, 0.3));
+    }
+}
+
+// ─── PATH ───
+function paintPath() {
+    for (let d = 0; d < 300; d++) {
+        const t = d / 300;
+        const cx = W * 0.45 + t * W * 0.15;
+        const cy = H * 0.68 + t * (H * 0.32);
+        const width = 5 + t * 40;
+        for (let i = 0; i < 5; i++) {
+            const c = [rr(170, 200), rr(150, 170), rr(100, 130)];
+            brushStroke(cx + rr(-width, width), cy + rr(-3, 3), rr(10, 25), rr(4, 8), c, rr(0.3, 0.6), rr(-0.2, 0.2));
+        }
+    }
+}
+
+// ─── RENDER ───
+function render() {
+    ctx.fillStyle = '#2d1440';
+    ctx.fillRect(0, 0, W, H);
+
+    paintSky();
+    paintSun();
+    paintClouds();
+    paintDistantHills();
+    paintHills();
+    paintPath();
+    paintTree(W * 0.15, H * 0.62, 1.2);
+    paintTree(W * 0.85, H * 0.58, 1.0);
+    paintTree(W * 0.35, H * 0.56, 0.6);
+    paintFlowers();
+
+    // Warm overlay for cohesion
+    ctx.fillStyle = 'rgba(255, 180, 60, 0.04)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Vignette
+    const vg = ctx.createRadialGradient(W / 2, H / 2, W * 0.3, W / 2, H / 2, W * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+}
+
+render();
+</script>
+</body>
+</html>

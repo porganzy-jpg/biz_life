@@ -73,6 +73,20 @@ class StockRiskManager:
                 })
         return rebalance_needed
 
+    def can_afford_stock(self, stock_price: float, total_assets: float) -> bool:
+        """
+        1주 가격이 포지션 한도 내인지 확인.
+
+        Args:
+            stock_price: 1주 가격
+            total_assets: 총 자산
+
+        Returns:
+            bool: 매수 가능 여부
+        """
+        max_per_stock = total_assets * (self.config["max_single_pct"] / 100)
+        return stock_price <= max_per_stock
+
     def validate_trade(self, action: str, amount: float, cash: float,
                        positions: dict, confidence: float) -> tuple:
         """매매 전 검증"""
@@ -81,6 +95,7 @@ class StockRiskManager:
                 return False, "현금 부족"
             if len(positions) >= self.config["max_positions"]:
                 return False, "최대 보유 종목 초과"
-            if confidence < 0.4:
-                return False, f"신뢰도 부족: {confidence:.2f}"
+            min_conf = self.config.get("min_confidence", 0.15)
+            if confidence < min_conf:
+                return False, f"신뢰도 부족: {confidence:.2f} < {min_conf}"
         return True, "통과"

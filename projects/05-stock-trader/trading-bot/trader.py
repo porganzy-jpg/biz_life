@@ -1,9 +1,16 @@
 """
-StockBot v2.2 주식 자동매매 트레이더
+StockBot v3.3 주식 자동매매 트레이더
 
-8전략 앙상블 + 뉴스 감성분석 + 서킷브레이커 + DB 영속성 + 스케줄러
-+ 시장 국면(Regime) 감지 및 전략 가중치 동적 조정
+5전략 통합 앙상블 v3.2 (Z-score + tanh + 폭락가드 + 적응형 임계값)
++ 순수 퀀트 (뉴스 부스트 제거) + 트레일링 스탑 + 서킷브레이커
++ DB 영속성 + 스케줄러 + 시장 국면(Regime) 감지 + 국면별 가중치 적응
 + 스마트 주문 실행 엔진 (TWAP/VWAP/Smart Execute)
++ yfinance 실시간 데이터 + 라이브/페이퍼 이중 안전장치
+
+v3.3 변경사항 (2025년 1년 백테스트 최적화):
+  - 뉴스 부스트 제거 (순수 퀀트 +35.40% > 뉴스혼합 +31.37%)
+  - 익절 10% → 15% + 트레일링 스탑 -5% 조합 (MDD -5.01%)
+  - 익절 시 전량 매도 (50% 분할 매도 → 전량)
 """
 import sys
 import os
@@ -25,7 +32,8 @@ from regime_detector import RegimeDetector, MarketRegime
 from execution_engine import ExecutionEngine, Side
 from config import (
     STOCK_TRADING_CONFIG, WATCHLIST, ANALYSIS_CONFIG,
-    CIRCUIT_BREAKER_CONFIG,
+    CIRCUIT_BREAKER_CONFIG, INITIAL_CAPITAL,
+    TRADING_MODE, LIVE_TRADING_CONFIRMED,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,14 +44,24 @@ def _get_stock_selector():
     return StockSelectorEnsemble()
 
 
-def _get_news_engine():
-    from sentiment import SentimentAnalyzer
-    from crawler import NewsCrawler
-    return NewsCrawler(), SentimentAnalyzer()
+def _confirm_live_trading() -> bool:
+    """라이브 모드 시작 시 콘솔 확인 프롬프트"""
+    print("\n" + "!" * 60)
+    print("  경고: 실전 매매 모드입니다!")
+    print(f"  초기 자본: {INITIAL_CAPITAL:,}원")
+    print(f"  종목 수: {len(WATCHLIST)}개")
+    print("  실제 돈이 사용됩니다. 신중히 확인하세요.")
+    print("!" * 60)
+    print()
+    try:
+        answer = input("  실전 매매를 시작하려면 'CONFIRM'을 입력하세요: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        return False
+    return answer == "CONFIRM"
 
 
 class StockTrader:
-    """주식 자동매매 트레이더 v2.2"""
+    """주식 자동매매 트레이더 v3.3"""
 
     def __init__(self, paper_trading: bool = True):
         self.client = BrokerClient(paper_trading=paper_trading)
@@ -54,10 +72,10 @@ class StockTrader:
         self.scheduler = TradingScheduler()
         self.regime_detector = RegimeDetector()
         self.execution_engine = ExecutionEngine(broker_client=self.client)
-        self.paper_trading = paper_trading
+        self.paper_trading = self.client.paper_trading
 
         self.trade_history = []
-        self._initial_capital = 100_000_000
+        self._initial_capital = INITIAL_CAPITAL
         self._load_history()
 
         # 스케줄러 콜백 설정
@@ -75,8 +93,14 @@ class StockTrader:
         self.trade_history = list(reversed(trades))
 
     def _on_pre_market(self):
-        """장 시작 전 사전 분석 (시장 국면 감지 포함)"""
+        """장 시작 전 사전 분석 (시장 국면 감지 + 데이터 프리로드)"""
         logger.info("=== 사전 분석 시작 (08:30) ===")
+
+        # 데이터 프리로드
+        logger.info("워치리스트 데이터 프리로드...")
+        load_result = self.client.preload_data(WATCHLIST)
+        loaded = sum(1 for v in load_result.values() if v["loaded"])
+        logger.info(f"프리로드 완료: {loaded}/{len(WATCHLIST)}종목")
 
         # 시장 국면 감지
         regime = self._update_regime()
@@ -86,7 +110,8 @@ class StockTrader:
             f"[사전분석] 시장 국면: {regime.value}\n"
             f"ADX: {regime_status['details'].get('adx', '-')}\n"
             f"변동성: {regime_status['details'].get('recent_volatility', '-')}%\n"
-            f"20일 수익률: {regime_status['details'].get('recent_return_pct', '-')}%"
+            f"20일 수익률: {regime_status['details'].get('recent_return_pct', '-')}%\n"
+            f"데이터 로드: {loaded}/{len(WATCHLIST)}종목"
         )
 
         scan = self.scan_watchlist()
@@ -112,11 +137,7 @@ class StockTrader:
         self._generate_daily_report()
 
     def _update_regime(self) -> MarketRegime:
-        """
-        워치리스트 종목의 OHLCV를 수집하여 시장 국면을 감지합니다.
-
-        이 메서드는 매매 사이클 시작 시 호출되어 regime_detector 상태를 갱신합니다.
-        """
+        """워치리스트 종목의 OHLCV를 수집하여 시장 국면을 감지합니다."""
         price_data_list = []
         for stock in WATCHLIST:
             try:
@@ -130,42 +151,16 @@ class StockTrader:
         return regime
 
     def analyze_stock(self, symbol: str, name: str) -> dict:
-        """개별 종목 분석 (퀀트 + 뉴스 감성 + 시장국면 적응형 가중치)"""
+        """개별 종목 분석 (순수 퀀트 + 시장국면 적응형 가중치)"""
         df = self.client.fetch_ohlcv(symbol, count=200)
         if df is None or df.empty:
             return {"symbol": symbol, "name": name, "action": "HOLD", "score": 0}
 
-        # 퀀트 분석 (시장 국면 가중치 적용)
+        # 순수 퀀트 분석 (국면 직접 전달 → 내부 가중치 자동 적용)
         selector = _get_stock_selector()
-        regime_weights = self.regime_detector.get_strategy_weights()
-        selector.apply_regime_weights(regime_weights)
-        result = selector.evaluate(df, symbol, name)
-        result["regime"] = self.regime_detector.current_regime.value
-
-        # 뉴스 감성 분석 (점수에 반영)
-        try:
-            crawler, analyzer = _get_news_engine()
-            news = crawler.fetch_all_news(symbol, name)
-            if news:
-                sentiment = analyzer.analyze_batch(news)
-                sentiment_score = sentiment["overall"]
-                # 감성 점수를 전체 점수에 15% 반영
-                quant_score = result["score"]
-                news_adjustment = sentiment_score * 15  # -15 ~ +15
-                result["score"] = round(
-                    max(10, min(90, quant_score * 0.85 + (50 + news_adjustment) * 0.15)), 1
-                )
-                result["sentiment"] = sentiment
-                # 감성에 따른 액션 재평가
-                if result["score"] >= STOCK_TRADING_CONFIG["min_buy_score"]:
-                    result["action"] = "BUY"
-                elif result["score"] <= 35:
-                    result["action"] = "SELL"
-                else:
-                    result["action"] = "HOLD"
-                result["confidence"] = round(abs(result["score"] - 50) / 50, 2)
-        except Exception as e:
-            logger.debug(f"뉴스 분석 실패 [{name}]: {e}")
+        regime_str = self.regime_detector.current_regime.value
+        result = selector.evaluate(df, symbol, name, regime=regime_str)
+        result["regime"] = regime_str
 
         return result
 
@@ -217,17 +212,16 @@ class StockTrader:
                 logger.info(f"손절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
-            # 익절 - 50% 물량을 VWAP으로 분할 매도
+            # 익절 - 전량 매도 (v3.3: 50%분할→전량, 트레일링과 조합)
             if pnl_pct >= STOCK_TRADING_CONFIG["take_profit_pct"]:
-                sell_qty = max(1, pos["qty"] // 2)
                 exec_id = self.execution_engine.smart_execute(
                     symbol=symbol, side=Side.SELL.value,
-                    qty=sell_qty, urgency="normal",
+                    qty=pos["qty"], urgency="normal",
                     name=pos.get("name", ""),
                 )
-                pnl = (current_price - avg_price) * sell_qty
+                pnl = (current_price - avg_price) * pos["qty"]
                 self._record_trade("TAKE_PROFIT", symbol, pos.get("name", ""),
-                                   sell_qty, current_price, pnl, pnl_pct)
+                                   pos["qty"], current_price, pnl, pnl_pct)
                 self.circuit_breaker.record_trade(pnl_pct)
                 logger.info(f"익절 실행 [{symbol}] exec_id={exec_id}")
                 continue
@@ -250,7 +244,35 @@ class StockTrader:
                     self.circuit_breaker.record_trade(pnl_pct)
                     logger.info(f"트레일링 스탑 [{symbol}] exec_id={exec_id}")
 
-        # 2. 매수 (점수 높은 순)
+        # 2. 퀀트 기반 매도 (C3 Fix: SELL 신호 실행)
+        for result in scan_results:
+            if result.get("action") != "SELL":
+                continue
+            symbol = result["symbol"]
+            if symbol not in positions:
+                continue
+            pos = positions[symbol]
+            current_price = result.get("current_price", 0)
+            if current_price <= 0:
+                continue
+            avg_price = pos.get("avg_price", current_price)
+            pnl_pct = (current_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
+            exec_id = self.execution_engine.smart_execute(
+                symbol=symbol, side=Side.SELL.value,
+                qty=pos["qty"], urgency="normal",
+                name=pos.get("name", ""),
+            )
+            if exec_id:
+                pnl = (current_price - avg_price) * pos["qty"]
+                self._record_trade("QUANT_SELL", symbol, pos.get("name", ""),
+                                   pos["qty"], current_price, pnl, pnl_pct,
+                                   result.get("score", 0), result.get("confidence", 0),
+                                   result.get("reasons", []))
+                self.circuit_breaker.record_trade(pnl_pct)
+                del positions[symbol]
+                logger.info(f"퀀트 매도 [{pos.get('name', symbol)}] score={result.get('score'):.1f} exec_id={exec_id}")
+
+        # 3. 매수 (점수 높은 순)
         for result in scan_results:
             if self.circuit_breaker.is_tripped:
                 break
@@ -291,12 +313,20 @@ class StockTrader:
                 logger.warning(f"가격 데이터 없음 [{result.get('name', symbol)}]: price={current_price} - 매수 건너뜀")
                 continue
 
+            # 어포더빌리티 체크: 1주 가격이 포지션 한도 내인지 확인
+            if not self.risk_manager.can_afford_stock(current_price, total_assets):
+                logger.warning(
+                    f"주가 과다 [{result.get('name', symbol)}]: "
+                    f"{current_price:,}원 > 포지션한도 - 매수 건너뜀"
+                )
+                continue
+
             qty = int(amount / current_price)
             if qty <= 0:
                 logger.warning(f"수량 부족 [{result.get('name', symbol)}]: amount={amount:,.0f}, price={current_price:,.0f} - 매수 건너뜀")
                 continue
 
-            # 스마트 실행 엔진을 통한 매수 (수량에 따라 TWAP/VWAP 자동 선택)
+            # 스마트 실행 엔진을 통한 매수
             exec_id = self.execution_engine.smart_execute(
                 symbol=symbol, side=Side.BUY.value,
                 qty=qty, urgency="normal",
@@ -405,7 +435,8 @@ class StockTrader:
     def start_auto(self):
         """자동 매매 시작 (스케줄러)"""
         mode = "모의투자" if self.paper_trading else "실전투자"
-        logger.info(f"StockBot v2.0 자동매매 시작 ({mode})")
+        logger.info(f"StockBot v3.3 자동매매 시작 ({mode})")
+        logger.info(f"초기 자본: {self._initial_capital:,}원")
         self.alert.notify_bot_start(mode)
         self.scheduler.start()
 
@@ -425,6 +456,7 @@ class StockTrader:
 
         return {
             "mode": "모의투자" if self.paper_trading else "실전투자",
+            "initial_capital": self._initial_capital,
             "balance": balance,
             "positions": positions,
             "total_trades": stats["total"],
@@ -444,14 +476,36 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v2.2 - 주식 자동매매")
-    print("  8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 시장국면감지 + 스마트실행")
+    print("  StockBot v3.3 - 주식 자동매매")
+    print("  순수퀀트 5전략앙상블 + 트레일링스탑 + 서킷브레이커 + 시장국면감지")
     print("=" * 60)
 
-    trader = StockTrader(paper_trading=False)
-    print(f"\n관심종목: {len(WATCHLIST)}개")
+    # 트레이딩 모드 결정
+    is_live = (TRADING_MODE == "live" and LIVE_TRADING_CONFIRMED)
+
+    if is_live:
+        # 라이브 모드: 콘솔에서 최종 확인
+        if not _confirm_live_trading():
+            print("\n실전 매매가 취소되었습니다. 페이퍼 모드로 전환합니다.")
+            is_live = False
+
+    paper_trading = not is_live
+    mode_str = "실전투자" if is_live else "모의투자"
+
+    print(f"\n모드: {mode_str}")
+    print(f"초기 자본: {INITIAL_CAPITAL:,}원")
+    print(f"관심종목: {len(WATCHLIST)}개")
     print(f"매매 간격: {STOCK_TRADING_CONFIG['trade_interval_minutes']}분")
-    print(f"손절: {STOCK_TRADING_CONFIG['stop_loss_pct']}% | 익절: {STOCK_TRADING_CONFIG['take_profit_pct']}%")
+    print(f"최대 보유: {STOCK_TRADING_CONFIG['max_positions']}종목")
+    print(f"손절: {STOCK_TRADING_CONFIG['stop_loss_pct']}% | 익절: {STOCK_TRADING_CONFIG['take_profit_pct']}% | 트레일링: {STOCK_TRADING_CONFIG['trailing_stop_pct']}%")
+    print(f"종목당 최대: {STOCK_TRADING_CONFIG['max_single_pct']}% | 섹터 최대: {STOCK_TRADING_CONFIG['max_sector_pct']}%")
+
+    # 데이터 프리로드
+    print("\n데이터 프리로드 중...")
+    trader = StockTrader(paper_trading=paper_trading)
+    load_result = trader.client.preload_data(WATCHLIST)
+    loaded = sum(1 for v in load_result.values() if v["loaded"])
+    print(f"로드 완료: {loaded}/{len(WATCHLIST)}종목\n")
 
     try:
         trader.start_auto()
