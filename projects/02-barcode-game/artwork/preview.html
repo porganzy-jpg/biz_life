@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>BarcodeQuest Art Preview</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;padding:20px}
+h1{text-align:center;margin-bottom:20px;color:#fff}
+h2{margin:20px 0 10px;color:#7c3aed;border-bottom:1px solid #333;padding-bottom:6px}
+.grid{display:grid;gap:12px;margin:10px 0}
+.grid-5{grid-template-columns:repeat(5,1fr)}
+.grid-10{grid-template-columns:repeat(10,1fr)}
+.card{background:#2a2a3e;border-radius:12px;padding:8px;text-align:center;transition:transform .2s}
+.card:hover{transform:scale(1.05)}
+.card img{width:100%;border-radius:8px;aspect-ratio:1;object-fit:cover}
+.card .name{font-size:.8rem;margin-top:6px;font-weight:600}
+.card .sub{font-size:.65rem;color:#888;margin-top:2px}
+.row-label{display:flex;align-items:center;font-size:.7rem;color:#888;justify-content:center;writing-mode:vertical-rl}
+.monster-row{display:grid;grid-template-columns:40px repeat(10,1fr);gap:8px;margin-bottom:8px}
+.col-header{display:grid;grid-template-columns:40px repeat(10,1fr);gap:8px;margin-bottom:4px}
+.col-header span{text-align:center;font-size:.65rem;color:#888}
+.status{text-align:center;color:#888;font-size:.8rem;margin:10px 0}
+</style>
+</head>
+<body>
+<h1>BarcodeQuest Art Preview</h1>
+
+<h2>Named Characters (10)</h2>
+<div class="grid grid-5" id="chars"></div>
+
+<h2>Monsters (10 x 10)</h2>
+<div class="status" id="monster-status">Loading...</div>
+<div id="monsters"></div>
+
+<script>
+const CHARS = [
+  {id:'nabi',name:'나비',species:'나비',emoji:'🦋'},
+  {id:'haru',name:'하루',species:'강아지',emoji:'🐕'},
+  {id:'pori',name:'포리',species:'앵무새',emoji:'🦜'},
+  {id:'miru',name:'미루',species:'고양이',emoji:'🐱'},
+  {id:'ggomi',name:'꼬미',species:'토끼',emoji:'🐰'},
+  {id:'rang',name:'랑이',species:'여우',emoji:'🦊'},
+  {id:'byeori',name:'별이',species:'햄스터',emoji:'🐹'},
+  {id:'gureum',name:'구름',species:'고양이',emoji:'🐈'},
+  {id:'dari',name:'달이',species:'부엉이',emoji:'🦉'},
+  {id:'sori',name:'솔이',species:'고슴도치',emoji:'🦔'},
+];
+const BODIES = ['dragon','slime','goblin','fairy','golem','unicorn','phoenix','sprite','chimera','wisp'];
+const BODY_KR = {'dragon':'드래곤','slime':'슬라임','goblin':'고블린','fairy':'페어리','golem':'골렘',
+  'unicorn':'유니콘','phoenix':'피닉스','sprite':'스프라이트','chimera':'키메라','wisp':'위스프'};
+const ELEMS = ['fire','water','nature','wind','spirit','light','dark','earth','mech','food'];
+const ELEM_KR = {'fire':'🔥불','water':'💧물','nature':'🌿자연','wind':'🌀바람','spirit':'👻영혼',
+  'light':'✨빛','dark':'🌑어둠','earth':'🪨대지','mech':'⚙️기계','food':'🍰음식'};
+
+// Characters
+const charGrid = document.getElementById('chars');
+CHARS.forEach(c => {
+  charGrid.innerHTML += `<div class="card">
+    <img src="named_characters/${c.id}.png" alt="${c.name}">
+    <div class="name">${c.emoji} ${c.name}</div>
+    <div class="sub">${c.species}</div>
+  </div>`;
+});
+
+// Monsters
+const monDiv = document.getElementById('monsters');
+// Column headers
+let hdr = '<div class="col-header"><span></span>';
+ELEMS.forEach(e => hdr += `<span>${ELEM_KR[e]}</span>`);
+hdr += '</div>';
+monDiv.innerHTML = hdr;
+
+BODIES.forEach(body => {
+  let row = `<div class="monster-row"><div class="row-label">${BODY_KR[body]}</div>`;
+  ELEMS.forEach(elem => {
+    row += `<div class="card">
+      <img src="monsters/${body}_${elem}.png" alt="${body}_${elem}"
+        onerror="this.style.opacity=0.2;this.alt='미생성'">
+      <div class="sub">${BODY_KR[body]}·${ELEM_KR[elem].slice(-1)}</div>
+    </div>`;
+  });
+  row += '</div>';
+  monDiv.innerHTML += row;
+});
+
+document.getElementById('monster-status').textContent = 'Monsters: 몬스터 이미지가 아직 생성되지 않았으면 흐리게 표시됩니다.';
+</script>
+</body>
+</html>

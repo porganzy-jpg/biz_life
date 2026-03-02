@@ -745,6 +745,22 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
 @keyframes statusPulse{0%,100%{opacity:1}50%{opacity:.7}}
 /* === Free Scan Note === */
 .free-scan-note{text-align:center;font-size:.68rem;color:var(--heal);font-weight:600;margin:6px 0;padding:6px 12px;background:rgba(0,184,148,.08);border-radius:8px;border:1px dashed rgba(0,184,148,.3);}
+/* === Monster AI Art Images === */
+.monster-img{width:100%;height:100%;object-fit:cover;border-radius:8px;image-rendering:auto;}
+.pa .monster-img{width:48px;height:48px;}
+.pa-lg .monster-img{width:72px;height:72px;}
+.monster-img-wrap{position:relative;display:inline-block;}
+.monster-img-fallback{display:flex;align-items:center;justify-content:center;font-size:2rem;}
+/* Color variation via hue-rotate */
+.color-v0{filter:hue-rotate(0deg)}.color-v1{filter:hue-rotate(36deg)}.color-v2{filter:hue-rotate(72deg)}
+.color-v3{filter:hue-rotate(108deg)}.color-v4{filter:hue-rotate(144deg)}.color-v5{filter:hue-rotate(180deg)}
+.color-v6{filter:hue-rotate(216deg)}.color-v7{filter:hue-rotate(252deg)}.color-v8{filter:hue-rotate(288deg)}
+.color-v9{filter:hue-rotate(324deg)}
+/* Holographic rarity overlay */
+.holo-overlay{position:absolute;inset:0;border-radius:8px;pointer-events:none;
+  background:linear-gradient(135deg,#ff6b6b22,#ffd93d22,#6bcb7722,#4ecdc422,#a66cff22);
+  background-size:300% 300%;animation:holoShift 4s ease infinite;mix-blend-mode:overlay;}
+@keyframes holoShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 </style>
 </head>
 <body>
@@ -1198,6 +1214,88 @@ function makePixelArtSVG(id, size) {
     }
   }
   return `<svg viewBox="0 0 16 16" width="${size}" height="${size}" style="image-rendering:pixelated">${rects}</svg>`;
+}
+
+// ── AI Art Image System ──────────────────────────────────
+const IMG_STYLE_PREFIX = "Studio Ghibli watercolor fantasy art style, soft pastel colors, magical atmosphere, detailed hand-painted illustration, white background, centered character, full body, cute and expressive eyes, ";
+const IMG_STYLE_SUFFIX = ", high quality, detailed, 4k, artstation";
+const IMG_CHAR_PROMPTS = {
+  nabi:"a beautiful butterfly spirit with damaged but healing wings, sitting in a flower garden, gentle and hopeful expression, bandaged wing",
+  haru:"a loyal golden puppy with warm brown eyes, wagging tail, sitting faithfully, hopeful expression, slightly thin but happy",
+  pori:"a colorful parrot with vibrant feathers, singing happily, musical notes around, free from cage, joyful expression",
+  miru:"a rain-soaked kitten with blue-grey fur, big expressive eyes, sitting near a book, slightly shy but curious",
+  ggomi:"a fluffy white rabbit with long ears, touching grass for the first time, wonder in eyes, standing in a garden",
+  rang:"a wise red fox with an injured leg, gentle eyes looking at stars, bandaged paw, sitting on an observatory deck at night",
+  byeori:"a tiny golden hamster with big round eyes, cheeks full of seeds, sitting on a sunflower, cute and small",
+  gureum:"an elderly white cat with wise gentle eyes, fluffy cloud-like fur, sitting peacefully on a cushion, serene expression",
+  dari:"a wise owl with one eye closed, moonlit feathers, perched on a branch under starry sky, dignified pose",
+  sori:"a small hedgehog with cute spines, peeking out from autumn leaves, tiny paws, curious and gentle expression",
+};
+const IMG_BODY_PROMPTS = {
+  dragon:"baby dragon creature, small wings, scales, long tail",slime:"cute slime creature, translucent jelly body, bouncy, round shape",
+  goblin:"small goblin creature, pointy ears, mischievous smile, small horns",fairy:"tiny fairy creature, butterfly wings, glowing aura, floating",
+  golem:"small stone golem creature, mossy rocks, glowing rune eyes, sturdy",unicorn:"baby unicorn creature, spiral horn, flowing mane, sparkles",
+  phoenix:"baby phoenix bird creature, flame feathers, glowing warmly",sprite:"tiny nature sprite creature, leaf clothing, twig antennae, playful",
+  chimera:"small chimera creature, mixed animal parts, fluffy, whimsical",wisp:"glowing wisp creature, ethereal floating orb, trailing sparkles",
+};
+const IMG_ELEM_PROMPTS = {
+  fire:"fire element, warm red-orange glow, small flames around body, ember particles",
+  water:"water element, blue aqua tones, water droplets, bubble effects",
+  nature:"nature element, green leaves, flowers growing, vine accents",
+  wind:"wind element, swirling air currents, feather-light, cloud wisps",
+  spirit:"spirit element, ethereal purple glow, ghostly aura, mystical mist",
+  light:"light element, golden radiance, sun rays, bright halo",
+  dark:"dark element, deep purple-black shadows, starry particles, mysterious",
+  earth:"earth element, brown rocky textures, crystal accents, grounded",
+  mech:"mechanical element, small gears, copper-bronze accents, steampunk",
+  food:"food element, candy and pastry accents, sweet frosting details, colorful sprinkles",
+};
+const IMG_BODIES_LIST = ['dragon','slime','goblin','fairy','golem','unicorn','phoenix','sprite','chimera','wisp'];
+const IMG_ELEMS_LIST = ['fire','water','nature','wind','spirit','light','dark','earth','mech','food'];
+// Map game types (Korean) to element IDs
+const TYPE_TO_ELEM = {'불':'fire','물':'water','자연':'nature','바람':'wind','영혼':'spirit','빛':'light','어둠':'dark','대지':'earth','기계':'mech','음식':'food'};
+// Map species to body group
+const SPECIES_TO_BODY = {'드래곤':'dragon','슬라임':'slime','고블린':'goblin','페어리':'fairy','골렘':'golem','엘프':'fairy',
+  '그리핀':'chimera','유니콘':'unicorn','피닉스':'phoenix','스프라이트':'sprite','임프':'goblin','트롤':'golem',
+  '니심프':'sprite','위스프':'wisp','키메라':'chimera','코볼트':'goblin'};
+
+// Local artwork path (relative from mockups/ to artwork/)
+const ART_BASE = '../artwork';
+
+function getCharImageUrl(charId) {
+  if (!IMG_CHAR_PROMPTS[charId]) return null;
+  return `${ART_BASE}/named_characters/${charId}.png`;
+}
+
+function getMonsterImageUrl(species, type) {
+  const bodyId = SPECIES_TO_BODY[species] || 'slime';
+  const elemId = TYPE_TO_ELEM[type] || 'fire';
+  return `${ART_BASE}/monsters/${bodyId}_${elemId}.png`;
+}
+
+function makeMonsterImage(idOrChar, size) {
+  // Accepts character id (string) or character object
+  const c = typeof idOrChar === 'string' ? CHARACTERS.find(ch=>ch.id===idOrChar) : idOrChar;
+  if (!c) return makePixelArtSVG(typeof idOrChar === 'string' ? idOrChar : '', size);
+
+  let url;
+  if (c.isBarcodeMonster) {
+    url = getMonsterImageUrl(c.species, c.type);
+  } else {
+    url = getCharImageUrl(c.id);
+  }
+
+  if (!url) return `<div class="monster-img-fallback" style="width:${size}px;height:${size}px;font-size:${size*.5}px">${c.emoji||'?'}</div>`;
+
+  const colorClass = c.isBarcodeMonster ? ` color-v${(c.barcode||'').charCodeAt(0)%10}` : '';
+  const isEpicPlus = c.rarity==='epic'||c.rarity==='legendary'||(c.rarityEn||'').toLowerCase()==='legendary';
+  const holoHtml = isEpicPlus ? '<div class="holo-overlay"></div>' : '';
+
+  return `<div class="monster-img-wrap" style="width:${size}px;height:${size}px;">
+    <img class="monster-img${colorClass}" src="${url}" alt="${c.name||''}"
+      width="${size}" height="${size}" loading="lazy"
+      onerror="this.parentElement.innerHTML='<div class=\\'monster-img-fallback\\' style=\\'width:${size}px;height:${size}px;font-size:${size*.5}px\\'>${c.emoji||'?'}</div>'">
+    ${holoHtml}</div>`;
 }
 
 const CHARACTERS = [
@@ -2221,7 +2319,8 @@ function drawSceneBus(ctx,x,y){
   const discovered=CHARACTERS.filter(c=>GS.discovered.includes(c.id)&&c.room);
   discovered.slice(0,4).forEach((c,i)=>{
     if(spriteCache[c.id]){
-      ctx.globalAlpha=.6;ctx.imageSmoothingEnabled=false;
+      const isHi=spriteCache[c.id].width>16;
+      ctx.globalAlpha=.6;ctx.imageSmoothingEnabled=isHi;
       ctx.drawImage(spriteCache[c.id],x+7+i*14,y+3,8,8);
       ctx.imageSmoothingEnabled=true;ctx.globalAlpha=1;
     }
@@ -2267,18 +2366,51 @@ const ROOM_VIS={
   ],speech:['별이다!','아름다워...','저 별은...','소원 빌자!','반짝반짝~']}
 };
 let spriteCache={},spriteFlipCache={};
+const spriteImgLoaded={};
 function initSpriteCache(){
+  // Load AI art images as sprites (64x64 for canvas)
   CHARACTERS.forEach(c=>{
-    const rows=PIXEL_ART[c.id];if(!rows)return;
-    const cv=document.createElement('canvas');cv.width=16;cv.height=16;
-    const cx=cv.getContext('2d');
-    for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++){
-      const ch=rows[y][x];if(ch!=='0'){cx.fillStyle=PALETTES[ch]||'#888';cx.fillRect(x,y,1,1);}
+    const url = c.isBarcodeMonster ? getMonsterImageUrl(c.species, c.type) : getCharImageUrl(c.id);
+    if(url && !spriteImgLoaded[c.id]){
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function(){
+        const sz=64;
+        const cv=document.createElement('canvas');cv.width=sz;cv.height=sz;
+        const cx=cv.getContext('2d');cx.drawImage(img,0,0,sz,sz);
+        spriteCache[c.id]=cv;
+        const fv=document.createElement('canvas');fv.width=sz;fv.height=sz;
+        const fx=fv.getContext('2d');fx.translate(sz,0);fx.scale(-1,1);fx.drawImage(cv,0,0);
+        spriteFlipCache[c.id]=fv;
+        spriteImgLoaded[c.id]=true;
+      };
+      img.onerror = function(){
+        // Fallback to pixel art
+        const rows=PIXEL_ART[c.id];if(!rows)return;
+        const cv=document.createElement('canvas');cv.width=16;cv.height=16;
+        const cx=cv.getContext('2d');
+        for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++){
+          const ch=rows[y][x];if(ch!=='0'){cx.fillStyle=PALETTES[ch]||'#888';cx.fillRect(x,y,1,1);}
+        }
+        spriteCache[c.id]=cv;
+        const fv=document.createElement('canvas');fv.width=16;fv.height=16;
+        const fx=fv.getContext('2d');fx.translate(16,0);fx.scale(-1,1);fx.drawImage(cv,0,0);
+        spriteFlipCache[c.id]=fv;
+      };
+      img.src = url;
+    } else if(!spriteImgLoaded[c.id]) {
+      // No URL — use pixel art fallback
+      const rows=PIXEL_ART[c.id];if(!rows)return;
+      const cv=document.createElement('canvas');cv.width=16;cv.height=16;
+      const cx=cv.getContext('2d');
+      for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++){
+        const ch=rows[y][x];if(ch!=='0'){cx.fillStyle=PALETTES[ch]||'#888';cx.fillRect(x,y,1,1);}
+      }
+      spriteCache[c.id]=cv;
+      const fv=document.createElement('canvas');fv.width=16;fv.height=16;
+      const fx=fv.getContext('2d');fx.translate(16,0);fx.scale(-1,1);fx.drawImage(cv,0,0);
+      spriteFlipCache[c.id]=fv;
     }
-    spriteCache[c.id]=cv;
-    const fv=document.createElement('canvas');fv.width=16;fv.height=16;
-    const fx=fv.getContext('2d');fx.translate(16,0);fx.scale(-1,1);fx.drawImage(cv,0,0);
-    spriteFlipCache[c.id]=fv;
   });
 }
 let charSims={};
@@ -2470,7 +2602,7 @@ function drawChar(ctx,id){
   const ag=ctx.createRadialGradient(dx+16,dy+20,3,dx+16,dy+20,gr);
   ag.addColorStop(0,`rgba(0,184,148,${ga})`);ag.addColorStop(1,'rgba(0,184,148,0)');
   ctx.fillStyle=ag;ctx.beginPath();ctx.arc(dx+16,dy+20,gr,0,Math.PI*2);ctx.fill();
-  ctx.imageSmoothingEnabled=false;ctx.drawImage(spr,dx,dy,32,32);ctx.imageSmoothingEnabled=true;
+  const isHiRes=spr.width>16;ctx.imageSmoothingEnabled=isHiRes;ctx.drawImage(spr,dx,dy,32,32);ctx.imageSmoothingEnabled=true;
   ctx.fillStyle='rgba(0,0,0,.55)';ctx.font='bold 7px "Noto Sans KR",sans-serif';ctx.textAlign='center';
   ctx.fillText(c.name,dx+16,dy-4);
   if(s.state==='act'){
@@ -2926,7 +3058,7 @@ function renderChars(){
     const disc=GS.discovered.includes(c.id);
     const sel=GS.compareChars.includes(c.id);
     const isBc=c.isBarcodeMonster;
-    const artHtml=disc?(isBc?`<div style="font-size:2rem;">${c.emoji}</div>`:makePixelArtSVG(c.id,48)):'';
+    const artHtml=disc?makeMonsterImage(c,48):'';
     const rarGlow=disc?getRarityGlowClass(c.rarityEn||c.rarity):'';
     const ml=isBc&&disc?getMonsterLevel(c.id):{level:'-',exp:0};
     html+=`<div class="char-card scroll-reveal${disc?'':' undiscovered'}${sel?' selected':''} ${rarGlow}"
@@ -3599,7 +3731,7 @@ function toggleManual(){
 
 function showDiscovery(char){
   const ov=document.getElementById('discovery-overlay');
-  document.getElementById('disc-img').outerHTML=`<div class="pa" id="disc-img">${makePixelArtSVG(char.id,72)}</div>`;
+  document.getElementById('disc-img').outerHTML=`<div class="pa" id="disc-img">${makeMonsterImage(char,72)}</div>`;
   document.getElementById('disc-name').textContent=char.name;
   document.getElementById('disc-sub').textContent=`${char.species} · ${char.type} 타입`;
   const rarEl=document.getElementById('disc-rar');
@@ -3631,9 +3763,9 @@ function showCharDetail(id){
   let html=`<div class="char-detail"><button class="cbtn" onclick="closeModal()">✕</button>`;
   html+=`<div style="text-align:center;">`;
   if(isBc){
-    html+=`<div class="pa-lg" style="font-size:3.5rem;">${c.emoji}</div>`;
+    html+=`<div class="pa-lg">${makeMonsterImage(c,72)}</div>`;
   }else{
-    html+=`<div class="pa-lg">${makePixelArtSVG(c.id,72)}</div>`;
+    html+=`<div class="pa-lg">${makeMonsterImage(c,72)}</div>`;
   }
   html+=`<h2 style="margin-bottom:2px;">${c.emoji} ${c.name}</h2>`;
   const rarKr=BARCODE_RARITY_KR?.[c.rarityEn]||{common:'일반',uncommon:'고급',rare:'희귀',epic:'전설'}[c.rarity]||'일반';
@@ -3721,7 +3853,7 @@ function showRoomDetail(roomId){
   } else {
     chars.forEach(c=>{
       html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--card-border);">
-        <div>${makePixelArtSVG(c.id,32)}</div>
+        <div>${makeMonsterImage(c,32)}</div>
         <div><div style="font-size:.75rem;font-weight:600;">${c.emoji} ${c.name} ${getMood(c)}</div>
         <div style="font-size:.62rem;color:var(--text-light);">치유 ${c.heal}%</div></div>
       </div>`;
@@ -6133,7 +6265,7 @@ function renderDex(){
       const ml=getMonsterLevel(m.id);
       const rarGlow=getRarityGlowClass(m.rarityEn);
       html+=`<div class="char-card ${rarGlow}" onclick="${disc?`showCharDetail('${m.id}')`:''}">
-        <div style="font-size:1.6rem;">${disc?m.emoji:'?'}</div>
+        <div style="font-size:1.6rem;">${disc?makeMonsterImage(m,48):'?'}</div>
         <div class="cn">${disc?m.name:'???'}</div>
         <div class="ct">${disc?getTypeBadgeHtml(m.type)+(m.variant?getVariantBadgeHtml(m.variant):''):'미발견'}</div>
         ${disc?`${getEvoStarsHtml(m.id)}

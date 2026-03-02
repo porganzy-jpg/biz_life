@@ -1,0 +1,994 @@
+{
+  "characters": {
+    "nabi": {
+      "name": "나비",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20beautiful%20butterfly%20spirit%20with%20damaged%20but%20healing%20wings%2C%20sitting%20in%20a%20flower%20garden%2C%20gentle%20and%20hopeful%20expression%2C%20bandaged%20wing%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77000&nologo=true",
+      "seed": 77000,
+      "local": "artwork/named_characters/nabi.png"
+    },
+    "haru": {
+      "name": "하루",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20loyal%20golden%20puppy%20with%20warm%20brown%20eyes%2C%20wagging%20tail%2C%20sitting%20faithfully%2C%20hopeful%20expression%2C%20slightly%20thin%20but%20happy%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77001&nologo=true",
+      "seed": 77001,
+      "local": "artwork/named_characters/haru.png"
+    },
+    "pori": {
+      "name": "포리",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20colorful%20parrot%20with%20vibrant%20feathers%2C%20singing%20happily%2C%20musical%20notes%20around%2C%20free%20from%20cage%2C%20joyful%20expression%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77002&nologo=true",
+      "seed": 77002,
+      "local": "artwork/named_characters/pori.png"
+    },
+    "miru": {
+      "name": "미루",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20rain-soaked%20kitten%20with%20blue-grey%20fur%2C%20big%20expressive%20eyes%2C%20sitting%20near%20a%20book%2C%20slightly%20shy%20but%20curious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77003&nologo=true",
+      "seed": 77003,
+      "local": "artwork/named_characters/miru.png"
+    },
+    "ggomi": {
+      "name": "꼬미",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20fluffy%20white%20rabbit%20with%20long%20ears%2C%20touching%20grass%20for%20the%20first%20time%2C%20wonder%20in%20eyes%2C%20standing%20in%20a%20garden%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77004&nologo=true",
+      "seed": 77004,
+      "local": "artwork/named_characters/ggomi.png"
+    },
+    "rang": {
+      "name": "랑이",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20wise%20red%20fox%20with%20an%20injured%20leg%2C%20gentle%20eyes%20looking%20at%20stars%2C%20bandaged%20paw%2C%20sitting%20on%20an%20observatory%20deck%20at%20night%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77005&nologo=true",
+      "seed": 77005,
+      "local": "artwork/named_characters/rang.png"
+    },
+    "byeori": {
+      "name": "별이",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20tiny%20golden%20hamster%20with%20big%20round%20eyes%2C%20cheeks%20full%20of%20seeds%2C%20sitting%20on%20a%20sunflower%2C%20cute%20and%20small%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77006&nologo=true",
+      "seed": 77006,
+      "local": "artwork/named_characters/byeori.png"
+    },
+    "gureum": {
+      "name": "구름",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20an%20elderly%20white%20cat%20with%20wise%20gentle%20eyes%2C%20fluffy%20cloud-like%20fur%2C%20sitting%20peacefully%20on%20a%20cushion%2C%20serene%20expression%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77007&nologo=true",
+      "seed": 77007,
+      "local": "artwork/named_characters/gureum.png"
+    },
+    "dari": {
+      "name": "달이",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20wise%20owl%20with%20one%20eye%20closed%2C%20moonlit%20feathers%2C%20perched%20on%20a%20branch%20under%20starry%20sky%2C%20dignified%20pose%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77008&nologo=true",
+      "seed": 77008,
+      "local": "artwork/named_characters/dari.png"
+    },
+    "sori": {
+      "name": "솔이",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20a%20small%20hedgehog%20with%20cute%20spines%2C%20peeking%20out%20from%20autumn%20leaves%2C%20tiny%20paws%2C%20curious%20and%20gentle%20expression%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=77009&nologo=true",
+      "seed": 77009,
+      "local": "artwork/named_characters/sori.png"
+    }
+  },
+  "monsters": {
+    "dragon_fire": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42000&nologo=true",
+      "seed": 42000,
+      "local": "artwork/monsters/dragon_fire.png"
+    },
+    "dragon_water": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42001&nologo=true",
+      "seed": 42001,
+      "local": "artwork/monsters/dragon_water.png"
+    },
+    "dragon_nature": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42002&nologo=true",
+      "seed": 42002,
+      "local": "artwork/monsters/dragon_nature.png"
+    },
+    "dragon_wind": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42003&nologo=true",
+      "seed": 42003,
+      "local": "artwork/monsters/dragon_wind.png"
+    },
+    "dragon_spirit": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42004&nologo=true",
+      "seed": 42004,
+      "local": "artwork/monsters/dragon_spirit.png"
+    },
+    "dragon_light": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42005&nologo=true",
+      "seed": 42005,
+      "local": "artwork/monsters/dragon_light.png"
+    },
+    "dragon_dark": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42006&nologo=true",
+      "seed": 42006,
+      "local": "artwork/monsters/dragon_dark.png"
+    },
+    "dragon_earth": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42007&nologo=true",
+      "seed": 42007,
+      "local": "artwork/monsters/dragon_earth.png"
+    },
+    "dragon_mech": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42008&nologo=true",
+      "seed": 42008,
+      "local": "artwork/monsters/dragon_mech.png"
+    },
+    "dragon_food": {
+      "body": "dragon",
+      "bodyKr": "드래곤",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20dragon%20creature%2C%20small%20wings%2C%20scales%2C%20long%20tail%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42009&nologo=true",
+      "seed": 42009,
+      "local": "artwork/monsters/dragon_food.png"
+    },
+    "slime_fire": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42100&nologo=true",
+      "seed": 42100,
+      "local": "artwork/monsters/slime_fire.png"
+    },
+    "slime_water": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42101&nologo=true",
+      "seed": 42101,
+      "local": "artwork/monsters/slime_water.png"
+    },
+    "slime_nature": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42102&nologo=true",
+      "seed": 42102,
+      "local": "artwork/monsters/slime_nature.png"
+    },
+    "slime_wind": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42103&nologo=true",
+      "seed": 42103,
+      "local": "artwork/monsters/slime_wind.png"
+    },
+    "slime_spirit": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42104&nologo=true",
+      "seed": 42104,
+      "local": "artwork/monsters/slime_spirit.png"
+    },
+    "slime_light": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42105&nologo=true",
+      "seed": 42105,
+      "local": "artwork/monsters/slime_light.png"
+    },
+    "slime_dark": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42106&nologo=true",
+      "seed": 42106,
+      "local": "artwork/monsters/slime_dark.png"
+    },
+    "slime_earth": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42107&nologo=true",
+      "seed": 42107,
+      "local": "artwork/monsters/slime_earth.png"
+    },
+    "slime_mech": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42108&nologo=true",
+      "seed": 42108,
+      "local": "artwork/monsters/slime_mech.png"
+    },
+    "slime_food": {
+      "body": "slime",
+      "bodyKr": "슬라임",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20cute%20slime%20creature%2C%20translucent%20jelly%20body%2C%20bouncy%2C%20round%20shape%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42109&nologo=true",
+      "seed": 42109,
+      "local": "artwork/monsters/slime_food.png"
+    },
+    "goblin_fire": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42200&nologo=true",
+      "seed": 42200,
+      "local": "artwork/monsters/goblin_fire.png"
+    },
+    "goblin_water": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42201&nologo=true",
+      "seed": 42201,
+      "local": "artwork/monsters/goblin_water.png"
+    },
+    "goblin_nature": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42202&nologo=true",
+      "seed": 42202,
+      "local": "artwork/monsters/goblin_nature.png"
+    },
+    "goblin_wind": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42203&nologo=true",
+      "seed": 42203,
+      "local": "artwork/monsters/goblin_wind.png"
+    },
+    "goblin_spirit": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42204&nologo=true",
+      "seed": 42204,
+      "local": "artwork/monsters/goblin_spirit.png"
+    },
+    "goblin_light": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42205&nologo=true",
+      "seed": 42205,
+      "local": "artwork/monsters/goblin_light.png"
+    },
+    "goblin_dark": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42206&nologo=true",
+      "seed": 42206,
+      "local": "artwork/monsters/goblin_dark.png"
+    },
+    "goblin_earth": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42207&nologo=true",
+      "seed": 42207,
+      "local": "artwork/monsters/goblin_earth.png"
+    },
+    "goblin_mech": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42208&nologo=true",
+      "seed": 42208,
+      "local": "artwork/monsters/goblin_mech.png"
+    },
+    "goblin_food": {
+      "body": "goblin",
+      "bodyKr": "고블린",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20goblin%20creature%2C%20pointy%20ears%2C%20mischievous%20smile%2C%20small%20horns%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42209&nologo=true",
+      "seed": 42209,
+      "local": "artwork/monsters/goblin_food.png"
+    },
+    "fairy_fire": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42300&nologo=true",
+      "seed": 42300,
+      "local": "artwork/monsters/fairy_fire.png"
+    },
+    "fairy_water": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42301&nologo=true",
+      "seed": 42301,
+      "local": "artwork/monsters/fairy_water.png"
+    },
+    "fairy_nature": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42302&nologo=true",
+      "seed": 42302,
+      "local": "artwork/monsters/fairy_nature.png"
+    },
+    "fairy_wind": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42303&nologo=true",
+      "seed": 42303,
+      "local": "artwork/monsters/fairy_wind.png"
+    },
+    "fairy_spirit": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42304&nologo=true",
+      "seed": 42304,
+      "local": "artwork/monsters/fairy_spirit.png"
+    },
+    "fairy_light": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42305&nologo=true",
+      "seed": 42305,
+      "local": "artwork/monsters/fairy_light.png"
+    },
+    "fairy_dark": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42306&nologo=true",
+      "seed": 42306,
+      "local": "artwork/monsters/fairy_dark.png"
+    },
+    "fairy_earth": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42307&nologo=true",
+      "seed": 42307,
+      "local": "artwork/monsters/fairy_earth.png"
+    },
+    "fairy_mech": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42308&nologo=true",
+      "seed": 42308,
+      "local": "artwork/monsters/fairy_mech.png"
+    },
+    "fairy_food": {
+      "body": "fairy",
+      "bodyKr": "페어리",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20fairy%20creature%2C%20butterfly%20wings%2C%20glowing%20aura%2C%20floating%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42309&nologo=true",
+      "seed": 42309,
+      "local": "artwork/monsters/fairy_food.png"
+    },
+    "golem_fire": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42400&nologo=true",
+      "seed": 42400,
+      "local": "artwork/monsters/golem_fire.png"
+    },
+    "golem_water": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42401&nologo=true",
+      "seed": 42401,
+      "local": "artwork/monsters/golem_water.png"
+    },
+    "golem_nature": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42402&nologo=true",
+      "seed": 42402,
+      "local": "artwork/monsters/golem_nature.png"
+    },
+    "golem_wind": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42403&nologo=true",
+      "seed": 42403,
+      "local": "artwork/monsters/golem_wind.png"
+    },
+    "golem_spirit": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42404&nologo=true",
+      "seed": 42404,
+      "local": "artwork/monsters/golem_spirit.png"
+    },
+    "golem_light": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42405&nologo=true",
+      "seed": 42405,
+      "local": "artwork/monsters/golem_light.png"
+    },
+    "golem_dark": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42406&nologo=true",
+      "seed": 42406,
+      "local": "artwork/monsters/golem_dark.png"
+    },
+    "golem_earth": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42407&nologo=true",
+      "seed": 42407,
+      "local": "artwork/monsters/golem_earth.png"
+    },
+    "golem_mech": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42408&nologo=true",
+      "seed": 42408,
+      "local": "artwork/monsters/golem_mech.png"
+    },
+    "golem_food": {
+      "body": "golem",
+      "bodyKr": "골렘",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20stone%20golem%20creature%2C%20mossy%20rocks%2C%20glowing%20rune%20eyes%2C%20sturdy%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42409&nologo=true",
+      "seed": 42409,
+      "local": "artwork/monsters/golem_food.png"
+    },
+    "unicorn_fire": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42500&nologo=true",
+      "seed": 42500,
+      "local": "artwork/monsters/unicorn_fire.png"
+    },
+    "unicorn_water": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42501&nologo=true",
+      "seed": 42501,
+      "local": "artwork/monsters/unicorn_water.png"
+    },
+    "unicorn_nature": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42502&nologo=true",
+      "seed": 42502,
+      "local": "artwork/monsters/unicorn_nature.png"
+    },
+    "unicorn_wind": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42503&nologo=true",
+      "seed": 42503,
+      "local": "artwork/monsters/unicorn_wind.png"
+    },
+    "unicorn_spirit": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42504&nologo=true",
+      "seed": 42504,
+      "local": "artwork/monsters/unicorn_spirit.png"
+    },
+    "unicorn_light": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42505&nologo=true",
+      "seed": 42505,
+      "local": "artwork/monsters/unicorn_light.png"
+    },
+    "unicorn_dark": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42506&nologo=true",
+      "seed": 42506,
+      "local": "artwork/monsters/unicorn_dark.png"
+    },
+    "unicorn_earth": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42507&nologo=true",
+      "seed": 42507,
+      "local": "artwork/monsters/unicorn_earth.png"
+    },
+    "unicorn_mech": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42508&nologo=true",
+      "seed": 42508,
+      "local": "artwork/monsters/unicorn_mech.png"
+    },
+    "unicorn_food": {
+      "body": "unicorn",
+      "bodyKr": "유니콘",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20unicorn%20creature%2C%20spiral%20horn%2C%20flowing%20mane%2C%20sparkles%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42509&nologo=true",
+      "seed": 42509,
+      "local": "artwork/monsters/unicorn_food.png"
+    },
+    "phoenix_fire": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42600&nologo=true",
+      "seed": 42600,
+      "local": "artwork/monsters/phoenix_fire.png"
+    },
+    "phoenix_water": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42601&nologo=true",
+      "seed": 42601,
+      "local": "artwork/monsters/phoenix_water.png"
+    },
+    "phoenix_nature": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42602&nologo=true",
+      "seed": 42602,
+      "local": "artwork/monsters/phoenix_nature.png"
+    },
+    "phoenix_wind": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42603&nologo=true",
+      "seed": 42603,
+      "local": "artwork/monsters/phoenix_wind.png"
+    },
+    "phoenix_spirit": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42604&nologo=true",
+      "seed": 42604,
+      "local": "artwork/monsters/phoenix_spirit.png"
+    },
+    "phoenix_light": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42605&nologo=true",
+      "seed": 42605,
+      "local": "artwork/monsters/phoenix_light.png"
+    },
+    "phoenix_dark": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42606&nologo=true",
+      "seed": 42606,
+      "local": "artwork/monsters/phoenix_dark.png"
+    },
+    "phoenix_earth": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42607&nologo=true",
+      "seed": 42607,
+      "local": "artwork/monsters/phoenix_earth.png"
+    },
+    "phoenix_mech": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42608&nologo=true",
+      "seed": 42608,
+      "local": "artwork/monsters/phoenix_mech.png"
+    },
+    "phoenix_food": {
+      "body": "phoenix",
+      "bodyKr": "피닉스",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20baby%20phoenix%20bird%20creature%2C%20flame%20feathers%2C%20glowing%20warmly%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42609&nologo=true",
+      "seed": 42609,
+      "local": "artwork/monsters/phoenix_food.png"
+    },
+    "sprite_fire": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42700&nologo=true",
+      "seed": 42700,
+      "local": "artwork/monsters/sprite_fire.png"
+    },
+    "sprite_water": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42701&nologo=true",
+      "seed": 42701,
+      "local": "artwork/monsters/sprite_water.png"
+    },
+    "sprite_nature": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42702&nologo=true",
+      "seed": 42702,
+      "local": "artwork/monsters/sprite_nature.png"
+    },
+    "sprite_wind": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42703&nologo=true",
+      "seed": 42703,
+      "local": "artwork/monsters/sprite_wind.png"
+    },
+    "sprite_spirit": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42704&nologo=true",
+      "seed": 42704,
+      "local": "artwork/monsters/sprite_spirit.png"
+    },
+    "sprite_light": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42705&nologo=true",
+      "seed": 42705,
+      "local": "artwork/monsters/sprite_light.png"
+    },
+    "sprite_dark": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42706&nologo=true",
+      "seed": 42706,
+      "local": "artwork/monsters/sprite_dark.png"
+    },
+    "sprite_earth": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42707&nologo=true",
+      "seed": 42707,
+      "local": "artwork/monsters/sprite_earth.png"
+    },
+    "sprite_mech": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42708&nologo=true",
+      "seed": 42708,
+      "local": "artwork/monsters/sprite_mech.png"
+    },
+    "sprite_food": {
+      "body": "sprite",
+      "bodyKr": "스프라이트",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20tiny%20nature%20sprite%20creature%2C%20leaf%20clothing%2C%20twig%20antennae%2C%20playful%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42709&nologo=true",
+      "seed": 42709,
+      "local": "artwork/monsters/sprite_food.png"
+    },
+    "chimera_fire": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42800&nologo=true",
+      "seed": 42800,
+      "local": "artwork/monsters/chimera_fire.png"
+    },
+    "chimera_water": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42801&nologo=true",
+      "seed": 42801,
+      "local": "artwork/monsters/chimera_water.png"
+    },
+    "chimera_nature": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42802&nologo=true",
+      "seed": 42802,
+      "local": "artwork/monsters/chimera_nature.png"
+    },
+    "chimera_wind": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42803&nologo=true",
+      "seed": 42803,
+      "local": "artwork/monsters/chimera_wind.png"
+    },
+    "chimera_spirit": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42804&nologo=true",
+      "seed": 42804,
+      "local": "artwork/monsters/chimera_spirit.png"
+    },
+    "chimera_light": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42805&nologo=true",
+      "seed": 42805,
+      "local": "artwork/monsters/chimera_light.png"
+    },
+    "chimera_dark": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42806&nologo=true",
+      "seed": 42806,
+      "local": "artwork/monsters/chimera_dark.png"
+    },
+    "chimera_earth": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42807&nologo=true",
+      "seed": 42807,
+      "local": "artwork/monsters/chimera_earth.png"
+    },
+    "chimera_mech": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42808&nologo=true",
+      "seed": 42808,
+      "local": "artwork/monsters/chimera_mech.png"
+    },
+    "chimera_food": {
+      "body": "chimera",
+      "bodyKr": "키메라",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20small%20chimera%20creature%2C%20mixed%20animal%20parts%2C%20fluffy%2C%20whimsical%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42809&nologo=true",
+      "seed": 42809,
+      "local": "artwork/monsters/chimera_food.png"
+    },
+    "wisp_fire": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "fire",
+      "elementKr": "불",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20fire%20element%2C%20warm%20red-orange%20glow%2C%20small%20flames%20around%20body%2C%20ember%20particles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42900&nologo=true",
+      "seed": 42900,
+      "local": "artwork/monsters/wisp_fire.png"
+    },
+    "wisp_water": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "water",
+      "elementKr": "물",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20water%20element%2C%20blue%20aqua%20tones%2C%20water%20droplets%2C%20bubble%20effects%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42901&nologo=true",
+      "seed": 42901,
+      "local": "artwork/monsters/wisp_water.png"
+    },
+    "wisp_nature": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "nature",
+      "elementKr": "자연",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20nature%20element%2C%20green%20leaves%2C%20flowers%20growing%2C%20vine%20accents%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42902&nologo=true",
+      "seed": 42902,
+      "local": "artwork/monsters/wisp_nature.png"
+    },
+    "wisp_wind": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "wind",
+      "elementKr": "바람",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20wind%20element%2C%20swirling%20air%20currents%2C%20feather-light%2C%20cloud%20wisps%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42903&nologo=true",
+      "seed": 42903,
+      "local": "artwork/monsters/wisp_wind.png"
+    },
+    "wisp_spirit": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "spirit",
+      "elementKr": "영혼",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20spirit%20element%2C%20ethereal%20purple%20glow%2C%20ghostly%20aura%2C%20mystical%20mist%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42904&nologo=true",
+      "seed": 42904,
+      "local": "artwork/monsters/wisp_spirit.png"
+    },
+    "wisp_light": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "light",
+      "elementKr": "빛",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20light%20element%2C%20golden%20radiance%2C%20sun%20rays%2C%20bright%20halo%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42905&nologo=true",
+      "seed": 42905,
+      "local": "artwork/monsters/wisp_light.png"
+    },
+    "wisp_dark": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "dark",
+      "elementKr": "어둠",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20dark%20element%2C%20deep%20purple-black%20shadows%2C%20starry%20particles%2C%20mysterious%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42906&nologo=true",
+      "seed": 42906,
+      "local": "artwork/monsters/wisp_dark.png"
+    },
+    "wisp_earth": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "earth",
+      "elementKr": "대지",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20earth%20element%2C%20brown%20rocky%20textures%2C%20crystal%20accents%2C%20grounded%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42907&nologo=true",
+      "seed": 42907,
+      "local": "artwork/monsters/wisp_earth.png"
+    },
+    "wisp_mech": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "mech",
+      "elementKr": "기계",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20mechanical%20element%2C%20small%20gears%2C%20copper-bronze%20accents%2C%20steampunk%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42908&nologo=true",
+      "seed": 42908,
+      "local": "artwork/monsters/wisp_mech.png"
+    },
+    "wisp_food": {
+      "body": "wisp",
+      "bodyKr": "위스프",
+      "element": "food",
+      "elementKr": "음식",
+      "url": "https://image.pollinations.ai/prompt/Studio%20Ghibli%20watercolor%20fantasy%20art%20style%2C%20soft%20pastel%20colors%2C%20magical%20atmosphere%2C%20detailed%20hand-painted%20illustration%2C%20white%20background%2C%20centered%20character%2C%20full%20body%2C%20cute%20and%20expressive%20eyes%2C%20glowing%20wisp%20creature%2C%20ethereal%20floating%20orb%2C%20trailing%20sparkles%2C%20food%20element%2C%20candy%20and%20pastry%20accents%2C%20sweet%20frosting%20details%2C%20colorful%20sprinkles%2C%20high%20quality%2C%20detailed%2C%204k%2C%20artstation?width=512&height=512&seed=42909&nologo=true",
+      "seed": 42909,
+      "local": "artwork/monsters/wisp_food.png"
+    }
+  },
+  "meta": {
+    "style": "Studio Ghibli watercolor fantasy art style, soft pastel colors, magical atmosphere, detailed hand-painted illustration, white background, centered character, full body, cute and expressive eyes",
+    "size": "512x512",
+    "bodies": [
+      "dragon",
+      "slime",
+      "goblin",
+      "fairy",
+      "golem",
+      "unicorn",
+      "phoenix",
+      "sprite",
+      "chimera",
+      "wisp"
+    ],
+    "elements": [
+      "fire",
+      "water",
+      "nature",
+      "wind",
+      "spirit",
+      "light",
+      "dark",
+      "earth",
+      "mech",
+      "food"
+    ]
+  }
+}

@@ -32,6 +32,18 @@ python main.py
 │   ├── main.py                      # FastAPI 게임 서버 + HTML 클라이언트 (~170KB)
 │   ├── database.py                  # DB 설정
 │   └── models.py                    # PlayerModel, MonsterModel, BattleLog
+├── artwork/                         # AI 아트 이미지 (110장)
+│   ├── named_characters/            # 캐릭터 10장 (나비, 하루 등)
+│   ├── monsters/                    # 몬스터 100장 (10몸체 × 10속성)
+│   ├── image_urls.json              # pollinations.ai URL 매핑
+│   ├── preview.html                 # 전체 이미지 미리보기
+│   └── landscapes/                  # 배경 이미지
+├── mockups/
+│   ├── index.html                   # 게임 클라이언트 (수채화 아트 통합)
+│   └── monster_preview.html         # 몬스터 이미지 리뷰 페이지
+├── tools/
+│   ├── generate_monster_images.py   # pollinations.ai URL 매핑 생성기
+│   └── generate_local_art.py        # Pillow 로컬 아트 생성기
 ├── design-concepts/                 # 18개 SVG 디자인 에셋
 ├── docs/
 │   └── PROJECT_PLAN.md
@@ -82,6 +94,7 @@ python main.py
 - 2025-02-07 전체 API 엔드포인트 테스트 통과
 - 2026-02-18 UI/그래픽 업그레이드 + 도감/캐릭터 시스템 강화 완료
 - 2026-02-19 항공 조감도 + 픽셀아트 전환 완료 (풍경/버스/동물/꽃잎/반딧불)
+- 2026-03-03 수채화 판타지 아트 업그레이드 완료 (110장 이미지 생성)
 - 몬스터 생성: `8801234567890` → "Silver Golem" (Common, Food)
 - 배틀: 자동 10턴 진행, 승패 판정 정상
 - 도감: 수집/완성도/보상 시스템 정상
@@ -127,6 +140,18 @@ python main.py
 - [x] 패럴랙스 이펙트 (마우스/deviceorientation)
 - [x] 기존 모든 API/기능 100% 호환 (버스 건설, 배치, 수령 등)
 
+### 수채화 판타지 아트 업그레이드 (2026-03-03)
+- [x] Pillow 기반 수채화풍 이미지 자동 생성 시스템 구축
+- [x] 캐릭터 10장: 나비(나비), 하루(강아지), 포리(앵무새), 미루(고양이), 꼬미(토끼), 랑이(여우), 별이(햄스터), 구름(고양이), 달이(부엉이), 솔이(고슴도치)
+- [x] 몬스터 100장: 10 몸체(드래곤/슬라임/고블린/페어리/골렘/유니콘/피닉스/스프라이트/키메라/위스프) × 10 속성(불/물/자연/바람/영혼/빛/어둠/대지/기계/음식)
+- [x] `makePixelArtSVG()` → `makeMonsterImage()` 전면 교체 (컬렉션, 상세, 발견팝업, 버스방, 도감)
+- [x] CSS 색상 변형: `hue-rotate` 10단계 (바코드 기반 자동 할당)
+- [x] CSS 희귀도 효과: Common~Legendary 글로우 + Epic 이상 홀로그래픽 오버레이
+- [x] 버스 캔버스 스프라이트: 이미지 기반 64px 캐시 + 픽셀아트 폴백
+- [x] 이미지 로드 실패 시 이모지 자동 폴백 (onerror)
+- [x] pollinations.ai URL 매핑 + Pillow 로컬 생성 이중 파이프라인
+- [x] 미리보기 페이지: artwork/preview.html (전체 110장 그리드 리뷰)
+
 ### 항공 조감도(Aerial Bird's-Eye) + 픽셀아트 전환 (2026-02-19)
 - [x] 측면 뷰 → 항공/조감도(위에서 내려다보기) 전면 리디자인
 - [x] SVG viewBox 120×180 픽셀아트 풍경 (나무, 숲, 벚꽃, 꽃밭, 해바라기, 돌, 벤치)
@@ -161,7 +186,8 @@ python main.py
 - [ ] 이벤트/시즌 시스템
 - [ ] 리더보드
 - [x] ~~도트/픽셀 아트 에셋 전환~~ → 2026-02-19 풍경/버스/동물 픽셀아트 완료
-- [ ] 몬스터 스프라이트 픽셀아트 전환 (현재 SVG → 도트 아트)
+- [x] ~~몬스터 스프라이트 픽셀아트 전환~~ → 2026-03-03 수채화 판타지 아트 110장 완료
+- [ ] AI 이미지 서비스 연동 (pollinations.ai 복구 시 고품질 교체)
 - [ ] 캐릭터 재회 시스템 (감동적 재회 컷씬)
 - [ ] 풍경 수집 시스템 (여행 루트별 고유 풍경)
 - [ ] 사운드/BGM 추가

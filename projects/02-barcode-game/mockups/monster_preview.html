@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarcodeQuest - Monster Preview</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f1a;--card:#1a1a2e;--text:#e0e0e0;--text-dim:#888;
+  --accent:#7c3aed;--accent2:#06b6d4;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;padding:16px}
+h1{text-align:center;font-size:1.5rem;margin:12px 0;color:#fff}
+h2{font-size:1.1rem;margin:20px 0 10px;color:var(--accent2);border-bottom:1px solid #333;padding-bottom:6px}
+
+/* Controls */
+.controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0;padding:12px;background:var(--card);border-radius:12px}
+.controls label{font-size:.8rem;color:var(--text-dim)}
+.controls select,.controls input[type=range]{background:#2a2a3e;color:#fff;border:1px solid #444;border-radius:6px;padding:4px 8px;font-size:.8rem}
+.controls button{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:.8rem}
+.controls button:hover{opacity:.85}
+.controls button.active{background:var(--accent2)}
+.ctrl-group{display:flex;flex-direction:column;align-items:center;gap:4px}
+
+/* Grid */
+.grid{display:grid;gap:8px;margin:10px 0}
+.grid-10{grid-template-columns:repeat(10,1fr)}
+.grid-5{grid-template-columns:repeat(5,1fr)}
+.grid-chars{grid-template-columns:repeat(5,1fr)}
+
+/* Card */
+.card{background:var(--card);border-radius:10px;padding:6px;text-align:center;transition:transform .2s,box-shadow .2s;cursor:pointer;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(124,58,237,.3)}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#222;display:block}
+.card .emoji-fallback{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:#222;border-radius:8px}
+.card .name{font-size:.65rem;margin-top:4px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .badge{position:absolute;top:4px;right:4px;font-size:.55rem;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,.6);color:#fff}
+
+/* Header labels */
+.row-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:.65rem;color:var(--text-dim);display:flex;align-items:center;justify-content:center}
+.col-labels{display:grid;grid-template-columns:30px repeat(10,1fr);gap:8px;margin-bottom:4px}
+.col-labels span{text-align:center;font-size:.65rem;color:var(--text-dim)}
+.monster-row{display:grid;grid-template-columns:30px repeat(10,1fr);gap:8px;margin-bottom:8px}
+
+/* Color filter preview */
+.hue-0{filter:hue-rotate(0deg)}
+.hue-1{filter:hue-rotate(36deg)}
+.hue-2{filter:hue-rotate(72deg)}
+.hue-3{filter:hue-rotate(108deg)}
+.hue-4{filter:hue-rotate(144deg)}
+.hue-5{filter:hue-rotate(180deg)}
+.hue-6{filter:hue-rotate(216deg)}
+.hue-7{filter:hue-rotate(252deg)}
+.hue-8{filter:hue-rotate(288deg)}
+.hue-9{filter:hue-rotate(324deg)}
+
+/* Rarity glow */
+.rar-common{}
+.rar-uncommon{box-shadow:0 0 8px rgba(76,175,80,.5)}
+.rar-rare{box-shadow:0 0 12px rgba(33,150,243,.6)}
+.rar-epic{box-shadow:0 0 16px rgba(156,39,176,.7)}
+.rar-legendary{box-shadow:0 0 20px rgba(255,215,0,.8);animation:legendaryPulse 2s infinite}
+@keyframes legendaryPulse{0%,100%{box-shadow:0 0 20px rgba(255,215,0,.8)}50%{box-shadow:0 0 30px rgba(255,215,0,1)}}
+
+/* Holographic */
+.holo{background:linear-gradient(135deg,#ff6b6b22,#ffd93d22,#6bcb7722,#4ecdc422,#a66cff22);background-size:300% 300%;animation:holoShift 4s ease infinite}
+@keyframes holoShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:20px;max-width:500px;width:90%;text-align:center}
+.modal img{width:300px;height:300px;object-fit:cover;border-radius:12px;margin:10px 0}
+.modal .close{background:none;border:1px solid #555;color:#fff;padding:6px 16px;border-radius:8px;cursor:pointer;margin-top:10px}
+.modal h3{margin:8px 0 4px}
+.modal p{font-size:.8rem;color:var(--text-dim)}
+
+/* Status */
+.status{text-align:center;font-size:.75rem;color:var(--text-dim);margin:8px 0}
+.loading{opacity:.4;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.7}}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;justify-content:center;margin:12px 0}
+.tab{padding:8px 16px;background:var(--card);border:1px solid #333;border-radius:8px;cursor:pointer;font-size:.8rem;color:var(--text-dim)}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<h1>BarcodeQuest Monster Preview</h1>
+<p class="status" id="status">Loading image URLs...</p>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('chars')">Characters (10)</div>
+  <div class="tab" onclick="showTab('monsters')">Monsters (100)</div>
+  <div class="tab" onclick="showTab('colors')">Color Variations</div>
+  <div class="tab" onclick="showTab('rarity')">Rarity Effects</div>
+</div>
+
+<!-- Controls -->
+<div class="controls" id="ctrl-colors" style="display:none">
+  <div class="ctrl-group">
+    <label>Base Monster</label>
+    <select id="color-body"></select>
+  </div>
+  <div class="ctrl-group">
+    <label>Element</label>
+    <select id="color-elem"></select>
+  </div>
+</div>
+
+<div class="controls" id="ctrl-rarity" style="display:none">
+  <div class="ctrl-group">
+    <label>Rarity</label>
+    <select id="rar-select">
+      <option value="common">Common</option>
+      <option value="uncommon">Uncommon</option>
+      <option value="rare">Rare</option>
+      <option value="epic">Epic</option>
+      <option value="legendary">Legendary</option>
+    </select>
+  </div>
+  <button onclick="toggleHolo()" id="holo-btn">Holographic OFF</button>
+</div>
+
+<!-- Content sections -->
+<div id="sec-chars"></div>
+<div id="sec-monsters" style="display:none"></div>
+<div id="sec-colors" style="display:none"></div>
+<div id="sec-rarity" style="display:none"></div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modal" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <img id="modal-img" src="" alt="">
+    <h3 id="modal-title"></h3>
+    <p id="modal-info"></p>
+    <button class="close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<script>
+// ── Data ──
+const BODIES = [
+  {id:'dragon',kr:'드래곤'},{id:'slime',kr:'슬라임'},{id:'goblin',kr:'고블린'},
+  {id:'fairy',kr:'페어리'},{id:'golem',kr:'골렘'},{id:'unicorn',kr:'유니콘'},
+  {id:'phoenix',kr:'피닉스'},{id:'sprite',kr:'스프라이트'},{id:'chimera',kr:'키메라'},{id:'wisp',kr:'위스프'}
+];
+const ELEMENTS = [
+  {id:'fire',kr:'불',emoji:'🔥'},{id:'water',kr:'물',emoji:'💧'},{id:'nature',kr:'자연',emoji:'🌿'},
+  {id:'wind',kr:'바람',emoji:'🌀'},{id:'spirit',kr:'영혼',emoji:'👻'},{id:'light',kr:'빛',emoji:'✨'},
+  {id:'dark',kr:'어둠',emoji:'🌑'},{id:'earth',kr:'대지',emoji:'🪨'},{id:'mech',kr:'기계',emoji:'⚙️'},{id:'food',kr:'음식',emoji:'🍰'}
+];
+const CHAR_EMOJI = {nabi:'🦋',haru:'🐕',pori:'🦜',miru:'🐱',ggomi:'🐰',rang:'🦊',byeori:'🐹',gureum:'🐈',dari:'🦉',sori:'🦔'};
+
+const STYLE_PREFIX = "Studio Ghibli watercolor fantasy art style, soft pastel colors, magical atmosphere, detailed hand-painted illustration, white background, centered character, full body, cute and expressive eyes, ";
+const STYLE_SUFFIX = ", high quality, detailed, 4k, artstation";
+
+const CHAR_PROMPTS = {
+  nabi: "a beautiful butterfly spirit with damaged but healing wings, sitting in a flower garden, gentle and hopeful expression, bandaged wing",
+  haru: "a loyal golden puppy with warm brown eyes, wagging tail, sitting faithfully, hopeful expression, slightly thin but happy",
+  pori: "a colorful parrot with vibrant feathers, singing happily, musical notes around, free from cage, joyful expression",
+  miru: "a rain-soaked kitten with blue-grey fur, big expressive eyes, sitting near a book, slightly shy but curious",
+  ggomi: "a fluffy white rabbit with long ears, touching grass for the first time, wonder in eyes, standing in a garden",
+  rang: "a wise red fox with an injured leg, gentle eyes looking at stars, bandaged paw, sitting on an observatory deck at night",
+  byeori: "a tiny golden hamster with big round eyes, cheeks full of seeds, sitting on a sunflower, cute and small",
+  gureum: "an elderly white cat with wise gentle eyes, fluffy cloud-like fur, sitting peacefully on a cushion, serene expression",
+  dari: "a wise owl with one eye closed, moonlit feathers, perched on a branch under starry sky, dignified pose",
+  sori: "a small hedgehog with cute spines, peeking out from autumn leaves, tiny paws, curious and gentle expression",
+};
+const CHAR_NAMES = {nabi:'나비',haru:'하루',pori:'포리',miru:'미루',ggomi:'꼬미',rang:'랑이',byeori:'별이',gureum:'구름',dari:'달이',sori:'솔이'};
+
+const BODY_PROMPTS = {
+  dragon:"baby dragon creature, small wings, scales, long tail",
+  slime:"cute slime creature, translucent jelly body, bouncy, round shape",
+  goblin:"small goblin creature, pointy ears, mischievous smile, small horns",
+  fairy:"tiny fairy creature, butterfly wings, glowing aura, floating",
+  golem:"small stone golem creature, mossy rocks, glowing rune eyes, sturdy",
+  unicorn:"baby unicorn creature, spiral horn, flowing mane, sparkles",
+  phoenix:"baby phoenix bird creature, flame feathers, glowing warmly",
+  sprite:"tiny nature sprite creature, leaf clothing, twig antennae, playful",
+  chimera:"small chimera creature, mixed animal parts, fluffy, whimsical",
+  wisp:"glowing wisp creature, ethereal floating orb, trailing sparkles",
+};
+const ELEM_PROMPTS = {
+  fire:"fire element, warm red-orange glow, small flames around body, ember particles",
+  water:"water element, blue aqua tones, water droplets, bubble effects",
+  nature:"nature element, green leaves, flowers growing, vine accents",
+  wind:"wind element, swirling air currents, feather-light, cloud wisps",
+  spirit:"spirit element, ethereal purple glow, ghostly aura, mystical mist",
+  light:"light element, golden radiance, sun rays, bright halo",
+  dark:"dark element, deep purple-black shadows, starry particles, mysterious",
+  earth:"earth element, brown rocky textures, crystal accents, grounded",
+  mech:"mechanical element, small gears, copper-bronze accents, steampunk",
+  food:"food element, candy and pastry accents, sweet frosting details, colorful sprinkles",
+};
+
+function pollinationsUrl(prompt, seed) {
+  const full = STYLE_PREFIX + prompt + STYLE_SUFFIX;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(full)}?width=512&height=512&seed=${seed}&nologo=true`;
+}
+
+function charUrl(id) {
+  const idx = Object.keys(CHAR_PROMPTS).indexOf(id);
+  return pollinationsUrl(CHAR_PROMPTS[id], 77000 + idx);
+}
+
+function monsterUrl(bodyId, elemId) {
+  const bi = BODIES.findIndex(b=>b.id===bodyId);
+  const ei = ELEMENTS.findIndex(e=>e.id===elemId);
+  const prompt = BODY_PROMPTS[bodyId] + ", " + ELEM_PROMPTS[elemId];
+  return pollinationsUrl(prompt, bi*100 + ei + 42000);
+}
+
+// ── Image card with fallback ──
+function imgCard(src, label, fallbackEmoji, extraClass, onClick) {
+  const card = document.createElement('div');
+  card.className = 'card ' + (extraClass||'');
+  if (onClick) card.onclick = onClick;
+
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = label;
+  img.loading = 'lazy';
+  img.onerror = function() {
+    this.style.display='none';
+    const fb = document.createElement('div');
+    fb.className = 'emoji-fallback';
+    fb.textContent = fallbackEmoji || '?';
+    this.parentElement.insertBefore(fb, this);
+  };
+  card.appendChild(img);
+
+  const nm = document.createElement('div');
+  nm.className = 'name';
+  nm.textContent = label;
+  card.appendChild(nm);
+  return card;
+}
+
+// ── Characters section ──
+function renderChars() {
+  const sec = document.getElementById('sec-chars');
+  sec.innerHTML = '<h2>Named Characters (10)</h2>';
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-chars';
+
+  Object.keys(CHAR_PROMPTS).forEach(id => {
+    const url = charUrl(id);
+    const card = imgCard(url, CHAR_NAMES[id], CHAR_EMOJI[id], '', () => openModal(url, CHAR_NAMES[id], `ID: ${id}`));
+    grid.appendChild(card);
+  });
+  sec.appendChild(grid);
+}
+
+// ── Monsters 10×10 grid ──
+function renderMonsters() {
+  const sec = document.getElementById('sec-monsters');
+  sec.innerHTML = '<h2>Monsters (10 Bodies × 10 Elements)</h2>';
+
+  // Column headers
+  const colLabels = document.createElement('div');
+  colLabels.className = 'col-labels';
+  colLabels.innerHTML = '<span></span>' + ELEMENTS.map(e=>`<span>${e.emoji} ${e.kr}</span>`).join('');
+  sec.appendChild(colLabels);
+
+  // Rows
+  BODIES.forEach(body => {
+    const row = document.createElement('div');
+    row.className = 'monster-row';
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    label.textContent = body.kr;
+    row.appendChild(label);
+
+    ELEMENTS.forEach(elem => {
+      const url = monsterUrl(body.id, elem.id);
+      const card = imgCard(url, `${body.kr}·${elem.kr}`, elem.emoji, '',
+        () => openModal(url, `${body.kr} (${elem.kr})`, `${body.id}_${elem.id}`));
+      row.appendChild(card);
+    });
+    sec.appendChild(row);
+  });
+}
+
+// ── Color variations ──
+function renderColors() {
+  const sec = document.getElementById('sec-colors');
+  sec.innerHTML = '<h2>Color Variations (CSS hue-rotate)</h2><p class="status">Same image, 10 color shifts via CSS filter</p>';
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-10';
+  grid.id = 'color-grid';
+  sec.appendChild(grid);
+  updateColorGrid();
+}
+
+function updateColorGrid() {
+  const bodyId = document.getElementById('color-body').value;
+  const elemId = document.getElementById('color-elem').value;
+  const url = monsterUrl(bodyId, elemId);
+  const grid = document.getElementById('color-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const elem = ELEMENTS.find(e=>e.id===elemId);
+
+  for (let i = 0; i < 10; i++) {
+    const deg = i * 36;
+    const card = imgCard(url, `${deg}°`, elem?.emoji||'?', `hue-${i}`,
+      () => openModal(url, `Color Variant ${i}`, `hue-rotate(${deg}deg)`));
+    card.querySelector('img')?.classList.add(`hue-${i}`);
+    grid.appendChild(card);
+  }
+}
+
+// ── Rarity effects ──
+let holoOn = false;
+function renderRarity() {
+  const sec = document.getElementById('sec-rarity');
+  sec.innerHTML = '<h2>Rarity Effects (CSS glow + holographic)</h2>';
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-5';
+  grid.id = 'rar-grid';
+  sec.appendChild(grid);
+  updateRarGrid();
+}
+
+function updateRarGrid() {
+  const rar = document.getElementById('rar-select').value;
+  const grid = document.getElementById('rar-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  // Show 5 random monsters with selected rarity
+  const combos = [[0,0],[2,3],[5,7],[7,1],[9,5]];
+  combos.forEach(([bi,ei]) => {
+    const body = BODIES[bi], elem = ELEMENTS[ei];
+    const url = monsterUrl(body.id, elem.id);
+    const cls = `rar-${rar}` + (holoOn ? ' holo' : '');
+    const card = imgCard(url, `${body.kr}·${elem.kr}`, elem.emoji, cls,
+      () => openModal(url, `${body.kr} (${elem.kr})`, `Rarity: ${rar}`));
+    grid.appendChild(card);
+  });
+}
+
+function toggleHolo() {
+  holoOn = !holoOn;
+  document.getElementById('holo-btn').textContent = `Holographic ${holoOn?'ON':'OFF'}`;
+  document.getElementById('holo-btn').className = holoOn ? 'active' : '';
+  updateRarGrid();
+}
+
+// ── Tabs ──
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['chars','monsters','colors','rarity'][i]===tab);
+  });
+  ['chars','monsters','colors','rarity'].forEach(s => {
+    document.getElementById('sec-'+s).style.display = s===tab?'':'none';
+  });
+  ['ctrl-colors','ctrl-rarity'].forEach(c => document.getElementById(c).style.display='none');
+  if (tab==='colors') document.getElementById('ctrl-colors').style.display='flex';
+  if (tab==='rarity') document.getElementById('ctrl-rarity').style.display='flex';
+}
+
+// ── Modal ──
+function openModal(src, title, info) {
+  document.getElementById('modal-img').src = src;
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-info').textContent = info;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+// ── Init ──
+window.addEventListener('DOMContentLoaded', () => {
+  // Populate selects
+  const bodySelect = document.getElementById('color-body');
+  const elemSelect = document.getElementById('color-elem');
+  BODIES.forEach(b => bodySelect.add(new Option(b.kr, b.id)));
+  ELEMENTS.forEach(e => elemSelect.add(new Option(e.emoji+' '+e.kr, e.id)));
+  bodySelect.onchange = elemSelect.onchange = updateColorGrid;
+  document.getElementById('rar-select').onchange = updateRarGrid;
+
+  renderChars();
+  renderMonsters();
+  renderColors();
+  renderRarity();
+
+  document.getElementById('status').textContent =
+    'Images load from pollinations.ai (may take a moment). Click any card to enlarge.';
+});
+</script>
+</body>
+</html>
