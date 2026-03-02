@@ -1,0 +1,586 @@
+[
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:04:13.431351"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:06:14.271101"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:08:14.319944"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:10:14.388074"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:12:14.294950"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:14:14.267703"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:16:14.256526"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:19:00.635157"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:21:02.657679"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:23:04.718196"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:25:06.627280"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:27:08.655292"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:29:09.383114"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:31:09.644592"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:33:09.428041"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:35:09.332490"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:37:09.642407"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:39:09.599191"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:41:09.323961"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:43:09.407175"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:45:24.494322"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:47:09.433524"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:49:09.578462"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:51:09.357379"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:53:09.628520"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:55:09.323990"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:57:09.676405"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-01T23:59:09.364790"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:01:09.580411"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:03:09.581112"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:05:09.659198"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:07:09.333672"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:09:09.649240"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:11:09.730384"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:13:09.636043"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:15:09.660140"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:19:09.673332"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:21:09.317911"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:23:09.659067"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:25:09.742298"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:27:09.689459"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:29:09.560218"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:31:09.342343"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:33:09.623507"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:35:09.649234"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:37:09.784551"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T00:38:38.466949"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:16:47.653920"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:18:47.957318"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:19:04.008825"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:20:45.624239"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:21:04.250323"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:22:45.920208"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:23:04.255366"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:24:45.948948"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:25:04.243597"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:26:45.943649"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:27:04.242864"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:28:45.622057"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:29:04.575391"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:29:15.576141"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:30:46.251601"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:31:04.234337"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:31:15.570763"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:32:46.236045"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:33:09.255658"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:33:15.586991"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:35:06.582694"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:35:09.267090"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:35:15.882509"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:35:48.984138"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:35:56.077304"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.3,
+    "indicators": {
+      "note": "Insufficient data for classification"
+    },
+    "timestamp": "2026-03-02T01:39:52.843311"
+  }
+]
