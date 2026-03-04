@@ -1,17 +1,18 @@
-# StockBot v3.5 - 노트북 이어서 작업 가이드
+# StockBot v3.6 - 노트북 이어서 작업 가이드
 
 ## 현재 상태 요약
 
-**StockBot v3.5** — 한국 주식 자동매매 봇, 완성도 높음 (코드 100%, API 연동만 남음)
+**StockBot v3.6** — 한국 주식 자동매매 봇, 완성도 높음 (코드 100%, API 연동만 남음)
 
 - 5대 퀀트 전략 앙상블 (Z-score + tanh 스코어링)
+- **RSI(2) 급락 매수** (RSI2<10 & MA200위, 시간기반 청산, v3.6)
 - **ATR 기반 포지션 사이징** (거래당 자본 2% 리스크, v3.5)
 - 시장 국면(Regime) 자동 감지 + 전략 가중치 적응
 - ATR x2 Chandelier Exit 트레일링 스탑 (v3.4)
 - 서킷브레이커, 손절/익절 자동화
 - 대시보드 (FastAPI, http://localhost:8082)
 - SQLite DB, Telegram 알림
-- 2025년 1년 백테스트: **+45.98%**, Sharpe 2.56, MDD -6.34%
+- 2025년 1년 백테스트: **+50.25%**, Sharpe 2.69, MDD -8.36%
 
 ---
 
@@ -82,7 +83,7 @@ python app.py
 ```bash
 cd trading-bot
 python trader.py
-# 장 시간(09:00~15:30) 자동 매매 사이클 5분 간격
+# 장 시간(09:00~15:30) 자동 매매 사이클 3분 간격
 ```
 
 ---
@@ -105,11 +106,11 @@ python trader.py
 │   └── backtester.py                  # 백테스터
 │
 ├── trading-bot/                       # 매매 실행
-│   ├── trader.py                      # [핵심] StockTrader 메인 클래스
+│   ├── trader.py                      # [핵심] StockTrader (RSI2 급락매수 + 앙상블)
 │   ├── config.py                      # 설정 (자본별 자동 조정)
 │   ├── broker_client.py               # 한투 API + yfinance 폴백
-│   ├── data_provider.py               # yfinance 데이터 + 5분 TTL 캐시
-│   ├── risk_manager.py                # 포지션사이징, 섹터한도, 리밸런싱
+│   ├── data_provider.py               # yfinance 데이터 + 2.5분 TTL 캐시
+│   ├── risk_manager.py                # ATR 포지션사이징, 섹터한도, 리밸런싱
 │   ├── execution_engine.py            # TWAP/VWAP/Smart 주문 + 슬리피지 제어
 │   ├── database.py                    # SQLite 거래/포지션/일일 기록
 │   ├── circuit_breaker.py             # 일일-3%, 연속5패, 일20거래 차단
@@ -119,7 +120,7 @@ python trader.py
 │   └── volume_profile.py              # 거래량 프로필 (VWAP용)
 │
 ├── dashboard/                         # 웹 대시보드
-│   ├── app.py                         # FastAPI 대시보드 (포트 8082)
+│   ├── app.py                         # FastAPI 대시보드 (포트 8082, RSI2 컬럼)
 │   ├── backtest_portal.py             # 백테스트 포탈
 │   ├── regime_detector.py             # 대시보드용 국면 감지
 │   └── correlation_monitor.py         # 상관관계 모니터
@@ -129,6 +130,7 @@ python trader.py
 │   └── sentiment.py                   # 감성 분석 (제거됨)
 │
 ├── strategy_lab.py                    # [v3.5] 3차원 전략 탐색 (31개 조합)
+├── rsi2_crash_test.py                 # [v3.6] RSI(2) 급락매수 효과 검증
 ├── full_year_backtest.py              # 2025년 12설정 비교 테스트
 ├── news_boost_test.py                 # 뉴스 부스트 유/무 비교
 ├── v32_comparison_test.py             # v3.1 vs v3.2 비교
@@ -138,12 +140,15 @@ python trader.py
 ├── .env                               # 실제 API 키 (Git 제외)
 ├── requirements.txt                   # 패키지 목록
 ├── stockbot.db                        # SQLite 거래 DB
+├── HANDOFF.md                         # ← 이 파일
 └── PROJECT_STATUS.md                  # 상세 프로젝트 현황
 ```
 
 ---
 
-## 5대 전략 앙상블
+## 매매 전략
+
+### 5대 전략 앙상블
 
 | 전략 | 가중치 | 핵심 지표 |
 |------|:------:|----------|
@@ -156,6 +161,14 @@ python trader.py
 **국면별 자동 조정**: 상승장→추세↑, 하락장→평균회귀↑, 횡보장→거래량↑
 
 **스코어링**: Z-score → tanh(0~100점) → 5전략 가중평균 → 적응형 임계값(75th/25th)
+
+### RSI(2) 급락 매수 (v3.6)
+
+- **매수**: RSI(2) < 10 AND 종가 > MA200 (극단적 과매도 + 장기 상승추세)
+- **청산**: RSI(2) > 90 또는 7일 보유 후 시간기반 청산
+- 앙상블과 독립적으로 작동 (별도 진입/청산 로직)
+- DB에 entry_source 저장 → 포지션별 구분 청산
+- 백테스트 승률 87.5%, PF 6.50
 
 ---
 
@@ -171,8 +184,9 @@ python trader.py
 | 손절 | -5% |
 | 익절 | +15% (전량 매도) |
 | 트레일링 스탑 | ATR x2 Chandelier Exit |
+| **RSI(2) 급락매수** | **RSI2<10 & MA200위 (v3.6)** |
 | 매수 기준 | 58점+ (적응형 자동 조정) |
-| 매매 주기 | 5분 |
+| 매매 주기 | 3분 |
 
 ---
 
@@ -183,14 +197,7 @@ python trader.py
 3. **서킷 브레이커**: 일일 -3%, 연속 5패, 일 20거래 시 자동 중단
 4. **폭락 가드**: 20일 -25% 하락 종목 매수 차단
 5. **소규모 주문 바이패스**: 5주 이하 시장가 직접 (TWAP 분할 안 함)
-
----
-
-## 관심 종목 (17개)
-
-삼성전자, SK하이닉스, NAVER, 카카오, LG화학, 삼성SDI, 포스코퓨처엠, 삼성물산, KB금융, 신한지주, 하나금융지주, 현대자동차, 기아, 셀트리온, SK, 삼성생명, SK텔레콤
-
-※ 1주당 30만원 초과 종목 제외
+6. **개별 거래 예외 격리**: 1종목 오류 시 나머지 정상 실행 (v3.6)
 
 ---
 
@@ -199,15 +206,16 @@ python trader.py
 ```
 [yfinance / mojito API]
         ↓
-  DataProvider (5분 캐시)
+  DataProvider (2.5분 캐시)
         ↓
   BrokerClient (mojito 우선 → yfinance 폴백)
         ↓
   StockSelectorEnsemble (5전략 Z-score 앙상블)
+  + RSI(2) 급락 감지 (v3.6)
         ↓
   RegimeDetector (국면 감지 → 가중치 조정)
         ↓
-  StockTrader.run_cycle() (스캔 → 매매 실행)
+  StockTrader.run_cycle() (스캔 → 앙상블매수 → RSI2매수 → 매매실행)
         ↓
   ExecutionEngine (TWAP/VWAP/Smart + 슬리피지 제어)
         ↓
@@ -262,5 +270,5 @@ python trader.py
 | mojito 연결 실패 | API 키 확인, 모의투자/실전 키 구분 확인 |
 | yfinance 데이터 없음 | 종목코드 확인 (.KS 자동 붙음), 네트워크 확인 |
 | 대시보드 404 | `cd dashboard && python app.py` (reload=False 기본) |
-| 매수 안 됨 | 점수 58점 미달, 현금 부족, 서킷브레이커 확인 |
+| 매수 안 됨 | 점수 58점 미달, RSI2>10, 현금 부족, 서킷브레이커 확인 |
 | `sys.path` 에러 | trader.py가 strategy/ 경로를 자동 추가함, 실행 위치 확인 |

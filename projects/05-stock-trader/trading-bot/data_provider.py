@@ -13,8 +13,8 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# 캐시 TTL (초)
-CACHE_TTL_SEC = 300  # 5분
+# 캐시 TTL (초) - 매매 간격(3분)보다 짧게 설정하여 매 사이클 신선한 데이터 사용
+CACHE_TTL_SEC = 150  # 2.5분
 
 
 class DataProvider:

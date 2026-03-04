@@ -55,7 +55,8 @@ def init_db():
         sector TEXT,
         bought_at TEXT,
         highest_price REAL DEFAULT 0,
-        score_at_buy REAL DEFAULT 0
+        score_at_buy REAL DEFAULT 0,
+        entry_source TEXT DEFAULT 'ens'
     );
 
     CREATE TABLE IF NOT EXISTS daily_performance (
@@ -97,6 +98,13 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp);
     CREATE INDEX IF NOT EXISTS idx_news_symbol ON news_sentiment(symbol);
     """)
+
+    # 기존 DB 마이그레이션: entry_source 컬럼 추가
+    try:
+        c.execute("ALTER TABLE positions ADD COLUMN entry_source TEXT DEFAULT 'ens'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # 이미 존재
 
     conn.commit()
     conn.close()
@@ -174,14 +182,14 @@ class TradeDB:
         }
 
     def save_position(self, symbol: str, name: str, qty: int, avg_price: float,
-                      sector: str = "", score: float = 0):
+                      sector: str = "", score: float = 0, entry_source: str = "ens"):
         conn = get_connection()
         conn.execute(
             """INSERT OR REPLACE INTO positions
-               (symbol, name, qty, avg_price, sector, bought_at, highest_price, score_at_buy)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               (symbol, name, qty, avg_price, sector, bought_at, highest_price, score_at_buy, entry_source)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (symbol, name, qty, avg_price, sector,
-             datetime.now().isoformat(), avg_price, score)
+             datetime.now().isoformat(), avg_price, score, entry_source)
         )
         conn.commit()
         conn.close()

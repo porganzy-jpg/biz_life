@@ -1,12 +1,18 @@
 """
-StockBot v3.5 주식 자동매매 트레이더
+StockBot v3.6 주식 자동매매 트레이더
 
 5전략 통합 앙상블 v3.2 (Z-score + tanh + 폭락가드 + 적응형 임계값)
++ RSI(2) 급락 매수 (RSI2<10 & MA200 위 → 시간기반 청산)
 + 순수 퀀트 (뉴스 부스트 제거) + ATR Chandelier Exit + 서킷브레이커
 + DB 영속성 + 스케줄러 + 시장 국면(Regime) 감지 + 국면별 가중치 적응
 + 스마트 주문 실행 엔진 (TWAP/VWAP/Smart Execute)
 + yfinance 실시간 데이터 + 라이브/페이퍼 이중 안전장치
 
+v3.6 변경사항 (RSI(2) Crash Buy 추가):
+  - RSI(2) < 10 & 종가 > MA200 → 급락 매수 (앙상블과 독립)
+  - RSI(2) 진입 청산: RSI(2) > 90 또는 7일 보유 후 시간기반 청산
+  - 백테스트: +47.47% → +50.25%, Sharpe 2.49 → 2.69
+  - RSI(2) 거래 승률 87.5%, 순기여 +1,263,194원
 v3.5 변경사항 (Strategy Lab 최적화):
   - 포지션 사이징: 균등 분배 -> ATR 기반 (거래당 자본 2% 리스크)
     (백테스트: +34.78% -> +45.98%, Sharpe 2.44 -> 2.56)
@@ -80,13 +86,29 @@ def compute_atr(df, period=14):
     return tr.ewm(span=period, adjust=False).mean()
 
 
+def compute_rsi(series, period=14):
+    """RSI 계산 (EWM 방식)."""
+    delta = series.diff()
+    gain = delta.where(delta > 0, 0.0)
+    loss = -delta.where(delta < 0, 0.0)
+    avg_gain = gain.ewm(alpha=1 / period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / period, adjust=False).mean()
+    rs = avg_gain / avg_loss.replace(0, 1e-10)
+    return (100 - (100 / (1 + rs))).fillna(50)
+
+
+# RSI(2) Crash Buy 설정
+RSI2_BUY_THRESHOLD = 10     # RSI(2) < 10 매수
+RSI2_SELL_THRESHOLD = 90    # RSI(2) > 90 청산
+RSI2_MAX_HOLD_DAYS = 7      # 최대 보유일
+
 # ATR Chandelier Exit 설정 (config.py에서 읽기)
 ATR_MULTIPLIER = STOCK_TRADING_CONFIG.get("atr_multiplier", 2.0)
 ATR_PERIOD = STOCK_TRADING_CONFIG.get("atr_period", 14)
 
 
 class StockTrader:
-    """주식 자동매매 트레이더 v3.5"""
+    """주식 자동매매 트레이더 v3.6"""
 
     def __init__(self, paper_trading: bool = True):
         self.client = BrokerClient(paper_trading=paper_trading)
@@ -195,7 +217,7 @@ class StockTrader:
         return regime
 
     def analyze_stock(self, symbol: str, name: str) -> dict:
-        """개별 종목 분석 (순수 퀀트 + 시장국면 적응형 가중치)"""
+        """개별 종목 분석 (순수 퀀트 + 시장국면 적응형 가중치 + RSI(2) 급락감지)"""
         df = self.client.fetch_ohlcv(symbol, count=200)
         if df is None or df.empty:
             return {"symbol": symbol, "name": name, "action": "HOLD", "score": 0}
@@ -205,6 +227,14 @@ class StockTrader:
         regime_str = self.regime_detector.current_regime.value
         result = selector.evaluate(df, symbol, name, regime=regime_str)
         result["regime"] = regime_str
+
+        # RSI(2) 급락 매수 감지
+        close = df["close"].astype(float)
+        rsi2_val = float(compute_rsi(close, 2).iloc[-1])
+        ma200 = float(close.rolling(200).mean().iloc[-1]) if len(close) >= 200 else 0
+        result["rsi2"] = round(rsi2_val, 1)
+        result["ma200"] = round(ma200)
+        result["rsi2_buy"] = rsi2_val < RSI2_BUY_THRESHOLD and ma200 > 0 and float(close.iloc[-1]) > ma200
 
         return result
 
@@ -231,7 +261,9 @@ class StockTrader:
         cash = balance.get("cash", 0)
 
         # 1. 트레일링 스탑 / 손절 / 익절 체크
+        db_positions = self.db.get_positions()
         for symbol, pos in list(positions.items()):
+          try:
             price_info = self.client.fetch_price(symbol)
             if not price_info:
                 continue
@@ -241,6 +273,52 @@ class StockTrader:
 
             # 고가 업데이트
             self.db.update_highest_price(symbol, current_price)
+
+            # DB에서 진입 소스 확인
+            db_pos = next((p for p in db_positions if p["symbol"] == symbol), None)
+            entry_source = db_pos.get("entry_source", "ens") if db_pos else "ens"
+
+            # RSI(2) 진입 포지션: 별도 청산 로직
+            if entry_source == "rsi2":
+                sell_rsi2 = False
+                rsi2_reason = ""
+
+                # RSI(2) > 90 청산
+                df = self.client.fetch_ohlcv(symbol, count=60)
+                if df is not None and len(df) > 2:
+                    rsi2_now = float(compute_rsi(df["close"].astype(float), 2).iloc[-1])
+                    if rsi2_now > RSI2_SELL_THRESHOLD:
+                        sell_rsi2, rsi2_reason = True, "RSI2>90"
+
+                # 7일 보유 시간기반 청산
+                if not sell_rsi2 and db_pos and db_pos.get("bought_at"):
+                    from datetime import datetime as dt
+                    try:
+                        bought = dt.fromisoformat(db_pos["bought_at"])
+                        days_held = (datetime.now() - bought).days
+                        if days_held >= RSI2_MAX_HOLD_DAYS:
+                            sell_rsi2, rsi2_reason = True, f"T{days_held}d"
+                    except (ValueError, TypeError):
+                        pass
+
+                # 손절은 동일 적용
+                if not sell_rsi2 and pnl_pct <= STOCK_TRADING_CONFIG["stop_loss_pct"]:
+                    sell_rsi2, rsi2_reason = True, "SL"
+
+                if sell_rsi2:
+                    exec_id = self.execution_engine.smart_execute(
+                        symbol=symbol, side=Side.SELL.value,
+                        qty=pos["qty"], urgency="high" if rsi2_reason == "SL" else "normal",
+                        name=pos.get("name", ""),
+                    )
+                    pnl = (current_price - avg_price) * pos["qty"]
+                    self._record_trade(f"RSI2_{rsi2_reason}", symbol, pos.get("name", ""),
+                                       pos["qty"], current_price, pnl, pnl_pct)
+                    self.circuit_breaker.record_trade(pnl_pct)
+                    logger.info(f"RSI(2) 청산 [{pos.get('name', symbol)}] {rsi2_reason} pnl={pnl_pct:+.1f}% exec_id={exec_id}")
+                continue  # RSI(2) 포지션은 앙상블 청산 로직 스킵
+
+            # === 앙상블 진입 포지션: 기존 청산 로직 ===
 
             # 손절 - 긴급: 시장가 즉시 실행
             if pnl_pct <= STOCK_TRADING_CONFIG["stop_loss_pct"]:
@@ -256,7 +334,7 @@ class StockTrader:
                 logger.info(f"손절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
-            # 익절 - 전량 매도 (v3.3: 50%분할→전량, 트레일링과 조합)
+            # 익절 - 전량 매도
             if pnl_pct >= STOCK_TRADING_CONFIG["take_profit_pct"]:
                 exec_id = self.execution_engine.smart_execute(
                     symbol=symbol, side=Side.SELL.value,
@@ -271,8 +349,6 @@ class StockTrader:
                 continue
 
             # ATR Chandelier Exit 트레일링 스탑
-            db_positions = self.db.get_positions()
-            db_pos = next((p for p in db_positions if p["symbol"] == symbol), None)
             if db_pos and db_pos["highest_price"] > 0:
                 highest = db_pos["highest_price"]
 
@@ -297,9 +373,12 @@ class StockTrader:
                         f"스탑={chandelier_stop:,.0f} 현재={current_price:,.0f} "
                         f"({drop_pct:+.1f}%) exec_id={exec_id}"
                     )
+          except Exception as e:
+            logger.error(f"청산 체크 오류 [{symbol}]: {e}")
 
         # 2. 퀀트 기반 매도 (C3 Fix: SELL 신호 실행)
         for result in scan_results:
+          try:
             if result.get("action") != "SELL":
                 continue
             symbol = result["symbol"]
@@ -325,9 +404,12 @@ class StockTrader:
                 self.circuit_breaker.record_trade(pnl_pct)
                 del positions[symbol]
                 logger.info(f"퀀트 매도 [{pos.get('name', symbol)}] score={result.get('score'):.1f} exec_id={exec_id}")
+          except Exception as e:
+            logger.error(f"퀀트 매도 오류 [{result.get('symbol', '?')}]: {e}")
 
-        # 3. 매수 (점수 높은 순)
+        # 3. 앙상블 매수 (점수 높은 순)
         for result in scan_results:
+          try:
             if self.circuit_breaker.is_tripped:
                 break
 
@@ -398,8 +480,81 @@ class StockTrader:
                                    result.get("score", 0), confidence,
                                    result.get("reasons", []))
                 self.db.save_position(symbol, result["name"], qty, current_price,
-                                      sector, result.get("score", 0))
-                logger.info(f"매수 실행 [{result['name']}] exec_id={exec_id}")
+                                      sector, result.get("score", 0), entry_source="ens")
+                logger.info(f"앙상블 매수 [{result['name']}] score={result.get('score', 0):.1f} exec_id={exec_id}")
+          except Exception as e:
+            logger.error(f"앙상블 매수 오류 [{result.get('symbol', '?')}]: {e}")
+
+        # 4. RSI(2) 급락 매수 (앙상블과 독립적으로 작동)
+        for result in scan_results:
+          try:
+            if self.circuit_breaker.is_tripped:
+                break
+            if len(positions) >= STOCK_TRADING_CONFIG["max_positions"]:
+                break
+
+            symbol = result["symbol"]
+            if symbol in positions:
+                continue
+
+            # RSI(2) 급락 매수 조건: RSI(2) < 10 AND 종가 > MA200
+            if not result.get("rsi2_buy", False):
+                continue
+
+            current_price = result.get("current_price", 0)
+            if current_price <= 0:
+                continue
+
+            total_assets = balance.get("total_eval", cash)
+
+            # ATR 기반 포지션 사이징
+            atr_val = self._get_atr(symbol)
+            amount = self.risk_manager.calculate_position_size(
+                total_assets, 0.5, len(positions),
+                current_price=current_price, atr=atr_val,
+            )
+            if amount <= 0:
+                continue
+
+            # 섹터 한도 체크
+            sector = result.get("sector", "")
+            if not self.risk_manager.check_sector_limit(positions, sector, amount, total_assets):
+                continue
+
+            valid, msg = self.risk_manager.validate_trade(
+                "BUY", amount, cash, positions, 0.5
+            )
+            if not valid:
+                continue
+
+            if not self.risk_manager.can_afford_stock(current_price, total_assets):
+                continue
+
+            qty = int(amount / current_price)
+            if qty <= 0:
+                continue
+
+            exec_id = self.execution_engine.smart_execute(
+                symbol=symbol, side=Side.BUY.value,
+                qty=qty, urgency="normal",
+                name=result.get("name", ""),
+            )
+            if exec_id:
+                cash -= qty * current_price
+                positions[symbol] = {"qty": qty, "avg_price": current_price, "sector": sector, "name": result.get("name", "")}
+                self._record_trade("RSI2_BUY", symbol, result.get("name", ""), qty,
+                                   current_price, 0, 0,
+                                   result.get("score", 0), 0.5,
+                                   [f"RSI(2)={result.get('rsi2', 0):.0f}", f"MA200={result.get('ma200', 0):,.0f}"])
+                self.db.save_position(symbol, result.get("name", ""), qty, current_price,
+                                      sector, result.get("score", 0), entry_source="rsi2")
+                logger.info(
+                    f"RSI(2) 급락매수 [{result.get('name', symbol)}] "
+                    f"RSI2={result.get('rsi2', 0):.1f} MA200={result.get('ma200', 0):,.0f} "
+                    f"exec_id={exec_id}"
+                )
+          except Exception as e:
+            logger.error(f"RSI(2) 매수 오류 [{result.get('symbol', '?')}]: {e}")
 
     def _record_trade(self, action, symbol, name, qty, price,
                       pnl=0, pnl_pct=0, score=0, confidence=0, reasons=None):
@@ -493,7 +648,7 @@ class StockTrader:
     def start_auto(self):
         """자동 매매 시작 (스케줄러)"""
         mode = "모의투자" if self.paper_trading else "실전투자"
-        logger.info(f"StockBot v3.5 자동매매 시작 ({mode})")
+        logger.info(f"StockBot v3.6 자동매매 시작 ({mode})")
         logger.info(f"초기 자본: {self._initial_capital:,}원")
         self.alert.notify_bot_start(mode)
         self.scheduler.start()
@@ -534,8 +689,8 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v3.5 - 주식 자동매매")
-    print("  순수퀀트 5전략앙상블 + ATR 포지션사이징 + Chandelier Exit")
+    print("  StockBot v3.6 - 주식 자동매매")
+    print("  5전략앙상블 + RSI(2)급락매수 + ATR사이징 + Chandelier Exit")
     print("=" * 60)
 
     # 트레이딩 모드 결정
@@ -557,6 +712,7 @@ def main():
     print(f"최대 보유: {STOCK_TRADING_CONFIG['max_positions']}종목")
     print(f"손절: {STOCK_TRADING_CONFIG['stop_loss_pct']}% | 익절: {STOCK_TRADING_CONFIG['take_profit_pct']}% | 트레일링: ATR({ATR_PERIOD}) x{ATR_MULTIPLIER:.0f} Chandelier Exit")
     print(f"포지션사이징: ATR 기반 (거래당 {STOCK_TRADING_CONFIG.get('atr_risk_pct', 2.0)}% 리스크)")
+    print(f"RSI(2) 급락매수: RSI2<{RSI2_BUY_THRESHOLD} & MA200위 | 청산: RSI2>{RSI2_SELL_THRESHOLD} or {RSI2_MAX_HOLD_DAYS}일")
     print(f"종목당 최대: {STOCK_TRADING_CONFIG['max_single_pct']}% | 섹터 최대: {STOCK_TRADING_CONFIG['max_sector_pct']}%")
 
     # 데이터 프리로드

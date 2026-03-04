@@ -48,6 +48,9 @@ class StockRiskManager:
             risk_amount = total_assets * risk_pct
             risk_per_share = 2 * atr  # 2x ATR 손절 거리
             qty = int(risk_amount / risk_per_share)
+            if qty <= 0:
+                logger.warning(f"ATR 사이징 수량=0: ATR={atr:,.0f} price={current_price:,.0f} risk={risk_amount:,.0f} → 변동성 과다")
+                return 0
             adjusted = qty * current_price
             # 최대 총자산의 40%까지 (과도한 집중 방지)
             adjusted = min(adjusted, total_assets * 0.40)

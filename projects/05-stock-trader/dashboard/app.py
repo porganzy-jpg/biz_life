@@ -1,5 +1,5 @@
 """
-StockBot v3.5 대시보드
+StockBot v3.6 대시보드
 5전략 앙상블 + ATR 포지션사이징 + 서킷브레이커 + 일일성과 + 시장국면감지
 + 성과 차트 (Equity Curve, Daily PnL, Strategy Stats, Trade Distribution)
 + 전략 분석 (Strategy Heatmap, Rolling Performance, Toggle, Ranking)
@@ -43,7 +43,7 @@ from datetime import datetime, timedelta
 from backtest_portal import backtest_router
 from correlation_monitor import CorrelationMonitor
 
-app = FastAPI(title="StockBot v3.5 Dashboard")
+app = FastAPI(title="StockBot v3.6 Dashboard")
 app.include_router(backtest_router)
 _is_live = (TRADING_MODE == "live" and LIVE_TRADING_CONFIRMED)
 trader = StockTrader(paper_trading=not _is_live)
@@ -792,7 +792,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockBot v3.5</title>
+    <title>StockBot v3.6</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1028,7 +1028,7 @@ DASHBOARD_HTML = """
 <body>
     <div class="header">
         <div style="display:flex;align-items:center;gap:10px">
-            <h1>StockBot v3.5</h1>
+            <h1>StockBot v3.6</h1>
             <button onclick="document.getElementById('glossaryModal').style.display='flex'" style="background:#1f6feb33;color:#58a6ff;border:1px solid #1f6feb;border-radius:50%;width:28px;height:28px;cursor:pointer;font-weight:700;font-size:0.9rem" title="주식 용어 사전">?</button>
         </div>
         <div class="header-right">
@@ -1420,8 +1420,8 @@ DASHBOARD_HTML = """
             <div class="card">
                 <h2>\uad00\uc2ec\uc885\ubaa9 \ubd84\uc11d</h2>
                 <div class="scroll-table">
-                <table><thead><tr><th>\uc885\ubaa9</th><th title="5\uac1c \uc804\ub7b5\uc758 \uac00\uc911 \ud3c9\uade0 \uc810\uc218. 58\uc774\uc0c1=\ub9e4\uc218, 42\uc774\ud558=\ub9e4\ub3c4">\uc810\uc218 \u24d8</th><th>\uc2e0\ud638</th><th>\uac00\uaca9</th><th title="\ub9ce\uc774 \ube60\uc9c4 \uac74 \ub2e4\uc2dc \uc624\ub974\uace0, \ub9ce\uc774 \uc624\ub978 \uac74 \ube60\uc9c4\ub2e4\ub294 \uc6d0\ub9ac. RSI\uc640 \ubcfc\ub9b0\uc800\ubc34\ub4dc \uae30\ubc18">\ud3c9\uade0\ud68c\uadc0 \u24d8</th><th title="\uc624\ub974\ub294 \uc8fc\uc2dd\uc740 \uacc4\uc18d \uc624\ub978\ub2e4\ub294 \uc6d0\ub9ac. MACD\uc640 \uc774\ub3d9\ud3c9\uade0\uc120 \ubc30\uc5f4 \uae30\ubc18">\ucd94\uc138 \u24d8</th><th title="\ud55c\uad6d \uc2dc\uc7a5 \ud2b9\uc131 \ubc18\uc601. \ucd5c\uadfc \uae09\ub4f1\uc8fc\ub294 \ub2e8\uae30 \ud558\ub77d \uac00\ub2a5\uc131 \ud3c9\uac00">\ubaa8\uba58\ud140 \u24d8</th><th title="\uac70\ub798\ub7c9\uc774 \ud3c9\uc18c\ubcf4\ub2e4 \ub9ce\uc73c\uba74\uc11c \uc0c1\uc2b9\ud558\uba74 \uae0d\uc815\uc801">\uac70\ub798\ub7c9 \u24d8</th><th title="\uac00\uaca9 \ubcc0\ub3d9 \ud3ed\uc774 \uc904\uc5b4\ub4e4\uba74 \uc548\uc815\uc801(\uae0d\uc815), \ub298\uc5b4\ub098\uba74 \ubd88\uc548\uc815(\ubd80\uc815)">\ubcc0\ub3d9\uc131 \u24d8</th><th>\uc0ac\uc720</th></tr></thead>
-                <tbody id="scanResults"><tr><td colspan="10" class="neu">"\uc885\ubaa9 \uc2a4\uce94" \ubc84\ud2bc\uc744 \ud074\ub9ad\ud558\uc138\uc694</td></tr></tbody></table>
+                <table><thead><tr><th>\uc885\ubaa9</th><th title="5\uac1c \uc804\ub7b5\uc758 \uac00\uc911 \ud3c9\uade0 \uc810\uc218. 58\uc774\uc0c1=\ub9e4\uc218, 42\uc774\ud558=\ub9e4\ub3c4">\uc810\uc218 \u24d8</th><th>\uc2e0\ud638</th><th>\uac00\uaca9</th><th title="\ub9ce\uc774 \ube60\uc9c4 \uac74 \ub2e4\uc2dc \uc624\ub974\uace0, \ub9ce\uc774 \uc624\ub978 \uac74 \ube60\uc9c4\ub2e4\ub294 \uc6d0\ub9ac. RSI\uc640 \ubcfc\ub9b0\uc800\ubc34\ub4dc \uae30\ubc18">\ud3c9\uade0\ud68c\uadc0 \u24d8</th><th title="\uc624\ub974\ub294 \uc8fc\uc2dd\uc740 \uacc4\uc18d \uc624\ub978\ub2e4\ub294 \uc6d0\ub9ac. MACD\uc640 \uc774\ub3d9\ud3c9\uade0\uc120 \ubc30\uc5f4 \uae30\ubc18">\ucd94\uc138 \u24d8</th><th title="\ud55c\uad6d \uc2dc\uc7a5 \ud2b9\uc131 \ubc18\uc601. \ucd5c\uadfc \uae09\ub4f1\uc8fc\ub294 \ub2e8\uae30 \ud558\ub77d \uac00\ub2a5\uc131 \ud3c9\uac00">\ubaa8\uba58\ud140 \u24d8</th><th title="\uac70\ub798\ub7c9\uc774 \ud3c9\uc18c\ubcf4\ub2e4 \ub9ce\uc73c\uba74\uc11c \uc0c1\uc2b9\ud558\uba74 \uae0d\uc815\uc801">\uac70\ub798\ub7c9 \u24d8</th><th title="\uac00\uaca9 \ubcc0\ub3d9 \ud3ed\uc774 \uc904\uc5b4\ub4e4\uba74 \uc548\uc815\uc801(\uae0d\uc815), \ub298\uc5b4\ub098\uba74 \ubd88\uc548\uc815(\ubd80\uc815)">\ubcc0\ub3d9\uc131 \u24d8</th><th title="RSI(2) \uae09\ub77d\ub9e4\uc218 \uc2e0\ud638. RSI2<10 &amp; MA200\uc704\uc774\uba74 \ub9e4\uc218">RSI2 \u24d8</th><th>\uc0ac\uc720</th></tr></thead>
+                <tbody id="scanResults"><tr><td colspan="11" class="neu">"\uc885\ubaa9 \uc2a4\uce94" \ubc84\ud2bc\uc744 \ud074\ub9ad\ud558\uc138\uc694</td></tr></tbody></table>
                 </div>
             </div>
             <div class="card">
@@ -1993,7 +1993,7 @@ DASHBOARD_HTML = """
         }
 
         async function scanAll() {
-            document.getElementById('scanResults').innerHTML='<tr><td colspan="10">15\uac1c \uc885\ubaa9 \uc2a4\uce94 \uc911...</td></tr>';
+            document.getElementById('scanResults').innerHTML='<tr><td colspan="11">15\uac1c \uc885\ubaa9 \uc2a4\uce94 \uc911...</td></tr>';
             const r = await fetch('/api/scan');
             const d = await r.json();
             const tb = document.getElementById('scanResults');
@@ -2017,6 +2017,7 @@ DASHBOARD_HTML = """
                     +'<td>'+subCell(ss['\ud55c\uad6d\ud615\ubaa8\uba58\ud140'])+'</td>'
                     +'<td>'+subCell(ss['\uac70\ub798\ub7c9'])+'</td>'
                     +'<td>'+subCell(ss['\ubcc0\ub3d9\uc131'])+'</td>'
+                    +'<td>'+(s.rsi2_buy?'<span class="badge badge-buy">'+s.rsi2+'</span>':(s.rsi2!=null?'<span class="neu">'+s.rsi2+'</span>':''))+'</td>'
                     +'<td style="font-size:0.72rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">'+(s.reasons||[]).slice(0,2).join(', ')+'</td></tr>';
             }).join('');
         }
@@ -2045,7 +2046,7 @@ DASHBOARD_HTML = """
             const btn = document.querySelector('.btn-cycle');
             const origText = btn.textContent;
             btn.disabled = true; btn.textContent = '\uc2e4\ud589 \uc911...';
-            document.getElementById('scanResults').innerHTML='<tr><td colspan="10">\ub9e4\ub9e4 \uc0ac\uc774\ud074 \uc2e4\ud589 \uc911...</td></tr>';
+            document.getElementById('scanResults').innerHTML='<tr><td colspan="11">\ub9e4\ub9e4 \uc0ac\uc774\ud074 \uc2e4\ud589 \uc911...</td></tr>';
             try {
                 await fetch('/api/cycle',{method:'POST'});
                 fetchStatus(); fetchStats();
@@ -3462,7 +3463,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     print("=" * 50)
-    print(f"  StockBot v3.5 Dashboard")
+    print(f"  StockBot v3.6 Dashboard")
     print(f"  http://localhost:{DASHBOARD_PORT}")
     print("=" * 50)
     uvicorn.run(app, host=DASHBOARD_HOST, port=DASHBOARD_PORT)
