@@ -1,8 +1,8 @@
 """
-StockBot 설정 파일 v3.1
+StockBot 설정 파일 v3.5
 한국투자증권 API + 매매 + 리스크 + 알림 설정
 200만원 소규모 자본 최적화
-v3.1: 5전략 통합앙상블 반영 (임계값 조정)
+v3.5: ATR 기반 포지션 사이징 (거래당 자본 2% 리스크)
 """
 import os
 from dotenv import load_dotenv
@@ -66,8 +66,10 @@ STOCK_TRADING_CONFIG = {
     "min_cash_reserve_pct": _auto["min_cash_reserve_pct"],
     "stop_loss_pct": -5.0,
     "take_profit_pct": _auto["take_profit_pct"],
-    "trailing_stop_pct": -5.0,
-    "trade_interval_minutes": 5,
+    "atr_period": 14,            # ATR 계산 기간
+    "atr_multiplier": 2.0,       # Chandelier Exit 배수 (최고가 - N*ATR)
+    "atr_risk_pct": 2.0,         # ATR 사이징: 거래당 리스크 비율 (자본의 2%)
+    "trade_interval_minutes": 3,
     "min_buy_score": _auto["min_buy_score"],
     "min_confidence": 0.15,  # v3.1: 0.3→0.15 (서브스코어 범위 확대 반영)
 }

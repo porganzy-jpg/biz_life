@@ -26,9 +26,23 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from config import WATCHLIST
+from config import WATCHLIST, STOCK_TRADING_CONFIG
 
 logger = logging.getLogger(__name__)
+
+
+def compute_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """ATR (Average True Range) 계산 - Chandelier Exit용"""
+    high = df['high'].astype(float)
+    low = df['low'].astype(float)
+    close = df['close'].astype(float)
+    prev_close = close.shift(1)
+    tr = pd.concat([
+        high - low,
+        (high - prev_close).abs(),
+        (low - prev_close).abs(),
+    ], axis=1).max(axis=1)
+    return tr.ewm(span=period, adjust=False).mean()
 
 backtest_router = APIRouter()
 
@@ -76,7 +90,8 @@ class BacktestRequest(BaseModel):
     initial_capital: float = 10_000_000
     stop_loss_pct: float = 5.0
     take_profit_pct: float = 15.0
-    trailing_stop_pct: float = 5.0
+    atr_multiplier: float = 2.0
+    atr_period: int = 14
     strategy_weights: Optional[Dict[str, float]] = None
 
 
@@ -162,7 +177,8 @@ class BacktestEngine:
         initial_capital: float = 10_000_000,
         stop_loss_pct: float = 5.0,
         take_profit_pct: float = 15.0,
-        trailing_stop_pct: float = 5.0,
+        atr_multiplier: float = 2.0,
+        atr_period: int = 14,
         strategy_weights: Optional[Dict[str, float]] = None,
         progress_callback=None,
     ):
@@ -172,7 +188,8 @@ class BacktestEngine:
         self.initial_capital = initial_capital
         self.stop_loss_pct = stop_loss_pct
         self.take_profit_pct = take_profit_pct
-        self.trailing_stop_pct = trailing_stop_pct
+        self.atr_multiplier = atr_multiplier
+        self.atr_period = atr_period
         self.strategy_weights = strategy_weights
         self._progress_cb = progress_callback
 
@@ -209,6 +226,9 @@ class BacktestEngine:
         FEE_RATE = 0.00015    # buy commission
         TAX_RATE = 0.0018     # sell tax
         SELL_FEE = 0.00015    # sell commission
+
+        # ATR 계산 (Chandelier Exit용)
+        atr_series = compute_atr(df, self.atr_period)
 
         trades_log = []       # (entry_date, exit_date, symbol, pnl_pct, exit_reason)
         equity_curve = []     # (date_str, equity_value)
@@ -253,10 +273,11 @@ class BacktestEngine:
                 elif pnl_pct >= self.take_profit_pct:
                     exit_reason = "TAKE_PROFIT"
 
-                # Trailing stop: only if in profit
-                elif pnl_pct > 0:
-                    drop_from_high = (current_price - position["highest_price"]) / position["highest_price"] * 100
-                    if drop_from_high <= -self.trailing_stop_pct:
+                # ATR Chandelier Exit: highest - N * ATR
+                else:
+                    atr_val = float(atr_series.iloc[i]) if i < len(atr_series) and not np.isnan(atr_series.iloc[i]) else current_price * 0.03
+                    chandelier_stop = position["highest_price"] - self.atr_multiplier * atr_val
+                    if current_price <= chandelier_stop:
                         exit_reason = "TRAILING_STOP"
 
                 if exit_reason:
@@ -468,7 +489,8 @@ def _run_backtest_job(job_id: str, req: BacktestRequest):
             initial_capital=req.initial_capital,
             stop_loss_pct=req.stop_loss_pct,
             take_profit_pct=req.take_profit_pct,
-            trailing_stop_pct=req.trailing_stop_pct,
+            atr_multiplier=req.atr_multiplier,
+            atr_period=req.atr_period,
             strategy_weights=req.strategy_weights,
             progress_callback=progress_cb,
         )
@@ -622,7 +644,7 @@ BACKTEST_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockBot v2.1 - Backtest Portal</title>
+    <title>StockBot v3.4 - Backtest Portal</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -741,7 +763,7 @@ BACKTEST_HTML = """
 </head>
 <body>
     <div class="header">
-        <h1>StockBot v2.1 - Backtest Portal</h1>
+        <h1>StockBot v3.4 - Backtest Portal</h1>
         <div class="header-nav">
             <a href="/">Dashboard</a>
             <a href="/backtest" class="active">Backtest</a>
@@ -788,10 +810,10 @@ BACKTEST_HTML = """
                         </div>
                     </div>
                     <div class="slider-group">
-                        <label>Trailing Stop %</label>
+                        <label>ATR Multiplier (Chandelier Exit)</label>
                         <div class="slider-row">
-                            <input type="range" id="tsSlider" min="1" max="10" step="0.5" value="5">
-                            <span class="slider-val" id="tsVal">5.0%</span>
+                            <input type="range" id="atrSlider" min="1.0" max="4.0" step="0.5" value="2.0">
+                            <span class="slider-val" id="atrVal">2.0x</span>
                         </div>
                     </div>
                 </div>
@@ -964,13 +986,18 @@ BACKTEST_HTML = """
         } catch(e) { console.error('Failed to load watchlist', e); }
 
         // Slider listeners
-        ['slSlider', 'tpSlider', 'tsSlider'].forEach(id => {
+        ['slSlider', 'tpSlider'].forEach(id => {
             const el = document.getElementById(id);
             const valId = id.replace('Slider', 'Val');
             el.addEventListener('input', () => {
                 const v = parseFloat(el.value);
                 document.getElementById(valId).textContent = (id === 'tpSlider') ? v + '%' : v.toFixed(1) + '%';
             });
+        });
+        // ATR multiplier slider
+        document.getElementById('atrSlider').addEventListener('input', () => {
+            const v = parseFloat(document.getElementById('atrSlider').value);
+            document.getElementById('atrVal').textContent = v.toFixed(1) + 'x';
         });
 
         // Build strategy weight sliders
@@ -1003,7 +1030,7 @@ BACKTEST_HTML = """
         const capital = parseFloat(document.getElementById('initialCapital').value);
         const sl = parseFloat(document.getElementById('slSlider').value);
         const tp = parseFloat(document.getElementById('tpSlider').value);
-        const ts = parseFloat(document.getElementById('tsSlider').value);
+        const atrMult = parseFloat(document.getElementById('atrSlider').value);
 
         if (!symbol || !startDate || !endDate) {
             alert('Please fill in symbol and date range');
@@ -1019,7 +1046,7 @@ BACKTEST_HTML = """
         const body = {
             symbol, start_date: startDate, end_date: endDate,
             initial_capital: capital, stop_loss_pct: sl, take_profit_pct: tp,
-            trailing_stop_pct: ts, strategy_weights: weights,
+            atr_multiplier: atrMult, strategy_weights: weights,
         };
 
         document.getElementById('runBtn').disabled = true;

@@ -3,7 +3,14 @@
 
 mojito SDK를 래핑하여 주식 매매 기능 제공.
 데이터 소스 우선순위: mojito → yfinance(DataProvider) → 만료캐시.
-모의투자 / 실전투자 모드 전환 가능.
+
+연결 모드 (API 키 타입에 따라):
+  - 실전투자 키: mock=False (실전 서버 연결)
+  - 모의투자 키: mock=True (모의 서버 연결)
+
+매매 모드 (TRADING_MODE에 따라):
+  - paper: 데이터는 실제 API, 주문은 시뮬레이션
+  - live: 실제 주문 실행 (LIVE_TRADING_CONFIRMED=true 필요)
 """
 import logging
 from typing import Optional
@@ -23,12 +30,8 @@ class BrokerClient:
     """한국투자증권 API 클라이언트"""
 
     def __init__(self, paper_trading: bool = True):
-        # 이중 안전장치: TRADING_MODE=live + LIVE_TRADING_CONFIRMED=true 둘 다 충족해야 실전
-        is_live = (TRADING_MODE == "live" and LIVE_TRADING_CONFIRMED)
-        if is_live:
-            self.paper_trading = False
-        else:
-            self.paper_trading = paper_trading or KIS_IS_PAPER
+        # 이중 안전장치: TRADING_MODE=live + LIVE_TRADING_CONFIRMED=true 둘 다 충족해야 실전 주문
+        self.live_trading = (TRADING_MODE == "live" and LIVE_TRADING_CONFIRMED)
 
         # yfinance 데이터 제공자
         self.data_provider = DataProvider()
@@ -38,20 +41,25 @@ class BrokerClient:
         if KIS_APP_KEY and KIS_APP_SECRET:
             try:
                 import mojito
+                # API 키 타입에 맞게 연결 (실전 키 → mock=False, 모의 키 → mock=True)
                 self.broker = mojito.KoreaInvestment(
                     api_key=KIS_APP_KEY,
                     api_secret=KIS_APP_SECRET,
                     acc_no=KIS_ACCOUNT_NO,
-                    mock=self.paper_trading,
+                    mock=KIS_IS_PAPER,
                 )
-                mode_str = '모의' if self.paper_trading else '실전'
-                logger.info(f"한국투자증권 API 연결 완료 ({mode_str})")
+                api_mode = '모의' if KIS_IS_PAPER else '실전'
+                trade_mode = '실전매매' if self.live_trading else '시뮬레이션(주문차단)'
+                logger.info(f"한국투자증권 API 연결 완료 (API: {api_mode}, 매매: {trade_mode})")
             except Exception as e:
                 logger.warning(f"한국투자증권 API 연결 실패: {e} (yfinance 전용 모드)")
         else:
             logger.info("API 키 미설정 - yfinance 데이터 + 시뮬레이션 모드로 실행")
 
-        # 시뮬레이션 상태 (API 키 없을 때 사용)
+        # paper_trading: live_trading의 반대 (하위 호환)
+        self.paper_trading = not self.live_trading
+
+        # 시뮬레이션 상태 (paper 모드 또는 API 미연결 시 사용)
         self._sim_balance = INITIAL_CAPITAL
         self._sim_positions = {}  # {종목코드: {qty, avg_price, name}}
 
@@ -83,13 +91,23 @@ class BrokerClient:
         return pd.DataFrame()
 
     def fetch_price(self, symbol: str) -> Optional[dict]:
-        """현재가 조회"""
-        # 1순위: mojito API
+        """현재가 조회. 반환: {"price": int, "change": int, "change_pct": float, ...}"""
+        # 1순위: mojito API (실전/모의 모두)
         if self.broker:
             try:
-                price = self.broker.fetch_price(symbol)
-                if price:
-                    return price
+                resp = self.broker.fetch_price(symbol)
+                if resp and isinstance(resp, dict):
+                    output = resp.get("output", resp)
+                    if isinstance(output, dict) and "stck_prpr" in output:
+                        return {
+                            "price": int(output.get("stck_prpr", 0)),
+                            "change": int(output.get("prdy_vrss", 0)),
+                            "change_pct": float(output.get("prdy_ctrt", 0)),
+                            "volume": int(output.get("acml_vol", 0)),
+                            "high": int(output.get("stck_hgpr", 0)),
+                            "low": int(output.get("stck_lwpr", 0)),
+                            "open": int(output.get("stck_oprc", 0)),
+                        }
             except Exception as e:
                 logger.debug(f"mojito 현재가 실패 [{symbol}]: {e}")
 
@@ -97,22 +115,19 @@ class BrokerClient:
         return self.data_provider.fetch_current_price(symbol)
 
     def get_balance(self) -> dict:
-        """잔고 조회"""
-        # mojito API가 있으면 (페이퍼 모드 포함) API 조회
+        """잔고 조회. 반환: {"cash": int, "total_eval": int}"""
+        # mojito API로 실제 잔고 조회
         if self.broker:
             try:
-                bal = self.broker.fetch_balance()
-                if bal:
-                    # mojito 반환 형식 파싱
-                    if isinstance(bal, dict):
-                        return bal
-                    # 리스트 형태일 경우 파싱
-                    if isinstance(bal, list) and len(bal) > 0:
-                        return self._parse_kis_balance(bal)
+                resp = self.broker.fetch_balance()
+                if resp and isinstance(resp, dict):
+                    parsed = self._parse_kis_balance(resp)
+                    if parsed:
+                        return parsed
             except Exception as e:
                 logger.warning(f"잔고 조회 실패: {e} (시뮬레이션 폴백)")
 
-        # 시뮬레이션
+        # 시뮬레이션 폴백
         pos_value = sum(
             p["qty"] * p["avg_price"] for p in self._sim_positions.values()
         )
@@ -121,35 +136,36 @@ class BrokerClient:
             "total_eval": self._sim_balance + pos_value,
         }
 
-    def _parse_kis_balance(self, bal_data) -> dict:
-        """한투 API 잔고 응답 파싱"""
+    def _parse_kis_balance(self, resp: dict) -> Optional[dict]:
+        """한투 API 잔고 응답 파싱 (output1: 보유종목, output2: 계좌요약)"""
         try:
-            if isinstance(bal_data, dict):
-                cash = int(bal_data.get("dnca_tot_amt", 0) or
-                          bal_data.get("cash", 0))
-                total = int(bal_data.get("tot_evlu_amt", 0) or
-                           bal_data.get("total_eval", cash))
+            output2 = resp.get("output2", [])
+            if isinstance(output2, list) and len(output2) > 0:
+                summary = output2[0]
+                cash = int(summary.get("dnca_tot_amt", 0))
+                total = int(summary.get("tot_evlu_amt", 0))
                 return {"cash": cash, "total_eval": total}
         except Exception:
             pass
-        return {"cash": self._sim_balance, "total_eval": self._sim_balance}
+        return None
 
     def buy(self, symbol: str, name: str, qty: int, price: int = 0) -> Optional[dict]:
-        """매수 주문"""
-        if self.broker:
+        """매수 주문. live_trading=True일 때만 실제 주문, 아니면 시뮬레이션."""
+        # 실전 매매 모드: 실제 주문 실행
+        if self.live_trading and self.broker:
             try:
                 if price > 0:
                     result = self.broker.create_limit_buy_order(symbol, qty, price)
                 else:
                     result = self.broker.create_market_buy_order(symbol, qty)
                 if result:
-                    logger.info(f"매수 주문 제출: {name}({symbol}) {qty}주 @ {price if price else '시장가'}")
+                    logger.info(f"[LIVE] 매수 주문 제출: {name}({symbol}) {qty}주 @ {price if price else '시장가'}")
                 return result
             except Exception as e:
                 logger.error(f"매수 실패 [{symbol}]: {e}")
                 return None
 
-        # 시뮬레이션
+        # 시뮬레이션 모드: 실제 시세 기반으로 가상 매매
         price_info = self.fetch_price(symbol)
         if not price_info:
             return None
@@ -177,21 +193,22 @@ class BrokerClient:
         return {"symbol": symbol, "qty": qty, "price": buy_price, "action": "BUY"}
 
     def sell(self, symbol: str, qty: int, price: int = 0) -> Optional[dict]:
-        """매도 주문"""
-        if self.broker:
+        """매도 주문. live_trading=True일 때만 실제 주문, 아니면 시뮬레이션."""
+        # 실전 매매 모드: 실제 주문 실행
+        if self.live_trading and self.broker:
             try:
                 if price > 0:
                     result = self.broker.create_limit_sell_order(symbol, qty, price)
                 else:
                     result = self.broker.create_market_sell_order(symbol, qty)
                 if result:
-                    logger.info(f"매도 주문 제출: {symbol} {qty}주 @ {price if price else '시장가'}")
+                    logger.info(f"[LIVE] 매도 주문 제출: {symbol} {qty}주 @ {price if price else '시장가'}")
                 return result
             except Exception as e:
                 logger.error(f"매도 실패 [{symbol}]: {e}")
                 return None
 
-        # 시뮬레이션
+        # 시뮬레이션 모드
         if symbol not in self._sim_positions:
             return None
 
@@ -217,13 +234,13 @@ class BrokerClient:
         return {"symbol": symbol, "qty": qty, "price": sell_price, "action": "SELL"}
 
     def get_positions(self) -> dict:
-        """보유 포지션"""
-        # mojito API가 있으면 (페이퍼 포함) API 조회
-        if self.broker:
+        """보유 포지션. live 모드에서는 실제 API, paper 모드에서는 시뮬레이션 포지션."""
+        # live 모드: 실제 API 보유종목 조회
+        if self.live_trading and self.broker:
             try:
-                bal = self.broker.fetch_balance()
-                if bal:
-                    positions = self._parse_kis_positions(bal)
+                resp = self.broker.fetch_balance()
+                if resp and isinstance(resp, dict):
+                    positions = self._parse_kis_positions(resp)
                     if positions is not None:
                         return positions
             except Exception as e:
@@ -231,12 +248,13 @@ class BrokerClient:
 
         return self._sim_positions.copy()
 
-    def _parse_kis_positions(self, bal_data) -> Optional[dict]:
-        """한투 API 보유종목 파싱"""
+    def _parse_kis_positions(self, resp: dict) -> Optional[dict]:
+        """한투 API 보유종목 파싱 (output1 리스트)"""
         try:
             positions = {}
-            if isinstance(bal_data, list):
-                for item in bal_data:
+            output1 = resp.get("output1", [])
+            if isinstance(output1, list):
+                for item in output1:
                     if not isinstance(item, dict):
                         continue
                     symbol = item.get("pdno", "")
@@ -247,7 +265,7 @@ class BrokerClient:
                             "avg_price": int(float(item.get("pchs_avg_pric", 0))),
                             "name": item.get("prdt_name", ""),
                         }
-            return positions if positions is not None else {}
+            return positions
         except Exception:
             return None
 

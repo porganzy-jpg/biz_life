@@ -1,6 +1,6 @@
 """
-StockBot v3.3 대시보드
-8전략 앙상블 + 뉴스감성 + 서킷브레이커 + 일일성과 + 시장국면감지
+StockBot v3.5 대시보드
+5전략 앙상블 + ATR 포지션사이징 + 서킷브레이커 + 일일성과 + 시장국면감지
 + 성과 차트 (Equity Curve, Daily PnL, Strategy Stats, Trade Distribution)
 + 전략 분석 (Strategy Heatmap, Rolling Performance, Toggle, Ranking)
 + 시장 레짐 (Dashboard Regime Detection & Strategy Rotation)
@@ -43,7 +43,7 @@ from datetime import datetime, timedelta
 from backtest_portal import backtest_router
 from correlation_monitor import CorrelationMonitor
 
-app = FastAPI(title="StockBot v3.3 Dashboard")
+app = FastAPI(title="StockBot v3.5 Dashboard")
 app.include_router(backtest_router)
 _is_live = (TRADING_MODE == "live" and LIVE_TRADING_CONFIRMED)
 trader = StockTrader(paper_trading=not _is_live)
@@ -792,7 +792,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockBot v3.3</title>
+    <title>StockBot v3.5</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1028,7 +1028,7 @@ DASHBOARD_HTML = """
 <body>
     <div class="header">
         <div style="display:flex;align-items:center;gap:10px">
-            <h1>StockBot v3.3</h1>
+            <h1>StockBot v3.5</h1>
             <button onclick="document.getElementById('glossaryModal').style.display='flex'" style="background:#1f6feb33;color:#58a6ff;border:1px solid #1f6feb;border-radius:50%;width:28px;height:28px;cursor:pointer;font-weight:700;font-size:0.9rem" title="주식 용어 사전">?</button>
         </div>
         <div class="header-right">
@@ -3462,7 +3462,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     print("=" * 50)
-    print(f"  StockBot v3.3 Dashboard")
+    print(f"  StockBot v3.5 Dashboard")
     print(f"  http://localhost:{DASHBOARD_PORT}")
     print("=" * 50)
     uvicorn.run(app, host=DASHBOARD_HOST, port=DASHBOARD_PORT)

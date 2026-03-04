@@ -1,22 +1,28 @@
 """
-StockBot v3.3 주식 자동매매 트레이더
+StockBot v3.5 주식 자동매매 트레이더
 
 5전략 통합 앙상블 v3.2 (Z-score + tanh + 폭락가드 + 적응형 임계값)
-+ 순수 퀀트 (뉴스 부스트 제거) + 트레일링 스탑 + 서킷브레이커
++ 순수 퀀트 (뉴스 부스트 제거) + ATR Chandelier Exit + 서킷브레이커
 + DB 영속성 + 스케줄러 + 시장 국면(Regime) 감지 + 국면별 가중치 적응
 + 스마트 주문 실행 엔진 (TWAP/VWAP/Smart Execute)
 + yfinance 실시간 데이터 + 라이브/페이퍼 이중 안전장치
 
-v3.3 변경사항 (2025년 1년 백테스트 최적화):
-  - 뉴스 부스트 제거 (순수 퀀트 +35.40% > 뉴스혼합 +31.37%)
-  - 익절 10% → 15% + 트레일링 스탑 -5% 조합 (MDD -5.01%)
-  - 익절 시 전량 매도 (50% 분할 매도 → 전량)
+v3.5 변경사항 (Strategy Lab 최적화):
+  - 포지션 사이징: 균등 분배 -> ATR 기반 (거래당 자본 2% 리스크)
+    (백테스트: +34.78% -> +45.98%, Sharpe 2.44 -> 2.56)
+    변동성 높은 종목은 포지션 줄이고, 안정 종목은 포지션 확대
+  - ATR 없을 시 기존 균등 분배 폴백
+v3.4 변경사항 (시간봉 백테스트 최적화):
+  - 트레일링 스탑: 고정 -5% -> ATR x2 Chandelier Exit
+  - 변동성 자동 적응: 저변동 종목은 타이트, 고변동 종목은 넓게
+  - 손절은 기존 고정 -5% 유지 (ATR 손절은 큰 차이 없음)
 """
 import sys
 import os
-import json
 import time
 import logging
+import numpy as np
+import pandas as pd
 from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "strategy"))
@@ -60,8 +66,27 @@ def _confirm_live_trading() -> bool:
     return answer == "CONFIRM"
 
 
+def compute_atr(df, period=14):
+    """ATR(Average True Range) 계산. df는 high/low/close 컬럼 필요."""
+    high = df['high'].astype(float)
+    low = df['low'].astype(float)
+    close = df['close'].astype(float)
+    prev_close = close.shift(1)
+    tr = pd.concat([
+        high - low,
+        (high - prev_close).abs(),
+        (low - prev_close).abs(),
+    ], axis=1).max(axis=1)
+    return tr.ewm(span=period, adjust=False).mean()
+
+
+# ATR Chandelier Exit 설정 (config.py에서 읽기)
+ATR_MULTIPLIER = STOCK_TRADING_CONFIG.get("atr_multiplier", 2.0)
+ATR_PERIOD = STOCK_TRADING_CONFIG.get("atr_period", 14)
+
+
 class StockTrader:
-    """주식 자동매매 트레이더 v3.3"""
+    """주식 자동매매 트레이더 v3.5"""
 
     def __init__(self, paper_trading: bool = True):
         self.client = BrokerClient(paper_trading=paper_trading)
@@ -135,6 +160,25 @@ class StockTrader:
     def _on_post_market(self):
         """장 마감 후 일일 리포트"""
         self._generate_daily_report()
+
+    def _get_atr(self, symbol: str, period: int = ATR_PERIOD) -> float:
+        """종목의 현재 ATR 값을 계산. OHLCV 데이터 필요."""
+        try:
+            df = self.client.fetch_ohlcv(symbol, count=max(60, period * 3))
+            if df is not None and len(df) >= period + 1:
+                atr_series = compute_atr(df, period)
+                return float(atr_series.iloc[-1])
+        except Exception as e:
+            logger.warning(f"ATR 계산 실패 [{symbol}]: {e}")
+
+        # 폴백: 현재가의 3% (보수적 기본값)
+        try:
+            price_info = self.client.fetch_price(symbol)
+            if price_info:
+                return price_info["price"] * 0.03
+        except Exception:
+            pass
+        return 0
 
     def _update_regime(self) -> MarketRegime:
         """워치리스트 종목의 OHLCV를 수집하여 시장 국면을 감지합니다."""
@@ -226,13 +270,17 @@ class StockTrader:
                 logger.info(f"익절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
-            # 트레일링 스탑 (DB에서 고가 조회) - 긴급 매도
+            # ATR Chandelier Exit 트레일링 스탑
             db_positions = self.db.get_positions()
             db_pos = next((p for p in db_positions if p["symbol"] == symbol), None)
             if db_pos and db_pos["highest_price"] > 0:
                 highest = db_pos["highest_price"]
-                drop_from_high = (current_price - highest) / highest * 100
-                if drop_from_high <= STOCK_TRADING_CONFIG["trailing_stop_pct"] and pnl_pct > 0:
+
+                # ATR 계산: 종목의 일봉 데이터로 현재 ATR 산출
+                atr_val = self._get_atr(symbol)
+                chandelier_stop = highest - ATR_MULTIPLIER * atr_val
+
+                if current_price <= chandelier_stop:
                     exec_id = self.execution_engine.smart_execute(
                         symbol=symbol, side=Side.SELL.value,
                         qty=pos["qty"], urgency="high",
@@ -242,7 +290,13 @@ class StockTrader:
                     self._record_trade("TRAILING_STOP", symbol, pos.get("name", ""),
                                        pos["qty"], current_price, pnl, pnl_pct)
                     self.circuit_breaker.record_trade(pnl_pct)
-                    logger.info(f"트레일링 스탑 [{symbol}] exec_id={exec_id}")
+                    drop_pct = (current_price - highest) / highest * 100
+                    logger.info(
+                        f"ATR 트레일링 [{symbol}] "
+                        f"고가={highest:,.0f} ATR={atr_val:,.0f} "
+                        f"스탑={chandelier_stop:,.0f} 현재={current_price:,.0f} "
+                        f"({drop_pct:+.1f}%) exec_id={exec_id}"
+                    )
 
         # 2. 퀀트 기반 매도 (C3 Fix: SELL 신호 실행)
         for result in scan_results:
@@ -290,9 +344,18 @@ class StockTrader:
             if confidence < STOCK_TRADING_CONFIG["min_confidence"]:
                 continue
 
+            current_price = result.get("current_price", 0)
+            if current_price <= 0:
+                logger.warning(f"가격 데이터 없음 [{result.get('name', symbol)}]: price={current_price} - 매수 건너뜀")
+                continue
+
             total_assets = balance.get("total_eval", cash)
+
+            # ATR 기반 포지션 사이징
+            atr_val = self._get_atr(symbol)
             amount = self.risk_manager.calculate_position_size(
-                total_assets, confidence, len(positions)
+                total_assets, confidence, len(positions),
+                current_price=current_price, atr=atr_val,
             )
             if amount <= 0:
                 continue
@@ -306,11 +369,6 @@ class StockTrader:
                 "BUY", amount, cash, positions, confidence
             )
             if not valid:
-                continue
-
-            current_price = result.get("current_price", 0)
-            if current_price <= 0:
-                logger.warning(f"가격 데이터 없음 [{result.get('name', symbol)}]: price={current_price} - 매수 건너뜀")
                 continue
 
             # 어포더빌리티 체크: 1주 가격이 포지션 한도 내인지 확인
@@ -435,7 +493,7 @@ class StockTrader:
     def start_auto(self):
         """자동 매매 시작 (스케줄러)"""
         mode = "모의투자" if self.paper_trading else "실전투자"
-        logger.info(f"StockBot v3.3 자동매매 시작 ({mode})")
+        logger.info(f"StockBot v3.5 자동매매 시작 ({mode})")
         logger.info(f"초기 자본: {self._initial_capital:,}원")
         self.alert.notify_bot_start(mode)
         self.scheduler.start()
@@ -476,8 +534,8 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v3.3 - 주식 자동매매")
-    print("  순수퀀트 5전략앙상블 + 트레일링스탑 + 서킷브레이커 + 시장국면감지")
+    print("  StockBot v3.5 - 주식 자동매매")
+    print("  순수퀀트 5전략앙상블 + ATR 포지션사이징 + Chandelier Exit")
     print("=" * 60)
 
     # 트레이딩 모드 결정
@@ -497,7 +555,8 @@ def main():
     print(f"관심종목: {len(WATCHLIST)}개")
     print(f"매매 간격: {STOCK_TRADING_CONFIG['trade_interval_minutes']}분")
     print(f"최대 보유: {STOCK_TRADING_CONFIG['max_positions']}종목")
-    print(f"손절: {STOCK_TRADING_CONFIG['stop_loss_pct']}% | 익절: {STOCK_TRADING_CONFIG['take_profit_pct']}% | 트레일링: {STOCK_TRADING_CONFIG['trailing_stop_pct']}%")
+    print(f"손절: {STOCK_TRADING_CONFIG['stop_loss_pct']}% | 익절: {STOCK_TRADING_CONFIG['take_profit_pct']}% | 트레일링: ATR({ATR_PERIOD}) x{ATR_MULTIPLIER:.0f} Chandelier Exit")
+    print(f"포지션사이징: ATR 기반 (거래당 {STOCK_TRADING_CONFIG.get('atr_risk_pct', 2.0)}% 리스크)")
     print(f"종목당 최대: {STOCK_TRADING_CONFIG['max_single_pct']}% | 섹터 최대: {STOCK_TRADING_CONFIG['max_sector_pct']}%")
 
     # 데이터 프리로드

@@ -44,6 +44,7 @@ secrets.json
 **/trading-bot/data/*.csv
 trading_log.json
 scalp_trades.json
+token.dat
 
 # Build outputs
 *.apk
