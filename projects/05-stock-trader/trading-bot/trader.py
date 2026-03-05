@@ -302,9 +302,11 @@ class StockTrader:
                         qty=pos["qty"], urgency="high" if rsi2_reason == "SL" else "normal",
                         name=pos.get("name", ""),
                     )
-                    pnl = (current_price - avg_price) * pos["qty"]
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                    pnl = (fill_price - avg_price) * pos["qty"]
+                    pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                     self._record_trade(f"RSI2_{rsi2_reason}", symbol, pos.get("name", ""),
-                                       pos["qty"], current_price, pnl, pnl_pct)
+                                       pos["qty"], fill_price, pnl, pnl_pct)
                     self.circuit_breaker.record_trade(pnl_pct)
                     logger.info(f"RSI(2) 청산 [{pos.get('name', symbol)}] {rsi2_reason} pnl={pnl_pct:+.1f}% exec_id={exec_id}")
                 continue  # RSI(2) 포지션은 앙상블 청산 로직 스킵
@@ -318,9 +320,11 @@ class StockTrader:
                     qty=pos["qty"], urgency="high",
                     name=pos.get("name", ""),
                 )
-                pnl = (current_price - avg_price) * pos["qty"]
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                pnl = (fill_price - avg_price) * pos["qty"]
+                pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                 self._record_trade("STOP_LOSS", symbol, pos.get("name", ""),
-                                   pos["qty"], current_price, pnl, pnl_pct)
+                                   pos["qty"], fill_price, pnl, pnl_pct)
                 self.circuit_breaker.record_trade(pnl_pct)
                 logger.info(f"손절 실행 [{symbol}] exec_id={exec_id}")
                 continue
@@ -332,9 +336,11 @@ class StockTrader:
                     qty=pos["qty"], urgency="normal",
                     name=pos.get("name", ""),
                 )
-                pnl = (current_price - avg_price) * pos["qty"]
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                pnl = (fill_price - avg_price) * pos["qty"]
+                pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                 self._record_trade("TAKE_PROFIT", symbol, pos.get("name", ""),
-                                   pos["qty"], current_price, pnl, pnl_pct)
+                                   pos["qty"], fill_price, pnl, pnl_pct)
                 self.circuit_breaker.record_trade(pnl_pct)
                 logger.info(f"익절 실행 [{symbol}] exec_id={exec_id}")
                 continue
@@ -353,11 +359,13 @@ class StockTrader:
                         qty=pos["qty"], urgency="high",
                         name=pos.get("name", ""),
                     )
-                    pnl = (current_price - avg_price) * pos["qty"]
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                    pnl = (fill_price - avg_price) * pos["qty"]
+                    pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                     self._record_trade("TRAILING_STOP", symbol, pos.get("name", ""),
-                                       pos["qty"], current_price, pnl, pnl_pct)
+                                       pos["qty"], fill_price, pnl, pnl_pct)
                     self.circuit_breaker.record_trade(pnl_pct)
-                    drop_pct = (current_price - highest) / highest * 100
+                    drop_pct = (fill_price - highest) / highest * 100
                     logger.info(
                         f"ATR 트레일링 [{symbol}] "
                         f"고가={highest:,.0f} ATR={atr_val:,.0f} "
@@ -387,9 +395,11 @@ class StockTrader:
                 name=pos.get("name", ""),
             )
             if exec_id:
-                pnl = (current_price - avg_price) * pos["qty"]
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                pnl = (fill_price - avg_price) * pos["qty"]
+                pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                 self._record_trade("QUANT_SELL", symbol, pos.get("name", ""),
-                                   pos["qty"], current_price, pnl, pnl_pct,
+                                   pos["qty"], fill_price, pnl, pnl_pct,
                                    result.get("score", 0), result.get("confidence", 0),
                                    result.get("reasons", []))
                 self.circuit_breaker.record_trade(pnl_pct)
@@ -424,16 +434,17 @@ class StockTrader:
                     name=rb_name,
                 )
                 if exec_id:
-                    avg_p = positions[sym].get("avg_price", rb_price)
-                    pnl = (rb_price - avg_p) * qty_sell
-                    pnl_pct = (rb_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or rb_price
+                    avg_p = positions[sym].get("avg_price", fill_price)
+                    pnl = (fill_price - avg_p) * qty_sell
+                    pnl_pct = (fill_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
                     self._record_rebalance(
-                        sym, rb_name, qty_sell, rb_price, pnl, pnl_pct,
+                        sym, rb_name, qty_sell, fill_price, pnl, pnl_pct,
                         f"단일종목 {rb['current_pct']:.0f}%→{rb['target_pct']:.0f}%"
                     )
                     # 포지션 수량 업데이트 (삭제하지 않음)
                     positions[sym]["qty"] -= qty_sell
-                    cash += qty_sell * rb_price
+                    cash += qty_sell * fill_price
                     logger.info(
                         f"리밸런싱 [{rb_name}] {rb['current_pct']:.0f}%→{rb['target_pct']:.0f}% "
                         f"{qty_sell}주 매도 exec_id={exec_id}"
@@ -457,15 +468,16 @@ class StockTrader:
                     name=rb_name,
                 )
                 if exec_id:
-                    avg_p = positions[sym].get("avg_price", rb_price)
-                    pnl = (rb_price - avg_p) * qty_sell
-                    pnl_pct = (rb_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or rb_price
+                    avg_p = positions[sym].get("avg_price", fill_price)
+                    pnl = (fill_price - avg_p) * qty_sell
+                    pnl_pct = (fill_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
                     self._record_rebalance(
-                        sym, rb_name, qty_sell, rb_price, pnl, pnl_pct,
+                        sym, rb_name, qty_sell, fill_price, pnl, pnl_pct,
                         f"섹터({rb['sector']}) {rb['sector_pct']:.0f}%→{rb['target_sector_pct']:.0f}%"
                     )
                     positions[sym]["qty"] -= qty_sell
-                    cash += qty_sell * rb_price
+                    cash += qty_sell * fill_price
                     logger.info(
                         f"섹터 리밸런싱 [{rb_name}] {rb['sector']} "
                         f"{rb['sector_pct']:.0f}%→{rb['target_sector_pct']:.0f}% "
@@ -540,15 +552,16 @@ class StockTrader:
                 name=result["name"],
             )
             if exec_id:
-                cash -= qty * current_price
-                positions[symbol] = {"qty": qty, "avg_price": current_price, "sector": sector, "name": result["name"]}
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                cash -= qty * fill_price
+                positions[symbol] = {"qty": qty, "avg_price": fill_price, "sector": sector, "name": result["name"]}
                 self._record_trade("BUY", symbol, result["name"], qty,
-                                   current_price, 0, 0,
+                                   fill_price, 0, 0,
                                    result.get("score", 0), confidence,
                                    result.get("reasons", []))
-                self.db.save_position(symbol, result["name"], qty, current_price,
+                self.db.save_position(symbol, result["name"], qty, fill_price,
                                       sector, result.get("score", 0), entry_source="ens")
-                logger.info(f"앙상블 매수 [{result['name']}] score={result.get('score', 0):.1f} exec_id={exec_id}")
+                logger.info(f"앙상블 매수 [{result['name']}] score={result.get('score', 0):.1f} @{fill_price:,.0f}원 exec_id={exec_id}")
           except Exception as e:
             logger.error(f"앙상블 매수 오류 [{result.get('symbol', '?')}]: {e}")
 
@@ -607,17 +620,18 @@ class StockTrader:
                 name=result.get("name", ""),
             )
             if exec_id:
-                cash -= qty * current_price
-                positions[symbol] = {"qty": qty, "avg_price": current_price, "sector": sector, "name": result.get("name", "")}
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                cash -= qty * fill_price
+                positions[symbol] = {"qty": qty, "avg_price": fill_price, "sector": sector, "name": result.get("name", "")}
                 self._record_trade("RSI2_BUY", symbol, result.get("name", ""), qty,
-                                   current_price, 0, 0,
+                                   fill_price, 0, 0,
                                    result.get("score", 0), 0.5,
                                    [f"RSI(2)={result.get('rsi2', 0):.0f}", f"MA200={result.get('ma200', 0):,.0f}"])
-                self.db.save_position(symbol, result.get("name", ""), qty, current_price,
+                self.db.save_position(symbol, result.get("name", ""), qty, fill_price,
                                       sector, result.get("score", 0), entry_source="rsi2")
                 logger.info(
                     f"RSI(2) 급락매수 [{result.get('name', symbol)}] "
-                    f"RSI2={result.get('rsi2', 0):.1f} MA200={result.get('ma200', 0):,.0f} "
+                    f"@{fill_price:,.0f}원 RSI2={result.get('rsi2', 0):.1f} MA200={result.get('ma200', 0):,.0f} "
                     f"exec_id={exec_id}"
                 )
           except Exception as e:
