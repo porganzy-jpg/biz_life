@@ -26,12 +26,12 @@ PAPER_INITIAL_KRW = float(os.getenv("SCALPER_PAPER_KRW", "1000000"))
 MARKETS = ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL", "KRW-DOGE"]
 
 # === Timeframe ===
-CANDLE_INTERVAL = "minute15"  # 15분봉: 노이즈 대폭 감소, 안정적 신호
-CANDLE_COUNT = 96             # 24시간 데이터 (15분 × 96 = 1440분)
-CANDLE_INTERVAL_SEC = 900     # 15분 = 900초 (bars_held 계산용)
+CANDLE_INTERVAL = "minute1"   # 1분봉: 초단위 스캘핑
+CANDLE_COUNT = 200            # 약 3.3시간 데이터 (1분 × 200)
+CANDLE_INTERVAL_SEC = 60      # 1분 = 60초 (bars_held 계산용)
 
 # === Trading Loop ===
-LOOP_INTERVAL_SEC = 10        # 15분봉에 맞게 조정 (5s → 10s)
+LOOP_INTERVAL_SEC = 1         # 1초 간격: 빠른 진입/청산 반응
 WEIGHT_ADJUST_CYCLE = 100     # 가중치 조정 주기 (약 17분)
 
 # === RSI + Bollinger Band Strategy ===
@@ -53,9 +53,9 @@ STOCH_OVERSOLD = 30           # 약간 완화 (25 → 30)
 STOCH_OVERBOUGHT = 70         # 약간 완화 (75 → 70)
 
 # === EMA Crossover Strategy ===
-EMA_FAST = 5                  # 15분봉에 적합 (3 → 5)
-EMA_SLOW = 13                 # 15분봉에 적합 (8 → 13)
-EMA_TREND = 34                # 15분봉에 적합 (21 → 34)
+EMA_FAST = 3                  # 1분봉에 적합
+EMA_SLOW = 8                  # 1분봉에 적합
+EMA_TREND = 21                # 1분봉에 적합
 
 # === Ensemble Weights ===
 DEFAULT_WEIGHTS = {
@@ -67,10 +67,10 @@ DEFAULT_WEIGHTS = {
 MIN_AGREEMENT = 2             # 최소 2전략 합의 필수 (1 → 2, 진입 품질 향상)
 MIN_ENSEMBLE_CONFIDENCE = 0.25  # 2전략 이상 합산 신뢰도 문턱 (0.20 → 0.25)
 WEIGHT_EMA_ALPHA = 0.1
-ENTRY_COOLDOWN_BARS = 3       # 15분봉 기준 3봉 = 45분 대기 (5 → 3)
+ENTRY_COOLDOWN_BARS = 5       # 1분봉 기준 5봉 = 5분 대기
 
 # === Signal Exit Filter ===
-SIGNAL_EXIT_MIN_BARS = 4      # 15분봉 기준 4봉 = 1시간 후 시그널 매도 허용 (8 → 4)
+SIGNAL_EXIT_MIN_BARS = 15     # 1분봉 기준 15봉 = 15분 후 시그널 매도 허용
 SIGNAL_EXIT_MIN_PROFIT = 0.003  # 수익 +0.3% 이상일 때만 시그널 매도 (-0.001 → 0.003)
 
 # === Trend Filter (앙상블 레벨) ===
@@ -96,7 +96,7 @@ TRAILING_ACTIVATE_PCT = 0.008 # 0.8% 수익 시 트레일링 (1.0% → 0.8%): �
 TRAILING_STOP_PCT = 0.003     # 0.3% 추적 (0.5% → 0.3%): 타이트한 추적
 
 # === Breakeven Stop ===
-BREAKEVEN_AFTER_BARS = 48     # 15분봉 48봉 = 12시간 후 BEP (16 → 48): 조기 탈출 방지
+BREAKEVEN_AFTER_BARS = 60     # 1분봉 60봉 = 1시간 후 BEP
 BREAKEVEN_BUFFER = 0.002      # 0.2% 버퍼 (0.1% → 0.2%)
 COMMISSION_RATE = 0.0005      # 업비트 편도 0.05%
 ROUND_TRIP_COMMISSION = 0.001 # 왕복 0.1%
@@ -139,14 +139,14 @@ OPTIMIZER_MARKETS = ["KRW-BTC", "KRW-ETH"]  # 최적화 대상 (고정, 속도)
 
 # === Multi-Timeframe Confluence ===
 MTF_ENABLED = True
-MTF_TIMEFRAMES = ["minute15", "minute60", "minute240"]  # 15m, 1h, 4h
+MTF_TIMEFRAMES = ["minute3", "minute15", "minute60"]  # 3m, 15m, 1h
 MTF_MIN_CONFLUENCE = 2           # 최소 2개 타임프레임 정렬 필요
-MTF_CACHE_SEC = 300              # 상위 TF 캐시 5분 (15m 루프에서 반복 호출 방지)
+MTF_CACHE_SEC = 30               # 상위 TF 캐시 30초 (1분봉 루프에 맞춤)
 
 # === Portfolio Risk Management ===
 PORTFOLIO_RISK_ENABLED = True
 MAX_PORTFOLIO_VAR_PCT = 0.05        # 5% max portfolio VaR
-CORRELATION_WINDOW = 96             # Rolling correlation window (96 x 15min = 24h)
+CORRELATION_WINDOW = 1440           # Rolling correlation window (1440 x 1min = 24h)
 MAX_CORRELATED_POSITIONS = 2        # Max positions in correlated (>threshold) assets
 CONCENTRATION_THRESHOLD = 0.8       # Pearson corr above this = "highly correlated"
 
