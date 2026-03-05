@@ -253,6 +253,18 @@ class StockTrader:
 
         # 1. 트레일링 스탑 / 손절 / 익절 체크
         db_positions = self.db.get_positions()
+
+        # API 포지션이 비어있으면 DB 포지션으로 보충 (중복 매수 방지)
+        if not positions and db_positions:
+            logger.warning(f"API 포지션 비어있음 → DB 포지션 {len(db_positions)}건으로 보충")
+            for dp in db_positions:
+                sym = dp["symbol"]
+                if sym not in positions:
+                    positions[sym] = {
+                        "qty": dp["qty"],
+                        "avg_price": dp["avg_price"],
+                        "name": dp.get("name", ""),
+                    }
         for symbol, pos in list(positions.items()):
           try:
             price_info = self.client.fetch_price(symbol)
@@ -513,6 +525,9 @@ class StockTrader:
             symbol = result["symbol"]
             if symbol in positions:
                 continue
+            # DB 포지션도 체크 (API 실패 시 중복 매수 방지)
+            if any(dp["symbol"] == symbol for dp in db_positions):
+                continue
 
             confidence = result.get("confidence", 0)
             if confidence < STOCK_TRADING_CONFIG["min_confidence"]:
@@ -588,6 +603,9 @@ class StockTrader:
 
             symbol = result["symbol"]
             if symbol in positions:
+                continue
+            # DB 포지션도 체크 (API 실패 시 중복 매수 방지)
+            if any(dp["symbol"] == symbol for dp in db_positions):
                 continue
 
             # RSI(2) 급락 매수 조건: RSI(2) < 10 AND 종가 > MA200

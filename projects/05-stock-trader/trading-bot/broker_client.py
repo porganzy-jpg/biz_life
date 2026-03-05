@@ -301,7 +301,7 @@ class BrokerClient:
                     if positions is not None:
                         return positions
             except Exception as e:
-                logger.debug(f"포지션 조회 실패: {e}")
+                logger.warning(f"포지션 조회 실패: {e} (DB 포지션 폴백 필요)")
 
         return self._sim_positions.copy()
 
