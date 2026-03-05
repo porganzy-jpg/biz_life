@@ -269,17 +269,33 @@ class StockTrader:
             db_pos = next((p for p in db_positions if p["symbol"] == symbol), None)
             entry_source = db_pos.get("entry_source", "ens") if db_pos else "ens"
 
-            # RSI(2) 진입 포지션: 별도 청산 로직
+            # RSI(2) 진입 포지션: 청산 로직 (익절/트레일링 포함)
             if entry_source == "rsi2":
                 sell_rsi2 = False
                 rsi2_reason = ""
 
+                # 손절 -5%
+                if pnl_pct <= STOCK_TRADING_CONFIG["stop_loss_pct"]:
+                    sell_rsi2, rsi2_reason = True, "SL"
+
+                # 익절 +15%
+                if not sell_rsi2 and pnl_pct >= STOCK_TRADING_CONFIG["take_profit_pct"]:
+                    sell_rsi2, rsi2_reason = True, "TP"
+
+                # ATR Chandelier Exit 트레일링 스탑
+                if not sell_rsi2 and db_pos and db_pos["highest_price"] > 0:
+                    atr_val = self._get_atr(symbol)
+                    chandelier_stop = db_pos["highest_price"] - ATR_MULTIPLIER * atr_val
+                    if current_price <= chandelier_stop:
+                        sell_rsi2, rsi2_reason = True, "TRAIL"
+
                 # RSI(2) > 90 청산
-                df = self.client.fetch_ohlcv(symbol, count=60)
-                if df is not None and len(df) > 2:
-                    rsi2_now = float(compute_rsi(df["close"].astype(float), 2).iloc[-1])
-                    if rsi2_now > RSI2_SELL_THRESHOLD:
-                        sell_rsi2, rsi2_reason = True, "RSI2>90"
+                if not sell_rsi2:
+                    df = self.client.fetch_ohlcv(symbol, count=60)
+                    if df is not None and len(df) > 2:
+                        rsi2_now = float(compute_rsi(df["close"].astype(float), 2).iloc[-1])
+                        if rsi2_now > RSI2_SELL_THRESHOLD:
+                            sell_rsi2, rsi2_reason = True, "RSI2>90"
 
                 # 7일 보유 시간기반 청산
                 if not sell_rsi2 and db_pos and db_pos.get("bought_at"):
@@ -292,14 +308,11 @@ class StockTrader:
                     except (ValueError, TypeError):
                         pass
 
-                # 손절은 동일 적용
-                if not sell_rsi2 and pnl_pct <= STOCK_TRADING_CONFIG["stop_loss_pct"]:
-                    sell_rsi2, rsi2_reason = True, "SL"
-
                 if sell_rsi2:
+                    urgency = "high" if rsi2_reason in ("SL", "TRAIL") else "normal"
                     exec_id = self.execution_engine.smart_execute(
                         symbol=symbol, side=Side.SELL.value,
-                        qty=pos["qty"], urgency="high" if rsi2_reason == "SL" else "normal",
+                        qty=pos["qty"], urgency=urgency,
                         name=pos.get("name", ""),
                     )
                     fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
