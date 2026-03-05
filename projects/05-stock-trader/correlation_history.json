@@ -20,5 +20,16 @@
     "sector_count": 0,
     "alert_count": 0,
     "correlation_spike": false
+  },
+  {
+    "date": "2026-03-05",
+    "timestamp": "2026-03-05T10:36:22.696529",
+    "avg_correlation": 0.6682,
+    "diversification_score": 43.9,
+    "hhi": 0.2651,
+    "hhi_normalized": 0.0201,
+    "sector_count": 2,
+    "alert_count": 0,
+    "correlation_spike": false
   }
 ]
