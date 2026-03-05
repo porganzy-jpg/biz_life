@@ -13,6 +13,7 @@ mojito SDK를 래핑하여 주식 매매 기능 제공.
   - live: 실제 주문 실행 (LIVE_TRADING_CONFIRMED=true 필요)
 """
 import logging
+from datetime import datetime
 from typing import Optional
 
 import pandas as pd
@@ -63,6 +64,9 @@ class BrokerClient:
         self._sim_balance = INITIAL_CAPITAL
         self._sim_positions = {}  # {종목코드: {qty, avg_price, name}}
 
+        # WebSocket 클라이언트 (opt-in, v3.7)
+        self._ws_client = None
+
     def fetch_ohlcv(self, symbol: str, period: str = "D", count: int = 200) -> pd.DataFrame:
         """
         OHLCV 데이터 조회.
@@ -90,8 +94,61 @@ class BrokerClient:
         logger.error(f"OHLCV 데이터 없음 [{symbol}]: mojito, yfinance 모두 실패")
         return pd.DataFrame()
 
+    def enable_websocket(self, watchlist: list = None):
+        """
+        WebSocket 실시간 데이터 opt-in 활성화 (v3.7).
+
+        기본은 폴링 모드. 이 메서드를 호출해야 WebSocket이 동작.
+
+        Args:
+            watchlist: [{"code": "005930", ...}, ...] 또는 ["005930", ...]
+        """
+        try:
+            from websocket_client import KISWebSocketClient
+            from config import KIS_APP_KEY, KIS_APP_SECRET
+
+            self._ws_client = KISWebSocketClient(
+                app_key=KIS_APP_KEY,
+                app_secret=KIS_APP_SECRET,
+            )
+
+            # DataProvider 연동
+            on_tick = self.data_provider.create_ws_bridge()
+            self._ws_client.set_callbacks(on_tick=on_tick)
+
+            # 구독 종목 등록
+            if watchlist:
+                symbols = []
+                for item in watchlist:
+                    if isinstance(item, dict):
+                        symbols.append(item["code"])
+                    else:
+                        symbols.append(str(item))
+                self._ws_client.subscribe(symbols)
+
+            self._ws_client.start()
+            logger.info(f"WebSocket 활성화: {len(watchlist or [])}종목 구독")
+        except Exception as e:
+            logger.warning(f"WebSocket 활성화 실패: {e} (폴링 모드 유지)")
+            self._ws_client = None
+
     def fetch_price(self, symbol: str) -> Optional[dict]:
         """현재가 조회. 반환: {"price": int, "change": int, "change_pct": float, ...}"""
+        # 0순위: WebSocket 틱 데이터 (60초 이내, v3.7)
+        if self._ws_client:
+            try:
+                tick = self._ws_client.get_latest_tick(symbol)
+                if tick and (datetime.now() - tick.timestamp).total_seconds() < 60:
+                    return {
+                        "price": int(tick.price),
+                        "change": int(tick.change),
+                        "change_pct": float(tick.change_pct),
+                        "volume": int(tick.volume),
+                        "high": 0, "low": 0, "open": 0,
+                    }
+            except Exception as e:
+                logger.debug(f"WebSocket 틱 조회 실패 [{symbol}]: {e}")
+
         # 1순위: mojito API (실전/모의 모두)
         if self.broker:
             try:

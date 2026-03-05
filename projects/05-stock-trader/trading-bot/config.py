@@ -1,7 +1,8 @@
 """
-StockBot 설정 파일 v3.6
+StockBot 설정 파일 v3.7
 한국투자증권 API + 매매 + 리스크 + 알림 설정
 200만원 소규모 자본 최적화
+v3.7: 멀티채널 알림 + 리밸런싱 + 기관수급 + WebSocket + ML 종목선정
 v3.6: RSI(2) 급락 매수 추가 (RSI2<10 & MA200위, 시간기반 청산)
 v3.5: ATR 기반 포지션 사이징 (거래당 자본 2% 리스크)
 """
@@ -143,6 +144,16 @@ DASHBOARD_PORT = 8082
 # === 텔레그램 ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
+# === Discord ===
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
+# === Email (SMTP) ===
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "")
 
 # === 로깅 ===
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

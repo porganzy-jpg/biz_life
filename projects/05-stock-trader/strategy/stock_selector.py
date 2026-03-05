@@ -1,17 +1,9 @@
 """
-종목 선정 앙상블 v3.2 (Critical 버그 수정 + Phase 1 개선)
+종목 선정 앙상블 v3.7 (ML 예측 6번째 전략 추가)
 
-v3.1 → v3.2 변경사항:
-  [Critical Fix]
-  C1. OBV NaN 수정 (close.diff().fillna(0))
-  C5. RSI 0나누기 방어 (avg_loss=0 → eps 처리)
-
-  [Phase 1 개선]
-  - Z-score 기반 스코어링 (고정 매핑 → 롤링 Z-score 자동 적응)
-  - MACD tanh 정규화 (변동성 높은 종목 점수 포화 방지)
-  - 한국형 모멘텀 폭락 가드 (20일 -25% 이상 하락 시 역전매수 제한)
-  - NaN 가드 전체 적용
-  - 적응형 임계값 지원 (외부에서 score_history 전달 시 백분위 기반)
+v3.7: ML예측 서브스코어 추가 (기존 5전략 비율 축소, 합계 1.0 유지)
+      기관/외국인 수급 하이브리드 거래량 분석
+v3.2: Z-score 기반 스코어링, tanh MACD, 폭락 가드, 적응형 임계값
 """
 import sys
 import os
@@ -41,23 +33,25 @@ def _compute_rsi_wilder(series: pd.Series, period: int = 14) -> pd.Series:
 
 class StockSelectorEnsemble:
     """
-    종목 선정 앙상블 v3.2
+    종목 선정 앙상블 v3.7
 
-    5전략 통합 + Z-score 스코어링 + 국면적응형 가중치
+    6전략 통합 (5전략 + ML예측) + Z-score 스코어링 + 국면적응형 가중치
+    ML 모델 없을 시 5전략 가중치 재정규화 (v3.6 동일 동작)
     """
 
+    # v3.7: ML예측 0.15 추가, 기존 5전략 비율 축소 (합계 1.0 유지)
     REGIME_WEIGHTS = {
         "BULL": {
-            "추세추종": 0.30, "한국형모멘텀": 0.20, "거래량": 0.20,
-            "평균회귀": 0.15, "변동성": 0.15,
+            "추세추종": 0.25, "한국형모멘텀": 0.17, "거래량": 0.17,
+            "평균회귀": 0.13, "변동성": 0.13, "ML예측": 0.15,
         },
         "BEAR": {
-            "평균회귀": 0.30, "변동성": 0.25, "거래량": 0.20,
-            "추세추종": 0.15, "한국형모멘텀": 0.10,
+            "평균회귀": 0.25, "변동성": 0.22, "거래량": 0.17,
+            "추세추종": 0.13, "한국형모멘텀": 0.08, "ML예측": 0.15,
         },
         "SIDEWAYS": {
-            "평균회귀": 0.25, "거래량": 0.25, "추세추종": 0.20,
-            "변동성": 0.15, "한국형모멘텀": 0.15,
+            "평균회귀": 0.22, "거래량": 0.22, "추세추종": 0.17,
+            "변동성": 0.12, "한국형모멘텀": 0.12, "ML예측": 0.15,
         },
     }
 
@@ -65,6 +59,20 @@ class StockSelectorEnsemble:
         self._regime = "SIDEWAYS"
         # 적응형 임계값용 점수 히스토리
         self._score_history = deque(maxlen=200)
+        # ML 예측기 (v3.7)
+        self._ml_predictor = None
+        self._ml_available = False
+        try:
+            ml_path = os.path.join(os.path.dirname(__file__), "..", "trading-bot")
+            if ml_path not in sys.path:
+                sys.path.insert(0, ml_path)
+            from ml_model import MLStockPredictor
+            self._ml_predictor = MLStockPredictor()
+            self._ml_available = self._ml_predictor.is_available()
+            if self._ml_available:
+                logger.info("ML 예측 모델 활성화")
+        except Exception as e:
+            logger.debug(f"ML 모델 로드 건너뜀: {e}")
 
     def apply_regime_weights(self, regime_weights: dict) -> None:
         """기존 인터페이스 호환"""
@@ -223,7 +231,7 @@ class StockSelectorEnsemble:
 
         scores["한국형모멘텀"] = korea_mom_score
 
-        # ── 4. 거래량 분석 (C1 Fix: NaN 방어) ──
+        # ── 4. 거래량 분석 (v3.7: 기관/외국인 수급 하이브리드) ──
         vol_ma5 = float(volume.rolling(5).mean().iloc[-1])
         vol_ma20 = float(volume.rolling(20).mean().iloc[-1])
         vol_ratio = vol_ma5 / vol_ma20 if vol_ma20 > 0 else 1
@@ -234,24 +242,51 @@ class StockSelectorEnsemble:
         obv_current = float(obv.iloc[-1])
 
         vol_score = 50
-        if vol_ratio > 1.5 and close.iloc[-1] > close.iloc[-2]:
-            vol_score += 20
-            reasons.append(f"거래량급증↑ {vol_ratio:.1f}배")
-        elif vol_ratio > 1.2 and close.iloc[-1] > close.iloc[-2]:
-            vol_score += 10
-        elif vol_ratio > 1.5 and close.iloc[-1] < close.iloc[-2]:
-            vol_score -= 15
-            reasons.append(f"거래량급증↓ {vol_ratio:.1f}배")
-        elif vol_ratio < 0.7:
-            vol_score -= 5
 
-        # OBV NaN 체크 후 적용
-        if not (np.isnan(obv_current) or np.isnan(obv_ma5)):
-            if obv_current > obv_ma5:
+        # 기관/외국인 실제 수급 데이터 시도
+        inst_used = False
+        try:
+            from institutional_crawler import InstitutionalCrawler
+            _inst_crawler = getattr(self, '_inst_crawler', None)
+            if _inst_crawler is None:
+                _inst_crawler = InstitutionalCrawler()
+                self._inst_crawler = _inst_crawler
+            flow = _inst_crawler.get_flow_score(symbol)
+            if flow is not None:
+                vol_score = flow["score"]
+                inst_used = True
+                if flow["frgn_trend"] == "매수" and flow["inst_trend"] == "매수":
+                    reasons.append(f"외국인+기관 매수 (5d외:{flow['frgn_5d']:+,})")
+                elif flow["frgn_trend"] == "매수":
+                    reasons.append(f"외국인 매수 (5d:{flow['frgn_5d']:+,})")
+                elif flow["inst_trend"] == "매수":
+                    reasons.append(f"기관 매수 (5d:{flow['inst_5d']:+,})")
+                elif flow["frgn_trend"] == "매도" and flow["inst_trend"] == "매도":
+                    reasons.append(f"외국인+기관 매도 (5d외:{flow['frgn_5d']:+,})")
+        except Exception as e:
+            logger.debug(f"수급 데이터 폴백 [{symbol}]: {e}")
+
+        # 폴백: 기존 OBV 기반 로직
+        if not inst_used:
+            if vol_ratio > 1.5 and close.iloc[-1] > close.iloc[-2]:
+                vol_score += 20
+                reasons.append(f"거래량급증↑ {vol_ratio:.1f}배")
+            elif vol_ratio > 1.2 and close.iloc[-1] > close.iloc[-2]:
                 vol_score += 10
-            elif obv_current < obv_ma5:
-                vol_score -= 10
+            elif vol_ratio > 1.5 and close.iloc[-1] < close.iloc[-2]:
+                vol_score -= 15
+                reasons.append(f"거래량급증↓ {vol_ratio:.1f}배")
+            elif vol_ratio < 0.7:
+                vol_score -= 5
 
+            # OBV NaN 체크 후 적용
+            if not (np.isnan(obv_current) or np.isnan(obv_ma5)):
+                if obv_current > obv_ma5:
+                    vol_score += 10
+                elif obv_current < obv_ma5:
+                    vol_score -= 10
+
+        # 거래량 비율/연속 증가 (수급 사용 여부 상관없이 적용)
         recent_vols = volume.tail(5).values
         if len(recent_vols) >= 4 and all(
             recent_vols[i] > recent_vols[i - 1] for i in range(1, min(4, len(recent_vols)))
@@ -284,6 +319,18 @@ class StockSelectorEnsemble:
 
         scores["변동성"] = vol_trend_score
 
+        # ── 6. ML 예측 (v3.7) ──
+        if self._ml_available and self._ml_predictor:
+            try:
+                ml_score = self._ml_predictor.predict_score(df, self._regime, scores)
+                scores["ML예측"] = ml_score
+                if ml_score >= 65:
+                    reasons.append(f"ML매수신호 {ml_score:.0f}점")
+                elif ml_score <= 35:
+                    reasons.append(f"ML매도신호 {ml_score:.0f}점")
+            except Exception as e:
+                logger.debug(f"ML 예측 실패 [{name}]: {e}")
+
         # ── NaN 가드: 모든 서브스코어 ──
         for k, v in scores.items():
             if np.isnan(v):
@@ -291,8 +338,16 @@ class StockSelectorEnsemble:
                 logger.warning(f"NaN 감지 [{name}] {k} → 50으로 대체")
 
         # ── 앙상블 집계 ──
-        weights = self.REGIME_WEIGHTS.get(self._regime, self.REGIME_WEIGHTS["SIDEWAYS"])
-        final_score = sum(scores[k] * weights[k] for k in scores)
+        weights = dict(self.REGIME_WEIGHTS.get(self._regime, self.REGIME_WEIGHTS["SIDEWAYS"]))
+
+        # ML 모델 없을 시: "ML예측" 키 제거 후 5전략 가중치 재정규화
+        if "ML예측" not in scores and "ML예측" in weights:
+            del weights["ML예측"]
+            total_w = sum(weights.values())
+            if total_w > 0:
+                weights = {k: v / total_w for k, v in weights.items()}
+
+        final_score = sum(scores.get(k, 50) * weights.get(k, 0) for k in weights)
         final_score = round(max(10, min(90, final_score)), 1)
 
         # 히스토리 기록 (적응형 임계값용)

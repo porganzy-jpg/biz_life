@@ -1,73 +1,46 @@
-# StockBot v3.6 - 노트북 이어서 작업 가이드
+# StockBot v3.7 - 노트북 이어서 작업 가이드
 
 ## 현재 상태 요약
 
-**StockBot v3.6** — 한국 주식 자동매매 봇, 완성도 높음 (코드 100%, API 연동만 남음)
+**StockBot v3.7** — 한국 주식 자동매매 봇, 프로덕션 완성도 높음
 
-- 5대 퀀트 전략 앙상블 (Z-score + tanh 스코어링)
-- **RSI(2) 급락 매수** (RSI2<10 & MA200위, 시간기반 청산, v3.6)
-- **ATR 기반 포지션 사이징** (거래당 자본 2% 리스크, v3.5)
+- 6대 전략 앙상블 (5전략 Z-score + ML예측 XGBoost)
+- **RSI(2) 급락 매수** (RSI2<10 & MA200위, 시간기반 청산)
+- **ATR 기반 포지션 사이징** (거래당 자본 2% 리스크)
+- **멀티채널 알림** (Telegram + Discord + Email, 우선순위별)
+- **포트폴리오 자동 리밸런싱** (단일종목 36%/섹터 55% 초과 시)
+- **기관/외국인 수급 데이터** (네이버 금융 크롤링)
+- **실시간 호가 WebSocket** 프레임워크 (opt-in)
 - 시장 국면(Regime) 자동 감지 + 전략 가중치 적응
-- ATR x2 Chandelier Exit 트레일링 스탑 (v3.4)
-- 서킷브레이커, 손절/익절 자동화
+- ATR x2 Chandelier Exit 트레일링 스탑
 - 대시보드 (FastAPI, http://localhost:8082)
-- SQLite DB, Telegram 알림
+- SQLite DB + 서킷브레이커
 - 2025년 1년 백테스트: **+50.25%**, Sharpe 2.69, MDD -8.36%
 
 ---
 
-## 남은 작업: KIS API 연동
+## 설치 및 실행
 
 ### 1단계: 패키지 설치
 
 ```bash
 cd ~/Desktop/biz_life/projects/05-stock-trader
-pip install mojito2 yfinance pandas numpy ta python-dotenv fastapi uvicorn jinja2 aiohttp beautifulsoup4 feedparser schedule
+pip install -r requirements.txt
 ```
 
-### 2단계: .env 파일 생성
+### 2단계: 환경변수 설정
 
 ```bash
 cp .env.example .env
+# .env 파일을 열어서 실제 API 키 입력
 ```
 
-`.env` 파일을 열어서 실제 값 입력:
-
-```env
-# === 한국투자증권 API ===
-KIS_APP_KEY=발급받은_APP_KEY
-KIS_APP_SECRET=발급받은_APP_SECRET
-KIS_ACCOUNT_NO=계좌번호-01    # 예: 12345678-01
-KIS_IS_PAPER=true              # 모의투자: true, 실전: false
-
-# === 트레이딩 모드 (이중 안전장치) ===
-TRADING_MODE=paper             # 반드시 paper로 시작!
-LIVE_TRADING_CONFIRMED=false   # 실전 전환 시에만 true
-
-# === 초기 자본 (원) ===
-INITIAL_CAPITAL=2000000        # 200만원 (자본에 따라 설정 자동 조정)
-
-# === Telegram 알림 (선택) ===
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
-```
-
-> **보안 주의**: `.env`는 `.gitignore`에 등록되어 있어 Git에 올라가지 않음. 안전합니다.
-
-### 3단계: API 연결 테스트
+### 3단계: ML 모델 학습 (선택)
 
 ```bash
-cd trading-bot
-python -c "
-from broker_client import BrokerClient
-client = BrokerClient(paper_trading=True)
-print('연결 상태:', '성공' if client.broker else 'yfinance 전용 모드')
-if client.broker:
-    balance = client.get_balance()
-    print('잔고:', balance)
-    price = client.fetch_price('005930')
-    print('삼성전자 현재가:', price)
-"
+python ml_train.py
+# → trading-bot/models/stock_selector_xgb.pkl 생성
+# 모델 없이도 정상 동작 (5전략 앙상블로 폴백)
 ```
 
 ### 4단계: 대시보드 실행
@@ -75,10 +48,10 @@ if client.broker:
 ```bash
 cd dashboard
 python app.py
-# → http://localhost:8082 접속
+# → http://localhost:8082
 ```
 
-### 5단계: 자동매매 실행 (페이퍼 모드)
+### 5단계: 자동매매 (페이퍼 모드)
 
 ```bash
 cd trading-bot
@@ -88,177 +61,136 @@ python trader.py
 
 ---
 
-## 프로젝트 파일 구조
+## v3.7 신규 기능 설정
+
+### 멀티채널 알림
+`.env`에 추가:
+```env
+# Discord (webhook URL만 설정하면 활성화)
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+
+# Email (SMTP 정보 설정하면 활성화)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your@gmail.com
+SMTP_PASSWORD=app_password
+ALERT_EMAIL_TO=recipient@email.com
+```
+미설정 채널은 자동 비활성. 기존 Telegram만 사용해도 OK.
+
+### WebSocket 활성화 (선택)
+```python
+# trader.py 또는 커스텀 스크립트에서:
+trader.client.enable_websocket(WATCHLIST)
+```
+기본은 폴링 모드. API 키 없으면 NotImplementedError (정상).
+
+### ML 모델
+```bash
+python ml_train.py  # yfinance 2년 데이터로 학습
+```
+모델 파일이 없으면 5전략 앙상블만 사용 (v3.6과 동일).
+
+---
+
+## 파일 구조
 
 ```
 05-stock-trader/
-├── strategy/                          # 퀀트 전략
-│   ├── stock_selector.py              # [핵심] Z-score 앙상블 + 적응형 임계값
-│   ├── base_strategy.py               # StockSignal + BaseStockStrategy ABC
-│   ├── bollinger_strategy.py          # 볼린저밴드 %B (평균회귀)
-│   ├── rsi_strategy.py                # RSI 과매수/과매도 (평균회귀)
-│   ├── macd_strategy.py               # MACD 크로스 (추세추종)
-│   ├── ma_strategy.py                 # 이동평균선 정배열 (추세추종)
-│   ├── institutional_flow.py          # 기관수급 OBV (거래량)
-│   ├── momentum_strategy.py           # 한국형 모멘텀 + 폭락가드
-│   ├── dual_momentum.py               # 듀얼 모멘텀
-│   ├── volatility_target.py           # 변동성 타겟팅
-│   └── backtester.py                  # 백테스터
-│
-├── trading-bot/                       # 매매 실행
-│   ├── trader.py                      # [핵심] StockTrader (RSI2 급락매수 + 앙상블)
-│   ├── config.py                      # 설정 (자본별 자동 조정)
-│   ├── broker_client.py               # 한투 API + yfinance 폴백
-│   ├── data_provider.py               # yfinance 데이터 + 2.5분 TTL 캐시
-│   ├── risk_manager.py                # ATR 포지션사이징, 섹터한도, 리밸런싱
-│   ├── execution_engine.py            # TWAP/VWAP/Smart 주문 + 슬리피지 제어
-│   ├── database.py                    # SQLite 거래/포지션/일일 기록
-│   ├── circuit_breaker.py             # 일일-3%, 연속5패, 일20거래 차단
-│   ├── alert_system.py                # Telegram 알림
-│   ├── scheduler.py                   # 장시간 자동 스케줄러
-│   ├── stock_analyzer.py              # 퀀트 분석기
-│   └── volume_profile.py              # 거래량 프로필 (VWAP용)
-│
-├── dashboard/                         # 웹 대시보드
-│   ├── app.py                         # FastAPI 대시보드 (포트 8082, RSI2 컬럼)
-│   ├── backtest_portal.py             # 백테스트 포탈
-│   ├── regime_detector.py             # 대시보드용 국면 감지
-│   └── correlation_monitor.py         # 상관관계 모니터
-│
-├── news/                              # 뉴스 (v3.3에서 미사용)
-│   ├── crawler.py                     # 네이버 금융 + RSS 크롤링
-│   └── sentiment.py                   # 감성 분석 (제거됨)
-│
-├── strategy_lab.py                    # [v3.5] 3차원 전략 탐색 (31개 조합)
-├── rsi2_crash_test.py                 # [v3.6] RSI(2) 급락매수 효과 검증
-├── full_year_backtest.py              # 2025년 12설정 비교 테스트
-├── news_boost_test.py                 # 뉴스 부스트 유/무 비교
-├── v32_comparison_test.py             # v3.1 vs v3.2 비교
-├── weekly_simulation.py               # 주간 시뮬레이션
-├── strategy_comparison_test.py        # 전략 비교 테스트
-├── .env.example                       # 환경변수 템플릿
-├── .env                               # 실제 API 키 (Git 제외)
-├── requirements.txt                   # 패키지 목록
-├── stockbot.db                        # SQLite 거래 DB
-├── HANDOFF.md                         # ← 이 파일
-└── PROJECT_STATUS.md                  # 상세 프로젝트 현황
+├── strategy/
+│   └── stock_selector.py         # [v3.7] 6전략 앙상블 (ML + 수급)
+├── trading-bot/
+│   ├── trader.py                 # [v3.7] StockTrader (리밸런싱)
+│   ├── config.py                 # [v3.7] 설정 (Discord/Email)
+│   ├── broker_client.py          # [v3.7] API + WebSocket
+│   ├── data_provider.py          # [v3.7] yfinance + WS 브릿지
+│   ├── risk_manager.py           # [v3.7] 리밸런싱
+│   ├── alert_system.py           # [v3.7] 멀티채널 알림
+│   ├── websocket_client.py       # [v3.7] WebSocket 프레임워크
+│   ├── ml_model.py               # [v3.7] ML 종목 선정
+│   └── models/                   # [v3.7] 학습 모델 (.pkl)
+├── news/
+│   ├── crawler.py                # 뉴스 크롤러
+│   └── institutional_crawler.py  # [v3.7] 기관/외국인 수급
+├── dashboard/
+│   └── app.py                    # [v3.7] 대시보드
+├── ml_train.py                   # [v3.7] ML 학습 스크립트
+├── .env.example                  # [v3.7] 환경변수 템플릿
+├── .gitignore                    # [v3.7] ML 모델 제외
+└── requirements.txt              # [v3.7] xgboost, websockets
 ```
 
 ---
 
 ## 매매 전략
 
-### 5대 전략 앙상블
+### 6대 전략 앙상블 (v3.7)
 
 | 전략 | 가중치 | 핵심 지표 |
 |------|:------:|----------|
-| 평균회귀 | 25% | RSI, 볼린저밴드 %B |
-| 추세추종 | 20% | MACD, MA 정배열 |
-| 한국형 모멘텀 | 20% | 20/60일 수익률, 폭락가드 |
-| 거래량 | 20% | OBV, 거래량 비율 |
-| 변동성 | 15% | 20/60일 변동성 비율 |
+| 평균회귀 | ~22% | RSI, 볼린저밴드 %B |
+| 추세추종 | ~20% | MACD, MA 정배열 |
+| 한국형 모멘텀 | ~15% | 20/60일 수익률, 폭락가드 |
+| 거래량 | ~20% | OBV, 기관/외국인 수급 |
+| 변동성 | ~13% | 20/60일 변동성 비율 |
+| ML예측 | 15% | XGBoost 22피처 |
 
-**국면별 자동 조정**: 상승장→추세↑, 하락장→평균회귀↑, 횡보장→거래량↑
-
-**스코어링**: Z-score → tanh(0~100점) → 5전략 가중평균 → 적응형 임계값(75th/25th)
+**국면별 자동 조정**: 상승장→추세+ML↑, 하락장→평균회귀+변동성↑
 
 ### RSI(2) 급락 매수 (v3.6)
-
-- **매수**: RSI(2) < 10 AND 종가 > MA200 (극단적 과매도 + 장기 상승추세)
-- **청산**: RSI(2) > 90 또는 7일 보유 후 시간기반 청산
-- 앙상블과 독립적으로 작동 (별도 진입/청산 로직)
-- DB에 entry_source 저장 → 포지션별 구분 청산
-- 백테스트 승률 87.5%, PF 6.50
-
----
-
-## 매매 설정 (200만원 소자본)
-
-| 항목 | 값 |
-|------|---|
-| 최대 포지션 | 4개 |
-| 종목당 최대 | 30% (60만원) |
-| 섹터당 최대 | 50% |
-| 현금 보유 | 최소 15% |
-| **포지션 사이징** | **ATR 기반 (거래당 2% 리스크)** |
-| 손절 | -5% |
-| 익절 | +15% (전량 매도) |
-| 트레일링 스탑 | ATR x2 Chandelier Exit |
-| **RSI(2) 급락매수** | **RSI2<10 & MA200위 (v3.6)** |
-| 매수 기준 | 58점+ (적응형 자동 조정) |
-| 매매 주기 | 3분 |
+- **매수**: RSI(2) < 10 AND 종가 > MA200
+- **청산**: RSI(2) > 90 또는 7일 보유
+- 앙상블과 독립, 87.5% 승률
 
 ---
 
 ## 안전 장치
 
-1. **기본 페이퍼 모드**: `TRADING_MODE=paper`가 디폴트
-2. **이중 확인**: live 전환에 env 변수 2개 + 콘솔 'CONFIRM' 입력
-3. **서킷 브레이커**: 일일 -3%, 연속 5패, 일 20거래 시 자동 중단
-4. **폭락 가드**: 20일 -25% 하락 종목 매수 차단
-5. **소규모 주문 바이패스**: 5주 이하 시장가 직접 (TWAP 분할 안 함)
-6. **개별 거래 예외 격리**: 1종목 오류 시 나머지 정상 실행 (v3.6)
+1. **기본 페이퍼 모드**: `TRADING_MODE=paper`
+2. **이중 확인**: live 전환에 env 2개 + 콘솔 'CONFIRM'
+3. **서킷 브레이커**: 일일 -3%, 연속 5패, 일 20거래
+4. **자동 리밸런싱**: 단일종목 36%/섹터 55% 초과 시 축소 (v3.7)
+5. **폭락 가드**: 20일 -25% 하락 종목 매수 차단
+6. **멀티채널 알림**: CRITICAL → 전 채널 동시 발송 (v3.7)
 
 ---
 
 ## 데이터 흐름
 
 ```
-[yfinance / mojito API]
+[yfinance / mojito API / WebSocket(opt-in)]
         ↓
-  DataProvider (2.5분 캐시)
+  DataProvider (2.5분 캐시 / WS 즉시 업데이트)
         ↓
-  BrokerClient (mojito 우선 → yfinance 폴백)
+  BrokerClient (WS 0순위 → mojito → yfinance)
         ↓
-  StockSelectorEnsemble (5전략 Z-score 앙상블)
-  + RSI(2) 급락 감지 (v3.6)
+  StockSelectorEnsemble (6전략 앙상블)
+  + InstitutionalCrawler (기관/외국인 수급)
+  + MLStockPredictor (XGBoost 22피처)
+  + RSI(2) 급락 감지
         ↓
-  RegimeDetector (국면 감지 → 가중치 조정)
+  RegimeDetector → 가중치 조정
         ↓
-  StockTrader.run_cycle() (스캔 → 앙상블매수 → RSI2매수 → 매매실행)
+  StockTrader.run_cycle()
+    1. 청산 (손절/익절/트레일링)
+    2. 퀀트 매도
+    2.5. 리밸런싱 (단일종목/섹터)
+    3. 앙상블 매수
+    4. RSI(2) 급락매수
         ↓
-  ExecutionEngine (TWAP/VWAP/Smart + 슬리피지 제어)
+  ExecutionEngine + RiskManager + CircuitBreaker
         ↓
-  RiskManager + CircuitBreaker (안전 장치)
-        ↓
-  TradeDB (SQLite 기록) + AlertSystem (Telegram)
+  TradeDB (SQLite) + AlertSystem (Telegram/Discord/Email)
 ```
-
----
-
-## KIS API 참고
-
-- **mojito2 SDK 사용** (`pip install mojito2`, `import mojito`)
-- 모의투자 API와 실전투자 API 키가 다름 (별도 발급)
-- `broker_client.py`에서 `mojito.KoreaInvestment(mock=True/False)`로 모드 전환
-- API 키가 없으면 자동으로 yfinance 전용 시뮬레이션 모드로 동작
-- 모의투자 API 제약: 일부 종목/시간대에 호가 조회 불가할 수 있음
-
----
-
-## 실전 전환 체크리스트 (2주 이상 페이퍼 검증 후)
-
-- [ ] 페이퍼 모드 2주+ 정상 동작 확인
-- [ ] 백테스트 대비 실제 성과 비교
-- [ ] 실전투자 API 키 발급 (한투 홈페이지)
-- [ ] `.env` 수정:
-  ```
-  KIS_IS_PAPER=false
-  TRADING_MODE=live
-  LIVE_TRADING_CONFIRMED=true
-  ```
-- [ ] 콘솔에서 'CONFIRM' 입력
-- [ ] Telegram 알림 설정 (실시간 모니터링)
 
 ---
 
 ## 향후 과제
 
-- [ ] 실시간 호가 WebSocket 연동
-- [ ] 기관/외국인 실제 수급 데이터
-- [ ] 포트폴리오 자동 리밸런싱
-- [ ] 머신러닝 종목 선정 모델
-- [ ] 모바일 알림 확장
+- [ ] 한국투자증권 실전 API 키 발급 및 연동
+- [ ] Paper Trading 2주 이상 실전 검증
+- [ ] ML 모델 정기 재학습 파이프라인
+- [ ] 대시보드에 수급/ML 서브스코어 표시
 
 ---
 
@@ -267,8 +199,9 @@ python trader.py
 | 증상 | 해결 |
 |------|------|
 | `ModuleNotFoundError: mojito` | `pip install mojito2` |
-| mojito 연결 실패 | API 키 확인, 모의투자/실전 키 구분 확인 |
-| yfinance 데이터 없음 | 종목코드 확인 (.KS 자동 붙음), 네트워크 확인 |
-| 대시보드 404 | `cd dashboard && python app.py` (reload=False 기본) |
-| 매수 안 됨 | 점수 58점 미달, RSI2>10, 현금 부족, 서킷브레이커 확인 |
-| `sys.path` 에러 | trader.py가 strategy/ 경로를 자동 추가함, 실행 위치 확인 |
+| `ModuleNotFoundError: xgboost` | `pip install xgboost scikit-learn joblib` |
+| ML 모델 없음 경고 | 정상. `python ml_train.py`로 학습 또는 5전략으로 동작 |
+| Discord 알림 안 옴 | `.env`에 `DISCORD_WEBHOOK_URL` 확인 |
+| WebSocket 연결 실패 | API 키 필요. 기본 폴링 모드로 정상 동작 |
+| 수급 데이터 없음 | 네이버 금융 접속 불가 시 OBV 폴백 (정상) |
+| 매수 안 됨 | 점수 58점 미달, 서킷브레이커, 현금 부족 확인 |

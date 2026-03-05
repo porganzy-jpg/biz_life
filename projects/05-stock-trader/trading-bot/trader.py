@@ -1,27 +1,18 @@
 """
-StockBot v3.6 주식 자동매매 트레이더
+StockBot v3.7 주식 자동매매 트레이더
 
-5전략 통합 앙상블 v3.2 (Z-score + tanh + 폭락가드 + 적응형 임계값)
-+ RSI(2) 급락 매수 (RSI2<10 & MA200 위 → 시간기반 청산)
-+ 순수 퀀트 (뉴스 부스트 제거) + ATR Chandelier Exit + 서킷브레이커
-+ DB 영속성 + 스케줄러 + 시장 국면(Regime) 감지 + 국면별 가중치 적응
-+ 스마트 주문 실행 엔진 (TWAP/VWAP/Smart Execute)
+6전략 통합 앙상블 (5전략 Z-score + ML예측) + RSI(2) 급락 매수
++ 멀티채널 알림 + 포트폴리오 자동 리밸런싱 + 기관수급 + WebSocket
++ ATR Chandelier Exit + 서킷브레이커 + DB 영속성 + 스케줄러
++ 시장 국면(Regime) 감지 + 스마트 주문 실행 엔진
 + yfinance 실시간 데이터 + 라이브/페이퍼 이중 안전장치
 
-v3.6 변경사항 (RSI(2) Crash Buy 추가):
-  - RSI(2) < 10 & 종가 > MA200 → 급락 매수 (앙상블과 독립)
-  - RSI(2) 진입 청산: RSI(2) > 90 또는 7일 보유 후 시간기반 청산
-  - 백테스트: +47.47% → +50.25%, Sharpe 2.49 → 2.69
-  - RSI(2) 거래 승률 87.5%, 순기여 +1,263,194원
-v3.5 변경사항 (Strategy Lab 최적화):
-  - 포지션 사이징: 균등 분배 -> ATR 기반 (거래당 자본 2% 리스크)
-    (백테스트: +34.78% -> +45.98%, Sharpe 2.44 -> 2.56)
-    변동성 높은 종목은 포지션 줄이고, 안정 종목은 포지션 확대
-  - ATR 없을 시 기존 균등 분배 폴백
-v3.4 변경사항 (시간봉 백테스트 최적화):
-  - 트레일링 스탑: 고정 -5% -> ATR x2 Chandelier Exit
-  - 변동성 자동 적응: 저변동 종목은 타이트, 고변동 종목은 넓게
-  - 손절은 기존 고정 -5% 유지 (ATR 손절은 큰 차이 없음)
+v3.7 변경사항:
+  - 멀티채널 알림 (Telegram + Discord + Email, 우선순위별 자동 선택)
+  - 포트폴리오 자동 리밸런싱 (단일종목 36%→30%, 섹터 55%→50%)
+  - 기관/외국인 실제 수급 데이터 (네이버 금융 크롤링)
+  - 실시간 호가 WebSocket 프레임워크 (opt-in)
+  - ML 기반 종목 선정 (XGBoost 22피처, 6번째 전략)
 """
 import sys
 import os
@@ -108,7 +99,7 @@ ATR_PERIOD = STOCK_TRADING_CONFIG.get("atr_period", 14)
 
 
 class StockTrader:
-    """주식 자동매매 트레이더 v3.6"""
+    """주식 자동매매 트레이더 v3.7"""
 
     def __init__(self, paper_trading: bool = True):
         self.client = BrokerClient(paper_trading=paper_trading)
@@ -407,6 +398,82 @@ class StockTrader:
           except Exception as e:
             logger.error(f"퀀트 매도 오류 [{result.get('symbol', '?')}]: {e}")
 
+        # 2.5 리밸런싱: 단일종목 36% 초과 → 30%, 섹터 55% 초과 → 50%
+        try:
+            total_assets = balance.get("total_eval", cash)
+            # 현재가 조회
+            current_prices = {}
+            for sym in list(positions.keys()):
+                price_info = self.client.fetch_price(sym)
+                if price_info:
+                    current_prices[sym] = price_info["price"]
+
+            # 단일종목 리밸런싱
+            rebalance_list = self.risk_manager.should_rebalance(
+                positions, total_assets, current_prices
+            )
+            for rb in rebalance_list:
+                sym = rb["symbol"]
+                qty_sell = rb["qty_to_sell"]
+                rb_price = rb["price"]
+                rb_name = rb["name"]
+
+                exec_id = self.execution_engine.smart_execute(
+                    symbol=sym, side=Side.SELL.value,
+                    qty=qty_sell, urgency="normal",
+                    name=rb_name,
+                )
+                if exec_id:
+                    avg_p = positions[sym].get("avg_price", rb_price)
+                    pnl = (rb_price - avg_p) * qty_sell
+                    pnl_pct = (rb_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
+                    self._record_rebalance(
+                        sym, rb_name, qty_sell, rb_price, pnl, pnl_pct,
+                        f"단일종목 {rb['current_pct']:.0f}%→{rb['target_pct']:.0f}%"
+                    )
+                    # 포지션 수량 업데이트 (삭제하지 않음)
+                    positions[sym]["qty"] -= qty_sell
+                    cash += qty_sell * rb_price
+                    logger.info(
+                        f"리밸런싱 [{rb_name}] {rb['current_pct']:.0f}%→{rb['target_pct']:.0f}% "
+                        f"{qty_sell}주 매도 exec_id={exec_id}"
+                    )
+
+            # 섹터 집중도 리밸런싱
+            sector_rebalance = self.risk_manager.should_rebalance_sector(
+                positions, total_assets, current_prices
+            )
+            for rb in sector_rebalance:
+                sym = rb["symbol"]
+                if sym not in positions:
+                    continue
+                qty_sell = rb["qty_to_sell"]
+                rb_price = rb["price"]
+                rb_name = rb["name"]
+
+                exec_id = self.execution_engine.smart_execute(
+                    symbol=sym, side=Side.SELL.value,
+                    qty=qty_sell, urgency="normal",
+                    name=rb_name,
+                )
+                if exec_id:
+                    avg_p = positions[sym].get("avg_price", rb_price)
+                    pnl = (rb_price - avg_p) * qty_sell
+                    pnl_pct = (rb_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
+                    self._record_rebalance(
+                        sym, rb_name, qty_sell, rb_price, pnl, pnl_pct,
+                        f"섹터({rb['sector']}) {rb['sector_pct']:.0f}%→{rb['target_sector_pct']:.0f}%"
+                    )
+                    positions[sym]["qty"] -= qty_sell
+                    cash += qty_sell * rb_price
+                    logger.info(
+                        f"섹터 리밸런싱 [{rb_name}] {rb['sector']} "
+                        f"{rb['sector_pct']:.0f}%→{rb['target_sector_pct']:.0f}% "
+                        f"{qty_sell}주 매도 exec_id={exec_id}"
+                    )
+        except Exception as e:
+            logger.error(f"리밸런싱 오류: {e}")
+
         # 3. 앙상블 매수 (점수 높은 순)
         for result in scan_results:
           try:
@@ -587,6 +654,38 @@ class StockTrader:
         if self.circuit_breaker.is_tripped:
             self.alert.notify_circuit_breaker(self.circuit_breaker.trip_reason)
 
+    def _record_rebalance(self, symbol, name, qty, price, pnl, pnl_pct, reason):
+        """리밸런싱 기록 (DB + 알림, 포지션 삭제 안 함)"""
+        self.db.record_trade(
+            action="REBALANCE", symbol=symbol, name=name,
+            qty=qty, price=price, pnl=pnl, pnl_pct=pnl_pct,
+            score=0, confidence=0, reasons=[reason],
+            mode="paper" if self.paper_trading else "live",
+        )
+        # REBALANCE는 부분매도이므로 포지션 삭제하지 않음
+        # DB 포지션 수량 직접 업데이트
+        try:
+            from database import get_connection
+            conn = get_connection()
+            conn.execute(
+                "UPDATE positions SET qty = qty - ? WHERE symbol = ? AND qty > ?",
+                (qty, symbol, qty)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"리밸런싱 DB 업데이트 실패 [{symbol}]: {e}")
+
+        record = {
+            "timestamp": datetime.now().isoformat(),
+            "action": "REBALANCE", "symbol": symbol, "name": name,
+            "qty": qty, "price": price,
+            "pnl_pct": round(pnl_pct, 2),
+            "reasons": [reason],
+        }
+        self.trade_history.append(record)
+        self.alert.notify_rebalance(symbol, name, qty, price, reason)
+
     def run_cycle(self):
         """1회 매매 사이클 (시장 국면 감지 포함)"""
         logger.info(f"매매 사이클: {datetime.now().strftime('%H:%M:%S')}")
@@ -648,7 +747,7 @@ class StockTrader:
     def start_auto(self):
         """자동 매매 시작 (스케줄러)"""
         mode = "모의투자" if self.paper_trading else "실전투자"
-        logger.info(f"StockBot v3.6 자동매매 시작 ({mode})")
+        logger.info(f"StockBot v3.7 자동매매 시작 ({mode})")
         logger.info(f"초기 자본: {self._initial_capital:,}원")
         self.alert.notify_bot_start(mode)
         self.scheduler.start()
@@ -689,8 +788,8 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v3.6 - 주식 자동매매")
-    print("  5전략앙상블 + RSI(2)급락매수 + ATR사이징 + Chandelier Exit")
+    print("  StockBot v3.7 - 주식 자동매매")
+    print("  6전략앙상블 + ML예측 + 멀티알림 + 리밸런싱 + 수급 + WebSocket")
     print("=" * 60)
 
     # 트레이딩 모드 결정
