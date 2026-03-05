@@ -297,6 +297,53 @@ class AlertSystem:
         # 일일 리포트는 모든 채널로
         self._dispatch(msg, AlertPriority.LOW)
 
+    def notify_daily_report_detail(self, total_assets: float, cash: float,
+                                    total_pnl: float, total_pnl_pct: float,
+                                    positions: list, trades: list,
+                                    win_rate: float, regime: str):
+        """상세 일일 리포트 (개별 종목 + 거래 내역)"""
+        today = datetime.now().strftime("%Y-%m-%d")
+        emoji = "\U0001f4c8" if total_pnl >= 0 else "\U0001f4c9"
+
+        lines = [
+            f"\U0001f4ca <b>StockBot 일일 리포트</b> ({today})",
+            f"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
+            f"총 자산: {total_assets:,.0f}원 | 현금: {cash:,.0f}원",
+            f"{emoji} 수익: {total_pnl:+,.0f}원 ({total_pnl_pct:+.2f}%)",
+            f"시장 국면: {regime} | 승률: {win_rate:.1f}%",
+        ]
+
+        # 보유 종목 수익률
+        if positions:
+            lines.append(f"\n\U0001f4bc <b>보유 종목 ({len(positions)}개)</b>")
+            for p in positions:
+                arrow = "\u25b2" if p["pnl"] >= 0 else "\u25bc"
+                lines.append(
+                    f"  {p['name']} {p['qty']}주 | "
+                    f"{p['avg']:,.0f}\u2192{p['cur']:,.0f} "
+                    f"{arrow}{p['pnl']:+,.0f}원({p['pnl_pct']:+.1f}%)"
+                )
+
+        # 오늘 거래 내역
+        if trades:
+            lines.append(f"\n\U0001f4dd <b>오늘 거래 ({len(trades)}건)</b>")
+            for t in trades:
+                action = t.get("action", "")
+                name = t.get("name", "")
+                qty = t.get("qty", 0)
+                price = t.get("price", 0)
+                pnl = t.get("pnl", 0)
+                pnl_pct = t.get("pnl_pct", 0)
+                if "BUY" in action:
+                    lines.append(f"  \U0001f7e2 {action} {name} {qty}주 @{price:,.0f}원")
+                else:
+                    lines.append(f"  \U0001f534 {action} {name} {qty}주 @{price:,.0f}원 {pnl:+,.0f}원({pnl_pct:+.1f}%)")
+        else:
+            lines.append("\n거래 없음")
+
+        msg = "\n".join(lines)
+        self._dispatch(msg, AlertPriority.HIGH)
+
     def notify_circuit_breaker(self, reason: str):
         self._dispatch(
             f"\U0001f6a8 <b>\uc11c\ud0b7\ube0c\ub808\uc774\ucee4 \ubc1c\ub3d9</b>\n\uc0ac\uc720: {reason}\n\ub9e4\ub9e4\uac00 \uc77c\uc2dc \uc911\ub2e8\ub418\uc5c8\uc2b5\ub2c8\ub2e4.",

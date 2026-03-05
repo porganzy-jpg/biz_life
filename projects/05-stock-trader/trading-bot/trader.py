@@ -740,7 +740,7 @@ class StockTrader:
         }
 
     def _generate_daily_report(self):
-        """일일 리포트 생성"""
+        """일일 리포트 생성 (개별 종목 수익률 + 오늘 거래 내역 포함)"""
         balance = self.client.get_balance()
         total_assets = balance.get("total_eval", 0)
         cash = balance.get("cash", 0)
@@ -755,20 +755,46 @@ class StockTrader:
 
         self.db.record_daily(
             total_assets=total_assets, cash=cash, invested=invested,
-            pnl_day=0, pnl_day_pct=0,
+            pnl_day=total_pnl, pnl_day_pct=total_pnl_pct,
             total_pnl=total_pnl, total_pnl_pct=total_pnl_pct,
             trades_count=today_trades, win_count=stats["wins"],
             positions_count=len(positions),
         )
 
         all_stats = self.db.get_trade_stats(days=30)
-        self.alert.notify_daily_report(
+
+        # 개별 종목 수익률 계산
+        position_details = []
+        db_positions = self.db.get_positions()
+        for pos in db_positions:
+            sym = pos["symbol"]
+            name = pos["name"]
+            qty = pos["qty"]
+            avg = pos["avg_price"]
+            price_info = self.client.fetch_price(sym)
+            cur = price_info["price"] if price_info else avg
+            pnl = (cur - avg) * qty
+            pnl_pct = (cur - avg) / avg * 100 if avg > 0 else 0
+            position_details.append({
+                "name": name, "qty": qty, "avg": avg,
+                "cur": cur, "pnl": pnl, "pnl_pct": pnl_pct,
+            })
+
+        # 오늘 거래 내역
+        today_trade_list = self.db.get_trades(limit=50)
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_trade_list = [
+            t for t in today_trade_list
+            if t.get("timestamp", "").startswith(today_str)
+        ]
+
+        self.alert.notify_daily_report_detail(
             total_assets=total_assets, cash=cash,
-            pnl_day=0, pnl_day_pct=0,
-            total_pnl_pct=total_pnl_pct,
-            positions=len(positions),
-            trades_today=today_trades,
+            total_pnl=total_pnl, total_pnl_pct=total_pnl_pct,
+            positions=position_details,
+            trades=today_trade_list,
             win_rate=all_stats["win_rate"],
+            regime=self.regime_detector.current_regime.value,
         )
 
     def start_auto(self):
