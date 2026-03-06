@@ -333,6 +333,7 @@ class StockTrader:
                     self._record_trade(f"RSI2_{rsi2_reason}", symbol, pos.get("name", ""),
                                        pos["qty"], fill_price, pnl, pnl_pct)
                     self.circuit_breaker.record_trade(pnl_pct)
+                    del positions[symbol]  # 중복 매도 방지
                     logger.info(f"RSI(2) 청산 [{pos.get('name', symbol)}] {rsi2_reason} pnl={pnl_pct:+.1f}% exec_id={exec_id}")
                 continue  # RSI(2) 포지션은 앙상블 청산 로직 스킵
 
@@ -351,6 +352,7 @@ class StockTrader:
                 self._record_trade("STOP_LOSS", symbol, pos.get("name", ""),
                                    pos["qty"], fill_price, pnl, pnl_pct)
                 self.circuit_breaker.record_trade(pnl_pct)
+                del positions[symbol]  # 중복 매도 방지
                 logger.info(f"손절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
@@ -367,6 +369,7 @@ class StockTrader:
                 self._record_trade("TAKE_PROFIT", symbol, pos.get("name", ""),
                                    pos["qty"], fill_price, pnl, pnl_pct)
                 self.circuit_breaker.record_trade(pnl_pct)
+                del positions[symbol]  # 중복 매도 방지
                 logger.info(f"익절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
@@ -390,6 +393,7 @@ class StockTrader:
                     self._record_trade("TRAILING_STOP", symbol, pos.get("name", ""),
                                        pos["qty"], fill_price, pnl, pnl_pct)
                     self.circuit_breaker.record_trade(pnl_pct)
+                    del positions[symbol]  # 중복 매도 방지
                     drop_pct = (fill_price - highest) / highest * 100
                     logger.info(
                         f"ATR 트레일링 [{symbol}] "
