@@ -1,0 +1,383 @@
+{
+  "landmarks": {
+    "swiss_alps": {
+      "name": "스위스 알프스",
+      "emoji": "🇨🇭",
+      "photos": [
+        "https://images.unsplash.com/photo-1531973576160-7125cd663d86?w=800",
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
+        "https://images.unsplash.com/photo-1527668752968-14dc70a27c95?w=800",
+        "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=800"
+      ]
+    },
+    "japan_sakura": {
+      "name": "일본 벚꽃길",
+      "emoji": "🇯🇵",
+      "photos": [
+        "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
+        "https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=800",
+        "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800",
+        "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=800"
+      ]
+    },
+    "norway_fjord": {
+      "name": "노르웨이 피오르",
+      "emoji": "🇳🇴",
+      "photos": [
+        "https://images.unsplash.com/photo-1520769669658-f07657f5a307?w=800",
+        "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800",
+        "https://images.unsplash.com/photo-1507272931001-fc06c17e4f43?w=800",
+        "https://images.unsplash.com/photo-1494783367193-149034c05e8f?w=800"
+      ]
+    },
+    "grand_canyon": {
+      "name": "그랜드 캐니언",
+      "emoji": "🇺🇸",
+      "photos": [
+        "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=800",
+        "https://images.unsplash.com/photo-1615551043360-33de8b5f410c?w=800",
+        "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=800",
+        "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=800"
+      ]
+    },
+    "amazon_rainforest": {
+      "name": "아마존 열대우림",
+      "emoji": "🇧🇷",
+      "photos": [
+        "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800",
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800",
+        "https://images.unsplash.com/photo-1536431311719-398b6704d4cc?w=800",
+        "https://images.unsplash.com/photo-1559060472-265ac37faf0c?w=800"
+      ]
+    },
+    "great_barrier_reef": {
+      "name": "그레이트 배리어 리프",
+      "emoji": "🇦🇺",
+      "photos": [
+        "https://images.unsplash.com/photo-1546026423-cc4642628d2b?w=800",
+        "https://images.unsplash.com/photo-1582967788606-a171c1080cb0?w=800",
+        "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800",
+        "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800"
+      ]
+    },
+    "iceland": {
+      "name": "아이슬란드",
+      "emoji": "🇮🇸",
+      "photos": [
+        "https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=800",
+        "https://images.unsplash.com/photo-1520769945061-0a448c463865?w=800",
+        "https://images.unsplash.com/photo-1476610182048-b716b8515aaa?w=800",
+        "https://images.unsplash.com/photo-1509281373149-e957c6296406?w=800"
+      ]
+    },
+    "jeju": {
+      "name": "제주도",
+      "emoji": "🇰🇷",
+      "photos": [
+        "https://images.unsplash.com/photo-1578037571214-25e07a4c90c0?w=800",
+        "https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?w=800",
+        "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800",
+        "https://images.unsplash.com/photo-1548115184-bc6544d06a58?w=800"
+      ]
+    },
+    "patagonia": {
+      "name": "파타고니아",
+      "emoji": "🇦🇷",
+      "photos": [
+        "https://images.unsplash.com/photo-1531761535209-180857e963b9?w=800",
+        "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800",
+        "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800",
+        "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=800"
+      ]
+    },
+    "canadian_rockies": {
+      "name": "캐나디안 로키",
+      "emoji": "🇨🇦",
+      "photos": [
+        "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800",
+        "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800",
+        "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800",
+        "https://images.unsplash.com/photo-1445264718234-a623be589d37?w=800"
+      ]
+    }
+  },
+  "backgrounds": {
+    "forest_home": "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200",
+    "forest_path": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200",
+    "cabin_exterior": "https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?w=1200",
+    "cabin_interior": "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200",
+    "forest_morning": "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=1200",
+    "forest_night": "https://images.unsplash.com/photo-1507400492013-162706c8c05e?w=1200",
+    "herb_garden": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1200",
+    "hot_spring": "https://images.unsplash.com/photo-1545389336-cf090694435e?w=1200",
+    "crystal_cave": "https://images.unsplash.com/photo-1504699439244-a8ccee3e1640?w=1200",
+    "treehouse": "https://images.unsplash.com/photo-1488462237308-ecaa28b729d7?w=1200",
+    "workshop": "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1200",
+    "library": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1200",
+    "observatory": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1200"
+  },
+  "creatures": {
+    "forest_deer": {
+      "name": "숲사슴",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/cute%20magical%20forest%20deer%20spirit%20fantasy%20art%20card%20game%20style?width=400&height=400&seed=1001&nologo=true"
+    },
+    "crystal_fox": {
+      "name": "수정여우",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/crystal%20fox%20magical%20creature%20fantasy%20forest%20glowing%20blue?width=400&height=400&seed=1002&nologo=true"
+    },
+    "herb_rabbit": {
+      "name": "약초토끼",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/cute%20rabbit%20with%20herbs%20and%20flowers%20magical%20forest%20creature?width=400&height=400&seed=1003&nologo=true"
+    },
+    "ember_owl": {
+      "name": "잔불올빼미",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/fire%20ember%20owl%20magical%20creature%20fantasy%20forest%20glowing?width=400&height=400&seed=1004&nologo=true"
+    },
+    "moss_bear": {
+      "name": "이끼곰",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/moss%20covered%20bear%20spirit%20forest%20guardian%20fantasy%20art?width=400&height=400&seed=1005&nologo=true"
+    },
+    "moonlight_wolf": {
+      "name": "달빛늑대",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/moonlight%20wolf%20spirit%20glowing%20silver%20fantasy%20forest%20creature?width=400&height=400&seed=1006&nologo=true"
+    },
+    "aurora_butterfly": {
+      "name": "오로라나비",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/aurora%20butterfly%20magical%20rainbow%20wings%20fantasy%20forest%20creature?width=400&height=400&seed=1007&nologo=true"
+    },
+    "jade_turtle": {
+      "name": "비취거북",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/jade%20turtle%20magical%20green%20glowing%20shell%20fantasy%20forest?width=400&height=400&seed=1008&nologo=true"
+    },
+    "honey_bee_queen": {
+      "name": "꿀벌여왕",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/queen%20bee%20magical%20golden%20crown%20fantasy%20forest%20creature?width=400&height=400&seed=1009&nologo=true"
+    },
+    "starlight_phoenix": {
+      "name": "별빛봉황",
+      "grade": "legendary",
+      "url": "https://image.pollinations.ai/prompt/starlight%20phoenix%20cosmic%20bird%20fantasy%20glowing%20nebula%20wings?width=400&height=400&seed=1010&nologo=true"
+    },
+    "spring_sprite": {
+      "name": "봄의정령",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/spring%20nature%20sprite%20cherry%20blossom%20fairy%20fantasy%20forest?width=400&height=400&seed=1011&nologo=true"
+    },
+    "frost_stag": {
+      "name": "서리수사슴",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/frost%20stag%20ice%20antlers%20magical%20winter%20forest%20creature?width=400&height=400&seed=1012&nologo=true"
+    },
+    "river_otter": {
+      "name": "강의수달",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/cute%20river%20otter%20magical%20water%20spirit%20forest%20creature?width=400&height=400&seed=1013&nologo=true"
+    },
+    "thunder_eagle": {
+      "name": "천둥독수리",
+      "grade": "legendary",
+      "url": "https://image.pollinations.ai/prompt/thunder%20eagle%20lightning%20wings%20storm%20legendary%20fantasy%20creature?width=400&height=400&seed=1014&nologo=true"
+    },
+    "mushroom_imp": {
+      "name": "버섯요정",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/cute%20mushroom%20fairy%20imp%20tiny%20forest%20creature%20fantasy?width=400&height=400&seed=1015&nologo=true"
+    },
+    "golden_koi": {
+      "name": "황금잉어",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/golden%20koi%20fish%20magical%20pond%20glowing%20fantasy%20creature?width=400&height=400&seed=1016&nologo=true"
+    },
+    "vine_serpent": {
+      "name": "덩굴뱀",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/vine%20serpent%20plant%20snake%20green%20forest%20magical%20creature?width=400&height=400&seed=1017&nologo=true"
+    },
+    "cloud_sheep": {
+      "name": "구름양",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/fluffy%20cloud%20sheep%20floating%20sky%20cute%20fantasy%20creature?width=400&height=400&seed=1018&nologo=true"
+    },
+    "amber_spider": {
+      "name": "호박거미",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/amber%20spider%20golden%20web%20magical%20forest%20creature%20cute?width=400&height=400&seed=1019&nologo=true"
+    },
+    "ancient_treant": {
+      "name": "고대나무정령",
+      "grade": "legendary",
+      "url": "https://image.pollinations.ai/prompt/ancient%20treant%20tree%20spirit%20guardian%20fantasy%20forest%20magical?width=400&height=400&seed=1020&nologo=true"
+    },
+    "dawn_hummingbird": {
+      "name": "새벽벌새",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/dawn%20hummingbird%20rainbow%20feathers%20magical%20forest%20tiny%20bird?width=400&height=400&seed=1021&nologo=true"
+    },
+    "shadow_cat": {
+      "name": "그림자고양이",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/shadow%20cat%20dark%20mystical%20feline%20glowing%20eyes%20forest?width=400&height=400&seed=1022&nologo=true"
+    },
+    "coral_seahorse": {
+      "name": "산호해마",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/coral%20seahorse%20underwater%20magical%20colorful%20fantasy%20creature?width=400&height=400&seed=1023&nologo=true"
+    },
+    "wind_falcon": {
+      "name": "바람매",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/wind%20falcon%20air%20elemental%20bird%20storm%20wings%20fantasy?width=400&height=400&seed=1024&nologo=true"
+    },
+    "stone_golem": {
+      "name": "돌골렘",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/cute%20stone%20golem%20mossy%20rock%20creature%20forest%20guardian?width=400&height=400&seed=1025&nologo=true"
+    },
+    "rainbow_parrot": {
+      "name": "무지개앵무",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/rainbow%20parrot%20tropical%20magical%20bird%20colorful%20fantasy?width=400&height=400&seed=1026&nologo=true"
+    },
+    "lava_salamander": {
+      "name": "용암도롱뇽",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/lava%20salamander%20fire%20elemental%20glowing%20orange%20fantasy%20creature?width=400&height=400&seed=1027&nologo=true"
+    },
+    "ice_penguin": {
+      "name": "얼음펭귄",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/cute%20ice%20penguin%20crystal%20frost%20magical%20winter%20creature?width=400&height=400&seed=1028&nologo=true"
+    },
+    "cherry_squirrel": {
+      "name": "벚꽃다람쥐",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/cherry%20blossom%20squirrel%20pink%20cute%20magical%20forest%20creature?width=400&height=400&seed=1029&nologo=true"
+    },
+    "celestial_dragon": {
+      "name": "천상의용",
+      "grade": "mythic",
+      "url": "https://image.pollinations.ai/prompt/celestial%20dragon%20cosmic%20starry%20scales%20mythical%20legendary%20fantasy?width=400&height=400&seed=1030&nologo=true"
+    },
+    "sand_fox": {
+      "name": "사막여우",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/sand%20fox%20desert%20cute%20fennec%20magical%20creature%20fantasy?width=400&height=400&seed=1031&nologo=true"
+    },
+    "water_nymph": {
+      "name": "물의님프",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/water%20nymph%20lake%20spirit%20translucent%20blue%20magical%20fantasy?width=400&height=400&seed=1032&nologo=true"
+    },
+    "firefly_swarm": {
+      "name": "반딧불무리",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/firefly%20swarm%20glowing%20night%20forest%20magical%20creature?width=400&height=400&seed=1033&nologo=true"
+    },
+    "bamboo_panda": {
+      "name": "대나무판다",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/bamboo%20panda%20magical%20green%20energy%20cute%20fantasy%20creature?width=400&height=400&seed=1034&nologo=true"
+    },
+    "snow_leopard": {
+      "name": "설표",
+      "grade": "legendary",
+      "url": "https://image.pollinations.ai/prompt/snow%20leopard%20mythical%20ice%20crystal%20mountain%20legendary%20creature?width=400&height=400&seed=1035&nologo=true"
+    },
+    "lotus_frog": {
+      "name": "연꽃개구리",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/lotus%20frog%20lily%20pad%20cute%20magical%20pond%20creature%20fantasy?width=400&height=400&seed=1036&nologo=true"
+    },
+    "silk_moth": {
+      "name": "비단나방",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/silk%20moth%20magical%20silver%20wings%20moonlight%20forest%20creature?width=400&height=400&seed=1037&nologo=true"
+    },
+    "magma_crab": {
+      "name": "마그마게",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/magma%20crab%20volcanic%20fire%20claws%20glowing%20fantasy%20creature?width=400&height=400&seed=1038&nologo=true"
+    },
+    "petal_fairy": {
+      "name": "꽃잎요정",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/petal%20fairy%20flower%20wings%20tiny%20magical%20forest%20creature?width=400&height=400&seed=1039&nologo=true"
+    },
+    "world_turtle": {
+      "name": "세계거북",
+      "grade": "mythic",
+      "url": "https://image.pollinations.ai/prompt/world%20turtle%20cosmic%20ancient%20mythical%20earth%20on%20back%20fantasy?width=400&height=400&seed=1040&nologo=true"
+    },
+    "storm_hawk": {
+      "name": "폭풍매",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/storm%20hawk%20lightning%20feathers%20wind%20elemental%20bird%20fantasy?width=400&height=400&seed=1041&nologo=true"
+    },
+    "meadow_unicorn": {
+      "name": "초원유니콘",
+      "grade": "legendary",
+      "url": "https://image.pollinations.ai/prompt/meadow%20unicorn%20golden%20horn%20flowers%20mane%20magical%20fantasy?width=400&height=400&seed=1042&nologo=true"
+    },
+    "cave_bat": {
+      "name": "동굴박쥐",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/cute%20cave%20bat%20tiny%20crystal%20ears%20dark%20forest%20creature?width=400&height=400&seed=1043&nologo=true"
+    },
+    "tide_jellyfish": {
+      "name": "조수해파리",
+      "grade": "uncommon",
+      "url": "https://image.pollinations.ai/prompt/tide%20jellyfish%20bioluminescent%20ocean%20magical%20creature%20fantasy?width=400&height=400&seed=1044&nologo=true"
+    },
+    "autumn_spirit": {
+      "name": "가을정령",
+      "grade": "epic",
+      "url": "https://image.pollinations.ai/prompt/autumn%20spirit%20falling%20leaves%20orange%20red%20magical%20forest?width=400&height=400&seed=1045&nologo=true"
+    },
+    "root_mole": {
+      "name": "뿌리두더지",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/root%20mole%20underground%20earth%20digging%20cute%20forest%20creature?width=400&height=400&seed=1046&nologo=true"
+    },
+    "glacier_whale": {
+      "name": "빙하고래",
+      "grade": "legendary",
+      "url": "https://image.pollinations.ai/prompt/glacier%20whale%20ice%20ocean%20enormous%20mythical%20fantasy%20creature?width=400&height=400&seed=1047&nologo=true"
+    },
+    "sun_scarab": {
+      "name": "태양풍뎅이",
+      "grade": "rare",
+      "url": "https://image.pollinations.ai/prompt/sun%20scarab%20beetle%20golden%20glowing%20egyptian%20magical%20creature?width=400&height=400&seed=1048&nologo=true"
+    },
+    "spirit_wolf": {
+      "name": "영혼늑대",
+      "grade": "mythic",
+      "url": "https://image.pollinations.ai/prompt/spirit%20wolf%20ethereal%20ghostly%20aurora%20mythical%20cosmic%20creature?width=400&height=400&seed=1049&nologo=true"
+    },
+    "garden_gnome": {
+      "name": "정원노움",
+      "grade": "common",
+      "url": "https://image.pollinations.ai/prompt/garden%20gnome%20tiny%20cute%20mushroom%20hat%20forest%20creature?width=400&height=400&seed=1050&nologo=true"
+    }
+  },
+  "rooms": {
+    "living_room": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600",
+    "kitchen": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600",
+    "herb_garden": "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600",
+    "workshop": "https://images.unsplash.com/photo-1530124566582-a45a7e3f2dea?w=600",
+    "library": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600",
+    "observatory": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=600",
+    "hot_spring": "https://images.unsplash.com/photo-1545389336-cf090694435e?w=600",
+    "crystal_cave": "https://images.unsplash.com/photo-1504699439244-a8ccee3e1640?w=600",
+    "treehouse": "https://images.unsplash.com/photo-1488462237308-ecaa28b729d7?w=600",
+    "apiary": "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=600"
+  }
+}

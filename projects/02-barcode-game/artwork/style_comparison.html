@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarcodeQuest - 아트 스타일 비교</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f0f1a;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+h1 {
+  text-align: center;
+  padding: 30px;
+  font-size: 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.subtitle {
+  text-align: center;
+  color: #888;
+  margin-bottom: 40px;
+  font-size: 14px;
+}
+.styles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 30px;
+  padding: 0 30px 40px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.style-card {
+  background: #1a1a2e;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #2a2a4a;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.style-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+}
+.style-header {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  position: relative;
+}
+.style-header h2 {
+  font-size: 22px;
+  color: #fff;
+}
+.style-header .tag {
+  display: inline-block;
+  background: rgba(255,255,255,0.2);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-top: 6px;
+  color: #fff;
+}
+.style-body { padding: 20px 24px; }
+.style-desc {
+  color: #aaa;
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+.examples-label {
+  font-size: 12px;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.example-games {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.example-games span {
+  background: #252545;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #ccc;
+}
+.monster-preview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.monster-sample {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.monster-sample .icon {
+  font-size: 48px;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+}
+.monster-sample .label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.7);
+  text-align: center;
+}
+.prompt-section {
+  background: #12122a;
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 12px;
+}
+.prompt-section .prompt-label {
+  font-size: 11px;
+  color: #667eea;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prompt-section code {
+  display: block;
+  font-size: 12px;
+  color: #ddd;
+  line-height: 1.6;
+  word-break: break-all;
+  white-space: pre-wrap;
+  font-family: 'Consolas', monospace;
+}
+.copy-btn {
+  background: #667eea;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.2s;
+}
+.copy-btn:hover { background: #5a6fd6; }
+.copy-btn.copied { background: #4CAF50; }
+
+.pros-cons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.pros, .cons {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.pros span { color: #4CAF50; }
+.cons span { color: #ff6b6b; }
+
+.vote-section {
+  text-align: center;
+  padding: 40px;
+}
+.vote-section h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #ccc;
+}
+.vote-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.vote-btn {
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: 2px solid #333;
+  background: #1a1a2e;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.vote-btn:hover {
+  border-color: #667eea;
+  background: #252545;
+  transform: scale(1.05);
+}
+.vote-btn.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea22, #764ba222);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.cost-table {
+  margin: 20px auto;
+  max-width: 900px;
+  padding: 0 30px;
+}
+.cost-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1a1a2e;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cost-table th {
+  background: #252545;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  color: #667eea;
+}
+.cost-table td {
+  padding: 10px 16px;
+  border-top: 1px solid #2a2a4a;
+  font-size: 13px;
+}
+.cost-table tr:hover td {
+  background: #1f1f3a;
+}
+.highlight { color: #4CAF50; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>BarcodeQuest 아트 스타일 비교</h1>
+<p class="subtitle">각 스타일로 AI 이미지를 사전 생성하여 게임에 사용합니다. 마음에 드는 스타일을 골라주세요!</p>
+
+<div class="styles-grid">
+
+  <!-- Style 1: Anime/Illustration -->
+  <div class="style-card" style="--c1:#ff6b9d;--c2:#c44569">
+    <div class="style-header">
+      <h2>A. 애니메이션 일러스트</h2>
+      <span class="tag">화려함 | 대중적 | 인기 보장</span>
+    </div>
+    <div class="style-body">
+      <p class="style-desc">
+        포켓몬, 원신, 블루아카이브 같은 깔끔한 애니메이션 스타일.
+        선명한 외곽선, 밝은 색감, 큰 눈과 귀여운 비율.
+        가장 대중적이고 MZ세대에게 친숙합니다.
+      </p>
+      <div class="examples-label">참고 게임</div>
+      <div class="example-games">
+        <span>포켓몬</span><span>원신</span><span>블루아카이브</span><span>니케</span>
+      </div>
+      <div class="monster-preview">
+        <div class="monster-sample" style="background:linear-gradient(135deg,#ff9a9e,#fecfef)">
+          <div class="icon">🐉</div><div class="label">드래곤</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#a1c4fd,#c2e9fb)">
+          <div class="icon">🦊</div><div class="label">여우</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#d4fc79,#96e6a1)">
+          <div class="icon">🐻</div><div class="label">곰</div>
+        </div>
+      </div>
+      <div class="prompt-section">
+        <div class="prompt-label">AI 프롬프트 예시</div>
+        <code>cute anime-style dragon creature, chibi proportions, big expressive eyes, fire element, crimson and gold colors, clean cel-shading, white background, game character design, high quality illustration, trending on ArtStation</code>
+        <button class="copy-btn" onclick="copyPrompt(this)">복사</button>
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <span>+</span> 대중적 인기<br>
+          <span>+</span> AI 생성 품질 높음<br>
+          <span>+</span> 스타일 일관성 좋음
+        </div>
+        <div class="cons">
+          <span>-</span> 차별화 어려움<br>
+          <span>-</span> 포켓몬 아류 느낌 가능
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Style 2: Watercolor/Fantasy -->
+  <div class="style-card" style="--c1:#43e97b;--c2:#38f9d7">
+    <div class="style-header">
+      <h2>B. 수채화 판타지</h2>
+      <span class="tag">감성적 | 독특함 | 힐링 콘셉트에 딱</span>
+    </div>
+    <div class="style-body">
+      <p class="style-desc">
+        지브리, 동화책 같은 따뜻한 수채화 느낌.
+        부드러운 경계선, 자연스러운 색 번짐, 따뜻한 톤.
+        게임의 "힐링 버스 여행" 콘셉트와 완벽 매칭.
+      </p>
+      <div class="examples-label">참고 작품</div>
+      <div class="example-games">
+        <span>지브리</span><span>니노쿠니</span><span>오딘스피어</span><span>차일드 오브 라이트</span>
+      </div>
+      <div class="monster-preview">
+        <div class="monster-sample" style="background:linear-gradient(135deg,#ffecd2,#fcb69f)">
+          <div class="icon">🌸</div><div class="label">꽃 정령</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#e0c3fc,#8ec5fc)">
+          <div class="icon">🦋</div><div class="label">나비</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#f5f7fa,#c3cfe2)">
+          <div class="icon">☁️</div><div class="label">구름토끼</div>
+        </div>
+      </div>
+      <div class="prompt-section">
+        <div class="prompt-label">AI 프롬프트 예시</div>
+        <code>watercolor painting of a magical flower spirit creature, soft pastel colors, gentle brushstrokes, Studio Ghibli inspired, warm lighting, dreamy atmosphere, fantasy art, children's book illustration style, white background</code>
+        <button class="copy-btn" onclick="copyPrompt(this)">복사</button>
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <span>+</span> 힐링 콘셉트 완벽 매칭<br>
+          <span>+</span> 독특한 아이덴티티<br>
+          <span>+</span> 감성적 매력
+        </div>
+        <div class="cons">
+          <span>-</span> AI 일관성 관리 까다로움<br>
+          <span>-</span> 전투 느낌 약할 수 있음
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Style 3: 3D Rendered Miniature -->
+  <div class="style-card" style="--c1:#667eea;--c2:#764ba2">
+    <div class="style-header">
+      <h2>C. 3D 미니어처 피규어</h2>
+      <span class="tag">프리미엄 | 트렌디 | 소장 욕구</span>
+    </div>
+    <div class="style-body">
+      <p class="style-desc">
+        클레이 렌더링, 피규어, 블라인드 박스 느낌의 3D 스타일.
+        귀엽고 통통한 비율, 부드러운 조명, 소장 가치 느낌.
+        요즘 틱톡/인스타에서 가장 핫한 스타일.
+      </p>
+      <div class="examples-label">참고</div>
+      <div class="example-games">
+        <span>팝마트 피규어</span><span>클래시로얄</span><span>Fall Guys</span><span>오버쿡</span>
+      </div>
+      <div class="monster-preview">
+        <div class="monster-sample" style="background:linear-gradient(135deg,#e8daef,#d5a6f0)">
+          <div class="icon">🧸</div><div class="label">곰 피규어</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#fce4ec,#f8bbd0)">
+          <div class="icon">🐱</div><div class="label">고양이</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#e3f2fd,#bbdefb)">
+          <div class="icon">🐧</div><div class="label">펭귄</div>
+        </div>
+      </div>
+      <div class="prompt-section">
+        <div class="prompt-label">AI 프롬프트 예시</div>
+        <code>3D rendered cute bear creature figurine, clay material, soft studio lighting, pastel purple and white colors, ice element, chibi proportions, collectible toy aesthetic, Popmart blind box style, white background, 4K, unreal engine</code>
+        <button class="copy-btn" onclick="copyPrompt(this)">복사</button>
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <span>+</span> 트렌디, SNS 공유 욕구<br>
+          <span>+</span> AI 생성 퀄리티 최고<br>
+          <span>+</span> 수집 욕구 자극
+        </div>
+        <div class="cons">
+          <span>-</span> 게임 느낌 약할 수 있음<br>
+          <span>-</span> 전투 연출 제한적
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Style 4: Dark Fantasy -->
+  <div class="style-card" style="--c1:#fc5c7d;--c2:#6a82fb">
+    <div class="style-header">
+      <h2>D. 다크 판타지 일러스트</h2>
+      <span class="tag">고급스러움 | 시크함 | Hell 편에 적합</span>
+    </div>
+    <div class="style-body">
+      <p class="style-desc">
+        서먼어즈워, 그랑블루 같은 중후한 판타지 일러스트.
+        디테일한 묘사, 극적인 조명, 무게감 있는 디자인.
+        Heaven(힐링)→Hell(전투) 전환 시 강렬한 대비 효과.
+      </p>
+      <div class="examples-label">참고 게임</div>
+      <div class="example-games">
+        <span>서먼어즈워</span><span>그랑블루</span><span>에픽세븐</span><span>아크나이츠</span>
+      </div>
+      <div class="monster-preview">
+        <div class="monster-sample" style="background:linear-gradient(135deg,#434343,#000000)">
+          <div class="icon">🐲</div><div class="label">암흑룡</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#200122,#6f0000)">
+          <div class="icon">🦅</div><div class="label">불사조</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#0f0c29,#302b63)">
+          <div class="icon">🐺</div><div class="label">영혼늑대</div>
+        </div>
+      </div>
+      <div class="prompt-section">
+        <div class="prompt-label">AI 프롬프트 예시</div>
+        <code>epic dark fantasy dragon creature, dramatic lighting, detailed scales and horns, glowing red eyes, fire and smoke effects, dark atmosphere, game character art, Summoners War style, concept art, highly detailed, 4K</code>
+        <button class="copy-btn" onclick="copyPrompt(this)">복사</button>
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <span>+</span> 고급스러운 느낌<br>
+          <span>+</span> 전투 연출 최고<br>
+          <span>+</span> Hell 편과 연결성
+        </div>
+        <div class="cons">
+          <span>-</span> 힐링 콘셉트와 괴리<br>
+          <span>-</span> 타겟 층 제한 (성인 위주)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Style 5: Hybrid (Recommended) -->
+  <div class="style-card" style="--c1:#f093fb;--c2:#f5576c;border:2px solid #667eea">
+    <div class="style-header">
+      <h2>E. 하이브리드 (추천)</h2>
+      <span class="tag">애니 + 수채화 | 차별화 | 두 편 모두 대응</span>
+    </div>
+    <div class="style-body">
+      <p class="style-desc">
+        깔끔한 애니메이션 캐릭터에 수채화 텍스처를 입힌 독자적 스타일.
+        Heaven 편은 밝고 따뜻하게, Hell 편은 어둡고 강렬하게.
+        같은 몬스터가 각성하면 스타일이 변하는 연출 가능!
+      </p>
+      <div class="examples-label">참고</div>
+      <div class="example-games">
+        <span>니노쿠니</span><span>포켓몬 + 지브리</span><span>원신 + 수채화</span>
+      </div>
+      <div class="monster-preview">
+        <div class="monster-sample" style="background:linear-gradient(135deg,#ffecd2,#fcb69f)">
+          <div class="icon">🌟</div><div class="label">Heaven</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#667eea,#764ba2)">
+          <div class="icon">⚡</div><div class="label">전환</div>
+        </div>
+        <div class="monster-sample" style="background:linear-gradient(135deg,#434343,#000000)">
+          <div class="icon">🔥</div><div class="label">Hell</div>
+        </div>
+      </div>
+      <div class="prompt-section">
+        <div class="prompt-label">AI 프롬프트 예시 (Heaven)</div>
+        <code>cute anime fox spirit creature, watercolor texture, soft warm lighting, pastel orange and cream colors, wind element, gentle expression, flowing tail with sparkles, dreamy atmosphere, Ghibli meets Pokemon style, white background, high quality</code>
+        <button class="copy-btn" onclick="copyPrompt(this)">복사</button>
+      </div>
+      <div class="prompt-section" style="margin-top:8px">
+        <div class="prompt-label">AI 프롬프트 예시 (Hell 각성)</div>
+        <code>dark evolved fox demon creature, anime style with ink wash texture, glowing red markings, shadowy flames, fierce expression, dark purple and crimson colors, dramatic lighting, epic fantasy game art, white background, highly detailed</code>
+        <button class="copy-btn" onclick="copyPrompt(this)">복사</button>
+      </div>
+      <div class="pros-cons">
+        <div class="pros">
+          <span>+</span> 독자적 아이덴티티<br>
+          <span>+</span> 두 편 대응 가능<br>
+          <span>+</span> 각성 연출 임팩트
+        </div>
+        <div class="cons">
+          <span>-</span> 프롬프트 관리 복잡<br>
+          <span>-</span> 일관성 유지에 노력 필요
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Cost Comparison -->
+<div class="cost-table">
+  <h2 style="text-align:center;margin-bottom:16px;color:#ccc">AI 이미지 생성 비용 비교</h2>
+  <table>
+    <tr>
+      <th>서비스</th>
+      <th>가격</th>
+      <th>500장 비용</th>
+      <th>품질</th>
+      <th>특징</th>
+    </tr>
+    <tr>
+      <td>DALL-E 3 (OpenAI)</td>
+      <td>$0.04/장 (1024x1024)</td>
+      <td>$20 (~₩27,000)</td>
+      <td>★★★★★</td>
+      <td>최고 품질, 프롬프트 이해도 좋음</td>
+    </tr>
+    <tr>
+      <td>Stable Diffusion (Replicate)</td>
+      <td>~$0.01/장</td>
+      <td class="highlight">$5 (~₩6,800)</td>
+      <td>★★★★☆</td>
+      <td>저렴, LoRA 커스텀 가능</td>
+    </tr>
+    <tr>
+      <td>Midjourney</td>
+      <td>$10/월 (200장)</td>
+      <td>$30 (~₩41,000)</td>
+      <td>★★★★★</td>
+      <td>최고 아트 퀄리티, 스타일 우수</td>
+    </tr>
+    <tr>
+      <td>Leonardo AI (무료)</td>
+      <td>150토큰/일 무료</td>
+      <td class="highlight">무료 (7일)</td>
+      <td>★★★★☆</td>
+      <td>무료 티어로 충분, 게임 특화 모델</td>
+    </tr>
+    <tr>
+      <td>Bing Image Creator</td>
+      <td>무료 (DALL-E 3)</td>
+      <td class="highlight">무료</td>
+      <td>★★★★☆</td>
+      <td>무료 DALL-E 3, 일일 한도 있음</td>
+    </tr>
+  </table>
+</div>
+
+<div class="vote-section">
+  <h2>어떤 스타일이 마음에 드시나요?</h2>
+  <div class="vote-buttons">
+    <button class="vote-btn" onclick="selectStyle(this,'A')">A. 애니메이션</button>
+    <button class="vote-btn" onclick="selectStyle(this,'B')">B. 수채화</button>
+    <button class="vote-btn" onclick="selectStyle(this,'C')">C. 3D 피규어</button>
+    <button class="vote-btn" onclick="selectStyle(this,'D')">D. 다크 판타지</button>
+    <button class="vote-btn" onclick="selectStyle(this,'E')">E. 하이브리드 (추천)</button>
+  </div>
+  <p style="margin-top:20px;color:#666;font-size:13px">
+    선택하시면 해당 스타일로 몬스터 10종 샘플을 AI로 생성하는 스크립트를 만들어드립니다.
+  </p>
+</div>
+
+<script>
+function copyPrompt(btn) {
+  const code = btn.previousElementSibling;
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '복사됨!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '복사';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function selectStyle(btn, style) {
+  document.querySelectorAll('.vote-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+</script>
+</body>
+</html>

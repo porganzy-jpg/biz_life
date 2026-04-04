@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Forest Haven - 숲의 안식처</title>
+<style>
+:root{--forest-dark:#1a3a1a;--forest:#2d5a27;--forest-light:#4a8c3f;--wood-dark:#5c3d2e;--wood:#8b6914;--wood-light:#c9a96e;--gold:#d4a843;--gold-light:#f0d78c;--cream:#f5f0e1;--cream-dark:#e8dcc8;--text:#2c1810;--text-light:#6b5040;--white:#fff;--common:#9e9e9e;--uncommon:#4caf50;--rare:#2196f3;--epic:#9c27b0;--legendary:#ff9800;--mythic:#e91e63;--danger:#e74c3c;--success:#27ae60;--nav-h:60px;--top-h:50px;--radius:12px;--radius-sm:8px;--shadow:0 2px 8px rgba(0,0,0,.15);--shadow-lg:0 4px 20px rgba(0,0,0,.25)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--forest-dark);color:var(--text);overflow:hidden;height:100vh;width:100vw;-webkit-user-select:none;user-select:none}
+#app{position:relative;width:100%;max-width:430px;height:100vh;margin:0 auto;background:var(--cream);overflow:hidden;display:flex;flex-direction:column}
+#topbar{height:var(--top-h);background:linear-gradient(135deg,var(--forest-dark),var(--forest));color:var(--cream);display:flex;align-items:center;padding:0 12px;gap:8px;z-index:100;flex-shrink:0}
+.tb-level{background:var(--gold);color:var(--wood-dark);font-weight:700;font-size:13px;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.tb-resources{display:flex;gap:6px;flex:1;overflow-x:auto;scrollbar-width:none}
+.tb-resources::-webkit-scrollbar{display:none}
+.tb-res{display:flex;align-items:center;gap:2px;font-size:11px;background:rgba(255,255,255,.12);padding:2px 6px;border-radius:8px;white-space:nowrap}
+.tb-res span{font-weight:600}
+.tb-btn{width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:var(--cream);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.screens{flex:1;position:relative;overflow:hidden}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;transform:translateX(20px);-webkit-overflow-scrolling:touch}
+.screen.active{opacity:1;pointer-events:auto;transform:translateX(0)}
+.scr-pad{padding:16px 16px 20px}
+.scr-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px}
+.scr-sub{font-size:13px;color:var(--text-light);margin-bottom:16px}
+#navbar{height:var(--nav-h);background:linear-gradient(0deg,var(--wood-dark),#6b4930);display:flex;align-items:stretch;z-index:100;flex-shrink:0;border-top:2px solid var(--wood-light)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--cream-dark);font-size:10px;font-weight:500;cursor:pointer;transition:all .2s;position:relative}
+.nav-item .ni-icon{font-size:22px;transition:transform .2s}
+.nav-item.active{color:var(--gold-light)}
+.nav-item.active .ni-icon{transform:scale(1.15)}
+.nav-item.active::after{content:'';position:absolute;top:-2px;left:20%;right:20%;height:2px;background:var(--gold);border-radius:0 0 2px 2px}
+.home-hero{position:relative;height:200px;border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.home-hero img{width:100%;height:100%;object-fit:cover}
+.home-hero-overlay{position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(0,0,0,.7));display:flex;flex-direction:column;justify-content:flex-end;padding:16px}
+.home-hero-title{color:var(--white);font-size:24px;font-weight:700;text-shadow:0 2px 4px rgba(0,0,0,.5)}
+.home-hero-sub{color:var(--cream-dark);font-size:13px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.home-btn{background:var(--white);border-radius:var(--radius);padding:14px 8px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:transform .15s;border:1px solid var(--cream-dark)}
+.home-btn:active{transform:scale(.95)}
+.home-btn .hb-icon{font-size:28px;margin-bottom:4px}
+.home-btn .hb-label{font-size:11px;font-weight:600;color:var(--text)}
+.home-news{background:var(--white);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+.home-news h3{font-size:14px;margin-bottom:8px;color:var(--forest)}
+.news-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--cream-dark);font-size:12px;color:var(--text-light)}
+.news-item:last-child{border:none}
+.scanner-viewport{position:relative;width:100%;aspect-ratio:1;background:#000;border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.scanner-frame{position:absolute;inset:15%;border:2px solid var(--gold);border-radius:8px}
+.scanner-line{position:absolute;left:15%;right:15%;height:2px;background:linear-gradient(90deg,transparent,var(--forest-light),transparent);top:50%;animation:scanLine 2s ease-in-out infinite}
+@keyframes scanLine{0%,100%{top:15%;opacity:.5}50%{top:85%;opacity:1}}
+.scanner-corners{position:absolute;inset:14%}
+.scanner-corners::before,.scanner-corners::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--gold-light);border-style:solid}
+.scanner-corners::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.scanner-corners::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.sc-bl{position:absolute;inset:14%}
+.sc-bl::before,.sc-bl::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--gold-light);border-style:solid}
+.sc-bl::before{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.sc-bl::after{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+.scan-input-area{display:flex;gap:8px;margin-bottom:12px}
+.scan-input{flex:1;height:44px;border:2px solid var(--cream-dark);border-radius:var(--radius-sm);padding:0 12px;font-size:15px;background:var(--white);color:var(--text);outline:none;transition:border-color .2s}
+.scan-input:focus{border-color:var(--forest-light)}
+.scan-btn{height:44px;padding:0 20px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--forest),var(--forest-light));color:var(--white);font-weight:700;font-size:14px;cursor:pointer;transition:transform .15s}
+.scan-btn:active{transform:scale(.95)}
+.scan-history{background:var(--white);border-radius:var(--radius);padding:12px}
+.scan-history h3{font-size:14px;margin-bottom:8px;color:var(--forest)}
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card-grid-item{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s}
+.card-grid-item:active{transform:scale(.96)}
+.card-grid-img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--cream-dark)}
+.card-grid-info{padding:8px;background:var(--white)}
+.card-grid-name{font-size:12px;font-weight:700}
+.card-grid-sub{font-size:10px;color:var(--text-light);margin-top:2px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-light)}
+.empty-state .es-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.empty-state p{font-size:13px}
+.tab-bar{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{padding:8px 16px;border:none;border-radius:20px;background:var(--cream-dark);color:var(--text-light);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s}
+.tab-btn.active{background:var(--forest);color:var(--white)}
+.glow-common{box-shadow:0 0 8px rgba(158,158,158,.3)}
+.glow-uncommon{box-shadow:0 0 10px rgba(76,175,80,.4)}
+.glow-rare{box-shadow:0 0 12px rgba(33,150,243,.5);animation:glowPulse 2.5s ease-in-out infinite}
+.glow-epic{box-shadow:0 0 15px rgba(156,39,176,.5);animation:glowPulse 2s ease-in-out infinite}
+.glow-legendary{box-shadow:0 0 18px rgba(255,152,0,.6);animation:glowRainbow 3s linear infinite}
+.glow-mythic{box-shadow:0 0 22px rgba(233,30,99,.7);animation:glowRainbow 2s linear infinite}
+@keyframes glowPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.1)}}
+@keyframes glowRainbow{0%{box-shadow:0 0 18px rgba(255,0,0,.5)}16%{box-shadow:0 0 18px rgba(255,165,0,.5)}33%{box-shadow:0 0 18px rgba(255,255,0,.5)}50%{box-shadow:0 0 18px rgba(0,255,0,.5)}66%{box-shadow:0 0 18px rgba(0,100,255,.5)}83%{box-shadow:0 0 18px rgba(148,0,211,.5)}100%{box-shadow:0 0 18px rgba(255,0,0,.5)}}
+.holo-card{position:relative;overflow:hidden}
+.holo-card::before{content:'';position:absolute;inset:-50%;background:linear-gradient(115deg,transparent 20%,rgba(255,255,255,.3) 40%,rgba(255,220,150,.2) 50%,rgba(150,220,255,.2) 55%,transparent 70%);transform:rotate(25deg);animation:holoShine 3s ease-in-out infinite;pointer-events:none;z-index:2}
+@keyframes holoShine{0%{transform:translateX(-100%) rotate(25deg)}100%{transform:translateX(100%) rotate(25deg)}}
+#card-discover{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s}
+#card-discover.show{opacity:1;pointer-events:auto}
+.discover-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.discover-grade{font-size:20px;font-weight:700;margin-top:20px;text-transform:uppercase;letter-spacing:2px}
+.discover-name{font-size:28px;font-weight:700;color:var(--white);margin-top:8px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.discover-tap{color:rgba(255,255,255,.5);font-size:13px;margin-top:30px;animation:fadeInOut 2s infinite}
+@keyframes fadeInOut{0%,100%{opacity:.3}50%{opacity:.8}}
+#card-detail{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+#card-detail.show{opacity:1;pointer-events:auto}
+.detail-sheet{width:100%;max-width:430px;max-height:85vh;background:var(--cream);border-radius:20px 20px 0 0;padding:20px;overflow-y:auto;transform:translateY(100%);transition:transform .4s cubic-bezier(.22,1,.36,1)}
+#card-detail.show .detail-sheet{transform:translateY(0)}
+.detail-handle{width:40px;height:4px;background:var(--cream-dark);border-radius:2px;margin:0 auto 16px}
+.detail-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--radius);margin-bottom:16px}
+.detail-name{font-size:22px;font-weight:700}
+.detail-type{font-size:13px;color:var(--text-light);margin-top:4px}
+.detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.stat-box{background:var(--white);border-radius:var(--radius-sm);padding:10px;text-align:center;box-shadow:var(--shadow)}
+.stat-val{font-size:20px;font-weight:700;color:var(--forest)}
+.stat-label{font-size:10px;color:var(--text-light);margin-top:2px}
+.detail-lore{background:var(--white);border-radius:var(--radius-sm);padding:14px;margin-top:12px;font-size:13px;line-height:1.6;color:var(--text-light);border-left:3px solid var(--forest-light)}
+.cabin-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.floor-tabs{display:flex;gap:4px}
+.floor-tab{padding:6px 12px;border:none;border-radius:var(--radius-sm);background:var(--cream-dark);color:var(--text-light);font-size:12px;font-weight:600;cursor:pointer}
+.floor-tab.active{background:var(--wood-dark);color:var(--cream)}
+#cabin-canvas{width:100%;height:320px;border-radius:var(--radius);box-shadow:var(--shadow);cursor:pointer}
+.room-card{display:flex;align-items:center;gap:12px;background:var(--white);border-radius:var(--radius);padding:12px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s}
+.room-card:active{transform:scale(.98)}
+.room-card.locked{opacity:.5;filter:grayscale(.5)}
+.room-icon{font-size:32px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;background:var(--cream);border-radius:var(--radius-sm)}
+.room-info{flex:1}
+.room-name{font-size:14px;font-weight:700}
+.room-desc{font-size:11px;color:var(--text-light);margin-top:2px}
+.room-prod{display:flex;align-items:center;gap:4px;margin-top:4px}
+.room-res{font-size:11px;background:var(--cream);padding:2px 6px;border-radius:4px;font-weight:600}
+#room-detail{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+#room-detail.show{opacity:1;pointer-events:auto}
+.room-sheet{width:100%;max-width:430px;max-height:85vh;background:var(--cream);border-radius:20px 20px 0 0;overflow:hidden;transform:translateY(100%);transition:transform .4s cubic-bezier(.22,1,.36,1)}
+#room-detail.show .room-sheet{transform:translateY(0)}
+.room-bg{width:100%;height:180px;object-fit:cover;display:block}
+.room-body{padding:16px}
+.room-title{font-size:20px;font-weight:700}
+.room-level{font-size:12px;color:var(--text-light);margin-top:2px}
+.room-creatures-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.room-creature-slot{aspect-ratio:1;border-radius:var(--radius-sm);background:var(--cream-dark);border:2px dashed var(--wood-light);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--wood-light);cursor:pointer;overflow:hidden}
+.room-creature-slot img{width:100%;height:100%;object-fit:cover}
+.room-upgrade-btn{width:100%;padding:14px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--forest),var(--forest-light));color:var(--white);font-weight:700;font-size:14px;margin-top:14px;cursor:pointer}
+.landmark-card{display:flex;gap:12px;background:var(--white);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s}
+.landmark-card:active{transform:scale(.98)}
+.landmark-img{width:120px;min-height:100px;object-fit:cover;flex-shrink:0}
+.landmark-info{padding:12px;flex:1;display:flex;flex-direction:column;justify-content:center}
+.landmark-flag{font-size:11px;color:var(--text-light)}
+.landmark-name{font-size:15px;font-weight:700;margin-top:2px}
+.landmark-desc{font-size:11px;color:var(--text-light);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.landmark-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;background:var(--cream);color:var(--forest);font-weight:600;margin-top:6px}
+#region-visit{position:fixed;inset:0;z-index:300;background:#000;opacity:0;pointer-events:none;transition:opacity .4s}
+#region-visit.show{opacity:1;pointer-events:auto}
+.region-bg{position:absolute;inset:0}
+.region-bg img{width:100%;height:100%;object-fit:cover}
+.region-overlay{position:absolute;inset:0;background:linear-gradient(transparent 50%,rgba(0,0,0,.8));display:flex;flex-direction:column;justify-content:flex-end;padding:20px}
+.region-name{color:var(--white);font-size:28px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+.region-country{color:var(--cream-dark);font-size:14px;margin-top:4px}
+.region-actions{display:flex;gap:8px;margin-top:16px}
+.region-btn{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:700;font-size:13px;cursor:pointer;transition:transform .15s}
+.region-btn:active{transform:scale(.95)}
+.region-btn-primary{background:var(--forest-light);color:var(--white)}
+.region-btn-secondary{background:rgba(255,255,255,.2);color:var(--white);backdrop-filter:blur(4px)}
+.region-close{position:absolute;top:16px;left:16px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.4);color:var(--white);font-size:20px;cursor:pointer;backdrop-filter:blur(4px)}
+.region-cards{display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.region-cards::-webkit-scrollbar{display:none}
+.region-mini-card{width:80px;flex-shrink:0;border-radius:var(--radius-sm);overflow:hidden;background:var(--white);box-shadow:var(--shadow)}
+.region-mini-card img{width:100%;aspect-ratio:1;object-fit:cover}
+.region-mini-card .rmc-name{font-size:9px;padding:4px;text-align:center;font-weight:600}
+.resource-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.res-card{background:var(--white);border-radius:var(--radius-sm);padding:12px;text-align:center;box-shadow:var(--shadow)}
+.res-icon{font-size:28px}
+.res-name{font-size:11px;color:var(--text-light);margin-top:4px}
+.res-amount{font-size:18px;font-weight:700;color:var(--text);margin-top:2px}
+.recipe-card{display:flex;align-items:center;gap:12px;background:var(--white);border-radius:var(--radius);padding:12px;margin-bottom:8px;box-shadow:var(--shadow)}
+.recipe-icon{font-size:32px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;background:var(--cream);border-radius:var(--radius-sm)}
+.recipe-info{flex:1}
+.recipe-name{font-size:14px;font-weight:700}
+.recipe-mats{font-size:11px;color:var(--text-light);margin-top:2px}
+.recipe-craft{padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--forest);color:var(--white);font-weight:600;font-size:12px;cursor:pointer;transition:transform .15s}
+.recipe-craft:active{transform:scale(.95)}
+.recipe-craft:disabled{background:var(--cream-dark);color:var(--text-light);cursor:not-allowed}
+.profile-header{text-align:center;padding:20px;background:linear-gradient(135deg,var(--forest-dark),var(--forest));border-radius:var(--radius);color:var(--white);margin-bottom:16px}
+.profile-avatar{width:80px;height:80px;border-radius:50%;border:3px solid var(--gold);margin:0 auto 10px;background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:36px}
+.profile-name{font-size:20px;font-weight:700}
+.profile-title{font-size:12px;color:var(--cream-dark);margin-top:4px}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.ps-item{text-align:center}
+.ps-val{font-size:18px;font-weight:700}
+.ps-label{font-size:10px;color:var(--cream-dark)}
+.achieve-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.achieve-item{background:var(--white);border-radius:var(--radius-sm);padding:10px;text-align:center;box-shadow:var(--shadow)}
+.achieve-item.locked{opacity:.35}
+.achieve-icon{font-size:24px}
+.achieve-name{font-size:9px;color:var(--text-light);margin-top:4px}
+.settings-group{background:var(--white);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow)}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--cream-dark)}
+.settings-item:last-child{border:none}
+.si-label{font-size:14px;font-weight:500}
+.si-toggle{width:44px;height:24px;border-radius:12px;background:var(--cream-dark);border:none;position:relative;cursor:pointer;transition:background .2s}
+.si-toggle.on{background:var(--forest-light)}
+.si-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--white);box-shadow:var(--shadow);transition:transform .2s}
+.si-toggle.on::after{transform:translateX(20px)}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--wood-dark);color:var(--cream);padding:10px 24px;border-radius:20px;font-size:13px;font-weight:500;z-index:600;transition:transform .3s;white-space:nowrap;box-shadow:var(--shadow-lg)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.particle{position:absolute;pointer-events:none;border-radius:50%;animation:particleFloat 3s ease-out forwards}
+@keyframes particleFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-100px) scale(0)}}
+.inv-section{margin-bottom:20px}
+.inv-section h3{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--forest)}
+.screen::-webkit-scrollbar{width:4px}
+.screen::-webkit-scrollbar-thumb{background:var(--wood-light);border-radius:2px}
+.prog-bar{height:6px;background:var(--cream-dark);border-radius:3px;overflow:hidden;margin-top:4px}
+.prog-fill{height:100%;border-radius:3px;transition:width .5s}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="topbar">
+  <div class="tb-level" id="tb-level">Lv.1</div>
+  <div class="tb-resources" id="tb-resources"></div>
+  <button class="tb-btn" onclick="navTo('profile')">&#9881;</button>
+</div>
+<div class="screens">
+  <div class="screen active" id="screen-home"><div class="scr-pad" id="home-content"></div></div>
+  <div class="screen" id="screen-scan"><div class="scr-pad" id="scan-content"></div></div>
+  <div class="screen" id="screen-cardbook"><div class="scr-pad" id="cardbook-content"></div></div>
+  <div class="screen" id="screen-cabin"><div class="scr-pad" id="cabin-content"></div></div>
+  <div class="screen" id="screen-worldmap"><div class="scr-pad" id="worldmap-content"></div></div>
+  <div class="screen" id="screen-inventory"><div class="scr-pad" id="inventory-content"></div></div>
+  <div class="screen" id="screen-profile"><div class="scr-pad" id="profile-content"></div></div>
+</div>
+<div id="card-discover"></div>
+<div id="card-detail" onclick="if(event.target===this)closeCardDetail()"></div>
+<div id="room-detail" onclick="if(event.target===this)closeRoomDetail()"></div>
+<div id="region-visit"></div>
+<div id="toast"></div>
+<div id="navbar">
+  <div class="nav-item active" data-screen="home" onclick="navTo('home')"><span class="ni-icon">&#127969;</span><span>홈</span></div>
+  <div class="nav-item" data-screen="scan" onclick="navTo('scan')"><span class="ni-icon">&#128247;</span><span>스캔</span></div>
+  <div class="nav-item" data-screen="cardbook" onclick="navTo('cardbook')"><span class="ni-icon">&#127183;</span><span>카드북</span></div>
+  <div class="nav-item" data-screen="cabin" onclick="navTo('cabin')"><span class="ni-icon">&#128726;</span><span>오두막</span></div>
+  <div class="nav-item" data-screen="worldmap" onclick="navTo('worldmap')"><span class="ni-icon">&#128506;</span><span>탐험</span></div>
+</div>
+</div>
+<script>
+
+// ===== GAME DATA =====
+const GRADES = ['common','uncommon','rare','epic','legendary','mythic'];
+const GRADE_NAMES = {common:'일반',uncommon:'고급',rare:'희귀',epic:'영웅',legendary:'전설',mythic:'신화'};
+const GRADE_COLORS = {common:'#9e9e9e',uncommon:'#4caf50',rare:'#2196f3',epic:'#9c27b0',legendary:'#ff9800',mythic:'#e91e63'};
+const CARD_TYPES = {creature:{icon:'🐾',name:'생명체'},item:{icon:'🎒',name:'아이템'},landmark:{icon:'🏔️',name:'랜드마크'},resource:{icon:'💎',name:'자원'}};
+
+const RESOURCES = [
+  {id:'wood',name:'나무',icon:'🪵',max:999},
+  {id:'stone',name:'돌',icon:'🪨',max:999},
+  {id:'herb',name:'약초',icon:'🌿',max:999},
+  {id:'crystal',name:'수정',icon:'💎',max:999},
+  {id:'honey',name:'꿀',icon:'🍯',max:999},
+  {id:'water',name:'맑은물',icon:'💧',max:999}
+];
+
+const ROOMS = [
+  {id:'living',name:'거실',icon:'🏠',floor:'1F',resource:'comfort',prodRate:5,unlock:0,desc:'따뜻한 벽난로가 있는 아늑한 공간',bg:'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600'},
+  {id:'kitchen',name:'부엌',icon:'🍳',floor:'1F',resource:'food',prodRate:8,unlock:0,desc:'맛있는 요리를 만드는 숲속 주방',bg:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600'},
+  {id:'herb_garden',name:'약초원',icon:'🌿',floor:'1F',resource:'herb',prodRate:6,unlock:0,desc:'다양한 약초를 재배하는 정원',bg:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600'},
+  {id:'workshop',name:'공방',icon:'🔨',floor:'2F',resource:'wood',prodRate:7,unlock:0,desc:'나무를 가공하는 수공예 작업실',bg:'https://images.unsplash.com/photo-1530124566582-a45a7e3f2dea?w=600'},
+  {id:'library',name:'서재',icon:'📚',floor:'2F',resource:'wisdom',prodRate:4,unlock:3,desc:'숲의 지혜가 담긴 고서들',bg:'https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600'},
+  {id:'observatory',name:'전망대',icon:'🔭',floor:'3F',resource:'starDust',prodRate:3,unlock:5,desc:'밤하늘의 별먼지를 모으는 곳',bg:'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=600'},
+  {id:'hotspring',name:'온천',icon:'♨️',floor:'B1',resource:'water',prodRate:5,unlock:4,desc:'맑은 지하수가 솟는 천연 온천',bg:'https://images.unsplash.com/photo-1545389336-cf090694435e?w=600'},
+  {id:'crystal_cave',name:'수정동굴',icon:'💎',floor:'B1',resource:'crystal',prodRate:3,unlock:7,desc:'영롱한 수정이 자라는 동굴',bg:'https://images.unsplash.com/photo-1504699439244-a8ccee3e1640?w=600'},
+  {id:'treehouse',name:'나무집',icon:'🌳',floor:'3F',resource:'honey',prodRate:4,unlock:6,desc:'커다란 고목 위의 아늑한 집',bg:'https://images.unsplash.com/photo-1488462237308-ecaa28b729d7?w=600'},
+  {id:'apiary',name:'양봉장',icon:'🐝',floor:'1F',resource:'honey',prodRate:6,unlock:8,desc:'꿀벌들이 열심히 꿀을 모으는 곳',bg:'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=600'}
+];
+
+const LANDMARKS = [
+  {id:'swiss_alps',name:'스위스 알프스',flag:'🇨🇭',country:'스위스',desc:'만년설이 덮인 마터호른의 웅장한 봉우리',img:'https://images.unsplash.com/photo-1531973576160-7125cd663d86?w=800',biome:'mountain',creatures:['frost_stag','cloud_sheep','wind_falcon']},
+  {id:'japan_sakura',name:'일본 벚꽃길',flag:'🇯🇵',country:'일본',desc:'후지산 아래 만개한 벚꽃의 환상적인 풍경',img:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800',biome:'sakura',creatures:['cherry_squirrel','spring_sprite','golden_koi']},
+  {id:'norway_fjord',name:'노르웨이 피오르',flag:'🇳🇴',country:'노르웨이',desc:'오로라가 춤추는 깊고 푸른 피오르',img:'https://images.unsplash.com/photo-1520769669658-f07657f5a307?w=800',biome:'fjord',creatures:['aurora_butterfly','moonlight_wolf','ice_penguin']},
+  {id:'grand_canyon',name:'그랜드 캐니언',flag:'🇺🇸',country:'미국',desc:'수억 년의 시간이 만든 대자연의 걸작',img:'https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=800',biome:'canyon',creatures:['thunder_eagle','sand_fox','stone_golem']},
+  {id:'amazon',name:'아마존 열대우림',flag:'🇧🇷',country:'브라질',desc:'지구의 허파, 끝없는 초록의 세계',img:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=800',biome:'rainforest',creatures:['vine_serpent','rainbow_parrot','ancient_treant']},
+  {id:'barrier_reef',name:'그레이트 배리어 리프',flag:'🇦🇺',country:'호주',desc:'산호초로 이루어진 바다 속 무지개 정원',img:'https://images.unsplash.com/photo-1546026423-cc4642628d2b?w=800',biome:'ocean',creatures:['coral_seahorse','tide_jellyfish','golden_koi']},
+  {id:'iceland',name:'아이슬란드',flag:'🇮🇸',country:'아이슬란드',desc:'빙하와 간헐천이 공존하는 얼음과 불의 땅',img:'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=800',biome:'glacier',creatures:['frost_stag','glacier_whale','ice_penguin']},
+  {id:'jeju',name:'제주도',flag:'🇰🇷',country:'대한민국',desc:'한라산과 에메랄드빛 바다의 신비로운 섬',img:'https://images.unsplash.com/photo-1578037571214-25e07a4c90c0?w=800',biome:'island',creatures:['forest_deer','honey_bee_queen','dawn_hummingbird']},
+  {id:'patagonia',name:'파타고니아',flag:'🇦🇷',country:'아르헨티나',desc:'바람의 땅, 거대한 빙하와 봉우리들',img:'https://images.unsplash.com/photo-1531761535209-180857e963b9?w=800',biome:'glacier',creatures:['wind_falcon','snow_leopard','storm_hawk']},
+  {id:'canadian_rockies',name:'캐나디안 로키',flag:'🇨🇦',country:'캐나다',desc:'에메랄드 호수와 만년설의 완벽한 조화',img:'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800',biome:'mountain',creatures:['moss_bear','moonlight_wolf','meadow_unicorn']}
+];
+
+const CREATURES_DB = [
+  {id:'forest_deer',name:'숲사슴',grade:'common',type:'creature',hp:120,atk:25,def:35,element:'earth',lore:'고요한 숲속을 거니는 평화로운 사슴. 뿔에서 은은한 빛이 난다.',img:'https://image.pollinations.ai/prompt/cute%20magical%20forest%20deer%20spirit%20fantasy%20art%20card%20game%20style?width=400&height=400&seed=1001&nologo=true'},
+  {id:'crystal_fox',name:'수정여우',grade:'rare',type:'creature',hp:95,atk:55,def:30,element:'crystal',lore:'수정 동굴에서 태어난 신비로운 여우. 꼬리가 보석처럼 빛난다.',img:'https://image.pollinations.ai/prompt/crystal%20fox%20magical%20creature%20fantasy%20forest%20glowing%20blue?width=400&height=400&seed=1002&nologo=true'},
+  {id:'herb_rabbit',name:'약초토끼',grade:'common',type:'creature',hp:80,atk:15,def:20,element:'herb',lore:'약초를 먹고 자란 귀여운 토끼. 상처를 치유하는 능력이 있다.',img:'https://image.pollinations.ai/prompt/cute%20rabbit%20with%20herbs%20and%20flowers%20magical%20forest%20creature?width=400&height=400&seed=1003&nologo=true'},
+  {id:'ember_owl',name:'잔불올빼미',grade:'uncommon',type:'creature',hp:100,atk:45,def:28,element:'fire',lore:'날개 끝에 잔불이 타오르는 현명한 올빼미.',img:'https://image.pollinations.ai/prompt/fire%20ember%20owl%20magical%20creature%20fantasy%20forest%20glowing?width=400&height=400&seed=1004&nologo=true'},
+  {id:'moss_bear',name:'이끼곰',grade:'uncommon',type:'creature',hp:180,atk:40,def:55,element:'earth',lore:'등에 이끼가 자라는 거대한 숲의 수호자.',img:'https://image.pollinations.ai/prompt/moss%20covered%20bear%20spirit%20forest%20guardian%20fantasy%20art?width=400&height=400&seed=1005&nologo=true'},
+  {id:'moonlight_wolf',name:'달빛늑대',grade:'rare',type:'creature',hp:130,atk:60,def:35,element:'light',lore:'보름달 아래에서만 모습을 드러내는 은빛 늑대.',img:'https://image.pollinations.ai/prompt/moonlight%20wolf%20spirit%20glowing%20silver%20fantasy%20forest%20creature?width=400&height=400&seed=1006&nologo=true'},
+  {id:'aurora_butterfly',name:'오로라나비',grade:'epic',type:'creature',hp:70,atk:50,def:20,element:'light',lore:'날개에 오로라를 품은 신비로운 나비. 날갯짓에 빛이 흩날린다.',img:'https://image.pollinations.ai/prompt/aurora%20butterfly%20magical%20rainbow%20wings%20fantasy%20forest%20creature?width=400&height=400&seed=1007&nologo=true'},
+  {id:'jade_turtle',name:'비취거북',grade:'uncommon',type:'creature',hp:200,atk:20,def:65,element:'water',lore:'등껍질이 비취옥으로 된 장수의 상징.',img:'https://image.pollinations.ai/prompt/jade%20turtle%20magical%20green%20glowing%20shell%20fantasy%20forest?width=400&height=400&seed=1008&nologo=true'},
+  {id:'honey_bee_queen',name:'꿀벌여왕',grade:'rare',type:'creature',hp:85,atk:35,def:30,element:'earth',lore:'황금 왕관을 쓴 꿀벌의 여왕. 꿀 생산을 이끈다.',img:'https://image.pollinations.ai/prompt/queen%20bee%20magical%20golden%20crown%20fantasy%20forest%20creature?width=400&height=400&seed=1009&nologo=true'},
+  {id:'starlight_phoenix',name:'별빛봉황',grade:'legendary',type:'creature',hp:160,atk:80,def:45,element:'fire',lore:'별의 빛으로 태어난 불사조. 죽어도 별빛 속에서 다시 태어난다.',img:'https://image.pollinations.ai/prompt/starlight%20phoenix%20cosmic%20bird%20fantasy%20glowing%20nebula%20wings?width=400&height=400&seed=1010&nologo=true'},
+  {id:'spring_sprite',name:'봄의정령',grade:'epic',type:'creature',hp:90,atk:55,def:25,element:'herb',lore:'봄바람과 함께 나타나 꽃을 피우는 정령.',img:'https://image.pollinations.ai/prompt/spring%20nature%20sprite%20cherry%20blossom%20fairy%20fantasy%20forest?width=400&height=400&seed=1011&nologo=true'},
+  {id:'frost_stag',name:'서리수사슴',grade:'epic',type:'creature',hp:150,atk:55,def:50,element:'water',lore:'뿔에 서리꽃이 피는 겨울의 왕.',img:'https://image.pollinations.ai/prompt/frost%20stag%20ice%20antlers%20magical%20winter%20forest%20creature?width=400&height=400&seed=1012&nologo=true'},
+  {id:'river_otter',name:'강의수달',grade:'common',type:'creature',hp:90,atk:30,def:25,element:'water',lore:'맑은 강에서 노는 장난꾸러기 수달.',img:'https://image.pollinations.ai/prompt/cute%20river%20otter%20magical%20water%20spirit%20forest%20creature?width=400&height=400&seed=1013&nologo=true'},
+  {id:'thunder_eagle',name:'천둥독수리',grade:'legendary',type:'creature',hp:140,atk:85,def:40,element:'fire',lore:'날갯짓으로 천둥을 일으키는 하늘의 제왕.',img:'https://image.pollinations.ai/prompt/thunder%20eagle%20lightning%20wings%20storm%20legendary%20fantasy%20creature?width=400&height=400&seed=1014&nologo=true'},
+  {id:'mushroom_imp',name:'버섯요정',grade:'common',type:'creature',hp:60,atk:20,def:15,element:'herb',lore:'버섯 모자를 쓴 작고 귀여운 숲 요정.',img:'https://image.pollinations.ai/prompt/cute%20mushroom%20fairy%20imp%20tiny%20forest%20creature%20fantasy?width=400&height=400&seed=1015&nologo=true'},
+  {id:'golden_koi',name:'황금잉어',grade:'rare',type:'creature',hp:75,atk:30,def:40,element:'water',lore:'행운을 가져다주는 황금빛 잉어.',img:'https://image.pollinations.ai/prompt/golden%20koi%20fish%20magical%20pond%20glowing%20fantasy%20creature?width=400&height=400&seed=1016&nologo=true'},
+  {id:'vine_serpent',name:'덩굴뱀',grade:'uncommon',type:'creature',hp:110,atk:45,def:35,element:'herb',lore:'덩굴과 하나가 된 뱀. 식물을 자유자재로 다룬다.',img:'https://image.pollinations.ai/prompt/vine%20serpent%20plant%20snake%20green%20forest%20magical%20creature?width=400&height=400&seed=1017&nologo=true'},
+  {id:'cloud_sheep',name:'구름양',grade:'common',type:'creature',hp:100,atk:10,def:40,element:'light',lore:'하늘에서 내려온 솜사탕 같은 양.',img:'https://image.pollinations.ai/prompt/fluffy%20cloud%20sheep%20floating%20sky%20cute%20fantasy%20creature?width=400&height=400&seed=1018&nologo=true'},
+  {id:'ancient_treant',name:'고대나무정령',grade:'legendary',type:'creature',hp:250,atk:50,def:80,element:'earth',lore:'천 년을 산 거대한 나무의 정령. 숲의 진정한 주인.',img:'https://image.pollinations.ai/prompt/ancient%20treant%20tree%20spirit%20guardian%20fantasy%20forest%20magical?width=400&height=400&seed=1020&nologo=true'},
+  {id:'dawn_hummingbird',name:'새벽벌새',grade:'rare',type:'creature',hp:50,atk:40,def:15,element:'light',lore:'새벽빛을 머금은 날개로 꽃의 생명력을 나른다.',img:'https://image.pollinations.ai/prompt/dawn%20hummingbird%20rainbow%20feathers%20magical%20forest%20tiny%20bird?width=400&height=400&seed=1021&nologo=true'},
+  {id:'shadow_cat',name:'그림자고양이',grade:'rare',type:'creature',hp:85,atk:55,def:25,element:'fire',lore:'그림자 속을 자유롭게 오가는 신비한 고양이.',img:'https://image.pollinations.ai/prompt/shadow%20cat%20dark%20mystical%20feline%20glowing%20eyes%20forest?width=400&height=400&seed=1022&nologo=true'},
+  {id:'coral_seahorse',name:'산호해마',grade:'uncommon',type:'creature',hp:70,atk:30,def:35,element:'water',lore:'산호초 사이를 헤엄치는 알록달록한 해마.',img:'https://image.pollinations.ai/prompt/coral%20seahorse%20underwater%20magical%20colorful%20fantasy%20creature?width=400&height=400&seed=1023&nologo=true'},
+  {id:'wind_falcon',name:'바람매',grade:'epic',type:'creature',hp:110,atk:70,def:30,element:'light',lore:'바람을 가르며 나는 속도의 화신.',img:'https://image.pollinations.ai/prompt/wind%20falcon%20air%20elemental%20bird%20storm%20wings%20fantasy?width=400&height=400&seed=1024&nologo=true'},
+  {id:'stone_golem',name:'돌골렘',grade:'uncommon',type:'creature',hp:220,atk:35,def:70,element:'earth',lore:'이끼 낀 돌로 만들어진 묵묵한 수호자.',img:'https://image.pollinations.ai/prompt/cute%20stone%20golem%20mossy%20rock%20creature%20forest%20guardian?width=400&height=400&seed=1025&nologo=true'},
+  {id:'rainbow_parrot',name:'무지개앵무',grade:'rare',type:'creature',hp:65,atk:35,def:20,element:'light',lore:'일곱 가지 빛깔 깃털로 하늘을 수놓는 새.',img:'https://image.pollinations.ai/prompt/rainbow%20parrot%20tropical%20magical%20bird%20colorful%20fantasy?width=400&height=400&seed=1026&nologo=true'},
+  {id:'lava_salamander',name:'용암도롱뇽',grade:'epic',type:'creature',hp:130,atk:65,def:40,element:'fire',lore:'용암 속에서 태어난 불의 도롱뇽.',img:'https://image.pollinations.ai/prompt/lava%20salamander%20fire%20elemental%20glowing%20orange%20fantasy%20creature?width=400&height=400&seed=1027&nologo=true'},
+  {id:'ice_penguin',name:'얼음펭귄',grade:'common',type:'creature',hp:95,atk:20,def:45,element:'water',lore:'얼음 결정을 몸에 두른 귀여운 펭귄.',img:'https://image.pollinations.ai/prompt/cute%20ice%20penguin%20crystal%20frost%20magical%20winter%20creature?width=400&height=400&seed=1028&nologo=true'},
+  {id:'cherry_squirrel',name:'벚꽃다람쥐',grade:'common',type:'creature',hp:70,atk:25,def:20,element:'herb',lore:'벚꽃잎을 모으는 분홍빛 다람쥐.',img:'https://image.pollinations.ai/prompt/cherry%20blossom%20squirrel%20pink%20cute%20magical%20forest%20creature?width=400&height=400&seed=1029&nologo=true'},
+  {id:'celestial_dragon',name:'천상의용',grade:'mythic',type:'creature',hp:300,atk:95,def:70,element:'light',lore:'우주의 탄생과 함께 태어난 전설의 용. 별의 힘을 다룬다.',img:'https://image.pollinations.ai/prompt/celestial%20dragon%20cosmic%20starry%20scales%20mythical%20legendary%20fantasy?width=400&height=400&seed=1030&nologo=true'},
+  {id:'sand_fox',name:'사막여우',grade:'common',type:'creature',hp:75,atk:30,def:22,element:'earth',lore:'큰 귀로 바람의 속삭임을 듣는 사막의 안내자.',img:'https://image.pollinations.ai/prompt/sand%20fox%20desert%20cute%20fennec%20magical%20creature%20fantasy?width=400&height=400&seed=1031&nologo=true'},
+  {id:'water_nymph',name:'물의님프',grade:'epic',type:'creature',hp:100,atk:55,def:30,element:'water',lore:'맑은 호수에 깃든 물의 정령.',img:'https://image.pollinations.ai/prompt/water%20nymph%20lake%20spirit%20translucent%20blue%20magical%20fantasy?width=400&height=400&seed=1032&nologo=true'},
+  {id:'firefly_swarm',name:'반딧불무리',grade:'uncommon',type:'creature',hp:55,atk:25,def:15,element:'light',lore:'밤의 숲을 밝히는 작은 빛들의 군무.',img:'https://image.pollinations.ai/prompt/firefly%20swarm%20glowing%20night%20forest%20magical%20creature?width=400&height=400&seed=1033&nologo=true'},
+  {id:'bamboo_panda',name:'대나무판다',grade:'rare',type:'creature',hp:160,atk:35,def:50,element:'earth',lore:'대나무 숲의 수호자. 온화하지만 강하다.',img:'https://image.pollinations.ai/prompt/bamboo%20panda%20magical%20green%20energy%20cute%20fantasy%20creature?width=400&height=400&seed=1034&nologo=true'},
+  {id:'snow_leopard',name:'설표',grade:'legendary',type:'creature',hp:145,atk:75,def:50,element:'water',lore:'만년설 위를 소리 없이 걷는 산의 유령.',img:'https://image.pollinations.ai/prompt/snow%20leopard%20mythical%20ice%20crystal%20mountain%20legendary%20creature?width=400&height=400&seed=1035&nologo=true'},
+  {id:'lotus_frog',name:'연꽃개구리',grade:'common',type:'creature',hp:65,atk:18,def:22,element:'water',lore:'연잎 위에서 명상하는 평화로운 개구리.',img:'https://image.pollinations.ai/prompt/lotus%20frog%20lily%20pad%20cute%20magical%20pond%20creature%20fantasy?width=400&height=400&seed=1036&nologo=true'},
+  {id:'silk_moth',name:'비단나방',grade:'uncommon',type:'creature',hp:60,atk:30,def:18,element:'light',lore:'은빛 비단 날개를 가진 달빛의 사자.',img:'https://image.pollinations.ai/prompt/silk%20moth%20magical%20silver%20wings%20moonlight%20forest%20creature?width=400&height=400&seed=1037&nologo=true'},
+  {id:'petal_fairy',name:'꽃잎요정',grade:'epic',type:'creature',hp:65,atk:50,def:20,element:'herb',lore:'꽃잎 날개로 꽃가루를 뿌리며 생명을 키우는 요정.',img:'https://image.pollinations.ai/prompt/petal%20fairy%20flower%20wings%20tiny%20magical%20forest%20creature?width=400&height=400&seed=1039&nologo=true'},
+  {id:'world_turtle',name:'세계거북',grade:'mythic',type:'creature',hp:350,atk:60,def:95,element:'earth',lore:'등 위에 세계를 짊어진 태초의 거북.',img:'https://image.pollinations.ai/prompt/world%20turtle%20cosmic%20ancient%20mythical%20earth%20on%20back%20fantasy?width=400&height=400&seed=1040&nologo=true'},
+  {id:'storm_hawk',name:'폭풍매',grade:'rare',type:'creature',hp:105,atk:60,def:28,element:'fire',lore:'폭풍우 속을 날며 번개를 모으는 매.',img:'https://image.pollinations.ai/prompt/storm%20hawk%20lightning%20feathers%20wind%20elemental%20bird%20fantasy?width=400&height=400&seed=1041&nologo=true'},
+  {id:'meadow_unicorn',name:'초원유니콘',grade:'legendary',type:'creature',hp:170,atk:70,def:55,element:'herb',lore:'황금 뿔에서 치유의 빛이 뿜어져 나오는 전설의 유니콘.',img:'https://image.pollinations.ai/prompt/meadow%20unicorn%20golden%20horn%20flowers%20mane%20magical%20fantasy?width=400&height=400&seed=1042&nologo=true'},
+  {id:'cave_bat',name:'동굴박쥐',grade:'common',type:'creature',hp:55,atk:22,def:18,element:'fire',lore:'수정 귀를 가진 어둠의 작은 탐험가.',img:'https://image.pollinations.ai/prompt/cute%20cave%20bat%20tiny%20crystal%20ears%20dark%20forest%20creature?width=400&height=400&seed=1043&nologo=true'},
+  {id:'glacier_whale',name:'빙하고래',grade:'legendary',type:'creature',hp:280,atk:55,def:70,element:'water',lore:'빙하 바다를 유영하는 거대한 고래.',img:'https://image.pollinations.ai/prompt/glacier%20whale%20ice%20ocean%20enormous%20mythical%20fantasy%20creature?width=400&height=400&seed=1047&nologo=true'},
+  {id:'spirit_wolf',name:'영혼늑대',grade:'mythic',type:'creature',hp:200,atk:90,def:60,element:'light',lore:'영혼의 세계를 넘나드는 오로라빛 늑대.',img:'https://image.pollinations.ai/prompt/spirit%20wolf%20ethereal%20ghostly%20aurora%20mythical%20cosmic%20creature?width=400&height=400&seed=1049&nologo=true'},
+  {id:'garden_gnome',name:'정원노움',grade:'common',type:'creature',hp:85,atk:15,def:30,element:'earth',lore:'버섯 모자를 쓴 부지런한 정원 관리인.',img:'https://image.pollinations.ai/prompt/garden%20gnome%20tiny%20cute%20mushroom%20hat%20forest%20creature?width=400&height=400&seed=1050&nologo=true'}
+];
+
+const RECIPES = [
+  {id:'heal_potion',name:'치유 물약',icon:'🧪',desc:'HP를 회복시키는 물약',mats:{herb:3,water:2},result:{type:'item',name:'치유 물약',qty:1}},
+  {id:'crystal_necklace',name:'수정 목걸이',icon:'📿',desc:'수정의 힘이 깃든 목걸이',mats:{crystal:2,wood:1},result:{type:'item',name:'수정 목걸이',qty:1}},
+  {id:'herb_candle',name:'허브 향초',icon:'🕯️',desc:'평화로운 향기의 향초',mats:{herb:2,honey:1},result:{type:'item',name:'허브 향초',qty:1}},
+  {id:'cabin_kit',name:'오두막 확장키트',icon:'🏗️',desc:'오두막을 확장하는 키트',mats:{wood:10,stone:5},result:{type:'item',name:'오두막 확장키트',qty:1}},
+  {id:'explore_map',name:'탐험 지도',icon:'🗺️',desc:'새로운 지역을 탐험하는 지도',mats:{wood:2,herb:1,water:1},result:{type:'item',name:'탐험 지도',qty:1}},
+  {id:'golden_bait',name:'황금 미끼',icon:'✨',desc:'희귀 생명체를 유인하는 미끼',mats:{honey:3,crystal:1},result:{type:'item',name:'황금 미끼',qty:1}}
+];
+
+const COUNTRY_CODES = {
+  '880':{region:'Korea',biome:'island',bonus:'herb'},'490':{region:'Japan',biome:'sakura',bonus:'water'},
+  '400':{region:'Germany',biome:'mountain',bonus:'wood'},'300':{region:'France',biome:'mountain',bonus:'herb'},
+  '000':{region:'USA',biome:'canyon',bonus:'stone'},'690':{region:'China',biome:'rainforest',bonus:'herb'},
+  '471':{region:'Taiwan',biome:'island',bonus:'water'},'890':{region:'India',biome:'rainforest',bonus:'herb'},
+  '750':{region:'Mexico',biome:'canyon',bonus:'stone'},'789':{region:'Brazil',biome:'rainforest',bonus:'wood'},
+  '500':{region:'UK',biome:'fjord',bonus:'water'},'800':{region:'Italy',biome:'mountain',bonus:'crystal'},
+  '460':{region:'Russia',biome:'glacier',bonus:'crystal'},'850':{region:'Cuba',biome:'island',bonus:'honey'},
+  '955':{region:'Malaysia',biome:'rainforest',bonus:'honey'}
+};
+
+const ACHIEVEMENTS = [
+  {id:'first_scan',name:'첫 스캔',icon:'📷',desc:'첫 바코드를 스캔하다',done:false},
+  {id:'collect_10',name:'수집가',icon:'🃏',desc:'카드 10장 수집',done:false},
+  {id:'rare_find',name:'희귀 발견',icon:'💎',desc:'희귀 등급 이상 발견',done:false},
+  {id:'cabin_5',name:'건축가',icon:'🏠',desc:'방 5개 해금',done:false},
+  {id:'craft_first',name:'첫 제작',icon:'🔨',desc:'첫 아이템 제작',done:false},
+  {id:'explore_3',name:'탐험가',icon:'🗺️',desc:'3개 지역 방문',done:false},
+  {id:'legendary',name:'전설 획득',icon:'⭐',desc:'전설 등급 카드 획득',done:false},
+  {id:'mythic',name:'신화 획득',icon:'🌟',desc:'신화 등급 카드 획득',done:false}
+];
+
+// ===== GAME STATE =====
+let GS = JSON.parse(localStorage.getItem('forest_haven_save')) || {
+  level: 1, xp: 0, xpMax: 100,
+  resources: {wood:20,stone:10,herb:15,crystal:3,honey:5,water:10},
+  cards: [], items: [], scanHistory: [],
+  rooms: ROOMS.map(r => ({id:r.id,level:1,creatures:[],unlocked:r.unlock===0})),
+  visitedLandmarks: [], achievements: [],
+  settings: {sound:true,notifications:true,darkMode:false},
+  stats: {totalScans:0,totalCards:0,totalCrafts:0,totalExplores:0},
+  lastResourceTick: Date.now()
+};
+
+function saveGame(){ localStorage.setItem('forest_haven_save', JSON.stringify(GS)); }
+
+let currentScreen = 'home';
+let cardBookTab = 'creature';
+
+// ===== UTILITIES =====
+function $(id){ return document.getElementById(id); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+function gradeColor(g){ return GRADE_COLORS[g]||'#999'; }
+function gradeName(g){ return GRADE_NAMES[g]||g; }
+
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function addXP(amount){
+  GS.xp += amount;
+  while(GS.xp >= GS.xpMax){ GS.xp -= GS.xpMax; GS.level++; GS.xpMax = Math.floor(GS.xpMax * 1.3);
+    toast('레벨 업! Lv.' + GS.level);
+    // Unlock rooms
+    GS.rooms.forEach((r,i) => { if(ROOMS[i].unlock <= GS.level) r.unlocked = true; });
+  }
+  saveGame(); updateTopBar();
+}
+
+function addResource(id, amt){
+  const r = RESOURCES.find(x=>x.id===id);
+  if(r){ GS.resources[id] = Math.min((GS.resources[id]||0)+amt, r.max); saveGame(); updateTopBar(); }
+}
+
+function checkAchievement(id){
+  if(!GS.achievements.includes(id)){ GS.achievements.push(id); const a=ACHIEVEMENTS.find(x=>x.id===id);
+    if(a) toast('업적 달성: '+a.name+'!'); saveGame();
+  }
+}
+
+// ===== TOP BAR =====
+function updateTopBar(){
+  $('tb-level').textContent = 'Lv.'+GS.level;
+  const rc = $('tb-resources');
+  rc.innerHTML = RESOURCES.map(r =>
+    '<div class="tb-res">'+r.icon+'<span>'+(GS.resources[r.id]||0)+'</span></div>'
+  ).join('');
+}
+
+// ===== NAVIGATION =====
+const NAV_SCREENS = ['home','scan','cardbook','cabin','worldmap'];
+const ALL_SCREENS = ['home','scan','cardbook','cabin','worldmap','inventory','profile'];
+
+function navTo(id){
+  if(id === currentScreen) return;
+  const prev = $('screen-'+currentScreen);
+  const next = $('screen-'+id);
+  if(!next) return;
+  prev.classList.remove('active');
+  next.classList.add('active');
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(n => {
+    const s = n.dataset.screen;
+    n.classList.toggle('active', s===id || (s==='worldmap' && id==='inventory') || (s==='home' && id==='profile'));
+  });
+  currentScreen = id;
+  renderScreen(id);
+}
+
+function renderScreen(id){
+  switch(id){
+    case 'home': renderHome(); break;
+    case 'scan': renderScan(); break;
+    case 'cardbook': renderCardBook(); break;
+    case 'cabin': renderCabin(); break;
+    case 'worldmap': renderWorldMap(); break;
+    case 'inventory': renderInventory(); break;
+    case 'profile': renderProfile(); break;
+  }
+}
+
+// ===== RESOURCE PRODUCTION =====
+function tickResources(){
+  const now = Date.now();
+  const elapsed = (now - GS.lastResourceTick) / 60000; // minutes
+  GS.rooms.forEach((room, i) => {
+    if(!room.unlocked) return;
+    const def = ROOMS[i];
+    const prod = def.prodRate * room.level * (1 + room.creatures.length * 0.2);
+    const amount = Math.floor(elapsed * prod / 60); // per hour rate
+    if(amount > 0 && GS.resources[def.resource] !== undefined){
+      addResource(def.resource, amount);
+    }
+  });
+  GS.lastResourceTick = now;
+  saveGame();
+}
+
+// ===== HOME SCREEN =====
+function renderHome(){
+  $('home-content').innerHTML = `
+    <div class="home-hero">
+      <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?w=800" alt="forest" onerror="this.style.background='linear-gradient(135deg,#2d5a27,#4a8c3f)'">
+      <div class="home-hero-overlay">
+        <div class="home-hero-title">숲의 안식처</div>
+        <div class="home-hero-sub">오늘도 평화로운 하루가 시작됩니다</div>
+      </div>
+    </div>
+    <div class="home-grid">
+      <div class="home-btn" onclick="navTo('scan')"><div class="hb-icon">📷</div><div class="hb-label">바코드 스캔</div></div>
+      <div class="home-btn" onclick="navTo('cardbook')"><div class="hb-icon">🃏</div><div class="hb-label">카드북</div></div>
+      <div class="home-btn" onclick="navTo('cabin')"><div class="hb-icon">🛖</div><div class="hb-label">오두막</div></div>
+      <div class="home-btn" onclick="navTo('worldmap')"><div class="hb-icon">🗺️</div><div class="hb-label">세계 탐험</div></div>
+      <div class="home-btn" onclick="navTo('inventory')"><div class="hb-icon">🎒</div><div class="hb-label">인벤토리</div></div>
+      <div class="home-btn" onclick="navTo('profile')"><div class="hb-icon">👤</div><div class="hb-label">프로필</div></div>
+    </div>
+    <div class="home-news">
+      <h3>🌿 소식</h3>
+      <div class="news-item">🎉 숲의 안식처에 오신 것을 환영합니다!</div>
+      <div class="news-item">📷 바코드를 스캔해서 생명체를 발견하세요</div>
+      <div class="news-item">🛖 오두막에 생명체를 배치하면 자원이 생산됩니다</div>
+      <div class="news-item">🗺️ 세계 10대 명소를 탐험하며 희귀 생명체를 찾으세요</div>
+    </div>`;
+}
+
+// ===== SCANNER SCREEN =====
+function renderScan(){
+  $('scan-content').innerHTML = `
+    <div class="scr-title">바코드 스캐너</div>
+    <div class="scr-sub">상품 바코드를 스캔하여 생명체를 발견하세요</div>
+    <div class="scanner-viewport">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a1a2e,#16213e);display:flex;align-items:center;justify-content:center;color:#4a8c3f;font-size:14px;">카메라 미리보기</div>
+      <div class="scanner-frame"></div>
+      <div class="scanner-line"></div>
+      <div class="scanner-corners"></div>
+      <div class="sc-bl"></div>
+    </div>
+    <div class="scan-input-area">
+      <input type="text" class="scan-input" id="barcode-input" placeholder="바코드 번호 입력 (예: 8801062871247)" maxlength="13">
+      <button class="scan-btn" onclick="handleScan()">스캔</button>
+    </div>
+    <div class="scan-input-area" style="justify-content:center;gap:6px;flex-wrap:wrap;">
+      <button class="scan-btn" style="font-size:11px;padding:0 12px;height:36px;background:linear-gradient(135deg,#5c3d2e,#8b6914)" onclick="quickScan('8801062871247')">롯데 초코파이</button>
+      <button class="scan-btn" style="font-size:11px;padding:0 12px;height:36px;background:linear-gradient(135deg,#5c3d2e,#8b6914)" onclick="quickScan('4902505117442')">일본 포키</button>
+      <button class="scan-btn" style="font-size:11px;padding:0 12px;height:36px;background:linear-gradient(135deg,#5c3d2e,#8b6914)" onclick="quickScan('4000417025005')">독일 하리보</button>
+      <button class="scan-btn" style="font-size:11px;padding:0 12px;height:36px;background:linear-gradient(135deg,#5c3d2e,#8b6914)" onclick="quickScan('0012000001086')">미국 펩시</button>
+    </div>
+    <div class="scan-history" id="scan-history">
+      <h3>최근 스캔</h3>
+      ${GS.scanHistory.length === 0 ? '<div class="empty-state"><p>아직 스캔 기록이 없습니다</p></div>' :
+        GS.scanHistory.slice(-5).reverse().map(s =>
+          '<div class="news-item" onclick="showCardDetail(\''+s.creatureId+'\')">'+
+          '<span style="font-size:16px">'+getCreatureEmoji(s.grade)+'</span>'+
+          '<span><b>'+s.name+'</b> <span style="color:'+gradeColor(s.grade)+'">'+gradeName(s.grade)+'</span></span>'+
+          '<span style="margin-left:auto;font-size:10px;color:var(--text-light)">'+s.barcode+'</span></div>'
+        ).join('')}
+    </div>`;
+}
+
+function getCreatureEmoji(grade){
+  return {common:'🐾',uncommon:'🌿',rare:'💙',epic:'💜',legendary:'🌟',mythic:'✨'}[grade]||'🐾';
+}
+
+function quickScan(code){
+  $('barcode-input').value = code;
+  handleScan();
+}
+
+// ===== BARCODE GENERATION =====
+async function handleScan(){
+  const barcode = ($('barcode-input')||{}).value||'';
+  if(barcode.length < 8){ toast('8자리 이상 바코드를 입력하세요'); return; }
+
+  const countryPrefix = barcode.substring(0,3);
+  const mfgCode = barcode.substring(3,7);
+  const prodCode = barcode.substring(7,12);
+  const checkDigit = barcode.length >= 13 ? parseInt(barcode[12]) : 0;
+
+  // Deterministic seed
+  const seed = await sha256(barcode + '|forest_haven|2026');
+  const seedInt = (s,o,l) => parseInt(seed.substring(o,o+l),16);
+
+  // Rarity scoring
+  let rarityScore = seedInt(0,4) % 1000;
+  if(checkDigit === 7) rarityScore += 100;
+  if(barcode === barcode.split('').reverse().join('')) rarityScore += 150;
+  const uniqueDigits = new Set(barcode.split('')).size;
+  if(uniqueDigits <= 4) rarityScore += 100;
+
+  let grade;
+  if(rarityScore >= 950) grade = 'mythic';
+  else if(rarityScore >= 850) grade = 'legendary';
+  else if(rarityScore >= 700) grade = 'epic';
+  else if(rarityScore >= 500) grade = 'rare';
+  else if(rarityScore >= 300) grade = 'uncommon';
+  else grade = 'common';
+
+  // Pick creature from DB based on grade
+  const gradeCreatures = CREATURES_DB.filter(c => c.grade === grade);
+  const picked = gradeCreatures.length > 0
+    ? gradeCreatures[seedInt(4,4) % gradeCreatures.length]
+    : CREATURES_DB[seedInt(4,4) % CREATURES_DB.length];
+
+  // Generate stats from seed
+  const hp = picked.hp + seedInt(8,3) % 30;
+  const atk = picked.atk + seedInt(11,3) % 15;
+  const def = picked.def + seedInt(14,3) % 15;
+
+  // Country bonus
+  const cc = COUNTRY_CODES[countryPrefix] || {region:'Unknown',biome:'forest',bonus:'wood'};
+
+  const card = {
+    id: 'card_' + Date.now(),
+    creatureId: picked.id,
+    name: picked.name,
+    grade: grade,
+    type: 'creature',
+    hp, atk, def,
+    element: picked.element,
+    lore: picked.lore,
+    img: picked.img,
+    barcode: barcode,
+    origin: cc.region,
+    timestamp: Date.now()
+  };
+
+  GS.cards.push(card);
+  GS.scanHistory.push({barcode,name:card.name,grade:card.grade,creatureId:card.id,time:Date.now()});
+  GS.stats.totalScans++;
+  GS.stats.totalCards++;
+  addXP(grade==='mythic'?100:grade==='legendary'?50:grade==='epic'?30:grade==='rare'?20:grade==='uncommon'?12:8);
+
+  // Bonus resource from country
+  if(cc.bonus) addResource(cc.bonus, grade==='legendary'?5:grade==='epic'?3:2);
+
+  checkAchievement('first_scan');
+  if(GS.cards.length >= 10) checkAchievement('collect_10');
+  if(['rare','epic','legendary','mythic'].includes(grade)) checkAchievement('rare_find');
+  if(grade === 'legendary') checkAchievement('legendary');
+  if(grade === 'mythic') checkAchievement('mythic');
+
+  saveGame();
+  showCardDiscover(card);
+}
+
+// ===== CARD DISCOVERY OVERLAY =====
+function showCardDiscover(card){
+  const g = card.grade;
+  const isHolo = ['legendary','mythic'].includes(g);
+  const el = $('card-discover');
+  el.innerHTML = `
+    <div class="discover-particles" id="disc-particles"></div>
+    <div style="width:200px;height:280px;border-radius:16px;overflow:hidden;box-shadow:0 0 30px ${gradeColor(g)}80;position:relative;${isHolo?'':''}transform:scale(0);animation:cardAppear .6s .3s cubic-bezier(.175,.885,.32,1.275) forwards;" class="${isHolo?'holo-card':''} glow-${g}">
+      <img src="${card.img}" style="width:100%;height:60%;object-fit:cover;background:var(--cream-dark)" onerror="this.style.background='linear-gradient(135deg,${gradeColor(g)},#333)';this.style.height='60%'">
+      <div style="padding:12px;background:var(--white);height:40%;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+        <div style="font-size:16px;font-weight:700">${card.name}</div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:4px">${card.element} | ${card.origin}</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:4px;margin-top:6px;background:${gradeColor(g)};color:white">${gradeName(g)}</span>
+        <div style="display:flex;gap:12px;margin-top:8px;font-size:11px">
+          <span>HP ${card.hp}</span><span>ATK ${card.atk}</span><span>DEF ${card.def}</span>
+        </div>
+      </div>
+    </div>
+    <div class="discover-name" style="animation:fadeIn .5s .8s both">${card.name}</div>
+    <div class="discover-grade" style="color:${gradeColor(g)};animation:fadeIn .5s 1s both">${gradeName(g)}</div>
+    <div class="discover-tap" style="animation:fadeIn .5s 1.5s both">탭하여 계속</div>
+    <style>@keyframes cardAppear{to{transform:scale(1)}}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}</style>`;
+  el.classList.add('show');
+
+  // Particles
+  const pc = $('disc-particles');
+  for(let i=0;i<20;i++){
+    const p = document.createElement('div');
+    const colors = [gradeColor(g),'#ffd700','#fff','#ff6b6b','#48dbfb'];
+    p.style.cssText = `position:absolute;width:${4+Math.random()*8}px;height:${4+Math.random()*8}px;background:${colors[i%colors.length]};border-radius:50%;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:0;animation:particleDisc ${1+Math.random()*2}s ${Math.random()}s ease-out forwards`;
+    pc.appendChild(p);
+  }
+  const style = document.createElement('style');
+  style.textContent = '@keyframes particleDisc{0%{opacity:0;transform:scale(0)}30%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(-80px) scale(0)}}';
+  pc.appendChild(style);
+
+  el.onclick = () => { el.classList.remove('show'); renderScan(); };
+}
+
+// ===== CARD BOOK =====
+function renderCardBook(){
+  const tabs = [
+    {id:'creature',icon:'🐾',name:'생명체'},
+    {id:'item',icon:'🎒',name:'아이템'},
+    {id:'landmark',icon:'🏔️',name:'랜드마크'},
+    {id:'all',icon:'📋',name:'전체'}
+  ];
+  const filtered = cardBookTab === 'all' ? GS.cards : GS.cards.filter(c => c.type === cardBookTab);
+
+  $('cardbook-content').innerHTML = `
+    <div class="scr-title">카드북</div>
+    <div class="scr-sub">수집한 카드: ${GS.cards.length}장</div>
+    <div class="tab-bar">
+      ${tabs.map(t => `<button class="tab-btn ${cardBookTab===t.id?'active':''}" onclick="cardBookTab='${t.id}';renderCardBook()">${t.icon} ${t.name}</button>`).join('')}
+    </div>
+    ${filtered.length === 0 ? '<div class="empty-state"><div class="es-icon">🃏</div><p>아직 수집한 카드가 없습니다<br>바코드를 스캔하여 카드를 발견하세요!</p></div>' :
+    '<div class="card-grid">' + filtered.map(c => `
+      <div class="card-grid-item glow-${c.grade}" onclick="showCardDetail('${c.id}')">
+        <img class="card-grid-img" src="${c.img}" onerror="this.style.background='linear-gradient(135deg,${gradeColor(c.grade)},#333)'">
+        <div class="card-grid-info">
+          <div class="card-grid-name">${c.name}</div>
+          <div class="card-grid-sub">${c.element||''} | <span style="color:${gradeColor(c.grade)}">${gradeName(c.grade)}</span></div>
+        </div>
+      </div>`).join('') + '</div>'}`;
+}
+
+// ===== CARD DETAIL MODAL =====
+function showCardDetail(cardId){
+  const card = GS.cards.find(c => c.id === cardId);
+  if(!card) return;
+  const isHolo = ['legendary','mythic'].includes(card.grade);
+  const el = $('card-detail');
+  el.innerHTML = `
+    <div class="detail-sheet">
+      <div class="detail-handle"></div>
+      <div style="position:relative;border-radius:var(--radius);overflow:hidden;${isHolo?'':''}margin-bottom:16px" class="${isHolo?'holo-card':''} glow-${card.grade}">
+        <img class="detail-img" src="${card.img}" style="margin-bottom:0" onerror="this.style.background='linear-gradient(135deg,${gradeColor(card.grade)},#333)'">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="detail-name">${card.name}</div>
+        <span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:4px;background:${gradeColor(card.grade)};color:white">${gradeName(card.grade)}</span>
+      </div>
+      <div class="detail-type">${card.element||''} | ${card.origin||'Unknown'} | ${card.barcode||''}</div>
+      <div class="detail-stats">
+        <div class="stat-box"><div class="stat-val">${card.hp}</div><div class="stat-label">HP</div></div>
+        <div class="stat-box"><div class="stat-val">${card.atk}</div><div class="stat-label">ATK</div></div>
+        <div class="stat-box"><div class="stat-val">${card.def}</div><div class="stat-label">DEF</div></div>
+      </div>
+      <div class="detail-lore">${card.lore||'이 생명체에 대한 이야기는 아직 발견되지 않았습니다...'}</div>
+      <button onclick="closeCardDetail()" style="width:100%;padding:14px;border:none;border-radius:var(--radius);background:var(--cream-dark);color:var(--text);font-weight:700;font-size:14px;margin-top:16px;cursor:pointer">닫기</button>
+    </div>`;
+  el.classList.add('show');
+}
+
+function closeCardDetail(){ $('card-detail').classList.remove('show'); }
+
+// ===== CABIN SCREEN =====
+let cabinFloor = 'all';
+function renderCabin(){
+  const floors = [{id:'all',name:'전체'},{id:'B1',name:'B1'},{id:'1F',name:'1F'},{id:'2F',name:'2F'},{id:'3F',name:'3F'}];
+  const filtered = cabinFloor === 'all' ? ROOMS : ROOMS.filter(r => r.floor === cabinFloor);
+
+  $('cabin-content').innerHTML = `
+    <div class="cabin-header">
+      <div class="scr-title" style="margin:0">숲속 오두막</div>
+      <div class="floor-tabs">
+        ${floors.map(f => `<button class="floor-tab ${cabinFloor===f.id?'active':''}" onclick="cabinFloor='${f.id}';renderCabin()">${f.name}</button>`).join('')}
+      </div>
+    </div>
+    <canvas id="cabin-canvas" width="400" height="320"></canvas>
+    <div style="margin-top:14px">
+      ${filtered.map((room,i) => {
+        const state = GS.rooms.find(r=>r.id===room.id) || {level:1,creatures:[],unlocked:false};
+        return `<div class="room-card ${state.unlocked?'':'locked'}" onclick="${state.unlocked ? 'showRoomDetail(\''+room.id+'\')' : 'toast(\'Lv.'+room.unlock+' 에서 해금됩니다\')'}">
+          <div class="room-icon">${room.icon}</div>
+          <div class="room-info">
+            <div class="room-name">${room.name} ${!state.unlocked?'🔒':''}</div>
+            <div class="room-desc">${room.desc}</div>
+            <div class="room-prod">
+              <span class="room-res">${room.resource} +${room.prodRate * state.level}/h</span>
+              <span style="font-size:10px;color:var(--text-light);margin-left:4px">Lv.${state.level}</span>
+              ${state.creatures.length > 0 ? '<span style="font-size:10px;margin-left:8px">🐾×'+state.creatures.length+'</span>' : ''}
+            </div>
+          </div>
+          <span style="font-size:11px;color:var(--text-light)">${room.floor}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  setTimeout(drawCabin, 50);
+}
+
+// ===== CABIN CANVAS =====
+function drawCabin(){
+  const canvas = $('cabin-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // Sky
+  const sky = ctx.createLinearGradient(0,0,0,H*0.35);
+  sky.addColorStop(0,'#87CEEB'); sky.addColorStop(1,'#b8e4f0');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H*0.35);
+
+  // Sun
+  ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(60,40,20,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,215,0,0.2)'; ctx.beginPath(); ctx.arc(60,40,35,0,Math.PI*2); ctx.fill();
+
+  // Clouds
+  drawCloud(ctx,250,30,40); drawCloud(ctx,350,50,30);
+
+  // Hills
+  ctx.fillStyle = '#4a8c3f';
+  ctx.beginPath(); ctx.moveTo(0,H*0.35); ctx.quadraticCurveTo(100,H*0.2,200,H*0.35); ctx.quadraticCurveTo(300,H*0.22,W,H*0.35); ctx.lineTo(W,H*0.4); ctx.lineTo(0,H*0.4); ctx.fill();
+
+  // Ground
+  ctx.fillStyle = '#6B8E23'; ctx.fillRect(0,H*0.35,W,H*0.08);
+  ctx.fillStyle = '#8B7355'; ctx.fillRect(0,H*0.43,W,H*0.57);
+
+  // Cabin structure
+  const cx = 60, cy = H*0.2, cw = W-120, ch = H*0.65;
+
+  // Basement (B1)
+  ctx.fillStyle = '#4a3728'; ctx.fillRect(cx,cy+ch*0.75,cw,ch*0.25);
+  ctx.strokeStyle = '#3a2a1c'; ctx.lineWidth = 1;
+  drawRoomBox(ctx,cx+5,cy+ch*0.77,cw/2-10,ch*0.21,'♨️','온천',GS.rooms.find(r=>r.id==='hotspring'));
+  drawRoomBox(ctx,cx+cw/2+5,cy+ch*0.77,cw/2-10,ch*0.21,'💎','수정동굴',GS.rooms.find(r=>r.id==='crystal_cave'));
+
+  // 1F
+  ctx.fillStyle = '#8B6914'; ctx.fillRect(cx,cy+ch*0.5,cw,ch*0.25);
+  ctx.strokeStyle = '#705510'; ctx.strokeRect(cx,cy+ch*0.5,cw,ch*0.25);
+  const w1 = cw/4;
+  drawRoomBox(ctx,cx+2,cy+ch*0.52,w1-4,ch*0.21,'🏠','거실',GS.rooms.find(r=>r.id==='living'));
+  drawRoomBox(ctx,cx+w1+2,cy+ch*0.52,w1-4,ch*0.21,'🍳','부엌',GS.rooms.find(r=>r.id==='kitchen'));
+  drawRoomBox(ctx,cx+w1*2+2,cy+ch*0.52,w1-4,ch*0.21,'🌿','약초원',GS.rooms.find(r=>r.id==='herb_garden'));
+  drawRoomBox(ctx,cx+w1*3+2,cy+ch*0.52,w1-4,ch*0.21,'🐝','양봉장',GS.rooms.find(r=>r.id==='apiary'));
+
+  // 2F
+  ctx.fillStyle = '#9B7924'; ctx.fillRect(cx+20,cy+ch*0.28,cw-40,ch*0.22);
+  ctx.strokeStyle = '#806515'; ctx.strokeRect(cx+20,cy+ch*0.28,cw-40,ch*0.22);
+  const w2 = (cw-40)/2;
+  drawRoomBox(ctx,cx+22,cy+ch*0.30,w2-4,ch*0.18,'🔨','공방',GS.rooms.find(r=>r.id==='workshop'));
+  drawRoomBox(ctx,cx+22+w2,cy+ch*0.30,w2-4,ch*0.18,'📚','서재',GS.rooms.find(r=>r.id==='library'));
+
+  // 3F + Roof
+  ctx.fillStyle = '#AB8934'; ctx.fillRect(cx+50,cy+ch*0.1,cw-100,ch*0.18);
+  drawRoomBox(ctx,cx+52,cy+ch*0.12,((cw-100)/2)-4,ch*0.14,'🔭','전망대',GS.rooms.find(r=>r.id==='observatory'));
+  drawRoomBox(ctx,cx+52+(cw-100)/2,cy+ch*0.12,((cw-100)/2)-4,ch*0.14,'🌳','나무집',GS.rooms.find(r=>r.id==='treehouse'));
+
+  // Roof
+  ctx.fillStyle = '#8B4513';
+  ctx.beginPath();
+  ctx.moveTo(cx+30,cy+ch*0.1);
+  ctx.lineTo(W/2,cy-10);
+  ctx.lineTo(cx+cw-30,cy+ch*0.1);
+  ctx.fill();
+
+  // Trees
+  drawTree(ctx,20,H*0.35); drawTree(ctx,W-40,H*0.35);
+
+  // Chimney smoke
+  for(let i=0;i<3;i++){
+    ctx.fillStyle = `rgba(200,200,200,${0.3-i*0.08})`;
+    ctx.beginPath();
+    ctx.arc(W/2+10, cy-20-i*15+Math.sin(Date.now()/500+i)*3, 5+i*3, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawRoomBox(ctx,x,y,w,h,icon,name,state){
+  const unlocked = state && state.unlocked;
+  ctx.fillStyle = unlocked ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)';
+  ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle = unlocked ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)';
+  ctx.strokeRect(x,y,w,h);
+  ctx.font = Math.min(h*0.5,20)+'px serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = unlocked ? '#fff' : '#666';
+  ctx.fillText(icon, x+w/2, y+h*0.5);
+  ctx.font = '9px sans-serif';
+  ctx.fillText(unlocked?name:'🔒', x+w/2, y+h*0.8);
+}
+
+function drawCloud(ctx,x,y,r){
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x-r*0.6,y+r*0.2,r*0.6,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+r*0.6,y+r*0.2,r*0.7,0,Math.PI*2); ctx.fill();
+}
+
+function drawTree(ctx,x,y){
+  ctx.fillStyle = '#5c3d2e'; ctx.fillRect(x-3,y-30,6,30);
+  ctx.fillStyle = '#2d5a27';
+  ctx.beginPath(); ctx.moveTo(x-18,y-25); ctx.lineTo(x,y-55); ctx.lineTo(x+18,y-25); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x-14,y-38); ctx.lineTo(x,y-62); ctx.lineTo(x+14,y-38); ctx.fill();
+}
+
+// ===== ROOM DETAIL MODAL =====
+function showRoomDetail(roomId){
+  const roomDef = ROOMS.find(r=>r.id===roomId);
+  const roomState = GS.rooms.find(r=>r.id===roomId);
+  if(!roomDef || !roomState) return;
+
+  const el = $('room-detail');
+  el.innerHTML = `
+    <div class="room-sheet">
+      <img class="room-bg" src="${roomDef.bg}" onerror="this.style.background='linear-gradient(135deg,var(--forest-dark),var(--forest))'">
+      <div class="room-body">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:28px">${roomDef.icon}</span>
+          <div>
+            <div class="room-title">${roomDef.name}</div>
+            <div class="room-level">Lv.${roomState.level} | ${roomDef.floor} | ${roomDef.resource} +${roomDef.prodRate * roomState.level}/h</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text-light);margin-top:8px">${roomDef.desc}</p>
+        <h4 style="margin-top:16px;font-size:14px">배치된 생명체 (${roomState.creatures.length}/3)</h4>
+        <div class="room-creatures-grid">
+          ${[0,1,2].map(i => {
+            if(roomState.creatures[i]){
+              const card = GS.cards.find(c=>c.id===roomState.creatures[i]);
+              return card ? `<div class="room-creature-slot" onclick="removeFromRoom('${roomId}',${i})"><img src="${card.img}" title="${card.name}"></div>` : '<div class="room-creature-slot">+</div>';
+            }
+            return `<div class="room-creature-slot" onclick="showAssignCreature('${roomId}',${i})">+</div>`;
+          }).join('')}
+        </div>
+        <button class="room-upgrade-btn" onclick="upgradeRoom('${roomId}')">업그레이드 (나무 ${roomState.level*5} + 돌 ${roomState.level*3})</button>
+        <button onclick="closeRoomDetail()" style="width:100%;padding:12px;border:none;border-radius:var(--radius);background:var(--cream-dark);color:var(--text);font-weight:600;font-size:13px;margin-top:8px;cursor:pointer">닫기</button>
+      </div>
+    </div>`;
+  el.classList.add('show');
+}
+
+function closeRoomDetail(){ $('room-detail').classList.remove('show'); }
+
+function upgradeRoom(roomId){
+  const state = GS.rooms.find(r=>r.id===roomId);
+  if(!state) return;
+  const woodCost = state.level * 5;
+  const stoneCost = state.level * 3;
+  if(GS.resources.wood >= woodCost && GS.resources.stone >= stoneCost){
+    GS.resources.wood -= woodCost;
+    GS.resources.stone -= stoneCost;
+    state.level++;
+    saveGame(); updateTopBar();
+    toast(ROOMS.find(r=>r.id===roomId).name + ' Lv.' + state.level + ' 업그레이드!');
+    showRoomDetail(roomId);
+  } else {
+    toast('자원이 부족합니다');
+  }
+}
+
+function showAssignCreature(roomId, slotIdx){
+  const available = GS.cards.filter(c => c.type==='creature' && !GS.rooms.some(r=>r.creatures.includes(c.id)));
+  if(available.length === 0){ toast('배치 가능한 생명체가 없습니다'); return; }
+  const card = available[0]; // Auto-assign first available
+  const state = GS.rooms.find(r=>r.id===roomId);
+  state.creatures[slotIdx] = card.id;
+  saveGame();
+  toast(card.name + ' 배치 완료!');
+  showRoomDetail(roomId);
+}
+
+function removeFromRoom(roomId, idx){
+  const state = GS.rooms.find(r=>r.id===roomId);
+  const card = GS.cards.find(c=>c.id===state.creatures[idx]);
+  state.creatures.splice(idx,1);
+  saveGame();
+  toast((card?card.name:'생명체')+' 해제');
+  showRoomDetail(roomId);
+}
+
+// ===== WORLD MAP =====
+function renderWorldMap(){
+  $('worldmap-content').innerHTML = `
+    <div class="scr-title">세계 탐험</div>
+    <div class="scr-sub">10대 자연 명소를 탐험하며 희귀 생명체를 발견하세요</div>
+    ${LANDMARKS.map(lm => {
+      const visited = GS.visitedLandmarks.includes(lm.id);
+      return `<div class="landmark-card" onclick="openRegion('${lm.id}')">
+        <img class="landmark-img" src="${lm.img}" onerror="this.style.background='linear-gradient(135deg,#2d5a27,#4a8c3f)'">
+        <div class="landmark-info">
+          <div class="landmark-flag">${lm.flag} ${lm.country}</div>
+          <div class="landmark-name">${lm.name}</div>
+          <div class="landmark-desc">${lm.desc}</div>
+          <div class="landmark-badge">${visited ? '✅ 방문 완료' : '🗺️ 미방문'}</div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ===== REGION VISIT =====
+function openRegion(landmarkId){
+  const lm = LANDMARKS.find(l=>l.id===landmarkId);
+  if(!lm) return;
+
+  const el = $('region-visit');
+  const regionCreatures = lm.creatures.map(cid => CREATURES_DB.find(c=>c.id===cid)).filter(Boolean);
+
+  el.innerHTML = `
+    <div class="region-bg"><img src="${lm.img}" onerror="this.style.background='linear-gradient(135deg,#1a3a1a,#2d5a27)'"></div>
+    <div class="region-overlay">
+      <div class="region-name">${lm.name}</div>
+      <div class="region-country">${lm.flag} ${lm.country} | ${lm.biome}</div>
+      <p style="color:var(--cream-dark);font-size:13px;margin-top:8px;line-height:1.5">${lm.desc}</p>
+      <div style="margin-top:12px">
+        <div style="color:var(--cream-dark);font-size:12px;font-weight:600;margin-bottom:6px">이 지역의 생명체</div>
+        <div class="region-cards">
+          ${regionCreatures.map(c => `
+            <div class="region-mini-card glow-${c.grade}">
+              <img src="${c.img}" onerror="this.style.background='linear-gradient(135deg,${gradeColor(c.grade)},#333)'">
+              <div class="rmc-name">${c.name}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="region-actions">
+        <button class="region-btn region-btn-primary" onclick="exploreRegion('${lm.id}')">탐험하기 (약초 2)</button>
+        <button class="region-btn region-btn-secondary" onclick="closeRegion()">돌아가기</button>
+      </div>
+    </div>
+    <button class="region-close" onclick="closeRegion()">✕</button>`;
+  el.classList.add('show');
+}
+
+function closeRegion(){ $('region-visit').classList.remove('show'); }
+
+async function exploreRegion(landmarkId){
+  if(GS.resources.herb < 2){ toast('약초가 부족합니다 (2개 필요)'); return; }
+  GS.resources.herb -= 2;
+
+  const lm = LANDMARKS.find(l=>l.id===landmarkId);
+  if(!lm) return;
+
+  if(!GS.visitedLandmarks.includes(landmarkId)){
+    GS.visitedLandmarks.push(landmarkId);
+    if(GS.visitedLandmarks.length >= 3) checkAchievement('explore_3');
+  }
+  GS.stats.totalExplores++;
+
+  // Generate a creature from this region
+  const seed = await sha256(landmarkId + '|' + Date.now());
+  const seedInt = parseInt(seed.substring(0,8),16);
+
+  // Pick from region creatures with grade boost
+  const regionCreatures = lm.creatures.map(cid => CREATURES_DB.find(c=>c.id===cid)).filter(Boolean);
+  const picked = regionCreatures[seedInt % regionCreatures.length] || CREATURES_DB[seedInt % CREATURES_DB.length];
+
+  const card = {
+    id: 'card_' + Date.now(),
+    creatureId: picked.id,
+    name: picked.name,
+    grade: picked.grade,
+    type: 'creature',
+    hp: picked.hp + (seedInt % 20),
+    atk: picked.atk + (seedInt % 10),
+    def: picked.def + (seedInt % 10),
+    element: picked.element,
+    lore: picked.lore,
+    img: picked.img,
+    barcode: 'explore',
+    origin: lm.country,
+    timestamp: Date.now()
+  };
+
+  GS.cards.push(card);
+  GS.stats.totalCards++;
+  addXP(25);
+
+  // Bonus resources from exploration
+  addResource('wood', 3);
+  addResource('stone', 2);
+
+  saveGame();
+  closeRegion();
+  showCardDiscover(card);
+}
+
+// ===== INVENTORY & CRAFTING =====
+function renderInventory(){
+  $('inventory-content').innerHTML = `
+    <div class="scr-title">인벤토리 & 크래프팅</div>
+    <div class="inv-section">
+      <h3>자원</h3>
+      <div class="resource-grid">
+        ${RESOURCES.map(r => `
+          <div class="res-card">
+            <div class="res-icon">${r.icon}</div>
+            <div class="res-name">${r.name}</div>
+            <div class="res-amount">${GS.resources[r.id]||0}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="inv-section">
+      <h3>크래프팅</h3>
+      ${RECIPES.map(recipe => {
+        const canCraft = Object.entries(recipe.mats).every(([res,amt]) => (GS.resources[res]||0) >= amt);
+        const matStr = Object.entries(recipe.mats).map(([res,amt]) => {
+          const r = RESOURCES.find(x=>x.id===res);
+          const have = GS.resources[res]||0;
+          return `<span style="color:${have>=amt?'var(--success)':'var(--danger)'};">${r?r.icon:res}${amt}</span>`;
+        }).join(' + ');
+        return `<div class="recipe-card">
+          <div class="recipe-icon">${recipe.icon}</div>
+          <div class="recipe-info">
+            <div class="recipe-name">${recipe.name}</div>
+            <div class="recipe-mats">${matStr}</div>
+          </div>
+          <button class="recipe-craft" ${canCraft?'':'disabled'} onclick="craftItem('${recipe.id}')">제작</button>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="inv-section">
+      <h3>보유 아이템 (${GS.items.length})</h3>
+      ${GS.items.length === 0 ? '<div class="empty-state"><p>아직 아이템이 없습니다</p></div>' :
+        GS.items.map(item => `<div class="recipe-card">
+          <div class="recipe-icon">${item.icon||'📦'}</div>
+          <div class="recipe-info">
+            <div class="recipe-name">${item.name}</div>
+            <div class="recipe-mats">x${item.qty||1}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function craftItem(recipeId){
+  const recipe = RECIPES.find(r=>r.id===recipeId);
+  if(!recipe) return;
+  const canCraft = Object.entries(recipe.mats).every(([res,amt]) => (GS.resources[res]||0) >= amt);
+  if(!canCraft){ toast('자원이 부족합니다'); return; }
+
+  // Consume resources
+  Object.entries(recipe.mats).forEach(([res,amt]) => { GS.resources[res] -= amt; });
+
+  // Add item
+  const existing = GS.items.find(i=>i.id===recipeId);
+  if(existing){ existing.qty = (existing.qty||1) + 1; }
+  else { GS.items.push({id:recipeId, name:recipe.name, icon:recipe.icon, qty:1}); }
+
+  GS.stats.totalCrafts++;
+  checkAchievement('craft_first');
+  addXP(15);
+  saveGame(); updateTopBar();
+  toast(recipe.name + ' 제작 완료!');
+  renderInventory();
+}
+
+// ===== PROFILE & SETTINGS =====
+function renderProfile(){
+  const unlockedRooms = GS.rooms.filter(r=>r.unlocked).length;
+  $('profile-content').innerHTML = `
+    <div class="profile-header">
+      <div class="profile-avatar">🌿</div>
+      <div class="profile-name">숲의 여행자</div>
+      <div class="profile-title">Lv.${GS.level} | XP ${GS.xp}/${GS.xpMax}</div>
+      <div class="prog-bar" style="margin-top:8px;background:rgba(255,255,255,.2)">
+        <div class="prog-fill" style="width:${(GS.xp/GS.xpMax)*100}%;background:var(--gold)"></div>
+      </div>
+      <div class="profile-stats">
+        <div class="ps-item"><div class="ps-val">${GS.stats.totalScans}</div><div class="ps-label">총 스캔</div></div>
+        <div class="ps-item"><div class="ps-val">${GS.cards.length}</div><div class="ps-label">보유 카드</div></div>
+        <div class="ps-item"><div class="ps-val">${GS.visitedLandmarks.length}/10</div><div class="ps-label">탐험 지역</div></div>
+      </div>
+    </div>
+
+    <div style="font-size:15px;font-weight:700;margin-bottom:10px">통계</div>
+    <div class="settings-group">
+      <div class="settings-item"><span class="si-label">총 크래프팅</span><span class="si-value">${GS.stats.totalCrafts}회</span></div>
+      <div class="settings-item"><span class="si-label">해금된 방</span><span class="si-value">${unlockedRooms}/${ROOMS.length}</span></div>
+      <div class="settings-item"><span class="si-label">보유 아이템</span><span class="si-value">${GS.items.length}종</span></div>
+    </div>
+
+    <div style="font-size:15px;font-weight:700;margin-bottom:10px">업적</div>
+    <div class="achieve-grid">
+      ${ACHIEVEMENTS.map(a => {
+        const done = GS.achievements.includes(a.id);
+        return `<div class="achieve-item ${done?'':'locked'}">
+          <div class="achieve-icon">${a.icon}</div>
+          <div class="achieve-name">${a.name}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div style="font-size:15px;font-weight:700;margin:16px 0 10px">설정</div>
+    <div class="settings-group">
+      <div class="settings-item">
+        <span class="si-label">효과음</span>
+        <button class="si-toggle ${GS.settings.sound?'on':''}" onclick="toggleSetting('sound',this)"></button>
+      </div>
+      <div class="settings-item">
+        <span class="si-label">알림</span>
+        <button class="si-toggle ${GS.settings.notifications?'on':''}" onclick="toggleSetting('notifications',this)"></button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-item" style="cursor:pointer" onclick="if(confirm('정말 초기화하시겠습니까?')){localStorage.removeItem('forest_haven_save');location.reload()}">
+        <span class="si-label" style="color:var(--danger)">데이터 초기화</span>
+        <span class="si-value">⚠️</span>
+      </div>
+    </div>
+    <div style="text-align:center;padding:20px;color:var(--text-light);font-size:11px">
+      Forest Haven v1.0<br>숲의 안식처 | biz_life project #8
+    </div>`;
+}
+
+function toggleSetting(key, btn){
+  GS.settings[key] = !GS.settings[key];
+  btn.classList.toggle('on');
+  saveGame();
+}
+
+// ===== INITIALIZATION =====
+function init(){
+  tickResources();
+  updateTopBar();
+  renderHome();
+
+  // Periodic resource tick
+  setInterval(() => { tickResources(); updateTopBar(); }, 60000);
+
+  // Add starter cards if new game
+  if(GS.cards.length === 0 && GS.stats.totalScans === 0){
+    const starter = CREATURES_DB.find(c=>c.id==='forest_deer');
+    if(starter){
+      GS.cards.push({
+        id:'card_starter',creatureId:starter.id,name:starter.name,grade:starter.grade,
+        type:'creature',hp:starter.hp,atk:starter.atk,def:starter.def,
+        element:starter.element,lore:starter.lore,img:starter.img,
+        barcode:'starter',origin:'Forest Haven',timestamp:Date.now()
+      });
+      GS.stats.totalCards = 1;
+      saveGame();
+    }
+  }
+
+  // Keyboard shortcut for barcode input
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && currentScreen === 'scan'){
+      handleScan();
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
