@@ -115,6 +115,31 @@ class DataProvider:
             self._ohlcv_cache.clear()
             self._price_cache.clear()
 
+    def update_from_tick(self, tick) -> None:
+        """
+        WebSocket 틱 데이터로 가격 캐시 즉시 업데이트 (v3.7).
+
+        Args:
+            tick: TickData(symbol, price, volume, ...)
+        """
+        now = time.time()
+        self._price_cache[tick.symbol] = {
+            "price": int(tick.price),
+            "volume": int(tick.volume),
+            "ts": now,
+        }
+
+    def create_ws_bridge(self):
+        """
+        WebSocket 콜백 생성 (v3.7).
+
+        Returns:
+            callable: on_tick 콜백 함수
+        """
+        def on_tick(tick):
+            self.update_from_tick(tick)
+        return on_tick
+
     @staticmethod
     def _download_yfinance(code: str, days: int = 250) -> Optional[pd.DataFrame]:
         """

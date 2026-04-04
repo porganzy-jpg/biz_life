@@ -1,27 +1,18 @@
 """
-StockBot v3.6 주식 자동매매 트레이더
+StockBot v3.7 주식 자동매매 트레이더
 
-5전략 통합 앙상블 v3.2 (Z-score + tanh + 폭락가드 + 적응형 임계값)
-+ RSI(2) 급락 매수 (RSI2<10 & MA200 위 → 시간기반 청산)
-+ 순수 퀀트 (뉴스 부스트 제거) + ATR Chandelier Exit + 서킷브레이커
-+ DB 영속성 + 스케줄러 + 시장 국면(Regime) 감지 + 국면별 가중치 적응
-+ 스마트 주문 실행 엔진 (TWAP/VWAP/Smart Execute)
+6전략 통합 앙상블 (5전략 Z-score + ML예측) + RSI(2) 급락 매수
++ 멀티채널 알림 + 포트폴리오 자동 리밸런싱 + 기관수급 + WebSocket
++ ATR Chandelier Exit + 서킷브레이커 + DB 영속성 + 스케줄러
++ 시장 국면(Regime) 감지 + 스마트 주문 실행 엔진
 + yfinance 실시간 데이터 + 라이브/페이퍼 이중 안전장치
 
-v3.6 변경사항 (RSI(2) Crash Buy 추가):
-  - RSI(2) < 10 & 종가 > MA200 → 급락 매수 (앙상블과 독립)
-  - RSI(2) 진입 청산: RSI(2) > 90 또는 7일 보유 후 시간기반 청산
-  - 백테스트: +47.47% → +50.25%, Sharpe 2.49 → 2.69
-  - RSI(2) 거래 승률 87.5%, 순기여 +1,263,194원
-v3.5 변경사항 (Strategy Lab 최적화):
-  - 포지션 사이징: 균등 분배 -> ATR 기반 (거래당 자본 2% 리스크)
-    (백테스트: +34.78% -> +45.98%, Sharpe 2.44 -> 2.56)
-    변동성 높은 종목은 포지션 줄이고, 안정 종목은 포지션 확대
-  - ATR 없을 시 기존 균등 분배 폴백
-v3.4 변경사항 (시간봉 백테스트 최적화):
-  - 트레일링 스탑: 고정 -5% -> ATR x2 Chandelier Exit
-  - 변동성 자동 적응: 저변동 종목은 타이트, 고변동 종목은 넓게
-  - 손절은 기존 고정 -5% 유지 (ATR 손절은 큰 차이 없음)
+v3.7 변경사항:
+  - 멀티채널 알림 (Telegram + Discord + Email, 우선순위별 자동 선택)
+  - 포트폴리오 자동 리밸런싱 (단일종목 36%→30%, 섹터 55%→50%)
+  - 기관/외국인 실제 수급 데이터 (네이버 금융 크롤링)
+  - 실시간 호가 WebSocket 프레임워크 (opt-in)
+  - ML 기반 종목 선정 (XGBoost 22피처, 6번째 전략)
 """
 import sys
 import os
@@ -108,7 +99,7 @@ ATR_PERIOD = STOCK_TRADING_CONFIG.get("atr_period", 14)
 
 
 class StockTrader:
-    """주식 자동매매 트레이더 v3.6"""
+    """주식 자동매매 트레이더 v3.7"""
 
     def __init__(self, paper_trading: bool = True):
         self.client = BrokerClient(paper_trading=paper_trading)
@@ -262,6 +253,18 @@ class StockTrader:
 
         # 1. 트레일링 스탑 / 손절 / 익절 체크
         db_positions = self.db.get_positions()
+
+        # API 포지션이 비어있으면 DB 포지션으로 보충 (중복 매수 방지)
+        if not positions and db_positions:
+            logger.warning(f"API 포지션 비어있음 → DB 포지션 {len(db_positions)}건으로 보충")
+            for dp in db_positions:
+                sym = dp["symbol"]
+                if sym not in positions:
+                    positions[sym] = {
+                        "qty": dp["qty"],
+                        "avg_price": dp["avg_price"],
+                        "name": dp.get("name", ""),
+                    }
         for symbol, pos in list(positions.items()):
           try:
             price_info = self.client.fetch_price(symbol)
@@ -278,17 +281,33 @@ class StockTrader:
             db_pos = next((p for p in db_positions if p["symbol"] == symbol), None)
             entry_source = db_pos.get("entry_source", "ens") if db_pos else "ens"
 
-            # RSI(2) 진입 포지션: 별도 청산 로직
+            # RSI(2) 진입 포지션: 청산 로직 (익절/트레일링 포함)
             if entry_source == "rsi2":
                 sell_rsi2 = False
                 rsi2_reason = ""
 
+                # 손절 -5%
+                if pnl_pct <= STOCK_TRADING_CONFIG["stop_loss_pct"]:
+                    sell_rsi2, rsi2_reason = True, "SL"
+
+                # 익절 +15%
+                if not sell_rsi2 and pnl_pct >= STOCK_TRADING_CONFIG["take_profit_pct"]:
+                    sell_rsi2, rsi2_reason = True, "TP"
+
+                # ATR Chandelier Exit 트레일링 스탑
+                if not sell_rsi2 and db_pos and db_pos["highest_price"] > 0:
+                    atr_val = self._get_atr(symbol)
+                    chandelier_stop = db_pos["highest_price"] - ATR_MULTIPLIER * atr_val
+                    if current_price <= chandelier_stop:
+                        sell_rsi2, rsi2_reason = True, "TRAIL"
+
                 # RSI(2) > 90 청산
-                df = self.client.fetch_ohlcv(symbol, count=60)
-                if df is not None and len(df) > 2:
-                    rsi2_now = float(compute_rsi(df["close"].astype(float), 2).iloc[-1])
-                    if rsi2_now > RSI2_SELL_THRESHOLD:
-                        sell_rsi2, rsi2_reason = True, "RSI2>90"
+                if not sell_rsi2:
+                    df = self.client.fetch_ohlcv(symbol, count=60)
+                    if df is not None and len(df) > 2:
+                        rsi2_now = float(compute_rsi(df["close"].astype(float), 2).iloc[-1])
+                        if rsi2_now > RSI2_SELL_THRESHOLD:
+                            sell_rsi2, rsi2_reason = True, "RSI2>90"
 
                 # 7일 보유 시간기반 청산
                 if not sell_rsi2 and db_pos and db_pos.get("bought_at"):
@@ -301,20 +320,20 @@ class StockTrader:
                     except (ValueError, TypeError):
                         pass
 
-                # 손절은 동일 적용
-                if not sell_rsi2 and pnl_pct <= STOCK_TRADING_CONFIG["stop_loss_pct"]:
-                    sell_rsi2, rsi2_reason = True, "SL"
-
                 if sell_rsi2:
+                    urgency = "high" if rsi2_reason in ("SL", "TRAIL") else "normal"
                     exec_id = self.execution_engine.smart_execute(
                         symbol=symbol, side=Side.SELL.value,
-                        qty=pos["qty"], urgency="high" if rsi2_reason == "SL" else "normal",
+                        qty=pos["qty"], urgency=urgency,
                         name=pos.get("name", ""),
                     )
-                    pnl = (current_price - avg_price) * pos["qty"]
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                    pnl = (fill_price - avg_price) * pos["qty"]
+                    pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                     self._record_trade(f"RSI2_{rsi2_reason}", symbol, pos.get("name", ""),
-                                       pos["qty"], current_price, pnl, pnl_pct)
+                                       pos["qty"], fill_price, pnl, pnl_pct)
                     self.circuit_breaker.record_trade(pnl_pct)
+                    del positions[symbol]  # 중복 매도 방지
                     logger.info(f"RSI(2) 청산 [{pos.get('name', symbol)}] {rsi2_reason} pnl={pnl_pct:+.1f}% exec_id={exec_id}")
                 continue  # RSI(2) 포지션은 앙상블 청산 로직 스킵
 
@@ -327,10 +346,13 @@ class StockTrader:
                     qty=pos["qty"], urgency="high",
                     name=pos.get("name", ""),
                 )
-                pnl = (current_price - avg_price) * pos["qty"]
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                pnl = (fill_price - avg_price) * pos["qty"]
+                pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                 self._record_trade("STOP_LOSS", symbol, pos.get("name", ""),
-                                   pos["qty"], current_price, pnl, pnl_pct)
+                                   pos["qty"], fill_price, pnl, pnl_pct)
                 self.circuit_breaker.record_trade(pnl_pct)
+                del positions[symbol]  # 중복 매도 방지
                 logger.info(f"손절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
@@ -341,10 +363,13 @@ class StockTrader:
                     qty=pos["qty"], urgency="normal",
                     name=pos.get("name", ""),
                 )
-                pnl = (current_price - avg_price) * pos["qty"]
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                pnl = (fill_price - avg_price) * pos["qty"]
+                pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                 self._record_trade("TAKE_PROFIT", symbol, pos.get("name", ""),
-                                   pos["qty"], current_price, pnl, pnl_pct)
+                                   pos["qty"], fill_price, pnl, pnl_pct)
                 self.circuit_breaker.record_trade(pnl_pct)
+                del positions[symbol]  # 중복 매도 방지
                 logger.info(f"익절 실행 [{symbol}] exec_id={exec_id}")
                 continue
 
@@ -362,11 +387,14 @@ class StockTrader:
                         qty=pos["qty"], urgency="high",
                         name=pos.get("name", ""),
                     )
-                    pnl = (current_price - avg_price) * pos["qty"]
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                    pnl = (fill_price - avg_price) * pos["qty"]
+                    pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                     self._record_trade("TRAILING_STOP", symbol, pos.get("name", ""),
-                                       pos["qty"], current_price, pnl, pnl_pct)
+                                       pos["qty"], fill_price, pnl, pnl_pct)
                     self.circuit_breaker.record_trade(pnl_pct)
-                    drop_pct = (current_price - highest) / highest * 100
+                    del positions[symbol]  # 중복 매도 방지
+                    drop_pct = (fill_price - highest) / highest * 100
                     logger.info(
                         f"ATR 트레일링 [{symbol}] "
                         f"고가={highest:,.0f} ATR={atr_val:,.0f} "
@@ -396,9 +424,11 @@ class StockTrader:
                 name=pos.get("name", ""),
             )
             if exec_id:
-                pnl = (current_price - avg_price) * pos["qty"]
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                pnl = (fill_price - avg_price) * pos["qty"]
+                pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
                 self._record_trade("QUANT_SELL", symbol, pos.get("name", ""),
-                                   pos["qty"], current_price, pnl, pnl_pct,
+                                   pos["qty"], fill_price, pnl, pnl_pct,
                                    result.get("score", 0), result.get("confidence", 0),
                                    result.get("reasons", []))
                 self.circuit_breaker.record_trade(pnl_pct)
@@ -406,6 +436,84 @@ class StockTrader:
                 logger.info(f"퀀트 매도 [{pos.get('name', symbol)}] score={result.get('score'):.1f} exec_id={exec_id}")
           except Exception as e:
             logger.error(f"퀀트 매도 오류 [{result.get('symbol', '?')}]: {e}")
+
+        # 2.5 리밸런싱: 단일종목 36% 초과 → 30%, 섹터 55% 초과 → 50%
+        try:
+            total_assets = balance.get("total_eval", cash)
+            # 현재가 조회
+            current_prices = {}
+            for sym in list(positions.keys()):
+                price_info = self.client.fetch_price(sym)
+                if price_info:
+                    current_prices[sym] = price_info["price"]
+
+            # 단일종목 리밸런싱
+            rebalance_list = self.risk_manager.should_rebalance(
+                positions, total_assets, current_prices
+            )
+            for rb in rebalance_list:
+                sym = rb["symbol"]
+                qty_sell = rb["qty_to_sell"]
+                rb_price = rb["price"]
+                rb_name = rb["name"]
+
+                exec_id = self.execution_engine.smart_execute(
+                    symbol=sym, side=Side.SELL.value,
+                    qty=qty_sell, urgency="normal",
+                    name=rb_name,
+                )
+                if exec_id:
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or rb_price
+                    avg_p = positions[sym].get("avg_price", fill_price)
+                    pnl = (fill_price - avg_p) * qty_sell
+                    pnl_pct = (fill_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
+                    self._record_rebalance(
+                        sym, rb_name, qty_sell, fill_price, pnl, pnl_pct,
+                        f"단일종목 {rb['current_pct']:.0f}%→{rb['target_pct']:.0f}%"
+                    )
+                    # 포지션 수량 업데이트 (삭제하지 않음)
+                    positions[sym]["qty"] -= qty_sell
+                    cash += qty_sell * fill_price
+                    logger.info(
+                        f"리밸런싱 [{rb_name}] {rb['current_pct']:.0f}%→{rb['target_pct']:.0f}% "
+                        f"{qty_sell}주 매도 exec_id={exec_id}"
+                    )
+
+            # 섹터 집중도 리밸런싱
+            sector_rebalance = self.risk_manager.should_rebalance_sector(
+                positions, total_assets, current_prices
+            )
+            for rb in sector_rebalance:
+                sym = rb["symbol"]
+                if sym not in positions:
+                    continue
+                qty_sell = rb["qty_to_sell"]
+                rb_price = rb["price"]
+                rb_name = rb["name"]
+
+                exec_id = self.execution_engine.smart_execute(
+                    symbol=sym, side=Side.SELL.value,
+                    qty=qty_sell, urgency="normal",
+                    name=rb_name,
+                )
+                if exec_id:
+                    fill_price = self.execution_engine.get_fill_price(exec_id) or rb_price
+                    avg_p = positions[sym].get("avg_price", fill_price)
+                    pnl = (fill_price - avg_p) * qty_sell
+                    pnl_pct = (fill_price - avg_p) / avg_p * 100 if avg_p > 0 else 0
+                    self._record_rebalance(
+                        sym, rb_name, qty_sell, fill_price, pnl, pnl_pct,
+                        f"섹터({rb['sector']}) {rb['sector_pct']:.0f}%→{rb['target_sector_pct']:.0f}%"
+                    )
+                    positions[sym]["qty"] -= qty_sell
+                    cash += qty_sell * fill_price
+                    logger.info(
+                        f"섹터 리밸런싱 [{rb_name}] {rb['sector']} "
+                        f"{rb['sector_pct']:.0f}%→{rb['target_sector_pct']:.0f}% "
+                        f"{qty_sell}주 매도 exec_id={exec_id}"
+                    )
+        except Exception as e:
+            logger.error(f"리밸런싱 오류: {e}")
 
         # 3. 앙상블 매수 (점수 높은 순)
         for result in scan_results:
@@ -420,6 +528,9 @@ class StockTrader:
 
             symbol = result["symbol"]
             if symbol in positions:
+                continue
+            # DB 포지션도 체크 (API 실패 시 중복 매수 방지)
+            if any(dp["symbol"] == symbol for dp in db_positions):
                 continue
 
             confidence = result.get("confidence", 0)
@@ -473,15 +584,16 @@ class StockTrader:
                 name=result["name"],
             )
             if exec_id:
-                cash -= qty * current_price
-                positions[symbol] = {"qty": qty, "avg_price": current_price, "sector": sector, "name": result["name"]}
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                cash -= qty * fill_price
+                positions[symbol] = {"qty": qty, "avg_price": fill_price, "sector": sector, "name": result["name"]}
                 self._record_trade("BUY", symbol, result["name"], qty,
-                                   current_price, 0, 0,
+                                   fill_price, 0, 0,
                                    result.get("score", 0), confidence,
                                    result.get("reasons", []))
-                self.db.save_position(symbol, result["name"], qty, current_price,
+                self.db.save_position(symbol, result["name"], qty, fill_price,
                                       sector, result.get("score", 0), entry_source="ens")
-                logger.info(f"앙상블 매수 [{result['name']}] score={result.get('score', 0):.1f} exec_id={exec_id}")
+                logger.info(f"앙상블 매수 [{result['name']}] score={result.get('score', 0):.1f} @{fill_price:,.0f}원 exec_id={exec_id}")
           except Exception as e:
             logger.error(f"앙상블 매수 오류 [{result.get('symbol', '?')}]: {e}")
 
@@ -495,6 +607,9 @@ class StockTrader:
 
             symbol = result["symbol"]
             if symbol in positions:
+                continue
+            # DB 포지션도 체크 (API 실패 시 중복 매수 방지)
+            if any(dp["symbol"] == symbol for dp in db_positions):
                 continue
 
             # RSI(2) 급락 매수 조건: RSI(2) < 10 AND 종가 > MA200
@@ -540,17 +655,18 @@ class StockTrader:
                 name=result.get("name", ""),
             )
             if exec_id:
-                cash -= qty * current_price
-                positions[symbol] = {"qty": qty, "avg_price": current_price, "sector": sector, "name": result.get("name", "")}
+                fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
+                cash -= qty * fill_price
+                positions[symbol] = {"qty": qty, "avg_price": fill_price, "sector": sector, "name": result.get("name", "")}
                 self._record_trade("RSI2_BUY", symbol, result.get("name", ""), qty,
-                                   current_price, 0, 0,
+                                   fill_price, 0, 0,
                                    result.get("score", 0), 0.5,
                                    [f"RSI(2)={result.get('rsi2', 0):.0f}", f"MA200={result.get('ma200', 0):,.0f}"])
-                self.db.save_position(symbol, result.get("name", ""), qty, current_price,
+                self.db.save_position(symbol, result.get("name", ""), qty, fill_price,
                                       sector, result.get("score", 0), entry_source="rsi2")
                 logger.info(
                     f"RSI(2) 급락매수 [{result.get('name', symbol)}] "
-                    f"RSI2={result.get('rsi2', 0):.1f} MA200={result.get('ma200', 0):,.0f} "
+                    f"@{fill_price:,.0f}원 RSI2={result.get('rsi2', 0):.1f} MA200={result.get('ma200', 0):,.0f} "
                     f"exec_id={exec_id}"
                 )
           except Exception as e:
@@ -587,6 +703,38 @@ class StockTrader:
         if self.circuit_breaker.is_tripped:
             self.alert.notify_circuit_breaker(self.circuit_breaker.trip_reason)
 
+    def _record_rebalance(self, symbol, name, qty, price, pnl, pnl_pct, reason):
+        """리밸런싱 기록 (DB + 알림, 포지션 삭제 안 함)"""
+        self.db.record_trade(
+            action="REBALANCE", symbol=symbol, name=name,
+            qty=qty, price=price, pnl=pnl, pnl_pct=pnl_pct,
+            score=0, confidence=0, reasons=[reason],
+            mode="paper" if self.paper_trading else "live",
+        )
+        # REBALANCE는 부분매도이므로 포지션 삭제하지 않음
+        # DB 포지션 수량 직접 업데이트
+        try:
+            from database import get_connection
+            conn = get_connection()
+            conn.execute(
+                "UPDATE positions SET qty = qty - ? WHERE symbol = ? AND qty > ?",
+                (qty, symbol, qty)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"리밸런싱 DB 업데이트 실패 [{symbol}]: {e}")
+
+        record = {
+            "timestamp": datetime.now().isoformat(),
+            "action": "REBALANCE", "symbol": symbol, "name": name,
+            "qty": qty, "price": price,
+            "pnl_pct": round(pnl_pct, 2),
+            "reasons": [reason],
+        }
+        self.trade_history.append(record)
+        self.alert.notify_rebalance(symbol, name, qty, price, reason)
+
     def run_cycle(self):
         """1회 매매 사이클 (시장 국면 감지 포함)"""
         logger.info(f"매매 사이클: {datetime.now().strftime('%H:%M:%S')}")
@@ -614,7 +762,7 @@ class StockTrader:
         }
 
     def _generate_daily_report(self):
-        """일일 리포트 생성"""
+        """일일 리포트 생성 (개별 종목 수익률 + 오늘 거래 내역 포함)"""
         balance = self.client.get_balance()
         total_assets = balance.get("total_eval", 0)
         cash = balance.get("cash", 0)
@@ -629,26 +777,52 @@ class StockTrader:
 
         self.db.record_daily(
             total_assets=total_assets, cash=cash, invested=invested,
-            pnl_day=0, pnl_day_pct=0,
+            pnl_day=total_pnl, pnl_day_pct=total_pnl_pct,
             total_pnl=total_pnl, total_pnl_pct=total_pnl_pct,
             trades_count=today_trades, win_count=stats["wins"],
             positions_count=len(positions),
         )
 
         all_stats = self.db.get_trade_stats(days=30)
-        self.alert.notify_daily_report(
+
+        # 개별 종목 수익률 계산
+        position_details = []
+        db_positions = self.db.get_positions()
+        for pos in db_positions:
+            sym = pos["symbol"]
+            name = pos["name"]
+            qty = pos["qty"]
+            avg = pos["avg_price"]
+            price_info = self.client.fetch_price(sym)
+            cur = price_info["price"] if price_info else avg
+            pnl = (cur - avg) * qty
+            pnl_pct = (cur - avg) / avg * 100 if avg > 0 else 0
+            position_details.append({
+                "name": name, "qty": qty, "avg": avg,
+                "cur": cur, "pnl": pnl, "pnl_pct": pnl_pct,
+            })
+
+        # 오늘 거래 내역
+        today_trade_list = self.db.get_trades(limit=50)
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        today_trade_list = [
+            t for t in today_trade_list
+            if t.get("timestamp", "").startswith(today_str)
+        ]
+
+        self.alert.notify_daily_report_detail(
             total_assets=total_assets, cash=cash,
-            pnl_day=0, pnl_day_pct=0,
-            total_pnl_pct=total_pnl_pct,
-            positions=len(positions),
-            trades_today=today_trades,
+            total_pnl=total_pnl, total_pnl_pct=total_pnl_pct,
+            positions=position_details,
+            trades=today_trade_list,
             win_rate=all_stats["win_rate"],
+            regime=self.regime_detector.current_regime.value,
         )
 
     def start_auto(self):
         """자동 매매 시작 (스케줄러)"""
         mode = "모의투자" if self.paper_trading else "실전투자"
-        logger.info(f"StockBot v3.6 자동매매 시작 ({mode})")
+        logger.info(f"StockBot v3.7 자동매매 시작 ({mode})")
         logger.info(f"초기 자본: {self._initial_capital:,}원")
         self.alert.notify_bot_start(mode)
         self.scheduler.start()
@@ -689,8 +863,8 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v3.6 - 주식 자동매매")
-    print("  5전략앙상블 + RSI(2)급락매수 + ATR사이징 + Chandelier Exit")
+    print("  StockBot v3.7 - 주식 자동매매")
+    print("  6전략앙상블 + ML예측 + 멀티알림 + 리밸런싱 + 수급 + WebSocket")
     print("=" * 60)
 
     # 트레이딩 모드 결정

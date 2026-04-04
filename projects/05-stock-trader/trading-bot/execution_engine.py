@@ -1027,6 +1027,13 @@ class ExecutionEngine:
 
         return stats
 
+    def get_fill_price(self, order_id: str) -> float:
+        """체결된 주문의 평균 체결가를 반환한다. 미체결이면 0."""
+        parent = self._orders.get(order_id)
+        if parent and parent.avg_filled_price > 0:
+            return parent.avg_filled_price
+        return 0.0
+
     def get_active_orders(self) -> List[dict]:
         """현재 활성 주문 목록을 반환한다."""
         result = []

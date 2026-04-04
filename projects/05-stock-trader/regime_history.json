@@ -582,5 +582,20 @@
       "note": "Insufficient data for classification"
     },
     "timestamp": "2026-03-02T01:39:52.843311"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.9,
+    "indicators": {
+      "return_20d": 0.0,
+      "recent_vol": 0.0,
+      "long_vol": 0.0,
+      "vol_z_score": 0.0,
+      "vol_rising": false,
+      "price_above_ma50": null,
+      "latest_price": null,
+      "ma_50": null
+    },
+    "timestamp": "2026-03-05T10:36:11.707112"
   }
 ]

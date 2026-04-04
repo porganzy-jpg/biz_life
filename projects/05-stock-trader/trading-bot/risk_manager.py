@@ -1,7 +1,8 @@
 """
-StockBot 포트폴리오 리스크 관리
+StockBot 포트폴리오 리스크 관리 v3.7
 
-포지션 사이징, 섹터 배분, 리밸런싱 관리
+포지션 사이징, 섹터 배분, 자동 리밸런싱 관리
+v3.7: 현재가 기반 리밸런싱, 섹터 집중도 리밸런싱 추가
 """
 import logging
 from config import STOCK_TRADING_CONFIG
@@ -74,21 +75,116 @@ class StockRiskManager:
         sector_pct = sector_total / total_assets * 100
         return sector_pct <= self.config["max_sector_pct"]
 
-    def should_rebalance(self, positions: dict, total_assets: float) -> list:
-        """리밸런싱 필요 종목 확인"""
+    def should_rebalance(self, positions: dict, total_assets: float,
+                         current_prices: dict = None) -> list:
+        """
+        리밸런싱 필요 종목 확인 (v3.7: 현재가 기반)
+
+        Args:
+            positions: {symbol: {qty, avg_price, name, sector, ...}}
+            total_assets: 총 자산
+            current_prices: {symbol: price} 현재가 딕셔너리 (없으면 avg_price 사용)
+
+        Returns:
+            list: [{symbol, name, current_pct, target_pct, action, qty_to_sell}, ...]
+        """
         rebalance_needed = []
+        max_pct = self.config["max_single_pct"]  # 30%
+        rebalance_trigger = max_pct * 1.2  # 36% (120% of max)
+
         for symbol, pos in positions.items():
-            value = pos.get("qty", 0) * pos.get("avg_price", 0)
+            qty = pos.get("qty", 0)
+            if qty <= 0:
+                continue
+
+            # 현재가 우선, 없으면 avg_price
+            if current_prices and symbol in current_prices:
+                price = current_prices[symbol]
+            else:
+                price = pos.get("avg_price", 0)
+
+            value = qty * price
             pct = value / total_assets * 100 if total_assets > 0 else 0
 
-            if pct > self.config["max_single_pct"] * 1.2:  # 20% 초과 시
-                excess_pct = pct - self.config["max_single_pct"]
-                rebalance_needed.append({
-                    "symbol": symbol,
-                    "current_pct": round(pct, 1),
-                    "target_pct": self.config["max_single_pct"],
-                    "action": "REDUCE",
-                })
+            if pct > rebalance_trigger:
+                # 목표: max_pct(30%)까지 축소
+                target_value = total_assets * (max_pct / 100)
+                excess_value = value - target_value
+                qty_to_sell = int(excess_value / price) if price > 0 else 0
+
+                if qty_to_sell > 0:
+                    rebalance_needed.append({
+                        "symbol": symbol,
+                        "name": pos.get("name", symbol),
+                        "current_pct": round(pct, 1),
+                        "target_pct": max_pct,
+                        "action": "REDUCE",
+                        "qty_to_sell": qty_to_sell,
+                        "price": price,
+                    })
+
+        return rebalance_needed
+
+    def should_rebalance_sector(self, positions: dict, total_assets: float,
+                                current_prices: dict = None) -> list:
+        """
+        섹터 집중도 리밸런싱 (v3.7)
+
+        섹터 비중 55% 초과 시 해당 섹터 내 최대 포지션 축소.
+
+        Returns:
+            list: [{symbol, name, sector, sector_pct, qty_to_sell, price}, ...]
+        """
+        rebalance_needed = []
+        max_sector_pct = self.config["max_sector_pct"]  # 50%
+        sector_trigger = max_sector_pct * 1.1  # 55%
+
+        if total_assets <= 0:
+            return []
+
+        # 섹터별 포지션 집계
+        sector_positions = {}  # {sector: [(symbol, name, value, qty, price), ...]}
+        for symbol, pos in positions.items():
+            qty = pos.get("qty", 0)
+            if qty <= 0:
+                continue
+
+            sector = pos.get("sector", "기타")
+            if current_prices and symbol in current_prices:
+                price = current_prices[symbol]
+            else:
+                price = pos.get("avg_price", 0)
+
+            value = qty * price
+            if sector not in sector_positions:
+                sector_positions[sector] = []
+            sector_positions[sector].append((symbol, pos.get("name", symbol), value, qty, price))
+
+        for sector, items in sector_positions.items():
+            sector_value = sum(v for _, _, v, _, _ in items)
+            sector_pct = sector_value / total_assets * 100
+
+            if sector_pct > sector_trigger:
+                # 최대 포지션부터 축소하여 50%로 낮춤
+                target_value = total_assets * (max_sector_pct / 100)
+                excess = sector_value - target_value
+                # 가장 큰 포지션 축소
+                items_sorted = sorted(items, key=lambda x: x[2], reverse=True)
+                top_sym, top_name, top_val, top_qty, top_price = items_sorted[0]
+
+                if top_price > 0:
+                    qty_to_sell = min(int(excess / top_price), top_qty - 1)
+                    if qty_to_sell > 0:
+                        rebalance_needed.append({
+                            "symbol": top_sym,
+                            "name": top_name,
+                            "sector": sector,
+                            "sector_pct": round(sector_pct, 1),
+                            "target_sector_pct": max_sector_pct,
+                            "qty_to_sell": qty_to_sell,
+                            "price": top_price,
+                        })
+
         return rebalance_needed
 
     def can_afford_stock(self, stock_price: float, total_assets: float) -> bool:

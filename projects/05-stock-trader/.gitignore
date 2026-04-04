@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+
+# Environment variables (API keys)
+.env
+
+# Database
+stockbot.db
+
+# ML models
+trading-bot/models/*.pkl
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+logs/
+
+# Token cache
+token.dat
