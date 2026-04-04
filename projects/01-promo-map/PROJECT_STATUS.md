@@ -214,3 +214,9 @@ flutter analyze 결과: 에러 0개, 경고 0개
 | 원본 기획서 | `docs/PROJECT_PLAN.md` | 초기 사업 기획 |
 | 스토어 메타데이터 | `flutter_app/store_metadata.md` | Play Store 등록 정보 |
 | 개인정보처리방침 | `flutter_app/assets/privacy_policy.html` | 법적 문서 |
+
+
+
+
+## 국토교통부_토지 매매 실거래가 자료
+일반 인증키 : ee0c43d647676d21bfea7d2751d0820592206d7dfe7c35d8b5e11ea3d13618f8

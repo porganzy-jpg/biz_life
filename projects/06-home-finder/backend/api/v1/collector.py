@@ -10,7 +10,7 @@ logger = logging.getLogger("homefinder.api.collector")
 
 router = APIRouter()
 
-VALID_COLLECTORS = ["molit", "naver", "auction", "subscription", "kb_index"]
+VALID_COLLECTORS = ["molit", "land", "naver", "auction", "subscription", "kb_index"]
 
 
 def _get_scheduler(request: Request):
@@ -43,17 +43,18 @@ async def run_collector(
 
     scheduler = _get_scheduler(request)
 
-    # molit은 months_back 파라미터를 지원
-    if collector_name == "molit":
-        def _run_molit(mb=months_back):
-            from collectors.molit_collector import MolitCollector
+    # molit/land는 months_back 파라미터를 지원
+    if collector_name in ("molit", "land"):
+        def _run_with_months(name=collector_name, mb=months_back):
             from backend.config import settings
-            collector = MolitCollector(
-                api_key=settings.PUBLIC_DATA_API_KEY,
-                target_districts=settings.TARGET_DISTRICTS,
-            )
+            if name == "molit":
+                from collectors.molit_collector import MolitCollector
+                collector = MolitCollector(api_key=settings.PUBLIC_DATA_API_KEY, target_districts=settings.TARGET_DISTRICTS)
+            else:
+                from collectors.land_collector import LandCollector
+                collector = LandCollector(api_key=settings.PUBLIC_DATA_API_KEY, target_districts=settings.TARGET_DISTRICTS)
             collector.run(months_back=mb)
-        background_tasks.add_task(_run_molit)
+        background_tasks.add_task(_run_with_months)
     else:
         job_map = {
             "naver": scheduler.job_collect_naver,

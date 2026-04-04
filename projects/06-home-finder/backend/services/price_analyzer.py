@@ -180,6 +180,8 @@ class PriceAnalyzer:
 
         prices = [t.price_krw for t in txs if t.price_krw]
         stats = _calc_stats(prices)
+        if stats is None:
+            return {"stats": {"count": 0}, "transactions": []}
 
         # 최근 거래 5건 반환
         recent = []

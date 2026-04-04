@@ -1,18 +1,22 @@
 """
-국토교통부 아파트매매 실거래가 수집기 (PublicDataReader)
-API: https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev
+국토교통부 토지 매매 실거래가 수집기
+API: https://apis.data.go.kr/1613000/RTMSDataSvcLandTrade
+PublicDataReader가 토지를 지원하지 않으므로 직접 XML 파싱
 """
 import logging
+import requests
+import xmltodict
 from datetime import datetime, date
 from collectors.base_collector import BaseCollector
 from database import SessionLocal
 from models.transaction import TransactionHistory
 
-logger = logging.getLogger("homefinder.collector.molit")
+logger = logging.getLogger("homefinder.collector.land")
 
-# 서울 전체 25개구 + 경기도 근교 시군구코드
+API_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade"
+
+# 서울 + 경기 근교 시군구코드 (5자리)
 DISTRICT_CODES = {
-    # ── 서울특별시 (25개구) ──
     "종로구": "11110", "중구": "11140", "용산구": "11170",
     "성동구": "11200", "광진구": "11215", "동대문구": "11230",
     "중랑구": "11260", "성북구": "11290", "강북구": "11305",
@@ -22,7 +26,6 @@ DISTRICT_CODES = {
     "영등포구": "11560", "동작구": "11590", "관악구": "11620",
     "서초구": "11650", "강남구": "11680", "송파구": "11710",
     "강동구": "11740",
-    # ── 경기도 근교 ──
     "하남시": "41450", "과천시": "41150", "광명시": "41210",
     "구리시": "41310", "남양주시": "41360",
     "성남시 분당구": "41135", "성남시 수정구": "41131", "성남시 중원구": "41133",
@@ -32,7 +35,6 @@ DISTRICT_CODES = {
 
 
 def _calc_year_months(months_back: int) -> list[str]:
-    """정확한 년월 목록 생성 (timedelta 대신 직접 계산)"""
     now = datetime.now()
     result = []
     for m in range(months_back):
@@ -45,63 +47,43 @@ def _calc_year_months(months_back: int) -> list[str]:
     return result
 
 
-class MolitCollector(BaseCollector):
-    name = "molit"
-    rate_limit_seconds = 1.0
+class LandCollector(BaseCollector):
+    name = "land"
+    rate_limit_seconds = 1.5
 
     def __init__(self, api_key: str, target_districts: list):
         super().__init__()
         self.api_key = api_key
         self.target_districts = target_districts
 
-    def collect(self, months_back: int = 3, **kwargs) -> dict:
-        """
-        실거래가 수집
-        Args:
-            months_back: 과거 몇 개월치 수집 (기본 3개월)
-        """
-        try:
-            import PublicDataReader as pdr
-        except ImportError:
-            raise RuntimeError("PublicDataReader not installed. pip install PublicDataReader")
-
+    def collect(self, months_back: int = 2, **kwargs) -> dict:
         if not self.api_key:
-            raise ValueError("PUBLIC_DATA_API_KEY not set. Check .env file.")
-
-        api = pdr.TransactionPrice(self.api_key)
+            raise ValueError("PUBLIC_DATA_API_KEY not set")
 
         total_fetched = 0
         total_new = 0
         failures = 0
 
-        # 대상 구 코드 목록 (지정된 구가 없으면 전체)
         district_codes = [
             (d, DISTRICT_CODES[d]) for d in self.target_districts if d in DISTRICT_CODES
         ]
         if not district_codes:
             district_codes = list(DISTRICT_CODES.items())
 
-        # 정확한 년월 계산
         year_months = _calc_year_months(months_back)
-
         total_attempts = len(district_codes) * len(year_months)
 
         for district_name, code in district_codes:
             for ym in year_months:
                 try:
-                    df = self._retry(
-                        api.get_data,
-                        property_type="아파트",
-                        trade_type="매매",
-                        sigungu_code=code,
-                        year_month=ym,
-                    )
+                    self._rate_limit()
+                    items = self._fetch_api(code, ym)
 
-                    if df is None or df.empty:
+                    if not items:
                         logger.debug(f"  {district_name}/{ym}: no data")
                         continue
 
-                    fetched, new = self._save_transactions(df, district_name, code)
+                    fetched, new = self._save_transactions(items, district_name)
                     total_fetched += fetched
                     total_new += new
                     logger.info(f"  {district_name}/{ym}: fetched={fetched}, new={new}")
@@ -111,109 +93,114 @@ class MolitCollector(BaseCollector):
                     logger.warning(f"  {district_name}/{ym} failed: {e}")
                     continue
 
-        # 전부 실패한 경우 에러로 처리
         if failures == total_attempts and total_attempts > 0:
-            raise RuntimeError(
-                f"All {total_attempts} API calls failed. "
-                f"Check API key validity and network connectivity."
-            )
-
-        if failures > 0:
-            logger.warning(f"  {failures}/{total_attempts} API calls failed")
+            raise RuntimeError(f"All {total_attempts} land API calls failed. Check API key activation.")
 
         return {"fetched": total_fetched, "new": total_new, "updated": 0, "failures": failures}
 
-    def _save_transactions(self, df, district_name: str, sigungu_code: str = "11") -> tuple:
-        """DataFrame → DB 저장 (중복 체크 포함)"""
+    def _fetch_api(self, lawd_cd: str, deal_ymd: str) -> list:
+        """국토부 토지 실거래 API 직접 호출"""
+        params = {
+            "serviceKey": self.api_key,
+            "LAWD_CD": lawd_cd,
+            "DEAL_YMD": deal_ymd,
+            "numOfRows": "1000",
+            "pageNo": "1",
+        }
+
+        resp = self._retry(requests.get, API_URL, params=params, timeout=15)
+        if resp.status_code != 200:
+            raise RuntimeError(f"API {resp.status_code}")
+
+        data = xmltodict.parse(resp.text)
+        response = data.get("response")
+        if not response:
+            raise RuntimeError("Unexpected XML: missing <response>")
+
+        header = response.get("header", {})
+        result_code = header.get("resultCode", "")
+        if result_code != "00":
+            result_msg = header.get("resultMsg", "unknown")
+            raise RuntimeError(f"API error code={result_code}, msg={result_msg}")
+
+        body = response.get("body", {})
+        items = body.get("items")
+        if items is None:
+            return []
+        item_list = items.get("item", [])
+        if isinstance(item_list, dict):
+            item_list = [item_list]
+        return item_list if item_list else []
+
+    def _save_transactions(self, items: list, district_name: str) -> tuple:
         db = SessionLocal()
-        fetched = len(df)
+        fetched = len(items)
         new = 0
-        parse_failures = 0
 
         try:
-            for _, row in df.iterrows():
+            for row in items:
                 try:
-                    # 해제 거래 제외
-                    if row.get("해제여부") == "O":
-                        continue
-
-                    year = int(row.get("계약년도", 0) or 0)
-                    month = int(row.get("계약월", 0) or 0)
-                    day = int(row.get("계약일", 0) or 0)
+                    year = int(row.get("년", 0) or 0)
+                    month = int(row.get("월", 0) or 0)
+                    day = int(row.get("일", 0) or 0)
                     if not all([year, month, day]):
                         continue
                     tx_date = date(year, month, day)
 
-                    # 가격 (만원 → 원)
                     price_str = str(row.get("거래금액", "0")).replace(",", "").strip()
                     price_man = int(price_str) if price_str.isdigit() else 0
                     if price_man == 0:
                         continue
                     price_krw = price_man * 10000
 
-                    area = float(row.get("전용면적", 0) or 0)
-                    floor_val = int(row.get("층", 0) or 0)
-                    built = int(row.get("건축년도", 0) or 0)
-                    name = str(row.get("단지명", "")).strip()
+                    area = float(row.get("거래면적", 0) or 0)
                     dong = str(row.get("법정동", "")).strip()
                     jibun = str(row.get("지번", "")).strip()
+                    land_use = str(row.get("지목", "")).strip()
 
                     price_per_m2 = int(price_krw / area) if area > 0 else 0
 
-                    # 중복 체크 (같은 단지+날짜+층+면적)
+                    # 중복 체크
                     existing = db.query(TransactionHistory).filter(
-                        TransactionHistory.name == name,
+                        TransactionHistory.district == district_name,
+                        TransactionHistory.dong == dong,
                         TransactionHistory.transaction_date == tx_date,
-                        TransactionHistory.floor == floor_val,
                         TransactionHistory.area_exclusive == area,
+                        TransactionHistory.property_type == "토지",
                     ).first()
                     if existing:
                         continue
 
-                    _city = "서울특별시" if sigungu_code.startswith("11") else "경기도"
                     tx = TransactionHistory(
-                        city=_city,
+                        city="서울특별시" if district_name.endswith("구") else "경기도",
                         district=district_name,
                         dong=dong,
-                        name=name,
-                        address=f"{_city} {district_name} {dong} {jibun}",
+                        name=f"{dong} {jibun} ({land_use})",
+                        address=f"{district_name} {dong} {jibun}",
                         transaction_date=tx_date,
                         price_krw=price_krw,
                         area_exclusive=area,
-                        floor=floor_val,
-                        built_year=built,
-                        property_type="아파트",
+                        floor=None,
+                        built_year=None,
+                        property_type="토지",
                         price_per_m2=price_per_m2,
-                        source="molit",
+                        source="molit_land",
                     )
                     db.add(tx)
                     new += 1
 
-                    # 500건 단위 배치 커밋
                     if new > 0 and new % 500 == 0:
                         db.commit()
 
                 except Exception as e:
-                    parse_failures += 1
-                    logger.warning(f"Row parse error in {district_name}: {e}")
+                    logger.warning(f"Row parse error: {e}")
                     continue
 
             db.commit()
-
-            if parse_failures > 0:
-                failure_rate = parse_failures / fetched * 100
-                if failure_rate > 90:
-                    logger.error(
-                        f"CRITICAL: {failure_rate:.0f}% of rows failed to parse for {district_name}. "
-                        f"API schema may have changed. ({parse_failures}/{fetched} rows)"
-                    )
-                else:
-                    logger.warning(f"{district_name}: {parse_failures}/{fetched} rows failed to parse")
-
         except Exception as e:
             db.rollback()
-            logger.error(f"DB commit failed for {district_name}: {e}")
-            raise  # BaseCollector.run()이 실패로 기록하도록 전파
+            logger.error(f"DB commit failed for land {district_name}: {e}")
+            raise
         finally:
             db.close()
 

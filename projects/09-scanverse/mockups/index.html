@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ScanVerse — 차원의 카드</title>
+<style>
+/* ══════════ DESIGN SYSTEM ══════════ */
+:root {
+    --bg: #0a0a1a;
+    --bg2: #111128;
+    --bg3: #1a1a3e;
+    --surface: #1e1e42;
+    --border: #2a2a5e;
+    --text: #e8e6f0;
+    --text2: #9a96b8;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --gold: #ffd700;
+    --fire: #e74c3c;
+    --water: #3498db;
+    --nature: #27ae60;
+    --thunder: #f1c40f;
+    --dark: #636e72;
+    --light: #f39c12;
+    --wind: #1abc9c;
+    --earth: #e67e22;
+    --common: #9e9e9e;
+    --uncommon: #4caf50;
+    --rare: #2196f3;
+    --epic: #9c27b0;
+    --legendary: #ff9800;
+    --mythic: #e91e63;
+    --radius: 16px;
+    --radius-sm: 10px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* ══════════ NAVIGATION ══════════ */
+.nav-bar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px;
+    display: flex; justify-content: space-around; align-items: center;
+    background: linear-gradient(180deg, rgba(10,10,26,0.95), rgba(10,10,26,1));
+    border-top: 1px solid var(--border);
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    z-index: 100;
+    backdrop-filter: blur(20px);
+}
+.nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-size: 10px; color: var(--text2); cursor: pointer;
+    padding: 4px 8px; transition: color 0.2s;
+}
+.nav-item.active { color: var(--accent2); }
+.nav-item .icon { font-size: 22px; }
+
+/* ══════════ SCREENS ══════════ */
+.screen { display:none; padding: 16px 16px 80px; min-height:100vh; animation: fadeIn 0.3s; }
+.screen.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ══════════ HEADER ══════════ */
+.header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; padding-top: 8px;
+}
+.header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.header h1 span { color: var(--accent2); }
+.header-stats {
+    display: flex; gap: 12px; font-size: 12px; color: var(--text2);
+}
+.header-stats span { display: flex; align-items: center; gap: 3px; }
+
+/* ══════════ CARDS ══════════ */
+.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.card-item {
+    aspect-ratio: 2.5/3.5;
+    border-radius: var(--radius-sm);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s;
+    background: var(--surface);
+    border: 2px solid var(--border);
+}
+.card-item:active { transform: scale(0.95); }
+.card-item.common { border-color: var(--common); }
+.card-item.uncommon { border-color: var(--uncommon); box-shadow: 0 0 8px var(--uncommon); }
+.card-item.rare { border-color: var(--rare); box-shadow: 0 0 12px var(--rare); }
+.card-item.epic { border-color: var(--epic); box-shadow: 0 0 16px var(--epic); }
+.card-item.legendary { border-color: var(--legendary); box-shadow: 0 0 20px var(--legendary); animation: legendGlow 2s infinite; }
+.card-item.mythic { border-color: var(--mythic); box-shadow: 0 0 24px var(--mythic); animation: mythicGlow 1.5s infinite; }
+@keyframes legendGlow { 0%,100%{box-shadow:0 0 15px var(--legendary)} 50%{box-shadow:0 0 30px var(--legendary)} }
+@keyframes mythicGlow { 0%{border-color:var(--mythic)} 33%{border-color:var(--gold)} 66%{border-color:var(--accent)} 100%{border-color:var(--mythic)} }
+
+.card-art {
+    width: 100%; height: 60%;
+    background: linear-gradient(135deg, var(--bg3), var(--surface));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+}
+.card-info { padding: 6px 8px; }
+.card-name { font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-type { font-size: 8px; color: var(--text2); }
+.card-stats { display: flex; gap: 4px; margin-top: 3px; font-size: 8px; }
+.card-stat { background: var(--bg); padding: 1px 4px; border-radius: 3px; }
+.card-grade {
+    position: absolute; top: 4px; right: 4px;
+    font-size: 7px; font-weight: 700; padding: 1px 5px;
+    border-radius: 8px; text-transform: uppercase;
+}
+
+/* ══════════ HOME SCREEN ══════════ */
+.hero-banner {
+    background: linear-gradient(135deg, var(--accent) 0%, #2d1b69 50%, var(--bg2) 100%);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+}
+.hero-banner::before {
+    content: ''; position: absolute; top: -50%; right: -30%;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,139,250,0.3), transparent);
+}
+.hero-title { font-size: 28px; font-weight: 900; letter-spacing: -1px; position: relative; }
+.hero-sub { color: var(--accent2); font-size: 13px; margin-top: 4px; position: relative; }
+.hero-btn {
+    margin-top: 16px; display: inline-flex; align-items: center; gap: 6px;
+    background: var(--gold); color: #1a1a2e; font-weight: 800; font-size: 14px;
+    padding: 10px 24px; border-radius: 25px; border: none; cursor: pointer;
+    position: relative; transition: transform 0.1s;
+}
+.hero-btn:active { transform: scale(0.95); }
+
+.quest-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.quest-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border-radius: var(--radius-sm);
+    padding: 12px; border: 1px solid var(--border);
+}
+.quest-icon { font-size: 24px; width: 40px; text-align: center; }
+.quest-info { flex: 1; }
+.quest-name { font-size: 13px; font-weight: 600; }
+.quest-progress { font-size: 11px; color: var(--text2); }
+.quest-bar { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.quest-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+.section-title {
+    font-size: 16px; font-weight: 700; margin: 20px 0 12px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.section-title .more { font-size: 12px; color: var(--accent2); cursor: pointer; }
+
+/* ══════════ SCAN SCREEN ══════════ */
+.scan-viewport {
+    width: 100%; aspect-ratio: 4/3;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    border: 2px dashed var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; margin-bottom: 16px;
+    position: relative; overflow: hidden;
+}
+.scan-crosshair {
+    width: 180px; height: 100px; position: relative;
+    border: 2px solid var(--accent2); border-radius: 8px;
+    animation: scanPulse 2s infinite;
+}
+@keyframes scanPulse { 0%,100%{opacity:0.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.02)} }
+.scan-line {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scanLine 2s infinite;
+}
+@keyframes scanLine { 0%{top:0} 100%{top:100%} }
+.scan-label { color: var(--text2); font-size: 13px; }
+.scan-input-group {
+    display: flex; gap: 8px; margin-bottom: 16px;
+}
+.scan-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 16px;
+    color: var(--text); font-size: 16px; font-family: 'Courier New', monospace;
+    letter-spacing: 2px; text-align: center;
+}
+.scan-input::placeholder { color: var(--text2); letter-spacing: 0; }
+.scan-btn {
+    background: var(--accent); color: white; border: none;
+    border-radius: var(--radius-sm); padding: 12px 20px;
+    font-weight: 700; cursor: pointer; font-size: 14px;
+    transition: transform 0.1s;
+}
+.scan-btn:active { transform: scale(0.95); }
+.scan-count { text-align: center; font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+.scan-history { display: flex; flex-direction: column; gap: 8px; }
+.scan-history-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border-radius: var(--radius-sm);
+    padding: 10px; border: 1px solid var(--border);
+}
+
+/* ══════════ PACK OPENING MODAL ══════════ */
+.modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.9); backdrop-filter: blur(10px);
+    align-items: center; justify-content: center; flex-direction: column;
+}
+.modal-overlay.active { display: flex; }
+.pack-card {
+    width: 220px; aspect-ratio: 2.5/3.5;
+    border-radius: 16px; perspective: 600px;
+    cursor: pointer; margin: 8px;
+}
+.pack-card-inner {
+    width: 100%; height: 100%; position: relative;
+    transform-style: preserve-3d; transition: transform 0.6s;
+}
+.pack-card.revealed .pack-card-inner { transform: rotateY(180deg); }
+.pack-card-front, .pack-card-back {
+    position: absolute; inset: 0; border-radius: 16px;
+    backface-visibility: hidden; display: flex; align-items: center;
+    justify-content: center; flex-direction: column;
+}
+.pack-card-front {
+    background: linear-gradient(135deg, var(--accent), var(--bg3));
+    border: 2px solid var(--accent2);
+    font-size: 48px;
+}
+.pack-card-back {
+    transform: rotateY(180deg);
+    padding: 16px;
+}
+.pack-cards-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.pack-close {
+    margin-top: 20px; background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 10px 30px; font-size: 14px; cursor: pointer;
+}
+
+/* ══════════ BATTLE SCREEN ══════════ */
+.battle-field {
+    background: linear-gradient(180deg, #1a0a2e 0%, var(--bg2) 50%, #0a1a2e 100%);
+    border-radius: var(--radius);
+    padding: 16px; margin-bottom: 12px;
+    min-height: 300px; position: relative;
+}
+.battle-side { margin-bottom: 12px; }
+.battle-side-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.battle-slots { display: flex; gap: 8px; justify-content: center; }
+.battle-slot {
+    width: 70px; height: 90px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; background: rgba(255,255,255,0.03);
+    position: relative;
+}
+.battle-slot.filled { border-style: solid; background: var(--surface); }
+.hp-bar { position: absolute; bottom: -8px; left: 4px; right: 4px; height: 4px; background: #333; border-radius: 2px; }
+.hp-fill { height: 100%; background: #27ae60; border-radius: 2px; transition: width 0.3s; }
+.battle-vs { text-align: center; font-size: 18px; font-weight: 900; color: var(--accent2); margin: 8px 0; letter-spacing: 4px; }
+.battle-hand {
+    display: flex; gap: 6px; overflow-x: auto; padding: 8px 0;
+    -webkit-overflow-scrolling: touch;
+}
+.hand-card {
+    min-width: 60px; height: 80px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    font-size: 20px; cursor: pointer; flex-shrink: 0;
+    transition: transform 0.15s;
+}
+.hand-card:active { transform: translateY(-8px); }
+.hand-card .cost { font-size: 9px; color: var(--accent2); font-weight: 700; }
+.mana-bar {
+    display: flex; gap: 3px; justify-content: center; margin: 8px 0;
+}
+.mana-gem {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--bg3); border: 1px solid var(--border);
+}
+.mana-gem.filled { background: var(--accent); border-color: var(--accent2); box-shadow: 0 0 6px var(--accent); }
+.battle-log {
+    background: var(--surface); border-radius: var(--radius-sm);
+    padding: 10px; font-size: 11px; color: var(--text2);
+    max-height: 80px; overflow-y: auto; line-height: 1.6;
+}
+.battle-actions { display: flex; gap: 8px; margin-top: 8px; }
+.battle-actions button {
+    flex: 1; padding: 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); font-weight: 600; cursor: pointer; font-size: 13px;
+}
+.battle-actions button.primary { background: var(--accent); border-color: var(--accent); }
+
+/* ══════════ DECK BUILDER ══════════ */
+.deck-header {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--surface); border-radius: var(--radius-sm);
+    padding: 12px; margin-bottom: 12px; border: 1px solid var(--border);
+}
+.deck-count { font-size: 22px; font-weight: 900; color: var(--accent2); }
+.deck-count small { font-size: 12px; color: var(--text2); font-weight: 400; }
+
+/* ══════════ FUSION ══════════ */
+.fusion-area {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; margin: 20px 0; flex-wrap: wrap;
+}
+.fusion-slot {
+    width: 80px; height: 110px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; color: var(--text2);
+    background: var(--surface);
+}
+.fusion-arrow { font-size: 24px; color: var(--accent2); }
+.fusion-result {
+    width: 100px; height: 140px;
+    border: 2px solid var(--gold);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; background: var(--surface);
+    box-shadow: 0 0 20px rgba(255,215,0,0.2);
+}
+
+/* ══════════ SHOP ══════════ */
+.shop-pack {
+    background: linear-gradient(135deg, var(--surface), var(--bg3));
+    border-radius: var(--radius);
+    padding: 16px; border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 10px; cursor: pointer;
+    transition: transform 0.1s;
+}
+.shop-pack:active { transform: scale(0.98); }
+.shop-pack-icon { font-size: 40px; }
+.shop-pack-info { flex: 1; }
+.shop-pack-name { font-weight: 700; font-size: 14px; }
+.shop-pack-desc { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.shop-price {
+    background: var(--gold); color: #1a1a2e; font-weight: 800;
+    padding: 6px 14px; border-radius: 15px; font-size: 12px;
+}
+
+/* ══════════ PROFILE ══════════ */
+.profile-card {
+    background: linear-gradient(135deg, var(--accent), var(--bg3));
+    border-radius: var(--radius); padding: 24px; text-align: center;
+    margin-bottom: 16px;
+}
+.profile-avatar { font-size: 48px; margin-bottom: 8px; }
+.profile-name { font-size: 18px; font-weight: 800; }
+.profile-level { font-size: 12px; color: var(--accent2); }
+.profile-stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-top: 16px;
+}
+.profile-stat {
+    background: var(--surface); border-radius: var(--radius-sm);
+    padding: 12px 8px; text-align: center;
+    border: 1px solid var(--border);
+}
+.profile-stat-num { font-size: 20px; font-weight: 800; color: var(--accent2); }
+.profile-stat-label { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+/* ══════════ UTILITIES ══════════ */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+.filter-tabs {
+    display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+}
+.filter-tab {
+    padding: 6px 14px; border-radius: 20px; font-size: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text2); cursor: pointer; white-space: nowrap;
+}
+.filter-tab.active { background: var(--accent); border-color: var(--accent); color: white; }
+.empty-state {
+    text-align: center; padding: 40px 20px; color: var(--text2);
+}
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════ 1. HOME ══════════ -->
+<div class="screen active" id="screen-home">
+    <div class="header">
+        <h1>Scan<span>Verse</span></h1>
+        <div class="header-stats">
+            <span>💎 <b id="statGems">150</b></span>
+            <span>🪙 <b id="statGold">2,400</b></span>
+        </div>
+    </div>
+
+    <div class="hero-banner">
+        <div class="hero-title">차원의 문을<br>열어라</div>
+        <div class="hero-sub">바코드 하나가 새로운 카드를 소환합니다</div>
+        <button class="hero-btn" onclick="showScreen('scan')">📷 스캔하기</button>
+    </div>
+
+    <div class="section-title">일일 퀘스트 <span class="more">전체보기 →</span></div>
+    <div class="quest-list">
+        <div class="quest-item">
+            <div class="quest-icon">📷</div>
+            <div class="quest-info">
+                <div class="quest-name">바코드 5회 스캔</div>
+                <div class="quest-progress">3 / 5</div>
+                <div class="quest-bar"><div class="quest-fill" style="width:60%"></div></div>
+            </div>
+        </div>
+        <div class="quest-item">
+            <div class="quest-icon">⚔️</div>
+            <div class="quest-info">
+                <div class="quest-name">전투 3회 승리</div>
+                <div class="quest-progress">1 / 3</div>
+                <div class="quest-bar"><div class="quest-fill" style="width:33%"></div></div>
+            </div>
+        </div>
+        <div class="quest-item">
+            <div class="quest-icon">🔮</div>
+            <div class="quest-info">
+                <div class="quest-name">카드 합성 1회</div>
+                <div class="quest-progress">0 / 1</div>
+                <div class="quest-bar"><div class="quest-fill" style="width:0%"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">최근 획득 카드 <span class="more" onclick="showScreen('collection')">도감 →</span></div>
+    <div class="card-grid" id="recentCards"></div>
+</div>
+
+<!-- ══════════ 2. SCAN ══════════ -->
+<div class="screen" id="screen-scan">
+    <div class="header">
+        <h1>📷 스캔</h1>
+        <div class="header-stats"><span id="scanRemain">오늘 17/20 남음</span></div>
+    </div>
+
+    <div class="scan-viewport">
+        <div class="scan-crosshair">
+            <div class="scan-line"></div>
+        </div>
+        <div class="scan-label">카메라로 바코드를 비추세요</div>
+    </div>
+
+    <div class="scan-input-group">
+        <input type="text" class="scan-input" id="barcodeInput" placeholder="바코드 직접 입력" maxlength="13">
+        <button class="scan-btn" onclick="scanBarcode()">스캔</button>
+    </div>
+    <div class="scan-count">샘플: 8801234567890, 4901234567891, 6901234567892</div>
+
+    <div class="section-title">최근 스캔</div>
+    <div class="scan-history" id="scanHistory"></div>
+</div>
+
+<!-- ══════════ 3. COLLECTION ══════════ -->
+<div class="screen" id="screen-collection">
+    <div class="header">
+        <h1>📖 도감</h1>
+        <div class="header-stats"><span id="collectionCount">0/100</span></div>
+    </div>
+    <div class="filter-tabs">
+        <div class="filter-tab active" onclick="filterCollection('all',this)">전체</div>
+        <div class="filter-tab" onclick="filterCollection('hero',this)">🗡️ 히어로</div>
+        <div class="filter-tab" onclick="filterCollection('spell',this)">✨ 마법</div>
+        <div class="filter-tab" onclick="filterCollection('equipment',this)">🛡️ 장비</div>
+        <div class="filter-tab" onclick="filterCollection('relic',this)">💎 유물</div>
+    </div>
+    <div class="card-grid" id="collectionGrid"></div>
+</div>
+
+<!-- ══════════ 4. DECK BUILDER ══════════ -->
+<div class="screen" id="screen-deck">
+    <div class="header"><h1>🃏 덱 빌더</h1></div>
+    <div class="deck-header">
+        <div>
+            <div style="font-size:13px;font-weight:600">내 덱</div>
+            <div style="font-size:11px;color:var(--text2)">히어로 4장 필요</div>
+        </div>
+        <div class="deck-count" id="deckCount">0<small>/20</small></div>
+    </div>
+    <div class="section-title">덱 카드</div>
+    <div class="card-grid" id="deckGrid"></div>
+    <div class="section-title">보유 카드 <span class="more">탭하여 추가</span></div>
+    <div class="card-grid" id="deckPoolGrid"></div>
+</div>
+
+<!-- ══════════ 5. BATTLE ══════════ -->
+<div class="screen" id="screen-battle">
+    <div class="header"><h1>⚔️ 배틀</h1></div>
+
+    <div class="filter-tabs">
+        <div class="filter-tab active">📖 스토리</div>
+        <div class="filter-tab">🏰 던전</div>
+        <div class="filter-tab">🏟️ 아레나</div>
+    </div>
+
+    <div class="battle-field" id="battleField">
+        <div class="battle-side">
+            <div class="battle-side-label">👾 상대</div>
+            <div class="battle-slots" id="enemySlots">
+                <div class="battle-slot filled">🐉<div class="hp-bar"><div class="hp-fill" style="width:100%"></div></div></div>
+                <div class="battle-slot filled">🧙<div class="hp-bar"><div class="hp-fill" style="width:75%"></div></div></div>
+                <div class="battle-slot filled">👹<div class="hp-bar"><div class="hp-fill" style="width:60%"></div></div></div>
+                <div class="battle-slot">?</div>
+            </div>
+        </div>
+        <div class="battle-vs">— VS —</div>
+        <div class="battle-side">
+            <div class="battle-side-label">🎮 나</div>
+            <div class="battle-slots" id="mySlots">
+                <div class="battle-slot filled">⚔️<div class="hp-bar"><div class="hp-fill" style="width:90%"></div></div></div>
+                <div class="battle-slot filled">🏹<div class="hp-bar"><div class="hp-fill" style="width:100%"></div></div></div>
+                <div class="battle-slot">?</div>
+                <div class="battle-slot">?</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mana-bar" id="manaBar"></div>
+
+    <div style="font-size:11px;color:var(--text2);text-align:center;margin-bottom:6px">핸드 (탭하여 소환/사용)</div>
+    <div class="battle-hand" id="battleHand"></div>
+
+    <div class="battle-log" id="battleLog">
+        ⚔️ 1턴 시작 — 마나 1 충전<br>
+        🐉 적 드래곤이 소환되었다!<br>
+        🗡️ 내 검사가 공격! → 25 데미지
+    </div>
+
+    <div class="battle-actions">
+        <button class="primary" onclick="battleAttack()">⚔️ 공격</button>
+        <button onclick="battleEndTurn()">⏭️ 턴 종료</button>
+    </div>
+</div>
+
+<!-- ══════════ 6. FUSION ══════════ -->
+<div class="screen" id="screen-fusion">
+    <div class="header"><h1>🔮 합성</h1></div>
+
+    <div class="filter-tabs">
+        <div class="filter-tab active">등급 업</div>
+        <div class="filter-tab">속성 합성</div>
+        <div class="filter-tab">레시피</div>
+    </div>
+
+    <div class="fusion-area">
+        <div class="fusion-slot">🗡️</div>
+        <div style="font-size:18px;color:var(--text2)">+</div>
+        <div class="fusion-slot">🗡️</div>
+        <div style="font-size:18px;color:var(--text2)">+</div>
+        <div class="fusion-slot">🗡️</div>
+        <div class="fusion-arrow">→</div>
+        <div class="fusion-result">✨</div>
+    </div>
+
+    <p style="text-align:center;font-size:12px;color:var(--text2);margin-bottom:16px">
+        같은 카드 3장 → 1등급 높은 카드로 합성
+    </p>
+
+    <button class="scan-btn" style="width:100%;padding:14px;font-size:15px" onclick="alert('합성 성공! 🎉')">
+        🔮 합성하기
+    </button>
+
+    <div class="section-title">합성 가능 카드</div>
+    <div class="card-grid" id="fusionGrid"></div>
+</div>
+
+<!-- ══════════ 7. SHOP ══════════ -->
+<div class="screen" id="screen-shop">
+    <div class="header">
+        <h1>🏪 상점</h1>
+        <div class="header-stats">
+            <span>💎 <b>150</b></span>
+            <span>🪙 <b>2,400</b></span>
+        </div>
+    </div>
+
+    <div class="shop-pack" onclick="alert('구매 완료! 카드팩을 열어보세요')">
+        <div class="shop-pack-icon">📦</div>
+        <div class="shop-pack-info">
+            <div class="shop-pack-name">기본 카드팩</div>
+            <div class="shop-pack-desc">카드 3장 · Common~Rare</div>
+        </div>
+        <div class="shop-price">🪙 500</div>
+    </div>
+    <div class="shop-pack" onclick="alert('구매 완료!')">
+        <div class="shop-pack-icon">🎁</div>
+        <div class="shop-pack-info">
+            <div class="shop-pack-name">프리미엄 팩</div>
+            <div class="shop-pack-desc">카드 5장 · Rare 이상 1장 확정</div>
+        </div>
+        <div class="shop-price">💎 50</div>
+    </div>
+    <div class="shop-pack">
+        <div class="shop-pack-icon">👑</div>
+        <div class="shop-pack-info">
+            <div class="shop-pack-name">전설의 팩</div>
+            <div class="shop-pack-desc">카드 5장 · Epic 이상 1장 확정</div>
+        </div>
+        <div class="shop-price">💎 150</div>
+    </div>
+    <div class="shop-pack">
+        <div class="shop-pack-icon">🎫</div>
+        <div class="shop-pack-info">
+            <div class="shop-pack-name">배틀패스 시즌 1</div>
+            <div class="shop-pack-desc">30일 · 매일 보상 + 전설 카드팩</div>
+        </div>
+        <div class="shop-price">💎 300</div>
+    </div>
+</div>
+
+<!-- ══════════ 8. PROFILE ══════════ -->
+<div class="screen" id="screen-profile">
+    <div class="header"><h1>👤 프로필</h1></div>
+
+    <div class="profile-card">
+        <div class="profile-avatar">🌀</div>
+        <div class="profile-name">차원의 탐험가</div>
+        <div class="profile-level">Lv. 7 · ELO 1,240</div>
+    </div>
+
+    <div class="profile-stats-grid">
+        <div class="profile-stat">
+            <div class="profile-stat-num" id="statTotalCards">0</div>
+            <div class="profile-stat-label">보유 카드</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-num" id="statTotalScans">0</div>
+            <div class="profile-stat-label">총 스캔</div>
+        </div>
+        <div class="profile-stat">
+            <div class="profile-stat-num">12</div>
+            <div class="profile-stat-label">전투 승리</div>
+        </div>
+    </div>
+
+    <div class="section-title">업적</div>
+    <div class="quest-list">
+        <div class="quest-item"><div class="quest-icon">🏆</div><div class="quest-info"><div class="quest-name">첫 스캔!</div><div class="quest-progress">완료 · 🪙 100</div></div></div>
+        <div class="quest-item"><div class="quest-icon">⚔️</div><div class="quest-info"><div class="quest-name">첫 승리</div><div class="quest-progress">완료 · 🪙 200</div></div></div>
+        <div class="quest-item"><div class="quest-icon">🌟</div><div class="quest-info"><div class="quest-name">Rare 카드 획득</div><div class="quest-progress">완료 · 💎 10</div></div></div>
+        <div class="quest-item"><div class="quest-icon">🔮</div><div class="quest-info"><div class="quest-name">첫 합성</div><div class="quest-progress">미완료</div></div></div>
+    </div>
+</div>
+
+<!-- ══════════ PACK OPENING MODAL ══════════ -->
+<div class="modal-overlay" id="packModal">
+    <h2 style="margin-bottom:16px;font-weight:900;letter-spacing:2px">🎴 CARD PACK</h2>
+    <div class="pack-cards-row" id="packCardsRow"></div>
+    <button class="pack-close" onclick="closePack()">확인</button>
+</div>
+
+<!-- ══════════ NAVIGATION ══════════ -->
+<div class="nav-bar">
+    <div class="nav-item active" onclick="showScreen('home')"><div class="icon">🏠</div>홈</div>
+    <div class="nav-item" onclick="showScreen('scan')"><div class="icon">📷</div>스캔</div>
+    <div class="nav-item" onclick="showScreen('collection')"><div class="icon">📖</div>도감</div>
+    <div class="nav-item" onclick="showScreen('deck')"><div class="icon">🃏</div>덱</div>
+    <div class="nav-item" onclick="showScreen('battle')"><div class="icon">⚔️</div>배틀</div>
+    <div class="nav-item" onclick="showScreen('fusion')"><div class="icon">🔮</div>합성</div>
+    <div class="nav-item" onclick="showScreen('shop')"><div class="icon">🏪</div>상점</div>
+    <div class="nav-item" onclick="showScreen('profile')"><div class="icon">👤</div>나</div>
+</div>
+
+<script>
+/* ══════════ GAME STATE ══════════ */
+const STATE = JSON.parse(localStorage.getItem('scanverse') || 'null') || {
+    cards: [], deck: [], scans: 0, gold: 2400, gems: 150, scanHistory: []
+};
+function save() { localStorage.setItem('scanverse', JSON.stringify(STATE)); }
+
+/* ══════════ CARD DATA ══════════ */
+const ELEMENTS = ['fire','water','nature','thunder','dark','light','wind','earth'];
+const ELEM_EMOJI = {fire:'🔥',water:'💧',nature:'🌿',thunder:'⚡',dark:'🌑',light:'✨',wind:'🌪️',earth:'🪨'};
+const ELEM_COLOR = {fire:'var(--fire)',water:'var(--water)',nature:'var(--nature)',thunder:'var(--thunder)',dark:'var(--dark)',light:'var(--light)',wind:'var(--wind)',earth:'var(--earth)'};
+const GRADES = ['common','uncommon','rare','epic','legendary','mythic'];
+const GRADE_LABEL = {common:'C',uncommon:'UC',rare:'R',epic:'EP',legendary:'LG',mythic:'MY'};
+const GRADE_COLOR = {common:'var(--common)',uncommon:'var(--uncommon)',rare:'var(--rare)',epic:'var(--epic)',legendary:'var(--legendary)',mythic:'var(--mythic)'};
+const TYPES = ['hero','spell','equipment','relic'];
+const TYPE_EMOJI = {hero:'🗡️',spell:'✨',equipment:'🛡️',relic:'💎'};
+const HERO_NAMES = [
+    '불꽃 검사','얼음 궁수','숲의 드루이드','번개 마법사','암흑 암살자',
+    '빛의 성기사','폭풍 닌자','대지 수호자','화염 드래곤','해류 소환사',
+    '독초 레인저','뇌전 사무라이','그림자 마녀','태양 전사','질풍 도적',
+    '바위 골렘','용암 기사','얼음 여왕','덩굴 위치','천둥 타이탄',
+    '흑기사','빛나래 천사','태풍 해적','거석 자이언트','불사조 소환사',
+];
+const SPELL_NAMES = ['화염구','치유의 빛','독안개','번개 화살','어둠의 장막','정화','질풍참','지진','빙결','축복'];
+const EQUIP_NAMES = ['불꽃 검','얼음 방패','바람의 망토','대지 갑옷','뇌신 장갑','암흑 단검','빛나는 목걸이','숲의 활'];
+const RELIC_NAMES = ['마나 수정','경험치 부적','행운의 주사위','차원의 나침반','원소의 오브'];
+
+/* ══════════ SHA-256 HASH ══════════ */
+async function sha256(msg) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ══════════ BARCODE → CARD GENERATION ══════════ */
+async function generateCards(barcode) {
+    const hash = await sha256(barcode);
+    const seed = hash.split('').map(c => parseInt(c, 16));
+
+    // 팩 크기 (1~3)
+    const packSize = (seed[0] % 3) + 1;
+    const cards = [];
+
+    for (let i = 0; i < packSize; i++) {
+        const offset = i * 8;
+        // 등급 결정
+        const gradeRoll = (seed[(offset+1)%32]*16 + seed[(offset+2)%32]) / 256;
+        let grade;
+        if (gradeRoll < 0.40) grade = 'common';
+        else if (gradeRoll < 0.65) grade = 'uncommon';
+        else if (gradeRoll < 0.83) grade = 'rare';
+        else if (gradeRoll < 0.93) grade = 'epic';
+        else if (gradeRoll < 0.98) grade = 'legendary';
+        else grade = 'mythic';
+
+        // 팰린드롬 보너스
+        if (barcode === barcode.split('').reverse().join('')) {
+            if (grade === 'common') grade = 'uncommon';
+            else if (grade === 'uncommon') grade = 'rare';
+        }
+
+        // 타입 결정 (국가코드 영향)
+        const typeIdx = seed[(offset+3)%32] % 4;
+        const type = TYPES[typeIdx];
+
+        // 속성 결정
+        const elemIdx = seed[(offset+4)%32] % 8;
+        const element = ELEMENTS[elemIdx];
+
+        // 이름 결정
+        let name;
+        const nameIdx = seed[(offset+5)%32];
+        if (type === 'hero') name = HERO_NAMES[nameIdx % HERO_NAMES.length];
+        else if (type === 'spell') name = SPELL_NAMES[nameIdx % SPELL_NAMES.length];
+        else if (type === 'equipment') name = EQUIP_NAMES[nameIdx % EQUIP_NAMES.length];
+        else name = RELIC_NAMES[nameIdx % RELIC_NAMES.length];
+
+        // 스탯 (등급에 따라 스케일)
+        const gradeMulti = {common:1, uncommon:1.3, rare:1.6, epic:2, legendary:2.5, mythic:3.2};
+        const base = gradeMulti[grade];
+        const hp = Math.round((40 + seed[(offset+6)%32] * 3) * base);
+        const atk = Math.round((8 + seed[(offset+7)%32]) * base);
+        const def = Math.round((5 + seed[(offset+0)%32] * 0.7) * base);
+        const spd = Math.round((3 + seed[(offset+1)%32] * 0.4) * base);
+        const cost = Math.min(5, Math.max(1, GRADES.indexOf(grade) + 1));
+
+        cards.push({
+            id: `${barcode}_${i}`,
+            barcode, name, type, element, grade,
+            hp, atk, def, spd, cost,
+            emoji: TYPE_EMOJI[type],
+        });
+    }
+    return cards;
+}
+
+/* ══════════ SCAN ══════════ */
+async function scanBarcode() {
+    const input = document.getElementById('barcodeInput');
+    const barcode = input.value.trim();
+    if (!barcode || barcode.length < 8) { alert('바코드를 입력하세요 (8자리 이상)'); return; }
+
+    const cards = await generateCards(barcode);
+    STATE.cards.push(...cards);
+    STATE.scans++;
+    STATE.scanHistory.unshift({ barcode, count: cards.length, time: Date.now() });
+    if (STATE.scanHistory.length > 20) STATE.scanHistory.pop();
+    save();
+    input.value = '';
+
+    // 팩 오프닝
+    openPack(cards);
+    updateUI();
+}
+
+/* ══════════ PACK OPENING ══════════ */
+function openPack(cards) {
+    const modal = document.getElementById('packModal');
+    const row = document.getElementById('packCardsRow');
+    row.innerHTML = '';
+
+    cards.forEach((c, i) => {
+        const packCard = document.createElement('div');
+        packCard.className = 'pack-card';
+        packCard.innerHTML = `
+            <div class="pack-card-inner">
+                <div class="pack-card-front">🎴<div style="font-size:14px;margin-top:8px;color:var(--accent2)">TAP</div></div>
+                <div class="pack-card-back ${c.grade}" style="background:var(--surface);border:2px solid ${GRADE_COLOR[c.grade]}">
+                    <div style="font-size:48px;margin-bottom:8px">${c.emoji}</div>
+                    <div style="font-size:14px;font-weight:700">${c.name}</div>
+                    <div style="font-size:11px;color:var(--text2)">${ELEM_EMOJI[c.element]} ${c.element} · ${c.grade}</div>
+                    <div style="font-size:10px;margin-top:8px;display:flex;gap:6px">
+                        <span>HP ${c.hp}</span>
+                        <span>ATK ${c.atk}</span>
+                    </div>
+                </div>
+            </div>`;
+        packCard.onclick = () => packCard.classList.add('revealed');
+        setTimeout(() => row.appendChild(packCard), i * 200);
+    });
+
+    modal.classList.add('active');
+}
+
+function closePack() {
+    document.getElementById('packModal').classList.remove('active');
+}
+
+/* ══════════ NAVIGATION ══════════ */
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach((n, i) => {
+        const screens = ['home','scan','collection','deck','battle','fusion','shop','profile'];
+        n.classList.toggle('active', screens[i] === id);
+    });
+    updateUI();
+}
+
+/* ══════════ RENDER CARD HTML ══════════ */
+function renderCardHTML(c) {
+    return `<div class="card-item ${c.grade}" onclick="alert('${c.name}\\n${c.grade.toUpperCase()} ${c.type}\\n${ELEM_EMOJI[c.element]} ${c.element}\\nHP:${c.hp} ATK:${c.atk} DEF:${c.def} SPD:${c.spd}')">
+        <div class="card-art" style="background:linear-gradient(135deg, ${ELEM_COLOR[c.element]}33, var(--surface))">${c.emoji}</div>
+        <div class="card-info">
+            <div class="card-name">${c.name}</div>
+            <div class="card-type">${ELEM_EMOJI[c.element]} ${c.type}</div>
+            <div class="card-stats"><span class="card-stat">HP${c.hp}</span><span class="card-stat">ATK${c.atk}</span></div>
+        </div>
+        <div class="card-grade" style="background:${GRADE_COLOR[c.grade]};color:white">${GRADE_LABEL[c.grade]}</div>
+    </div>`;
+}
+
+/* ══════════ COLLECTION FILTER ══════════ */
+let _collectionFilter = 'all';
+function filterCollection(type, el) {
+    _collectionFilter = type;
+    document.querySelectorAll('#screen-collection .filter-tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    updateUI();
+}
+
+/* ══════════ BATTLE LOGIC ══════════ */
+let battleTurn = 1;
+let battleMana = 1;
+function updateManaBar() {
+    const bar = document.getElementById('manaBar');
+    bar.innerHTML = '';
+    for (let i = 0; i < 10; i++) {
+        bar.innerHTML += `<div class="mana-gem ${i < battleMana ? 'filled' : ''}"></div>`;
+    }
+}
+function battleAttack() {
+    const log = document.getElementById('battleLog');
+    log.innerHTML += `<br>⚔️ 내 히어로가 공격! → ${10 + Math.floor(Math.random()*20)} 데미지`;
+    log.scrollTop = log.scrollHeight;
+}
+function battleEndTurn() {
+    battleTurn++;
+    battleMana = Math.min(10, battleTurn);
+    updateManaBar();
+    const log = document.getElementById('battleLog');
+    log.innerHTML += `<br>⏭️ ${battleTurn}턴 시작 — 마나 ${battleMana} 충전`;
+    log.innerHTML += `<br>👾 적이 공격! → ${8 + Math.floor(Math.random()*15)} 데미지`;
+    log.scrollTop = log.scrollHeight;
+}
+
+/* ══════════ UPDATE UI ══════════ */
+function updateUI() {
+    // Stats
+    document.getElementById('statGems').textContent = STATE.gems;
+    document.getElementById('statGold').textContent = STATE.gold.toLocaleString();
+    document.getElementById('statTotalCards').textContent = STATE.cards.length;
+    document.getElementById('statTotalScans').textContent = STATE.scans;
+    document.getElementById('collectionCount').textContent = `${STATE.cards.length}/100`;
+
+    // Recent cards (home)
+    const recent = document.getElementById('recentCards');
+    const last6 = STATE.cards.slice(-6).reverse();
+    recent.innerHTML = last6.length ? last6.map(renderCardHTML).join('') :
+        '<div class="empty-state" style="grid-column:1/-1"><div class="icon">📷</div><p>스캔하여 카드를 수집하세요!</p></div>';
+
+    // Collection
+    const grid = document.getElementById('collectionGrid');
+    let filtered = STATE.cards;
+    if (_collectionFilter !== 'all') filtered = filtered.filter(c => c.type === _collectionFilter);
+    grid.innerHTML = filtered.length ? filtered.map(renderCardHTML).join('') :
+        '<div class="empty-state" style="grid-column:1/-1"><div class="icon">📖</div><p>카드가 없습니다</p></div>';
+
+    // Deck
+    const deckGrid = document.getElementById('deckGrid');
+    const deckPool = document.getElementById('deckPoolGrid');
+    deckGrid.innerHTML = STATE.deck.map(renderCardHTML).join('') || '<div class="empty-state" style="grid-column:1/-1">덱이 비어있습니다</div>';
+    deckPool.innerHTML = STATE.cards.filter(c => !STATE.deck.includes(c)).slice(0,12).map(renderCardHTML).join('');
+    document.getElementById('deckCount').innerHTML = `${STATE.deck.length}<small>/20</small>`;
+
+    // Scan history
+    const hist = document.getElementById('scanHistory');
+    hist.innerHTML = STATE.scanHistory.slice(0,5).map(h =>
+        `<div class="scan-history-item">
+            <div style="font-family:monospace;font-size:13px;flex:1">${h.barcode}</div>
+            <div style="font-size:12px;color:var(--accent2)">${h.count}장</div>
+        </div>`
+    ).join('') || '<div class="empty-state"><p>아직 스캔 기록이 없습니다</p></div>';
+
+    // Fusion
+    const fusionGrid = document.getElementById('fusionGrid');
+    fusionGrid.innerHTML = STATE.cards.slice(0,6).map(renderCardHTML).join('');
+
+    // Battle hand
+    const hand = document.getElementById('battleHand');
+    const handCards = STATE.cards.slice(0,5);
+    hand.innerHTML = handCards.map(c =>
+        `<div class="hand-card" style="border-color:${ELEM_COLOR[c.element]}">${c.emoji}<div class="cost">${c.cost}💧</div></div>`
+    ).join('') || '<div style="color:var(--text2);font-size:12px;padding:20px">카드를 스캔하여 핸드를 채우세요</div>';
+
+    updateManaBar();
+}
+
+/* ══════════ INIT ══════════ */
+updateUI();
+</script>
+</body>
+</html>

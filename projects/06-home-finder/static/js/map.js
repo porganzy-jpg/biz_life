@@ -3,6 +3,11 @@
  */
 
 const MAP_API = '/api/v1/dashboard/map-markers';
+
+// XSS 방지 HTML 이스케이프
+function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 let map = null;
 let markers = [];
 let clusterer = null;
@@ -133,7 +138,7 @@ async function loadMarkers(filters) {
                     let content = '';
                     if (m.marker_type === 'transaction_summary') {
                         content = `<div style="padding:10px;min-width:220px;font-size:13px">
-                            <strong style="color:#7b2d8e">📊 ${m.label}</strong><br>
+                            <strong style="color:#7b2d8e">📊 ${esc(m.label)}</strong><br>
                             <span style="color:#0d6efd;font-weight:700">평균 ${formatPrice(m.price_krw)}</span><br>
                             <small>평균 면적: ${m.area_m2 ? m.area_m2 + '㎡' : '-'} · 실거래 ${m.tx_count}건</small><br>
                             <a href="/search" style="font-size:12px;font-weight:600">이 지역 검색 →</a></div>`;
@@ -142,7 +147,7 @@ async function loadMarkers(filters) {
                         const typeLabel = m.property_type === '토지' ? '<strong style="color:#198754">[토지]</strong> ' : '<strong>';
                         const detailLink = m.id ? `<a href="/property/${m.id}" style="font-size:12px;font-weight:600">상세보기 →</a>` : '';
                         content = `<div style="padding:10px;min-width:200px;font-size:13px">
-                            ${typeLabel}${m.label}</strong>${candidateBadge}<br>
+                            ${typeLabel}${esc(m.label)}</strong>${candidateBadge}<br>
                             <span style="color:#0d6efd;font-weight:700">${formatPrice(m.price_krw)}</span>
                             <span style="margin-left:6px">점수: ${score}</span><br>
                             <small>${m.property_type || ''} ${m.area_m2 ? m.area_m2 + '㎡' : ''}</small><br>
@@ -206,7 +211,7 @@ function renderSidebar() {
             propertyList.innerHTML += `
                 <div class="property-list-item" onclick="panTo(${m.lat},${m.lng})" style="cursor:pointer">
                     <div class="d-flex justify-content-between">
-                        <span class="name"><span class="badge bg-purple" style="font-size:0.65rem;background:#7b2d8e">실거래</span> ${m.label}</span>
+                        <span class="name"><span class="badge bg-purple" style="font-size:0.65rem;background:#7b2d8e">실거래</span> ${esc(m.label)}</span>
                     </div>
                     <div class="price">평균 ${formatPrice(m.price_krw)}</div>
                 </div>`;
@@ -220,7 +225,7 @@ function renderSidebar() {
             propertyList.innerHTML += `
                 <div class="property-list-item" onclick="panTo(${m.lat},${m.lng})" style="cursor:pointer">
                     <div class="d-flex justify-content-between">
-                        <span class="name">${typeBadge} ${m.label}</span>
+                        <span class="name">${typeBadge} ${esc(m.label)}</span>
                         <span class="score-badge ${scoreClass}">${score}</span>
                     </div>
                     <div class="price">${formatPrice(m.price_krw)}</div>
@@ -247,6 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function clearMarkers() {
+    markers.forEach(m => kakao.maps.event.removeListener(m, 'click'));
     if (clusterer) clusterer.clear();
     markers = [];
 }

@@ -111,6 +111,9 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
 
     # Transaction stats (실거래가)
     total_transactions = db.query(TransactionHistory).count()
+    land_transactions = db.query(TransactionHistory).filter(
+        TransactionHistory.property_type == "토지"
+    ).count()
     recent_transactions = (
         db.query(TransactionHistory)
         .filter(TransactionHistory.created_at >= seven_days_ago)
@@ -188,6 +191,7 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
         "new_candidates_7d": new_candidates_7d,
         "saved_search_count": saved_search_count,
         "total_transactions": total_transactions,
+        "land_transactions": land_transactions,
         "recent_transactions_7d": recent_transactions,
         "tx_avg_price_krw": tx_avg_price,
         "district_price_summary": district_price_summary,

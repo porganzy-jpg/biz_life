@@ -44,6 +44,9 @@ class HomefinderScheduler:
         self._add_job(self.job_collect_subscriptions,
                        CronTrigger(day_of_week="mon,thu", hour=9, minute=0),
                        "collect_subscriptions", "청약 데이터 수집")
+        self._add_job(self.job_collect_land,
+                       CronTrigger(hour=6, minute=30),
+                       "collect_land", "국토부 토지 실거래가 수집")
         self._add_job(self.job_collect_kb_index,
                        CronTrigger(day_of_week="mon", hour=7, minute=0),
                        "collect_kb_index", "KB 부동산 지수 수집")
@@ -110,6 +113,14 @@ class HomefinderScheduler:
         self._run_collector("subscription", lambda: SubscriptionCollector(
             target_cities=self.settings.TARGET_CITIES,
         ))
+
+    def job_collect_land(self):
+        """국토부 토지 실거래가 수집"""
+        from collectors.land_collector import LandCollector
+        self._run_collector("land", lambda: LandCollector(
+            api_key=self.settings.PUBLIC_DATA_API_KEY,
+            target_districts=self.settings.TARGET_DISTRICTS,
+        ), months_back=1)
 
     def job_collect_kb_index(self):
         """KB 지수 수집"""

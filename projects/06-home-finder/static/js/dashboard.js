@@ -316,7 +316,7 @@ function _renderFilteredActivities() {
             html += `
                 <div class="activity-item">
                     <i class="bi ${icon} activity-icon"></i>
-                    <span>${a.description}</span>
+                    <span>${(a.description||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
                     ${a.price_krw ? '<span class="text-primary ms-1">' + formatPrice(a.price_krw) + '</span>' : ''}
                     <div class="activity-time">${timeAgo(a.timestamp)}</div>
                 </div>`;

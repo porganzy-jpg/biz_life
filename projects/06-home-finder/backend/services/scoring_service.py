@@ -170,7 +170,7 @@ class ScoringService:
             )
             if tx_avg:
                 result["avg_price_per_m2"] = int(tx_avg)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to get tx avg for {district}: {e}")
 
         return result

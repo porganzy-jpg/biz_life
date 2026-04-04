@@ -509,7 +509,7 @@ function initMiniMap(lat, lng, label) {
         const miniMap = new kakao.maps.Map(container, { center: position, level: 4 });
         const marker = new kakao.maps.Marker({ position: position, map: miniMap });
         const iw = new kakao.maps.InfoWindow({
-            content: '<div style="padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap">' + label + '</div>',
+            content: '<div style="padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap">' + label.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>',
         });
         iw.open(miniMap, marker);
         // 지도 리사이즈 보정
