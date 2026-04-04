@@ -491,7 +491,7 @@ def generate_subscriptions(db):
             min_price=s["min_price"] * 10000,
             max_price=s["max_price"] * 10000,
             source_id=f"sub_{s['name']}_{start_date}",
-            source_url="https://www.applyhome.co.kr",
+            source_url="https://www.applyhome.co.kr/ai/aia/selectAPTLttotPblancListView.do",
             description=f"{s['name']} 총 {s['units']}세대",
         )
         db.add(sub)

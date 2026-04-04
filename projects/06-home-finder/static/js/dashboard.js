@@ -30,6 +30,16 @@ async function loadDashboardSummary() {
         document.getElementById('activeSubscriptions').textContent =
             (data.active_subscriptions || 0).toLocaleString();
 
+        // 실거래 카드
+        const txEl = document.getElementById('totalTransactions');
+        if (txEl) {
+            txEl.textContent = (data.total_transactions || 0).toLocaleString();
+            const txSub = document.getElementById('txSub');
+            if (txSub && data.recent_transactions_7d != null) {
+                txSub.textContent = `최근 7일 +${data.recent_transactions_7d}건`;
+            }
+        }
+
         // Pipeline chart
         if (data.pipeline?.counts) {
             if (pipelineChart) pipelineChart.destroy();
@@ -37,37 +47,76 @@ async function loadDashboardSummary() {
         }
     } catch (e) {
         console.error('Dashboard summary load error:', e);
+        document.getElementById('totalProperties').textContent = '!';
+        document.getElementById('totalCandidates').textContent = '!';
+        document.getElementById('weeklyAuctions').textContent = '!';
+        document.getElementById('activeSubscriptions').textContent = '!';
     }
 }
 
 // ──────── 상위 매물 테이블 로드 ────────
 
+let _topPropertiesData = [];
+let _topSortField = 'score_composite';
+let _topSortAsc = false; // 기본: 내림차순
+
+function toggleTopSort(field) {
+    if (_topSortField === field) {
+        _topSortAsc = !_topSortAsc;
+    } else {
+        _topSortField = field;
+        _topSortAsc = false; // 새 필드면 내림차순부터
+    }
+    _renderTopProperties();
+    // 헤더 아이콘 업데이트
+    document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '⇅');
+    const activeIcon = document.getElementById('sort-' + field);
+    if (activeIcon) activeIcon.textContent = _topSortAsc ? '↑' : '↓';
+}
+
+function _renderTopProperties() {
+    const tbody = document.getElementById('topScoredTable');
+    if (!tbody || !_topPropertiesData.length) return;
+
+    const sorted = [..._topPropertiesData].sort((a, b) => {
+        const va = a[_topSortField] || 0;
+        const vb = b[_topSortField] || 0;
+        return _topSortAsc ? va - vb : vb - va;
+    });
+
+    tbody.innerHTML = '';
+    for (const p of sorted) {
+        const score = p.score_composite || 0;
+        const badgeClass = getScoreBadgeClass(score);
+        const mapLink = p.lat && p.lng
+            ? `<a href="/map#lat=${p.lat}&lng=${p.lng}&id=${p.id}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="지도에서 보기" onclick="event.stopPropagation()"><i class="bi bi-geo-alt"></i></a>`
+            : '';
+        tbody.innerHTML += `
+            <tr onclick="window.location='/property/${p.id}'" style="cursor:pointer" title="클릭하여 상세보기">
+                <td class="fw-bold">${p.complex_name || p.address || '매물 ' + p.id}</td>
+                <td>${p.district || ''} ${p.dong || ''}</td>
+                <td class="text-primary fw-bold">${formatPrice(p.price_krw)}</td>
+                <td>${p.area_m2 ? p.area_m2 + '㎡' : '-'}</td>
+                <td><span class="badge ${badgeClass}">${score.toFixed(0)}</span> ${mapLink}</td>
+            </tr>`;
+    }
+}
+
 async function loadTopProperties() {
     try {
-        const resp = await fetch(`${API_BASE}/properties/top?limit=10`);
+        const resp = await fetch(`${API_BASE}/properties/top?limit=30`);
         if (!resp.ok) return;
         const data = await resp.json();
         const tbody = document.getElementById('topScoredTable');
         if (!tbody) return;
 
         if (!data.items || data.items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">등록된 매물이 없습니다</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">등록된 매물이 없습니다.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = '';
-        for (const p of data.items) {
-            const score = p.score_composite || 0;
-            const badgeClass = getScoreBadgeClass(score);
-            tbody.innerHTML += `
-                <tr onclick="showPropertyModal(${p.id})" style="cursor:pointer" title="클릭하여 상세보기">
-                    <td class="fw-bold">${p.complex_name || p.address || '매물 ' + p.id}</td>
-                    <td>${p.district || ''} ${p.dong || ''}</td>
-                    <td class="text-primary fw-bold">${formatPrice(p.price_krw)}</td>
-                    <td>${p.area_m2 ? p.area_m2 + '㎡' : '-'}</td>
-                    <td><span class="badge ${badgeClass}">${score.toFixed(0)}</span></td>
-                </tr>`;
-        }
+        _topPropertiesData = data.items;
+        _renderTopProperties();
     } catch (e) {
         console.error('Top properties load error:', e);
     }
@@ -77,35 +126,63 @@ async function loadTopProperties() {
 
 async function loadPriceChart(district) {
     try {
-        const resp = await fetch(`${API_BASE}/dashboard/summary`);
-        if (!resp.ok) return;
-        const data = await resp.json();
-
-        // Placeholder: 가격 데이터가 쌓이면 실제 추이 표시
-        // 현재는 price_stats 기반으로 간단한 표시
         const ctx = document.getElementById('priceChart');
         if (!ctx) return;
-
         if (priceChart) priceChart.destroy();
 
-        const stats = data.price_stats;
-        if (stats) {
+        // 실거래 추이 데이터 로드
+        const d = district || '마포구';
+        const resp = await fetch(`${API_BASE}/transactions/trend?district=${encodeURIComponent(d)}&months=6`);
+        if (!resp.ok) throw new Error('API error');
+        const data = await resp.json();
+
+        if (data.data_points && data.data_points.length > 0) {
+            const labels = data.data_points.map(p => p.month);
+            const avgPrices = data.data_points.map(p => p.avg_price_krw);
+            const counts = data.data_points.map(p => p.transaction_count);
+
             priceChart = new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
-                    labels: ['최저', '평균', '최고'],
-                    datasets: [{
-                        label: district || '전체',
-                        data: [stats.min_price_krw, stats.avg_price_krw, stats.max_price_krw],
-                        backgroundColor: ['#198754', '#0d6efd', '#dc3545'],
-                        borderRadius: 6,
-                    }],
+                    labels,
+                    datasets: [
+                        {
+                            label: `${d} 평균 실거래가`,
+                            data: avgPrices,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13,110,253,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '거래 건수',
+                            data: counts,
+                            type: 'bar',
+                            backgroundColor: 'rgba(108,117,125,0.3)',
+                            yAxisID: 'y1',
+                        },
+                    ],
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: {
+                            display: true,
+                            text: `${d} 실거래 추이 (${data.total_transactions}건)`,
+                        },
+                    },
                     scales: {
-                        y: { ticks: { callback: v => formatPrice(v) } },
+                        y: {
+                            position: 'left',
+                            ticks: { callback: v => formatPrice(v) },
+                        },
+                        y1: {
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: v => v + '건' },
+                        },
                     },
                 },
             });
@@ -113,13 +190,10 @@ async function loadPriceChart(district) {
             priceChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['데이터 없음'],
+                    labels: ['실거래 데이터 없음'],
                     datasets: [{ label: '-', data: [0], backgroundColor: '#ddd' }],
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                },
+                options: { responsive: true, plugins: { legend: { display: false } } },
             });
         }
     } catch (e) {
@@ -147,6 +221,10 @@ async function loadRecentActivity() {
         _renderFilteredActivities();
     } catch (e) {
         console.error('Recent activity load error:', e);
+        const container = document.getElementById('recentActivity');
+        if (container) {
+            container.innerHTML = '<p class="text-muted text-center">활동 데이터를 불러올 수 없습니다</p>';
+        }
     }
 }
 

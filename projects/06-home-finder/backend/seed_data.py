@@ -21,6 +21,7 @@ def seed():
         _seed_subway_stations(db)
         _seed_parks(db)
         _seed_han_river(db)
+        _seed_properties(db)
     finally:
         db.close()
 
@@ -108,3 +109,34 @@ def _seed_han_river(db: Session):
 
     db.commit()
     logger.info(f"Loaded {len(points)} han river access points")
+
+
+def _seed_properties(db: Session):
+    """Property 테이블이 비어있으면 시드 데이터 자동 로드"""
+    from models.property import Property
+    count = db.query(Property).count()
+    if count > 0:
+        logger.info(f"Properties already loaded ({count})")
+        return
+
+    try:
+        import sys
+        project_root = os.path.dirname(os.path.dirname(__file__))
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+
+        from collect_real_data import (
+            generate_properties, generate_land_parcels,
+            generate_transactions, generate_auctions,
+            generate_subscriptions, generate_areas,
+        )
+        logger.info("Auto-loading seed properties...")
+        generate_properties(db)
+        generate_land_parcels(db)
+        generate_transactions(db)
+        generate_auctions(db)
+        generate_subscriptions(db)
+        generate_areas(db)
+        logger.info("Seed properties loaded successfully")
+    except Exception as e:
+        logger.error(f"Failed to auto-load seed properties: {e}")

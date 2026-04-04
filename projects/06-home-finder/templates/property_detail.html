@@ -1,137 +1,361 @@
 {% extends "base.html" %}
 {% block title %}매물 상세{% endblock %}
 
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Playfair+Display:wght@700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+    --pd-ink: #1a1a2e;
+    --pd-slate: #4a4e69;
+    --pd-mist: #9a8c98;
+    --pd-cream: #f5f0eb;
+    --pd-warm: #c9ada7;
+    --pd-accent: #e07a5f;
+    --pd-good: #2d6a4f;
+    --pd-neutral: #457b9d;
+    --pd-warn: #e9c46a;
+    --pd-bad: #e76f51;
+    --pd-surface: #fefcf9;
+    --pd-card: #ffffff;
+    --pd-border: #e8e2dc;
+}
+
+.pd-page { font-family: 'Noto Sans KR', sans-serif; background: var(--pd-cream); min-height: 100vh; padding-bottom: 3rem; }
+
+/* Hero header */
+.pd-hero {
+    background: linear-gradient(135deg, var(--pd-ink) 0%, #2d2d4a 60%, #3d3d5c 100%);
+    color: white;
+    padding: 2rem 0 2.5rem;
+    margin: -1rem -12px 0;
+    position: relative;
+    overflow: hidden;
+}
+.pd-hero::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.5;
+}
+.pd-hero-inner { position: relative; z-index: 1; }
+.pd-breadcrumb a { color: var(--pd-warm); text-decoration: none; font-size: 0.85rem; }
+.pd-breadcrumb a:hover { color: white; }
+.pd-breadcrumb .sep { color: var(--pd-mist); margin: 0 0.5rem; }
+.pd-hero-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: 2.2rem;
+    letter-spacing: -0.02em;
+    margin: 0.5rem 0 0.2rem;
+}
+.pd-hero-sub { color: var(--pd-warm); font-weight: 300; font-size: 1rem; }
+.pd-hero-price {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--pd-warn);
+    margin-top: 0.5rem;
+}
+.pd-hero-badges { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+.pd-badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(4px);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+}
+.pd-badge-type { background: var(--pd-accent); border-color: var(--pd-accent); color: white; }
+
+/* Score orb */
+.pd-score-orb {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: conic-gradient(var(--pd-neutral) calc(var(--score-pct) * 3.6deg), rgba(255,255,255,0.1) 0);
+    position: relative;
+    box-shadow: 0 0 30px rgba(69,123,157,0.3);
+}
+.pd-score-orb-inner {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--pd-ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.pd-score-num { font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 600; color: white; line-height: 1; }
+.pd-score-label { font-size: 0.6rem; color: var(--pd-warm); margin-top: 2px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* Cards */
+.pd-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; margin-top: -1.5rem; position: relative; z-index: 2; }
+@media (max-width: 991px) { .pd-grid { grid-template-columns: 1fr; } }
+
+.pd-card {
+    background: var(--pd-card);
+    border-radius: 16px;
+    border: 1px solid var(--pd-border);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s;
+}
+.pd-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+.pd-card-head {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--pd-border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--pd-surface);
+}
+.pd-card-title {
+    font-weight: 700; font-size: 0.85rem; color: var(--pd-ink);
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.pd-card-body { padding: 1.25rem; }
+
+/* Info grid */
+.pd-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.pd-info-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid #f0ebe6;
+    font-size: 0.88rem;
+}
+.pd-info-item:nth-child(odd) { background: rgba(245,240,235,0.3); }
+.pd-info-label { color: var(--pd-mist); font-weight: 400; }
+.pd-info-value { color: var(--pd-ink); font-weight: 600; text-align: right; }
+
+/* Verdict */
+.pd-verdict {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--pd-surface) 0%, #f0ebe6 100%);
+    margin-bottom: 1rem;
+}
+.pd-verdict-label { font-size: 0.75rem; color: var(--pd-mist); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem; }
+.pd-verdict-prices { display: flex; justify-content: center; gap: 2rem; align-items: baseline; margin: 0.5rem 0; }
+.pd-verdict-price { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+.pd-verdict-vs { color: var(--pd-mist); font-size: 0.8rem; }
+.pd-verdict-tag {
+    display: inline-block;
+    padding: 0.4rem 1.2rem;
+    border-radius: 2rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+}
+.pd-verdict-good { background: #d8f3dc; color: var(--pd-good); }
+.pd-verdict-neutral { background: #d4e4ed; color: var(--pd-neutral); }
+.pd-verdict-warn { background: #fde8cd; color: #b07d10; }
+.pd-verdict-bad { background: #fde2db; color: var(--pd-bad); }
+
+/* Transaction list */
+.pd-tx-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0; border-bottom: 1px dashed var(--pd-border);
+    font-size: 0.84rem;
+}
+.pd-tx-item:last-child { border-bottom: none; }
+.pd-tx-date { font-family: 'JetBrains Mono', monospace; color: var(--pd-mist); font-size: 0.78rem; }
+.pd-tx-price { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--pd-ink); }
+
+/* Score bars */
+.pd-score-bar-wrap { margin-bottom: 0.75rem; }
+.pd-score-bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; }
+.pd-score-bar-label span:first-child { color: var(--pd-slate); }
+.pd-score-bar-label span:last-child { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--pd-ink); }
+.pd-score-bar { height: 8px; border-radius: 4px; background: #ede8e3; overflow: hidden; }
+.pd-score-bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.22,1,0.36,1); }
+
+/* Action buttons */
+.pd-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+.pd-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.7rem 1rem; border-radius: 10px; font-weight: 600;
+    font-size: 0.88rem; cursor: pointer; border: none; transition: all 0.15s;
+    text-decoration: none; text-align: center;
+}
+.pd-btn-primary { background: var(--pd-accent); color: white; }
+.pd-btn-primary:hover { background: #c96a50; color: white; transform: translateY(-1px); }
+.pd-btn-secondary { background: var(--pd-surface); color: var(--pd-slate); border: 1px solid var(--pd-border); }
+.pd-btn-secondary:hover { background: var(--pd-cream); transform: translateY(-1px); }
+.pd-btn-danger { background: transparent; color: var(--pd-bad); border: 1px solid var(--pd-bad); font-size: 0.8rem; }
+.pd-btn-danger:hover { background: var(--pd-bad); color: white; }
+
+/* Animations */
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.pd-animate { animation: fadeUp 0.5s ease both; }
+.pd-animate-1 { animation-delay: 0.1s; }
+.pd-animate-2 { animation-delay: 0.2s; }
+.pd-animate-3 { animation-delay: 0.3s; }
+.pd-animate-4 { animation-delay: 0.4s; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-3">
-    <div class="col-12">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/">대시보드</a></li>
-                <li class="breadcrumb-item"><a href="/map">매물</a></li>
-                <li class="breadcrumb-item active" id="propTitle">로딩중...</li>
-            </ol>
-        </nav>
+<div class="pd-page">
+
+<!-- Hero -->
+<div class="pd-hero">
+    <div class="container pd-hero-inner">
+        <div class="pd-breadcrumb">
+            <a href="/">대시보드</a><span class="sep">/</span>
+            <a href="/search">검색</a><span class="sep">/</span>
+            <span style="color:rgba(255,255,255,0.6)" id="propTitle">로딩중...</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h1 class="pd-hero-title" id="propName">-</h1>
+                <div class="pd-hero-sub" id="propAddress">-</div>
+                <div class="pd-hero-price" id="heroPrice">-</div>
+                <div class="pd-hero-badges">
+                    <span class="pd-badge pd-badge-type" id="propType">-</span>
+                    <span class="pd-badge" id="heroPriceM2">-</span>
+                    <span class="pd-badge" id="heroArea">-</span>
+                    <span class="pd-badge" id="heroFloor" style="display:none">-</span>
+                </div>
+            </div>
+            <div class="pd-score-orb" id="scoreOrb" style="--score-pct:0">
+                <div class="pd-score-orb-inner">
+                    <span class="pd-score-num" id="compositeScore">-</span>
+                    <span class="pd-score-label">종합</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="row" id="propertyDetail">
-    <!-- Left: Info -->
-    <div class="col-md-8">
-        <div class="card mb-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 id="propName" class="mb-0">-</h5>
-                <div class="d-flex gap-2 align-items-center">
-                    <span class="badge bg-primary" id="propType">-</span>
-                    <a id="editBtn" href="#" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i> 수정</a>
-                    <button id="deleteBtn" class="btn btn-sm btn-outline-danger" onclick="deleteProperty()"><i class="bi bi-trash"></i></button>
+<!-- Main Grid -->
+<div class="container">
+<div class="pd-grid">
+
+    <!-- LEFT COLUMN -->
+    <div>
+        <!-- 매물 정보 -->
+        <div class="pd-card pd-animate pd-animate-1 mb-3">
+            <div class="pd-card-head">
+                <span class="pd-card-title"><i class="bi bi-building"></i> 매물 정보</span>
+                <div class="d-flex gap-1">
+                    <a id="editBtn" href="#" class="pd-btn pd-btn-secondary" style="padding:0.3rem 0.6rem;font-size:0.75rem"><i class="bi bi-pencil"></i></a>
+                    <button class="pd-btn pd-btn-danger" style="padding:0.3rem 0.6rem;font-size:0.75rem" onclick="deleteProperty()"><i class="bi bi-trash"></i></button>
                 </div>
             </div>
-            <div class="card-body">
-                <!-- 건물 정보 (토지일 때 숨김) -->
-                <div id="buildingInfo" class="row">
-                    <div class="col-md-6">
-                        <table class="table table-sm">
-                            <tr><th>주소</th><td id="propAddress">-<button class="btn btn-sm btn-outline-secondary ms-2 py-0 px-1 copy-addr-btn" style="font-size:0.7rem;" onclick="copyAddress('propAddress')" title="주소 복사"><i class="bi bi-clipboard"></i></button></td></tr>
-                            <tr><th>가격</th><td id="propPrice" class="fw-bold text-primary">-</td></tr>
-                            <tr><th>전용면적</th><td id="propArea">-</td></tr>
-                            <tr><th>층수</th><td id="propFloor">-</td></tr>
-                            <tr><th>향</th><td id="propDirection">-</td></tr>
-                            <tr><th>건축년도</th><td id="propBuiltYear">-</td></tr>
-                            <tr><th>관리비</th><td id="propMaintenance">-</td></tr>
-                            <tr><th>방/욕실</th><td id="propRooms">-</td></tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <table class="table table-sm">
-                            <tr><th>단지</th><td id="propComplex">-</td></tr>
-                            <tr><th>출처</th><td id="propSource">-</td></tr>
-                            <tr><th>가까운 역</th><td id="propSubway">-</td></tr>
-                            <tr><th>역 거리</th><td id="propSubwayDist">-</td></tr>
-                            <tr><th>접근 노선</th><td id="propLines">-</td></tr>
-                            <tr><th>가까운 공원</th><td id="propPark">-</td></tr>
-                            <tr><th>한강 거리</th><td id="propRiver">-</td></tr>
-                            <tr><th>m2당 가격</th><td id="propPriceM2">-</td></tr>
-                        </table>
-                    </div>
-                </div>
-                <!-- 토지 정보 (건물일 때 숨김) -->
-                <div id="landInfo" style="display:none;" class="row">
-                    <div class="col-md-6">
-                        <table class="table table-sm">
-                            <tr><th>주소</th><td id="landAddress">-<button class="btn btn-sm btn-outline-secondary ms-2 py-0 px-1 copy-addr-btn" style="font-size:0.7rem;" onclick="copyAddress('landAddress')" title="주소 복사"><i class="bi bi-clipboard"></i></button></td></tr>
-                            <tr><th>가격</th><td id="landPrice" class="fw-bold text-primary">-</td></tr>
-                            <tr><th>면적</th><td id="landArea">-</td></tr>
-                            <tr><th>지목</th><td id="landUse">-</td></tr>
-                            <tr><th>용도지역</th><td id="landZoning">-</td></tr>
-                            <tr><th>건폐율</th><td id="landBcr">-</td></tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <table class="table table-sm">
-                            <tr><th>용적률</th><td id="landFar">-</td></tr>
-                            <tr><th>접도</th><td id="landRoad">-</td></tr>
-                            <tr><th>지형</th><td id="landTopo">-</td></tr>
-                            <tr><th>m2당 가격</th><td id="landPriceM2">-</td></tr>
-                            <tr><th>가까운 역</th><td id="landSubway">-</td></tr>
-                            <tr><th>출처</th><td id="landSource">-</td></tr>
-                        </table>
-                    </div>
-                </div>
-                <div id="propDescription" class="mt-2 text-muted small"></div>
-            </div>
+            <div id="buildingInfo" class="pd-info-grid"></div>
+            <div id="landInfo" style="display:none" class="pd-info-grid"></div>
+            <div id="propDescription" style="display:none;padding:0.8rem 1.25rem;font-size:0.85rem;color:var(--pd-mist);background:var(--pd-surface);border-top:1px solid var(--pd-border)"></div>
         </div>
 
-        <!-- Price History -->
-        <div class="card mb-3">
-            <div class="card-header"><i class="bi bi-graph-up"></i> 주변 시세 추이</div>
-            <div class="card-body">
-                <canvas id="priceHistoryChart" height="200"></canvas>
+        <!-- 가격 적정성 분석 -->
+        <div class="pd-card pd-animate pd-animate-2 mb-3">
+            <div class="pd-card-head">
+                <span class="pd-card-title"><i class="bi bi-graph-up-arrow"></i> 가격 적정성 분석</span>
+                <small style="color:var(--pd-mist);font-size:0.75rem" id="analysisSource">실거래 기반</small>
+            </div>
+            <div class="pd-card-body">
+                <div id="priceAnalysisLoading" class="text-center py-4" style="color:var(--pd-mist)">
+                    <div class="spinner-border spinner-border-sm"></div> 국토부 실거래 데이터 분석 중...
+                </div>
+                <div id="priceAnalysisResult" style="display:none">
+                    <div class="pd-verdict" id="verdictBox">
+                        <div class="pd-verdict-label">시세 비교</div>
+                        <div class="pd-verdict-prices">
+                            <div>
+                                <div style="font-size:0.7rem;color:var(--pd-mist)">매물가</div>
+                                <div class="pd-verdict-price" style="color:var(--pd-accent);font-size:1.3rem" id="paListingPrice">-</div>
+                            </div>
+                            <div class="pd-verdict-vs">vs</div>
+                            <div>
+                                <div style="font-size:0.7rem;color:var(--pd-mist)">실거래 평균</div>
+                                <div class="pd-verdict-price" style="font-size:1.3rem" id="paMarketAvg">-</div>
+                            </div>
+                        </div>
+                        <div class="pd-verdict-tag" id="paVerdictBadge">-</div>
+                        <div style="margin-top:0.4rem;font-size:0.78rem;color:var(--pd-mist)" id="paVerdictDetail">-</div>
+                    </div>
+                    <canvas id="priceCompareChart" height="140"></canvas>
+                    <div style="margin-top:1rem">
+                        <div style="font-size:0.78rem;font-weight:700;color:var(--pd-slate);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">최근 실거래 내역</div>
+                        <div id="paTransactions"></div>
+                    </div>
+                </div>
+                <div id="priceAnalysisEmpty" style="display:none" class="text-center py-4">
+                    <i class="bi bi-bar-chart" style="font-size:2rem;color:var(--pd-border)"></i>
+                    <p style="color:var(--pd-mist);margin-top:0.5rem;font-size:0.88rem">비교할 실거래 데이터가 부족합니다</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Right: Scores + Actions -->
-    <div class="col-md-4">
-        <div class="card mb-3">
-            <div class="card-header"><i class="bi bi-star"></i> 채점 결과</div>
-            <div class="card-body">
-                <div class="text-center mb-3">
-                    <h1 id="compositeScore" class="display-4 fw-bold">-</h1>
-                    <small class="text-muted">종합 점수</small>
+    <!-- RIGHT COLUMN -->
+    <div>
+        <!-- 채점 결과 -->
+        <div class="pd-card pd-animate pd-animate-3 mb-3">
+            <div class="pd-card-head">
+                <span class="pd-card-title"><i class="bi bi-award"></i> 채점 분석</span>
+            </div>
+            <div class="pd-card-body">
+                <canvas id="scoreRadar" height="200" style="margin-bottom:1rem"></canvas>
+                <div id="scoreBars">
+                    <div class="pd-score-bar-wrap">
+                        <div class="pd-score-bar-label"><span>위치 (35%)</span><span id="scoreLocation">-</span></div>
+                        <div class="pd-score-bar"><div class="pd-score-bar-fill" id="barLocation" style="width:0;background:var(--pd-neutral)"></div></div>
+                    </div>
+                    <div class="pd-score-bar-wrap">
+                        <div class="pd-score-bar-label"><span>가격 (25%)</span><span id="scorePrice">-</span></div>
+                        <div class="pd-score-bar"><div class="pd-score-bar-fill" id="barPrice" style="width:0;background:var(--pd-accent)"></div></div>
+                    </div>
+                    <div class="pd-score-bar-wrap">
+                        <div class="pd-score-bar-label"><span>매물 (20%)</span><span id="scoreProperty">-</span></div>
+                        <div class="pd-score-bar"><div class="pd-score-bar-fill" id="barProperty" style="width:0;background:var(--pd-good)"></div></div>
+                    </div>
+                    <div class="pd-score-bar-wrap">
+                        <div class="pd-score-bar-label"><span>지역 (20%)</span><span id="scoreArea">-</span></div>
+                        <div class="pd-score-bar"><div class="pd-score-bar-fill" id="barArea" style="width:0;background:var(--pd-warn)"></div></div>
+                    </div>
                 </div>
-                <canvas id="scoreRadar" height="200"></canvas>
-                <hr>
-                <table class="table table-sm">
-                    <tr><td>위치 (35%)</td><td class="fw-bold" id="scoreLocation">-</td></tr>
-                    <tr><td>가격 (25%)</td><td class="fw-bold" id="scorePrice">-</td></tr>
-                    <tr><td>매물 (20%)</td><td class="fw-bold" id="scoreProperty">-</td></tr>
-                    <tr><td>지역 (20%)</td><td class="fw-bold" id="scoreArea">-</td></tr>
-                </table>
             </div>
         </div>
 
-        <div class="card mb-3">
-            <div class="card-header"><i class="bi bi-tools"></i> 액션</div>
-            <div class="card-body d-grid gap-2">
-                <button class="btn btn-success" onclick="addToCandidate()">
+        <!-- 액션 -->
+        <div class="pd-card pd-animate pd-animate-4 mb-3">
+            <div class="pd-card-body pd-actions">
+                <button class="pd-btn pd-btn-primary" onclick="addToCandidate()">
                     <i class="bi bi-plus-circle"></i> 후보에 추가
                 </button>
-                <button class="btn btn-outline-primary" onclick="rescoreProperty()">
+                <button class="pd-btn pd-btn-secondary" onclick="rescoreProperty()">
                     <i class="bi bi-arrow-clockwise"></i> 재채점
                 </button>
-                <a id="sourceLink" href="#" target="_blank" class="btn btn-outline-secondary">
+                <a id="sourceLink" href="#" target="_blank" class="pd-btn pd-btn-secondary">
                     <i class="bi bi-box-arrow-up-right"></i> 원본 보기
                 </a>
             </div>
         </div>
+
+        <!-- 위치 미니맵 -->
+        <div class="pd-card pd-animate pd-animate-4 mb-3">
+            <div class="pd-card-head">
+                <span class="pd-card-title"><i class="bi bi-geo-alt"></i> 위치</span>
+                <a id="goToMapBtn" href="/map" class="pd-btn pd-btn-secondary" style="padding:0.2rem 0.5rem;font-size:0.7rem">지도에서 보기 →</a>
+            </div>
+            <div id="miniMapContainer" style="height:250px;background:var(--pd-cream)"></div>
+            <div id="miniMapFallback" style="display:none;padding:1rem;text-align:center;color:var(--pd-mist);font-size:0.85rem">
+                <i class="bi bi-geo-alt"></i> 좌표 정보가 없습니다
+            </div>
+        </div>
     </div>
+</div>
+</div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services&autoload=false"></script>
 <script src="/static/js/charts.js"></script>
 <script>
 const propId = window.location.pathname.split('/').pop();
+
+function makeInfoItem(label, value) {
+    return `<div class="pd-info-item"><span class="pd-info-label">${label}</span><span class="pd-info-value">${value || '-'}</span></div>`;
+}
 
 async function loadProperty() {
     const resp = await fetch(`/api/v1/properties/${propId}`);
@@ -143,95 +367,106 @@ async function loadProperty() {
     document.getElementById('propTitle').textContent = titleText;
     document.getElementById('propName').textContent = titleText;
     document.getElementById('propType').textContent = p.property_type;
-    if (isLand) document.getElementById('propType').classList.replace('bg-primary', 'bg-success');
-
-    // 수정 버튼 링크 설정
+    if (isLand) document.getElementById('propType').style.background = 'var(--pd-good)';
+    document.getElementById('propAddress').textContent = `${p.city || '서울특별시'} ${p.district || ''} ${p.dong || ''} ${p.address || ''}`;
+    document.getElementById('heroPrice').textContent = formatPrice(p.price_krw);
+    document.getElementById('heroPriceM2').textContent = p.price_per_m2 ? `${Math.round(p.price_per_m2/10000)}만/㎡` : '';
+    document.getElementById('heroArea').textContent = p.area_m2 ? `${p.area_m2}㎡` : '';
     document.getElementById('editBtn').href = `/property/${p.id}/edit`;
 
     if (isLand) {
-        // 토지: 건물정보 숨기고 토지정보 표시
         document.getElementById('buildingInfo').style.display = 'none';
-        document.getElementById('landInfo').style.display = 'flex';
-        document.getElementById('landAddress').textContent = `${p.district || ''} ${p.dong || ''} ${p.address || ''}`;
-        document.getElementById('landPrice').textContent = formatPrice(p.price_krw);
-        document.getElementById('landArea').textContent = p.area_m2 ? `${p.area_m2}㎡ (${(p.area_m2/3.3058).toFixed(0)}평)` : '-';
-        document.getElementById('landUse').textContent = p.land_use || '-';
-        document.getElementById('landZoning').textContent = p.zoning_type || '-';
-        document.getElementById('landBcr').textContent = p.building_coverage_ratio != null ? `${p.building_coverage_ratio}%` : '-';
-        document.getElementById('landFar').textContent = p.floor_area_ratio != null ? `${p.floor_area_ratio}%` : '-';
-        document.getElementById('landRoad').textContent = p.road_frontage || '-';
-        document.getElementById('landTopo').textContent = p.topography || '-';
-        document.getElementById('landPriceM2').textContent = p.price_per_m2 ? `${Math.round(p.price_per_m2/10000)}만/㎡` : '-';
-        document.getElementById('landSubway').textContent = p.nearest_subway_name
-            ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance) + 'm' : ''}`
-            : '-';
-        document.getElementById('landSource').textContent = p.source;
+        document.getElementById('landInfo').style.display = 'grid';
+        document.getElementById('landInfo').innerHTML =
+            makeInfoItem('지목', p.land_use) +
+            makeInfoItem('용도지역', p.zoning_type) +
+            makeInfoItem('건폐율', p.building_coverage_ratio != null ? p.building_coverage_ratio+'%' : null) +
+            makeInfoItem('용적률', p.floor_area_ratio != null ? p.floor_area_ratio+'%' : null) +
+            makeInfoItem('접도', p.road_frontage) +
+            makeInfoItem('지형', p.topography) +
+            makeInfoItem('면적', p.area_m2 ? `${p.area_m2}㎡ (${(p.area_m2/3.3058).toFixed(0)}평)` : null) +
+            makeInfoItem('가까운 역', p.nearest_subway_name ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance)+'m' : ''}` : null) +
+            makeInfoItem('출처', p.source);
     } else {
-        // 건물: 기존 표시
-        document.getElementById('buildingInfo').style.display = 'flex';
+        document.getElementById('buildingInfo').style.display = 'grid';
         document.getElementById('landInfo').style.display = 'none';
-        document.getElementById('propAddress').textContent = `${p.district || ''} ${p.dong || ''} ${p.address || ''}`;
-        document.getElementById('propPrice').textContent = formatPrice(p.price_krw);
-        document.getElementById('propArea').textContent = p.area_m2 ? `${p.area_m2}㎡` : '-';
-        document.getElementById('propFloor').textContent = p.floor ? `${p.floor}층${p.total_floors ? '/'+p.total_floors+'층' : ''}` : '-';
-        document.getElementById('propDirection').textContent = p.direction || '-';
-        document.getElementById('propBuiltYear').textContent = p.built_year || '-';
-        document.getElementById('propMaintenance').textContent = p.maintenance_fee ? `${p.maintenance_fee}만원` : '-';
-        document.getElementById('propRooms').textContent = `${p.rooms || '-'}방 / ${p.bathrooms || '-'}욕실`;
-        document.getElementById('propComplex').textContent = p.complex_name || '-';
-        document.getElementById('propSource').textContent = p.source;
-        document.getElementById('propSubway').textContent = p.nearest_subway_name || '-';
-        document.getElementById('propSubwayDist').textContent = p.nearest_subway_distance ? `${Math.round(p.nearest_subway_distance)}m` : '-';
-        document.getElementById('propLines').textContent = p.nearest_subway_lines || '-';
-        document.getElementById('propPark').textContent = p.nearest_park_name || '-';
-        document.getElementById('propRiver').textContent = p.nearest_river_distance ? `${Math.round(p.nearest_river_distance)}m` : '-';
-        document.getElementById('propPriceM2').textContent = p.price_per_m2 ? `${Math.round(p.price_per_m2/10000)}만/㎡` : '-';
+        const fl = document.getElementById('heroFloor');
+        if (p.floor) { fl.textContent = `${p.floor}층`; fl.style.display = ''; }
+        document.getElementById('buildingInfo').innerHTML =
+            makeInfoItem('전용면적', p.area_m2 ? `${p.area_m2}㎡` : null) +
+            makeInfoItem('층수', p.floor ? `${p.floor}층${p.total_floors ? '/'+p.total_floors+'층' : ''}` : null) +
+            makeInfoItem('향', p.direction) +
+            makeInfoItem('건축년도', p.built_year) +
+            makeInfoItem('관리비', p.maintenance_fee ? `${p.maintenance_fee}만원` : null) +
+            makeInfoItem('방/욕실', `${p.rooms || '-'}방 / ${p.bathrooms || '-'}욕실`) +
+            makeInfoItem('단지', p.complex_name) +
+            makeInfoItem('가까운 역', p.nearest_subway_name ? `${p.nearest_subway_name} ${p.nearest_subway_distance ? Math.round(p.nearest_subway_distance)+'m' : ''}` : null) +
+            makeInfoItem('노선', p.nearest_subway_lines) +
+            makeInfoItem('공원', p.nearest_park_name ? `${p.nearest_park_name} ${p.nearest_park_distance ? Math.round(p.nearest_park_distance)+'m' : ''}` : null) +
+            makeInfoItem('한강 거리', p.nearest_river_distance ? `${Math.round(p.nearest_river_distance)}m` : null) +
+            makeInfoItem('출처', p.source);
     }
 
-    document.getElementById('propDescription').textContent = p.description || '';
+    if (p.description) {
+        const descEl = document.getElementById('propDescription');
+        descEl.textContent = p.description;
+        descEl.style.display = '';
+    }
     if (p.source_url) document.getElementById('sourceLink').href = p.source_url;
 
     // Scores
-    document.getElementById('compositeScore').textContent = (p.score_composite || 0).toFixed(1);
-    document.getElementById('scoreLocation').textContent = (p.score_location || 0).toFixed(1);
-    document.getElementById('scorePrice').textContent = (p.score_price || 0).toFixed(1);
-    document.getElementById('scoreProperty').textContent = (p.score_property || 0).toFixed(1);
-    document.getElementById('scoreArea').textContent = (p.score_area || 0).toFixed(1);
+    const cs = p.score_composite || 0;
+    document.getElementById('compositeScore').textContent = cs.toFixed(0);
+    document.getElementById('scoreOrb').style.setProperty('--score-pct', cs);
 
-    // 채점 라벨 변경 (토지이면 "토지")
-    const propLabel = isLand ? '토지' : '매물';
-    const scoreRows = document.querySelectorAll('#propertyDetail .card-body table tr');
-    scoreRows.forEach(row => {
-        const td = row.querySelector('td:first-child');
-        if (td && td.textContent.includes('매물')) {
-            td.textContent = td.textContent.replace('매물', propLabel);
-        }
-    });
+    const scores = {
+        Location: p.score_location || 0,
+        Price: p.score_price || 0,
+        Property: p.score_property || 0,
+        Area: p.score_area || 0,
+    };
+    document.getElementById('scoreLocation').textContent = scores.Location.toFixed(1);
+    document.getElementById('scorePrice').textContent = scores.Price.toFixed(1);
+    document.getElementById('scoreProperty').textContent = scores.Property.toFixed(1);
+    document.getElementById('scoreArea').textContent = scores.Area.toFixed(1);
 
-    // Score radar chart
+    // Animate bars
+    setTimeout(() => {
+        document.getElementById('barLocation').style.width = scores.Location + '%';
+        document.getElementById('barPrice').style.width = scores.Price + '%';
+        document.getElementById('barProperty').style.width = scores.Property + '%';
+        document.getElementById('barArea').style.width = scores.Area + '%';
+    }, 300);
+
+    // Label fix for land
+    if (isLand) {
+        document.querySelectorAll('.pd-score-bar-label span:first-child').forEach(el => {
+            if (el.textContent.includes('매물')) el.textContent = el.textContent.replace('매물', '토지');
+        });
+    }
+
+    // Radar chart
     const radarLabel = isLand ? '토지' : '매물';
     renderRadarChart('scoreRadar', ['위치','가격',radarLabel,'지역'],
-        [p.score_location||0, p.score_price||0, p.score_property||0, p.score_area||0]);
+        [scores.Location, scores.Price, scores.Property, scores.Area]);
+
+    // Mini map
+    initMiniMap(p.lat, p.lng, titleText);
+
+    // "지도에서 보기" 버튼에 좌표 전달
+    if (p.lat && p.lng) {
+        document.getElementById('goToMapBtn').href = `/map#lat=${p.lat}&lng=${p.lng}&id=${p.id}`;
+    }
 }
 
-// formatPrice는 utils.js에서 제공
-
-function copyAddress(elementId) {
-    var el = document.getElementById(elementId);
-    if (!el) return;
-    // 버튼 텍스트를 제외한 주소 텍스트만 가져옴
-    var text = el.childNodes[0] ? el.childNodes[0].textContent.trim() : el.textContent.trim();
-    navigator.clipboard.writeText(text).then(function() {
-        // 토스트 표시
-        var toast = document.createElement('div');
+function copyAddress(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const toast = document.createElement('div');
         toast.className = 'position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 bg-dark text-white rounded-pill shadow';
         toast.style.zIndex = '9999';
-        toast.style.fontSize = '0.9rem';
-        toast.textContent = '복사되었습니다!';
+        toast.textContent = '주소가 복사되었습니다';
         document.body.appendChild(toast);
-        setTimeout(function() { toast.remove(); }, 2000);
-    }).catch(function() {
-        alert('복사에 실패했습니다.');
+        setTimeout(() => toast.remove(), 2000);
     });
 }
 
@@ -253,14 +488,112 @@ async function rescoreProperty() {
 async function deleteProperty() {
     if (!confirm('이 매물을 삭제(비활성화)하시겠습니까?')) return;
     const resp = await fetch(`/api/v1/properties/${propId}`, {method: 'DELETE'});
-    if (resp.ok) {
-        alert('삭제되었습니다.');
-        window.location.href = '/search';
-    } else {
-        alert('삭제 실패');
+    if (resp.ok) { window.location.href = '/search'; }
+    else alert('삭제 실패');
+}
+
+function initMiniMap(lat, lng, label) {
+    const container = document.getElementById('miniMapContainer');
+    const fallback = document.getElementById('miniMapFallback');
+    if (!lat || !lng) {
+        container.style.display = 'none';
+        fallback.style.display = '';
+        return;
     }
+    if (typeof kakao === 'undefined' || !kakao.maps) {
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--pd-mist);font-size:0.85rem">카카오맵 로딩 중...</div>';
+        return;
+    }
+    kakao.maps.load(function() {
+        const position = new kakao.maps.LatLng(lat, lng);
+        const miniMap = new kakao.maps.Map(container, { center: position, level: 4 });
+        const marker = new kakao.maps.Marker({ position: position, map: miniMap });
+        const iw = new kakao.maps.InfoWindow({
+            content: '<div style="padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap">' + label + '</div>',
+        });
+        iw.open(miniMap, marker);
+        // 지도 리사이즈 보정
+        setTimeout(function() { miniMap.relayout(); }, 100);
+    });
 }
 
 loadProperty();
+loadPriceAnalysis();
+
+let priceCompareChart = null;
+
+async function loadPriceAnalysis() {
+    const loading = document.getElementById('priceAnalysisLoading');
+    const result = document.getElementById('priceAnalysisResult');
+    const empty = document.getElementById('priceAnalysisEmpty');
+
+    try {
+        const resp = await fetch(`/api/v1/properties/${propId}/price-analysis?months=6`);
+        if (!resp.ok) throw new Error('API error');
+        const data = await resp.json();
+        loading.style.display = 'none';
+
+        const v = data.verdict;
+        if (!v || v.verdict === '비교 데이터 부족') { empty.style.display = ''; return; }
+
+        result.style.display = '';
+        document.getElementById('paListingPrice').textContent = formatPrice(data.listing_price);
+        document.getElementById('paMarketAvg').textContent = formatPrice(v.market_avg);
+
+        // Verdict tag
+        const tag = document.getElementById('paVerdictBadge');
+        tag.textContent = `${v.verdict} (${v.diff_pct > 0 ? '+' : ''}${v.diff_pct}%)`;
+        if (v.score >= 75) tag.className = 'pd-verdict-tag pd-verdict-good';
+        else if (v.score >= 55) tag.className = 'pd-verdict-tag pd-verdict-neutral';
+        else if (v.score >= 40) tag.className = 'pd-verdict-tag pd-verdict-warn';
+        else tag.className = 'pd-verdict-tag pd-verdict-bad';
+
+        document.getElementById('paVerdictDetail').textContent =
+            `${v.level} 기준 ${v.comparable_count}건 비교 · 중위가 ${formatPrice(v.market_median)}`;
+        document.getElementById('analysisSource').textContent = `${data.months}개월 실거래 기반`;
+
+        // Chart
+        const best = data.levels[v.level];
+        if (best && best.stats && best.stats.count > 0) {
+            const ctx = document.getElementById('priceCompareChart');
+            if (priceCompareChart) priceCompareChart.destroy();
+            const barColor = v.score >= 55 ? 'rgba(45,106,79,0.85)' : v.score >= 40 ? 'rgba(233,196,106,0.85)' : 'rgba(231,111,81,0.85)';
+            priceCompareChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['하위 25%', '평균', '중위', '상위 25%', '이 매물'],
+                    datasets: [{
+                        data: [best.stats.p25, best.stats.avg, best.stats.median, best.stats.p75, data.listing_price],
+                        backgroundColor: ['rgba(154,140,152,0.4)', 'rgba(69,123,157,0.6)', 'rgba(45,106,79,0.6)', 'rgba(154,140,152,0.4)', barColor],
+                        borderRadius: 6,
+                    }],
+                },
+                options: {
+                    indexAxis: 'y', responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { ticks: { callback: val => formatPrice(val) }, grid: { color: '#f0ebe6' } }, y: { grid: { display: false } } },
+                },
+            });
+        }
+
+        // Transactions
+        const txDiv = document.getElementById('paTransactions');
+        const txs = best ? best.transactions : [];
+        if (txs.length > 0) {
+            txDiv.innerHTML = txs.map(t =>
+                `<div class="pd-tx-item">
+                    <div><span class="pd-tx-date">${t.date}</span> ${t.name} ${t.area}㎡ ${t.floor}층</div>
+                    <div class="pd-tx-price">${formatPrice(t.price_krw)}</div>
+                </div>`
+            ).join('');
+        } else {
+            txDiv.innerHTML = '<span style="color:var(--pd-mist)">거래 내역 없음</span>';
+        }
+    } catch (e) {
+        console.error('Price analysis error:', e);
+        loading.style.display = 'none';
+        empty.style.display = '';
+    }
+}
 </script>
 {% endblock %}

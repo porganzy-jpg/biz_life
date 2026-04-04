@@ -166,6 +166,14 @@
 
     <!-- ═══════════════ TAB 2: 내 선호도 ═══════════════ -->
     <div class="tab-pane fade" id="pane-profile" role="tabpanel">
+        <div class="position-relative">
+        <div class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center" style="z-index:10;background:rgba(255,255,255,0.85);top:0;left:0;min-height:400px">
+            <div class="text-center">
+                <i class="bi bi-cone-striped text-warning" style="font-size:3rem"></i>
+                <h5 class="mt-3">선호도 학습 기능 준비 중</h5>
+                <p class="text-muted">매물 평가 데이터가 충분히 쌓이면 자동으로 활성화됩니다.</p>
+            </div>
+        </div>
         <div class="row">
             <!-- Left: 가중치 편집 -->
             <div class="col-md-6 mb-3">
@@ -300,18 +308,15 @@
                 </div>
             </div>
         </div>
+        </div><!-- /position-relative -->
     </div>
 
     <!-- ═══════════════ TAB 3: 알림 이력 ═══════════════ -->
     <div class="tab-pane fade" id="pane-alerts" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0"><i class="bi bi-bell"></i> 매칭 알림 이력</h6>
-            <button class="btn btn-outline-primary btn-sm" onclick="loadAlerts()">
-                <i class="bi bi-arrow-clockwise"></i> 새로고침
-            </button>
-        </div>
-        <div id="alertsLoading" class="text-center py-4">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
+        <div class="text-center py-5">
+            <i class="bi bi-bell text-muted" style="font-size:3rem"></i>
+            <h5 class="mt-3">알림 기능 준비 중</h5>
+            <p class="text-muted">텔레그램 봇을 연동하면 새 매물 알림을 받을 수 있습니다.<br><code>.env</code>에 <code>TELEGRAM_BOT_TOKEN</code>과 <code>TELEGRAM_CHAT_ID</code>를 설정해주세요.</p>
         </div>
         <div id="alertsList" style="display:none;"></div>
         <div id="alertsEmpty" style="display:none;" class="text-center py-4">
@@ -322,6 +327,12 @@
 
     <!-- ═══════════════ TAB 4: 알림 설정 ═══════════════ -->
     <div class="tab-pane fade" id="pane-settings" role="tabpanel">
+        <div class="text-center py-5 mb-4">
+            <i class="bi bi-gear text-muted" style="font-size:3rem"></i>
+            <h5 class="mt-3">알림 설정 준비 중</h5>
+            <p class="text-muted">텔레그램 봇 연동 후 알림 조건을 설정할 수 있습니다.</p>
+        </div>
+        <div style="display:none">
         <div class="row">
             <div class="col-md-6">
                 <div class="card">
@@ -400,6 +411,7 @@
                 </div>
             </div>
         </div>
+        </div><!-- /hidden settings content -->
     </div>
 </div>
 {% endblock %}

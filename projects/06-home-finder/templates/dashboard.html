@@ -13,6 +13,15 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card summary-card bg-dark text-white">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-graph-up"></i> 실거래 수집</h6>
+                <h2 id="totalTransactions">-</h2>
+                <small id="txSub">국토부 API 데이터</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
         <a href="/search" class="text-decoration-none">
             <div class="card summary-card bg-primary text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
                 <div class="card-body">
@@ -77,9 +86,9 @@
                         <tr>
                             <th>매물</th>
                             <th>위치</th>
-                            <th>가격</th>
-                            <th>면적</th>
-                            <th>점수</th>
+                            <th style="cursor:pointer;user-select:none" onclick="toggleTopSort('price_krw')">가격 <span class="sort-icon" id="sort-price_krw">⇅</span></th>
+                            <th style="cursor:pointer;user-select:none" onclick="toggleTopSort('area_m2')">면적 <span class="sort-icon" id="sort-area_m2">⇅</span></th>
+                            <th style="cursor:pointer;user-select:none" onclick="toggleTopSort('score_composite')">점수 <span class="sort-icon" id="sort-score_composite">↓</span></th>
                         </tr>
                     </thead>
                     <tbody id="topScoredTable">

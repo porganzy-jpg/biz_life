@@ -134,25 +134,43 @@ class ScoringService:
         return self.scorer.get_weights()
 
     def _get_area_info(self, district: Optional[str]) -> dict:
-        """지역 정보를 dict 형태로 반환"""
+        """지역 정보를 dict 형태로 반환 (실거래 데이터 우선)"""
         if not district:
             return {}
 
-        areas = self.area_repo.get_by_district(district)
-        if not areas:
-            return {}
+        result = {}
 
-        # Use the first area record (district-level) for scoring
-        area = areas[0]
-        return {
-            "avg_price_per_m2": area.avg_price_per_m2,
-            "price_change_1y": area.price_change_1y,
-            "price_change_3y": area.price_change_3y,
-            "development_score": area.development_score,
-            "living_score": area.living_score,
-            "infra_score": area.infra_score,
-            "subway_count": area.subway_count or 0,
-            "school_count": area.school_count or 0,
-            "hospital_count": area.hospital_count or 0,
-            "park_count": area.park_count or 0,
-        }
+        # 1) Area 테이블에서 기본 정보
+        areas = self.area_repo.get_by_district(district)
+        if areas:
+            area = areas[0]
+            result = {
+                "avg_price_per_m2": area.avg_price_per_m2,
+                "price_change_1y": area.price_change_1y,
+                "price_change_3y": area.price_change_3y,
+                "development_score": area.development_score,
+                "living_score": area.living_score,
+                "infra_score": area.infra_score,
+                "subway_count": area.subway_count or 0,
+                "school_count": area.school_count or 0,
+                "hospital_count": area.hospital_count or 0,
+                "park_count": area.park_count or 0,
+            }
+
+        # 2) 실거래 데이터에서 실제 m2당 평균가 (있으면 덮어쓰기)
+        try:
+            from sqlalchemy import func
+            from models.transaction import TransactionHistory
+            tx_avg = (
+                self.db.query(func.avg(TransactionHistory.price_per_m2))
+                .filter(TransactionHistory.district == district)
+                .filter(TransactionHistory.price_per_m2.isnot(None))
+                .filter(TransactionHistory.source == "molit")
+                .scalar()
+            )
+            if tx_avg:
+                result["avg_price_per_m2"] = int(tx_avg)
+        except Exception:
+            pass
+
+        return result

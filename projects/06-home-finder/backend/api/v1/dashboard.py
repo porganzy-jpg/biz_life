@@ -7,6 +7,7 @@ from sqlalchemy import func, desc
 
 from database import get_db
 from models.property import Property
+from models.transaction import TransactionHistory
 from models.auction import AuctionListing
 from models.subscription import SubscriptionOpportunity
 from models.candidate import CandidateProperty
@@ -108,6 +109,44 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     )
     saved_search_count = db.query(SavedSearch).count()
 
+    # Transaction stats (실거래가)
+    total_transactions = db.query(TransactionHistory).count()
+    recent_transactions = (
+        db.query(TransactionHistory)
+        .filter(TransactionHistory.created_at >= seven_days_ago)
+        .count()
+    )
+    tx_price_stats = (
+        db.query(
+            func.avg(TransactionHistory.price_krw).label("avg"),
+            func.count(TransactionHistory.id).label("cnt"),
+        )
+        .filter(TransactionHistory.source == "molit")
+        .first()
+    )
+    tx_avg_price = int(tx_price_stats.avg) if tx_price_stats and tx_price_stats.avg else None
+
+    # 구별 최근 평균가 (실거래 기반)
+    district_avgs = (
+        db.query(
+            TransactionHistory.district,
+            func.avg(TransactionHistory.price_krw).label("avg_price"),
+            func.count(TransactionHistory.id).label("count"),
+        )
+        .filter(TransactionHistory.source == "molit")
+        .group_by(TransactionHistory.district)
+        .all()
+    )
+    district_price_summary = [
+        {
+            "district": row.district,
+            "avg_price_krw": int(row.avg_price),
+            "transaction_count": row.count,
+        }
+        for row in district_avgs
+        if row.avg_price
+    ]
+
     # Top candidates (shortlist with scores)
     shortlist = cand_repo.get_shortlist()
     prop_repo = PropertyRepository(db)
@@ -148,6 +187,10 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
         "new_properties_7d": new_properties_7d,
         "new_candidates_7d": new_candidates_7d,
         "saved_search_count": saved_search_count,
+        "total_transactions": total_transactions,
+        "recent_transactions_7d": recent_transactions,
+        "tx_avg_price_krw": tx_avg_price,
+        "district_price_summary": district_price_summary,
     }
 
     # Store in cache (300s TTL)
@@ -155,15 +198,44 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     return result
 
 
+# 경기 근교 시군구 대표 좌표
+DISTRICT_CENTER_COORDS = {
+    # 서울
+    "종로구": (37.5735, 126.9790), "중구": (37.5641, 126.9979),
+    "용산구": (37.5326, 126.9906), "성동구": (37.5633, 127.0371),
+    "광진구": (37.5385, 127.0823), "동대문구": (37.5744, 127.0400),
+    "중랑구": (37.6063, 127.0928), "성북구": (37.5894, 127.0167),
+    "강북구": (37.6397, 127.0255), "도봉구": (37.6688, 127.0471),
+    "노원구": (37.6542, 127.0568), "은평구": (37.6027, 126.9291),
+    "서대문구": (37.5791, 126.9368), "마포구": (37.5638, 126.9084),
+    "양천구": (37.5170, 126.8665), "강서구": (37.5510, 126.8495),
+    "구로구": (37.4954, 126.8875), "금천구": (37.4519, 126.8955),
+    "영등포구": (37.5264, 126.8963), "동작구": (37.5124, 126.9393),
+    "관악구": (37.4784, 126.9516), "서초구": (37.4837, 127.0324),
+    "강남구": (37.5172, 127.0473), "송파구": (37.5146, 127.1059),
+    "강동구": (37.5301, 127.1238),
+    # 경기 근교
+    "하남시": (37.5393, 127.2148), "과천시": (37.4292, 126.9876),
+    "광명시": (37.4786, 126.8644), "구리시": (37.5943, 127.1295),
+    "남양주시": (37.6360, 127.2164),
+    "성남시 분당구": (37.3826, 127.1189), "성남시 수정구": (37.4503, 127.1457),
+    "성남시 중원구": (37.4317, 127.1370),
+    "고양시 덕양구": (37.6375, 126.8322), "고양시 일산동구": (37.6586, 126.7742),
+    "고양시 일산서구": (37.6753, 126.7518),
+    "의정부시": (37.7381, 127.0337), "김포시": (37.6153, 126.7156),
+    "파주시": (37.7590, 126.7803),
+}
+
+
 @router.get("/map-markers")
 def get_map_markers(db: Session = Depends(get_db)):
-    """활성 매물 지도 마커 데이터"""
-    # Check cache first (TTL: 300s)
+    """활성 매물 + 실거래 지역 마커 데이터"""
     cache_key = "all"
     cached = response_cache.get("map_markers", cache_key)
     if cached is not None:
         return cached
 
+    # 1) Property 테이블 매물 마커
     properties = (
         db.query(Property)
         .filter(Property.is_active == 1)
@@ -172,7 +244,6 @@ def get_map_markers(db: Session = Depends(get_db)):
         .all()
     )
 
-    # Get candidate property_ids for "is_candidate" flag
     candidate_prop_ids = set(
         row[0]
         for row in db.query(CandidateProperty.property_id)
@@ -181,7 +252,10 @@ def get_map_markers(db: Session = Depends(get_db)):
     )
 
     markers = []
+    property_districts = set()
     for p in properties:
+        if p.district:
+            property_districts.add(p.district)
         markers.append({
             "id": p.id,
             "lat": p.lat,
@@ -194,16 +268,52 @@ def get_map_markers(db: Session = Depends(get_db)):
             "property_type": p.property_type,
             "acquisition_type": p.acquisition_type,
             "is_candidate": p.id in candidate_prop_ids,
-            # Land fields
+            "marker_type": "property",
             "land_use": p.land_use,
             "zoning_type": p.zoning_type,
             "building_coverage_ratio": p.building_coverage_ratio,
             "floor_area_ratio": p.floor_area_ratio,
         })
 
-    result = {"markers": markers, "count": len(markers)}
+    # 2) 실거래 지역 요약 마커 (Property가 없는 지역만)
+    tx_districts = (
+        db.query(
+            TransactionHistory.district,
+            func.avg(TransactionHistory.price_krw).label("avg_price"),
+            func.count(TransactionHistory.id).label("tx_count"),
+            func.avg(TransactionHistory.area_exclusive).label("avg_area"),
+        )
+        .filter(TransactionHistory.source == "molit")
+        .group_by(TransactionHistory.district)
+        .all()
+    )
 
-    # Store in cache (300s TTL)
+    for row in tx_districts:
+        coords = DISTRICT_CENTER_COORDS.get(row.district)
+        if not coords:
+            continue
+        avg_price = int(row.avg_price) if row.avg_price else 0
+        markers.append({
+            "id": None,
+            "lat": coords[0],
+            "lng": coords[1],
+            "price_krw": avg_price,
+            "area_m2": round(row.avg_area, 1) if row.avg_area else None,
+            "score_composite": None,
+            "color": "gray",
+            "label": f"{row.district} ({row.tx_count}건)",
+            "property_type": "실거래",
+            "acquisition_type": "매매",
+            "is_candidate": False,
+            "marker_type": "transaction_summary",
+            "tx_count": row.tx_count,
+            "land_use": None,
+            "zoning_type": None,
+            "building_coverage_ratio": None,
+            "floor_area_ratio": None,
+        })
+
+    result = {"markers": markers, "count": len(markers)}
     response_cache.set("map_markers", cache_key, result, ttl=300)
     return result
 

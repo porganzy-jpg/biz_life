@@ -1,8 +1,10 @@
 """지역(구/동) API"""
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from database import get_db
+from models.transaction import TransactionHistory
 from repositories.area_repo import AreaRepository
 from exceptions import NotFoundException
 from cache import response_cache, make_cache_key
@@ -122,3 +124,35 @@ def get_area_profile(district: str, db: Session = Depends(get_db)):
     # Store in cache (1800s TTL)
     response_cache.set("area_stats", cache_key, result, ttl=1800)
     return result
+
+
+@router.get("/realtime-stats")
+def get_realtime_district_stats(db: Session = Depends(get_db)):
+    """실거래 데이터 기반 구별 실시간 통계"""
+    rows = (
+        db.query(
+            TransactionHistory.district,
+            func.avg(TransactionHistory.price_krw).label("avg_price"),
+            func.avg(TransactionHistory.price_per_m2).label("avg_ppm2"),
+            func.min(TransactionHistory.price_krw).label("min_price"),
+            func.max(TransactionHistory.price_krw).label("max_price"),
+            func.count(TransactionHistory.id).label("tx_count"),
+        )
+        .filter(TransactionHistory.source == "molit")
+        .group_by(TransactionHistory.district)
+        .all()
+    )
+
+    districts = []
+    for r in rows:
+        districts.append({
+            "district": r.district,
+            "avg_price_krw": int(r.avg_price) if r.avg_price else 0,
+            "avg_price_per_m2": int(r.avg_ppm2) if r.avg_ppm2 else 0,
+            "min_price_krw": r.min_price,
+            "max_price_krw": r.max_price,
+            "transaction_count": r.tx_count,
+        })
+
+    districts.sort(key=lambda x: x["avg_price_krw"], reverse=True)
+    return {"districts": districts, "count": len(districts)}

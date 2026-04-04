@@ -19,7 +19,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from database import init_db, get_db, SessionLocal
+from database import init_db, SessionLocal
 from api.v1 import v1_router
 from exceptions import register_exception_handlers
 from middleware import RequestLoggingMiddleware
@@ -43,9 +43,22 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized")
     seed_data.seed()
     logger.info("Seed data loaded")
+
+    # Start scheduler (stored on app.state for API access)
+    app.state.scheduler = None
+    try:
+        from scheduler.scheduler import HomefinderScheduler
+        app.state.scheduler = HomefinderScheduler(settings, SessionLocal)
+        app.state.scheduler.start()
+        logger.info("Scheduler started")
+    except Exception as e:
+        logger.critical(f"Scheduler failed to start: {e}")
+
     logger.info(f"Server ready on port {settings.PORT}")
     yield
     # Shutdown
+    if app.state.scheduler:
+        app.state.scheduler.stop()
     logger.info("HomeFinder shutting down...")
 
 
@@ -134,14 +147,6 @@ async def page_areas(request: Request):
     })
 
 
-@app.get("/property/{property_id}", include_in_schema=False)
-async def page_property_detail(request: Request, property_id: int):
-    return templates.TemplateResponse("property_detail.html", {
-        "request": request,
-        "property_id": property_id,
-    })
-
-
 @app.get("/auctions", include_in_schema=False)
 async def page_auctions(request: Request):
     return templates.TemplateResponse("auctions.html", {
@@ -164,6 +169,15 @@ async def page_create_land(request: Request):
         "property_id": None,
         "target_districts": settings.TARGET_DISTRICTS,
         "target_suburbs": settings.TARGET_SUBURBS,
+    })
+
+
+@app.get("/property/{property_id}", include_in_schema=False)
+async def page_property_detail(request: Request, property_id: int):
+    return templates.TemplateResponse("property_detail.html", {
+        "request": request,
+        "property_id": property_id,
+        "kakao_api_key": settings.KAKAO_REST_API_KEY,
     })
 
 
@@ -207,6 +221,4 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=settings.PORT,
-        reload=True,
-        reload_dirs=[str(PROJECT_ROOT)],
     )

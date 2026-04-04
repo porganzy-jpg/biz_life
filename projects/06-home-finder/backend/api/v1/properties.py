@@ -243,3 +243,25 @@ def score_property(property_id: int, db: Session = Depends(get_db)):
         "property_id": property_id,
         "scores": result,
     }
+
+
+@router.get("/{property_id}/price-analysis")
+def analyze_property_price(
+    property_id: int,
+    months: int = Query(6, ge=1, le=24, description="비교 기간 (개월)"),
+    db: Session = Depends(get_db),
+):
+    """
+    매물 가격 적정성 분석
+
+    실거래 히스토리를 기반으로 3단계 비교:
+    1. 같은 단지 + 비슷한 면적
+    2. 같은 동 + 비슷한 면적
+    3. 같은 구 + 비슷한 면적
+    """
+    from services.price_analyzer import PriceAnalyzer
+    analyzer = PriceAnalyzer(db)
+    result = analyzer.analyze(property_id, months=months)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result

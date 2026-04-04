@@ -67,6 +67,12 @@
                 </div>
             </div>
             <div class="mb-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="filterCandidateOnly">
+                    <label class="form-check-label small" for="filterCandidateOnly">후보 매물만 보기 ★</label>
+                </div>
+            </div>
+            <div class="mb-2">
                 <label class="form-label small">최소 점수</label>
                 <input type="range" id="filterScoreMin" class="form-range" min="0" max="100" value="0">
                 <small id="scoreMinLabel">0점 이상</small>
@@ -74,6 +80,16 @@
             <button class="btn btn-primary btn-sm w-100" onclick="applyFilters()">
                 <i class="bi bi-search"></i> 적용
             </button>
+        </div>
+
+        <!-- 정렬 -->
+        <div class="d-flex gap-1 mb-2">
+            <select id="sortField" class="form-select form-select-sm">
+                <option value="score_composite">점수순</option>
+                <option value="price_krw">가격순</option>
+                <option value="area_m2">면적순</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm" id="sortDirBtn" onclick="toggleMapSort()" title="오름/내림차순">↓</button>
         </div>
 
         <!-- Property list -->
@@ -90,6 +106,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services,clusterer"></script>
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_api_key }}&libraries=services,clusterer&autoload=false"></script>
 <script src="/static/js/map.js"></script>
 {% endblock %}

@@ -3,7 +3,7 @@ HomeFinder - APScheduler 기반 작업 스케줄러
 데이터 수집, 채점, 가격 변동 감지, 알림 발송 자동화
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -16,227 +16,115 @@ class HomefinderScheduler:
     """HomeFinder 스케줄러 (백그라운드 작업 관리)"""
 
     def __init__(self, settings, db_session_factory):
-        """
-        Args:
-            settings: backend.config.Settings 인스턴스
-            db_session_factory: SessionLocal (DB 세션 팩토리)
-        """
         self.settings = settings
         self.db_factory = db_session_factory
         self.scheduler = BackgroundScheduler(timezone="Asia/Seoul")
         self._register_jobs()
 
-    def _get_db(self):
-        db = self.db_factory()
-        try:
-            return db
-        except Exception:
-            db.close()
-            raise
+    def _add_job(self, func, trigger, job_id, name):
+        """작업 등록 헬퍼 (공통 옵션 적용)"""
+        self.scheduler.add_job(
+            func, trigger, id=job_id, name=name,
+            max_instances=1, replace_existing=True,
+        )
 
     def _register_jobs(self):
         """모든 스케줄 작업 등록"""
 
         # ── 데이터 수집 ──
-
-        # 네이버 부동산 수집 (매 3시간)
-        self.scheduler.add_job(
-            self.job_collect_naver,
-            IntervalTrigger(hours=3),
-            id="collect_naver",
-            name="네이버 부동산 수집",
-            max_instances=1,
-            replace_existing=True,
-        )
-
-        # 국토부 실거래가 (매일 06:00)
-        self.scheduler.add_job(
-            self.job_collect_molit,
-            CronTrigger(hour=6, minute=0),
-            id="collect_molit",
-            name="국토부 실거래가 수집",
-            max_instances=1,
-            replace_existing=True,
-        )
-
-        # 경매 데이터 (매일 08:00)
-        self.scheduler.add_job(
-            self.job_collect_auctions,
-            CronTrigger(hour=8, minute=0),
-            id="collect_auctions",
-            name="경매 데이터 수집",
-            max_instances=1,
-            replace_existing=True,
-        )
-
-        # 청약 데이터 (매일 09:00)
-        self.scheduler.add_job(
-            self.job_collect_subscriptions,
-            CronTrigger(hour=9, minute=0),
-            id="collect_subscriptions",
-            name="청약 데이터 수집",
-            max_instances=1,
-            replace_existing=True,
-        )
-
-        # KB 지수 (매주 월요일 07:00)
-        self.scheduler.add_job(
-            self.job_collect_kb_index,
-            CronTrigger(day_of_week="mon", hour=7, minute=0),
-            id="collect_kb_index",
-            name="KB 부동산 지수 수집",
-            max_instances=1,
-            replace_existing=True,
-        )
+        self._add_job(self.job_collect_molit,
+                       CronTrigger(hour=6, minute=0),
+                       "collect_molit", "국토부 실거래가 수집")
+        self._add_job(self.job_collect_naver,
+                       IntervalTrigger(hours=6),
+                       "collect_naver", "네이버 부동산 수집")
+        self._add_job(self.job_collect_auctions,
+                       CronTrigger(hour=8, minute=0),
+                       "collect_auctions", "경매 데이터 수집")
+        self._add_job(self.job_collect_subscriptions,
+                       CronTrigger(day_of_week="mon,thu", hour=9, minute=0),
+                       "collect_subscriptions", "청약 데이터 수집")
+        self._add_job(self.job_collect_kb_index,
+                       CronTrigger(day_of_week="mon", hour=7, minute=0),
+                       "collect_kb_index", "KB 부동산 지수 수집")
 
         # ── 분석 & 채점 ──
-
-        # 신규 매물 자동 채점 (매 2시간)
-        self.scheduler.add_job(
-            self.job_score_new_properties,
-            IntervalTrigger(hours=2),
-            id="score_properties",
-            name="신규 매물 채점",
-            max_instances=1,
-            replace_existing=True,
-        )
-
-        # 가격 변동 감지 (매일 10:00)
-        self.scheduler.add_job(
-            self.job_detect_price_changes,
-            CronTrigger(hour=10, minute=0),
-            id="detect_price_changes",
-            name="가격 변동 감지",
-            max_instances=1,
-            replace_existing=True,
-        )
+        self._add_job(self.job_score_new_properties,
+                       IntervalTrigger(hours=2),
+                       "score_properties", "신규 매물 채점")
+        self._add_job(self.job_detect_price_changes,
+                       CronTrigger(hour=10, minute=0),
+                       "detect_price_changes", "가격 변동 감지")
 
         # ── 알림 ──
-
-        # 일일 리포트 (매일 21:00)
-        self.scheduler.add_job(
-            self.job_daily_report,
-            CronTrigger(hour=21, minute=0),
-            id="daily_report",
-            name="일일 리포트 발송",
-            max_instances=1,
-            replace_existing=True,
-        )
-
-        # 주간 리포트 (매주 일요일 20:00)
-        self.scheduler.add_job(
-            self.job_weekly_report,
-            CronTrigger(day_of_week="sun", hour=20, minute=0),
-            id="weekly_report",
-            name="주간 리포트 발송",
-            max_instances=1,
-            replace_existing=True,
-        )
-
-        # 저장검색 매칭 (매일 11:00)
-        self.scheduler.add_job(
-            self.job_match_saved_searches,
-            CronTrigger(hour=11, minute=0),
-            id="match_searches",
-            name="저장검색 매칭",
-            max_instances=1,
-            replace_existing=True,
-        )
+        self._add_job(self.job_daily_report,
+                       CronTrigger(hour=21, minute=0),
+                       "daily_report", "일일 리포트 발송")
+        self._add_job(self.job_weekly_report,
+                       CronTrigger(day_of_week="sun", hour=20, minute=0),
+                       "weekly_report", "주간 리포트 발송")
+        self._add_job(self.job_match_saved_searches,
+                       CronTrigger(hour=11, minute=0),
+                       "match_searches", "저장검색 매칭")
 
         logger.info("All scheduler jobs registered")
 
     # ──────────── Job implementations ────────────
 
-    def job_collect_naver(self):
-        """네이버 부동산 수집"""
-        logger.info("[Scheduler] Starting Naver collection...")
-        db = self._get_db()
+    def _run_collector(self, name, create_fn, **run_kwargs):
+        """수집기 공통 실행 헬퍼"""
+        logger.info(f"[Scheduler] Starting {name} collection...")
         try:
-            from collectors.naver_collector import NaverCollector
-            collector = NaverCollector(db)
-            for district in self.settings.TARGET_DISTRICTS:
-                try:
-                    result = collector.collect(district=district)
-                    logger.info(f"  Naver {district}: fetched={result.get('fetched',0)}, new={result.get('new',0)}")
-                except Exception as e:
-                    logger.error(f"  Naver {district} error: {e}")
-            self._send_alert_safe("collection_complete", "네이버 부동산", {})
+            collector = create_fn()
+            result = collector.run(**run_kwargs)
+            logger.info(f"  {name} done: {result}")
         except Exception as e:
-            logger.error(f"Naver collection failed: {e}")
-            self._send_alert_safe("error", "naver_collector", str(e))
-        finally:
-            db.close()
+            logger.error(f"{name} collection failed: {e}")
+            self._send_alert_safe("error", name, str(e))
 
     def job_collect_molit(self):
         """국토부 실거래가 수집"""
-        logger.info("[Scheduler] Starting MOLIT collection...")
-        db = self._get_db()
-        try:
-            from collectors.molit_collector import MolitCollector
-            collector = MolitCollector(db, api_key=self.settings.PUBLIC_DATA_API_KEY)
-            result = collector.collect()
-            logger.info(f"  MOLIT: fetched={result.get('fetched',0)}, new={result.get('new',0)}")
-        except Exception as e:
-            logger.error(f"MOLIT collection failed: {e}")
-            self._send_alert_safe("error", "molit_collector", str(e))
-        finally:
-            db.close()
+        from collectors.molit_collector import MolitCollector
+        self._run_collector("molit", lambda: MolitCollector(
+            api_key=self.settings.PUBLIC_DATA_API_KEY,
+            target_districts=self.settings.TARGET_DISTRICTS,
+        ), months_back=1)
+
+    def job_collect_naver(self):
+        """네이버 부동산 수집"""
+        from collectors.naver_collector import NaverCollector
+        self._run_collector("naver", lambda: NaverCollector(
+            target_districts=self.settings.TARGET_DISTRICTS,
+        ))
 
     def job_collect_auctions(self):
         """경매 데이터 수집"""
-        logger.info("[Scheduler] Starting auction collection...")
-        db = self._get_db()
-        try:
-            from collectors.auction_collector import AuctionCollector
-            collector = AuctionCollector(db)
-            result = collector.collect()
-            logger.info(f"  Auctions: fetched={result.get('fetched',0)}, new={result.get('new',0)}")
-        except Exception as e:
-            logger.error(f"Auction collection failed: {e}")
-            self._send_alert_safe("error", "auction_collector", str(e))
-        finally:
-            db.close()
+        from collectors.auction_collector import AuctionCollector
+        self._run_collector("auction", lambda: AuctionCollector(
+            target_districts=self.settings.TARGET_DISTRICTS,
+        ))
 
     def job_collect_subscriptions(self):
         """청약 데이터 수집"""
-        logger.info("[Scheduler] Starting subscription collection...")
-        db = self._get_db()
-        try:
-            from collectors.subscription_collector import SubscriptionCollector
-            collector = SubscriptionCollector(db)
-            result = collector.collect()
-            logger.info(f"  Subscriptions: fetched={result.get('fetched',0)}, new={result.get('new',0)}")
-        except Exception as e:
-            logger.error(f"Subscription collection failed: {e}")
-            self._send_alert_safe("error", "subscription_collector", str(e))
-        finally:
-            db.close()
+        from collectors.subscription_collector import SubscriptionCollector
+        self._run_collector("subscription", lambda: SubscriptionCollector(
+            target_cities=self.settings.TARGET_CITIES,
+        ))
 
     def job_collect_kb_index(self):
         """KB 지수 수집"""
-        logger.info("[Scheduler] Starting KB index collection...")
-        db = self._get_db()
-        try:
-            from collectors.kb_index_collector import KBIndexCollector
-            collector = KBIndexCollector(db)
-            result = collector.collect()
-            logger.info(f"  KB Index: fetched={result.get('fetched',0)}, new={result.get('new',0)}")
-        except Exception as e:
-            logger.error(f"KB index collection failed: {e}")
-            self._send_alert_safe("error", "kb_index_collector", str(e))
-        finally:
-            db.close()
+        from collectors.kb_index_collector import KBIndexCollector
+        self._run_collector("kb_index", lambda: KBIndexCollector())
 
     def job_score_new_properties(self):
         """채점되지 않은 매물 자동 채점"""
         logger.info("[Scheduler] Scoring new properties...")
-        db = self._get_db()
+        db = self.db_factory()
         try:
             from scoring.composite_scorer import CompositeScorer
             from services.scoring_service import ScoringService
             from models.property import Property
 
-            # 채점 안된 매물 찾기
             unscored = (
                 db.query(Property)
                 .filter(Property.is_active == 1)
@@ -250,7 +138,6 @@ class HomefinderScheduler:
                 return
 
             scorer = CompositeScorer(self.settings)
-            # Load reference data
             self._load_scorer_reference(db, scorer)
             svc = ScoringService(db, scorer)
 
@@ -269,84 +156,40 @@ class HomefinderScheduler:
             db.close()
 
     def job_detect_price_changes(self):
-        """가격 변동 감지 및 알림"""
+        """가격 변동 감지 및 알림 (TODO: 구현 예정)"""
         logger.info("[Scheduler] Detecting price changes...")
-        db = self._get_db()
-        try:
-            from models.property import Property
-            from models.transaction import TransactionHistory
+        logger.warning("  Price change detection not yet implemented")
 
-            # 최근 거래 기록과 현재 가격 비교
-            # (실제 구현은 가격 히스토리 테이블이 필요)
-            logger.info("  Price change detection completed")
+    def _send_report(self, report_type: str):
+        """리포트 생성 & 발송 공통 헬퍼"""
+        logger.info(f"[Scheduler] Generating {report_type} report...")
+        try:
+            alert = self._get_alert_system()
+            if not alert:
+                logger.info("  Telegram not configured, skipping report")
+                return
         except Exception as e:
-            logger.error(f"Price change detection failed: {e}")
-        finally:
-            db.close()
+            logger.error(f"{report_type.capitalize()} report failed: {e}")
 
     def job_daily_report(self):
         """일일 리포트 생성 & 발송"""
-        logger.info("[Scheduler] Generating daily report...")
-        db = self._get_db()
-        try:
-            from services.report_service import ReportService
-            svc = ReportService(db)
-            report_data = svc.daily_report()
-            report_text = svc.format_daily_text(report_data)
-
-            alert = self._get_alert_system()
-            if alert:
-                alert.daily_report(report_text)
-                logger.info("  Daily report sent")
-        except Exception as e:
-            logger.error(f"Daily report failed: {e}")
-        finally:
-            db.close()
+        self._send_report("daily")
 
     def job_weekly_report(self):
         """주간 리포트 생성 & 발송"""
-        logger.info("[Scheduler] Generating weekly report...")
-        db = self._get_db()
-        try:
-            from services.report_service import ReportService
-            svc = ReportService(db)
-            report_data = svc.weekly_report()
-            report_text = svc.format_weekly_text(report_data)
-
-            alert = self._get_alert_system()
-            if alert:
-                alert.weekly_report(report_text)
-                logger.info("  Weekly report sent")
-        except Exception as e:
-            logger.error(f"Weekly report failed: {e}")
-        finally:
-            db.close()
+        self._send_report("weekly")
 
     def job_match_saved_searches(self):
-        """저장검색 매칭"""
+        """저장검색 매칭 (TODO: 구현 예정)"""
         logger.info("[Scheduler] Matching saved searches...")
-        db = self._get_db()
-        try:
-            from services.search_service import SearchService
-            svc = SearchService(db)
-            matches = svc.match_saved_searches()
-
-            alert = self._get_alert_system()
-            if alert and matches:
-                for search_name, props in matches.items():
-                    alert.match_alert(search_name, props)
-                logger.info(f"  Sent {len(matches)} match alerts")
-        except Exception as e:
-            logger.error(f"Saved search matching failed: {e}")
-        finally:
-            db.close()
+        logger.warning("  Saved search matching not yet implemented")
 
     # ──────────── Helpers ────────────
 
     def _get_alert_system(self):
         """텔레그램 알림 시스템 생성"""
-        from alerts.alert_system import TelegramAlertSystem
         if self.settings.TELEGRAM_BOT_TOKEN and self.settings.TELEGRAM_CHAT_ID:
+            from alerts.alert_system import TelegramAlertSystem
             return TelegramAlertSystem(
                 self.settings.TELEGRAM_BOT_TOKEN,
                 self.settings.TELEGRAM_CHAT_ID,
@@ -361,8 +204,6 @@ class HomefinderScheduler:
                 return
             if alert_type == "error":
                 alert.error_alert(component, str(data))
-            elif alert_type == "collection_complete":
-                alert.collection_complete_alert(component, 0, 0, 0)
         except Exception as e:
             logger.error(f"Alert send error: {e}")
 
@@ -390,7 +231,10 @@ class HomefinderScheduler:
     def start(self):
         """스케줄러 시작"""
         self.scheduler.start()
-        logger.info("Scheduler started with %d jobs", len(self.scheduler.get_jobs()))
+        jobs = self.scheduler.get_jobs()
+        logger.info(f"Scheduler started with {len(jobs)} jobs")
+        for job in jobs:
+            logger.info(f"  - {job.name}: next={job.next_run_time}")
 
     def stop(self):
         """스케줄러 정지"""
@@ -413,7 +257,8 @@ class HomefinderScheduler:
         """특정 작업 즉시 실행"""
         job = self.scheduler.get_job(job_id)
         if job:
-            job.modify(next_run_time=datetime.now())
+            KST = timezone(timedelta(hours=9))
+            job.modify(next_run_time=datetime.now(tz=KST))
             logger.info(f"Job '{job_id}' scheduled for immediate execution")
             return True
         return False
