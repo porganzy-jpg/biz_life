@@ -16,19 +16,18 @@ async function loadDashboardSummary() {
         if (!resp.ok) return;
         const data = await resp.json();
 
-        document.getElementById('totalProperties').textContent =
-            (data.active_properties || 0).toLocaleString();
-        // 건물/토지 카운트 서브텍스트
-        const subEl = document.getElementById('propertySub');
-        if (subEl && data.building_count != null && data.land_count != null) {
-            subEl.textContent = `건물 ${data.building_count}건 / 토지 ${data.land_count}건`;
-        }
         document.getElementById('totalCandidates').textContent =
             (data.pipeline?.total || 0).toLocaleString();
         document.getElementById('weeklyAuctions').textContent =
             (data.active_auctions || 0).toLocaleString();
         document.getElementById('activeSubscriptions').textContent =
             (data.active_subscriptions || 0).toLocaleString();
+
+        // 건물/토지 카드
+        document.getElementById('buildingCount').textContent =
+            (data.building_count || 0).toLocaleString();
+        document.getElementById('landCount').textContent =
+            (data.land_count || 0).toLocaleString();
 
         // 실거래 카드
         const txEl = document.getElementById('totalTransactions');
@@ -47,7 +46,8 @@ async function loadDashboardSummary() {
         }
     } catch (e) {
         console.error('Dashboard summary load error:', e);
-        document.getElementById('totalProperties').textContent = '!';
+        document.getElementById('buildingCount').textContent = '!';
+        document.getElementById('landCount').textContent = '!';
         document.getElementById('totalCandidates').textContent = '!';
         document.getElementById('weeklyAuctions').textContent = '!';
         document.getElementById('activeSubscriptions').textContent = '!';
@@ -58,7 +58,15 @@ async function loadDashboardSummary() {
 
 let _topPropertiesData = [];
 let _topSortField = 'score_composite';
-let _topSortAsc = false; // 기본: 내림차순
+let _topSortAsc = false;
+let _propertyFilter = 'all'; // 'all', 'building', 'land'
+
+function setPropertyFilter(filter) {
+    _propertyFilter = filter;
+    document.querySelectorAll('#btnAll,#btnBuilding,#btnLand').forEach(b => b.classList.remove('active'));
+    document.getElementById(filter === 'all' ? 'btnAll' : filter === 'building' ? 'btnBuilding' : 'btnLand').classList.add('active');
+    _renderTopProperties();
+}
 
 function toggleTopSort(field) {
     if (_topSortField === field) {
@@ -78,7 +86,20 @@ function _renderTopProperties() {
     const tbody = document.getElementById('topScoredTable');
     if (!tbody || !_topPropertiesData.length) return;
 
-    const sorted = [..._topPropertiesData].sort((a, b) => {
+    // 필터 적용
+    let data = _topPropertiesData;
+    if (_propertyFilter === 'land') {
+        data = data.filter(p => p.property_type === '토지');
+    } else if (_propertyFilter === 'building') {
+        data = data.filter(p => p.property_type !== '토지');
+    }
+
+    if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">해당 유형 매물이 없습니다</td></tr>';
+        return;
+    }
+
+    const sorted = [...data].sort((a, b) => {
         const va = a[_topSortField] || 0;
         const vb = b[_topSortField] || 0;
         return _topSortAsc ? va - vb : vb - va;
@@ -91,9 +112,12 @@ function _renderTopProperties() {
         const mapLink = p.lat && p.lng
             ? `<a href="/map#lat=${p.lat}&lng=${p.lng}&id=${p.id}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="지도에서 보기" onclick="event.stopPropagation()"><i class="bi bi-geo-alt"></i></a>`
             : '';
+        const typeBadge = p.property_type === '토지'
+            ? '<span class="badge bg-success me-1" style="font-size:0.65rem">토지</span>'
+            : '<span class="badge bg-secondary me-1" style="font-size:0.65rem">' + (p.property_type || '아파트') + '</span>';
         tbody.innerHTML += `
             <tr onclick="window.location='/property/${p.id}'" style="cursor:pointer" title="클릭하여 상세보기">
-                <td class="fw-bold">${p.complex_name || p.address || '매물 ' + p.id}</td>
+                <td class="fw-bold">${typeBadge}${(p.complex_name || p.address || '매물 ' + p.id).replace(/</g,'&lt;')}</td>
                 <td>${p.district || ''} ${p.dong || ''}</td>
                 <td class="text-primary fw-bold">${formatPrice(p.price_krw)}</td>
                 <td>${p.area_m2 ? p.area_m2 + '㎡' : '-'}</td>

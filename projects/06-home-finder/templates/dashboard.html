@@ -12,55 +12,61 @@
 
 <!-- Summary Cards -->
 <div class="row mb-4">
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-md-2 col-sm-6 mb-3">
+        <a href="/search" class="text-decoration-none">
+            <div class="card summary-card bg-primary text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div class="card-body py-2">
+                    <h6 class="card-title" style="font-size:0.8rem"><i class="bi bi-building"></i> 건물 매물</h6>
+                    <h3 id="buildingCount" class="mb-0">-</h3>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <a href="/search" class="text-decoration-none">
+            <div class="card summary-card bg-success text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div class="card-body py-2">
+                    <h6 class="card-title" style="font-size:0.8rem"><i class="bi bi-tree"></i> 토지 매물</h6>
+                    <h3 id="landCount" class="mb-0">-</h3>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
         <div class="card summary-card bg-dark text-white">
-            <div class="card-body">
-                <h6 class="card-title"><i class="bi bi-graph-up"></i> 실거래 수집</h6>
-                <h2 id="totalTransactions">-</h2>
-                <small id="txSub">국토부 API 데이터</small>
+            <div class="card-body py-2">
+                <h6 class="card-title" style="font-size:0.8rem"><i class="bi bi-graph-up"></i> 실거래 수집</h6>
+                <h3 id="totalTransactions" class="mb-0">-</h3>
+                <small id="txSub" style="font-size:0.7rem">국토부 API</small>
             </div>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
-        <a href="/search" class="text-decoration-none">
-            <div class="card summary-card bg-primary text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-                <div class="card-body">
-                    <h6 class="card-title">전체 매물</h6>
-                    <h2 id="totalProperties">-</h2>
-                    <small id="propertySub">활성 매물 수</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-md-2 col-sm-6 mb-3">
         <a href="/candidates" class="text-decoration-none">
-            <div class="card summary-card bg-success text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-                <div class="card-body">
-                    <h6 class="card-title">후보 매물</h6>
-                    <h2 id="totalCandidates">-</h2>
-                    <small>파이프라인 총 건수</small>
+            <div class="card summary-card text-white" style="background:#6f42c1;cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+                <div class="card-body py-2">
+                    <h6 class="card-title" style="font-size:0.8rem"><i class="bi bi-star"></i> 후보 매물</h6>
+                    <h3 id="totalCandidates" class="mb-0">-</h3>
                 </div>
             </div>
         </a>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-md-2 col-sm-6 mb-3">
         <a href="/auctions" class="text-decoration-none">
             <div class="card summary-card bg-warning text-dark" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-                <div class="card-body">
-                    <h6 class="card-title">이번주 경매</h6>
-                    <h2 id="weeklyAuctions">-</h2>
-                    <small>진행 예정</small>
+                <div class="card-body py-2">
+                    <h6 class="card-title" style="font-size:0.8rem"><i class="bi bi-hammer"></i> 경매</h6>
+                    <h3 id="weeklyAuctions" class="mb-0">-</h3>
                 </div>
             </div>
         </a>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
+    <div class="col-md-2 col-sm-6 mb-3">
         <a href="/subscriptions" class="text-decoration-none">
             <div class="card summary-card bg-info text-white" style="cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-                <div class="card-body">
-                    <h6 class="card-title">진행중 청약</h6>
-                    <h2 id="activeSubscriptions">-</h2>
-                    <small>접수중</small>
+                <div class="card-body py-2">
+                    <h6 class="card-title" style="font-size:0.8rem"><i class="bi bi-house-add"></i> 청약</h6>
+                    <h3 id="activeSubscriptions" class="mb-0">-</h3>
                 </div>
             </div>
         </a>
@@ -79,7 +85,14 @@
     </div>
     <div class="col-md-7 mb-3">
         <div class="card h-100">
-            <div class="card-header"><i class="bi bi-trophy"></i> 점수 상위 매물</div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-trophy"></i> 점수 상위 매물</span>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary active" id="btnAll" onclick="setPropertyFilter('all')">전체</button>
+                    <button class="btn btn-outline-primary" id="btnBuilding" onclick="setPropertyFilter('building')"><i class="bi bi-building"></i> 건물</button>
+                    <button class="btn btn-outline-success" id="btnLand" onclick="setPropertyFilter('land')"><i class="bi bi-tree"></i> 토지</button>
+                </div>
+            </div>
             <div class="card-body p-0">
                 <table class="table table-hover table-sm mb-0">
                     <thead>
