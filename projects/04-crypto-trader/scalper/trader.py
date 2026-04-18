@@ -76,7 +76,8 @@ class ScalpTrader:
         self.circuit = CircuitBreaker(initial_balance)
 
         self.positions: dict[str, OpenPosition] = {}
-        self.trade_history: list[TradeRecord] = []
+        self.trade_history: list[TradeRecord] = []  # v5.0: 최대 500건 유지 (메모리 보호)
+        self._max_history_size = 500
         self.cycle_count = 0
         self.running = False
         self.today = date.today()
@@ -115,6 +116,7 @@ class ScalpTrader:
         self.today_trades = 0
         self._last_market_analysis: dict[str, dict] = {}  # market -> analysis cache
         self._last_prices: dict[str, float] = {}  # market -> latest close price cache
+        self._last_price_times: dict[str, float] = {}  # v5.0: 가격 캐시 시간
         self._ws_callback = None
         self._prev_can_trade = True
 
@@ -284,6 +286,7 @@ class ScalpTrader:
         # Cache price + analysis for dashboard market watch
         current_price = float(df["close"].iloc[-1])
         self._last_prices[market] = current_price
+        self._last_price_times[market] = time.time()  # v5.0: 캐시 시간 기록
         trend = self.ensemble._get_trend(df)
         strategy_signals = []
         if "signals" in signal.metadata:
@@ -418,8 +421,12 @@ class ScalpTrader:
         if not pos:
             return
 
-        # Use cached price from latest analysis cycle, fallback to API
-        current_price = self._last_prices.get(market)
+        # v5.0: Stale price 감지 — 60초 이상 된 캐시는 무효
+        cached_time = self._last_price_times.get(market, 0)
+        if time.time() - cached_time > 60:
+            current_price = None  # 강제 재조회
+        else:
+            current_price = self._last_prices.get(market)
         if current_price is None:
             current_price = self.client.get_current_price(market)
         if current_price is None:
@@ -499,6 +506,9 @@ class ScalpTrader:
             contributing_strategies=list(pos.contributing_strategies),
         )
         self.trade_history.append(record)
+        # v5.0: 메모리 보호 — 최대 500건 유지, 초과분 삭제
+        if len(self.trade_history) > self._max_history_size:
+            self.trade_history = self.trade_history[-self._max_history_size:]
         self._save_trade(record)
 
         # Notify analytics cache

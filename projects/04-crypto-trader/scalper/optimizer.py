@@ -143,6 +143,11 @@ class WalkForwardOptimizer:
 
     def stop(self):
         self._running = False
+        # v5.0: 스레드 종료 대기 (최대 10초, 데드락 방지)
+        if hasattr(self, '_thread') and self._thread and self._thread.is_alive():
+            self._thread.join(timeout=10)
+            if self._thread.is_alive():
+                logger.warning("Optimizer thread did not stop within 10s (may be stuck)")
 
     def _loop(self):
         # Wait a bit before first run to let trader stabilize

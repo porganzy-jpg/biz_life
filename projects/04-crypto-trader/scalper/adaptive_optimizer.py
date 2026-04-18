@@ -724,6 +724,14 @@ class AdaptiveOptimizer:
 
     def stop(self):
         self._running = False
+        # v5.0: 스레드 종료 대기 (데드락 방지)
+        if hasattr(self, '_thread') and self._thread and self._thread.is_alive():
+            self._thread.join(timeout=10)
+            if self._thread.is_alive():
+                import logging
+                logging.getLogger("scalper.adaptive").warning(
+                    "AdaptiveOptimizer thread did not stop within 10s"
+                )
 
     def _background_loop(self, interval_sec: int):
         """Main background loop: check degradation -> auto-tune -> optimize weights."""
