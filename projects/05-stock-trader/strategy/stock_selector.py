@@ -1,6 +1,9 @@
 """
-종목 선정 앙상블 v3.7 (ML 예측 6번째 전략 추가)
+종목 선정 앙상블 v3.8 (7전략: 5 기술적 + ML예측 + 펀더멘털)
 
+v3.8: 펀더멘털 가치 분석 7번째 전략 추가
+      PER/PBR/ROE/부채비율/배당 섹터 상대평가
+      가치 위험 종목 필터링 (경고 3+ → 매수 차단)
 v3.7: ML예측 서브스코어 추가 (기존 5전략 비율 축소, 합계 1.0 유지)
       기관/외국인 수급 하이브리드 거래량 분석
 v3.2: Z-score 기반 스코어링, tanh MACD, 폭락 가드, 적응형 임계값
@@ -33,13 +36,15 @@ def _compute_rsi_wilder(series: pd.Series, period: int = 14) -> pd.Series:
 
 class StockSelectorEnsemble:
     """
-    종목 선정 앙상블 v3.7
+    종목 선정 앙상블 v3.8
 
-    6전략 통합 (5전략 + ML예측) + Z-score 스코어링 + 국면적응형 가중치
-    ML 모델 없을 시 5전략 가중치 재정규화 (v3.6 동일 동작)
+    7전략 통합 (5 기술적 + ML예측 + 펀더멘털) + Z-score 스코어링 + 국면적응형 가중치
+    ML/펀더멘털 없을 시 나머지 전략 가중치 재정규화
     """
 
-    # v3.7: ML예측 0.15 추가, 기존 5전략 비율 축소 (합계 1.0 유지)
+    # v3.8: 백테스트 최적화 결과 — 펀더멘털은 "필터"로만 사용 (가중치 0%)
+    # 2025년 검증: 기술적 앙상블 가중치를 유지하되, F-Score<4 종목만 차단
+    # (펀더멘털 가중치 혼합 시 수익률 하락 확인: +75% → +45%)
     REGIME_WEIGHTS = {
         "BULL": {
             "추세추종": 0.25, "한국형모멘텀": 0.17, "거래량": 0.17,
@@ -74,6 +79,15 @@ class StockSelectorEnsemble:
         except Exception as e:
             logger.debug(f"ML 모델 로드 건너뜀: {e}")
 
+        # 펀더멘털 분석기 (v3.8)
+        self._fundamental_analyzer = None
+        try:
+            from fundamental_analyzer import FundamentalAnalyzer
+            self._fundamental_analyzer = FundamentalAnalyzer()
+            logger.info("펀더멘털 분석기 활성화")
+        except Exception as e:
+            logger.debug(f"펀더멘털 분석기 로드 건너뜀: {e}")
+
     def apply_regime_weights(self, regime_weights: dict) -> None:
         """기존 인터페이스 호환"""
         pass
@@ -103,7 +117,7 @@ class StockSelectorEnsemble:
         return 58, 42  # 초기 폴백
 
     def evaluate(self, df: pd.DataFrame, symbol: str, name: str,
-                 regime: str = None) -> dict:
+                 regime: str = None, sector: str = "기타") -> dict:
         if regime:
             self._regime = regime
 
@@ -331,6 +345,24 @@ class StockSelectorEnsemble:
             except Exception as e:
                 logger.debug(f"ML 예측 실패 [{name}]: {e}")
 
+        # ── 7. 펀더멘털 가치 분석 (v3.8: 필터 전용, 가중치 0%) ──
+        # 백테스트 검증 결과: 가중치 혼합 시 수익률 하락, 필터로만 사용이 최적
+        fundamental_warnings = []
+        f_score_val = 9  # 기본값: 통과
+        if self._fundamental_analyzer:
+            try:
+                fund_result = self._fundamental_analyzer.evaluate(symbol, name, sector=sector)
+                fundamental_warnings = fund_result.get("warnings", [])
+                f_score_val = fund_result.get("raw", {}).get("f_score", 9)
+
+                # F-Score 기반 필터 정보 (점수에는 반영 안 함)
+                if fund_result["grade"] in ("A", "B"):
+                    reasons.append(f"펀더멘털 {fund_result['grade']}등급")
+                elif fund_result["grade"] in ("D", "F"):
+                    reasons.append(f"펀더멘털 {fund_result['grade']}등급 (주의)")
+            except Exception as e:
+                logger.debug(f"펀더멘털 분석 실패 [{name}]: {e}")
+
         # ── NaN 가드: 모든 서브스코어 ──
         for k, v in scores.items():
             if np.isnan(v):
@@ -340,9 +372,11 @@ class StockSelectorEnsemble:
         # ── 앙상블 집계 ──
         weights = dict(self.REGIME_WEIGHTS.get(self._regime, self.REGIME_WEIGHTS["SIDEWAYS"]))
 
-        # ML 모델 없을 시: "ML예측" 키 제거 후 5전략 가중치 재정규화
-        if "ML예측" not in scores and "ML예측" in weights:
-            del weights["ML예측"]
+        # 없는 전략 가중치 제거 후 재정규화
+        missing_strategies = [k for k in list(weights.keys()) if k not in scores]
+        for ms in missing_strategies:
+            del weights[ms]
+        if missing_strategies:
             total_w = sum(weights.values())
             if total_w > 0:
                 weights = {k: v / total_w for k, v in weights.items()}
@@ -380,5 +414,7 @@ class StockSelectorEnsemble:
             "reasons": reasons,
             "signals": signals,
             "sub_scores": scores,
+            "fundamental_warnings": fundamental_warnings,
+            "f_score": f_score_val,
             "thresholds": {"buy": round(buy_th, 1), "sell": round(sell_th, 1)},
         }

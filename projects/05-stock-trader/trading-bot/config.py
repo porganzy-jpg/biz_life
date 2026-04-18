@@ -82,6 +82,8 @@ CIRCUIT_BREAKER_CONFIG = {
     "max_consecutive_losses": 5,
     "max_daily_trades": 20,
     "cooldown_minutes": 30,
+    "initial_capital": INITIAL_CAPITAL,
+    "max_daily_order_amount": INITIAL_CAPITAL * 2,  # 일일 주문 한도: 자본의 200%
 }
 
 # === 손실 한도 (KRW 절대값) ===

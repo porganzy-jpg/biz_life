@@ -1,12 +1,20 @@
 """
-StockBot v3.7 주식 자동매매 트레이더
+StockBot v3.8 주식 자동매매 트레이더
 
-6전략 통합 앙상블 (5전략 Z-score + ML예측) + RSI(2) 급락 매수
+7전략 통합 앙상블 (5전략 Z-score + ML예측 + 펀더멘털) + RSI(2) 급락 매수
 + 멀티채널 알림 + 포트폴리오 자동 리밸런싱 + 기관수급 + WebSocket
 + ATR Chandelier Exit + 서킷브레이커 + DB 영속성 + 스케줄러
 + 시장 국면(Regime) 감지 + 스마트 주문 실행 엔진
 + yfinance 실시간 데이터 + 라이브/페이퍼 이중 안전장치
 
+v3.8 변경사항:
+  - 펀더멘털 가치 분석 7번째 전략 (PER/PBR/ROE/부채비율/배당)
+  - 에러 추적기: 연속 실패 감지 → 자동 매매 중단 + 알림
+  - 주문 체결 확인 (ACK polling), 부분 체결 추적
+  - 펀더멘털 위험 종목 필터링 (경고 3+ 매수 차단)
+  - 포지션 동기화 검증 (API vs DB)
+  - 일일 DB 백업 (7일 보관)
+  - 서킷브레이커: 일일 주문 금액 한도, 트립 이력
 v3.7 변경사항:
   - 멀티채널 알림 (Telegram + Discord + Email, 우선순위별 자동 선택)
   - 포트폴리오 자동 리밸런싱 (단일종목 36%→30%, 섹터 55%→50%)
@@ -29,6 +37,7 @@ from broker_client import BrokerClient
 from risk_manager import StockRiskManager
 from circuit_breaker import CircuitBreaker
 from alert_system import AlertSystem
+from error_tracker import ErrorTracker
 from database import TradeDB
 from scheduler import TradingScheduler, is_market_hours
 from regime_detector import RegimeDetector, MarketRegime
@@ -110,6 +119,7 @@ class StockTrader:
         self.scheduler = TradingScheduler()
         self.regime_detector = RegimeDetector()
         self.execution_engine = ExecutionEngine(broker_client=self.client)
+        self.error_tracker = ErrorTracker(alert_callback=self.alert.notify_error)
         self.paper_trading = self.client.paper_trading
 
         self.trade_history = []
@@ -131,8 +141,14 @@ class StockTrader:
         self.trade_history = list(reversed(trades))
 
     def _on_pre_market(self):
-        """장 시작 전 사전 분석 (시장 국면 감지 + 데이터 프리로드)"""
+        """장 시작 전 사전 분석 (시장 국면 감지 + 데이터 프리로드 + 안전 점검)"""
         logger.info("=== 사전 분석 시작 (08:30) ===")
+
+        # v3.8: DB 백업 (매일 장 시작 전)
+        self._backup_db()
+
+        # v3.8: 포지션 동기화 검증
+        self._verify_position_sync()
 
         # 데이터 프리로드
         logger.info("워치리스트 데이터 프리로드...")
@@ -207,8 +223,8 @@ class StockTrader:
         regime = self.regime_detector.detect(price_data_list)
         return regime
 
-    def analyze_stock(self, symbol: str, name: str) -> dict:
-        """개별 종목 분석 (순수 퀀트 + 시장국면 적응형 가중치 + RSI(2) 급락감지)"""
+    def analyze_stock(self, symbol: str, name: str, sector: str = "기타") -> dict:
+        """개별 종목 분석 (순수 퀀트 + 시장국면 적응형 가중치 + RSI(2) 급락감지 + 펀더멘털)"""
         df = self.client.fetch_ohlcv(symbol, count=200)
         if df is None or df.empty:
             return {"symbol": symbol, "name": name, "action": "HOLD", "score": 0}
@@ -216,7 +232,7 @@ class StockTrader:
         # 순수 퀀트 분석 (국면 직접 전달 → 내부 가중치 자동 적용)
         selector = _get_stock_selector()
         regime_str = self.regime_detector.current_regime.value
-        result = selector.evaluate(df, symbol, name, regime=regime_str)
+        result = selector.evaluate(df, symbol, name, regime=regime_str, sector=sector)
         result["regime"] = regime_str
 
         # RSI(2) 급락 매수 감지
@@ -234,17 +250,25 @@ class StockTrader:
         results = []
         for stock in WATCHLIST:
             try:
-                result = self.analyze_stock(stock["code"], stock["name"])
+                result = self.analyze_stock(stock["code"], stock["name"], stock.get("sector", "기타"))
                 result["sector"] = stock["sector"]
                 results.append(result)
             except Exception as e:
                 logger.error(f"분석 오류 [{stock['name']}]: {e}")
+                self.error_tracker.record("strategy", symbol=stock["code"], error=e)
         return sorted(results, key=lambda x: x.get("score", 0), reverse=True)
 
     def execute_trades(self, scan_results: list):
         """스캔 결과에 따라 매매 실행"""
         if self.circuit_breaker.is_tripped:
             logger.warning(f"서킷브레이커 발동 중: {self.circuit_breaker.trip_reason}")
+            return
+
+        # v3.8: 에러 추적기 — 연속 실패 시 매매 중단
+        if self.error_tracker.should_halt_trading():
+            status = self.error_tracker.get_status()
+            logger.critical(f"에러 누적으로 매매 중단: {status['consecutive']}")
+            self.circuit_breaker.force_trip(f"에러 누적: {status['consecutive']}")
             return
 
         balance = self.client.get_balance()
@@ -403,6 +427,7 @@ class StockTrader:
                     )
           except Exception as e:
             logger.error(f"청산 체크 오류 [{symbol}]: {e}")
+            self.error_tracker.record("execution", symbol=symbol, error=e)
 
         # 2. 퀀트 기반 매도 (C3 Fix: SELL 신호 실행)
         for result in scan_results:
@@ -436,6 +461,7 @@ class StockTrader:
                 logger.info(f"퀀트 매도 [{pos.get('name', symbol)}] score={result.get('score'):.1f} exec_id={exec_id}")
           except Exception as e:
             logger.error(f"퀀트 매도 오류 [{result.get('symbol', '?')}]: {e}")
+            self.error_tracker.record("execution", symbol=result.get("symbol", ""), error=e)
 
         # 2.5 리밸런싱: 단일종목 36% 초과 → 30%, 섹터 55% 초과 → 50%
         try:
@@ -514,6 +540,7 @@ class StockTrader:
                     )
         except Exception as e:
             logger.error(f"리밸런싱 오류: {e}")
+            self.error_tracker.record("execution", error=e, message="리밸런싱")
 
         # 3. 앙상블 매수 (점수 높은 순)
         for result in scan_results:
@@ -535,6 +562,17 @@ class StockTrader:
 
             confidence = result.get("confidence", 0)
             if confidence < STOCK_TRADING_CONFIG["min_confidence"]:
+                continue
+
+            # v3.8: 펀더멘털 필터 (백테스트 최적화)
+            # F-Score<4 종목 매수 차단 (가중치 혼합 대신 필터만 적용)
+            f_score = result.get("f_score", 9)
+            if f_score < 4:
+                logger.info(f"F-Score 필터 [{result.get('name', symbol)}]: F-Score={f_score}/9 - 매수 차단")
+                continue
+            fund_warnings = result.get("fundamental_warnings", [])
+            if len(fund_warnings) >= 3:
+                logger.info(f"펀더멘털 위험 [{result.get('name', symbol)}]: {fund_warnings} - 매수 차단")
                 continue
 
             current_price = result.get("current_price", 0)
@@ -596,6 +634,7 @@ class StockTrader:
                 logger.info(f"앙상블 매수 [{result['name']}] score={result.get('score', 0):.1f} @{fill_price:,.0f}원 exec_id={exec_id}")
           except Exception as e:
             logger.error(f"앙상블 매수 오류 [{result.get('symbol', '?')}]: {e}")
+            self.error_tracker.record("api_order", symbol=result.get("symbol", ""), error=e)
 
         # 4. RSI(2) 급락 매수 (앙상블과 독립적으로 작동)
         for result in scan_results:
@@ -671,6 +710,7 @@ class StockTrader:
                 )
           except Exception as e:
             logger.error(f"RSI(2) 매수 오류 [{result.get('symbol', '?')}]: {e}")
+            self.error_tracker.record("api_order", symbol=result.get("symbol", ""), error=e)
 
     def _record_trade(self, action, symbol, name, qty, price,
                       pnl=0, pnl_pct=0, score=0, confidence=0, reasons=None):
@@ -734,6 +774,79 @@ class StockTrader:
         }
         self.trade_history.append(record)
         self.alert.notify_rebalance(symbol, name, qty, price, reason)
+
+    def _backup_db(self):
+        """SQLite DB 백업 (일일 1회, 장 시작 전)."""
+        try:
+            import shutil
+            db_path = os.path.join(os.path.dirname(__file__), "..", "stockbot.db")
+            if os.path.exists(db_path):
+                backup_dir = os.path.join(os.path.dirname(__file__), "..", "backups")
+                os.makedirs(backup_dir, exist_ok=True)
+                date_str = datetime.now().strftime("%Y%m%d")
+                backup_path = os.path.join(backup_dir, f"stockbot_{date_str}.db")
+                if not os.path.exists(backup_path):
+                    shutil.copy2(db_path, backup_path)
+                    logger.info(f"DB 백업 완료: {backup_path}")
+
+                    # 7일 이전 백업 삭제
+                    for f in os.listdir(backup_dir):
+                        if f.startswith("stockbot_") and f.endswith(".db"):
+                            fpath = os.path.join(backup_dir, f)
+                            age = (datetime.now() - datetime.fromtimestamp(
+                                os.path.getmtime(fpath)
+                            )).days
+                            if age > 7:
+                                os.remove(fpath)
+                                logger.debug(f"오래된 백업 삭제: {f}")
+        except Exception as e:
+            logger.error(f"DB 백업 실패: {e}")
+
+    def _verify_position_sync(self):
+        """API 포지션과 DB 포지션 동기화 검증."""
+        try:
+            api_positions = self.client.get_positions()
+            db_positions = self.db.get_positions()
+
+            api_symbols = set(api_positions.keys())
+            db_symbols = set(p["symbol"] for p in db_positions)
+
+            # DB에만 있는 포지션 (API에서 사라진 것 — 수동 매도 or 오류)
+            db_only = db_symbols - api_symbols
+            if db_only:
+                logger.warning(f"포지션 불일치 — DB에만 존재: {db_only}")
+                self.alert.send(
+                    f"[경고] 포지션 불일치\n"
+                    f"DB에만 있는 종목: {db_only}\n"
+                    f"수동 매도 또는 API 오류 가능성 — 확인 필요"
+                )
+
+            # API에만 있는 포지션 (DB에 없는 것 — 수동 매수 or DB 유실)
+            api_only = api_symbols - db_symbols
+            if api_only:
+                logger.warning(f"포지션 불일치 — API에만 존재: {api_only}")
+                self.alert.send(
+                    f"[경고] 포지션 불일치\n"
+                    f"API에만 있는 종목: {api_only}\n"
+                    f"수동 매수 또는 DB 유실 가능성"
+                )
+
+            # 수량 불일치 확인
+            for dp in db_positions:
+                sym = dp["symbol"]
+                if sym in api_positions:
+                    api_qty = api_positions[sym].get("qty", 0)
+                    db_qty = dp["qty"]
+                    if api_qty != db_qty:
+                        logger.warning(
+                            f"수량 불일치 [{sym}]: API={api_qty}주, DB={db_qty}주"
+                        )
+
+            if not db_only and not api_only:
+                logger.info("포지션 동기화 검증 통과")
+
+        except Exception as e:
+            logger.error(f"포지션 동기화 검증 실패: {e}")
 
     def run_cycle(self):
         """1회 매매 사이클 (시장 국면 감지 포함)"""
@@ -822,7 +935,7 @@ class StockTrader:
     def start_auto(self):
         """자동 매매 시작 (스케줄러)"""
         mode = "모의투자" if self.paper_trading else "실전투자"
-        logger.info(f"StockBot v3.7 자동매매 시작 ({mode})")
+        logger.info(f"StockBot v3.8 자동매매 시작 ({mode})")
         logger.info(f"초기 자본: {self._initial_capital:,}원")
         self.alert.notify_bot_start(mode)
         self.scheduler.start()
@@ -855,6 +968,7 @@ class StockTrader:
             "scheduler": self.scheduler.get_status(),
             "regime": self.regime_detector.get_status(),
             "execution": self.execution_engine.get_daily_stats(),
+            "errors": self.error_tracker.get_status(),
         }
 
 
@@ -863,8 +977,8 @@ def main():
                         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
     print("=" * 60)
-    print("  StockBot v3.7 - 주식 자동매매")
-    print("  6전략앙상블 + ML예측 + 멀티알림 + 리밸런싱 + 수급 + WebSocket")
+    print("  StockBot v3.8 - 주식 자동매매")
+    print("  7전략앙상블 + 펀더멘털 + ML예측 + 에러추적 + 체결확인")
     print("=" * 60)
 
     # 트레이딩 모드 결정

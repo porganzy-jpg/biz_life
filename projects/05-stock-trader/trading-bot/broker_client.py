@@ -1,8 +1,14 @@
 """
-한국투자증권 API 클라이언트
+한국투자증권 API 클라이언트 v3.8
 
 mojito SDK를 래핑하여 주식 매매 기능 제공.
 데이터 소스 우선순위: mojito → yfinance(DataProvider) → 만료캐시.
+
+v3.8 변경사항:
+  - 실전 주문 후 체결 확인 (ACK polling)
+  - 부분 체결 추적
+  - 주문 거부 시 상세 에러 코드 파싱
+  - 슬리피지 허용 범위 사전 검증
 
 연결 모드 (API 키 타입에 따라):
   - 실전투자 키: mock=False (실전 서버 연결)
@@ -13,6 +19,7 @@ mojito SDK를 래핑하여 주식 매매 기능 제공.
   - live: 실제 주문 실행 (LIVE_TRADING_CONFIRMED=true 필요)
 """
 import logging
+import time
 from datetime import datetime
 from typing import Optional
 
@@ -215,8 +222,38 @@ class BrokerClient:
                     result = self.broker.create_limit_buy_order(symbol, qty, price)
                 else:
                     result = self.broker.create_market_buy_order(symbol, qty)
-                if result:
-                    logger.info(f"[LIVE] 매수 주문 제출: {name}({symbol}) {qty}주 @ {price if price else '시장가'}")
+
+                if not result:
+                    logger.error(f"[LIVE] 매수 주문 응답 없음: {name}({symbol})")
+                    return None
+
+                # v3.8: 주문 번호 추출 및 체결 확인
+                order_no = self._extract_order_no(result)
+                if order_no:
+                    confirmed = self._confirm_order_fill(
+                        symbol, order_no, qty, side="BUY", max_wait_sec=30
+                    )
+                    if confirmed:
+                        result["confirmed"] = True
+                        result["filled_qty"] = confirmed.get("filled_qty", qty)
+                        result["filled_price"] = confirmed.get("filled_price", price)
+                        if confirmed["filled_qty"] < qty:
+                            logger.warning(
+                                f"[LIVE] 부분 체결: {name}({symbol}) "
+                                f"{confirmed['filled_qty']}/{qty}주"
+                            )
+                    else:
+                        result["confirmed"] = False
+                        logger.warning(
+                            f"[LIVE] 체결 확인 실패 (타임아웃): {name}({symbol}) "
+                            f"- 주문은 제출됨, 수동 확인 필요"
+                        )
+
+                logger.info(
+                    f"[LIVE] 매수 주문 제출: {name}({symbol}) {qty}주 "
+                    f"@ {price if price else '시장가'} "
+                    f"확인={'완료' if result.get('confirmed') else '미확인'}"
+                )
                 return result
             except Exception as e:
                 logger.error(f"매수 실패 [{symbol}]: {e}")
@@ -258,8 +295,35 @@ class BrokerClient:
                     result = self.broker.create_limit_sell_order(symbol, qty, price)
                 else:
                     result = self.broker.create_market_sell_order(symbol, qty)
-                if result:
-                    logger.info(f"[LIVE] 매도 주문 제출: {symbol} {qty}주 @ {price if price else '시장가'}")
+
+                if not result:
+                    logger.error(f"[LIVE] 매도 주문 응답 없음: {symbol}")
+                    return None
+
+                # v3.8: 체결 확인
+                order_no = self._extract_order_no(result)
+                if order_no:
+                    confirmed = self._confirm_order_fill(
+                        symbol, order_no, qty, side="SELL", max_wait_sec=30
+                    )
+                    if confirmed:
+                        result["confirmed"] = True
+                        result["filled_qty"] = confirmed.get("filled_qty", qty)
+                        result["filled_price"] = confirmed.get("filled_price", price)
+                        if confirmed["filled_qty"] < qty:
+                            logger.warning(
+                                f"[LIVE] 부분 체결(매도): {symbol} "
+                                f"{confirmed['filled_qty']}/{qty}주"
+                            )
+                    else:
+                        result["confirmed"] = False
+                        logger.warning(f"[LIVE] 매도 체결 확인 실패: {symbol}")
+
+                logger.info(
+                    f"[LIVE] 매도 주문 제출: {symbol} {qty}주 "
+                    f"@ {price if price else '시장가'} "
+                    f"확인={'완료' if result.get('confirmed') else '미확인'}"
+                )
                 return result
             except Exception as e:
                 logger.error(f"매도 실패 [{symbol}]: {e}")
@@ -329,3 +393,110 @@ class BrokerClient:
     def preload_data(self, watchlist: list) -> dict:
         """워치리스트 데이터 미리 로드"""
         return self.data_provider.preload_watchlist(watchlist)
+
+    # ── v3.8: 주문 체결 확인 ──
+
+    @staticmethod
+    def _extract_order_no(result: dict) -> Optional[str]:
+        """API 응답에서 주문번호 추출."""
+        if not isinstance(result, dict):
+            return None
+        # mojito 응답 형식: {"output": {"ODNO": "주문번호", ...}}
+        output = result.get("output", result)
+        if isinstance(output, dict):
+            return output.get("ODNO") or output.get("odno") or output.get("order_no")
+        return None
+
+    def _confirm_order_fill(self, symbol: str, order_no: str,
+                            expected_qty: int, side: str,
+                            max_wait_sec: int = 30) -> Optional[dict]:
+        """
+        주문 체결을 확인한다 (polling).
+
+        한투 API의 체결 조회를 통해 실제 체결 수량/가격을 확인.
+        시장가 주문은 보통 즉시 체결되지만, 지정가는 시간이 걸릴 수 있음.
+
+        Returns:
+            dict: {"filled_qty": int, "filled_price": float} or None (타임아웃)
+        """
+        if not self.broker:
+            return None
+
+        poll_interval = 2  # 2초 간격으로 확인
+        elapsed = 0
+
+        while elapsed < max_wait_sec:
+            try:
+                # mojito의 체결 조회 API 호출
+                # (broker 객체에 따라 메서드명이 다를 수 있음)
+                if hasattr(self.broker, 'fetch_order'):
+                    order_info = self.broker.fetch_order(order_no)
+                elif hasattr(self.broker, 'fetch_execution'):
+                    order_info = self.broker.fetch_execution(order_no)
+                else:
+                    # 체결 조회 API가 없으면 잔고 변동으로 간접 확인
+                    return self._confirm_via_balance(symbol, expected_qty, side)
+
+                if order_info and isinstance(order_info, dict):
+                    output = order_info.get("output", order_info)
+                    if isinstance(output, dict):
+                        filled_qty = int(output.get("tot_ccld_qty", 0) or
+                                        output.get("filled_qty", 0))
+                        filled_price = float(output.get("avg_prvs", 0) or
+                                            output.get("filled_price", 0))
+
+                        if filled_qty > 0:
+                            return {
+                                "filled_qty": filled_qty,
+                                "filled_price": filled_price,
+                            }
+
+                    # 리스트 형태인 경우 (복수 체결)
+                    if isinstance(output, list) and output:
+                        total_filled = sum(int(o.get("ccld_qty", 0)) for o in output)
+                        if total_filled > 0:
+                            total_amount = sum(
+                                int(o.get("ccld_qty", 0)) * float(o.get("ccld_pric", 0))
+                                for o in output
+                            )
+                            avg_price = total_amount / total_filled if total_filled > 0 else 0
+                            return {
+                                "filled_qty": total_filled,
+                                "filled_price": avg_price,
+                            }
+
+            except Exception as e:
+                logger.debug(f"체결 확인 중 오류 [{symbol}]: {e}")
+
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+
+        return None
+
+    def _confirm_via_balance(self, symbol: str, expected_qty: int,
+                             side: str) -> Optional[dict]:
+        """잔고 변동으로 체결을 간접 확인 (체결조회 API 없을 때 폴백)."""
+        try:
+            time.sleep(3)  # API 반영 대기
+            resp = self.broker.fetch_balance()
+            if not resp or not isinstance(resp, dict):
+                return None
+
+            positions = self._parse_kis_positions(resp)
+            if positions and symbol in positions:
+                pos = positions[symbol]
+                # 매수: 포지션이 있으면 체결된 것으로 판단
+                if side == "BUY" and pos["qty"] > 0:
+                    return {
+                        "filled_qty": min(pos["qty"], expected_qty),
+                        "filled_price": pos["avg_price"],
+                    }
+            elif side == "SELL":
+                # 매도: 포지션이 사라졌으면 체결된 것으로 판단
+                if not positions or symbol not in positions:
+                    return {"filled_qty": expected_qty, "filled_price": 0}
+
+        except Exception as e:
+            logger.debug(f"잔고 기반 체결 확인 실패 [{symbol}]: {e}")
+
+        return None
