@@ -113,6 +113,27 @@
                 </button>
             </div>
 
+            <!-- Transaction Type Tabs -->
+            <div class="filter-section">
+                <label class="form-label">거래 유형</label>
+                <div class="btn-group btn-group-sm w-100" role="group" id="txTypeGroup">
+                    <button type="button" class="btn btn-outline-primary active" data-tx="" onclick="setTxType('')">전체</button>
+                    <button type="button" class="btn btn-outline-primary" data-tx="매매" onclick="setTxType('매매')">매매</button>
+                    <button type="button" class="btn btn-outline-primary" data-tx="전세" onclick="setTxType('전세')">전세</button>
+                    <button type="button" class="btn btn-outline-primary" data-tx="월세" onclick="setTxType('월세')">월세</button>
+                </div>
+            </div>
+
+            <!-- Monthly Rent (for 월세 only) -->
+            <div class="filter-section" id="monthlyRentFilter" style="display:none;">
+                <label class="form-label">월세 범위 (만원)</label>
+                <div class="d-flex gap-2 align-items-center">
+                    <input type="number" id="rentMin" class="form-control form-control-sm" placeholder="최소" min="0">
+                    <span>~</span>
+                    <input type="number" id="rentMax" class="form-control form-control-sm" placeholder="최대" min="0">
+                </div>
+            </div>
+
             <!-- Property Category -->
             <div class="filter-section">
                 <label class="form-label">매물 분류</label>
@@ -165,12 +186,19 @@
 
             <!-- Area -->
             <div class="filter-section">
-                <label class="form-label">전용면적 (㎡)</label>
-                <div class="d-flex gap-2 align-items-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label mb-0">전용면적</label>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm active" id="areaUnitM2Btn" onclick="setAreaUnit(false)" style="font-size:0.7rem;padding:1px 6px;">㎡</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="areaUnitPyBtn" onclick="setAreaUnit(true)" style="font-size:0.7rem;padding:1px 6px;">평</button>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 align-items-center mt-1">
                     <input type="number" id="areaMin" class="form-control form-control-sm" placeholder="최소" min="0">
                     <span>~</span>
                     <input type="number" id="areaMax" class="form-control form-control-sm" placeholder="최대" min="0">
                 </div>
+                <small class="text-muted" id="areaUnitHint">㎡ 단위</small>
             </div>
 
             <!-- Subway Distance -->
@@ -385,6 +413,8 @@ let currentPage = 1;
 const PAGE_SIZE = 20;
 let currentView = 'list'; // 'list' or 'map'
 let searchItems = []; // last search results for map rendering
+let _txType = ''; // current transaction type filter
+let _areaFilterPyeong = false; // area filter unit state
 
 // ──── Map State ────
 let sMap = null;
@@ -416,22 +446,52 @@ function subScoreColor(s) {
     return '#6c757d';
 }
 
+// ──── Transaction Type ────
+function setTxType(type) {
+    _txType = type;
+    document.querySelectorAll('#txTypeGroup button').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tx') === type);
+    });
+    // Show/hide monthly rent filter
+    document.getElementById('monthlyRentFilter').style.display = type === '월세' ? 'block' : 'none';
+}
+
+// ──── Area Unit Toggle ────
+function setAreaUnit(pyeong) {
+    _areaFilterPyeong = pyeong;
+    document.getElementById('areaUnitM2Btn').classList.toggle('active', !pyeong);
+    document.getElementById('areaUnitPyBtn').classList.toggle('active', pyeong);
+    document.getElementById('areaUnitHint').textContent = pyeong ? '평 단위 (자동 ㎡ 변환)' : '㎡ 단위';
+}
+
 // ──── Build Criteria ────
 function buildCriteria(page) {
     const c = { page: page || 1, page_size: PAGE_SIZE };
+
+    // Transaction type
+    if (_txType) c.transaction_type = _txType;
 
     const pMin = parseFloat(document.getElementById('priceMin').value);
     const pMax = parseFloat(document.getElementById('priceMax').value);
     if (pMin) c.price_min = eokToKrw(pMin);
     if (pMax) c.price_max = eokToKrw(pMax);
 
+    // Monthly rent (for 월세)
+    if (_txType === '월세') {
+        const rentMin = parseFloat(document.getElementById('rentMin').value);
+        const rentMax = parseFloat(document.getElementById('rentMax').value);
+        if (rentMin) c.monthly_rent_min = rentMin * 10000;
+        if (rentMax) c.monthly_rent_max = rentMax * 10000;
+    }
+
     const districts = [...document.querySelectorAll('.district-cb:checked')].map(cb => cb.value);
     if (districts.length > 0) c.districts = districts;
 
     const aMin = parseFloat(document.getElementById('areaMin').value);
     const aMax = parseFloat(document.getElementById('areaMax').value);
-    if (aMin) c.area_min = aMin;
-    if (aMax) c.area_max = aMax;
+    // Convert pyeong to m2 if needed
+    if (aMin) c.area_min = _areaFilterPyeong ? parseFloat(pyeongToM2(aMin)) : aMin;
+    if (aMax) c.area_max = _areaFilterPyeong ? parseFloat(pyeongToM2(aMax)) : aMax;
 
     const subway = parseInt(document.getElementById('subwayDist').value);
     if (subway < 2000) c.subway_max_distance = subway;
@@ -483,6 +543,7 @@ function buildCriteria(page) {
 // ──── Filter Tags ────
 function renderTags(criteria) {
     const tags = [];
+    if (criteria.transaction_type) tags.push(`${criteria.transaction_type}`);
     if (criteria.price_min || criteria.price_max) {
         const mn = criteria.price_min ? krwToEok(criteria.price_min) : '0';
         const mx = criteria.price_max ? krwToEok(criteria.price_max) : '~';
@@ -606,8 +667,8 @@ function renderResults(items) {
                             <small class="text-muted">${p.district || ''} ${p.dong || ''}</small>
                         </div>
                         <div class="text-end">
-                            <div class="fw-bold text-primary">${krwToEok(p.price_krw)}</div>
-                            <small class="text-muted">${p.area_m2 ? p.area_m2 + '㎡' : ''}</small>
+                            <div class="fw-bold text-primary">${krwToEok(p.price_krw)}${p.transaction_type === '월세' && p.monthly_rent_krw ? ' / ' + Math.round(p.monthly_rent_krw/10000) + '만' : ''}</div>
+                            <small class="text-muted">${p.area_m2 ? formatArea(p.area_m2) : ''}${p.transaction_type && p.transaction_type !== '매매' ? ' <span class="badge bg-info text-dark" style="font-size:0.65rem;">' + p.transaction_type + '</span>' : ''}</small>
                         </div>
                     </div>
                     <div class="d-flex flex-wrap gap-3 mt-2 small text-muted">
@@ -865,6 +926,9 @@ function onCategoryChange() {
 }
 
 function resetFilters() {
+    setTxType('');
+    document.getElementById('rentMin').value = '';
+    document.getElementById('rentMax').value = '';
     document.getElementById('propertyCategory').value = '';
     document.getElementById('priceMin').value = '';
     document.getElementById('priceMax').value = '';

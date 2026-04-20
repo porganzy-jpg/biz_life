@@ -48,6 +48,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% block nav_recommendations %}{% endblock %}" href="/recommendations">
+                            <i class="bi bi-stars"></i> 맞춤추천
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% block nav_search %}{% endblock %}" href="/search">
                             <i class="bi bi-sliders"></i> 내 조건
                         </a>
@@ -67,11 +72,6 @@
                             <i class="bi bi-bar-chart"></i> 지역분석
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% block nav_recommendations %}{% endblock %}" href="/recommendations">
-                            <i class="bi bi-stars"></i> 맞춤추천
-                        </a>
-                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% block nav_more %}{% endblock %}" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-collection"></i> 더보기
@@ -88,6 +88,16 @@
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <button class="btn btn-sm btn-outline-light ms-2 my-1" id="areaUnitToggle" onclick="toggleAreaUnit()" title="평 단위로 전환" style="font-size:0.8rem;padding:2px 8px;">
+                            ㎡
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-sm btn-outline-warning ms-2 my-1" onclick="openMortgageCalc()" title="대출 계산기" style="font-size:0.8rem;padding:2px 8px;">
+                            <i class="bi bi-calculator"></i> 대출
+                        </button>
+                    </li>
                     <li class="nav-item">
                         <span class="nav-link text-muted" id="lastUpdate"></span>
                     </li>
@@ -280,6 +290,113 @@
                     <a id="pdm-link-detail" href="#" class="btn btn-primary btn-sm">
                         <i class="bi bi-eye"></i> 전체 상세
                     </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mortgage Calculator Modal -->
+    <div class="modal fade" id="mortgageModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header py-2 bg-warning bg-opacity-10">
+                    <h5 class="modal-title"><i class="bi bi-calculator"></i> 대출 계산기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Input -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">매매가 (억)</label>
+                            <input type="number" id="mc-price" class="form-control form-control-sm" value="10" step="0.1" min="0" oninput="updateMortgageCalc()">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">자기자본 비율 (%)</label>
+                            <input type="number" id="mc-downpayment" class="form-control form-control-sm" value="30" step="5" min="0" max="100" oninput="updateMortgageCalc()">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">금리 (%)</label>
+                            <input type="number" id="mc-rate" class="form-control form-control-sm" value="3.5" step="0.1" min="0" oninput="updateMortgageCalc()">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">기간 (년)</label>
+                            <select id="mc-years" class="form-select form-select-sm" onchange="updateMortgageCalc()">
+                                <option value="10">10년</option>
+                                <option value="15">15년</option>
+                                <option value="20">20년</option>
+                                <option value="25">25년</option>
+                                <option value="30" selected>30년</option>
+                                <option value="35">35년</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">월소득 (만원)</label>
+                            <input type="number" id="mc-income" class="form-control form-control-sm" placeholder="예: 500" min="0" oninput="updateMortgageCalc()">
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Results -->
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="small text-muted">LTV 한도</div>
+                                <div class="fw-bold" id="mc-ltv-limit">-</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="small text-muted">대출금액</div>
+                                <div class="fw-bold text-primary" id="mc-loan-amount">-</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="small text-muted">자기자본</div>
+                                <div class="fw-bold" id="mc-down-amount">-</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="small text-muted">LTV</div>
+                                <div class="fw-bold" id="mc-ltv-pct">-</div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded text-center">
+                                <div class="small text-muted">월 상환액 (원리금 균등)</div>
+                                <div class="fs-4 fw-bold text-primary" id="mc-monthly">-</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="small text-muted">총 이자</div>
+                                <div class="fw-bold text-danger" id="mc-total-interest">-</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded text-center">
+                                <div class="small text-muted">DSR</div>
+                                <div id="mc-dsr" class="fw-bold text-muted">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warnings -->
+                    <div id="mc-ltv-warn" class="alert alert-warning small mt-2 mb-0 py-1 px-2" style="display:none;">
+                        <i class="bi bi-exclamation-triangle"></i> LTV 규제로 대출금액이 제한됩니다 (9억 이하 70%, 초과분 50%)
+                    </div>
+                    <div id="mc-dsr-warn" class="alert alert-danger small mt-2 mb-0 py-1 px-2" style="display:none;">
+                        <i class="bi bi-exclamation-triangle"></i> DSR 40% 초과 — 대출 승인이 어려울 수 있습니다
+                    </div>
+
+                    <div class="mt-3 small text-muted">
+                        <i class="bi bi-info-circle"></i> LTV 규제: 9억 이하 70%, 초과분 50% (비규제지역 기준). 실제 대출 한도는 은행 심사에 따라 다를 수 있습니다.
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">닫기</button>
                 </div>
             </div>
         </div>

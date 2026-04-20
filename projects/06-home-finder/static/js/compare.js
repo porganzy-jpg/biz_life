@@ -195,10 +195,24 @@ function _renderCompareContent(properties, container) {
 
     const detailRows = [
         { label: '주소', render: p => [p.city, p.district, p.dong].filter(Boolean).join(' ') || '-' },
-        { label: '유형', render: p => p.property_type || '-' },
-        { label: '가격', render: p => _compareFormatPrice(p.price_krw), winKey: 'price_krw' },
-        { label: '면적', render: p => p.area_m2 ? p.area_m2 + 'm2' : '-', winKey: 'area_m2' },
-        { label: '전용면적', render: p => p.area_supply_m2 ? p.area_supply_m2 + 'm2' : '-' },
+        { label: '유형', render: p => {
+            let txt = p.property_type || '-';
+            if (p.transaction_type && p.transaction_type !== '매매') txt += ' (' + p.transaction_type + ')';
+            return txt;
+        }},
+        { label: '가격', render: p => {
+            let txt = _compareFormatPrice(p.price_krw);
+            if (p.transaction_type === '월세' && p.monthly_rent_krw) txt += ' / ' + Math.round(p.monthly_rent_krw/10000) + '만';
+            return txt;
+        }, winKey: 'price_krw' },
+        { label: '면적', render: p => p.area_m2 ? formatArea(p.area_m2) : '-', winKey: 'area_m2' },
+        { label: '평당가', render: p => {
+            if (!p.price_krw || !p.area_m2) return '-';
+            var pyeong = p.area_m2 / 3.3058;
+            var ppp = Math.round(p.price_krw / pyeong);
+            return formatPrice(ppp) + '/평';
+        }, winKey: '_price_per_pyeong', customWin: true },
+        { label: '전용면적', render: p => p.area_supply_m2 ? formatArea(p.area_supply_m2) : '-' },
         { label: '단지명', render: p => p.complex_name || '-' },
         { label: '층수', render: p => p.floor ? p.floor + '층' + (p.total_floors ? '/' + p.total_floors + '층' : '') : '-' },
         { label: '방향', render: p => p.direction || '-' },
@@ -210,6 +224,17 @@ function _renderCompareContent(properties, container) {
         { label: '한강거리', render: p => p.nearest_river_distance ? Math.round(p.nearest_river_distance) + 'm' : '-' },
         { label: '출처', render: p => p.source || '-' },
     ];
+
+    // Custom winner calculation for price per pyeong (lower is better)
+    var pppWinner = null;
+    var bestPPP = Infinity;
+    for (const p of properties) {
+        if (p.price_krw && p.area_m2) {
+            var ppp = p.price_krw / (p.area_m2 / 3.3058);
+            if (ppp < bestPPP) { bestPPP = ppp; pppWinner = p.id; }
+        }
+    }
+    winners['_price_per_pyeong'] = pppWinner;
 
     for (const row of detailRows) {
         html += `<tr><td class="fw-bold small">${row.label}</td>`;

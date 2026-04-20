@@ -58,6 +58,11 @@ class Settings:
     ).split(",") if os.getenv("SCRAPER_TARGET_DISTRICTS") else []
     SCRAPER_RATE_LIMIT_SEC: float = float(os.getenv("SCRAPER_RATE_LIMIT_SEC", "2"))
 
+    # Commute (workplace address for commute time calculation)
+    WORKPLACE_ADDRESS: str = os.getenv("WORKPLACE_ADDRESS", "")
+    WORKPLACE_LAT: float = float(os.getenv("WORKPLACE_LAT", "0"))
+    WORKPLACE_LNG: float = float(os.getenv("WORKPLACE_LNG", "0"))
+
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 

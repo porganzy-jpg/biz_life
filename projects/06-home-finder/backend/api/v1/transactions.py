@@ -25,6 +25,9 @@ def _tx_to_dict(t):
         "built_year": t.built_year,
         "property_type": t.property_type,
         "price_per_m2": t.price_per_m2,
+        "trade_type": getattr(t, "trade_type", "매매"),
+        "deposit_krw": getattr(t, "deposit_krw", None),
+        "monthly_rent_krw": getattr(t, "monthly_rent_krw", None),
         "source": t.source,
         "created_at": t.created_at.isoformat() if t.created_at else None,
     }

@@ -42,6 +42,10 @@ def _prop_to_brief(p):
         "nearest_subway_distance": p.nearest_subway_distance,
         "lat": p.lat,
         "lng": p.lng,
+        # Transaction type
+        "transaction_type": p.transaction_type,
+        "deposit_krw": p.deposit_krw,
+        "monthly_rent_krw": p.monthly_rent_krw,
         # Land fields
         "land_use": p.land_use,
         "zoning_type": p.zoning_type,
@@ -77,6 +81,16 @@ def _execute_search(db: Session, criteria: SearchCriteria) -> dict:
         query = query.filter(Property.is_active == criteria.is_active)
     else:
         query = query.filter(Property.is_active == 1)
+
+    # Transaction type filter (매매/전세/월세)
+    if criteria.transaction_type:
+        query = query.filter(Property.transaction_type == criteria.transaction_type)
+
+    # Monthly rent filter
+    if criteria.monthly_rent_min is not None:
+        query = query.filter(Property.monthly_rent_krw >= criteria.monthly_rent_min)
+    if criteria.monthly_rent_max is not None:
+        query = query.filter(Property.monthly_rent_krw <= criteria.monthly_rent_max)
 
     # Price filter
     if criteria.price_min is not None:

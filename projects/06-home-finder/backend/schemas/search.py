@@ -10,9 +10,18 @@ from .common import PropertyType, AcquisitionType, SortOrder
 class SearchCriteria(BaseModel):
     """다조건 검색 필터"""
 
-    # 가격 범위 (원)
-    price_min: Optional[int] = Field(None, ge=0, description="최소 매매가 (원)")
-    price_max: Optional[int] = Field(None, ge=0, description="최대 매매가 (원)")
+    # 거래유형 (매매/전세/월세)
+    transaction_type: Optional[str] = Field(
+        None, description="거래유형: 매매, 전세, 월세"
+    )
+
+    # 가격 범위 (원) — 매매가 또는 보증금
+    price_min: Optional[int] = Field(None, ge=0, description="최소 매매가/보증금 (원)")
+    price_max: Optional[int] = Field(None, ge=0, description="최대 매매가/보증금 (원)")
+
+    # 월세 범위
+    monthly_rent_min: Optional[int] = Field(None, ge=0, description="최소 월세 (원)")
+    monthly_rent_max: Optional[int] = Field(None, ge=0, description="최대 월세 (원)")
 
     # 면적 범위 (m2)
     area_min: Optional[float] = Field(None, gt=0, description="최소 전용면적 (m2)")

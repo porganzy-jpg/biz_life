@@ -24,6 +24,7 @@ from api.v1 import v1_router
 from exceptions import register_exception_handlers
 from middleware import RequestLoggingMiddleware
 import seed_data
+from scheduler.scheduler import HomefinderScheduler
 
 # Logging
 logging.basicConfig(
@@ -34,9 +35,14 @@ logging.basicConfig(
 logger = logging.getLogger("homefinder")
 
 
+# Scheduler instance (module-level for access from routes)
+_scheduler = None
+
+
 # Lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _scheduler
     # Startup
     logger.info("HomeFinder starting up...")
     init_db()
@@ -44,21 +50,37 @@ async def lifespan(app: FastAPI):
     seed_data.seed()
     logger.info("Seed data loaded")
 
-    # Start scheduler (stored on app.state for API access)
+    # Start scheduler (stored on app.state + module var for API access)
     app.state.scheduler = None
     try:
-        from scheduler.scheduler import HomefinderScheduler
-        app.state.scheduler = HomefinderScheduler(settings, SessionLocal)
-        app.state.scheduler.start()
+        _scheduler = HomefinderScheduler(settings, SessionLocal)
+        app.state.scheduler = _scheduler
+        _scheduler.start()
         logger.info("Scheduler started")
     except Exception as e:
         logger.critical(f"Scheduler failed to start: {e}")
 
+    # Run initial MOLIT collection if API key is configured
+    if settings.PUBLIC_DATA_API_KEY:
+        try:
+            from collectors.molit_collector import MolitCollector
+            collector = MolitCollector(
+                api_key=settings.PUBLIC_DATA_API_KEY,
+                target_districts=settings.TARGET_DISTRICTS,
+            )
+            result = collector.collect(months_back=1)
+            logger.info(f"Initial MOLIT collection: fetched={result['fetched']}, new={result['new']}")
+        except Exception as e:
+            logger.warning(f"Initial MOLIT collection skipped: {e}")
+    else:
+        logger.info("PUBLIC_DATA_API_KEY not set — skipping initial data collection")
+        logger.info("  Get a free key at https://www.data.go.kr/ (국토교통부 실거래가)")
+
     logger.info(f"Server ready on port {settings.PORT}")
     yield
     # Shutdown
-    if app.state.scheduler:
-        app.state.scheduler.stop()
+    if _scheduler:
+        _scheduler.stop()
     logger.info("HomeFinder shutting down...")
 
 

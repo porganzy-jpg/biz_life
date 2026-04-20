@@ -19,6 +19,19 @@ class SearchService:
         """다조건 동적 검색"""
         query = self.db.query(Property).filter(Property.is_active == 1)
 
+        # Transaction type (매매/전세/월세)
+        transaction_type = criteria.get("transaction_type")
+        if transaction_type:
+            query = query.filter(Property.transaction_type == transaction_type)
+
+        # Monthly rent range (for 월세)
+        monthly_rent_min = criteria.get("monthly_rent_min")
+        if monthly_rent_min is not None:
+            query = query.filter(Property.monthly_rent_krw >= monthly_rent_min)
+        monthly_rent_max = criteria.get("monthly_rent_max")
+        if monthly_rent_max is not None:
+            query = query.filter(Property.monthly_rent_krw <= monthly_rent_max)
+
         # Districts (list)
         districts = criteria.get("districts")
         if districts:

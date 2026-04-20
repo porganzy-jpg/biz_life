@@ -21,9 +21,14 @@ class Property(Base):
     lat = Column(Float)
     lng = Column(Float)
 
+    # Transaction type (매매/전세/월세)
+    transaction_type = Column(String(20), default="매매")
+
     # Price
-    price_krw = Column(Integer)  # 원 단위
+    price_krw = Column(Integer)  # 원 단위 (매매가 또는 전세보증금)
     price_per_m2 = Column(Integer)
+    deposit_krw = Column(Integer)      # 보증금 (전세/월세)
+    monthly_rent_krw = Column(Integer)  # 월세
 
     # Property details
     area_m2 = Column(Float)  # 전용면적

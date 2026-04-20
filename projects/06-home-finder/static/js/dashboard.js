@@ -54,7 +54,7 @@ async function loadDashboardSummary() {
     }
 }
 
-// ──────── 상위 매물 테이블 로드 ────────
+// ──────── 맞춤 추천 TOP 5 (fallback: 점수 상위 매물) ────────
 
 let _topPropertiesData = [];
 let _topSortField = 'score_composite';
@@ -128,18 +128,33 @@ function _renderTopProperties() {
 
 async function loadTopProperties() {
     try {
-        const resp = await fetch(`${API_BASE}/properties/top?limit=30`);
-        if (!resp.ok) return;
-        const data = await resp.json();
+        // Try matching/recommendations first
+        let items = [];
+        try {
+            const matchResp = await fetch(`${API_BASE}/matching/recommendations?limit=30`);
+            if (matchResp.ok) {
+                const matchData = await matchResp.json();
+                items = matchData.items || matchData.recommendations || [];
+            }
+        } catch (_) {}
+
+        // Fallback to top scored
+        if (items.length === 0) {
+            const resp = await fetch(`${API_BASE}/properties/top?limit=30`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            items = data.items || [];
+        }
+
         const tbody = document.getElementById('topScoredTable');
         if (!tbody) return;
 
-        if (!data.items || data.items.length === 0) {
+        if (items.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">등록된 매물이 없습니다.</td></tr>';
             return;
         }
 
-        _topPropertiesData = data.items;
+        _topPropertiesData = items;
         _renderTopProperties();
     } catch (e) {
         console.error('Top properties load error:', e);

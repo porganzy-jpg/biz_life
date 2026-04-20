@@ -49,16 +49,17 @@ class MolitCollector(BaseCollector):
     name = "molit"
     rate_limit_seconds = 1.0
 
-    def __init__(self, api_key: str, target_districts: list):
+    def __init__(self, api_key: str, target_districts: list = None):
         super().__init__()
         self.api_key = api_key
-        self.target_districts = target_districts
+        self.target_districts = target_districts or []
 
-    def collect(self, months_back: int = 3, **kwargs) -> dict:
+    def collect(self, months_back: int = 3, trade_type: str = "매매", **kwargs) -> dict:
         """
         실거래가 수집
         Args:
             months_back: 과거 몇 개월치 수집 (기본 3개월)
+            trade_type: "매매" 또는 "전월세"
         """
         try:
             import PublicDataReader as pdr
@@ -92,7 +93,7 @@ class MolitCollector(BaseCollector):
                     df = self._retry(
                         api.get_data,
                         property_type="아파트",
-                        trade_type="매매",
+                        trade_type=trade_type,
                         sigungu_code=code,
                         year_month=ym,
                     )
@@ -101,7 +102,7 @@ class MolitCollector(BaseCollector):
                         logger.debug(f"  {district_name}/{ym}: no data")
                         continue
 
-                    fetched, new = self._save_transactions(df, district_name, code)
+                    fetched, new = self._save_transactions(df, district_name, code, trade_type=trade_type)
                     total_fetched += fetched
                     total_new += new
                     logger.info(f"  {district_name}/{ym}: fetched={fetched}, new={new}")
@@ -123,7 +124,17 @@ class MolitCollector(BaseCollector):
 
         return {"fetched": total_fetched, "new": total_new, "updated": 0, "failures": failures}
 
-    def _save_transactions(self, df, district_name: str, sigungu_code: str = "11") -> tuple:
+    def collect_all_types(self, months_back: int = 1) -> dict:
+        """매매 + 전월세 모두 수집"""
+        result_buy = self.collect(months_back=months_back, trade_type="매매")
+        result_rent = self.collect(months_back=months_back, trade_type="전월세")
+        return {
+            "fetched": result_buy["fetched"] + result_rent["fetched"],
+            "new": result_buy["new"] + result_rent["new"],
+            "updated": 0,
+        }
+
+    def _save_transactions(self, df, district_name: str, sigungu_code: str = "11", trade_type: str = "매매") -> tuple:
         """DataFrame → DB 저장 (중복 체크 포함)"""
         db = SessionLocal()
         fetched = len(df)
@@ -151,6 +162,21 @@ class MolitCollector(BaseCollector):
                         continue
                     price_krw = price_man * 10000
 
+                    # Parse deposit and monthly rent for jeonse/wolse
+                    deposit_krw = 0
+                    monthly_rent_krw = 0
+                    if trade_type == "전월세":
+                        deposit_str = str(row.get("보증금액", row.get("보증금", "0"))).replace(",", "").strip()
+                        deposit_man = int(deposit_str) if deposit_str.isdigit() else 0
+                        deposit_krw = deposit_man * 10000
+
+                        rent_str = str(row.get("월세금액", row.get("월세", "0"))).replace(",", "").strip()
+                        rent_man = int(rent_str) if rent_str.isdigit() else 0
+                        monthly_rent_krw = rent_man * 10000
+
+                        # For jeonse/wolse, use deposit as the "price"
+                        price_krw = deposit_krw
+
                     area = float(row.get("전용면적", 0) or 0)
                     floor_val = int(row.get("층", 0) or 0)
                     built = int(row.get("건축년도", 0) or 0)
@@ -170,6 +196,11 @@ class MolitCollector(BaseCollector):
                     if existing:
                         continue
 
+                    # Determine transaction type
+                    tx_type = trade_type
+                    if trade_type == "전월세":
+                        tx_type = "월세" if monthly_rent_krw > 0 else "전세"
+
                     _city = "서울특별시" if sigungu_code.startswith("11") else "경기도"
                     tx = TransactionHistory(
                         city=_city,
@@ -185,6 +216,9 @@ class MolitCollector(BaseCollector):
                         property_type="아파트",
                         price_per_m2=price_per_m2,
                         source="molit",
+                        trade_type=tx_type,
+                        deposit_krw=deposit_krw if deposit_krw else None,
+                        monthly_rent_krw=monthly_rent_krw if monthly_rent_krw else None,
                     )
                     db.add(tx)
                     new += 1

@@ -24,6 +24,11 @@ class TransactionHistory(Base):
     # Derived
     price_per_m2 = Column(Integer)
 
+    # Trade type (매매/전세/월세)
+    trade_type = Column(String(20), default="매매")
+    deposit_krw = Column(Integer)     # 보증금 (전세/월세)
+    monthly_rent_krw = Column(Integer) # 월세
+
     source = Column(String(50), default="molit")
     created_at = Column(DateTime, default=datetime.utcnow)
 

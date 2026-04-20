@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 from models.subway_station import SubwayStation
 from models.park import Park
+from models.area import Area
 
 logger = logging.getLogger("homefinder.seed")
 
@@ -21,6 +22,7 @@ def seed():
         _seed_subway_stations(db)
         _seed_parks(db)
         _seed_han_river(db)
+        _seed_areas(db)
         _seed_properties(db)
     finally:
         db.close()
@@ -109,6 +111,52 @@ def _seed_han_river(db: Session):
 
     db.commit()
     logger.info(f"Loaded {len(points)} han river access points")
+
+
+def _seed_areas(db: Session):
+    count = db.query(Area).count()
+    if count > 0:
+        logger.info(f"Areas already loaded ({count})")
+        return
+
+    path = os.path.join(DATA_DIR, "areas.json")
+    if not os.path.exists(path):
+        logger.warning(f"Seed file not found: {path}")
+        return
+
+    with open(path, "r", encoding="utf-8") as f:
+        areas = json.load(f)
+
+    for a in areas:
+        # Compute composite score from sub-scores
+        dev = a.get("development_score", 0) or 0
+        liv = a.get("living_score", 0) or 0
+        infra = a.get("infra_score", 0) or 0
+        composite = round((dev * 0.4 + liv * 0.3 + infra * 0.3), 1)
+
+        db.add(Area(
+            city=a.get("city", "서울특별시"),
+            district=a["district"],
+            area_code=a.get("area_code", ""),
+            population=a.get("population"),
+            households=a.get("households"),
+            subway_count=a.get("subway_count"),
+            park_count=a.get("park_count"),
+            school_count=a.get("school_count"),
+            hospital_count=a.get("hospital_count"),
+            avg_price_per_m2=a.get("avg_price_per_m2"),
+            price_change_1y=a.get("price_change_1y"),
+            price_change_3y=a.get("price_change_3y"),
+            development_plan=a.get("development_plan"),
+            development_score=dev,
+            living_score=liv,
+            infra_score=infra,
+            area_composite_score=composite,
+            description=a.get("description", ""),
+        ))
+
+    db.commit()
+    logger.info(f"Loaded {len(areas)} area profiles")
 
 
 def _seed_properties(db: Session):

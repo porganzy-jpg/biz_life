@@ -283,6 +283,41 @@
                 </div>
             </div>
         </div>
+
+        <!-- 실거래가 이력 -->
+        <div class="pd-card pd-animate pd-animate-2 mb-3">
+            <div class="pd-card-head">
+                <span class="pd-card-title"><i class="bi bi-graph-up"></i> 실거래가 이력</span>
+                <span class="badge bg-secondary" id="txCount">-</span>
+            </div>
+            <div class="pd-card-body">
+                <canvas id="priceHistoryChart" height="200"></canvas>
+                <div id="txNoData" class="text-center py-3" style="display:none;color:var(--pd-mist)">
+                    <i class="bi bi-database-x" style="font-size:1.5rem;"></i>
+                    <p class="mt-1 small">실거래가 데이터가 없습니다. PUBLIC_DATA_API_KEY를 설정하면 자동 수집됩니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 주변 학교 -->
+        <div class="pd-card pd-animate pd-animate-2 mb-3" id="schoolCard" style="display:none;">
+            <div class="pd-card-head">
+                <span class="pd-card-title"><i class="bi bi-mortarboard"></i> 주변 학교</span>
+            </div>
+            <div class="pd-card-body" id="schoolList">
+                <p style="color:var(--pd-mist)" class="small">학교 데이터를 불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- 출퇴근 시간 -->
+        <div class="pd-card pd-animate pd-animate-2 mb-3" id="commuteCard" style="display:none;">
+            <div class="pd-card-head">
+                <span class="pd-card-title"><i class="bi bi-signpost-2"></i> 출퇴근 시간</span>
+            </div>
+            <div class="pd-card-body" id="commuteInfo">
+                <p style="color:var(--pd-mist)" class="small">계산 중...</p>
+            </div>
+        </div>
     </div>
 
     <!-- RIGHT COLUMN -->
@@ -320,6 +355,9 @@
             <div class="pd-card-body pd-actions">
                 <button class="pd-btn pd-btn-primary" onclick="addToCandidate()">
                     <i class="bi bi-plus-circle"></i> 후보에 추가
+                </button>
+                <button class="pd-btn pd-btn-secondary" onclick="openMortgageCalcFromProperty()" style="background:var(--pd-warn);color:var(--pd-ink);border:none">
+                    <i class="bi bi-calculator"></i> 대출 계산
                 </button>
                 <button class="pd-btn pd-btn-secondary" onclick="rescoreProperty()">
                     <i class="bi bi-arrow-clockwise"></i> 재채점
@@ -515,6 +553,194 @@ function initMiniMap(lat, lng, label) {
         // 지도 리사이즈 보정
         setTimeout(function() { miniMap.relayout(); }, 100);
     });
+}
+
+// Store property data for mortgage calc
+let _currentProperty = null;
+
+function openMortgageCalcFromProperty() {
+    if (_currentProperty && _currentProperty.price_krw) {
+        openMortgageCalc(_currentProperty.price_krw);
+    } else {
+        openMortgageCalc();
+    }
+}
+
+// Load real transaction history chart
+let _priceHistoryChart = null;
+async function loadTransactionHistory(property) {
+    const chartEl = document.getElementById('priceHistoryChart');
+    const noDataEl = document.getElementById('txNoData');
+    const countEl = document.getElementById('txCount');
+    if (!chartEl) return;
+
+    const district = property.district;
+    const name = property.complex_name;
+    if (!district) { noDataEl.style.display = 'block'; return; }
+
+    try {
+        let url = `/api/v1/transactions/trend?district=${encodeURIComponent(district)}&months=24`;
+        if (name) url += `&name=${encodeURIComponent(name)}`;
+
+        const resp = await fetch(url);
+        if (!resp.ok) { noDataEl.style.display = 'block'; return; }
+        const data = await resp.json();
+
+        if (!data.data_points || data.data_points.length === 0) {
+            noDataEl.style.display = 'block';
+            countEl.textContent = '0건';
+            return;
+        }
+
+        countEl.textContent = data.total_transactions + '건';
+
+        const labels = data.data_points.map(d => d.month);
+        const avgPrices = data.data_points.map(d => d.avg_price_krw);
+        const minPrices = data.data_points.map(d => d.min_price_krw);
+        const maxPrices = data.data_points.map(d => d.max_price_krw);
+
+        if (_priceHistoryChart) _priceHistoryChart.destroy();
+        _priceHistoryChart = new Chart(chartEl, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '평균 거래가',
+                        data: avgPrices,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13,110,253,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                    },
+                    {
+                        label: '최고가',
+                        data: maxPrices,
+                        borderColor: '#dc3545',
+                        borderDash: [4,4],
+                        pointRadius: 0,
+                        tension: 0.3,
+                    },
+                    {
+                        label: '최저가',
+                        data: minPrices,
+                        borderColor: '#198754',
+                        borderDash: [4,4],
+                        pointRadius: 0,
+                        tension: 0.3,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                scales: {
+                    y: { ticks: { callback: v => formatPrice(v) } }
+                }
+            }
+        });
+
+        // Show overall change
+        if (data.overall_change_pct != null) {
+            const sign = data.overall_change_pct > 0 ? '+' : '';
+            const color = data.overall_change_pct > 0 ? 'text-danger' : 'text-primary';
+            countEl.innerHTML += ` <span class="${color}">(${sign}${data.overall_change_pct}%)</span>`;
+        }
+    } catch (e) {
+        console.error('Transaction history error:', e);
+        noDataEl.style.display = 'block';
+    }
+}
+
+// Wrap loadProperty to also load chart
+const _origLoadProperty = loadProperty;
+loadProperty = async function() {
+    const resp = await fetch(`/api/v1/properties/${propId}`);
+    if (!resp.ok) { document.getElementById('propName').textContent = '매물을 찾을 수 없습니다'; return; }
+    _currentProperty = await resp.json();
+
+    // Re-call original with the cached data
+    // We need to re-trigger rendering so we inline the response
+    // Just call original - it'll re-fetch but that's ok for simplicity
+    await _origLoadProperty();
+    loadTransactionHistory(_currentProperty);
+    loadNearbySchools(_currentProperty);
+    loadCommuteTime(_currentProperty);
+};
+
+// Load nearby schools
+async function loadNearbySchools(property) {
+    const card = document.getElementById('schoolCard');
+    const list = document.getElementById('schoolList');
+    if (!card || !property.lat || !property.lng) return;
+
+    try {
+        const resp = await fetch(`/api/v1/properties/${property.id}/schools?radius=1000`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        if (!data.schools || data.schools.length === 0) return;
+
+        card.style.display = 'block';
+        const summary = data.summary || {};
+        let html = `<div class="d-flex gap-3 mb-2 small">
+            <span class="badge bg-primary">${summary.elementary || 0} 초등</span>
+            <span class="badge bg-success">${summary.middle || 0} 중학</span>
+            <span class="badge bg-warning text-dark">${summary.high || 0} 고등</span>
+            <span class="text-muted">1km 이내 총 ${summary.total || data.schools.length}개</span>
+        </div>`;
+
+        html += '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead><tr><th>학교명</th><th>종류</th><th>거리</th></tr></thead><tbody>';
+        for (const s of data.schools.slice(0, 10)) {
+            const typeBadge = s.type === '초등' ? 'bg-primary' : s.type === '중학' ? 'bg-success' : 'bg-warning text-dark';
+            const dist = s.distance_m ? Math.round(s.distance_m) + 'm' : '-';
+            html += `<tr><td>${s.name}</td><td><span class="badge ${typeBadge}" style="font-size:0.7rem;">${s.type}</span></td><td>${dist}</td></tr>`;
+        }
+        html += '</tbody></table></div>';
+
+        list.innerHTML = html;
+    } catch (e) {
+        console.error('School load error:', e);
+    }
+}
+
+// Load commute time from property to workplace
+async function loadCommuteTime(property) {
+    const card = document.getElementById('commuteCard');
+    const info = document.getElementById('commuteInfo');
+    if (!card || !property.lat || !property.lng) return;
+
+    try {
+        const resp = await fetch(`/api/v1/commute/${property.id}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        card.style.display = 'block';
+        const method = data.method === 'kakao_navi' ? '(카카오 내비)' : '(직선거리 추정)';
+        let html = `<div class="d-flex align-items-center gap-3">`;
+        if (data.driving_minutes) {
+            html += `<div class="text-center">
+                <div class="fs-3 fw-bold text-primary">${data.driving_minutes}<small class="fs-6">분</small></div>
+                <small class="text-muted">자동차</small>
+            </div>`;
+        }
+        if (data.transit_minutes) {
+            html += `<div class="text-center">
+                <div class="fs-3 fw-bold text-success">${data.transit_minutes}<small class="fs-6">분</small></div>
+                <small class="text-muted">대중교통</small>
+            </div>`;
+        }
+        html += `<div class="ms-auto text-end small text-muted">
+            <div>${data.distance_km}km</div>
+            <div>${data.workplace?.address || ''}</div>
+            <div>${method}</div>
+        </div></div>`;
+        info.innerHTML = html;
+    } catch (e) {
+        // Workplace not configured — just hide card
+        console.log('Commute calc skipped:', e.message || e);
+    }
 }
 
 loadProperty();

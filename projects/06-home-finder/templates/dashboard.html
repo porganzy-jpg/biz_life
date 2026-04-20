@@ -86,11 +86,14 @@
     <div class="col-md-7 mb-3">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-trophy"></i> 점수 상위 매물</span>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary active" id="btnAll" onclick="setPropertyFilter('all')">전체</button>
-                    <button class="btn btn-outline-primary" id="btnBuilding" onclick="setPropertyFilter('building')"><i class="bi bi-building"></i> 건물</button>
-                    <button class="btn btn-outline-success" id="btnLand" onclick="setPropertyFilter('land')"><i class="bi bi-tree"></i> 토지</button>
+                <span><i class="bi bi-stars text-warning"></i> 맞춤 추천</span>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary active" id="btnAll" onclick="setPropertyFilter('all')">전체</button>
+                        <button class="btn btn-outline-primary" id="btnBuilding" onclick="setPropertyFilter('building')"><i class="bi bi-building"></i> 건물</button>
+                        <button class="btn btn-outline-success" id="btnLand" onclick="setPropertyFilter('land')"><i class="bi bi-tree"></i> 토지</button>
+                    </div>
+                    <a href="/recommendations" class="btn btn-sm btn-outline-primary">더보기</a>
                 </div>
             </div>
             <div class="card-body p-0">

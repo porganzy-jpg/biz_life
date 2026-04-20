@@ -29,8 +29,11 @@ def _prop_to_dict(p):
         "detail_address": p.detail_address,
         "lat": p.lat,
         "lng": p.lng,
+        "transaction_type": p.transaction_type,
         "price_krw": p.price_krw,
         "price_per_m2": p.price_per_m2,
+        "deposit_krw": p.deposit_krw,
+        "monthly_rent_krw": p.monthly_rent_krw,
         "area_m2": p.area_m2,
         "area_supply_m2": p.area_supply_m2,
         "floor": p.floor,
@@ -223,6 +226,31 @@ def deactivate_property(property_id: int, db: Session = Depends(get_db)):
     response_cache.invalidate_on_property_change()
 
     return {"message": f"매물 ID {property_id} 비활성화 완료"}
+
+
+@router.get("/{property_id}/schools")
+def get_nearby_schools(
+    property_id: int,
+    radius: int = Query(1000, ge=100, le=3000, description="검색 반경 (m)"),
+    db: Session = Depends(get_db),
+):
+    """매물 주변 학교 조회"""
+    svc = PropertyService(db)
+    try:
+        prop = svc.get_property(property_id)
+    except NotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e.detail))
+
+    if not prop.lat or not prop.lng:
+        return {"schools": [], "summary": {"total": 0}}
+
+    try:
+        from collectors.school_collector import SchoolCollector
+        schools = SchoolCollector.get_nearby_schools(prop.lat, prop.lng, radius_m=radius)
+        summary = SchoolCollector.get_school_summary(prop.lat, prop.lng, radius_m=radius)
+        return {"schools": schools, "summary": summary}
+    except Exception as e:
+        return {"schools": [], "summary": {"total": 0}, "error": str(e)}
 
 
 @router.post("/{property_id}/score")

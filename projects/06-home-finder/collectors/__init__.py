@@ -7,6 +7,7 @@ from collectors.kb_index_collector import KBIndexCollector
 from collectors.public_data_collector import PublicDataCollector
 from collectors.subway_collector import SubwayCollector
 from collectors.park_collector import ParkCollector
+from collectors.school_collector import SchoolCollector
 
 __all__ = [
     "BaseCollector",
@@ -18,4 +19,5 @@ __all__ = [
     "PublicDataCollector",
     "SubwayCollector",
     "ParkCollector",
+    "SchoolCollector",
 ]

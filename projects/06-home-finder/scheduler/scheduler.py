@@ -86,12 +86,19 @@ class HomefinderScheduler:
             self._send_alert_safe("error", name, str(e))
 
     def job_collect_molit(self):
-        """국토부 실거래가 수집"""
-        from collectors.molit_collector import MolitCollector
-        self._run_collector("molit", lambda: MolitCollector(
-            api_key=self.settings.PUBLIC_DATA_API_KEY,
-            target_districts=self.settings.TARGET_DISTRICTS,
-        ), months_back=1)
+        """국토부 실거래가 수집 (매매 + 전월세)"""
+        logger.info("[Scheduler] Starting MOLIT collection...")
+        try:
+            from collectors.molit_collector import MolitCollector
+            collector = MolitCollector(
+                api_key=self.settings.PUBLIC_DATA_API_KEY,
+                target_districts=self.settings.TARGET_DISTRICTS,
+            )
+            result = collector.collect_all_types(months_back=1)
+            logger.info(f"  MOLIT: fetched={result.get('fetched',0)}, new={result.get('new',0)}")
+        except Exception as e:
+            logger.error(f"MOLIT collection failed: {e}")
+            self._send_alert_safe("error", "molit_collector", str(e))
 
     def job_collect_naver(self):
         """네이버 부동산 수집"""
