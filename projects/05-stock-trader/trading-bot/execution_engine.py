@@ -753,9 +753,21 @@ class ExecutionEngine:
                     )
 
                 if result:
+                    # v3.8.1: 체결 미확인 주문은 FILLED로 처리하지 않음
+                    if result.get("confirmed") is False:
+                        child.status = OrderStatus.FAILED.value
+                        child.error = "체결 미확인 (타임아웃)"
+                        self._save_child_db(child)
+                        logger.warning(
+                            f"주문 미체결 처리 [{symbol}]: 체결 확인 실패 → FAILED"
+                        )
+                        return child
+
                     child.status = OrderStatus.FILLED.value
-                    child.filled_qty = qty
-                    child.filled_price = float(result.get("price", price))
+                    child.filled_qty = result.get("filled_qty", qty)
+                    child.filled_price = float(
+                        result.get("filled_price", result.get("price", price))
+                    )
                     child.filled_at = datetime.now().isoformat()
                     self._save_child_db(child)
                     return child
