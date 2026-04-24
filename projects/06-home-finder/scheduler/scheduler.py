@@ -75,12 +75,18 @@ class HomefinderScheduler:
     # ──────────── Job implementations ────────────
 
     def _run_collector(self, name, create_fn, **run_kwargs):
-        """수집기 공통 실행 헬퍼"""
+        """수집기 공통 실행 헬퍼 — 신규 데이터 있으면 텔레그램 알림"""
         logger.info(f"[Scheduler] Starting {name} collection...")
         try:
             collector = create_fn()
             result = collector.run(**run_kwargs)
             logger.info(f"  {name} done: {result}")
+
+            # 신규 데이터가 있으면 알림
+            new_count = result.get("new", 0) if isinstance(result, dict) else 0
+            if new_count > 0:
+                self._notify_collection_update(name, result)
+
         except Exception as e:
             logger.error(f"{name} collection failed: {e}")
             self._send_alert_safe("error", name, str(e))
@@ -96,6 +102,8 @@ class HomefinderScheduler:
             )
             result = collector.collect_all_types(months_back=1)
             logger.info(f"  MOLIT: fetched={result.get('fetched',0)}, new={result.get('new',0)}")
+            if result.get("new", 0) > 0:
+                self._notify_collection_update("molit", result)
         except Exception as e:
             logger.error(f"MOLIT collection failed: {e}")
             self._send_alert_safe("error", "molit_collector", str(e))
@@ -191,7 +199,53 @@ class HomefinderScheduler:
 
     def job_daily_report(self):
         """일일 리포트 생성 & 발송"""
-        self._send_report("daily")
+        logger.info("[Scheduler] Generating daily report...")
+        db = self.db_factory()
+        try:
+            from models.property import Property
+            from models.transaction import TransactionHistory
+            from models.auction import Auction
+            from models.subscription import Subscription
+
+            total = db.query(Property).filter(Property.is_active == 1).count()
+            buildings = db.query(Property).filter(
+                Property.is_active == 1, Property.property_type != "토지"
+            ).count()
+            lands = db.query(Property).filter(
+                Property.is_active == 1, Property.property_type == "토지"
+            ).count()
+            transactions = db.query(TransactionHistory).count()
+            auctions = db.query(Auction).count()
+            subscriptions = db.query(Subscription).count()
+
+            # 오늘 추가된 매물
+            today = datetime.now().strftime("%Y-%m-%d")
+            new_today = db.query(Property).filter(
+                Property.created_at >= today, Property.is_active == 1
+            ).count()
+
+            dashboard_url = f"http://10.1.3.227:{self.settings.PORT}"
+
+            report = (
+                f"부동산 홈파인더 일일 리포트 ({today})\n"
+                f"{'='*30}\n"
+                f"매물: {total}개 (건물:{buildings}, 토지:{lands})\n"
+                f"실거래: {transactions}건\n"
+                f"경매: {auctions}건 / 청약: {subscriptions}건\n"
+                f"오늘 신규: {new_today}건\n"
+                f"\n대시보드: {dashboard_url}"
+            )
+
+            alert = self._get_alert_system()
+            if alert:
+                alert.send_message(report)
+                logger.info("  Daily report sent")
+            else:
+                logger.info("  Telegram not configured, skipping report")
+        except Exception as e:
+            logger.error(f"Daily report failed: {e}")
+        finally:
+            db.close()
 
     def job_weekly_report(self):
         """주간 리포트 생성 & 발송"""
@@ -224,6 +278,36 @@ class HomefinderScheduler:
                 alert.error_alert(component, str(data))
         except Exception as e:
             logger.error(f"Alert send error: {e}")
+
+    def _notify_collection_update(self, source, result):
+        """데이터 수집 완료 시 텔레그램 알림 (신규 데이터가 있을 때만)"""
+        try:
+            alert = self._get_alert_system()
+            if not alert:
+                return
+
+            source_names = {
+                "molit": "국토부 실거래",
+                "naver": "네이버 부동산",
+                "auction": "경매",
+                "subscription": "청약",
+                "land": "토지 실거래",
+                "kb_index": "KB 부동산 지수",
+            }
+            name = source_names.get(source, source)
+            fetched = result.get("fetched", 0)
+            new = result.get("new", 0)
+            dashboard_url = f"http://10.1.3.227:{self.settings.PORT}"
+
+            msg = (
+                f"홈파인더 데이터 업데이트\n"
+                f"{name}: +{new}건 신규 (총 {fetched}건 수집)\n"
+                f"\n대시보드: {dashboard_url}"
+            )
+            alert.send_message(msg)
+            logger.info(f"  Collection update notification sent: {source} +{new}")
+        except Exception as e:
+            logger.error(f"Collection notification error: {e}")
 
     def _load_scorer_reference(self, db, scorer):
         """스코어러에 시드 데이터 로드"""
