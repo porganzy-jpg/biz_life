@@ -627,5 +627,110 @@
       "ma_50": null
     },
     "timestamp": "2026-03-05T10:52:41.711370"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.9,
+    "indicators": {
+      "return_20d": 0.0,
+      "recent_vol": 0.1487,
+      "long_vol": 0.1646,
+      "vol_z_score": -0.1564,
+      "vol_rising": false,
+      "price_above_ma50": null,
+      "latest_price": 2000000.0,
+      "ma_50": null
+    },
+    "timestamp": "2026-04-20T10:20:58.939145"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.9,
+    "indicators": {
+      "return_20d": 0.0,
+      "recent_vol": 0.1487,
+      "long_vol": 0.1646,
+      "vol_z_score": -0.1564,
+      "vol_rising": false,
+      "price_above_ma50": null,
+      "latest_price": 2000000.0,
+      "ma_50": null
+    },
+    "timestamp": "2026-04-20T12:25:14.516571"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.9,
+    "indicators": {
+      "return_20d": 0.0,
+      "recent_vol": 0.1487,
+      "long_vol": 0.1646,
+      "vol_z_score": -0.1564,
+      "vol_rising": false,
+      "price_above_ma50": null,
+      "latest_price": 2000000.0,
+      "ma_50": null
+    },
+    "timestamp": "2026-04-20T12:25:39.455002"
+  },
+  {
+    "regime": "RANGING",
+    "confidence": 0.9,
+    "indicators": {
+      "return_20d": 0.0,
+      "recent_vol": 0.1487,
+      "long_vol": 0.1646,
+      "vol_z_score": -0.1564,
+      "vol_rising": false,
+      "price_above_ma50": null,
+      "latest_price": 2000000.0,
+      "ma_50": null
+    },
+    "timestamp": "2026-04-20T12:36:15.976614"
+  },
+  {
+    "regime": "BULL_TREND",
+    "confidence": 0.8543,
+    "indicators": {
+      "return_20d": 2.6639,
+      "recent_vol": 0.3059,
+      "long_vol": 0.2726,
+      "vol_z_score": 0.121,
+      "vol_rising": true,
+      "price_above_ma50": null,
+      "latest_price": 2051849.0,
+      "ma_50": null
+    },
+    "timestamp": "2026-04-24T10:43:12.822757"
+  },
+  {
+    "regime": "BULL_TREND",
+    "confidence": 0.8543,
+    "indicators": {
+      "return_20d": 2.6639,
+      "recent_vol": 0.3059,
+      "long_vol": 0.2726,
+      "vol_z_score": 0.121,
+      "vol_rising": true,
+      "price_above_ma50": null,
+      "latest_price": 2051849.0,
+      "ma_50": null
+    },
+    "timestamp": "2026-04-24T10:49:47.167990"
+  },
+  {
+    "regime": "BULL_TREND",
+    "confidence": 0.8543,
+    "indicators": {
+      "return_20d": 2.6639,
+      "recent_vol": 0.3059,
+      "long_vol": 0.2726,
+      "vol_z_score": 0.121,
+      "vol_rising": true,
+      "price_above_ma50": null,
+      "latest_price": 2051849.0,
+      "ma_50": null
+    },
+    "timestamp": "2026-04-24T10:51:47.898964"
   }
 ]

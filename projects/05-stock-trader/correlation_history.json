@@ -31,5 +31,27 @@
     "sector_count": 2,
     "alert_count": 0,
     "correlation_spike": false
+  },
+  {
+    "date": "2026-04-20",
+    "timestamp": "2026-04-20T12:36:16.211881",
+    "avg_correlation": 0.0,
+    "diversification_score": 0,
+    "hhi": 0,
+    "hhi_normalized": 0,
+    "sector_count": 0,
+    "alert_count": 0,
+    "correlation_spike": false
+  },
+  {
+    "date": "2026-04-24",
+    "timestamp": "2026-04-24T10:51:50.435974",
+    "avg_correlation": 0.8369,
+    "diversification_score": 29.9,
+    "hhi": 0.364,
+    "hhi_normalized": 0.046,
+    "sector_count": 1,
+    "alert_count": 0,
+    "correlation_spike": false
   }
 ]
