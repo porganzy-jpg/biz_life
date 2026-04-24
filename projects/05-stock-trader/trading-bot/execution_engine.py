@@ -1046,6 +1046,13 @@ class ExecutionEngine:
             return parent.avg_filled_price
         return 0.0
 
+    def is_order_filled(self, order_id: str) -> bool:
+        """v3.8.1: 주문이 실제로 체결되었는지 확인."""
+        parent = self._orders.get(order_id)
+        if not parent:
+            return False
+        return parent.status == OrderStatus.FILLED.value
+
     def get_active_orders(self) -> List[dict]:
         """현재 활성 주문 목록을 반환한다."""
         result = []

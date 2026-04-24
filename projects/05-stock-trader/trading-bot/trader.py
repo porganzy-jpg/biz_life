@@ -351,6 +351,9 @@ class StockTrader:
                         qty=pos["qty"], urgency=urgency,
                         name=pos.get("name", ""),
                     )
+                    if not self.execution_engine.is_order_filled(exec_id):
+                        logger.warning(f"매도 미체결 [{symbol}] exec_id={exec_id} — 포지션 유지")
+                        continue
                     fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
                     pnl = (fill_price - avg_price) * pos["qty"]
                     pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
@@ -370,6 +373,9 @@ class StockTrader:
                     qty=pos["qty"], urgency="high",
                     name=pos.get("name", ""),
                 )
+                if not self.execution_engine.is_order_filled(exec_id):
+                    logger.warning(f"매도 미체결 [{symbol}] exec_id={exec_id} — 포지션 유지")
+                    continue
                 fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
                 pnl = (fill_price - avg_price) * pos["qty"]
                 pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
@@ -387,6 +393,9 @@ class StockTrader:
                     qty=pos["qty"], urgency="normal",
                     name=pos.get("name", ""),
                 )
+                if not self.execution_engine.is_order_filled(exec_id):
+                    logger.warning(f"매도 미체결 [{symbol}] exec_id={exec_id} — 포지션 유지")
+                    continue
                 fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
                 pnl = (fill_price - avg_price) * pos["qty"]
                 pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
@@ -411,6 +420,9 @@ class StockTrader:
                         qty=pos["qty"], urgency="high",
                         name=pos.get("name", ""),
                     )
+                    if not self.execution_engine.is_order_filled(exec_id):
+                        logger.warning(f"매도 미체결 [{symbol}] exec_id={exec_id} — 포지션 유지")
+                        continue
                     fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
                     pnl = (fill_price - avg_price) * pos["qty"]
                     pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
@@ -448,7 +460,7 @@ class StockTrader:
                 qty=pos["qty"], urgency="normal",
                 name=pos.get("name", ""),
             )
-            if exec_id:
+            if exec_id and self.execution_engine.is_order_filled(exec_id):
                 fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
                 pnl = (fill_price - avg_price) * pos["qty"]
                 pnl_pct = (fill_price - avg_price) / avg_price * 100 if avg_price > 0 else 0
@@ -459,6 +471,8 @@ class StockTrader:
                 self.circuit_breaker.record_trade(pnl_pct)
                 del positions[symbol]
                 logger.info(f"퀀트 매도 [{pos.get('name', symbol)}] score={result.get('score'):.1f} exec_id={exec_id}")
+            elif exec_id:
+                logger.warning(f"매도 미체결 [{symbol}] exec_id={exec_id} — 포지션 유지")
           except Exception as e:
             logger.error(f"퀀트 매도 오류 [{result.get('symbol', '?')}]: {e}")
             self.error_tracker.record("execution", symbol=result.get("symbol", ""), error=e)
@@ -488,7 +502,7 @@ class StockTrader:
                     qty=qty_sell, urgency="normal",
                     name=rb_name,
                 )
-                if exec_id:
+                if exec_id and self.execution_engine.is_order_filled(exec_id):
                     fill_price = self.execution_engine.get_fill_price(exec_id) or rb_price
                     avg_p = positions[sym].get("avg_price", fill_price)
                     pnl = (fill_price - avg_p) * qty_sell
@@ -504,6 +518,8 @@ class StockTrader:
                         f"리밸런싱 [{rb_name}] {rb['current_pct']:.0f}%→{rb['target_pct']:.0f}% "
                         f"{qty_sell}주 매도 exec_id={exec_id}"
                     )
+                elif exec_id:
+                    logger.warning(f"매도 미체결 [{sym}] exec_id={exec_id} — 포지션 유지")
 
             # 섹터 집중도 리밸런싱
             sector_rebalance = self.risk_manager.should_rebalance_sector(
@@ -522,7 +538,7 @@ class StockTrader:
                     qty=qty_sell, urgency="normal",
                     name=rb_name,
                 )
-                if exec_id:
+                if exec_id and self.execution_engine.is_order_filled(exec_id):
                     fill_price = self.execution_engine.get_fill_price(exec_id) or rb_price
                     avg_p = positions[sym].get("avg_price", fill_price)
                     pnl = (fill_price - avg_p) * qty_sell
@@ -538,6 +554,8 @@ class StockTrader:
                         f"{rb['sector_pct']:.0f}%→{rb['target_sector_pct']:.0f}% "
                         f"{qty_sell}주 매도 exec_id={exec_id}"
                     )
+                elif exec_id:
+                    logger.warning(f"매도 미체결 [{sym}] exec_id={exec_id} — 포지션 유지")
         except Exception as e:
             logger.error(f"리밸런싱 오류: {e}")
             self.error_tracker.record("execution", error=e, message="리밸런싱")
@@ -621,7 +639,7 @@ class StockTrader:
                 qty=qty, urgency="normal",
                 name=result["name"],
             )
-            if exec_id:
+            if exec_id and self.execution_engine.is_order_filled(exec_id):
                 fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
                 cash -= qty * fill_price
                 positions[symbol] = {"qty": qty, "avg_price": fill_price, "sector": sector, "name": result["name"]}
@@ -632,6 +650,8 @@ class StockTrader:
                 self.db.save_position(symbol, result["name"], qty, fill_price,
                                       sector, result.get("score", 0), entry_source="ens")
                 logger.info(f"앙상블 매수 [{result['name']}] score={result.get('score', 0):.1f} @{fill_price:,.0f}원 exec_id={exec_id}")
+            elif exec_id:
+                logger.warning(f"앙상블 매수 미체결 [{result['name']}] exec_id={exec_id} — 기록 안 함")
           except Exception as e:
             logger.error(f"앙상블 매수 오류 [{result.get('symbol', '?')}]: {e}")
             self.error_tracker.record("api_order", symbol=result.get("symbol", ""), error=e)
@@ -693,7 +713,7 @@ class StockTrader:
                 qty=qty, urgency="normal",
                 name=result.get("name", ""),
             )
-            if exec_id:
+            if exec_id and self.execution_engine.is_order_filled(exec_id):
                 fill_price = self.execution_engine.get_fill_price(exec_id) or current_price
                 cash -= qty * fill_price
                 positions[symbol] = {"qty": qty, "avg_price": fill_price, "sector": sector, "name": result.get("name", "")}
@@ -708,6 +728,8 @@ class StockTrader:
                     f"@{fill_price:,.0f}원 RSI2={result.get('rsi2', 0):.1f} MA200={result.get('ma200', 0):,.0f} "
                     f"exec_id={exec_id}"
                 )
+            elif exec_id:
+                logger.warning(f"RSI(2) 매수 미체결 [{result.get('name', symbol)}] exec_id={exec_id} — 기록 안 함")
           except Exception as e:
             logger.error(f"RSI(2) 매수 오류 [{result.get('symbol', '?')}]: {e}")
             self.error_tracker.record("api_order", symbol=result.get("symbol", ""), error=e)
@@ -807,6 +829,12 @@ class StockTrader:
         try:
             api_positions = self.client.get_positions()
             db_positions = self.db.get_positions()
+
+            # v3.8.1: API 조회 실패(시뮬레이션 폴백)면 검증 스킵
+            # API가 빈 dict 반환 + DB에 포지션 있으면 API 실패로 판단
+            if not api_positions and db_positions:
+                logger.warning("포지션 동기화 스킵: API 잔고 조회 실패 (시뮬레이션 폴백)")
+                return
 
             api_symbols = set(api_positions.keys())
             db_symbols = set(p["symbol"] for p in db_positions)
