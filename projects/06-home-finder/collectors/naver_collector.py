@@ -82,9 +82,10 @@ class NaverCollector(BaseCollector):
 
         try:
             for art in articles:
-                source_id = str(art.get("articleNo", ""))
-                if not source_id:
+                raw_id = art.get("articleNo")
+                if not raw_id:
                     continue
+                source_id = str(raw_id)
 
                 # Check duplicate
                 existing = db.query(Property).filter(

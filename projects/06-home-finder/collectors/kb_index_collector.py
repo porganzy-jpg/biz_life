@@ -14,6 +14,9 @@ class KBIndexCollector(BaseCollector):
     name = "kb_index"
     rate_limit_seconds = 2.0
 
+    def __init__(self):
+        super().__init__()
+
     def collect(self, **kwargs) -> dict:
         """KB 가격지수 수집"""
         try:
@@ -55,6 +58,15 @@ class KBIndexCollector(BaseCollector):
 
                             value = float(row.get("지수") or row.get("index") or 0)
                             change = float(row.get("증감률") or row.get("change") or 0)
+
+                            # Check duplicate
+                            existing = db.query(PriceIndex).filter(
+                                PriceIndex.source == "kb",
+                                PriceIndex.region == region,
+                                PriceIndex.date == date_val,
+                            ).first()
+                            if existing:
+                                continue
 
                             idx = PriceIndex(
                                 source="kb",
