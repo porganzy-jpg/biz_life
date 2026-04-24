@@ -160,6 +160,10 @@ class StockTrader:
         regime = self._update_regime()
         regime_status = self.regime_detector.get_status()
         logger.info(f"사전분석 시장 국면: {regime.value}")
+
+        # v3.8.1: 권장 가중치 자동 적용
+        self._auto_apply_recommended_weights()
+
         self.alert.send(
             f"[사전분석] 시장 국면: {regime.value}\n"
             f"ADX: {regime_status['details'].get('adx', '-')}\n"
@@ -823,6 +827,75 @@ class StockTrader:
                                 logger.debug(f"오래된 백업 삭제: {f}")
         except Exception as e:
             logger.error(f"DB 백업 실패: {e}")
+
+    def _auto_apply_recommended_weights(self):
+        """v3.8.1: 90일 매매 성과 기반 권장 가중치 자동 계산 및 적용"""
+        try:
+            import json
+            from database import get_connection
+
+            conn = get_connection()
+            since_date = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+
+            daily_rows = conn.execute(
+                "SELECT date, total_assets, total_pnl, total_pnl_pct, cash, invested "
+                "FROM daily_performance WHERE date >= ? ORDER BY date ASC",
+                (since_date,),
+            ).fetchall()
+
+            since_ts = (datetime.now() - timedelta(days=90)).isoformat()
+            trade_rows = conn.execute(
+                "SELECT timestamp, pnl, pnl_pct, reasons FROM trades "
+                "WHERE timestamp >= ? AND action != 'BUY' ORDER BY timestamp ASC",
+                (since_ts,),
+            ).fetchall()
+            conn.close()
+
+            if len(trade_rows) < 5:
+                logger.info("권장 가중치 스킵: 매매 데이터 부족 (최소 5건 필요)")
+                return
+
+            # StrategyRotator 사용 (dashboard/regime_detector.py)
+            import sys
+            dashboard_dir = os.path.join(os.path.dirname(__file__), "..", "dashboard")
+            if dashboard_dir not in sys.path:
+                sys.path.insert(0, dashboard_dir)
+            from regime_detector import compute_regime_from_trades, StrategyRotator
+            rotator = StrategyRotator()
+
+            daily_dicts = [dict(r) for r in daily_rows]
+            trade_dicts = [dict(r) for r in trade_rows]
+
+            result = compute_regime_from_trades(trade_dicts, daily_dicts)
+            weights = rotator.get_optimal_weights(result.regime, result.confidence)
+
+            if not weights:
+                logger.info("권장 가중치 스킵: 가중치 계산 결과 없음")
+                return
+
+            # strategy_weights.json에 저장
+            weights_path = os.path.join(
+                os.path.dirname(__file__), "..", "strategy_weights.json"
+            )
+            weights_data = {
+                "regime": result.regime.value,
+                "confidence": result.confidence,
+                "weights": weights,
+                "applied_at": datetime.now().isoformat(),
+                "auto": True,
+            }
+            with open(weights_path, "w", encoding="utf-8") as f:
+                json.dump(weights_data, f, indent=2, ensure_ascii=False)
+
+            logger.info(
+                f"권장 가중치 자동 적용: regime={result.regime.value} "
+                f"confidence={result.confidence:.2f}"
+            )
+
+        except ImportError:
+            logger.debug("권장 가중치 스킵: dashboard_regime_module 없음")
+        except Exception as e:
+            logger.warning(f"권장 가중치 자동 적용 실패: {e}")
 
     def _verify_position_sync(self):
         """API 포지션과 DB 포지션 동기화 검증."""

@@ -144,7 +144,29 @@ class RegimeDetector:
         return self._current_regime
 
     def get_strategy_weights(self) -> Dict[str, float]:
-        """현재 국면에 맞는 전략 가중치를 반환합니다."""
+        """
+        현재 국면에 맞는 전략 가중치를 반환합니다.
+        v3.8.1: strategy_weights.json이 있으면 권장 가중치를 우선 사용
+        """
+        # 권장 가중치 파일 확인 (대시보드에서 자동 생성)
+        try:
+            import json
+            weights_path = os.path.join(
+                os.path.dirname(__file__), "..", "strategy_weights.json"
+            )
+            if os.path.exists(weights_path):
+                with open(weights_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                weights = data.get("weights", {})
+                if weights:
+                    logger.debug(
+                        f"권장 가중치 적용 (regime={data.get('regime')}, "
+                        f"applied_at={data.get('applied_at', '?')})"
+                    )
+                    return weights
+        except Exception as e:
+            logger.debug(f"권장 가중치 파일 읽기 실패: {e}")
+
         return REGIME_WEIGHT_PROFILES.get(self._current_regime, DEFAULT_WEIGHTS).copy()
 
     def apply_weights(self, strategies: list) -> None:
