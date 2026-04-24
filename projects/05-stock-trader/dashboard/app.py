@@ -99,7 +99,37 @@ async def dashboard():
 
 @app.get("/api/status")
 async def get_status():
-    return trader.get_status()
+    status = trader.get_status()
+    # v3.8.1: DB 기반 잔고/포지션 보정 (API 실패 시 시뮬레이션 폴백 방지)
+    try:
+        conn = get_connection()
+        # 잔고 보정
+        perf = conn.execute(
+            "SELECT total_assets, cash FROM daily_performance ORDER BY date DESC LIMIT 1"
+        ).fetchone()
+        if perf and perf[0] > 0:
+            status["balance"] = {"cash": int(perf[1]), "total_eval": int(perf[0])}
+            total_pnl = int(perf[0]) - status["initial_capital"]
+            status["total_pnl"] = total_pnl
+            status["total_pnl_pct"] = round(total_pnl / status["initial_capital"] * 100, 2)
+
+        # 포지션 보정
+        pos_rows = conn.execute(
+            "SELECT symbol, name, qty, avg_price, sector FROM positions"
+        ).fetchall()
+        if pos_rows:
+            db_positions = {}
+            for r in pos_rows:
+                db_positions[r[0]] = {
+                    "qty": r[2], "avg_price": r[3],
+                    "name": r[1], "sector": r[4] or "",
+                }
+            status["positions"] = db_positions
+
+        conn.close()
+    except Exception:
+        pass
+    return status
 
 
 @app.get("/api/scan")

@@ -191,7 +191,20 @@ class BrokerClient:
             except Exception as e:
                 logger.warning(f"잔고 조회 실패: {e} (시뮬레이션 폴백)")
 
-        # 시뮬레이션 폴백
+        # 시뮬레이션 폴백: DB에서 최신 잔고 조회 시도
+        try:
+            from database import get_connection
+            conn = get_connection()
+            row = conn.execute(
+                "SELECT total_assets, cash FROM daily_performance ORDER BY date DESC LIMIT 1"
+            ).fetchone()
+            conn.close()
+            if row and row[0] > 0:
+                return {"cash": int(row[1]), "total_eval": int(row[0])}
+        except Exception:
+            pass
+
+        # 최종 폴백: 시뮬레이션 잔고
         pos_value = sum(
             p["qty"] * p["avg_price"] for p in self._sim_positions.values()
         )
