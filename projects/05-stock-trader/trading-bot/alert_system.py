@@ -248,12 +248,22 @@ class AlertSystem:
                      score: float = 0, reasons: list = None):
         emoji = {"BUY": "\U0001f7e2", "SELL": "\U0001f534", "STOP_LOSS": "\U0001f6d1",
                  "TAKE_PROFIT": "\U0001f3af", "TRAILING_STOP": "\U0001f4c9",
-                 "REBALANCE": "\u2696\ufe0f"}.get(action, "\U0001f4ca")
+                 "REBALANCE": "\u2696\ufe0f",
+                 "RSI2_BUY": "\u26a1", "RSI2_SL": "\U0001f6d1",
+                 "RSI2_TP": "\U0001f3af", "RSI2_TRAIL": "\U0001f4c9",
+                 "RSI2_RSI2>90": "\U0001f534",
+                 }.get(action, "\U0001f4ca")
+
+        # v3.8.1: RSI(2) 전략 구분 표시
+        is_rsi2 = action.startswith("RSI2_")
+        strategy_tag = "[RSI2 급락매수] " if is_rsi2 and "BUY" in action else \
+                       "[RSI2 청산] " if is_rsi2 else ""
+
         pnl_str = f" ({pnl_pct:+.1f}%)" if pnl_pct else ""
         reason_str = "\n".join(f"  \u2022 {r}" for r in (reasons or [])[:3])
 
         msg = (
-            f"{emoji} <b>{action}</b> {name} ({symbol})\n"
+            f"{emoji} {strategy_tag}<b>{action}</b> {name} ({symbol})\n"
             f"\uc218\ub7c9: {qty:,}\uc8fc | \uac00\uaca9: {price:,.0f}\uc6d0{pnl_str}\n"
             f"\ucd1d\uc561: {qty * price:,.0f}\uc6d0"
         )

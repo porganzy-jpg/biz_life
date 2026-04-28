@@ -100,7 +100,7 @@ def compute_rsi(series, period=14):
 # RSI(2) Crash Buy 설정
 RSI2_BUY_THRESHOLD = 10     # RSI(2) < 10 매수
 RSI2_SELL_THRESHOLD = 90    # RSI(2) > 90 청산
-RSI2_MAX_HOLD_DAYS = 7      # 최대 보유일
+RSI2_MAX_HOLD_DAYS = 10     # 최대 보유일 (v3.8.1: 7→10일)
 
 # ATR Chandelier Exit 설정 (config.py에서 읽기)
 ATR_MULTIPLIER = STOCK_TRADING_CONFIG.get("atr_multiplier", 2.0)
