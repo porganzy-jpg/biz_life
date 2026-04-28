@@ -67,6 +67,22 @@ class BrokerClient:
         # paper_trading: live_trading의 반대 (하위 호환)
         self.paper_trading = not self.live_trading
 
+    def _reconnect_broker(self):
+        """v3.8.1: API 토큰 만료 시 재연결"""
+        try:
+            import mojito
+            self.broker = mojito.KoreaInvestment(
+                api_key=KIS_APP_KEY,
+                api_secret=KIS_APP_SECRET,
+                acc_no=KIS_ACCOUNT_NO,
+                mock=KIS_IS_PAPER,
+            )
+            logger.info("한국투자증권 API 재연결 완료 (토큰 갱신)")
+            return True
+        except Exception as e:
+            logger.error(f"API 재연결 실패: {e}")
+            return False
+
         # 시뮬레이션 상태 (paper 모드 또는 API 미연결 시 사용)
         self._sim_balance = INITIAL_CAPITAL
         self._sim_positions = {}  # {종목코드: {qty, avg_price, name}}
@@ -264,6 +280,11 @@ class BrokerClient:
             if rt_cd != "0":
                 msg = result.get("msg1", result.get("msg", "알 수 없는 오류"))
                 logger.error(f"[LIVE] 매수 주문 거부: {name}({symbol}) - {msg}")
+                # v3.8.1: 토큰 만료 시 재연결 후 1회 재시도
+                if "token" in msg.lower() or "만료" in msg or "기간" in msg:
+                    if retry == 0 and self._reconnect_broker():
+                        logger.info(f"[LIVE] 토큰 갱신 후 매수 재시도: {name}({symbol})")
+                        return self._live_buy(symbol, name, qty, price, retry=1)
                 return None
 
             # 체결 확인
@@ -374,6 +395,10 @@ class BrokerClient:
             if rt_cd != "0":
                 msg = result.get("msg1", result.get("msg", "알 수 없는 오류"))
                 logger.error(f"[LIVE] 매도 주문 거부: {symbol} - {msg}")
+                if "token" in msg.lower() or "만료" in msg or "기간" in msg:
+                    if retry == 0 and self._reconnect_broker():
+                        logger.info(f"[LIVE] 토큰 갱신 후 매도 재시도: {symbol}")
+                        return self._live_sell(symbol, qty, price, retry=1)
                 return None
 
             order_no = self._extract_order_no(result)
