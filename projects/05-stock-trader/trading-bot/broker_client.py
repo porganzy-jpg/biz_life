@@ -67,6 +67,13 @@ class BrokerClient:
         # paper_trading: live_trading의 반대 (하위 호환)
         self.paper_trading = not self.live_trading
 
+        # 시뮬레이션 상태 (paper 모드 또는 API 미연결 시 사용)
+        self._sim_balance = INITIAL_CAPITAL
+        self._sim_positions = {}  # {종목코드: {qty, avg_price, name}}
+
+        # WebSocket 클라이언트 (opt-in, v3.7)
+        self._ws_client = None
+
     def _reconnect_broker(self):
         """v3.8.1: API 토큰 만료 시 재연결"""
         try:
@@ -82,13 +89,6 @@ class BrokerClient:
         except Exception as e:
             logger.error(f"API 재연결 실패: {e}")
             return False
-
-        # 시뮬레이션 상태 (paper 모드 또는 API 미연결 시 사용)
-        self._sim_balance = INITIAL_CAPITAL
-        self._sim_positions = {}  # {종목코드: {qty, avg_price, name}}
-
-        # WebSocket 클라이언트 (opt-in, v3.7)
-        self._ws_client = None
 
     def fetch_ohlcv(self, symbol: str, period: str = "D", count: int = 200) -> pd.DataFrame:
         """
