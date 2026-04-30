@@ -637,6 +637,23 @@ class StockTrader:
                 logger.warning(f"수량 부족 [{result.get('name', symbol)}]: amount={amount:,.0f}, price={current_price:,.0f} - 매수 건너뜀")
                 continue
 
+            # v3.8.1: 매수 후 즉시 리밸런싱 대상이 될지 미리 체크
+            existing_value = positions.get(symbol, {}).get("qty", 0) * current_price
+            new_value = qty * current_price
+            single_pct = (existing_value + new_value) / total_assets * 100
+            if single_pct > STOCK_TRADING_CONFIG["max_single_pct"]:
+                logger.info(f"리밸런싱 방지 [{result.get('name', symbol)}]: 비중 {single_pct:.0f}% > {STOCK_TRADING_CONFIG['max_single_pct']}% - 건너뜀")
+                continue
+            sector_value = sum(
+                p.get("qty", 0) * (self.client.fetch_price(s) or {}).get("price", 0)
+                for s, p in positions.items()
+                if p.get("sector", "") == sector
+            ) + new_value
+            sector_pct = sector_value / total_assets * 100 if total_assets > 0 else 0
+            if sector_pct > STOCK_TRADING_CONFIG["max_sector_pct"]:
+                logger.info(f"리밸런싱 방지 [{result.get('name', symbol)}]: 섹터({sector}) {sector_pct:.0f}% > {STOCK_TRADING_CONFIG['max_sector_pct']}% - 건너뜀")
+                continue
+
             # 스마트 실행 엔진을 통한 매수
             exec_id = self.execution_engine.smart_execute(
                 symbol=symbol, side=Side.BUY.value,
