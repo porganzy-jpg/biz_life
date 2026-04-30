@@ -89,8 +89,8 @@ class StockRiskManager:
             list: [{symbol, name, current_pct, target_pct, action, qty_to_sell}, ...]
         """
         rebalance_needed = []
-        max_pct = self.config["max_single_pct"]  # 30%
-        rebalance_trigger = max_pct * 1.2  # 36% (120% of max)
+        max_pct = self.config["max_single_pct"]  # 35%
+        rebalance_trigger = max_pct * 1.4  # v3.8.1: 1.2→1.4 (49%, 더 여유 있게)
 
         for symbol, pos in positions.items():
             qty = pos.get("qty", 0)
@@ -136,8 +136,8 @@ class StockRiskManager:
             list: [{symbol, name, sector, sector_pct, qty_to_sell, price}, ...]
         """
         rebalance_needed = []
-        max_sector_pct = self.config["max_sector_pct"]  # 50%
-        sector_trigger = max_sector_pct * 1.1  # 55%
+        max_sector_pct = self.config["max_sector_pct"]  # 60%
+        sector_trigger = max_sector_pct * 1.3  # v3.8.1: 1.1→1.3 (78%, 더 여유 있게)
 
         if total_assets <= 0:
             return []
