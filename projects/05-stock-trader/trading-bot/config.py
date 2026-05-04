@@ -32,10 +32,10 @@ def _auto_adjust_config(capital: int) -> dict:
     """자본 규모에 따라 매매 설정 자동 조정"""
     if capital <= 3_000_000:  # 300만원 이하 소규모
         return {
-            "max_positions": 4,
+            "max_positions": 6,       # v3.8.1: 4→6 (분산 투자 + 현금 비중 축소)
             "max_single_pct": 35.0,   # v3.8.1: 30→35 (소자본 리밸런싱 루프 방지)
             "max_sector_pct": 60.0,   # v3.8.1: 50→60 (소자본 섹터 제한 완화)
-            "min_cash_reserve_pct": 15.0,
+            "min_cash_reserve_pct": 10.0,  # v3.8.1: 15→10 (현금 비중 축소)
             "take_profit_pct": 15.0,  # v3.2: 10→15 (1년 백테스트 최적)
             "min_buy_score": 58,  # v3.1: 62→58 (서브스코어 범위 확대 반영)
         }
