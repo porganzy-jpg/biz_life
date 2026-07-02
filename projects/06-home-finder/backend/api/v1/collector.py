@@ -52,7 +52,7 @@ async def run_collector(
                 collector = MolitCollector(api_key=settings.PUBLIC_DATA_API_KEY, target_districts=settings.TARGET_DISTRICTS)
             else:
                 from collectors.land_collector import LandCollector
-                collector = LandCollector(api_key=settings.PUBLIC_DATA_API_KEY, target_districts=settings.TARGET_DISTRICTS)
+                collector = LandCollector(api_key=settings.PUBLIC_DATA_API_KEY, target_districts=settings.TARGET_DISTRICTS, kakao_key=settings.KAKAO_REST_API_KEY)
             collector.run(months_back=mb)
         background_tasks.add_task(_run_with_months)
     else:
