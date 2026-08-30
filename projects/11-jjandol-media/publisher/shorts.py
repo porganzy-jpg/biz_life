@@ -86,6 +86,17 @@ def _photo_ref(day: DayContent, i: int) -> str:
         return str(p)
 
 
+def _closing_photo(day: DayContent) -> str:
+    """마무리 컷(쉼 + 시그니처)이 쓸 사진. 항상 마지막 한 장."""
+    if not day.photos:
+        return ""
+    p = day.photos[-1]
+    try:
+        return str(p.relative_to(shorts_config.ROOT))
+    except ValueError:
+        return str(p)
+
+
 def build_cuts(day: DayContent, recent: list[int]):
     """하루치 데이터를 컷 리스트로 편성한다.
 
@@ -115,7 +126,10 @@ def build_cuts(day: DayContent, recent: list[int]):
         ))
 
     # 시그니처 앞 0.4초 쉼. 이 문장은 쉼이 전부라 무음 컷을 하나 끼운다.
-    last_photo = _photo_ref(day, len(plan))
+    # 닫는 두 컷은 순환에서 빼고 **항상 마지막 사진**을 쓴다.
+    # 돌려쓰기에 맡기면 인덱스가 앞으로 되감겨 방금 나온 사진이 다시 나오고,
+    # 여운을 남겨야 할 자리에 라면 냄비가 재등장한다.
+    last_photo = _closing_photo(day)
     cuts.append(Cut(no=len(cuts) + 1, clip=last_photo, clip_mode="in",
                     length=SIGNATURE_PAUSE_SEC))
     cuts.append(Cut(no=len(cuts) + 1, speaker=SPEAKER, line=SIGNATURE,
