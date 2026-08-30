@@ -27,6 +27,23 @@ from content import load_ledger, pick
 from platforms import drafts
 
 
+def compare_comments(rows) -> int:
+    """A안·B안을 가계부 전체에 돌려 나란히 보여준다. 고르기 전에 눈으로 확인하는 용도."""
+    from content import spend_comment_absolute, spend_comment_relative
+
+    print(f"{'날짜':<12}{'지출':>9}   {'A · 절대값':<24}B · 상대값")
+    print("-" * 78)
+    for i, d in enumerate(rows):
+        recent = [r.spend for r in rows[:i]][-14:]
+        a = spend_comment_absolute(d.spend, recent)
+        b = spend_comment_relative(d.spend, recent)
+        mark = " " if a == b else "*"
+        print(f"{d.day:%Y-%m-%d}  {d.spend:>8,}원 {mark} {a:<24}{b}")
+    print("-" * 78)
+    print("* = 두 방식이 다른 문장을 낸 날.  돈을 쓴 날이 3일 미만이면 B는 A로 폴백한다.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="짠돌이 미디어 - 5채널 배포")
     ap.add_argument("--date", type=date.fromisoformat, default=None,
@@ -35,9 +52,14 @@ def main() -> int:
     ap.add_argument("--instagram", action="store_true", help="인스타 릴스 업로드")
     ap.add_argument("--public", action="store_true",
                     help="유튜브를 바로 공개 (기본은 비공개 업로드)")
+    ap.add_argument("--comments", action="store_true",
+                    help="지출 코멘트 두 방식(A 절대값 / B 상대값)을 가계부 전체에 나란히 출력")
     args = ap.parse_args()
 
     rows = load_ledger()
+
+    if args.comments:
+        return compare_comments(rows)
     day = pick(rows, args.date)
     recent = [d.spend for d in rows if d.day < day.day][-14:]
 

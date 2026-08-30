@@ -79,28 +79,86 @@ def pick(rows: list[DayContent], target: date | None) -> DayContent:
 # 아웃트로 바로 앞에 붙는 한 줄. 그날 영상의 '표정'을 결정한다.
 #
 #   "오늘, 3,200원이었습니다."
-#   "___________________"        ← 이 함수가 만드는 문장
+#   "그럭저럭입니다."             ← 이 함수가 만드는 문장
 #   "이렇게 살아도, 삽니다."
 #
-# TODO(user): 아래 함수를 채워주세요. 이건 캐릭터의 목소리라 대신 정할 수 없습니다.
-#
-# 판단해야 할 것 — 기준을 절대값으로 둘지, 상대값으로 둘지:
-#   · 절대값 (예: 5,000원 미만이면 "잘 버텼다")
-#       → 규칙이 단순하고 시청자가 기준을 외우게 된다. 대신 돈을 쓴 날엔 늘 같은 말이 나온다.
-#   · 상대값 (최근 14일 평균 대비)
-#       → 매번 문장이 달라져 안 질린다. 대신 시청자는 왜 그런 말이 나왔는지 모른다.
-#
-# 톤 주의: 자조는 되지만 비굴하면 안 된다. "돈이 없어서"가 아니라 "안 썼다"로 쓸 것.
-# 길이는 8~20자. 이 뒤에 0.4초 쉼이 오고 시그니처가 나온다.
+# 두 가지 방식을 다 구현해 뒀다. config.SPEND_COMMENT_MODE 로 고른다.
+# 톤 규칙: 자조는 되지만 비굴하면 안 된다. "돈이 없어서"가 아니라 "안 썼다"로 쓴다.
 # ─────────────────────────────────────────────────────────────
+
+# A안 — 절대값. 금액 구간이 고정이라 시청자가 기준을 외우게 된다.
+#        상한선(원)과 그때의 문장. 위에서부터 처음 걸리는 구간을 쓴다.
+ABSOLUTE_LADDER: list[tuple[int, str]] = [
+    (0,      "한 푼도 안 썼습니다."),
+    (2_000,  "거의 안 썼습니다."),
+    (5_000,  "그럭저럭입니다."),
+    (15_000, "오늘은 좀 썼습니다."),
+]
+ABSOLUTE_OVER = "오늘은 크게 썼습니다."
+
+
+def spend_comment_absolute(spend: int, recent: list[int]) -> str:
+    """금액 구간으로 판단한다. recent 는 쓰지 않는다.
+
+    장점 — 규칙이 단순해서 시청자가 사다리를 외운다. 첫날부터 바로 작동한다.
+    단점 — 돈을 쓴 날엔 늘 같은 문장이 나온다. 몇 달 지나면 예측된다.
+    """
+    for ceiling, line in ABSOLUTE_LADDER:
+        if spend <= ceiling:
+            return line
+    return ABSOLUTE_OVER
+
+
+def _median(xs: list[int]) -> int:
+    s = sorted(xs)
+    n = len(s)
+    return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) // 2
+
+
+def spend_comment_relative(spend: int, recent: list[int]) -> str:
+    """평소 대비로 판단한다.
+
+    장점 — 매번 문장이 달라져 안 질리고, 금액이 들어가 정보성이 붙는다.
+    단점 — 왜 그런 말이 나왔는지 시청자는 모른다. 기준이 안 보인다.
+
+    **기준선은 "돈을 쓴 날"들의 중앙값이다.** 두 번 걸러진 이유가 있다.
+
+    1. 평균이 아니라 중앙값 — 쌀 10kg 같은 큰 지출 하나가 평균을 통째로 끌어올린다.
+    2. 0원인 날을 제외 — 무지출 챌린지를 하면 0원인 날이 절반을 넘는다.
+       그대로 넣으면 중앙값이 0이 되어 비율 계산 자체가 무너진다.
+       (실제로 20일 샘플에서 이 필터가 없으면 문장이 세 종류밖에 안 나왔다.)
+    """
+    spent_days = [x for x in recent if x > 0]
+    if len(spent_days) < 3:        # 비교할 게 없으면 비교하는 척하지 않는다
+        return spend_comment_absolute(spend, recent)
+
+    base = _median(spent_days)
+    if spend == 0:
+        return "오늘은 0원입니다."
+
+    ratio = spend / base
+    if ratio < 0.4:
+        return "쓴 날 치고는 거의 안 썼습니다."
+    if ratio < 0.85:
+        return f"평소 쓰는 날보다 {base - spend:,}원 적습니다."
+    if ratio <= 1.15:
+        return "돈 쓰는 날의 평소만큼입니다."
+    if ratio < 2:
+        return f"평소보다 {spend - base:,}원 더 썼습니다."
+    return f"평소 쓰는 날의 {ratio:.0f}배입니다."
+
+
 def spend_comment(spend: int, recent: list[int]) -> str:
     """오늘 지출액을 보고 한 줄 코멘트를 만든다.
 
     Args:
         spend:  오늘 쓴 금액(원)
-        recent: 최근 14일 지출 리스트(원). 첫 2주 동안은 비어 있거나 짧을 수 있다.
+        recent: 최근 14일 지출 리스트(원). 첫 2주는 비어 있거나 짧다.
 
     Returns:
-        한 문장(마침표 포함). 빈 문자열을 돌려주면 코멘트 줄이 통째로 빠진다.
+        한 문장(마침표 포함). 빈 문자열이면 코멘트 줄이 통째로 빠진다.
     """
-    return ""  # ← 여기를 채우면 모든 채널의 문장에 자동 반영됩니다
+    from config import SPEND_COMMENT_MODE
+    if SPEND_COMMENT_MODE == "relative":
+        return spend_comment_relative(spend, recent)
+    return spend_comment_absolute(spend, recent)

@@ -15,6 +15,10 @@ SIGNATURE_PAUSE_SEC = 0.4
 
 CHANNEL_NAME = "월 30만원 아저씨"
 
+# 지출 코멘트 방식. "absolute" = 금액 구간 고정 / "relative" = 평소 대비
+# 바꾸면 5채널 전부에 반영된다. python publish.py --comments 로 둘을 나란히 비교할 수 있다.
+SPEND_COMMENT_MODE = "absolute"
+
 # ── 경로 ──────────────────────────────────────────────────────
 LEDGER_CSV = ROOT / "data" / "ledger.csv"
 OUT_DIR = ROOT / "out"
