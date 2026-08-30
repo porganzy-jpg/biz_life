@@ -1,0 +1,98 @@
+# publisher — 콘텐츠 1개를 5채널로
+
+가계부 CSV 한 줄 → 5개 채널용 텍스트 + 업로드.
+
+```
+data/ledger.csv (하루 한 줄)
+        │
+   publish.py
+        │
+   ┌────┴───────────────────────────┐
+   │                                 │
+[자동 업로드]                   [초안 생성 → out/]
+ 유튜브   Data API v3            tistory.md
+ 인스타   Graph API              naver.txt
+                                 webtoon.md
+                                 instagram.txt
+                                 narration.txt
+```
+
+## 플랫폼별 자동화 가능 여부
+
+| 채널 | 공식 API | 상태 |
+|------|---------|------|
+| 유튜브 | Data API v3 `videos.insert` | **완전 자동** |
+| 인스타그램 | Graph API Content Publishing | **자동** — 단 비즈니스 계정 + 영상 공개 URL 필요 |
+| 티스토리 | Open API 글쓰기 기능 폐지 | 초안 생성까지 |
+| 네이버 블로그 | 글쓰기 API 미제공 | 초안 생성까지 |
+| 네이버 웹툰 | 업로드 API 없음 | 대본 생성까지 |
+
+브라우저 자동화(Selenium)로 나머지 3개를 뚫는 방법은 있지만 하지 않는다.
+네이버는 봇 감지에 걸리면 저품질 처리를 받고, 그러면 **5채널 중 협찬 수주력이 가장 높은
+채널이 통째로 죽는다.** 아낀 시간보다 잃는 게 크다.
+
+## 쓰는 법
+
+```bash
+# 자격증명 없이 지금 바로 — 초안만 생성 (표준 라이브러리만 사용)
+python publish.py
+python publish.py --date 2026-08-30
+
+# 업로드까지
+pip install -r requirements.txt
+cp .env.example .env      # 값 채우기
+python publish.py --youtube            # 비공개로 업로드 (기본)
+python publish.py --youtube --public   # 바로 공개
+python publish.py --instagram
+```
+
+유튜브가 **기본 비공개**로 올라가는 건 의도적이다. 자동 업로드가 바로 공개되면
+잘못 만든 편을 되돌릴 수 없다.
+
+## 자격증명 준비
+
+**유튜브** — Google Cloud Console → API 및 서비스 → YouTube Data API v3 사용 설정 →
+사용자 인증 정보 → **데스크톱 앱** OAuth 클라이언트 생성 → JSON을 `publisher/client_secret.json`
+으로 저장. 첫 실행 때 브라우저가 한 번 열리고, 이후 `token.json`으로 자동 갱신된다.
+쿼터는 10,000 units/day, 업로드 1건이 1,600 units라 하루 6건까지.
+
+**인스타그램** — 개인 계정은 불가능하다. 비즈니스/크리에이터로 전환하고 페이스북 페이지를
+연결한 뒤 Graph API 액세스 토큰을 발급받는다. 그리고 릴스는 **파일 바이트를 받지 않고
+공개 URL만 받으므로** 영상을 올려둘 정적 호스팅이 하나 필요하다(`PUBLIC_MEDIA_BASE`).
+호스팅이 없으면 인스타도 수동 업로드로 두는 게 낫다.
+
+## 파일
+
+| 파일 | 역할 |
+|------|------|
+| `config.py` | 시그니처 문장·해시태그·경로. **시그니처는 여기 한 곳에서만 정의** |
+| `content.py` | 가계부 CSV 로더 + `spend_comment()` (캐릭터 목소리) |
+| `render.py` | 채널별 텍스트 조립 — 같은 소재를 채널마다 **다른 구조**로 |
+| `platforms/youtube.py` | Data API v3 재개 가능 업로드 |
+| `platforms/instagram.py` | Graph API 릴스 (컨테이너 생성 → 처리 대기 → 게시) |
+| `platforms/drafts.py` | API 없는 3채널 초안 파일 생성 |
+| `publish.py` | CLI |
+
+## 가계부 형식
+
+`data/ledger.csv` — 하루 한 줄. 이게 모든 콘텐츠의 원재료다.
+
+```csv
+date,spend,meal,meal_cost,note,photos,video
+2026-08-30,3200,라면에 파 넣음,1100,파 한 단이 일주일을 간다,photos/0830.jpg,clips/0830.mp4
+```
+
+`photos`는 `;`로 여러 개, `video`가 비면 업로드는 건너뛴다.
+
+## 왜 채널마다 글을 따로 만드는가
+
+네이버 블로그 글과 티스토리 글에 **같은 문장이 들어가면 구글이 중복 콘텐츠로 판단해
+한쪽을 색인에서 뺀다.** 애드센스 심사 탈락 1순위 사유이기도 하다.
+
+그래서 `render.py`는 문장을 바꿔치기하는 게 아니라 아예 다른 구조로 조립한다.
+
+- **네이버** = 그날의 일기 · 1인칭 · 사진 위주
+- **티스토리** = 같은 소재의 정보형 · 표와 숫자 위주 · **뼈대만 생성하고 본문은 직접 쓴다**
+
+티스토리 본문을 자동 생성하지 않는 것도 같은 이유다. AI가 쓴 문장을 그대로 올리면
+애드센스에서 죽는다. 이 도구가 채워주는 건 그날의 진짜 숫자와 표 틀까지다.

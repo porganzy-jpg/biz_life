@@ -1,0 +1,11 @@
+# 초안 생성만 쓸 거면 아무것도 설치할 필요 없습니다 (표준 라이브러리만 사용).
+# 아래는 실제 업로드를 켤 때만 필요합니다.
+
+python-dotenv>=1.0
+
+# 유튜브
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.2
+
+# 인스타그램
+requests>=2.31
