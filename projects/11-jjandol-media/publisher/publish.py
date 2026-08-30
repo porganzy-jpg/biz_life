@@ -35,8 +35,8 @@ def compare_comments(rows) -> int:
     print("-" * 78)
     for i, d in enumerate(rows):
         recent = [r.spend for r in rows[:i]][-14:]
-        a = spend_comment_absolute(d.spend, recent)
-        b = spend_comment_relative(d.spend, recent)
+        a = spend_comment_absolute(d.spend, recent, d.day)
+        b = spend_comment_relative(d.spend, recent, d.day)
         mark = " " if a == b else "*"
         print(f"{d.day:%Y-%m-%d}  {d.spend:>8,}원 {mark} {a:<24}{b}")
     print("-" * 78)

@@ -20,7 +20,7 @@ from content import DayContent, spend_comment
 def outro(day: DayContent, recent: list[int]) -> str:
     """모든 채널이 공유하는 마무리 2단 구조."""
     lines = [SPEND_LINE.format(spend=day.spend_fmt)]
-    if c := spend_comment(day.spend, recent):
+    if c := spend_comment(day.spend, recent, day.day):
         lines.append(c)
     lines.append(SIGNATURE)
     return "\n".join(lines)

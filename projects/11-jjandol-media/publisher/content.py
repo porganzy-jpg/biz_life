@@ -86,10 +86,47 @@ def pick(rows: list[DayContent], target: date | None) -> DayContent:
 # 톤 규칙: 자조는 되지만 비굴하면 안 된다. "돈이 없어서"가 아니라 "안 썼다"로 쓴다.
 # ─────────────────────────────────────────────────────────────
 
+# 0원인 날의 문장. 실측으로 **전체 날짜의 절반 이상이 0원**이라
+# 이 목록이 채널에서 가장 자주 들리는 문장이 된다. 사다리 5칸보다 여기가 더 중요하다.
+ZERO_LINES: list[str] = [
+    "한 푼도 안 썼습니다.",
+    "오늘은 지갑을 안 열었습니다.",
+    "쓸 일이 없었습니다.",
+    "0원입니다. 자랑은 아니고요.",
+]
+
+# 연속 무지출 며칠째인지 셀 때 쓰는 우리말 날짜. 없는 숫자는 "N일"로 떨어진다.
+_STREAK_WORD = {2: "이틀", 3: "사흘", 4: "나흘", 5: "닷새",
+                6: "엿새", 7: "일주일", 10: "열흘"}
+
+
+def zero_streak(recent: list[int]) -> int:
+    """오늘을 포함해 며칠째 연속 0원인지. 오늘이 0원이라는 전제로 호출한다."""
+    streak = 1
+    for v in reversed(recent):
+        if v != 0:
+            break
+        streak += 1
+    return streak
+
+
+def zero_line(recent: list[int], on: date) -> str:
+    """0원인 날의 문장.
+
+    이틀 이상 이어지면 로테이션 대신 **연속 일수**를 말한다.
+    무지출 챌린지에서 연속 기록은 시청자가 따라가는 스토리라 문장을 돌려쓰는 것보다 세다.
+    하루짜리면 ZERO_LINES 를 날짜로 돌린다 — 난수가 아니라 날짜 기준이라
+    같은 날을 몇 번 다시 생성해도 문장이 바뀌지 않는다.
+    """
+    streak = zero_streak(recent)
+    if streak >= 2:
+        return f"{_STREAK_WORD.get(streak, f'{streak}일')}째 0원입니다."
+    return ZERO_LINES[on.toordinal() % len(ZERO_LINES)]
+
+
 # A안 — 절대값. 금액 구간이 고정이라 시청자가 기준을 외우게 된다.
-#        상한선(원)과 그때의 문장. 위에서부터 처음 걸리는 구간을 쓴다.
+#        상한선(원)과 그때의 문장. 위에서부터 처음 걸리는 구간을 쓴다. (0원은 zero_line 담당)
 ABSOLUTE_LADDER: list[tuple[int, str]] = [
-    (0,      "한 푼도 안 썼습니다."),
     (2_000,  "거의 안 썼습니다."),
     (5_000,  "그럭저럭입니다."),
     (15_000, "오늘은 좀 썼습니다."),
@@ -97,12 +134,14 @@ ABSOLUTE_LADDER: list[tuple[int, str]] = [
 ABSOLUTE_OVER = "오늘은 크게 썼습니다."
 
 
-def spend_comment_absolute(spend: int, recent: list[int]) -> str:
-    """금액 구간으로 판단한다. recent 는 쓰지 않는다.
+def spend_comment_absolute(spend: int, recent: list[int], on: date) -> str:
+    """금액 구간으로 판단한다.
 
     장점 — 규칙이 단순해서 시청자가 사다리를 외운다. 첫날부터 바로 작동한다.
     단점 — 돈을 쓴 날엔 늘 같은 문장이 나온다. 몇 달 지나면 예측된다.
     """
+    if spend == 0:
+        return zero_line(recent, on)
     for ceiling, line in ABSOLUTE_LADDER:
         if spend <= ceiling:
             return line
@@ -115,7 +154,7 @@ def _median(xs: list[int]) -> int:
     return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) // 2
 
 
-def spend_comment_relative(spend: int, recent: list[int]) -> str:
+def spend_comment_relative(spend: int, recent: list[int], on: date) -> str:
     """평소 대비로 판단한다.
 
     장점 — 매번 문장이 달라져 안 질리고, 금액이 들어가 정보성이 붙는다.
@@ -128,14 +167,14 @@ def spend_comment_relative(spend: int, recent: list[int]) -> str:
        그대로 넣으면 중앙값이 0이 되어 비율 계산 자체가 무너진다.
        (실제로 20일 샘플에서 이 필터가 없으면 문장이 세 종류밖에 안 나왔다.)
     """
+    if spend == 0:
+        return zero_line(recent, on)
+
     spent_days = [x for x in recent if x > 0]
     if len(spent_days) < 3:        # 비교할 게 없으면 비교하는 척하지 않는다
-        return spend_comment_absolute(spend, recent)
+        return spend_comment_absolute(spend, recent, on)
 
     base = _median(spent_days)
-    if spend == 0:
-        return "오늘은 0원입니다."
-
     ratio = spend / base
     if ratio < 0.4:
         return "쓴 날 치고는 거의 안 썼습니다."
@@ -148,17 +187,18 @@ def spend_comment_relative(spend: int, recent: list[int]) -> str:
     return f"평소 쓰는 날의 {ratio:.0f}배입니다."
 
 
-def spend_comment(spend: int, recent: list[int]) -> str:
+def spend_comment(spend: int, recent: list[int], on: date) -> str:
     """오늘 지출액을 보고 한 줄 코멘트를 만든다.
 
     Args:
         spend:  오늘 쓴 금액(원)
         recent: 최근 14일 지출 리스트(원). 첫 2주는 비어 있거나 짧다.
+        on:     그날 날짜. 0원 문장 로테이션을 결정론적으로 만드는 데 쓴다.
 
     Returns:
         한 문장(마침표 포함). 빈 문자열이면 코멘트 줄이 통째로 빠진다.
     """
     from config import SPEND_COMMENT_MODE
     if SPEND_COMMENT_MODE == "relative":
-        return spend_comment_relative(spend, recent)
-    return spend_comment_absolute(spend, recent)
+        return spend_comment_relative(spend, recent, on)
+    return spend_comment_absolute(spend, recent, on)
