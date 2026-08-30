@@ -58,7 +58,9 @@ python make.py --all --shotlist                # 촬영해야 할 클립 목록
 | `placeholder.py` | 촬영 전 스토리보드 카드 생성 |
 | `render.py` | 컷별 ffmpeg 인코딩 → 이어붙이기 → BGM 믹스 |
 | `make.py` | CLI |
-| `docs/SHOOTING_GUIDE.md` | **촬영 가이드 — 먼저 읽으세요** |
+| `docs/SHOOTING_GUIDE.md` | 실사 촬영 가이드 |
+| `docs/AI_VIDEO_GUIDE.md` | **AI 영상 제작 가이드 — 먼저 읽으세요** |
+| `docs/AI_PROMPTS.md` | 테이크별 i2v 프롬프트 전문 |
 
 ## 목소리 바꾸기
 
