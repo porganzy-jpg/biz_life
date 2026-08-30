@@ -17,27 +17,48 @@ ACODEC = ["-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-ac", "2"]
 def _kenburns(cut, idx: int, d: float) -> str:
     """정지 이미지에 슬로우 줌/팬을 건다.
 
-    zoompan은 출력 해상도에서 x/y를 정수로 계산해 떨림이 생긴다.
-    미리 2배로 키운 뒤 zoompan을 걸어 s= 로 되돌리면 부드러워진다.
+    두 단계로 나눈다.
+      1) crop : 사진의 '어느 부분'을 9:16으로 쓸지 고른다 (프레이밍)
+      2) zoompan : 그 안에서 천천히 확대/축소한다 (모션)
+
+    @초가 붙어 있으면 프레이밍으로 해석한다. 영상 테이크에서는 @초가 원본의
+    다른 순간을 가리키지만 정지 이미지엔 다른 순간이 없어서, 대신 사진의
+    다른 부분을 보여줘 같은 그림이 반복되는 걸 줄인다.
+    @in/@out/@left/@right 를 명시하면 기존 팬/줌 동작을 그대로 쓴다.
+
+    zoompan은 출력 해상도에서 x/y를 정수 계산해 떨림이 생기므로
+    2배로 키운 뒤 s= 로 되돌린다.
     """
     z = config.KENBURNS_ZOOM
     n = max(1, round(d * config.FPS))
-    mode = cut.clip_mode or config.KENBURNS_MODES[cut.no % len(config.KENBURNS_MODES)]
-
-    cy = "ih/2-(ih/zoom/2)"
-    if mode in ("out", "zoomout"):
-        zexpr, x, y = f"{z}-({z}-1)*on/{n}", "iw/2-(iw/zoom/2)", cy
-    elif mode in ("left", "panleft"):
-        zexpr, x, y = f"{z}", f"(iw-iw/zoom)*(1-on/{n})", cy
-    elif mode in ("right", "panright"):
-        zexpr, x, y = f"{z}", f"(iw-iw/zoom)*(on/{n})", cy
-    else:  # in / zoomin / 알 수 없는 값
-        zexpr, x, y = f"1+({z}-1)*on/{n}", "iw/2-(iw/zoom/2)", cy
-
     w2, h2 = config.WIDTH * 2, config.HEIGHT * 2
+    cx, cy = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+
+    mode = cut.clip_mode
+    if not mode and not cut.clip_start:
+        mode = config.KENBURNS_MODES[cut.no % len(config.KENBURNS_MODES)]
+
+    if mode:
+        # 명시적 모션 모드 - 프레이밍은 가운데 고정
+        fx = fy = 0.5
+        if mode in ("out", "zoomout"):
+            zexpr, x, y = f"{z}-({z}-1)*on/{n}", cx, cy
+        elif mode in ("left", "panleft"):
+            zexpr, x, y = f"{z}", f"(iw-iw/zoom)*(1-on/{n})", cy
+        elif mode in ("right", "panright"):
+            zexpr, x, y = f"{z}", f"(iw-iw/zoom)*(on/{n})", cy
+        else:                                    # in / zoomin
+            zexpr, x, y = f"1+({z}-1)*on/{n}", cx, cy
+    else:
+        # @초 -> 프레이밍. 크롭 위치가 달라지고 모션은 줌만 건다.
+        fr = config.KENBURNS_FRAMINGS
+        i = int(round(cut.clip_start / config.FRAMING_STEP)) % len(fr)
+        fx, fy, z0, z1 = fr[i]
+        zexpr, x, y = f"{z0}+({z1}-{z0})*on/{n}", cx, cy
+
     return (
         f"[{idx}:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,"
-        f"crop={w2}:{h2},"
+        f"crop={w2}:{h2}:x=(iw-{w2})*{fx}:y=(ih-{h2})*{fy},"
         f"zoompan=z='{zexpr}':x='{x}':y='{y}':d=1:s={config.WIDTH}x{config.HEIGHT}"
         f":fps={config.FPS},"
         f"setsar=1,trim=duration={d},setpts=PTS-STARTPTS[v0]"
