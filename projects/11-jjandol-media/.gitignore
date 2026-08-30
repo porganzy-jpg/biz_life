@@ -3,3 +3,6 @@ client_secret.json
 .env
 __pycache__/
 out/
+build/
+.cache/
+photos/

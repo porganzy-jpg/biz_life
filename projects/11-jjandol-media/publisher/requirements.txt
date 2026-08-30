@@ -9,3 +9,8 @@ google-auth-oauthlib>=1.2
 
 # 인스타그램
 requests>=2.31
+
+# 쇼츠 렌더 (10-shorts-factory 와 동일)
+edge-tts>=6.1
+Pillow>=10.0
+imageio-ffmpeg>=0.4      # 시스템에 ffmpeg 이 없을 때 내장 바이너리로 폴백

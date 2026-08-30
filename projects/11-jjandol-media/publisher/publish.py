@@ -1,6 +1,8 @@
 """하루치 콘텐츠 1개를 5채널로 내보낸다.
 
     python publish.py                      # 가장 최근 기록, 초안만 생성 (자격증명 불필요)
+    python publish.py --video              # 쇼츠 mp4까지 렌더
+    python publish.py --video --youtube    # 렌더 후 바로 업로드
     python publish.py --date 2026-08-30
     python publish.py --youtube            # 쇼츠까지 업로드 (비공개로)
     python publish.py --youtube --public   # 바로 공개
@@ -52,6 +54,10 @@ def main() -> int:
     ap.add_argument("--instagram", action="store_true", help="인스타 릴스 업로드")
     ap.add_argument("--public", action="store_true",
                     help="유튜브를 바로 공개 (기본은 비공개 업로드)")
+    ap.add_argument("--video", action="store_true",
+                    help="사진 + 나레이션으로 세로 쇼츠 mp4를 렌더한다")
+    ap.add_argument("--video-dry", action="store_true",
+                    help="렌더 없이 컷 구성과 길이만 확인")
     ap.add_argument("--comments", action="store_true",
                     help="지출 코멘트 두 방식(A 절대값 / B 상대값)을 가계부 전체에 나란히 출력")
     args = ap.parse_args()
@@ -69,6 +75,13 @@ def main() -> int:
         print(f"        {f.name}")
 
     print(f"\n[아웃트로]\n{render.outro(day, recent)}\n")
+
+    if args.video or args.video_dry:
+        import shorts
+        made = shorts.build(day, recent, dry=args.video_dry)
+        if made:
+            day.video = made          # 바로 이어서 업로드에 쓴다
+            print(f"[영상] {made}")
 
     if args.youtube:
         from platforms import youtube
