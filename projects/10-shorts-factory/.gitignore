@@ -1,0 +1,8 @@
+clips/*
+!clips/.gitkeep
+sfx/*
+!sfx/.gitkeep
+bgm/*
+!bgm/.gitkeep
+build/
+.cache/

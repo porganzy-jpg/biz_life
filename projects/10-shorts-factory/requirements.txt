@@ -1,0 +1,3 @@
+edge-tts>=6.1.0        # 무료 한국어 TTS (Microsoft Edge 엔진)
+imageio-ffmpeg>=0.4.9  # ffmpeg 바이너리 내장 (시스템 ffmpeg 있으면 그걸 우선 사용)
+Pillow>=10.0.0         # 자막 PNG 렌더링
