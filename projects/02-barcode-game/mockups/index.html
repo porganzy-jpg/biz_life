@@ -762,6 +762,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
   background-size:300% 300%;animation:holoShift 4s ease infinite;mix-blend-mode:overlay;}
 @keyframes holoShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 </style>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -849,6 +850,14 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);o
       <h2 style="font-size:1.1rem;">🚌 천국행 버스</h2>
       <p style="font-size:.72rem;opacity:.8;">3층 마법 버스 - 치유의 공간</p>
       <div class="bus-color-sel" id="bus-color-sel"></div>
+    </div>
+    <div class="bus-3d-wrap" id="bus-3d-wrap">
+      <model-viewer id="bus-3d" alt="3층 천국 버스 3D" auto-rotate camera-controls shadow-intensity="1"
+        camera-orbit="-40deg 70deg 13m" min-camera-orbit="auto auto 7m" max-camera-orbit="auto auto 30m" field-of-view="32deg"
+        exposure="0.9" style="width:100%;height:300px;background:linear-gradient(#9ad4f0,#dff3e6);border-radius:14px;"></model-viewer>
+      <div class="bus-3d-toggle" style="text-align:center;margin:6px 0;">
+        <button class="scan-btn" style="padding:6px 12px;font-size:.75rem;" onclick="toggleBusView()">내부 보기 ↔ 3D 외관</button>
+      </div>
     </div>
     <canvas id="bus-canvas" width="420" height="540"></canvas>
     <div class="bus-legend" id="bus-legend"></div>
@@ -1260,7 +1269,8 @@ const SPECIES_TO_BODY = {'드래곤':'dragon','슬라임':'slime','고블린':'g
   '니심프':'sprite','위스프':'wisp','키메라':'chimera','코볼트':'goblin'};
 
 // Local artwork path (relative from mockups/ to artwork/)
-const ART_BASE = '../artwork';
+const ART_BASE = location.protocol==='file:' ? '../artwork' : '/artwork';
+const MEDIA_BASE = location.protocol==='file:' ? '../media/assets' : '/media';
 
 function getCharImageUrl(charId) {
   if (!IMG_CHAR_PROMPTS[charId]) return null;
@@ -1270,7 +1280,7 @@ function getCharImageUrl(charId) {
 function getMonsterImageUrl(species, type) {
   const bodyId = SPECIES_TO_BODY[species] || 'slime';
   const elemId = TYPE_TO_ELEM[type] || 'fire';
-  return `${ART_BASE}/monsters/${bodyId}_${elemId}.png`;
+  return `${ART_BASE}/monsters/${bodyId}_concept.png#${elemId}`;
 }
 
 function makeMonsterImage(idOrChar, size) {
@@ -1294,7 +1304,7 @@ function makeMonsterImage(idOrChar, size) {
   return `<div class="monster-img-wrap" style="width:${size}px;height:${size}px;">
     <img class="monster-img${colorClass}" src="${url}" alt="${c.name||''}"
       width="${size}" height="${size}" loading="lazy"
-      onerror="this.parentElement.innerHTML='<div class=\\'monster-img-fallback\\' style=\\'width:${size}px;height:${size}px;font-size:${size*.5}px\\'>${c.emoji||'?'}</div>'">
+      onerror="if(!this.dataset.f){this.dataset.f=1;this.src=this.src.replace(/_concept\.png#([a-z]+)$/,'_$1.png');}else{this.parentElement.innerHTML='<div class=\\'monster-img-fallback\\' style=\\'width:${size}px;height:${size}px;font-size:${size*.5}px\\'>${c.emoji||'?'}</div>'}">
     ${holoHtml}</div>`;
 }
 
@@ -2677,7 +2687,17 @@ function handleBusTap(cx,cy){
   }
 }
 
+let busView3D=true;
+function toggleBusView(){
+  busView3D=!busView3D;
+  const mv=document.getElementById('bus-3d'), cv=document.getElementById('bus-canvas');
+  mv.style.display=busView3D?'block':'none'; cv.style.display=busView3D?'none':'block';
+  if(busView3D) stopBusSimulation(); else startBusSimulation();
+}
 function renderBus(){
+  const mv=document.getElementById('bus-3d');
+  if(mv && !mv.getAttribute('src')){ mv.setAttribute('src', `${MEDIA_BASE}/heaven/bus3d/heaven_bus.glb`); mv.setAttribute('poster', `${MEDIA_BASE}/heaven/bus3d/bus_hero.png`); }
+  const cv=document.getElementById('bus-canvas'); if(cv){ cv.style.display=busView3D?'none':'block'; }
   const bh=document.getElementById('bus-header');
   bh.style.background=BUS_COLORS[GS.busColor].gradient;
   document.getElementById('bus-color-sel').innerHTML=BUS_COLORS.map((c,i)=>
@@ -2692,7 +2712,7 @@ function renderBus(){
       return `<div class="bl-item" style="background:${r.color}">${r.name.split(' ')[0]} ${chars.length}명 Lv.${lv}</div>`;
     }).join('');
   }
-  startBusSimulation();
+  if(!busView3D) startBusSimulation();
 }
 
 function makeRoomAnim(type){
@@ -6674,6 +6694,9 @@ function init(){
 }
 
 document.addEventListener('DOMContentLoaded',init);
+
+// 딥링크: ?view=bus 로 열면 해당 화면으로 바로 이동 (개발/검증용)
+window.addEventListener('load',()=>{const v=new URLSearchParams(location.search).get('view'); if(v) setTimeout(()=>navTo(v),900);});
 </script>
 </body>
 </html>

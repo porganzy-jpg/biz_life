@@ -27,10 +27,13 @@ import random
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "game-engine"))
 MOCKUPS_DIR = os.path.join(os.path.dirname(__file__), "..", "mockups")
+ARTWORK_DIR = os.path.join(os.path.dirname(__file__), "..", "artwork")
+MEDIA_DIR = os.path.join(os.path.dirname(__file__), "..", "media", "assets")
 
 from pathlib import Path
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from database import init_db
@@ -52,6 +55,8 @@ from achievement_system import AchievementManager
 from dungeon_system import DungeonManager
 
 app = FastAPI(title="BarcodeQuest Game Server v2.5")
+app.mount("/artwork", StaticFiles(directory=ARTWORK_DIR), name="artwork")
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 # 게임 엔진 인스턴스 (stateless singletons)
 generator = BarcodeMonsterGenerator()
