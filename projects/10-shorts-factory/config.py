@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """쇼츠 팩토리 설정 - 캐릭터 목소리, 화면 규격, 자막 스타일."""
 
+import os
 from pathlib import Path
 
-ROOT = Path(__file__).parent
+# 다른 프로젝트의 쇼츠도 이 파이프라인으로 렌더할 수 있다.
+#   SHORTS_PROJECT=<폴더> python make.py scripts/xx.md
+# 폴더 안에 clips/ bgm/ sfx/ scripts/ 가 있으면 그것을 쓰고, build/ .cache/ 도 그 폴더에 만든다.
+ROOT = Path(os.environ.get("SHORTS_PROJECT") or Path(__file__).parent).resolve()
 CLIPS_DIR = ROOT / "clips"
 SFX_DIR = ROOT / "sfx"
 BGM_DIR = ROOT / "bgm"
@@ -57,6 +61,25 @@ CHARACTERS = {
         "pitch": "-35Hz",
         "rate":  "-12%",
         "color": (255, 214, 0),     # 자막 노랑
+    },
+    # ── 02-barcode-game 쇼츠용 ──
+    "아조씨": {  # 독거아조씨 나레이션 - 채널 주인 톤(저음, 담담)
+        "voice": "ko-KR-InJoonNeural",
+        "pitch": "-25Hz",
+        "rate":  "-8%",
+        "color": (255, 244, 214),
+    },
+    "잠이": {    # 눈 감은 스파니엘 - 작고 부드럽게
+        "voice": "ko-KR-SunHiNeural",
+        "pitch": "-10Hz",
+        "rate":  "-10%",
+        "color": (200, 235, 255),
+    },
+    "지옥": {    # Hell 배틀 안내 - 낮고 빠르게
+        "voice": "ko-KR-InJoonNeural",
+        "pitch": "-15Hz",
+        "rate":  "+12%",
+        "color": (255, 120, 90),
     },
 }
 
