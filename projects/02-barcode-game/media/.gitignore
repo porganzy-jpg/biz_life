@@ -1,0 +1,14 @@
+# 대용량 산출물 — 스크립트로 재생성 가능
+shorts/build/
+shorts/.cache/
+shorts/media/
+assets/heaven/bus3d/turntable/
+song/rvc/ajossi_dataset.zip
+song/rvc/models/
+*.mp3
+!shorts/bgm/*.mp3
+!song/song_full.mp3
+!song/song_backing.mp3
+song/rvc/dataset/
+song/rvc/ajossi_2022_young.zip
+song/song_sheet-*.png
