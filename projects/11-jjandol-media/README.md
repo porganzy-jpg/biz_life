@@ -55,6 +55,7 @@
 - [`publisher/README.md`](publisher/README.md) — 5채널 배포 파이프라인, 플랫폼별 자동화 가능 여부
 - [`docs/MONETIZATION_PLAN.md`](docs/MONETIZATION_PLAN.md) — 12개월 3단계 로드맵, 수익 시나리오, 함정
 - [`docs/TISTORY_FIRST_30.md`](docs/TISTORY_FIRST_30.md) — 티스토리 첫 30개 글 제목과 발행 규칙
+- [`docs/OSMU_STRATEGY_20260919.md`](docs/OSMU_STRATEGY_20260919.md) — **컨셉 결정(짠함 A 위에 숫자 B 레이어링) + 5채널→3채널 축소 + 실행 체크리스트**
 
 ## 현재 상태
 
@@ -63,7 +64,7 @@
 - [x] 시그니처 아웃트로 확정 — "이렇게 살아도, 삽니다."
 - [x] 5채널 배포 파이프라인 `publisher/` (유튜브·인스타 자동 / 나머지 3개 초안 생성)
 - [x] 쇼츠 렌더 파이프라인 — `10-shorts-factory` 모듈 재사용 (복제 아님)
-- [ ] 사진 촬영해서 `photos/` 에 넣고 가계부 photos 칸 채우기 ← 지금 여기서 막혀 있음
+- [ ] 폰 사진을 PC 로 복사 → `python publisher/ingest_photos.py <폴더>` ← 지금 여기서 막혀 있음 (자동화 완료, 사진만 옮기면 됨)
 - [ ] 유튜브 OAuth (`client_secret.json`) 발급
 - [ ] 5개 채널 이름·프로필 통일
 - [ ] 쿠팡파트너스 가입

@@ -73,6 +73,24 @@ python publish.py --instagram
 | `platforms/drafts.py` | API 없는 3채널 초안 파일 생성 |
 | `publish.py` | CLI |
 
+## 폰 사진 가져오기
+
+```bash
+python ingest_photos.py "D:/phone_dump"          # 폰에서 PC 로 복사해 둔 폴더
+python ingest_photos.py "D:/phone_dump" --dry    # 뭘 할지만 보기
+```
+
+사진 촬영일(EXIF → 파일명 → 수정시각)로 `photos/YYYY-MM-DD/NN.jpg` 에 정리하고
+`data/ledger.csv` 의 그 날짜 `photos` 칸을 채운다. 회전을 픽셀에 굽고 긴 변 1440px 로 줄인다
+(ffmpeg 는 EXIF 회전을 무시하므로 안 굽으면 세로 사진이 눕는다). 하루 5장까지, 하루에 걸쳐 고르게.
+
+- 같은 사진은 두 번 안 들어간다 (`photos/manifest.csv`, 내용 해시). 몇 번 돌려도 같다.
+- 이미 `photos` 가 채워진 날은 안 건드린다. `--overwrite` 로 강제.
+- 사진은 있는데 가계부 행이 없는 날은 `data/photos_unmatched.csv` 에 남는다.
+  행을 추가하고 다시 돌리면 채워진다. 지출·한 끼는 지어내지 않는다.
+- 날짜 출처가 `mtime` 인 사진은 카톡 전달본일 수 있으니 manifest 에서 한 번 확인.
+- 아이폰 HEIC 는 `pip install pillow-heif` 가 필요하다.
+
 ## 쇼츠 렌더
 
 ```bash
