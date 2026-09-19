@@ -1,0 +1,98 @@
+{
+ "A_cute_food/01_gimbap_slime": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a triangular onigiri rice ball character with black seaweed band, big sparkling eyes, rosy cheeks, tiny arms, no text",
+  "seed": 42
+ },
+ "A_cute_food/02_milk_carton_cat": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a white milk carton character with cat ears and a cat face, blue stripe, tiny paws, no text",
+  "seed": 1202
+ },
+ "A_cute_food/03_cup_noodle_dragon": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a baby dragon character sitting in a red cup noodle bowl, noodle mane, steam, big eyes, no text",
+  "seed": 1303
+ },
+ "A_cute_food/04_banana_milk_duck": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a yellow banana milk bottle character with a duck beak and orange duck feet, big eyes, no text",
+  "seed": 1404
+ },
+ "A_cute_food/05_choco_pie_bear": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a round chocolate pie character with bear ears and a sleepy bear face, marshmallow belly, no text",
+  "seed": 1505
+ },
+ "A_cute_food/06_jelly_jellyfish": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a translucent gummy candy jellyfish character, rainbow gradient, glossy, sweet smile, no text",
+  "seed": 1606
+ },
+ "B_cool_tech/01_battery_golem": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a battery golem robot character, body is a battery cell with glowing cyan charge bars, copper horns, cool eyes, no text",
+  "seed": 41001
+ },
+ "B_cool_tech/02_earbud_wolf": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a sleek white wolf robot character with earbud ears glowing blue, cool expression, no text",
+  "seed": 41002
+ },
+ "B_cool_tech/03_gamepad_robo_pup": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a robot puppy character made from a game controller, joystick ears, colorful buttons, happy, no text",
+  "seed": 41003
+ },
+ "B_cool_tech/04_drone_hawk": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a hawk robot character with drone rotor wings, camera lens eye, hovering, cool, no text",
+  "seed": 41004
+ },
+ "B_cool_tech/05_smartphone_chameleon": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a chameleon character with a smartphone screen body glowing in rainbow colors, curled tail, clever eyes, no text",
+  "seed": 41005
+ },
+ "B_cool_tech/06_outlet_octopus": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, an octopus character shaped like a power strip, plug tentacles glowing, socket eyes, mischievous grin, no text",
+  "seed": 41006
+ },
+ "C_household/01_detergent_jellyfish": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a jellyfish character whose head is a blue detergent bottle, soap bubble tentacles, gentle face, no text",
+  "seed": 5101
+ },
+ "C_household/02_flowerpot_turtle": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a turtle character with a terracotta flower pot shell and a blooming flower on top, kind eyes, no text",
+  "seed": 5102
+ },
+ "C_household/03_umbrella_bat": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a bat character made from a black umbrella, umbrella wings, big cute eyes, slightly spooky, no text",
+  "seed": 5103
+ },
+ "C_household/04_towel_ghost": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a ghost character made of a fluffy folded white towel, two shy eyes, floating, no text",
+  "seed": 5104
+ },
+ "C_household/05_toothbrush_hedgehog": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a hedgehog character with colorful toothbrush bristle spines, tiny nose, cheerful, no text",
+  "seed": 5105
+ },
+ "C_household/06_candle_dokkaebi": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a korean goblin character shaped like a lit candle, flame hair, wax cloak, holding a tiny club, warm glow, no text",
+  "seed": 5106
+ },
+ "D_legendary_country/01_taegeuk_tiger": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a white tiger cub character with a red and blue yin-yang symbol on its chest, golden aura, jewel eyes, no text",
+  "seed": 42
+ },
+ "D_legendary_country/02_ninetail_fox": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a nine-tailed fox character, ivory fur, tails tipped with blue fire, red ribbon, glowing, no text",
+  "seed": 6102
+ },
+ "D_legendary_country/03_star_eagle": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, an eagle character with navy star-pattern wings and red-white striped tail, golden crest, proud, no text",
+  "seed": 6103
+ },
+ "D_legendary_country/04_gear_bear": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a mechanical bear character with brass gears and clockwork joints, black red gold colors, steam, no text",
+  "seed": 6104
+ },
+ "D_legendary_country/05_macaron_unicorn": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a unicorn character with a pastel macaron mane in pink mint lavender, golden horn, sparkles, no text",
+  "seed": 6105
+ },
+ "D_legendary_country/06_panda_dragon": {
+  "prompt": "kawaii mascot character design, 3D render, chibi proportions, isometric three-quarter view, studio lighting, sharp focus, a panda dragon character, panda face and paws with red and gold dragon scales, holding bamboo, jade glow, no text",
+  "seed": 6106
+ }
+}
