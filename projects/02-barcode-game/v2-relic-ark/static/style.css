@@ -306,3 +306,32 @@ img.room-hero{image-rendering:auto}
 .imprint-news .vis{font-size:.8rem;color:var(--ink-2);margin-top:2px}
 .imprint-news .meta{font-family:var(--mono);font-size:.64rem;color:var(--concrete);margin-top:2px}
 .imprint-news .evoline{font-family:var(--serif);font-size:.82rem;color:#1f5c3d;margin-top:3px}
+
+/* ── 두 AI의 목소리 (data/dialogue.json when 훅) ── */
+.voice{margin-top:8px;padding:6px 10px;border-left:3px solid var(--lamp);background:rgba(43,42,40,.06);
+  font-family:var(--serif);font-size:.84rem;line-height:1.5;color:var(--ink);text-align:left}
+.voice .who{display:block;font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;color:var(--lamp);margin-bottom:2px}
+.voice.gardener{border-left-color:#2FA8A0}
+.voice.gardener .who{color:#1f7a74}
+.gain .voice{background:rgba(232,223,203,.08);color:var(--paper);max-width:340px;margin:10px auto 0}
+.voice-toast{position:absolute;left:12px;right:12px;bottom:104px;z-index:31;background:var(--paper);
+  box-shadow:0 6px 18px rgba(0,0,0,.55);opacity:0;transform:translateY(8px);transition:opacity .45s,transform .45s;pointer-events:auto;cursor:pointer}
+.voice-toast.on{opacity:1;transform:none}
+.voice-toast .voice{margin:0;padding:10px 12px}
+/* ── 소문(힐링 스팟 단서) ── */
+.rumor{padding:7px 0;border-top:1px dashed var(--line);opacity:.55}
+.rumor.on{opacity:1}
+.rumor .rt{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rumor .rt b{font-family:var(--serif);font-size:.92rem}
+.rumor .rt span{font-family:var(--mono);font-size:.6rem;color:var(--concrete);white-space:nowrap}
+.rumor .bar{height:3px;background:rgba(43,42,40,.18);margin:4px 0 4px}
+.rumor .bar i{display:block;height:100%;background:#2FA8A0}
+.rumor.on .bar i{background:var(--lamp)}
+.rumor .rc{font-size:.78rem;color:var(--ink-2)}
+.result .went{font-family:var(--sans);color:var(--ink-2)}
+.result .went small{font-family:var(--mono);font-size:.62rem;color:var(--concrete);margin-left:2px}
+/* 각인의 다음 날 아침 */
+.voice.morning{border-left-color:var(--gold);background:rgba(212,175,55,.08)}
+.voice.morning .who{color:#8a6f1f}
+.voice.morning em{display:block;margin-top:3px;font-family:var(--mono);font-size:.62rem;font-style:normal;color:var(--concrete)}
+.voice-toast.morning{bottom:150px}

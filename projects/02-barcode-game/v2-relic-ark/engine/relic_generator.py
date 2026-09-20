@@ -130,6 +130,33 @@ class RelicGenerator:
     def __init__(self, data_dir: Path = DATA_DIR):
         self.templates = json.loads((data_dir / "relic_templates.json").read_text(encoding="utf-8"))
         self.families = json.loads((data_dir / "known_families.json").read_text(encoding="utf-8"))
+        # known_families.json 의 name 은 **실제 상표**다 — 카테고리 판정에만 쓰고 화면에는 내보내지 않는다
+        # (DECISIONS 2026-09-20). 표시용 창작 이름은 시나리오가 주는 data/family_names.json 에서 온다.
+        self.family_names_path = data_dir / "family_names.json"
+        self._fam_names: dict = {}
+        self._fam_names_mtime = None
+
+    def display_family(self, fam_key: str, manufacturer: str) -> str:
+        """가문의 화면 표시 이름. family_names.json 이 있으면 그 창작 이름, 없으면 '이름 잃은 가문 NNNN'."""
+        try:
+            mtime = self.family_names_path.stat().st_mtime
+        except OSError:
+            mtime = None
+        if mtime != self._fam_names_mtime:                      # 파일이 나중에 생겨도 재시작 없이 반영
+            self._fam_names_mtime = mtime
+            self._fam_names = {}
+            if mtime is not None:
+                try:
+                    raw = json.loads(self.family_names_path.read_text(encoding="utf-8"))
+                    for k, v in (raw.items() if isinstance(raw, dict) else []):
+                        if k.startswith("_"):
+                            continue
+                        name = v.get("name") if isinstance(v, dict) else v
+                        if isinstance(name, str):
+                            self._fam_names[k] = name
+                except (json.JSONDecodeError, OSError, AttributeError) as e:
+                    print(f"[relic] data/family_names.json 무시: {e}")
+        return self._fam_names.get(fam_key) or f"이름 잃은 가문 {manufacturer}"
 
     # ── 1. 파싱 ────────────────────────────────────────────
     @staticmethod
@@ -253,13 +280,12 @@ class RelicGenerator:
 
         name, flavor, tags = self.name_and_flavor(seed, category, rarity)
         fam_key = parsed["prefix"] + parsed["manufacturer"]
-        fam = self.families.get(fam_key, {})
         origin = ORIGIN_MAP.get(parsed["prefix"], "먼 잔해")
 
         return RelicCard(
             barcode=code, name=name, flavor=flavor, category=category, card_type=card_type,
             rarity=rarity, yields=yields, family_code=fam_key,
-            family_name=fam.get("name", f"이름 잃은 가문 {parsed['manufacturer']}"),
+            family_name=self.display_family(fam_key, parsed["manufacturer"]),
             origin=origin, variant=self.variant_of(hour), seed=seed[:16], tags=tags,
         )
 

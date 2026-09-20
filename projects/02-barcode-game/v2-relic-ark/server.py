@@ -48,9 +48,79 @@ MAX_IMPRINTS = int(IMPRINT_RULES.get("max_per_resident", 3))
 EVOLVE_AT = int(IMPRINT_RULES.get("evolve_at", 3))
 MATCH_LEVELS = IMPRINT_DATA.get("_match", {}).get("levels", {})
 ROLE_EVOLUTION = {k: v for k, v in IMPRINT_DATA.get("_role_evolution", {}).items() if not k.startswith("_")}
+
+
+def _load_json(name: str):
+    """시나리오가 나중에 내놓는 선택 파일. 없거나 깨져 있으면 None."""
+    p = ROOT / "data" / name
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[data] {name} 무시: {e}")
+        return None
+
+
+# 역할 진화 이름: 부족 신화에서 받은 이름(data/roles_evolved.json)이 개발이 붙인 임시 이름을 이긴다.
+# 성경 GROWTH_AND_MYTH §1 "진화는 부족 신화에서 이름을 받는다". 데이터 파일은 시나리오 소유라 고치지 않고 덮어쓴다.
+_EVOLVED = _load_json("roles_evolved.json") or {}
+ROLE_EVOLUTION.update({k: v for k, v in (_EVOLVED.get("_role_evolution") or {}).items()
+                       if not k.startswith("_") and isinstance(v, str)})
+# 각인 연출 문장: data/imprint_lines.json 의 line 이 imprints.json 의 개발 초안을 이긴다.
+_LINES = _load_json("imprint_lines.json") or {}
+for _row in (_LINES.get("lines") or []):
+    _imp = IMPRINTS.get(_row.get("imprint_id")) if isinstance(_row, dict) else None
+    if _imp and isinstance(_row.get("line"), str):
+        _imp["visual"]["line"] = _row["line"]
 TRUST_ON_COUNTER = 10        # 함께 위기를 넘겼을 때만 오른다
 TRUST_ON_FAIL = -5           # 작은 일로도 급락한다
 TRUST_MAX = 100
+MAX_PARTICIPANTS = 2         # 사건 하나에 '나선' 사람은 1~2명. 나머지는 방주 안에 있었다
+
+# ── 두 AI의 목소리 ────────────────────────────────────────────
+# data/dialogue.json (시나리오 소유, 읽기만). when 태그로 상황에 맞는 한 줄을 고른다.
+# 리더 = 과거의 목소리(명령·약속), 정원사 = 현재의 손(질문). 같은 태그에 둘 다 있으면 시드로 고른다.
+DIALOGUE = json.loads((ROOT / "data" / "dialogue.json").read_text(encoding="utf-8"))
+VOICE_LINES: dict[str, list[dict]] = {}
+for _who in ("reader", "gardener"):
+    for _line in DIALOGUE.get(_who, []):
+        if isinstance(_line, dict) and _line.get("when") and _line.get("text"):
+            VOICE_LINES.setdefault(_line["when"], []).append({"who": _who, "text": _line["text"]})
+VOICE_KO = {"reader": "리더", "gardener": "정원사"}
+VOICE_WEIGHT = {"reader": 2, "gardener": 1}    # 방주 안에서는 리더가 더 자주 들린다(정원사는 바깥·물가에서)
+# 스캔 대사 태그는 카테고리에서 바로 만든다(scan_medical 등을 시나리오가 채우면 코드 수정 없이 붙는다).
+# 줄이 없는 태그는 조용히 넘어간다. 음료는 전용 줄이 없으면 식품 줄로 대신한다.
+SCAN_VOICE_FALLBACK = {"drink": "scan_food"}
+NIGHT_START, NIGHT_END = 21, 5                 # 클라이언트 밤 톤(app.js)과 같은 경계
+
+# ── 소문(힐링 스팟 단서) ───────────────────────────────────────
+# docs/WORLD_PRESENTATION.md §1-3 "스캔 카테고리가 지도를 연다".
+# 월드 좌표(m)는 지도 표식용 임시값이다. data/spots.json 은 시나리오 소유라 좌표를 넣지 않고 여기 둔다.
+# 원점 = 몰 문턱. +x 동(숲·지상 노선), -x 서(강·터널), +y 남(지하 터널 방향), -y 북(언덕·옥상).
+SPOTS = json.loads((ROOT / "data" / "spots.json").read_text(encoding="utf-8"))
+SPOT_POS = {
+    "spot_flooded_train":   (-120,  70),
+    "spot_goldfish_canal":  (  60,  95),
+    "spot_greenhouse_cafe": ( 130,  20),
+    "spot_forest_train_door": (170, -60),
+    "spot_rooftop_garden":  ( -60, -90),
+    "spot_lantern_river":   (-170,  40),
+}
+# spot_id -> 누적 스캔 카테고리 조건. 2026-09-20 PM 요청으로 data/rumors.json 의 단서 카테고리를
+# 게이트에 합쳤다(문구·의약·전자로 오는 소문도 실제로 열리게).
+RUMOR_RULES = {
+    "spot_flooded_train":     {"categories": ["drink", "medical"],   "need": 3},
+    "spot_goldfish_canal":    {"categories": ["tobacco"],            "need": 2},
+    "spot_greenhouse_cafe":   {"categories": ["food"],               "need": 4},
+    "spot_forest_train_door": {"categories": ["electronics", "food"], "need": 2},
+    "spot_rooftop_garden":    {"categories": ["apparel", "medical"], "need": 2},
+    "spot_lantern_river":     {"categories": ["book", "stationery"], "need": 2},
+}
+CAT_KO = {"food": "식품", "drink": "음료", "medical": "의약·화학", "electronics": "전자", "stationery": "문구",
+          "book": "도서", "apparel": "의류", "tobacco": "담배·주류", "unknown": "정체불명"}
+RUMORS_PATH = ROOT / "data" / "rumors.json"    # 시나리오 에이전트가 만드는 중. 있으면 단서 문장을 여기서 가져온다
+_RUMORS_CACHE: dict = {"mtime": None, "by_spot": {}}
 
 DAILY_SCAN_CAP = 20
 PRODUCTION_TICK_SEC = 8 * 3600      # 방 생산 주기 (8시간 = 하루 3틱)
@@ -117,6 +187,10 @@ def new_state() -> dict:
         "today_event": None,    # {"day":n, "event_id":..., "resolved":bool, "countered":bool}
         "hardcore": False,
         "blueprint_progress": 0,
+        "seen_events": [],      # 이미 한 번 나온 사건 id. 부족 첫 접촉(tribe_*)은 여기 있으면 다시 뽑지 않는다
+        "rumors_seen": [],      # 이미 해금한 힐링 스팟 단서 id
+        "morning_pending": [],  # 각인 받은 '다음 날 아침'에 한 번 보여 줄 연출 문장
+        "greeted": False,       # 첫 화면에서 리더의 첫 말(game_start)을 들었는가
     }
 
 
@@ -131,7 +205,9 @@ def load_state(uid: str) -> dict:
             for r in st["residents_list"][: st.get("injured", 0)]:
                 r["injured"] = True
             save_state(uid, st)
-        if migrate_residents(st):                 # 각인·신뢰 필드가 없는 구버전 주민 보강
+        changed = migrate_residents(st)           # 각인·신뢰 필드가 없는 구버전 주민 보강
+        changed = migrate_state(st) or changed    # 소문·사건 이력 필드 보강
+        if changed:
             save_state(uid, st)
         return st
     st = new_state()
@@ -161,6 +237,74 @@ def migrate_residents(st: dict) -> bool:
         for k in drop:
             r["trust"].pop(k); changed = True
     return changed
+
+
+def migrate_state(st: dict) -> bool:
+    """스프린트 2에서 추가된 방주 필드(사건 이력·소문 이력)를 구버전 방주에 채운다."""
+    changed = False
+    for key in ("seen_events", "rumors_seen", "morning_pending"):
+        if not isinstance(st.get(key), list):
+            st[key] = []; changed = True
+    te = st.get("today_event")
+    if te and te.get("event_id") and te["event_id"] not in st["seen_events"]:
+        st["seen_events"].append(te["event_id"]); changed = True     # 이미 겪은 오늘의 사건은 겪은 것으로
+    return changed
+
+
+# ─────────────────────────────────────────────────────────────
+# 두 AI의 목소리 (data/dialogue.json 의 when 태그)
+# ─────────────────────────────────────────────────────────────
+def voice_for(tag: str, seed: str, who: str | None = None) -> dict | None:
+    """상황 태그에 맞는 한 줄. 같은 입력이면 같은 줄(D6: 시드 결정성)."""
+    pool = [ln for ln in VOICE_LINES.get(tag, []) if who is None or ln["who"] == who]
+    if not pool:
+        return None
+    rng = random.Random(f"voice|{seed}|{tag}")
+    line = rng.choices(pool, weights=[VOICE_WEIGHT.get(ln["who"], 1) for ln in pool], k=1)[0]
+    return {"who": line["who"], "who_ko": VOICE_KO[line["who"]], "text": line["text"], "when": tag}
+
+
+def is_night(hour: int | None = None) -> bool:
+    h = datetime.now().hour if hour is None else hour
+    return h >= NIGHT_START or h < NIGHT_END
+
+
+# ─────────────────────────────────────────────────────────────
+# 소문: 스캔 카테고리 누적이 힐링 스팟 단서를 연다
+# ─────────────────────────────────────────────────────────────
+def rumor_lines() -> dict[str, list[dict]]:
+    """data/rumors.json 이 있으면 spot_id -> [{text, who}] 로 읽는다(없으면 빈 dict).
+    시나리오 에이전트가 쓰는 중이라 필드명을 넓게 받는다. 깨져 있으면 조용히 무시하고 spots.clue_text 로 되돌아간다."""
+    try:
+        mtime = RUMORS_PATH.stat().st_mtime
+    except OSError:
+        _RUMORS_CACHE.update({"mtime": None, "by_spot": {}})
+        return {}
+    if _RUMORS_CACHE["mtime"] == mtime:
+        return _RUMORS_CACHE["by_spot"]
+    by_spot: dict[str, list[dict]] = {}
+    try:
+        raw = json.loads(RUMORS_PATH.read_text(encoding="utf-8"))
+        rows = raw if isinstance(raw, list) else [v for k, v in raw.items() if not k.startswith("_")]
+        flat: list = []
+        for row in rows:                                   # {"spot_id":[...]} 같은 중첩도 받아 준다
+            flat.extend(row) if isinstance(row, list) else flat.append(row)
+        for row in flat:
+            if not isinstance(row, dict):
+                continue
+            sid = next((row[k] for k in ("spot_id", "spot") if isinstance(row.get(k), str)), None)
+            text = next((row[k] for k in ("clue_text", "text", "clue", "line", "sentence") if isinstance(row.get(k), str)), None)
+            who = next((row[k] for k in ("who", "carrier", "source", "from") if isinstance(row.get(k), str)), None)
+            unlock = row.get("unlock") if isinstance(row.get("unlock"), dict) else {}
+            cat = unlock.get("category") if isinstance(unlock.get("category"), str) else None
+            cnt = unlock.get("count") if isinstance(unlock.get("count"), int) else 0
+            if sid and text:
+                by_spot.setdefault(sid, []).append({"text": text, "who": who, "category": cat, "count": cnt})
+    except (json.JSONDecodeError, OSError, AttributeError) as e:
+        print(f"[rumors] data/rumors.json 무시: {e}")
+        by_spot = {}
+    _RUMORS_CACHE.update({"mtime": mtime, "by_spot": by_spot})
+    return by_spot
 
 
 # ─────────────────────────────────────────────────────────────
@@ -212,14 +356,66 @@ def grant_imprints(st: dict, ev: dict | None, flags: list[str], targets: list[di
             r["role_evolved"] = True
             r["evolved_ko"] = ROLE_EVOLUTION.get(r["role"], r.get("role_ko"))
             evolved = True
+        line = imp["visual"]["line"].replace("{name}", r["name"])
         out.append({
             "resident": r["name"], "resident_id": r["id"], "role_ko": r.get("role_ko"),
             "imprint": {"id": imp["id"], "name": imp["name"], "crisis_ko": imp.get("crisis_ko"),
                         "visual": imp["visual"]["ko"], "effect": imp["effect"], "cost": imp["cost"].get("ko")},
-            "line": imp["visual"]["line"].replace("{name}", r["name"]),
+            "line": line,
             "evolved": evolved, "evolved_ko": r.get("evolved_ko") if evolved else None,
         })
+        # 변화는 계단이다 — "그 다음 날 아침"에 한 번 더 보인다 (GROWTH_AND_MYTH §1).
+        st.setdefault("morning_pending", []).append({
+            "day": day_of(st) + 1, "resident": r["name"], "resident_id": r["id"],
+            "imprint_id": imp["id"], "imprint_name": imp["name"], "visual": imp["visual"]["ko"],
+            "line": line, "evolved": evolved, "evolved_ko": r.get("evolved_ko") if evolved else None,
+        })
     return out
+
+
+def event_participants(roster: list[dict], ev: dict, seed: str, how: str, used_card: dict | None,
+                       hero: dict | None, pre_injured: set) -> list[dict]:
+    """이 사건에 **나선** 주민 1~2명. 나머지는 방주 안에 있었으므로 각인을 받지 않는다.
+    (docs/GROWTH_AND_MYTH.md §1 "겪어본 적 없는 위험을 넘긴 자만 변한다" — 겪은 사람이 누구인지부터 정한다)
+
+    우선순위
+      ① 역할 자동 대항으로 실제로 나선 사람(hero) — 무조건 첫 번째
+      ② 사건의 counter_room 에 **배치**된 주민(`station` 필드). 자리 배치는 스프린트 3 태스크라 지금은 비어 있고,
+         필드가 생기면 규칙을 고치지 않아도 1순위가 된다
+      ③ 역할 counter_tags ∩ 사건 counter_tags — 그 일에 나설 이유가 있는 사람
+      ④ 대항 카드로 막았으면, 그 카드의 태그와 맞는 역할 1명(카드를 건넨 손). 카드는 물건이지만 쓴 것은 사람이다
+      ⑤ 그래도 아무도 없으면 시드 난수 1명 (uid|day|who_imprint)
+
+    이미 누워 있던 부상자는 후보에서 뺀다(그 밤에 나서지 못했다). 전원이 부상이면 전원이 후보.
+    roster 는 **사건 전**의 명단이다 — 사건 결과로 합류한 표류자는 그 밤을 겪지 않았으므로 후보가 아니다.
+    상한 2명 — 시작 3인 방주에서 사건 세 번이면 전원이 역할 진화하던 S1 결함(review_sprint1 §S1-B 1번)의 교정.
+    """
+    res = list(roster)
+    if not res:
+        return []
+    pool = [r for r in res if r["id"] not in pre_injured] or res
+    tags = set(ev.get("counter_tags", [])) if ev else set()
+    room = (ev or {}).get("counter_room")
+
+    def by_tags(want: set) -> list[dict]:
+        return [r for r in pool if want and set(ROLES.get(r["role"], {}).get("counter_tags", [])) & want]
+
+    ranked: list[dict] = []
+    if hero:
+        ranked.append(hero)
+    ranked += [r for r in pool if room and r.get("station") == room]
+    ranked += by_tags(tags)
+    if how == "card" and used_card:
+        ranked += by_tags(set(used_card.get("tags", [])))
+    picked: list[dict] = []
+    for r in ranked:
+        if r["id"] not in {p["id"] for p in picked}:
+            picked.append(r)
+        if len(picked) >= MAX_PARTICIPANTS:
+            break
+    if not picked:
+        picked = [random.Random(f"{seed}|who_imprint").choice(pool)]     # 아무 이유도 없으면 그날 당번 한 사람
+    return picked
 
 
 def bump_trust(st: dict, delta: int):
@@ -423,18 +619,36 @@ def scan(inp: ScanIn):
                     (inp.uid, code, card.category.value, card.rarity.value, mult, time.time(), day))
     save_state(inp.uid, st)
     log(inp.uid, "scan", {"barcode": code, "rarity": card.rarity.value, "category": card.category.value, "mult": mult})
+    # 스캔은 버튼이 아니라 세계에 물자가 도착하는 장면이다(WORLD_PRESENTATION §1-3) → 두 AI 중 하나가 한 줄 읊는다
+    vseed = f"{inp.uid}|{code}|{today}"
+    cat = card.category.value
+    voice = voice_for(f"scan_{cat}", vseed) or voice_for(SCAN_VOICE_FALLBACK.get(cat, ""), vseed)
     return {"card": card_d, "gained": gained, "rescan_multiplier": mult, "first_time": first_time,
-            "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"]}
+            "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice}
 
 
 @app.get("/api/ark")
 def get_ark(uid: str):
     st = load_state(uid)
     produced = tick_production(st)
+    day = day_of(st)
+    # 각인의 다음 날 아침: 밀린 연출 문장을 한 번만 내려보내고 큐에서 뺀다
+    pending = st.get("morning_pending") or []
+    morning = [p for p in pending if p.get("day", 0) <= day]
+    if morning:
+        st["morning_pending"] = [p for p in pending if p.get("day", 0) > day]
+    first_light = not st.get("greeted")            # 이 방주의 첫 화면 — 리더의 첫 말
+    if first_light:
+        st["greeted"] = True
     save_state(uid, st)
     out = public_state(st, uid)
     out["produced_while_away"] = produced
     out["rooms_catalog"] = ROOMS
+    out["morning_lines"] = morning
+    # 목소리: 첫 화면(game_start) > 야간 진입(night). 하루 안에서는 같은 줄(D6)
+    out["is_night"] = is_night()
+    out["voice"] = (first_light and voice_for("game_start", f"{uid}|start")) \
+        or (voice_for("night", f"{uid}|{day}") if out["is_night"] else None)
     return out
 
 
@@ -465,6 +679,21 @@ def build(inp: BuildIn):
     return public_state(st, inp.uid)
 
 
+ONCE_PREFIXES = ("tribe_",)      # 한 방주에서 한 번만 나오는 카드 (부족 첫 접촉)
+
+
+def mark_seen(st: dict, event_id: str):
+    seen = st.setdefault("seen_events", [])
+    if event_id not in seen:
+        seen.append(event_id)
+    del seen[:-200]
+
+
+def seen_once(st: dict) -> set:
+    """이미 소모된 1회성 카드 id 집합."""
+    return {e for e in st.get("seen_events", []) if e.startswith(ONCE_PREFIXES)}
+
+
 @app.get("/api/event/today")
 def event_today(uid: str, debug_force_event: str | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 사건을 이 id로 덮어쓰고 미해결 상태로 되돌린다. 각인·신뢰 테스트용. 배포 전 제거할 것.")):
     st = load_state(uid)
@@ -478,12 +707,15 @@ def event_today(uid: str, debug_force_event: str | None = Query(None, descriptio
         te = {"day": day, "event_id": debug_force_event, "resolved": False, "countered": None,
               "shown_at": time.time(), "debug": True}
         st["today_event"] = te
+        mark_seen(st, debug_force_event)
         save_state(uid, st)
         log(uid, "event_shown", {"event": debug_force_event, "day": day, "debug": True})
     elif not te or te["day"] != day:
-        ev = pick_event(ark_state_obj(st), rng=random.Random(f"{uid}|{day}"))
+        # 부족 첫 접촉은 1회 소모: 이미 나온 tribe_* 카드는 후보에서 뺀다(첫 대면의 연출은 한 번뿐이다)
+        ev = pick_event(ark_state_obj(st), rng=random.Random(f"{uid}|{day}"), exclude=seen_once(st))
         te = {"day": day, "event_id": ev["id"], "resolved": False, "countered": None, "shown_at": time.time()}
         st["today_event"] = te
+        mark_seen(st, ev["id"])
         save_state(uid, st)
         log(uid, "event_shown", {"event": ev["id"], "day": day})
     ev = EVENTS[te["event_id"]]
@@ -530,7 +762,8 @@ def event_resolve(inp: ResolveIn):
     st["resources"] = ark.resources
     st["recent_events"] = ark.recent_events
     rng = random.Random(f"{inp.uid}|{te['day']}|who")
-    survivors = list(st.get("residents_list", []))   # 이 사건을 함께 겪은 사람들 (뒤에 합류하는 표류자는 제외)
+    roster = list(st.get("residents_list", []))     # 이 사건을 겪은 명단 (뒤에 합류하는 표류자는 제외)
+    pre_injured = {r["id"] for r in roster if r.get("injured")}                         # 그 밤에 이미 누워 있던 사람
     if applied.get("injured"):
         healthy = [r for r in st.get("residents_list", []) if not r.get("injured")]
         kids_first = sorted(healthy, key=lambda r: 0 if r["role"] == "kid" else 1)   # 아이는 보호받지 못하면 먼저 다친다
@@ -547,14 +780,19 @@ def event_resolve(inp: ResolveIn):
     if hero:
         applied["hero"] = hero["name"]
 
-    # ── 계단식 성장: 처음 겪는 종류의 위기를 살아서 넘긴 사람만 변한다 ──
+    # ── 계단식 성장: 처음 겪는 종류의 위기를 **나가서** 넘긴 사람만 변한다 ──
     ev_flags = [f for f in [applied.get("flag")] if f] + list(applied.get("flags") or [])
     if applied.get("spot_clue"):
         ev_flags.append("healing_spot_found")     # 힐링 스팟 단서를 얻은 날 → 「물의 기억」
-    new_imprints = grant_imprints(st, ev, ev_flags, survivors)
+    seed = f"{inp.uid}|{te['day']}"
+    participants = event_participants(roster, ev, seed, how, used, hero, pre_injured)
+    new_imprints = grant_imprints(st, ev, ev_flags, participants)
     if applied.get("injured"):
-        # 상실: 곁의 누군가가 다치는 것을 처음 본 주민에게 「빈 자리」
-        new_imprints += grant_imprints(st, None, ["ally_crisis"], [r for r in survivors if not r.get("injured")])
+        # 상실: 곁의 누군가가 다치는 것을 처음 본 사람에게 「빈 자리」 — 목격자는 한 명
+        witnesses = [r for r in participants if not r.get("injured")] \
+            or [r for r in roster if not r.get("injured")]
+        if witnesses:
+            new_imprints += grant_imprints(st, None, ["ally_crisis"], witnesses[:1])
     # ── 신뢰: 함께 넘기면 오르고, 실패하면 급락한다 ──
     bump_trust(st, TRUST_ON_COUNTER if countered else TRUST_ON_FAIL)
 
@@ -564,7 +802,60 @@ def event_resolve(inp: ResolveIn):
                                     "imprints": [n["imprint"]["id"] for n in new_imprints]})
     return {"countered": countered, "how": how, "applied": applied, "used_card": used, "hero": hero,
             "new_imprints": new_imprints, "trust_delta": TRUST_ON_COUNTER if countered else TRUST_ON_FAIL,
+            "participants": [{"id": r["id"], "name": r["name"], "role_ko": r.get("evolved_ko") or r.get("role_ko")}
+                             for r in participants],
+            "voice": voice_for("event_counter" if countered else "event_fail", f"{seed}|{ev['id']}"),
+            # 스팟 단서를 얻은 날에는 물에 비친 문장이 한 줄 더 온다 (WORLD_PRESENTATION §2-8)
+            "spot_voice": (voice_for("spot_water_reflection", f"{seed}|spot")
+                           or voice_for("spot_found", f"{seed}|spot")) if applied.get("spot_clue") else None,
             "state": public_state(st, inp.uid)}
+
+
+@app.get("/api/rumors")
+def rumors(uid: str):
+    """소문 = 힐링 스팟 단서. 현실의 스캔 카테고리 누적이 지도를 연다(WORLD_PRESENTATION §1-3).
+    도서를 읽던 사람에게는 강의 등불이, 음료·의약을 모으던 사람에게는 물에 잠긴 전철이 먼저 들린다."""
+    st = load_state(uid)
+    with db() as con:
+        rows = con.execute("SELECT category, COUNT(*) c FROM scans WHERE uid=? GROUP BY category", (uid,)).fetchall()
+    counts = {r["category"]: r["c"] for r in rows}
+    lines = rumor_lines()
+    seen = st.setdefault("rumors_seen", [])
+    out, changed = [], False
+    for spot in SPOTS:
+        sid = spot.get("id")
+        rule = RUMOR_RULES.get(sid)
+        if not rule:
+            continue
+        have = sum(counts.get(c, 0) for c in rule["categories"])
+        need = rule["need"]
+        unlocked = have >= need
+        is_new = False
+        if unlocked and sid not in seen:
+            seen.append(sid); changed = is_new = True
+            log(uid, "rumor_unlocked", {"spot": sid, "have": have, "categories": rule["categories"]})
+        pick = None
+        if unlocked:
+            # data/rumors.json 이 있으면 그 문장이 우선. 줄마다 자기 해금 조건(unlock)이 붙어 있으면
+            # 조건을 이미 채운 줄을 먼저 쓴다(해금 여부 자체는 위의 RUMOR_RULES 가 정한다).
+            pool = lines.get(sid) or []
+            ready = [ln for ln in pool if not ln.get("category") or counts.get(ln["category"], 0) >= ln.get("count", 0)]
+            pool = ready or pool
+            pick = random.Random(f"{uid}|{sid}|rumor").choice(pool) if pool else None
+        x, y = SPOT_POS.get(sid, (0, 0))
+        out.append({
+            "spot_id": sid, "name": spot.get("name"),
+            "clue_text": (pick or {}).get("text") or (spot.get("clue_text") if unlocked else None),
+            "who": (pick or {}).get("who"),
+            "unlocked": unlocked, "is_new": is_new,
+            "progress": {"have": min(have, need), "need": need},
+            "categories": rule["categories"],
+            "categories_ko": "·".join(CAT_KO.get(c, c) for c in rule["categories"]),
+            "pos": {"x": x, "y": y},
+        })
+    if changed:
+        save_state(uid, st)
+    return out
 
 
 @app.get("/api/codex")
@@ -582,13 +873,29 @@ def codex(uid: str):
     return out
 
 
+# 에이전트·PM이 만든 테스트 방주. 지표(H1~H5)에서 뺀다. ?all=1 로 전부 볼 수 있다.
+TEST_UIDS = {"smoke", "uakdrgvja", "scn_s2_check", "log_demo"}
+TEST_UID_PREFIXES = ("pmcheck", "scn_", "s2b_", "imp_", "test", "dev_")
+
+
+def is_test_uid(uid: str) -> bool:
+    return uid in TEST_UIDS or uid.startswith(TEST_UID_PREFIXES)
+
+
 @app.get("/api/stats")
-def stats():
-    """테스트 지표 (H1~H5 원자료)."""
+def stats(all: bool = False):
+    """테스트 지표 (H1~H5 원자료). 기본은 에이전트 테스트 uid 제외."""
     with db() as con:
-        rows = con.execute("SELECT kind, COUNT(*) c FROM logs GROUP BY kind").fetchall()
+        rows = con.execute("SELECT uid, kind, COUNT(*) c FROM logs GROUP BY uid, kind").fetchall()
         per_user = con.execute("SELECT uid, COUNT(*) scans, COUNT(DISTINCT category) cats, COUNT(DISTINCT day) days FROM scans GROUP BY uid").fetchall()
-    return {"events": {r["kind"]: r["c"] for r in rows}, "users": [dict(r) for r in per_user]}
+    keep = (lambda u: True) if all else (lambda u: not is_test_uid(u or ""))
+    events: dict = {}
+    for r in rows:
+        if keep(r["uid"]):
+            events[r["kind"]] = events.get(r["kind"], 0) + r["c"]
+    users = [dict(r) for r in per_user if keep(r["uid"])]
+    return {"events": events, "users": users,
+            "excluded_uids": 0 if all else len({r["uid"] for r in per_user if not keep(r["uid"])})}
 
 
 # ─────────────────────────────────────────────────────────────

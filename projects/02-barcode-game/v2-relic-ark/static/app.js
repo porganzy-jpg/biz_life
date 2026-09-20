@@ -10,6 +10,17 @@
   };
   const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2200); };
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // 두 AI의 한 줄 (data/dialogue.json 의 when 훅). 리더는 주황, 정원사는 청록.
+  const voiceHtml = (v) => v && v.text ? `<div class="voice ${v.who === 'gardener' ? 'gardener' : 'reader'}"><span class="who">${esc(v.who_ko || VOICE_KO[v.who] || '')}</span>${esc(v.text)}</div>` : '';
+  function voiceToast(v) {
+    if (!v || !v.text) return;
+    const el = document.createElement('div');
+    el.className = 'voice-toast'; el.innerHTML = voiceHtml(v);
+    el.addEventListener('click', () => el.remove());
+    document.getElementById('app').appendChild(el);
+    requestAnimationFrame(() => el.classList.add('on'));
+    setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 500); }, 9000);
+  }
 
   const RES_KO = { food: '식량', water: '물', med: '의약', power: '전력', parts: '부품', morale: '사기', cloth: '직물', trade: '교역', knowledge: '지식', scrap: '잔해', chem: '화학' };
   const CAT_KO = { food: '식품', drink: '음료', medical: '의약·화학', electronics: '전자', stationery: '문구', book: '도서', apparel: '의류', tobacco: '담배·주류', unknown: '정체불명' };
@@ -18,6 +29,7 @@
   const FAC_KO = { mycel: '균류 군체', scavs: '약탈자', machine: '기계 잔재', mutant: '변이체', world: '반도 잔해', tribe: '부족', gardener: '정원사', reader: '리더' };
   const TRIBE_KO = { wayfarer: '길손', shelf: '진열대', flame: '불꽃', white: '하얀', archive: '서고', greenhouse: '온실', tower: '탑' };
   const ROOM_IMG = { pantry: 'room_pantry.jpg', well: 'room_well.jpg', infirmary: 'room_infirmary.jpg', library: 'room_library.jpg' };
+  const VOICE_KO = { reader: '리더', gardener: '정원사' };   // 리더=주황(과거의 목소리) / 정원사=청록(현재의 손)
   const SURFACE_SLOTS = 2, FLOOR_W = 2; // 슬롯 0-1 지상, 2-9 지하(층당 2칸)
   let ark = null, rooms = null, cardIndex = {}, artOk = {};
   const ROOM3D = {}; // id -> true/false (static/art/rooms3d/<id>.jpg 존재 여부)
@@ -83,7 +95,31 @@
   async function refresh() {
     const a = await api(`/api/ark?uid=${uid}`); rooms = a.rooms_catalog; ark = a;
     renderHud(); renderScene(a.produced_while_away);
+    nightVoice(a); morningLines(a);
     window.dispatchEvent(new CustomEvent('ark:update', { detail: { ark, rooms, uid } }));
+  }
+
+  // 야간 진입 / 첫 화면: 목소리 한 줄. 같은 날 같은 줄을 두 번 띄우지 않는다(잔소리가 되지 않게).
+  function nightVoice(a) {
+    if (!a.voice) return;
+    const key = `${uid}|${a.day}|${a.voice.when}`;
+    try { if (localStorage.getItem('ark_night_voice') === key) return; localStorage.setItem('ark_night_voice', key); } catch { }
+    setTimeout(() => voiceToast(a.voice), 900);
+  }
+
+  // 각인의 다음 날 아침: "어제 밤 그 일이 이 사람을 바꿨다"를 눈으로 보는 자리(GROWTH_AND_MYTH §1)
+  function morningLines(a) {
+    (a.morning_lines || []).forEach((m, i) => setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'voice-toast morning';
+      el.style.bottom = (150 + i * 104) + 'px';           // 여러 명이 같은 아침에 달라졌으면 위로 쌓는다
+      el.innerHTML = `<div class="voice morning"><span class="who">아침 · 刻 ${esc(m.imprint_name)}</span>${esc(m.line)}
+        <em>${esc(m.resident)} — ${esc(m.visual)}${m.evolved ? ` · 역할이 「${esc(m.evolved_ko)}」로 진화했다` : ''}</em></div>`;
+      el.addEventListener('click', () => el.remove());
+      document.getElementById('app').appendChild(el);
+      requestAnimationFrame(() => el.classList.add('on'));
+      setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 500); }, 11000);
+    }, 400 + i * 1200));
   }
 
   // ── 방주 월드: 아이소 격자 + 지반 판 + 줌/팬 ────────────────
@@ -202,6 +238,23 @@
   }
   function trustOf(r) { const t = (ark.trust || {})[r.id]; return t ? t.avg : 0; }
 
+  // 소문: 스캔 카테고리 누적이 지도를 연다. 숫자를 그대로 보여 주지 않고 "무엇을 더 읽어야 들리는지"로 보인다.
+  async function renderRumors() {
+    const box = $('#rumors'); if (!box) return;
+    let rs = [];
+    try { rs = await api(`/api/rumors?uid=${uid}`); } catch { box.innerHTML = '<p class="hint">소문을 불러오지 못했습니다.</p>'; return; }
+    const got = rs.filter(r => r.unlocked).length;
+    box.innerHTML = `<h3 style="font-family:var(--serif);margin:14px 0 4px">소문 ${got} / ${rs.length}</h3>
+      <p class="hint" style="margin:0 0 6px">짐승과 길손이 물어 온 단서. 당신이 무엇을 해독하느냐가 어느 방향의 소문을 부른다.</p>
+      ${rs.map(r => `<div class="rumor ${r.unlocked ? 'on' : ''}">
+        <div class="rt"><b>${r.unlocked ? esc(r.name) : '? ? ?'}</b><span>${esc(r.categories_ko)} ${r.progress.have}/${r.progress.need}</span></div>
+        <div class="bar"><i style="width:${Math.round(100 * r.progress.have / r.progress.need)}%"></i></div>
+        <div class="rc">${r.unlocked ? esc(r.clue_text || '') : '아직 아무도 이 방향의 이야기를 물어 오지 않았다.'}</div>
+      </div>`).join('')}`;
+    const fresh = rs.find(r => r.is_new);
+    if (fresh) toast(`새 소문: ${fresh.name}`);
+  }
+
   function openHall() {
     const list = ark.residents_list || [];
     const roster = list.map(r => {
@@ -216,7 +269,9 @@
     openSheet(`<div class="eyebrow">B1 · 역 홀</div><h2>잊힌 역의 승강장</h2><img class="room-hero iso" alt="" src="${isoTile('hall')}"><p class="hint">방주의 중심. 승강기가 지상과 지하를 잇고, 끊어진 선로는 어둠 속 터널로 이어진다.</p>
       <h3 style="font-family:var(--serif);margin:10px 0 4px">주민 ${ark.residents}</h3>
       <p class="hint" style="margin:0 0 6px">각인 가진 사람 ${marked}명 · 서로에 대한 신뢰 평균 ${avg}/100. 사람은 사람을 쉽게 믿지 않는다. 함께 위기를 넘겨야만 오른다.</p>
-      <div class="roster">${roster || '<p class="hint">주민 정보가 없습니다.</p>'}</div>`);
+      <div class="roster">${roster || '<p class="hint">주민 정보가 없습니다.</p>'}</div>
+      <div id="rumors"><p class="hint">소문을 듣는 중…</p></div>`);
+    renderRumors();
   }
 
   // ── 시트 ────────────────────────────────────────────────
@@ -307,7 +362,7 @@
     const ov = $('#overlay'), pack = $('#pack'); ov.classList.add('on'); ov.classList.remove('ready'); pack.className = 'pack';
     pack.innerHTML = `<div class="paper l">RELIC</div><div class="paper r">PACK</div>`; pack.appendChild(cardEl(r.card));
     const g = Object.entries(r.gained).map(([k, v]) => `<b>${RES_KO[k]} +${v}</b>`).join(' ');
-    $('#gain').innerHTML = `${r.first_time ? '<span class="first">✦ 도감에 처음 기록된 유물</span><br>' : ''}${g || '<span>이미 해독한 성문 — 얻은 것 없음</span>'}${r.rescan_multiplier < 1 && r.rescan_multiplier > 0 ? `<br><span>재해독 ×${r.rescan_multiplier}</span>` : ''}`;
+    $('#gain').innerHTML = `${r.first_time ? '<span class="first">✦ 도감에 처음 기록된 유물</span><br>' : ''}${g || '<span>이미 해독한 성문 — 얻은 것 없음</span>'}${r.rescan_multiplier < 1 && r.rescan_multiplier > 0 ? `<br><span>재해독 ×${r.rescan_multiplier}</span>` : ''}${voiceHtml(r.voice)}`;
     setTimeout(() => pack.classList.add('tear'), 350);
     setTimeout(() => ov.classList.add('ready'), 1200);
     if (navigator.vibrate && ['rare', 'epic', 'legendary'].includes(r.card.rarity)) setTimeout(() => navigator.vibrate([40, 60, 80]), 900);
@@ -364,11 +419,13 @@
     const APPLIED_KO = { injured: '부상', resident: '합류', capture: '포획', free_pack: '무료 팩', spot_clue: '힐링 스팟 단서', flag: '기록' };
     const delta = Object.entries(r.applied || {}).filter(([k]) => !['newcomer', 'hero', 'flags'].includes(k))
       .map(([k, v]) => typeof v === 'number' ? `${RES_KO[k] || APPLIED_KO[k] || k} ${v > 0 ? '+' : ''}${v}` : `${APPLIED_KO[k] || k}: ${esc(v)}`).join(' · ');
-    el.innerHTML = `<b>${r.countered ? (ev.positive ? '기회를 잡았습니다' : '막아냈습니다') : (ev.positive ? '기회가 지나갔습니다' : '피해를 입었습니다')}</b> ${how ? '— ' + how : ''}<div class="delta">${delta || (replay ? '오늘 쪽지는 이미 처리되었습니다' : '변화 없음')}</div>${r.used_card ? `<div class="delta">사용한 카드: ${esc(r.used_card.name)}</div>` : ''}${r.applied && r.applied.newcomer ? `<div class="delta" style="color:#3f9a68">새 주민 합류: ${esc(r.applied.newcomer.name)} · ${esc(r.applied.newcomer.role_ko)} — ${esc(r.applied.newcomer.ability)}</div>` : ''}${imprintBlock(r)}${typeof r.trust_delta === 'number' ? `<div class="delta">서로에 대한 신뢰 ${r.trust_delta > 0 ? '+' : ''}${r.trust_delta}</div>` : ''}<div class="delta" style="margin-top:6px">다음 쪽지는 내일 도착합니다.</div>`;
+    // 누가 나섰는가 — 각인은 나선 사람에게만 남는다
+    const who = (r.participants || []).length ? `<div class="delta went">나선 사람: ${r.participants.map(p => `${esc(p.name)}<small>(${esc(p.role_ko || '')})</small>`).join(' · ')}</div>` : '';
+    el.innerHTML = `<b>${r.countered ? (ev.positive ? '기회를 잡았습니다' : '막아냈습니다') : (ev.positive ? '기회가 지나갔습니다' : '피해를 입었습니다')}</b> ${how ? '— ' + how : ''}<div class="delta">${delta || (replay ? '오늘 쪽지는 이미 처리되었습니다' : '변화 없음')}</div>${r.used_card ? `<div class="delta">사용한 카드: ${esc(r.used_card.name)}</div>` : ''}${r.applied && r.applied.newcomer ? `<div class="delta" style="color:#3f9a68">새 주민 합류: ${esc(r.applied.newcomer.name)} · ${esc(r.applied.newcomer.role_ko)} — ${esc(r.applied.newcomer.ability)}</div>` : ''}${who}${imprintBlock(r)}${typeof r.trust_delta === 'number' ? `<div class="delta">서로에 대한 신뢰 ${r.trust_delta > 0 ? '+' : ''}${r.trust_delta}</div>` : ''}${voiceHtml(r.spot_voice)}${voiceHtml(r.voice)}<div class="delta" style="margin-top:6px">다음 쪽지는 내일 도착합니다.</div>`;
     const crow = $('#crow'); if (crow) crow.innerHTML = '';
   }
 
-  window.ARK = { openEvent, refresh };
+  window.ARK = { openEvent, refresh, voiceToast, renderRumors };   // world.html(S2-A)에서도 같은 연출을 쓸 수 있게
   $('#zin').addEventListener('click', () => { const vp = $('#world'); zoomAt(1.3, vp.clientWidth / 2, vp.clientHeight / 2); });
   $('#zout').addEventListener('click', () => { const vp = $('#world'); zoomAt(1 / 1.3, vp.clientWidth / 2, vp.clientHeight / 2); });
   $('#zfit').addEventListener('click', () => fitView(true));

@@ -1,0 +1,202 @@
+[
+  {
+    "id": "rumor_flooded_water_song",
+    "spot_id": "spot_flooded_train",
+    "text": "지나가던 줄이 걷는 노래의 한 소절을 바꿔 불렀다. 선로 끝에서 물소리가 난다는 대목만 두 번 불렀다.",
+    "source": "wayfarer",
+    "unlock": {
+      "category": "drink",
+      "count": 2
+    }
+  },
+  {
+    "id": "rumor_flooded_wet_cat",
+    "spot_id": "spot_flooded_train",
+    "text": "고양이가 무릎께까지 젖은 발로 돌아와 담요에 자국을 남겼다. 털에 붙은 분홍 꽃잎은 방주 어디에도 없는 것이다.",
+    "source": "cat",
+    "unlock": {
+      "category": "medical",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_flooded_cold_wall",
+    "spot_id": "spot_flooded_train",
+    "text": "개가 터널 아래쪽 벽만 골라 긁는다. 그 벽에 손을 대면 다른 벽보다 차갑고, 떼면 손바닥이 젖어 있다.",
+    "source": "dog",
+    "unlock": {
+      "category": "drink",
+      "count": 5
+    }
+  },
+  {
+    "id": "rumor_flooded_marked_cloth",
+    "spot_id": "spot_flooded_train",
+    "text": "길손 노인이 겹쳐 입은 조끼 안에서 젖어 붙은 천 조각을 꺼냈다. 역 표식 하나에만 손톱으로 파낸 자국이 깊다.",
+    "source": "wayfarer",
+    "unlock": {
+      "category": "apparel",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_canal_fish_breath",
+    "spot_id": "spot_goldfish_canal",
+    "text": "고양이가 사흘째 같은 시각에 사라졌다가 같은 방향에서 돌아온다. 돌아온 날은 입가에 비린내가 남아 있다.",
+    "source": "cat",
+    "unlock": {
+      "category": "drink",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_canal_bought_word",
+    "spot_id": "spot_goldfish_canal",
+    "text": "교역 자리에서 말린 잎 한 줌 값에 소문 하나를 샀다. 다리 아래로 등불이 줄지어 흘러간다는 말이었고, 판 사람은 웃지 않았다.",
+    "source": "wayfarer",
+    "unlock": {
+      "category": "tobacco",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_canal_mirror_three",
+    "spot_id": "spot_goldfish_canal",
+    "text": "탑에서 거울이 세 번 반짝였다. 무너진 복개 아래로 물이 다시 하늘을 본다고, 값은 우리 방주의 이야기 하나라고 한다.",
+    "source": "tower",
+    "unlock": {
+      "category": "tobacco",
+      "count": 6
+    }
+  },
+  {
+    "id": "rumor_cafe_folded_map",
+    "spot_id": "spot_greenhouse_cafe",
+    "text": "줄이 두고 간 청사진 책 사이에 접힌 지도 조각이 끼어 있었다. 유리 지붕 표시 옆에 옛 글자로 한 줄, 여기서는 마실 것을 팔았다.",
+    "source": "wayfarer",
+    "unlock": {
+      "category": "book",
+      "count": 2
+    }
+  },
+  {
+    "id": "rumor_cafe_pollen_sneeze",
+    "spot_id": "spot_greenhouse_cafe",
+    "text": "개가 문턱에서 연달아 재채기를 했다. 발바닥 사이에 노란 가루가 끼어 있고, 그 가루에서 단내가 난다.",
+    "source": "dog",
+    "unlock": {
+      "category": "food",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_cafe_orange_cloth",
+    "spot_id": "spot_greenhouse_cafe",
+    "text": "고양이가 물고 온 천 조각이 아직 주황색이다. 200년을 햇빛 아래 두었다기엔 색이 너무 남아 있으니, 지붕 아래 있었다는 뜻이다.",
+    "source": "cat",
+    "unlock": {
+      "category": "apparel",
+      "count": 5
+    }
+  },
+  {
+    "id": "rumor_cafe_glass_rain",
+    "spot_id": "spot_greenhouse_cafe",
+    "text": "탑이 팔아넘긴 말. 비가 오는 날이면 그 거리에서 유리 떨어지는 소리가 센다고 한다. 그들은 소리를 셌지 내려가 본 적은 없다.",
+    "source": "tower",
+    "unlock": {
+      "category": "stationery",
+      "count": 6
+    }
+  },
+  {
+    "id": "rumor_forest_night_sniff",
+    "spot_id": "spot_forest_train_door",
+    "text": "개가 밤새 문 앞에서 바깥을 향해 킁킁거렸다. 아침에 그 자리에 씨앗 두 알이 떨어져 있었다.",
+    "source": "dog",
+    "unlock": {
+      "category": "food",
+      "count": 2
+    }
+  },
+  {
+    "id": "rumor_forest_seat_mesh",
+    "spot_id": "spot_forest_train_door",
+    "text": "까마귀가 물어 온 것은 삭은 그물 천 한 뼘이었다. 좌석 천이고, 그런 천은 지상 노선의 객차에만 있었다.",
+    "source": "crow",
+    "unlock": {
+      "category": "apparel",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_forest_sun_stripe",
+    "spot_id": "spot_forest_train_door",
+    "text": "고양이 등에 햇빛에 탄 줄무늬가 생겼다. 그늘에 있다가 문틀 같은 것 밖으로 나선 짐승만 그렇게 탄다.",
+    "source": "cat",
+    "unlock": {
+      "category": "electronics",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_roof_herb_beak",
+    "spot_id": "spot_rooftop_garden",
+    "text": "까마귀 부리에 짓이겨진 잎이 묻어 있었다. 의무병이 냄새를 맡더니 손을 멈췄다. 방주에서 기르지 않는 잎이다.",
+    "source": "crow",
+    "unlock": {
+      "category": "medical",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_roof_mirror_sold",
+    "spot_id": "spot_rooftop_garden",
+    "text": "탑이 거울 신호로 팔아넘긴 정보. 큰 것들이 올라오지 못하는 높이에 물과 짐승이 있다. 값은 우리 이야기 세 개였다.",
+    "source": "tower",
+    "unlock": {
+      "category": "electronics",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_roof_hoof_mark",
+    "spot_id": "spot_rooftop_garden",
+    "text": "탑은 그 옥상에 발굽 자국이 둘 찍혀 있다고 했다. 달아나지 않는 짐승이 있다는 뜻인데, 말한 사람은 내려가 본 적이 없다.",
+    "source": "tower",
+    "unlock": {
+      "category": "apparel",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_river_folded_paper",
+    "spot_id": "spot_lantern_river",
+    "text": "까마귀가 얇은 종이 한 장을 떨어뜨렸다. 접힌 자국이 여섯이고, 안쪽에 그을음이 동그랗게 남아 있다.",
+    "source": "crow",
+    "unlock": {
+      "category": "stationery",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_river_dog_listens",
+    "spot_id": "spot_lantern_river",
+    "text": "개가 강 쪽 통로에서만 멈춰 서서 귀를 세운다. 우리에게는 아무 소리도 안 나는데, 개에게는 난다.",
+    "source": "dog",
+    "unlock": {
+      "category": "book",
+      "count": 5
+    }
+  },
+  {
+    "id": "rumor_river_glow_dust",
+    "spot_id": "spot_lantern_river",
+    "text": "까마귀가 밤에 나갔다가 새벽에 돌아온 날, 깃에 빛나는 가루가 묻어 있었다. 손으로 문지르면 곧 꺼진다.",
+    "source": "crow",
+    "unlock": {
+      "category": "electronics",
+      "count": 6
+    }
+  }
+]

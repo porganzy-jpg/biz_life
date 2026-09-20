@@ -37,28 +37,35 @@ EVENT_REQUIRED = ("id", "name", "faction", "severity", "text", "counter_tags", "
                   "on_fail", "on_counter", "timer_sec")
 
 
-def load_events() -> list[dict]:
-    """기본 사건 + (있으면) 부족 사건. 부족 사건은 시나리오 에이전트가 data/events_schema.json 에
-    맞춰 data/events_tribes.json 에 쓴다. 파일이 없거나 깨졌거나 필수 필드가 빠진 카드는 조용히 건너뛴다
-    (게임이 죽지 않게. 건너뛴 이유는 표준출력에 남긴다)."""
-    events = json.loads((DATA_DIR / "events.json").read_text(encoding="utf-8"))
-    extra = DATA_DIR / "events_tribes.json"
-    if not extra.exists():
-        return events
-    try:
-        more = json.loads(extra.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
-        print(f"[storyteller] events_tribes.json 무시: {e}")
-        return events
-    have = {e["id"] for e in events}
-    for e in more if isinstance(more, list) else []:
-        if not isinstance(e, dict) or e.get("id") in have:
+# 사건 카드 파일 목록. 시나리오가 새 묶음을 내면 여기 한 줄만 추가한다.
+#   events.json        — 기본(방주 안)
+#   events_tribes.json — 일곱 부족 접촉
+#   events_outside.json— 바깥(공룡·원정·스팟 단서)
+EVENT_FILES = ("events.json", "events_tribes.json", "events_outside.json")
+
+
+def load_events(files: tuple | list = EVENT_FILES) -> list[dict]:
+    """사건 카드 전부를 한 풀로 병합한다. 시나리오 에이전트는 data/events_schema.json 에 맞춰 쓴다.
+    파일이 없거나 깨졌거나 필수 필드가 빠진 카드는 조용히 건너뛴다(게임이 죽지 않게. 이유는 표준출력에)."""
+    events: list[dict] = []
+    have: set = set()
+    for fname in files:
+        path = DATA_DIR / fname
+        if not path.exists():
             continue
-        missing = [k for k in EVENT_REQUIRED if k not in e]
-        if missing:
-            print(f"[storyteller] events_tribes.json 카드 건너뜀 ({e.get('id')}): 필수 필드 없음 {missing}")
+        try:
+            rows = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[storyteller] {fname} 무시: {e}")
             continue
-        events.append(e); have.add(e["id"])
+        for e in rows if isinstance(rows, list) else []:
+            if not isinstance(e, dict) or e.get("id") in have:
+                continue
+            missing = [k for k in EVENT_REQUIRED if k not in e]
+            if missing:
+                print(f"[storyteller] {fname} 카드 건너뜀 ({e.get('id')}): 필수 필드 없음 {missing}")
+                continue
+            events.append(e); have.add(e["id"])
     return events
 
 
@@ -108,9 +115,16 @@ def weight_for(event: dict, ark: ArkState) -> float:
     return w
 
 
-def pick_event(ark: ArkState, events: list[dict] | None = None, rng: random.Random | None = None) -> dict:
+def pick_event(ark: ArkState, events: list[dict] | None = None, rng: random.Random | None = None,
+               exclude: set | None = None) -> dict:
+    """exclude: 이미 소모된 1회성 카드 id(부족 첫 접촉 등). 제외하고 나면 남는 게 없을 때는
+    게임이 멈추지 않도록 원래 풀로 되돌아간다."""
     events = events or load_events()
     rng = rng or random.Random()
+    if exclude:
+        pool = [e for e in events if e["id"] not in exclude]
+        if pool:
+            events = pool
     weights = [weight_for(e, ark) for e in events]
     return rng.choices(events, weights=weights, k=1)[0]
 

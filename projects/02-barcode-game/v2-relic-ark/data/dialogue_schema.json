@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dialogue_schema.json",
+  "title": "두 AI의 대사 (data/dialogue.json)",
+  "description": "reader = 리더(과거의 목소리, 경전+광고 말투: 명령·약속·보상). gardener = 정원사(현재의 손, 질문형). when = 이 줄을 띄울 상황 태그. 같은 태그에 여러 줄이 있으면 서버가 시드로 하나 고른다(리더:정원사 가중 2:1). 실제 종교·경전·인물·지명 이름 금지. 소유: 시나리오(내용) / 개발(이 스키마와 훅).",
+  "type": "object",
+  "required": [
+    "reader",
+    "gardener"
+  ],
+  "properties": {
+    "_comment": {
+      "type": "string"
+    },
+    "_when_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reader": {
+      "$ref": "#/definitions/lines"
+    },
+    "gardener": {
+      "$ref": "#/definitions/lines"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "when",
+          "text"
+        ],
+        "properties": {
+          "when": {
+            "description": "상황 태그. hooked=true 인 태그는 이미 서버가 화면에 띄우고 있다.",
+            "enum": [
+              "game_start",
+              "scan_unknown",
+              "scan_book",
+              "scan_food",
+              "scan_drink",
+              "scan_medical",
+              "scan_electronics",
+              "scan_apparel",
+              "scan_tobacco",
+              "scan_stationery",
+              "build",
+              "event_fail",
+              "event_counter",
+              "spot_found",
+              "spot_deep",
+              "spot_water_reflection",
+              "night",
+              "low_food",
+              "first_ally",
+              "betrayal",
+              "imprint",
+              "animal_death",
+              "tribe_meet",
+              "debt",
+              "trade",
+              "surface_trip",
+              "ending_hint"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 200
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "_hooks": {
+    "_comment": "지금 서버가 실제로 띄우는 태그와 그 자리. 여기 없는 태그는 데이터에 있어도 화면에 안 나온다 — 훅이 필요하면 개발에 요청.",
+    "game_start": "GET /api/ark — 그 방주의 첫 화면 1회 (state.greeted)",
+    "night": "GET /api/ark — 21~05시, 하루 1회 토스트",
+    "scan_unknown": "POST /api/scan — category=unknown",
+    "scan_book": "POST /api/scan — category=book",
+    "scan_food": "POST /api/scan — category=food 또는 drink",
+    "scan_medical": "POST /api/scan — category=medical (태그가 생기면 자동 연결)",
+    "scan_electronics": "POST /api/scan — category=electronics (태그가 생기면 자동 연결)",
+    "scan_apparel": "POST /api/scan — category=apparel (태그가 생기면 자동 연결)",
+    "scan_tobacco": "POST /api/scan — category=tobacco (태그가 생기면 자동 연결)",
+    "scan_stationery": "POST /api/scan — category=stationery (태그가 생기면 자동 연결)",
+    "event_fail": "POST /api/event/resolve — 막지 못한 날",
+    "event_counter": "POST /api/event/resolve — 막아낸 날",
+    "spot_water_reflection": "POST /api/event/resolve — on_counter 에 spot_clue 가 있는 날 (없으면 spot_found 로 대체)",
+    "spot_found": "위 대체용 + 스팟 발견 연출(S2-A 월드 화면)",
+    "scan_drink": "POST /api/scan — category=drink (없으면 scan_food 로 대체)"
+  }
+}

@@ -32,7 +32,8 @@ BLENDS = glob.glob(os.path.join(ROOT, "assets3d", "quaternius_chars", "*", "Blen
 OUT_GLB = os.path.join(ROOT, "static", "models", "chars")
 OUT_PNG = os.path.join(ROOT, "static", "art", "chars")
 OUT_RAW = os.path.join(ROOT, "art_raw", "chars_v2")
-for d in (OUT_GLB, OUT_PNG, OUT_RAW):
+OUT_SHOW = os.path.join(ROOT, "static", "art", "chars", "show")
+for d in (OUT_GLB, OUT_PNG, OUT_RAW, OUT_SHOW):
     os.makedirs(d, exist_ok=True)
 ROLES = json.load(open(os.path.join(ROOT, "data", "roles.json"), encoding="utf-8"))
 
@@ -44,6 +45,7 @@ DARK = "#2a2622"
 METAL = "#8c9299"
 RES, ORTHO, AZ, EL = 256, 2.2, 45, 32
 sc = None
+LOWPOLY = False        # 각인 파츠를 만들 때만 True — 원시 도형 분할을 줄여 GLB 용량을 아낀다
 
 
 def hexcol(h):
@@ -121,23 +123,25 @@ def box(arm, bone, m, pos, size, rot=(0, 0, 0)):
 
 
 def ball(arm, bone, m, pos, size, rot=(0, 0, 0)):
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5, segments=18, ring_count=10, location=(0, 0, 0))
+    seg, rng = (10, 6) if LOWPOLY else (18, 10)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5, segments=seg, ring_count=rng, location=(0, 0, 0))
     return _finish(bpy.context.object, m, arm, bone, T(pos, rot, size))
 
 
 def tube(arm, bone, m, pos, r, h, rot=(0, 0, 0)):
-    bpy.ops.mesh.primitive_cylinder_add(radius=r, depth=h, vertices=16, location=(0, 0, 0))
+    bpy.ops.mesh.primitive_cylinder_add(radius=r, depth=h, vertices=8 if LOWPOLY else 16, location=(0, 0, 0))
     return _finish(bpy.context.object, m, arm, bone, T(pos, rot))
 
 
 def cone(arm, bone, m, pos, r1, r2, h, rot=(0, 0, 0)):
-    bpy.ops.mesh.primitive_cone_add(radius1=r1, radius2=r2, depth=h, vertices=18, location=(0, 0, 0))
+    bpy.ops.mesh.primitive_cone_add(radius1=r1, radius2=r2, depth=h, vertices=8 if LOWPOLY else 18, location=(0, 0, 0))
     return _finish(bpy.context.object, m, arm, bone, T(pos, rot))
 
 
 def ring(arm, bone, m, pos, r, thick, rot=(0, 0, 0)):
+    mj, mi = (12, 6) if LOWPOLY else (20, 8)
     bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=thick,
-                                     major_segments=20, minor_segments=8, location=(0, 0, 0))
+                                     major_segments=mj, minor_segments=mi, location=(0, 0, 0))
     return _finish(bpy.context.object, m, arm, bone, T(pos, rot))
 
 
@@ -269,6 +273,160 @@ def build_props(role, arm):
     return out
 
 
+# ---------------------------------------------------------------- 각인(刻印) 외형 파츠
+# data/imprints.json 의 id 8종과 1:1. 노드 이름 규약: **imp_<id>** (빈 오브젝트) + 그 자식 메시들.
+# 기본 hidden 으로 만들지만 glTF 2.0 에는 표준 가시성 필드가 없고 Blender 5.2 내보내기도
+# KHR_node_visibility 를 쓰지 않는다(직접 확인). 따라서 런타임에 개발이 노드 이름으로 끈다.
+# C4: 부위를 정해 겹치지 않게 — 얼굴(왼뺨=반점 / 오른뺨=흉터) · 머리(뒤=베일 / 정수리=젖은 머리)
+#     · 목(이빨 목걸이) · 허리(허리띠 유물) · 팔(검은 팔띠) · 손목(놋쇠 팔찌) · 등(방망이) · 팔뚝(그을림)
+IMPRINT_IDS = ["spore_mark", "empty_stomach", "warden", "sun_memory",
+               "empty_seat", "footprint", "debt_paid", "water_memory"]
+
+
+def imp_root(arm, bone, iid):
+    bpy.ops.object.empty_add(type='PLAIN_AXES', radius=0.15, location=(0, 0, 0))
+    e = bpy.context.object
+    e.name = "imp_" + iid
+    e.empty_display_size = 0.15
+    attach(e, arm, bone, Matrix.Identity(4))
+    bpy.context.view_layer.update()
+    return e
+
+
+def regroup(objs, e, iid):
+    """뼈에 붙여 만든 파츠들을 월드 위치를 유지한 채 imp_ 빈 오브젝트의 자식으로 옮긴다.
+    → GLB 에 `imp_<id>` 노드 하나만 끄면 그 각인 전체가 사라진다."""
+    bpy.context.view_layer.update()
+    for i, o in enumerate(objs):
+        w = o.matrix_world.copy()
+        o.parent = e; o.parent_type = 'OBJECT'; o.parent_bone = ''
+        o.matrix_parent_inverse = Matrix.Identity(4)
+        o.matrix_basis = e.matrix_world.inverted() @ w
+        o.name = "imp_%s_%d" % (iid, i)
+    bpy.context.view_layer.update()
+
+
+def build_imprints(role, arm):
+    """각인 8종을 만들어 [(id, 빈오브젝트, [파츠…])] 로 돌려준다. 전부 기본 hidden."""
+    global LOWPOLY
+    LOWPOLY = True
+    hd = bone_pos(arm, "Head"); nk = bone_pos(arm, "Neck")
+    to = bone_pos(arm, "Torso"); hi = bone_pos(arm, "Hips")
+    ua = bone_pos(arm, "UpperArm.L"); fr = bone_pos(arm, "Fist.R")
+    la = bone_pos(arm, "LowerArm.L"); ra = bone_pos(arm, "LowerArm.R")
+    ey = ROLE_DEF[role].get("eye_y", -0.50)
+    fy = hd.y + ey            # 얼굴 앞면
+    ez = hd.z + 0.50          # 눈 높이
+    out = []
+    # 머리를 구로 근사해 표면에 딱 붙는 좌표를 구한다(반점·흉터가 머리 안에 파묻히지 않게)
+    HC = Vector((hd.x, hd.y, hd.z + 0.42)); HR = 0.52
+
+    def on_head(dx, dy, dz, k=0.97):
+        v = Vector((dx, dy, dz)); v.normalize()
+        p = HC + v * (HR * k)
+        return (p.x, p.y, p.z)
+
+    def grp(iid, bone, make):
+        e = imp_root(arm, bone, iid)
+        parts = make()
+        regroup(parts, e, iid)
+        for o in [e] + parts:
+            o.hide_viewport = True; o.hide_render = True
+        out.append((iid, e, parts))
+
+    # 1. 포자의 표식 — 얼굴(왼뺨·턱선)과 목덜미의 녹색 반점
+    def _spore():
+        g1 = mat("imp_spore_a", "#7CA04A", 0.8); g2 = mat("imp_spore_b", "#5E8236", 0.8)
+        return [ball(arm, "Head", g1, on_head(0.62, -0.72, 0.22), (0.19, 0.19, 0.17)),
+                ball(arm, "Head", g2, on_head(0.92, -0.34, -0.22), (0.16, 0.16, 0.14)),
+                ball(arm, "Head", g1, on_head(0.44, -0.80, -0.36), (0.13, 0.13, 0.12)),
+                ball(arm, "Head", g2, on_head(0.86, -0.20, -0.66), (0.12, 0.12, 0.11)),
+                ball(arm, "Neck", g2, (nk.x + 0.150, nk.y + 0.05, nk.z + 0.02), (0.13, 0.12, 0.14))]
+
+    # 2. 빈 위장 — 허리띠 유물(놋쇠 버클 + 매달린 금속 표찰)
+    def _stomach():
+        lea = mat("imp_belt", "#6B5334", 0.85); brs = mat("imp_buckle", "#B98A3C", 0.35, 0.6)
+        return [ring(arm, "Hips", lea, (hi.x, hi.y - 0.02, hi.z + 0.22), 0.455, 0.045),
+                box(arm, "Hips", brs, (hi.x, hi.y - 0.47, hi.z + 0.22), (0.17, 0.10, 0.17)),
+                box(arm, "Hips", brs, (hi.x + 0.16, hi.y - 0.45, hi.z + 0.02), (0.11, 0.05, 0.22)),
+                box(arm, "Hips", lea, (hi.x + 0.16, hi.y - 0.45, hi.z + 0.15), (0.05, 0.04, 0.10))]
+
+    # 3. 지킨 자 — 오른뺨 흉터 + 등 뒤 방망이
+    def _warden():
+        sc_ = mat("imp_scar", "#C2836C", 0.6); wd = mat("imp_club", "#5A4632", 0.9)
+        bd = mat("imp_clubband", "#3A3129", 0.8)
+        return [box(arm, "Head", sc_, on_head(-0.66, -0.70, 0.20), (0.08, 0.10, 0.36),
+                    rot=(0, math.radians(-16), 0)),
+                box(arm, "Head", sc_, on_head(-0.90, -0.36, -0.22), (0.08, 0.10, 0.20),
+                    rot=(0, math.radians(-16), 0)),
+                tube(arm, "Torso", wd, (to.x + 0.17, to.y + 0.31, to.z + 0.26), 0.070, 0.98,
+                     rot=(math.radians(14), 0, math.radians(26))),
+                tube(arm, "Torso", wd, (to.x + 0.40, to.y + 0.37, to.z + 0.66), 0.110, 0.28,
+                     rot=(math.radians(14), 0, math.radians(26))),
+                ring(arm, "Torso", bd, (to.x + 0.05, to.y + 0.27, to.z - 0.02), 0.085, 0.030,
+                     rot=(math.radians(14), 0, math.radians(26)))]
+
+    # 4. 햇빛의 기억 — 이마 띠 + 뒤로 늘어진 베일 + 팔뚝의 그을림
+    def _sun():
+        ln = mat("imp_veil", "#DCCFB2", 0.95); ln2 = mat("imp_veil2", "#C9BC9C", 0.95)
+        tan = mat("imp_tan", "#C9A183", 0.85)
+        return [ring(arm, "Head", ln, (hd.x, hd.y, hd.z + 0.66), 0.475, 0.055),
+                box(arm, "Head", ln, (hd.x, hd.y + 0.40, hd.z + 0.16), (0.74, 0.14, 0.88)),
+                box(arm, "Head", ln2, (hd.x, hd.y + 0.34, hd.z - 0.26), (0.62, 0.13, 0.22),
+                    rot=(math.radians(-14), 0, 0)),
+                tube(arm, "LowerArm.L", tan, (la.x + 0.03, la.y - 0.02, la.z - 0.16), 0.115, 0.30),
+                tube(arm, "LowerArm.R", tan, (ra.x - 0.03, ra.y - 0.02, ra.z - 0.16), 0.115, 0.30)]
+
+    # 5. 빈 자리 — 왼쪽 위팔의 검은 팔띠 (의무병의 붉은 완장보다 어깨 쪽)
+    def _seat():
+        bk = mat("imp_armband", "#1A1817", 0.85)
+        return [ring(arm, "UpperArm.L", bk, (ua.x + 0.03, ua.y - 0.02, ua.z - 0.09), 0.180, 0.058),
+                box(arm, "UpperArm.L", bk, (ua.x + 0.19, ua.y - 0.02, ua.z - 0.09), (0.05, 0.16, 0.13))]
+
+    # 6. 발자국 — 목의 이빨 목걸이 + 어깨의 찢긴 옷자락
+    def _foot():
+        cd = mat("imp_cord", "#4A4036", 0.95); th = mat("imp_tooth", "#E8E1CA", 0.55)
+        tr = mat("imp_torn", "#2E2A25", 0.95)
+        return [ring(arm, "Neck", cd, (nk.x, nk.y + 0.01, nk.z - 0.02), 0.305, 0.022),
+                cone(arm, "Torso", th, (to.x, to.y - 0.50, to.z + 0.44), 0.105, 0.008, 0.34,
+                     rot=(math.radians(180), 0, 0)),
+                cone(arm, "Torso", th, (to.x + 0.20, to.y - 0.48, to.z + 0.48), 0.070, 0.006, 0.22,
+                     rot=(math.radians(180), 0, math.radians(14))),
+                cone(arm, "Torso", th, (to.x - 0.20, to.y - 0.48, to.z + 0.48), 0.070, 0.006, 0.22,
+                     rot=(math.radians(180), 0, math.radians(-14))),
+                box(arm, "Torso", tr, (to.x - 0.35, to.y - 0.12, to.z + 0.50), (0.24, 0.34, 0.11),
+                    rot=(0, math.radians(26), 0))]
+
+    # 7. 갚은 자 — 오른 손목의 놋쇠 팔찌
+    def _debt():
+        br = mat("imp_brass", "#C08A3A", 0.3, 0.7)
+        return [ring(arm, "Fist.R", br, (fr.x, fr.y - 0.02, fr.z + 0.21), 0.160, 0.046),
+                ring(arm, "Fist.R", br, (fr.x, fr.y - 0.02, fr.z + 0.13), 0.150, 0.030)]
+
+    # 8. 물의 기억 — 젖은 머리(광택) + 밝아진 눈
+    def _water():
+        we = mat("imp_wethair", "#2A2520", 0.12); st = mat("imp_strand", "#332C26", 0.15)
+        br = mat("imp_bright", "#BFEAF0", 0.05)
+        parts = [ball(arm, "Head", we, (hd.x, hd.y + 0.03, hd.z + 0.58), (1.02, 1.00, 0.72))]
+        for sx, off in ((1, 0.30), (-1, 0.32), (1, 0.12)):
+            parts.append(box(arm, "Head", st, (hd.x + sx * off, hd.y - 0.28, hd.z + 0.50),
+                             (0.09, 0.24, 0.46), rot=(math.radians(10), 0, 0)))
+        for sx in (1, -1):
+            parts.append(ball(arm, "Head", br, (hd.x + sx * 0.205, fy - 0.07, ez), (0.21, 0.13, 0.24)))
+        return parts
+
+    grp("spore_mark", "Head", _spore)
+    grp("empty_stomach", "Hips", _stomach)
+    grp("warden", "Head", _warden)
+    grp("sun_memory", "Head", _sun)
+    grp("empty_seat", "UpperArm.L", _seat)
+    grp("footprint", "Neck", _foot)
+    grp("debt_paid", "Fist.R", _debt)
+    grp("water_memory", "Head", _water)
+    LOWPOLY = False
+    return out
+
+
 # ---------------------------------------------------------------- 빌드
 def load_base(blend):
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -332,8 +490,9 @@ def evaluated_bounds(objs):
     return min(p.z for p in pts), max(p.z for p in pts)
 
 
-def build(role, action_name="Idle", t=0.0):
-    """역할 캐릭터 한 벌을 씬에 만들고 (arm, mesh, props) 반환. 발 z=0 / 목표 키로 정규화."""
+def build(role, action_name="Idle", t=0.0, imprints=False):
+    """역할 캐릭터 한 벌을 씬에 만들고 (arm, mesh, props, imps) 반환. 발 z=0 / 목표 키로 정규화.
+    imprints=True 면 각인 파츠 8종(imp_<id>, 기본 hidden)을 함께 만든다."""
     global sc
     d = ROLE_DEF[role]
     arm, mesh = load_base(d["blend"])
@@ -342,6 +501,7 @@ def build(role, action_name="Idle", t=0.0):
     act = next((a for a in bpy.data.actions if a.name == action_name), None)
     if act: assign_action(arm, act, t)
     props = build_props(role, arm)
+    imps = build_imprints(role, arm) if imprints else []
     bpy.context.view_layer.update()
     # 키 정규화: 몸(모자 포함 원본 메시) 기준이 아니라 "머리 꼭대기"가 아닌 실제 몸 높이를 쓰면
     # 요리사 모자 때문에 다른 역할보다 작아지므로, 모자류를 뺀 순수 리그 높이(3.078)를 기준으로 한다.
@@ -353,28 +513,28 @@ def build(role, action_name="Idle", t=0.0):
     lo, _ = evaluated_bounds([mesh])
     arm.location = (0, 0, -lo)
     bpy.context.view_layer.update()
-    return arm, mesh, props
+    return arm, mesh, props, imps
 
 
 # ---------------------------------------------------------------- GLB
 def export_glb(role):
-    arm, mesh, props = build(role, "Idle", 0.0)
+    arm, mesh, props, imps = build(role, "Idle", 0.0, imprints=True)
+    lo, hi = evaluated_bounds([mesh])       # Idle 기준 실측(정규화 직후 상태)
     for a in list(bpy.data.actions):
         if a.name not in KEEP_ACTIONS:
             bpy.data.actions.remove(a)
     if arm.animation_data is None: arm.animation_data_create()
+    # ★ NLA 트랙으로 밀어 넣지 않는다. 트랙을 만들면 뎁스그래프가 그것을 평가해 GLB 의 **기본 포즈**가
+    #   마지막 트랙의 첫 프레임(Walk)으로 굳는다. export_animation_mode='ACTIONS' 는 파일 안의
+    #   모든 액션을 각각 내보내므로 트랙이 필요 없고, 액션만 떼면 기본 포즈가 Idle 로 남는다.
+    for tr in list(arm.animation_data.nla_tracks):
+        arm.animation_data.nla_tracks.remove(tr)
     arm.animation_data.action = None
-    for a in list(bpy.data.actions):
-        tr = arm.animation_data.nla_tracks.new(); tr.name = a.name
-        st = tr.strips.new(a.name, int(a.frame_range[0]), a); st.name = a.name
-        try:
-            if hasattr(st, "action_slot") and getattr(a, "slots", None) and len(a.slots):
-                st.action_slot = a.slots[0]
-        except Exception as e:
-            print("strip slot warn", e, flush=True)
     path = os.path.join(OUT_GLB, role + ".glb")
+    # use_visible/use_renderable=False → 기본 hidden 인 각인 파츠도 GLB 에 들어간다
     kw = dict(filepath=path, export_format='GLB', export_lights=False, export_cameras=False,
-              export_apply=False, use_selection=False, export_animations=True, export_yup=True,
+              export_apply=False, use_selection=False, use_visible=False, use_renderable=False,
+              export_animations=True, export_yup=True,
               export_animation_mode='ACTIONS', export_nla_strips=False, export_frame_range=False,
               export_force_sampling=True)
     try:
@@ -384,7 +544,9 @@ def export_glb(role):
             kw.pop(k, None)
         bpy.ops.export_scene.gltf(**kw)
     print("EXPORTED", path, os.path.getsize(path) // 1024, "KB",
-          "clips", sorted(a.name for a in bpy.data.actions), flush=True)
+          "clips", sorted(a.name for a in bpy.data.actions),
+          "| body z %.4f..%.4f" % (lo, hi),
+          "| imprints", len(imps), flush=True)
 
 
 # ---------------------------------------------------------------- 스프라이트
@@ -443,7 +605,7 @@ FRAMES = (("b", "Idle", 0.0), ("a", "Walk", 0.25))
 def sprites(role, meta=None):
     for tag, deg in (("dl", -90), ("ul", 180)):
         for frame, act, t in FRAMES:
-            arm, mesh, props = build(role, act, t)
+            arm, mesh, props, _imps = build(role, act, t)
             arm.rotation_euler = (0, 0, math.radians(deg))
             bpy.context.view_layer.update()
             cam = camera(0.80); lights()
@@ -457,7 +619,43 @@ def sprites(role, meta=None):
             print("RENDERED", out, flush=True)
 
 
+# ---------------------------------------------------------------- 각인 파츠 쇼케이스 렌더
+# (ortho, look_z) — 얼굴/머리 각인은 머리 클로즈업, 몸 각인은 상반신, 3개 겹침은 전신.
+# (ortho, look_z, 방위°) — 오른뺨 흉터·오른 손목 팔찌는 몸의 -X 쪽이라 0°(정면+오른쪽)에서 봐야 보인다.
+# 정규화 후 실제 높이(1.6m 기준): 눈 1.36 · 목 1.03 · 가슴 1.01 · 위팔 0.90 · 허리띠 0.58 · 손목 0.57
+IMP_SHOT = {
+    "spore_mark":    (0.72, 1.34, -90), "warden":        (1.25, 1.15, 0),
+    "sun_memory":    (1.20, 1.18, -90), "water_memory":  (0.72, 1.36, -90),
+    "footprint":     (0.85, 1.04, -90), "empty_seat":    (0.80, 0.93, -90),
+    "empty_stomach": (0.85, 0.60, -90), "debt_paid":     (0.55, 0.58, 0),
+}
+IMP_TRIPLE = ["warden", "footprint", "empty_stomach"]
+
+
+def imp_shots(role="cook"):
+    """각인 파츠를 하나씩 켜서 렌더. 기본은 요리사(흰 옷 = 파츠가 가장 잘 보인다)."""
+    jobs = [(i, IMP_SHOT[i][0], IMP_SHOT[i][1], IMP_SHOT[i][2], [i]) for i in IMPRINT_IDS]
+    jobs.append(("triple", 2.05, 0.95, -90, IMP_TRIPLE))
+    jobs.append(("none", 2.05, 0.95, -90, []))
+    for tag, ortho, lz, deg, show in jobs:
+        arm, mesh, props, imps = build(role, "Idle", 0.0, imprints=True)
+        for iid, e, parts in imps:
+            vis = iid in show
+            for o in [e] + parts:
+                o.hide_viewport = not vis; o.hide_render = not vis
+        arm.rotation_euler = (0, 0, math.radians(deg))
+        bpy.context.view_layer.update()
+        camera(lz); sc.camera.data.ortho_scale = ortho; lights()
+        out = os.path.join(OUT_SHOW, "imp_%s.png" % tag)
+        render(out); print("RENDERED", out, flush=True)
+
+
 if __name__ == "__main__":
+    if MODE == "imp":
+        RES = 480
+        imp_shots(ONLY[0] if ONLY else "cook")
+        print("ALL DONE", flush=True)
+        raise SystemExit
     roles = ONLY or list(ROLE_DEF.keys())
     meta = {}
     for r in roles:
