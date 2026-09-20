@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://relic-ark.local/schema/events.json",
+  "title": "잔해 방주 — 사건 카드 배열",
+  "description": "data/events.json 과 data/events_tribes.json 의 공통 스키마. 필드명은 기존 events.json 과 동일하며 부족 사건용 \"tribe\" 만 선택 필드로 추가되었다. 서버는 두 파일을 합쳐 id 를 키로 EVENTS 사전에 넣으므로 id 는 파일을 넘어 유일해야 한다. (소유: 개발 / 내용 채움: 시나리오)",
+  "type": "array",
+  "minItems": 1,
+  "items": {"$ref": "#/definitions/event"},
+
+  "definitions": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "faction", "severity", "text", "counter_tags", "counter_room", "on_fail", "on_counter", "timer_sec"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{2,39}$",
+          "description": "전 파일 통틀어 유일한 영소문자 식별자. 부족 사건은 부족 접두어를 권장한다(flame_debt_collector). data/imprints.json 의 trigger.id_prefixes 가 이 접두어로 각인을 고르므로 접두어를 마음대로 바꾸면 각인이 안 붙는다."
+        },
+        "name": {"type": "string", "minLength": 1, "maxLength": 24, "description": "쪽지 제목(한국어). 화면 폭 때문에 24자 이내."},
+        "faction": {
+          "type": "string",
+          "enum": ["mycel", "scavs", "machine", "mutant", "world", "tribe", "gardener", "reader"],
+          "description": "사건의 출처. mycel=균류 군체, scavs=약탈자, machine=기계 잔재, mutant=변이체, world=반도 잔해, tribe=일곱 부족(이때 tribe 필드 필수 권장), gardener=정원사, reader=리더. 클라이언트 FAC_KO 에 한국어 표기가 있어야 화면에 뜬다(새 값을 쓰면 개발에 요청)."
+        },
+        "tribe": {
+          "type": "string",
+          "enum": ["wayfarer", "shelf", "flame", "white", "archive", "greenhouse", "tower"],
+          "description": "선택. 부족 사건 카드에만 넣는다. wayfarer=길손, shelf=진열대, flame=불꽃, white=하얀, archive=서고, greenhouse=온실, tower=탑. docs/WORLD_BIBLE_v2.md §1~7 순서."
+        },
+        "severity": {"type": "integer", "minimum": 0, "maximum": 3, "description": "0=위협 아님(긍정·중립), 1=가벼움, 2=심각, 3=재난. storyteller.weight_for() 가 1~3일차와 하드코어에서 이 값을 본다."},
+        "text": {"type": "string", "minLength": 10, "maxLength": 160, "description": "쪽지 본문 2~3문장. 실제 종교·경전·인물·지명 금지."},
+        "counter_tags": {
+          "type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1},
+          "description": "이 태그를 가진 유물 카드로 막을 수 있다. 주민 역할의 counter_tags(data/roles.json)와 겹치면 그 역할이 자동 대항하고, data/imprints.json 의 trigger.counter_tags 와 겹치면 각인 후보가 된다. 쓰이는 태그: 해독 치료 방어 탐사 열원 보존 물 부품 전력 지식 청사진 교섭 교역 사기 조명 야행 온실."
+        },
+        "counter_room": {
+          "type": ["string", "null"],
+          "enum": ["pantry", "well", "infirmary", "library", "rock", "lot", null],
+          "description": "이 방이 있으면 카드 없이도 50% 자동 대항. 없으면 null. data/rooms.json 의 방 id 만."
+        },
+        "on_fail": {"$ref": "#/definitions/outcome", "description": "대항 실패 시 적용. 보통 음수 자원과 injured."},
+        "on_counter": {"$ref": "#/definitions/outcome", "description": "대항 성공 시 적용. 비어 있어도 된다({})."},
+        "timer_sec": {"type": "integer", "minimum": 2, "maximum": 15, "description": "쪽지 카운트다운. 위협 3초, 긍정 5초가 관례."},
+        "positive": {"type": "boolean", "description": "선택. true 면 긍정 사건(표류자·유물 창고). 사기가 2 이하일 때 가중치 ×3, 각인은 붙지 않는다."},
+        "dialogue": {"type": "array", "items": {"type": "string"}, "description": "선택. 쪽지에 붙는 대사 줄(시나리오 확장용). 서버는 그대로 전달만 한다."},
+        "note": {"type": "string", "description": "선택. 제작 메모. 게임 화면에 나오지 않는다."}
+      }
+    },
+
+    "outcome": {
+      "type": "object",
+      "description": "자원 증감과 특수 효과. 정수 값은 자원에 그대로 더해진다(자원은 0 미만으로 내려가지 않는다). 문자열/객체 값은 상위 레이어가 처리한다.",
+      "additionalProperties": false,
+      "properties": {
+        "food": {"type": "integer"}, "water": {"type": "integer"}, "med": {"type": "integer"},
+        "power": {"type": "integer"}, "parts": {"type": "integer"}, "morale": {"type": "integer"},
+        "cloth": {"type": "integer"}, "trade": {"type": "integer"}, "knowledge": {"type": "integer"},
+        "scrap": {"type": "integer"}, "chem": {"type": "integer"},
+        "injured": {"type": "integer", "minimum": 0, "description": "부상자 수. 주민 개인에게 붙고 아이가 먼저 다친다."},
+        "resident": {"type": "integer", "minimum": 0, "description": "합류하는 주민 수. 없는 역할이 우선 배정된다."},
+        "capture": {"type": "string", "description": "포획한 짐승 id (예: magpie)."},
+        "free_pack": {"type": "integer", "minimum": 0, "description": "무료 유물 팩 장수."},
+        "spot_clue": {"type": "string", "description": "힐링 스팟 단서 id (data/spots.json). 서버는 이 값이 있으면 healing_spot_found flag 를 만들어 「물의 기억」 각인 후보로 쓴다."},
+        "flag": {"type": "string", "description": "각인·서사 훅 신호 1개. data/imprints.json 의 trigger.flags 값과 맞으면 그 각인이 생긴다. 예약: expedition_returned, dino_escaped, flame_debt_cleared, healing_spot_found, starvation_survived, companion_died."},
+        "flags": {"type": "array", "items": {"type": "string"}, "description": "flag 를 여러 개 줄 때."}
+      }
+    }
+  }
+}

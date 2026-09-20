@@ -1,0 +1,141 @@
+{
+  "_comment": "각인(刻印) 8종 — docs/GROWTH_AND_MYTH.md §1 표를 그대로 데이터로 옮긴 것. 경험치·레벨은 없다. 주민은 '처음 겪는 종류의 위기'를 살아서 넘겼을 때만 변한다(계단식 성장). 각인에는 반드시 대가(cost)가 붙는다. 서버: server.py imprint_for_event() / grant_imprints() / role_effects().",
+  "_version": 1,
+
+  "_rules": {
+    "max_per_resident": 3,
+    "evolve_at": 3,
+    "once_per_imprint": true,
+    "first_time_only": true,
+    "requires_survival": true,
+    "injury_blocks": false,
+    "positive_event_grants": false,
+    "note": "주민은 같은 위기 종류(crisis)를 두 번째 겪을 때부터는 변하지 않는다. 주민의 crises 배열에 겪은 위기 종류가 누적된다. 각인이 3개가 되면 role_evolved=true 가 되고 _role_evolution 의 이름을 받는다."
+  },
+
+  "_match": {
+    "comment": "사건 카드 → 위기 종류 판정. 값이 큰 단계에서 먼저 맞춘다. 같은 단계에서 여러 각인이 맞으면 imprints 배열의 앞선 것이 이긴다.",
+    "levels": {"event_ids": 3, "id_prefixes": 3, "factions": 2, "tribes": 2, "counter_tags": 1},
+    "flags": "사건 카드가 아닌 상태/훅에서 오는 신호. 서버가 resolve 시점에 만든다(현재 구현: ally_crisis). 나머지는 후속 스프린트의 훅 이름 예약."
+  },
+
+  "_effect_keys": {
+    "comment": "effect·cost.effect 에 쓸 수 있는 필드. 숫자는 role_effects()에서 합산되고, 사전(dict)은 키별로 합산된다. 여기 없는 키를 쓰면 합산은 되지만 아직 게임 규칙에 연결되지 않은 '예약' 필드다.",
+    "food_daily": "주민 1인당 일일 식량 소비 증감(음수가 이득)",
+    "morale_daily": "일일 사기 증감. 역할·특성의 같은 필드와 합산",
+    "morale_cap": "사기 상한 증감",
+    "counter_bonus": "{태그: 확률} 자동 대항 확률에 가산(역할 auto_counter 위에 더해짐, 0.95 상한)",
+    "room_bonus": "{방id: {자원: 수량}} 방 생산 가산",
+    "heal_rate": "부상 회복 인원/틱 가산",
+    "build_discount": "건설 비용 할인 비율 가산(총 0.5 상한)",
+    "light_cap": "바깥 원정 빛 게이지 상한 배율 증감 (예약)",
+    "power_cost": "전력 구매 비용 배율 증감 (예약)",
+    "drifter_rate": "표류자 합류 확률 배율 증감 (예약)",
+    "night_production": "야간 생산 배율 증감 (예약)",
+    "production_penalty": "상시 생산 배율 감소 (예약)",
+    "morale_heal_others": "다른 주민의 사기 회복 가산 (예약)",
+    "self_morale_recover": "자기 사기 회복 증감 (예약)",
+    "hoard_risk": "식량 은닉 사건 발생 가중치 (예약)",
+    "no_power_purchase": "전기 구매 금지 (예약)",
+    "night_watch": "밤 순찰 (예약)",
+    "dino_predict": "공룡 이동 예측 (예약)",
+    "spot_guide": "힐링 스팟 안내 (예약)"
+  },
+
+  "_role_evolution": {
+    "_comment": "세 번째 각인에서 역할이 진화한다. 이름은 임시(개발)이며 부족 신화에서 받은 이름으로 시나리오 에이전트가 교체할 것.",
+    "scout": "길잡이", "cook": "살림꾼", "medic": "치유사", "engineer": "잇는 손",
+    "farmer": "흙을 아는 자", "scholar": "베끼는 자", "trader": "말의 저울", "kid": "빨리 자란 아이"
+  },
+
+  "imprints": [
+    {
+      "id": "spore_mark",
+      "name": "포자의 표식",
+      "crisis": "infection",
+      "crisis_ko": "전염 (균류 감염 생존)",
+      "trigger": {"type": "event_survived", "event_ids": ["infection"], "factions": ["mycel"], "counter_tags": ["해독"], "id_prefixes": ["spore_", "infect_"], "flags": []},
+      "visual": {"keyword": "green_spots_on_skin", "ko": "피부의 녹색 반점",
+                 "line": "{name}의 목덜미에 옅은 녹색 반점이 돋았다. 그 밤을 견딘 자국이다."},
+      "effect": {"counter_bonus": {"해독": 0.3, "치료": 0.3}},
+      "cost": {"ko": "봄철 기침 — 생산이 조금 준다", "effect": {"production_penalty": 0.05}}
+    },
+    {
+      "id": "empty_stomach",
+      "name": "빈 위장",
+      "crisis": "starvation",
+      "crisis_ko": "굶주림 (식량이 바닥난 날을 넘김)",
+      "trigger": {"type": "event_survived", "event_ids": ["famine"], "factions": [], "counter_tags": ["보존"], "id_prefixes": ["famine_", "hunger_"], "flags": ["starvation_survived"]},
+      "visual": {"keyword": "gaunt_body_belt_relic", "ko": "마른 몸, 허리띠 유물",
+                 "line": "{name}의 허리에 낡은 띠 하나가 늘었다. 몸은 더 말랐고, 먹는 양은 줄었다."},
+      "effect": {"food_daily": -0.3},
+      "cost": {"ko": "식량을 몰래 숨긴다 — 사기 −1 사건이 생긴다", "effect": {"hoard_risk": 1}}
+    },
+    {
+      "id": "warden",
+      "name": "지킨 자",
+      "crisis": "raid",
+      "crisis_ko": "습격 (약탈자·기계에게 물자를 잃을 뻔함)",
+      "trigger": {"type": "event_survived", "event_ids": ["raid_scavs", "machine_patrol"], "factions": ["scavs", "machine"], "counter_tags": ["방어"], "id_prefixes": ["raid_"], "flags": []},
+      "visual": {"keyword": "face_scar_club", "ko": "얼굴 흉터, 방망이",
+                 "line": "{name}의 광대에 흉터가 남았다. 그날 이후 밤마다 입구 쪽을 한 번 더 본다."},
+      "effect": {"counter_bonus": {"방어": 0.3}, "night_watch": 1},
+      "cost": {"ko": "낯선 이를 경계한다 — 표류자 합류율이 떨어진다", "effect": {"drifter_rate": -0.2}}
+    },
+    {
+      "id": "sun_memory",
+      "name": "햇빛의 기억",
+      "crisis": "expedition",
+      "crisis_ko": "바깥 원정 (빛 게이지 만점 직전 귀환)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": ["탐사"], "id_prefixes": ["surface_", "expedition_"], "flags": ["expedition_returned"]},
+      "visual": {"keyword": "sunburnt_skin_veil", "ko": "그을린 피부, 베일",
+                 "line": "{name}의 피부가 붉게 그을렸다. 눈을 가리는 천을 손에서 놓지 않는다."},
+      "effect": {"light_cap": 0.2},
+      "cost": {"ko": "어둠이 답답해진다 — 지하 체류 사기 −1", "effect": {"morale_daily": -1}}
+    },
+    {
+      "id": "empty_seat",
+      "name": "빈 자리",
+      "crisis": "loss",
+      "crisis_ko": "상실 (가까운 주민의 부상·이별)",
+      "trigger": {"type": "state", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["ally_crisis", "companion_died"]},
+      "visual": {"keyword": "black_armband", "ko": "검은 팔띠",
+                 "line": "{name}의 팔에 검은 띠가 감겼다. 말수가 줄었고, 대신 남의 옆에 오래 앉아 있는다."},
+      "effect": {"morale_heal_others": 1},
+      "cost": {"ko": "자기 사기 회복이 느려진다", "effect": {"self_morale_recover": -1}}
+    },
+    {
+      "id": "footprint",
+      "name": "발자국",
+      "crisis": "dinosaur",
+      "crisis_ko": "공룡과의 조우 (도망 성공)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["dino_", "saur_"], "flags": ["dino_escaped"]},
+      "visual": {"keyword": "torn_clothes_tooth_necklace", "ko": "찢긴 옷, 이빨 목걸이",
+                 "line": "{name}의 옷이 어깨부터 찢겼다. 주워 온 이빨 하나를 목에 걸고 다닌다."},
+      "effect": {"dino_predict": 1},
+      "cost": {"ko": "밤에 잠을 못 잔다 — 야간 생산 0", "effect": {"night_production": -1}}
+    },
+    {
+      "id": "debt_paid",
+      "name": "갚은 자",
+      "crisis": "debt",
+      "crisis_ko": "불꽃 부족의 빚 청산",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["flame_debt", "debt_", "tribe_flame_debt"], "tribes": [], "flags": ["flame_debt_cleared"]},
+      "visual": {"keyword": "brass_bracelet", "ko": "놋쇠 팔찌",
+                 "line": "{name}의 손목에 놋쇠 팔찌가 채워졌다. 빚을 다 갚은 자만 찰 수 있는 것이다."},
+      "effect": {"power_cost": -0.2},
+      "cost": {"ko": "다시는 빚을 지지 않겠다 — 한동안 전기를 사지 못한다", "effect": {"no_power_purchase": 1}}
+    },
+    {
+      "id": "water_memory",
+      "name": "물의 기억",
+      "crisis": "healing_spot",
+      "crisis_ko": "힐링 스팟 최초 발견",
+      "trigger": {"type": "discovery", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["spot_", "healing_"], "flags": ["healing_spot_found"]},
+      "visual": {"keyword": "bright_eyes_wet_hair", "ko": "밝아진 눈, 젖은 머리",
+                 "line": "{name}의 머리가 아직 젖어 있다. 눈이 이상하게 밝다. 물을 본 사람의 눈이다."},
+      "effect": {"morale_cap": 2, "spot_guide": 1},
+      "cost": {"ko": "돌아온 뒤 사흘간 방주가 좁게 느껴진다", "effect": {"morale_daily": -1}, "duration_days": 3}
+    }
+  ]
+}

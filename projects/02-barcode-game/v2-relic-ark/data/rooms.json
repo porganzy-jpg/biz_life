@@ -1,0 +1,33 @@
+{
+  "_comment": "Phase 0 방 4종. cost = 건설에 필요한 자원, produces = 하루(오프라인 포함) 생산 카드/자원, counters = 이 방이 대항할 수 있는 사건 태그.",
+  "pantry": {
+    "name": "식량창고", "light": "#F2A93B", "tier": 1,
+    "cost": {"food": 6, "scrap": 2},
+    "produces": {"food": 2},
+    "counters": ["famine"],
+    "desc": "말린 실의 부적과 철 항아리를 쌓아두는 곳. 겨울에 방주를 살린다."
+  },
+  "well": {
+    "name": "정수실", "light": "#F2A93B", "tier": 1,
+    "cost": {"water": 6, "parts": 1},
+    "produces": {"water": 2},
+    "counters": ["drought"],
+    "adjacency_bonus": {"pantry": {"morale": 1}},
+    "desc": "투명한 강을 거른다. 식량창고 옆에 두면 주민 사기가 오른다."
+  },
+  "infirmary": {
+    "name": "의무실", "light": "#7DE0A8", "tier": 1,
+    "cost": {"med": 4, "cloth": 2},
+    "produces": {"counter_card": "heal"},
+    "counters": ["infection", "injury"],
+    "desc": "하얀 잠의 알과 정화의 물. 균류 전염이 돌면 이 방이 없는 방주는 무너진다."
+  },
+  "library": {
+    "name": "서고", "light": "#D4AF37", "tier": 1,
+    "cost": {"knowledge": 8, "cloth": 1},
+    "produces": {"blueprint_progress": 1},
+    "counters": ["confusion"],
+    "unlocks": ["workshop", "radio_tower"],
+    "desc": "읽을 수 없는 책들. 그러나 그림은 손을 움직이게 한다. 새 방의 청사진이 여기서 나온다."
+  }
+}

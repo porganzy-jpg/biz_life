@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>잔해 방주 — 캐릭터 후보 비교</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{--paper:#E8DFCB;--ink:#2B2A28;--lamp:#F2A93B;--concrete:#6E6A62;--line:rgba(43,42,40,.25)}
+*{box-sizing:border-box}
+body{margin:0;background:#1c1a17;color:var(--paper);font-family:"Noto Sans KR",system-ui,sans-serif;padding:20px 16px 60px}
+h1{font-family:"Noto Serif KR",serif;font-weight:900;font-size:1.5rem;margin:0 0 4px}
+.sub{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:#B8AE9C;letter-spacing:.08em;margin-bottom:22px}
+h2{font-family:"Noto Serif KR",serif;font-size:1.05rem;margin:28px 0 6px;color:var(--lamp)}
+h2 small{font-family:"JetBrains Mono",monospace;font-size:.62rem;color:#B8AE9C;margin-left:8px;font-weight:400}
+p.note{font-size:.82rem;color:#CFC2A7;margin:0 0 10px;max-width:70ch}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.card{background:radial-gradient(ellipse at 50% 70%,#3a3630,#23211d 70%);border:1px solid #4a4640;padding:10px 8px 6px;text-align:center;min-width:120px}
+.card img{display:block;margin:0 auto;height:var(--h,150px);width:auto;max-width:200px;image-rendering:auto;filter:drop-shadow(0 6px 6px rgba(0,0,0,.6))}
+.card .l{font-family:"JetBrains Mono",monospace;font-size:.6rem;color:#B8AE9C;margin-top:6px;letter-spacing:.06em}
+.card.tall img{--h:260px}
+.card.big img{--h:220px;max-width:320px}
+.verdict{margin-top:30px;border-top:1px solid #4a4640;padding-top:14px;font-size:.86rem;color:#DED3BB;max-width:78ch}
+.verdict b{color:var(--lamp)}
+.missing{display:none}
+</style>
+</head>
+<body>
+<h1>캐릭터 후보 비교</h1>
+<div class="sub">같은 아이소 카메라(방위 45° · 고도 32°)로 렌더 · 2026-09-20 · 이 페이지는 도구용</div>
+
+<h2>G · 정식 8역할 (Quaternius 기반) <small>tools/blender_chars_v2.py · static/models/chars/&lt;role&gt;.glb + static/art/chars/&lt;role&gt;_dl_b.png</small></h2>
+<p class="note"><b>채택본.</b> 역할마다 Quaternius 베이스를 고르고 원시 도형 소품을 아마추어 뼈(머리·손·몸통·허리)에 붙여 애니메이션을 따라가게 했다.
+피부는 창백한 살색(#efd9c8), 눈은 크고 어두운 구체 2쌍 — 200년 어둠에 적응한 몸(LORE_v2 §3). 옷 색은 <code>data/roles.json</code>의 body/accent.
+GLB에는 Idle·Walk·Run·PickUp·SitDown·StandUp·Death 7클립이 들어 있고 발이 원점, 몸 높이 1.6m(아이 1.2m)로 정규화되어 있다.</p>
+<div class="row" id="rowG"></div>
+<p class="note" style="margin-top:8px">뒷모습(ul) — 방주 안에서 위쪽으로 걸어갈 때.</p>
+<div class="row" id="rowGb"></div>
+
+<h2>A · 이전 치비 (원시 도형 직접 제작) <small>static/art/chars/legacy/&lt;role&gt;_dl_b.png · 보관용</small></h2>
+<p class="note">역할 시그니처는 읽히지만 형태가 투박하다. 얼굴·머리 변주가 없어 8명이 같은 인형처럼 보인다. (G로 대체됨)</p>
+<div class="row" id="rowA"></div>
+
+<h2>B · Kenney Blocky Characters <small>CC0 · GLB · 애니메이션 내장 · 18 스킨</small></h2>
+<p class="note">블록형 마인크래프트 계열. 텍스처 스킨으로 옷·얼굴이 그려져 있어 개성이 뚜렷하고, 걷기·달리기 애니메이션이 이미 들어 있다. 우리 방 타일(저폴리 소품)과 톤이 맞는다.</p>
+<div class="row" id="rowB"></div>
+
+<h2>C · Kenney Protagonists <small>CC0 · FBX · 실사 비율 · 스킨 4종</small></h2>
+<p class="note">사람 비율의 저폴리. 텐트 치고 물건 옮기는 "생존 일상" 연출에는 이 비율이 더 자연스러울 수 있다. 스킨(SVG)을 직접 그려 역할 의상을 만들 수 있다.</p>
+<div class="row" id="rowC"></div>
+
+<h2>F · Quaternius Ultimate Animated Characters <small>CC0 · 50+종 · 공용 골격 · Idle/Walk/Run/PickUp/Punch… 애니메이션</small></h2>
+<p class="note">스타일라이즈드 저폴리 인간형. 요리사(Chef)·의사(Doctor)·군인(Soldier)·카우보이·평상복 등 <b>우리 역할과 바로 대응되는 캐릭터</b>가 들어 있고, 골격이 공용이라 한 벌의 애니메이션(걷기·집기·때리기)을 전원이 공유한다. 파츠(모자·머리)도 따로 있어 조합 가능.</p>
+<div class="row" id="rowF"></div>
+
+<h2>D · 밖의 위협: Quaternius 공룡 <small>CC0 · FBX · 걷기·달리기·공격 애니메이션</small></h2>
+<p class="note">티렉스·벨로시랩터·트리케라톱스·스테고사우루스. 지상 타일과 스카이라인 사이를 배회하는 위협으로. 같은 카메라로 렌더해 방 타일 옆에 놓아도 스케일이 맞는다.</p>
+<div class="row" id="rowD"></div>
+
+<h2>E · AI 일러스트 (Pollinations) <small>역할별 전신 · UI/명단/카드용</small></h2>
+<p class="note">맵 위 스프라이트가 아니라 주민 명단·대화·카드에 쓰는 그림. Tile Survive 광고처럼 애니메이션풍 채색을 노렸다. 생성 서버 상태에 따라 비어 있을 수 있다.</p>
+<div class="row" id="rowE"></div>
+
+<div class="verdict">
+<b>결론(2026-09-20)</b> — <b>G</b>를 정식 채택했다. 8역할 모두 Quaternius 베이스 + 원시 도형 소품 + 창백한 피부·큰 눈으로 통일되어 있고, 공용 골격 덕분에 한 벌의 애니메이션을 전원이 공유한다. 실루엣 구분 장치: 정찰병=등짐, 요리사=높은 모자, 의무병=가슴의 붉은 십자, 기술자=시안 고글·밝은 렌치, 농부=넓은 밀짚모자, 학자=가슴에 안은 노란 책, 교섭가=챙 넓은 검은 모자·붉은 목도리, 아이=작은 키·노란 우비 후드.
+<br><br><b>이전 검토 기록</b> — 맵 스프라이트는 <b>F(Quaternius Ultimate)</b>를 기본으로. 요리사·의사·군인이 이미 있고, 공용 골격 덕에 걷기·집기(PickUp = 물건 가져오기!)·때리기 모션을 전원이 공유한다. 방 타일·공룡과 같은 저폴리 톤이다. 없는 역할(학자·교섭가·아이)은 Casual 계열 몸에 파츠(안경·모자)를 얹어 만든다. 블록 느낌을 원하면 <b>B(Kenney Blocky)</b>가 대안. 명단·대화·카드에는 E의 애니풍 일러스트를 역할별로 1장씩. 밖에는 D의 공룡이 낮에는 멀리, 밤에는 가까이 배회한다.
+</div>
+
+<script>
+const grid = (id, files, cls) => { const r = document.getElementById(id); files.forEach(([src, label]) => { const c = document.createElement('div'); c.className = 'card ' + (cls || ''); c.innerHTML = `<img alt="" src="${src}"><div class="l">${label}</div>`; c.querySelector('img').onerror = () => c.classList.add('missing'); r.appendChild(c); }); };
+const roles = ['scout', 'cook', 'medic', 'engineer', 'farmer', 'scholar', 'trader', 'kid'];
+const KO = { scout: '정찰병', cook: '요리사', medic: '의무병', engineer: '기술자', farmer: '농부', scholar: '학자', trader: '교섭가', kid: '아이' };
+grid('rowG', roles.map(r => [`/static/art/chars/${r}_dl_b.png?v=2`, KO[r]]));
+grid('rowGb', roles.map(r => [`/static/art/chars/${r}_ul_b.png?v=2`, KO[r]]));
+grid('rowA', roles.map(r => [`/static/art/chars/legacy/${r}_dl_b.png`, KO[r] + ' (구)']));
+grid('rowB', 'abcdef'.split('').map(ch => [`/static/art/charshow/kb_character-${ch}.png`, 'character-' + ch]));
+grid('rowC', ['skaterFemaleA', 'criminalMaleA', 'cyborgFemaleA', 'skaterMaleA'].map(s => [`/static/art/charshow/kp_${s}.png`, s]));
+grid('rowF', ['Chef_PickUp', 'Chef_Male', 'Doctor_Female_Young', 'BlueSoldier_Male', 'Casual_Female', 'Cowboy_Male', 'Casual2_Male'].map(s => [`/static/art/charshow/qc_${s}.png`, s]));
+grid('rowD', ['Trex', 'Velociraptor', 'Triceratops', 'Stegosaurus'].map(s => [`/static/art/charshow/qd_${s}.png`, s]), 'big');
+grid('rowE', roles.map(r => [`/static/art/portraits/${r}.jpg`, KO[r]]), 'tall');
+</script>
+</body>
+</html>

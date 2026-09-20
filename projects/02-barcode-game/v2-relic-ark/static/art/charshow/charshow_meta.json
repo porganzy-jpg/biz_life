@@ -1,0 +1,280 @@
+{
+ "kb_character-a": {
+  "actions": [
+   "attack-kick-left",
+   "attack-kick-right",
+   "attack-melee-left",
+   "attack-melee-right",
+   "die",
+   "drive",
+   "emote-no",
+   "emote-yes",
+   "holding-both",
+   "holding-both-shoot",
+   "holding-left",
+   "holding-left-shoot",
+   "holding-right",
+   "holding-right-shoot",
+   "idle",
+   "interact-left",
+   "interact-right",
+   "pick-up",
+   "sit",
+   "sprint",
+   "static",
+   "walk",
+   "wheelchair-move-back",
+   "wheelchair-move-forward",
+   "wheelchair-move-left",
+   "wheelchair-move-right",
+   "wheelchair-sit"
+  ],
+  "used": "walk",
+  "height": 1.7
+ },
+ "kb_character-b": {
+  "actions": [
+   "attack-kick-left",
+   "attack-kick-right",
+   "attack-melee-left",
+   "attack-melee-right",
+   "die",
+   "drive",
+   "emote-no",
+   "emote-yes",
+   "holding-both",
+   "holding-both-shoot",
+   "holding-left",
+   "holding-left-shoot",
+   "holding-right",
+   "holding-right-shoot",
+   "idle",
+   "interact-left",
+   "interact-right",
+   "pick-up",
+   "sit",
+   "sprint",
+   "static",
+   "walk",
+   "wheelchair-move-back",
+   "wheelchair-move-forward",
+   "wheelchair-move-left",
+   "wheelchair-move-right",
+   "wheelchair-sit"
+  ],
+  "used": "walk",
+  "height": 1.7
+ },
+ "kb_character-c": {
+  "actions": [
+   "attack-kick-left",
+   "attack-kick-right",
+   "attack-melee-left",
+   "attack-melee-right",
+   "die",
+   "drive",
+   "emote-no",
+   "emote-yes",
+   "holding-both",
+   "holding-both-shoot",
+   "holding-left",
+   "holding-left-shoot",
+   "holding-right",
+   "holding-right-shoot",
+   "idle",
+   "interact-left",
+   "interact-right",
+   "pick-up",
+   "sit",
+   "sprint",
+   "static",
+   "walk",
+   "wheelchair-move-back",
+   "wheelchair-move-forward",
+   "wheelchair-move-left",
+   "wheelchair-move-right",
+   "wheelchair-sit"
+  ],
+  "used": "walk",
+  "height": 1.7
+ },
+ "kb_character-d": {
+  "actions": [
+   "attack-kick-left",
+   "attack-kick-right",
+   "attack-melee-left",
+   "attack-melee-right",
+   "die",
+   "drive",
+   "emote-no",
+   "emote-yes",
+   "holding-both",
+   "holding-both-shoot",
+   "holding-left",
+   "holding-left-shoot",
+   "holding-right",
+   "holding-right-shoot",
+   "idle",
+   "interact-left",
+   "interact-right",
+   "pick-up",
+   "sit",
+   "sprint",
+   "static",
+   "walk",
+   "wheelchair-move-back",
+   "wheelchair-move-forward",
+   "wheelchair-move-left",
+   "wheelchair-move-right",
+   "wheelchair-sit"
+  ],
+  "used": "walk",
+  "height": 1.7
+ },
+ "kb_character-e": {
+  "actions": [
+   "attack-kick-left",
+   "attack-kick-right",
+   "attack-melee-left",
+   "attack-melee-right",
+   "die",
+   "drive",
+   "emote-no",
+   "emote-yes",
+   "holding-both",
+   "holding-both-shoot",
+   "holding-left",
+   "holding-left-shoot",
+   "holding-right",
+   "holding-right-shoot",
+   "idle",
+   "interact-left",
+   "interact-right",
+   "pick-up",
+   "sit",
+   "sprint",
+   "static",
+   "walk",
+   "wheelchair-move-back",
+   "wheelchair-move-forward",
+   "wheelchair-move-left",
+   "wheelchair-move-right",
+   "wheelchair-sit"
+  ],
+  "used": "walk",
+  "height": 1.7
+ },
+ "kb_character-f": {
+  "actions": [
+   "attack-kick-left",
+   "attack-kick-right",
+   "attack-melee-left",
+   "attack-melee-right",
+   "die",
+   "drive",
+   "emote-no",
+   "emote-yes",
+   "holding-both",
+   "holding-both-shoot",
+   "holding-left",
+   "holding-left-shoot",
+   "holding-right",
+   "holding-right-shoot",
+   "idle",
+   "interact-left",
+   "interact-right",
+   "pick-up",
+   "sit",
+   "sprint",
+   "static",
+   "walk",
+   "wheelchair-move-back",
+   "wheelchair-move-forward",
+   "wheelchair-move-left",
+   "wheelchair-move-right",
+   "wheelchair-sit"
+  ],
+  "used": "walk",
+  "height": 1.7
+ },
+ "kp_skaterFemaleA": {
+  "actions": [
+   "Root.001|Root|0.Targeting Pose",
+   "Root.001|Root|Run"
+  ],
+  "used": "Root.001|Root|0.Targeting Pose",
+  "height": 1.8
+ },
+ "kp_criminalMaleA": {
+  "actions": [
+   "Root.001|Root|0.Targeting Pose",
+   "Root.001|Root|Run"
+  ],
+  "used": "Root.001|Root|0.Targeting Pose",
+  "height": 1.8
+ },
+ "kp_cyborgFemaleA": {
+  "actions": [
+   "Root.001|Root|0.Targeting Pose",
+   "Root.001|Root|Run"
+  ],
+  "used": "Root.001|Root|0.Targeting Pose",
+  "height": 1.8
+ },
+ "kp_skaterMaleA": {
+  "actions": [
+   "Root.001|Root|0.Targeting Pose",
+   "Root.001|Root|Run"
+  ],
+  "used": "Root.001|Root|0.Targeting Pose",
+  "height": 1.8
+ },
+ "qd_Trex": {
+  "actions": [
+   "Armature|Armature|TRex_Attack",
+   "Armature|Armature|TRex_Death",
+   "Armature|Armature|TRex_Idle",
+   "Armature|Armature|TRex_Jump",
+   "Armature|Armature|TRex_Run",
+   "Armature|Armature|TRex_Walk"
+  ],
+  "used": "Armature|Armature|TRex_Walk",
+  "height": 5.0
+ },
+ "qd_Velociraptor": {
+  "actions": [
+   "Armature|Armature|Velociraptor_Attack",
+   "Armature|Armature|Velociraptor_Death",
+   "Armature|Armature|Velociraptor_Idle",
+   "Armature|Armature|Velociraptor_Jump",
+   "Armature|Armature|Velociraptor_Run",
+   "Armature|Armature|Velociraptor_Walk"
+  ],
+  "used": "Armature|Armature|Velociraptor_Walk",
+  "height": 2.0
+ },
+ "qd_Triceratops": {
+  "actions": [
+   "Armature|Armature|Triceratops_Attack",
+   "Armature|Armature|Triceratops_Death",
+   "Armature|Armature|Triceratops_Idle",
+   "Armature|Armature|Triceratops_Jump",
+   "Armature|Armature|Triceratops_Run",
+   "Armature|Armature|Triceratops_Walk"
+  ],
+  "used": "Armature|Armature|Triceratops_Walk",
+  "height": 3.0
+ },
+ "qd_Stegosaurus": {
+  "actions": [
+   "Armature|Armature|Stegosaurus_Attack",
+   "Armature|Armature|Stegosaurus_Death",
+   "Armature|Armature|Stegosaurus_Idle",
+   "Armature|Armature|Stegosaurus_Jump",
+   "Armature|Armature|Stegosaurus_Run",
+   "Armature|Armature|Stegosaurus_Walk"
+  ],
+  "used": "Armature|Armature|Stegosaurus_Walk",
+  "height": 3.2
+ }
+}

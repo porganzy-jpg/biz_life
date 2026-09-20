@@ -1,0 +1,75 @@
+{
+  "_comment": "GS1 접두어(3)+제조사코드(4) → 제조 가문. Phase 0에서는 유저 스캔으로 채워 넣는 크라우드소싱 시드. 카테고리는 유물 판정 우선순위 2단계.",
+  "8801043": {
+    "name": "농심 가문",
+    "category": "food"
+  },
+  "8801062": {
+    "name": "롯데 가문",
+    "category": "food"
+  },
+  "8801019": {
+    "name": "오리온 가문",
+    "category": "food"
+  },
+  "8801111": {
+    "name": "크라운 가문",
+    "category": "food"
+  },
+  "8801007": {
+    "name": "해태 가문",
+    "category": "food"
+  },
+  "8801037": {
+    "name": "동서 가문",
+    "category": "drink"
+  },
+  "8801094": {
+    "name": "코카콜라(한국) 가문",
+    "category": "drink"
+  },
+  "8801056": {
+    "name": "삼다수 가문",
+    "category": "drink"
+  },
+  "8806011": {
+    "name": "아모레 가문",
+    "category": "medical"
+  },
+  "8801046": {
+    "name": "유한 가문",
+    "category": "medical"
+  },
+  "8801051": {
+    "name": "동아 가문",
+    "category": "medical"
+  },
+  "8806085": {
+    "name": "삼성 가문",
+    "category": "electronics"
+  },
+  "8806091": {
+    "name": "LG 가문",
+    "category": "electronics"
+  },
+  "8801067": {
+    "name": "벡셀 가문",
+    "category": "electronics"
+  },
+  "8809000": {
+    "name": "모나미 가문",
+    "category": "stationery"
+  },
+  "8801104": {
+    "name": "KT&G 가문",
+    "category": "tobacco"
+  },
+  "8801100": {
+    "name": "하이트진로 가문",
+    "category": "tobacco"
+  },
+  "8801128": {
+    "name": "오비 가문",
+    "category": "tobacco"
+  }
+}

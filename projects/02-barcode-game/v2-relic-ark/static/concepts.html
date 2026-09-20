@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새 게임 컨셉 화면 4종</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@400;700;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{--paper:#F3ECDB;--ink:#2B2A28;--lamp:#F2A93B;--teal:#3fc1b0;--koi:#ff7a2a;--leaf:#6fb35a;--danger:#D9483B;--serif:"Noto Serif KR",serif;--sans:"Noto Sans KR",sans-serif;--mono:"JetBrains Mono",monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0e0d0b;overflow:hidden;font-family:var(--sans);color:var(--paper);display:flex;align-items:center;justify-content:center}
+#stage{position:relative;overflow:hidden;background:#141311}
+.abs{position:absolute}
+.plate{position:absolute;pointer-events:none}
+.tile{position:absolute;width:320px;height:320px;filter:drop-shadow(0 10px 12px rgba(0,0,0,.5))}
+.spr{position:absolute;filter:drop-shadow(0 4px 4px rgba(0,0,0,.6))}
+.spr.flip{transform:scaleX(-1)}
+.label{position:absolute;left:14px;bottom:10px;font:600 10px var(--mono);letter-spacing:.14em;color:#8C8677;z-index:99}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 60%,rgba(0,0,0,.5) 100%)}
+/* 공용 UI */
+.pill{font:600 11px var(--mono);background:rgba(20,19,17,.75);border:1px solid rgba(243,236,219,.2);padding:4px 9px;border-radius:14px;color:var(--paper)}
+.pill b{color:var(--lamp)}
+.btn{font:900 13px var(--sans);border:0;border-radius:10px;padding:10px 16px;color:#2B2A28;background:linear-gradient(180deg,#ffd27a,#f2a93b);box-shadow:0 4px 0 #a86f1c,0 8px 16px rgba(0,0,0,.4)}
+.btn.teal{background:linear-gradient(180deg,#8fe9dc,#3fc1b0);box-shadow:0 4px 0 #1e7a6e,0 8px 16px rgba(0,0,0,.4)}
+.btn.ghost{background:rgba(243,236,219,.9)}
+.water{position:absolute;border-radius:50%;background:radial-gradient(ellipse at 50% 40%,rgba(120,230,215,.85),rgba(50,170,165,.7) 60%,rgba(30,120,130,.5));box-shadow:inset 0 0 40px rgba(255,255,255,.45);overflow:hidden}
+.water::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,rgba(255,255,255,.18) 0 6px,transparent 6px 26px);mix-blend-mode:screen}
+.koi{position:absolute;width:26px;height:12px;border-radius:12px 14px 6px 6px;background:linear-gradient(90deg,#ff8a3a,#ffb36b);box-shadow:0 0 6px rgba(255,120,40,.5)}
+.koi::after{content:"";position:absolute;right:-8px;top:2px;border:6px solid transparent;border-left:10px solid #ff8a3a}
+.card{position:relative;border-radius:10px;background:#F3ECDB;color:var(--ink);padding:6px;box-shadow:0 6px 14px rgba(0,0,0,.45);border:2px solid rgba(43,42,40,.5)}
+.card .n{font:700 11px var(--serif);line-height:1.2}
+.card .a{background:#6E6A62 center/cover;border-radius:6px;margin:5px 0}
+.card .t{font:600 8px var(--mono);color:#6E6A62}
+.card .stars{position:absolute;top:6px;right:8px;font-size:10px;color:#e0a72f;text-shadow:0 1px 0 #000}
+.card.r3{border-color:#4FB7E6}.card.r4{border-color:#a86dd8;background:linear-gradient(180deg,#f3ecdb,#e9dcf5)}.card.r5{border-color:#e0a72f;background:linear-gradient(135deg,#f6e7b8,#e0b54a 50%,#f6e7b8)}
+.speech{position:absolute;background:#fff;color:#2B2A28;font:700 11px var(--sans);padding:5px 9px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,.3);white-space:nowrap}
+.speech::after{content:"";position:absolute;left:14px;bottom:-6px;border:6px solid transparent;border-top-color:#fff;border-bottom:0}
+.tab{font:700 11px var(--sans);color:#CFC2A7;text-align:center}
+.tab i{display:block;width:44px;height:44px;border-radius:14px;margin:0 auto 3px;background:rgba(243,236,219,.12);border:1px solid rgba(243,236,219,.18)}
+.tab.on{color:var(--lamp)}.tab.on i{background:rgba(242,169,59,.25);border-color:var(--lamp)}
+.badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:var(--danger);color:#fff;font:700 9px var(--mono);display:flex;align-items:center;justify-content:center;padding:0 4px}
+.timer{font:600 10px var(--mono);color:#ffd27a}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const V = new URLSearchParams(location.search).get('v') || 'A';
+const S = document.getElementById('stage');
+const W = 554.2, H = 391.8, FX = 320, FY = 571.3, RES = 640;
+const tile = (id, i, j, ox, oy, s = .5, extra = '') => { const x = ox + (i - j) * W * s / 2, y = oy + (i + j) * H * s / 2; return `<img class="tile" src="/static/art/iso/${id}.png" style="left:${x - FX * s}px;top:${y - FY * s}px;width:${RES * s}px;height:${RES * s}px;z-index:${10 + i + j};${extra}">`; };
+const spr = (role, x, y, h = 74, flip = false, z = 40, dir = 'dl') => `<img class="spr ${flip ? 'flip' : ''}" src="/static/art/chars/${role}_${dir}_b.png" style="left:${x}px;top:${y}px;height:${h}px;z-index:${z}">`;
+const koi = (x, y, r = 0, k = 1) => `<div class="koi" style="left:${x}px;top:${y}px;transform:rotate(${r}deg) scale(${k})"></div>`;
+let html = '', size = [1280, 720];
+
+if (V === 'A') {
+  // ── A. 「잔해 정원」 코지 재건 라이프 — 동물의 숲 × 스타듀 × 우리 힐링 이미지
+  html = `
+  <img class="plate" src="/static/art/surface.jpg" style="left:-40px;top:-60px;width:1400px;height:420px;object-fit:cover;filter:saturate(1.3) brightness(1.15) hue-rotate(-6deg);-webkit-mask:linear-gradient(180deg,#000 60%,transparent);mask:linear-gradient(180deg,#000 60%,transparent)">
+  <img class="plate" src="/static/art/iso/ground_surface.png" style="left:-120px;top:60px;width:1500px;filter:saturate(1.45) brightness(1.2) hue-rotate(-10deg)">
+  <div class="water" style="left:640px;top:330px;width:560px;height:300px;z-index:5"></div>
+  ${koi(760, 420, 15)}${koi(900, 470, -20, 1.3)}${koi(1010, 400, 40)}${koi(840, 540, -60, .9)}${koi(1080, 520, 10, 1.1)}
+  ${tile('mall_camp', 0, 0, 380, 260, .55)}${tile('lot', -1, 0, 380, 260, .55)}${tile('mall_food', 0, -1, 380, 260, .55)}${tile('mall_escalator', 1, -1, 380, 260, .55)}
+  <div class="abs" style="left:150px;top:470px;width:210px;height:80px;background:repeating-linear-gradient(90deg,#4d6b34 0 22px,#3b5a2a 22px 44px);border:3px solid #6e5336;border-radius:6px;z-index:12;transform:skewX(-30deg) rotate(8deg)"></div>
+  ${spr('farmer', 210, 430, 80, false, 50)}${spr('cook', 470, 380, 80, true, 50)}${spr('kid', 560, 330, 60, false, 50)}${spr('scholar', 700, 300, 80, false, 50, 'ul')}
+  <div class="speech" style="left:470px;top:340px">오늘 라면 3봉 들어왔어!</div>
+  <div class="speech" style="left:215px;top:395px">상추가 잘 자라네</div>
+  <div class="abs" style="left:690px;top:280px;width:34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font:900 18px var(--serif);box-shadow:0 0 16px var(--teal);z-index:60">!</div>
+  <div class="abs" style="left:728px;top:284px;font:700 11px var(--sans);text-shadow:0 1px 2px #000;z-index:60">서고 부족 손님 도착</div>
+  <div class="abs" style="left:14px;top:12px;display:flex;gap:6px;z-index:90"><span class="pill">🍜 <b>14</b></span><span class="pill">💧 <b>9</b></span><span class="pill">🌱 <b>22</b></span><span class="pill">🐟 <b>3/12</b></span><span class="pill">✿ 봄 · 12일</span></div>
+  <div class="abs" style="right:14px;top:12px;display:flex;gap:6px;z-index:90"><span class="pill">♥ 마을 행복 <b>78</b></span><span class="pill">👥 주민 <b>6</b></span><span class="pill">⭐ <b>1,240</b></span></div>
+  <div class="abs" style="left:50%;top:10px;transform:translateX(-50%);text-align:center;z-index:90"><div style="font:900 18px var(--serif);text-shadow:0 2px 0 #000">잔해 정원</div><div style="font:600 9px var(--mono);letter-spacing:.24em;color:#CFC2A7">RUIN GARDEN · 우리 편의점 마을</div></div>
+  <div class="abs" style="right:14px;bottom:88px;width:250px;background:rgba(20,19,17,.72);border:1px solid rgba(243,236,219,.18);border-radius:12px;padding:10px 12px;z-index:90">
+    <div style="font:700 12px var(--sans);margin-bottom:6px">오늘의 부탁 <span class="timer">· 13:42 남음</span></div>
+    <div style="font:400 11px var(--sans);color:#DED3BB;line-height:1.5">🐟 금붕어 연못에 잉어 2마리 더<br>📚 서고 손님에게 책 스캔 1권<br>🏕 텐트 옆에 화분 놓기 <span style="color:var(--leaf)">✓</span></div></div>
+  <div class="abs" style="left:14px;bottom:88px;display:flex;flex-direction:column;gap:6px;z-index:90"><button class="btn">▥ 물건 스캔해서 채우기<div style="font:400 9px var(--mono)">현실의 물건 → 진열대</div></button><button class="btn teal">🌿 꾸미기</button></div>
+  <div class="abs" style="left:0;right:0;bottom:0;height:78px;background:linear-gradient(180deg,rgba(14,13,11,0),rgba(14,13,11,.9) 40%);display:flex;justify-content:center;gap:26px;align-items:flex-end;padding-bottom:10px;z-index:90">
+    <div class="tab on"><i></i>마을</div><div class="tab"><i></i>도감<span class="badge" style="position:relative;display:inline-flex;top:-40px;left:14px">3</span></div><div class="tab"><i></i>연못</div><div class="tab"><i></i>손님</div><div class="tab"><i></i>친구 마을</div></div>
+  <div class="label">CONCEPT A · 잔해 정원 — 코지 재건 라이프 (동물의 숲 × 스타듀 밸리 × 힐링 스팟) · 가로</div>`;
+} else if (V === 'B') {
+  // ── B. 「마지막 마트」 영웅 수집 SLG — Whiteout Survival 공식, 세로
+  size = [720, 1280];
+  html = `
+  <img class="plate" src="/static/art/surface.jpg" style="left:-200px;top:-40px;width:1200px;height:520px;object-fit:cover;filter:saturate(1.2) brightness(.9);-webkit-mask:linear-gradient(180deg,#000 55%,transparent);mask:linear-gradient(180deg,#000 55%,transparent)">
+  <img class="plate" src="/static/art/iso/ground_surface.png" style="left:-300px;top:120px;width:1300px;filter:saturate(1.2) brightness(1.05)">
+  <div class="abs" style="left:0;right:0;top:120px;height:560px;background:radial-gradient(ellipse at 50% 70%,transparent 25%,rgba(212,204,187,.75) 60%,rgba(200,190,170,.92));z-index:6"></div>
+  ${tile('mall_camp', 0, 0, 360, 560, .62)}${tile('mall_food', 1, 0, 360, 560, .62)}${tile('hall', 0, 1, 360, 560, .62)}${tile('lot', -1, 0, 360, 560, .62)}${tile('lot', 1, -1, 360, 560, .62)}${tile('rock', 1, 1, 360, 560, .62)}
+  <div class="abs" style="left:330px;top:560px;z-index:30;text-align:center"><div style="font:600 9px var(--mono);background:rgba(20,19,17,.8);padding:2px 6px;border-radius:4px">본부 Lv.12</div></div>
+  <div class="abs" style="left:170px;top:700px;z-index:30;text-align:center"><div style="font:600 9px var(--mono);background:rgba(20,19,17,.8);padding:2px 6px;border-radius:4px;color:var(--lamp)">⏱ 식품관 업그레이드 04:12</div></div>
+  <div class="abs" style="left:470px;top:660px;z-index:30"><div style="font:600 9px var(--mono);background:rgba(217,72,59,.85);padding:2px 6px;border-radius:4px">⚠ 랩터 습격 D-1 02:30:11</div></div>
+  <div class="abs" style="left:520px;top:240px;width:70px;height:70px;z-index:8;opacity:.6"><img src="/static/art/charshow/qd_Trex.png" style="height:100%"></div>
+  <div class="abs" style="left:120px;top:300px;width:40px;height:40px;border-radius:50%;background:rgba(20,19,17,.7);border:2px solid var(--teal);display:flex;align-items:center;justify-content:center;font:900 16px var(--serif);color:var(--teal);z-index:8">?</div>
+  <div class="abs" style="left:0;right:0;top:0;padding:12px 12px 0;display:flex;justify-content:space-between;z-index:90">
+    <div style="display:flex;gap:8px;align-items:center"><div style="width:56px;height:56px;border-radius:12px;border:2px solid var(--lamp);background:url(/static/art/res_1.jpg) center/cover"></div><div><div style="font:900 14px var(--sans)">해독자 <span style="color:var(--lamp)">Lv.27</span></div><div style="height:6px;width:120px;background:#333;border-radius:3px"><div style="width:62%;height:100%;background:var(--lamp);border-radius:3px"></div></div></div></div>
+    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="pill">🍜 <b>18.2K</b> 💧 <b>9.4K</b> ⚡ <b>3.1K</b></span><span class="pill">💎 <b>1,260</b> <span style="color:#6fb35a">＋</span></span></div></div>
+  <div class="abs" style="left:12px;top:110px;display:flex;flex-direction:column;gap:6px;z-index:90">
+    <div class="pill" style="border-color:var(--lamp)">🎁 7일 출석 <b>D4</b></div><div class="pill">🏆 연맹 이벤트 <b>2h</b></div><div class="pill">📦 성문 팩 <b>2/2</b></div></div>
+  <div class="abs" style="right:12px;top:110px;display:flex;flex-direction:column;gap:6px;z-index:90;text-align:right">
+    <div class="pill" style="border-color:var(--danger)">🦖 서버 진화 <b>7세대</b></div><div class="pill">🤝 연맹 <b>잔해길손</b> 28/30</div></div>
+  <div class="abs" style="left:0;right:0;top:770px;padding:0 12px;z-index:90">
+    <div style="font:900 14px var(--sans);margin-bottom:6px">영웅 <span style="font:400 10px var(--mono);color:#B8AE9C">— 부족의 힘을 모아라</span></div>
+    <div style="display:flex;gap:8px">
+      <div class="card r5" style="width:120px"><span class="stars">★★★★★</span><div class="n">가람 · 길손</div><div class="a" style="height:90px;background-image:url(/static/art/chars/scout_dl_b.png);background-size:contain;background-repeat:no-repeat;background-color:#2a2723"></div><div class="t">정찰 +40% · 각인 3</div></div>
+      <div class="card r4" style="width:120px"><span class="stars">★★★★</span><div class="n">누리 · 하얀</div><div class="a" style="height:90px;background-image:url(/static/art/chars/medic_dl_b.png);background-size:contain;background-repeat:no-repeat;background-color:#2a2723"></div><div class="t">회복 ×2</div></div>
+      <div class="card r4" style="width:120px"><span class="stars">★★★★</span><div class="n">바람 · 불꽃</div><div class="a" style="height:90px;background-image:url(/static/art/chars/engineer_dl_b.png);background-size:contain;background-repeat:no-repeat;background-color:#2a2723"></div><div class="t">건설 −20%</div></div>
+      <div class="card r3" style="width:120px"><span class="stars">★★★</span><div class="n">이슬 · 진열대</div><div class="a" style="height:90px;background-image:url(/static/art/chars/cook_dl_b.png);background-size:contain;background-repeat:no-repeat;background-color:#2a2723"></div><div class="t">식량 +1</div></div>
+      <div class="card" style="width:120px;display:flex;align-items:center;justify-content:center;border-style:dashed"><div style="text-align:center;font:700 11px var(--sans);color:#6E6A62">＋<br>성문 팩<br>열기</div></div></div></div>
+  <div class="abs" style="left:0;right:0;bottom:118px;display:flex;justify-content:center;gap:10px;z-index:90"><button class="btn" style="font-size:15px;padding:12px 22px">▥ 성문 스캔 (영웅·장비 획득)</button><button class="btn ghost">⚔ 원정</button></div>
+  <div class="abs" style="left:0;right:0;bottom:0;height:100px;background:linear-gradient(180deg,rgba(14,13,11,0),rgba(14,13,11,.95) 30%);display:flex;justify-content:space-around;align-items:flex-end;padding-bottom:16px;z-index:90">
+    <div class="tab on"><i></i>본부</div><div class="tab"><i></i>영웅<span class="badge" style="position:relative;display:inline-flex;top:-42px;left:12px">!</span></div><div class="tab"><i></i>지도</div><div class="tab"><i></i>연맹</div><div class="tab"><i></i>이벤트<span class="badge" style="position:relative;display:inline-flex;top:-42px;left:8px">5</span></div></div>
+  <div class="label" style="bottom:auto;top:700px;left:14px">CONCEPT B · 마지막 마트 — 영웅 수집 SLG (Whiteout Survival · Last War 공식) · 세로</div>`;
+} else if (V === 'C') {
+  // ── C. 「노선 원정」 덱빌딩 로그라이크 — 슬레이 더 스파이어 × 다키스트 던전 × Sky
+  html = `
+  <div class="abs" style="inset:0;background:radial-gradient(ellipse at 50% 40%,#233028,#0e0d0b 70%)"></div>
+  <img class="plate" src="/static/art/iso/ground_under.png" style="left:-200px;top:-140px;width:1700px;filter:brightness(.55) saturate(.9)">
+  <!-- 노선 노드 맵 -->
+  <svg class="abs" style="left:0;top:0;width:1280px;height:720px;z-index:8" viewBox="0 0 1280 720">
+    <path d="M120 600 C 220 560, 260 470, 330 440 S 480 420, 520 350 S 640 300, 700 320 S 820 260, 880 200 S 1000 150, 1120 120" stroke="#F2A93B" stroke-width="5" fill="none" stroke-dasharray="1 0" opacity=".9"/>
+    <path d="M330 440 C 380 520, 470 560, 560 540 S 700 500, 760 460" stroke="#6E6A62" stroke-width="4" fill="none" stroke-dasharray="10 8" opacity=".7"/>
+    <path d="M700 320 C 760 400, 840 420, 920 380 S 1060 360, 1140 300" stroke="#6E6A62" stroke-width="4" fill="none" stroke-dasharray="10 8" opacity=".7"/>
+    ${[[120,600,'#F2A93B','⌂'],[330,440,'#F2A93B','✓'],[520,350,'#F2A93B','✓'],[700,320,'#ffd27a','●'],[880,200,'#6E6A62','?'],[1120,120,'#3fc1b0','✿'],[560,540,'#D9483B','☠'],[760,460,'#6E6A62','$'],[920,380,'#6E6A62','?'],[1140,300,'#a86dd8','♜']].map(([x,y,c,t])=>`<circle cx="${x}" cy="${y}" r="22" fill="#1a1713" stroke="${c}" stroke-width="3"/><text x="${x}" y="${y+6}" text-anchor="middle" font-size="18" fill="${c}" font-family="serif" font-weight="900">${t}</text>`).join('')}
+  </svg>
+  <div class="abs" style="left:1060px;top:40px;width:200px;text-align:center;z-index:9"><div style="font:600 9px var(--mono);letter-spacing:.14em;color:var(--teal)">종착 · 힐링 스팟</div><div style="font:700 13px var(--serif)">물에 잠긴 전철</div></div>
+  <div class="abs" style="left:60px;top:560px;font:600 9px var(--mono);letter-spacing:.14em;color:var(--lamp);z-index:9">출발 · 잊힌 역</div>
+  <!-- 현재 노드 장면: 인카운터 -->
+  <div class="abs" style="left:330px;top:60px;width:620px;height:250px;border-radius:14px;overflow:hidden;border:2px solid rgba(243,236,219,.25);box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:20;background:#1a1713">
+    <img src="/static/art/iso/hall.png" style="position:absolute;left:-40px;top:-150px;width:700px;filter:brightness(.7) saturate(.9)">
+    <div class="abs" style="inset:0;background:linear-gradient(90deg,rgba(26,23,19,.2),transparent 40%,rgba(26,23,19,.6))"></div>
+    ${spr('scout', 110, 130, 84, true, 25)}${spr('medic', 60, 150, 84, true, 25)}${spr('trader', 160, 160, 84, true, 25)}
+    <div class="abs" style="left:420px;top:60px;width:160px;height:140px;opacity:.9;filter:drop-shadow(0 0 10px rgba(217,72,59,.6))"><img src="/static/art/charshow/qd_Velociraptor.png" style="height:100%;transform:scaleX(-1)"></div>
+    <div class="abs" style="left:14px;top:12px;font:600 9px var(--mono);letter-spacing:.14em;color:var(--danger)">노드 4 / 7 · 조우</div>
+    <div class="abs" style="left:14px;top:26px;font:900 18px var(--serif);text-shadow:0 2px 0 #000">터널 속 랩터 두 마리</div>
+    <div class="abs" style="left:420px;top:30px;font:600 11px var(--mono);color:#fff;background:rgba(217,72,59,.85);padding:2px 8px;border-radius:4px">HP 24 · 의도: 물어뜯기 6</div>
+    <div class="abs" style="left:14px;bottom:10px;display:flex;gap:6px"><span class="pill">🔥 사기 <b>7</b>/10</span><span class="pill">☀ 빛 <b>41%</b></span><span class="pill">🎒 유물 <b>5</b></span><span class="pill">⏳ 해 지기까지 <b>3</b>노드</span></div></div>
+  <!-- 손패 -->
+  <div class="abs" style="left:50%;bottom:16px;transform:translateX(-50%);display:flex;gap:10px;align-items:flex-end;z-index:30">
+    <div class="card" style="width:112px"><div class="n">빛 실 <span style="float:right;background:#3fc1b0;color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px">1</span></div><div class="a" style="height:64px;background-image:url(/static/art/card_13.jpg)"></div><div class="t">조명 · 랩터 2턴 위축</div></div>
+    <div class="card r3" style="width:112px;transform:translateY(-16px);box-shadow:0 0 0 3px var(--lamp),0 10px 20px rgba(0,0,0,.5)"><div class="n">거품 우는 병 <span style="float:right;background:#3fc1b0;color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px">1</span></div><div class="a" style="height:64px;background-image:url(/static/art/card_05.jpg)"></div><div class="t">소음 · 도주 확률 +30%</div></div>
+    <div class="card" style="width:112px"><div class="n">개 · 재 <span style="float:right;background:#3fc1b0;color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px">0</span></div><div class="a" style="height:64px;background:#3a2e22"></div><div class="t">짐승 · 위협 감지, 매 턴</div></div>
+    <div class="card r4" style="width:112px"><div class="n">정화의 물 <span style="float:right;background:#3fc1b0;color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px">2</span></div><div class="a" style="height:64px;background-image:url(/static/art/card_09.jpg)"></div><div class="t">회복 8 · 포자 제거</div></div>
+    <div class="card" style="width:112px"><div class="n">말린 실 미끼 <span style="float:right;background:#3fc1b0;color:#fff;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px">1</span></div><div class="a" style="height:64px;background-image:url(/static/art/card_00.jpg)"></div><div class="t">유물 소모 · 적 1턴 유혹</div></div></div>
+  <div class="abs" style="right:20px;bottom:30px;z-index:30;text-align:right"><div class="pill" style="display:block;margin-bottom:6px">⚡ 에너지 <b>3</b>/3</div><button class="btn">턴 종료</button></div>
+  <div class="abs" style="left:20px;top:14px;z-index:30"><div style="font:900 18px var(--serif)">노선 원정</div><div style="font:600 9px var(--mono);letter-spacing:.24em;color:#B8AE9C">LINE EXPEDITION · 초록 순환선 · 4정거장</div></div>
+  <div class="abs" style="left:20px;bottom:120px;width:280px;background:rgba(20,19,17,.75);border-radius:10px;padding:10px 12px;font:400 11px var(--sans);line-height:1.5;z-index:30;border:1px solid rgba(243,236,219,.15)"><b style="color:var(--teal)">스캔한 유물이 덱이 된다.</b> 이번 원정 덱: 편의점 12장(식품 5·음료 3·의약 2·전자 2). 돌아오면 힐링 스팟 엽서 1장 + 각인 후보.</div>
+  <div class="label">CONCEPT C · 노선 원정 — 덱빌딩 로그라이크 (슬레이 더 스파이어 × 다키스트 던전 × Sky) · 가로</div>`;
+} else if (V === 'D') {
+  // ── D. 「성문 스냅」 3레인 6턴 카드 대전 — 마블 스냅 × 포켓몬 TCG 포켓, 세로
+  size = [720, 1280];
+  html = `
+  <div class="abs" style="inset:0;background:radial-gradient(ellipse at 50% 30%,#1e2a26,#0e0d0b 70%)"></div>
+  <div class="abs" style="left:0;right:0;top:14px;display:flex;justify-content:space-between;padding:0 14px;z-index:90"><span class="pill">상대 · 회색 개들 (약탈자) 🏆1,203</span><span class="pill">턴 <b>4</b>/6</span><span class="pill">⚡ <b>4</b></span></div>
+  <div class="abs" style="left:0;right:0;top:70px;text-align:center;z-index:90"><div style="font:900 20px var(--serif)">성문 스냅</div><div style="font:600 9px var(--mono);letter-spacing:.24em;color:#B8AE9C">RELIC SNAP · 비동기 대전</div></div>
+  <!-- 3 레인 -->
+  ${[['물에 잠긴 승강장','기계 카드 −2 · 짐승 +1','hall','hue-rotate(150deg) saturate(1.1) brightness(1.1)','12','9'],['편의점 텐트촌','보급 카드 +1','mall_camp','','7','11'],['무너진 에스컬레이터','밤: 위협 카드 ×2','mall_escalator','sepia(.3) brightness(.8)','9','9']].map(([nm,fx,tl,flt,me,op],i)=>`
+    <div class="abs" style="left:${14+i*232}px;top:130px;width:220px;height:860px;border-radius:14px;background:rgba(243,236,219,.05);border:1px solid rgba(243,236,219,.14);z-index:20;overflow:hidden">
+      <div class="abs" style="left:0;right:0;top:0;height:200px;display:flex;flex-direction:column;gap:6px;padding:8px;align-items:center;justify-content:flex-start">
+        ${i===0?'<div class="card" style="width:96px;border-color:#D9483B"><div class="n" style="color:#D9483B">회색 개들 정찰</div><div class="a" style="height:56px;background:#4a4640"></div><div class="t">힘 5 · 약탈자</div></div>':''}
+        ${i===1?'<div class="card" style="width:96px;border-color:#D9483B"><div class="n" style="color:#D9483B">기계 잔재</div><div class="a" style="height:56px;background:#3e5a66"></div><div class="t">힘 6 · 성문 수호</div></div><div class="card" style="width:96px;border-color:#D9483B"><div class="n" style="color:#D9483B">포자 안개</div><div class="a" style="height:56px;background:#3f6e33"></div><div class="t">힘 5</div></div>':''}
+        ${i===2?'<div class="card" style="width:96px;border-color:#D9483B"><div class="n" style="color:#D9483B">랩터 떼</div><div class="a" style="height:56px;background:#5a4a38"></div><div class="t">힘 9 · 밤 ×2</div></div>':''}</div>
+      <div class="abs" style="left:0;right:0;top:330px;height:220px"><img src="/static/art/iso/${tl}.png" style="position:absolute;left:-30px;top:-70px;width:280px;filter:${flt||'none'} drop-shadow(0 8px 10px rgba(0,0,0,.6))"></div>
+      <div class="abs" style="left:0;right:0;top:214px;text-align:center"><div style="font:700 12px var(--serif)">${nm}</div><div style="font:600 8px var(--mono);color:var(--teal)">${fx}</div></div>
+      <div class="abs" style="left:14px;top:300px;font:900 22px var(--mono);color:#ff9a8a;text-shadow:0 2px 0 #000">${op}</div><div class="abs" style="right:14px;top:560px;font:900 22px var(--mono);color:#ffd27a;text-shadow:0 2px 0 #000">${me}</div>
+      <div class="abs" style="left:0;right:0;top:600px;height:250px;display:flex;flex-direction:column;gap:6px;padding:8px;align-items:center">
+        ${i===0?'<div class="card r3" style="width:96px"><div class="n">가람 · 정찰병</div><div class="a" style="height:56px;background-image:url(/static/art/chars/scout_dl_b.png);background-size:contain;background-repeat:no-repeat;background-color:#2a2723"></div><div class="t">힘 4 · 각인: 발자국</div></div><div class="card" style="width:96px"><div class="n">개 · 재</div><div class="a" style="height:56px;background:#3a2e22"></div><div class="t">힘 3 · 짐승 +1 여기</div></div><div class="card" style="width:96px"><div class="n">맑은 물</div><div class="a" style="height:56px;background-image:url(/static/art/card_04.jpg)"></div><div class="t">힘 5 · 승강장</div></div>':''}
+        ${i===1?'<div class="card" style="width:96px"><div class="n">붉은 말린 실</div><div class="a" style="height:56px;background-image:url(/static/art/card_00.jpg)"></div><div class="t">힘 4 · 보급 +1</div></div><div class="card" style="width:96px"><div class="n">이슬 · 요리사</div><div class="a" style="height:56px;background-image:url(/static/art/chars/cook_dl_b.png);background-size:contain;background-repeat:no-repeat;background-color:#2a2723"></div><div class="t">힘 3</div></div>':''}
+        ${i===2?'<div class="card r4" style="width:96px"><div class="n">빛 실 (조명)</div><div class="a" style="height:56px;background-image:url(/static/art/card_13.jpg)"></div><div class="t">힘 3 · 밤 무효</div></div><div class="card" style="width:96px"><div class="n">거품 우는 병</div><div class="a" style="height:56px;background-image:url(/static/art/card_05.jpg)"></div><div class="t">힘 6 · 소음</div></div>':''}</div></div>`).join('')}
+  <!-- 손패 -->
+  <div class="abs" style="left:0;right:0;bottom:90px;display:flex;justify-content:center;gap:8px;align-items:flex-end;z-index:95">
+    <div class="card r5" style="width:110px;transform:translateY(-14px);box-shadow:0 0 0 3px var(--lamp),0 10px 22px rgba(0,0,0,.6)"><span class="stars">★★★★★</span><div class="n">깨어난 리더</div><div class="a" style="height:66px;background-image:url(/static/art/card_15.jpg)"></div><div class="t">⚡4 · 힘 7 · 성문 재해독</div></div>
+    <div class="card r3" style="width:110px"><div class="n">정화의 물</div><div class="a" style="height:66px;background-image:url(/static/art/card_09.jpg)"></div><div class="t">⚡2 · 힘 2 · 포자 제거</div></div>
+    <div class="card" style="width:110px"><div class="n">누리 · 의무병</div><div class="a" style="height:66px;background-image:url(/static/art/chars/medic_dl_b.png);background-size:contain;background-repeat:no-repeat;background-color:#2a2723"></div><div class="t">⚡3 · 힘 3 · 회복</div></div>
+    <div class="card" style="width:110px;opacity:.6"><div class="n">보험 증서</div><div class="a" style="height:66px;background-image:url(/static/art/card_19.jpg)"></div><div class="t">⚡1 · 실패 시 보존</div></div></div>
+  <div class="abs" style="left:0;right:0;bottom:16px;display:flex;justify-content:center;gap:10px;z-index:95"><button class="btn ghost" style="font-size:13px">🃏 스냅 (판돈 ×2)</button><button class="btn" style="font-size:15px;padding:12px 26px">턴 종료 ▶</button></div>
+  <div class="abs" style="left:14px;top:110px;z-index:95"><span class="pill">📦 오늘 성문 팩 <b>1/2</b> 남음</span></div>
+  <div class="label" style="bottom:auto;top:1236px">CONCEPT D · 성문 스냅 — 3레인 6턴 카드 대전 (마블 스냅 × 포켓몬 TCG 포켓) · 세로</div>`;
+}
+S.style.width = size[0] + 'px'; S.style.height = size[1] + 'px';
+S.innerHTML = html + '<div class="vig"></div>';
+const fit = () => { const k = Math.min(innerWidth / size[0], innerHeight / size[1]); S.style.transform = `scale(${k})`; }; fit(); addEventListener('resize', fit);
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>잔해 방주 — Phase 0</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- HUD -->
+  <header class="hud">
+    <div class="hud-l"><span class="title">잔해 방주</span><span class="day" id="dayline">Day 1</span></div>
+    <div class="hud-r" id="resbar"></div>
+  </header>
+
+  <!-- 메인: 방주 단면도 -->
+  <main class="world" id="world">
+    <div class="scene" id="scene">
+      <div class="floors" id="floors"></div>
+      <div class="night" id="night"></div>
+    </div>
+    <div class="zoomctl"><button id="zin" title="확대">+</button><button id="zout" title="축소">−</button><button id="zfit" title="맞춤">⌖</button></div>
+  </main>
+
+  <!-- 하단 행동 도크 -->
+  <nav class="dock">
+    <button class="dk" id="dkScan"><span class="dk-ic">▥</span><span class="dk-t">리더 · 성문 해독</span><span class="dk-s" id="dkScanSub">0 / 20</span></button>
+    <button class="dk" id="dkCards"><span class="dk-ic">▤</span><span class="dk-t">유물 카드</span><span class="dk-s" id="dkCardsSub">손패 0</span></button>
+    <button class="dk" id="dkEvent"><span class="dk-ic">✉</span><span class="dk-t">오늘의 쪽지</span><span class="dk-s" id="dkEventSub">도착</span><span class="dot" id="evDot"></span></button>
+  </nav>
+
+  <!-- 시트(공용) -->
+  <div class="sheet-bg" id="sheetBg"></div>
+  <section class="sheet" id="sheet">
+    <div class="grip"></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </section>
+
+  <!-- 팩 개봉 -->
+  <div class="overlay" id="overlay">
+    <div class="pack" id="pack"></div>
+    <div class="gain" id="gain"></div>
+    <button class="btn lamp" id="closePack">방주로 돌아가기</button>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+<script src="/static/rooms.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/life.js"></script>
+</body>
+</html>

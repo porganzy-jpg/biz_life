@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>잔해 방주 — 실시간 2.5D 증명</title>
+<style>
+  html,body{margin:0;height:100%;background:#141311;color:#E8DFCB;font-family:"Noto Sans KR",system-ui,sans-serif;overflow:hidden}
+  #c{display:block;width:100%;height:100%}
+  .hud{position:fixed;left:12px;top:12px;z-index:2;font-size:.8rem;line-height:1.6;background:rgba(20,19,17,.7);padding:8px 12px;border:1px solid #4a4640}
+  .hud b{color:#F2A93B;font-family:"Noto Serif KR",serif}
+  .ctl{position:fixed;right:12px;top:12px;z-index:2;display:flex;flex-direction:column;gap:6px}
+  .ctl button{background:#2B2A28;color:#E8DFCB;border:1px solid #6E6A62;padding:6px 10px;cursor:pointer;font-size:.78rem}
+  .ctl button:hover{background:#4A463F}
+  #log{position:fixed;left:12px;bottom:12px;z-index:2;font-family:ui-monospace,monospace;font-size:.68rem;color:#B8AE9C;max-width:70vw;white-space:pre-wrap}
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud"><b>실시간 2.5D 증명</b><br>휠 = 줌 · 드래그 = 이동 · 우클릭 드래그 = 살짝 기울이기<br>방 GLB(Blender) + Quaternius 캐릭터 애니메이션 + 실시간 랜턴</div>
+<div class="ctl"><button id="night">밤 / 낮</button><button id="tilt">기울기 초기화</button><button id="pick">집기 모션</button></div>
+<div id="log"></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const log = (s) => { const l = document.getElementById('log'); l.textContent = (l.textContent + '\n' + s).split('\n').slice(-8).join('\n'); };
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = !location.search.includes('noshadow'); renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+{ const gl = renderer.getContext(); const dbg = gl.getExtension('WEBGL_debug_renderer_info'); console.log('GL', dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER), 'webgl2', renderer.capabilities.isWebGL2, 'maxTex', renderer.capabilities.maxTextures); }
+
+const lanterns = []; const roomCenters = {};
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x141311);
+scene.fog = new THREE.FogExp2(0x141311, 0.006);
+
+// ── 카메라: Blender 아이소(방위 45°, 고도 45°) → Three(Y-up)
+const aspect = innerWidth / innerHeight; let frustum = 14;
+const camera = new THREE.OrthographicCamera(-frustum * aspect, frustum * aspect, frustum, -frustum, 0.1, 400);
+const camTarget = new THREE.Vector3(0, 0.8, 0); let camAz = Math.PI / 4, camEl = Math.PI / 4;
+function placeCamera() {
+  const d = 60;
+  camera.position.set(camTarget.x - Math.cos(camEl) * Math.sin(camAz) * d, camTarget.y + Math.sin(camEl) * d, camTarget.z + Math.cos(camEl) * Math.cos(camAz) * d);
+  camera.lookAt(camTarget); camera.updateProjectionMatrix();
+}
+placeCamera();
+
+// ── 조명
+const hemi = new THREE.HemisphereLight(0x556677, 0x1a1512, 0.35); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff0d8, 0.25); sun.position.set(-20, 30, 20); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -30; sun.shadow.camera.right = 30; sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30; scene.add(sun);
+let night = true;
+function setNight(n) { night = n; hemi.intensity = n ? 0.22 : 0.7; sun.intensity = n ? 0.12 : 1.0; lanterns.forEach(o => { o.base = n ? o.night : o.night * 0.35; }); scene.fog.density = n ? 0.007 : 0.004; scene.background.set(n ? 0x141311 : 0x2a2a26); }
+setNight(!location.search.includes('day'));
+document.getElementById('night').onclick = () => setNight(!night);
+
+// ── 지반: 어두운 흙 판 + 격자 힌트
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x241d16, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.31; ground.receiveShadow = true; scene.add(ground);
+
+// ── 방 배치 (Blender: 6m 격자, +X / +Y가 뒤쪽. Three: +X / -Z)
+const S = 6.1;
+const layout = [
+  ['hall', 0, 0], ['pantry', 1, 0], ['well', 0, 1], ['library', -1, 0], ['infirmary', 0, -1],
+  ['rock', 1, 1], ['rock', -1, 1], ['rock', 1, -1], ['rock', -1, -1],
+];
+const loader = new GLTFLoader();
+async function loadRoom(id, gx, gy) {
+  try {
+    const g = await loader.loadAsync(`/static/models/rooms/${id}.glb`);
+    const root = g.scene; root.position.set(gx * S, 0, -gy * S);
+    root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) { o.material.needsUpdate = true; if (o.material.map === undefined) {} } } if (o.isLight) { o.intensity = 45; o.decay = 2; o.distance = 16; o.castShadow = false; lanterns.push({ l: o, base: 45, night: 45, seed: Math.random() * 10 }); } });
+    if (id !== 'rock' && id !== 'lot') { const pl = new THREE.PointLight(0xF2A93B, 30, 16, 2); pl.position.set(gx * S, 2.6, -gy * S); scene.add(pl); lanterns.push({ l: pl, base: 30, night: 30, seed: Math.random() * 10 }); }
+    scene.add(root); roomCenters[`${gx},${gy}`] = { id, pos: new THREE.Vector3(gx * S, 0, -gy * S) };
+    log(`loaded ${id} at ${gx},${gy}`);
+  } catch (e) { log(`FAIL ${id}: ${e.message || e}`); }
+}
+await Promise.all(layout.map(([id, x, y]) => loadRoom(id, x, y)));
+setNight(night);
+
+// ── 캐릭터 (Quaternius, 애니메이션)
+const actors = [];
+async function loadChar(name, start) {
+  try {
+    const g = await loader.loadAsync(`/static/models/chars/${name}.glb`);
+    const root = g.scene; root.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
+    // 캐릭터 높이 1.6m로 정규화 (스킨 메시는 정밀 바운딩으로, 발을 y=0에)
+    scene.add(root); root.updateMatrixWorld(true);
+    let box = new THREE.Box3().setFromObject(root, true); let h = box.max.y - box.min.y;
+    if (!(h > 0.01)) { box = new THREE.Box3(); root.traverse(o => { if (o.isSkinnedMesh) { o.geometry.computeBoundingBox(); const b = o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld); box.union(b); } }); h = box.max.y - box.min.y; }
+    const k = 1.6 / Math.max(h, 0.01); root.scale.setScalar(k); root.updateMatrixWorld(true);
+    const box2 = new THREE.Box3().setFromObject(root, true); root.position.set(start.x, start.y - box2.min.y, start.z);
+    log(`${name} raw height ${h.toFixed(2)} → scale ${k.toFixed(3)}`);
+    const mixer = new THREE.AnimationMixer(root);
+    const clips = {}; g.animations.forEach(c => { clips[c.name.toLowerCase()] = mixer.clipAction(c); });
+    log(`${name} clips: ${Object.keys(clips).join(', ')}`);
+    const a = { root, mixer, clips, cur: null, target: null, wait: 1 + Math.random() * 2, speed: 1.4 };
+    a.play = (n, once) => { const c = clips[n] || clips.idle; if (!c || a.cur === c) return; if (a.cur) a.cur.fadeOut(0.25); c.reset().fadeIn(0.25); c.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); c.clampWhenFinished = !!once; c.play(); a.cur = c; };
+    a.play('idle'); actors.push(a); return a;
+  } catch (e) { log(`FAIL ${name}: ${e.message || e}`); }
+}
+const spots = Object.values(roomCenters).filter(r => r.id !== 'rock').map(r => r.pos);
+await loadChar('Chef_Male', spots[0] ? spots[0].clone().add(new THREE.Vector3(1, 0, 1)) : new THREE.Vector3());
+await loadChar('Doctor_Female_Young', spots[1] ? spots[1].clone() : new THREE.Vector3(3, 0, 0));
+await loadChar('BlueSoldier_Male', spots[2] ? spots[2].clone() : new THREE.Vector3(-3, 0, 0));
+
+document.getElementById('pick').onclick = () => actors.forEach(a => { a.play('pickup', true); a.wait = 3; a.target = null; });
+
+// ── 입력: 줌·팬·기울기
+canvas.addEventListener('wheel', e => { e.preventDefault(); frustum = THREE.MathUtils.clamp(frustum * (e.deltaY > 0 ? 1.1 : 0.9), 5, 30); camera.left = -frustum * aspect; camera.right = frustum * aspect; camera.top = frustum; camera.bottom = -frustum; placeCamera(); }, { passive: false });
+let drag = null;
+canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, b: e.button }; });
+canvas.addEventListener('pointerup', () => drag = null); canvas.addEventListener('pointerleave', () => drag = null);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointermove', e => {
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.b === 2) { camAz += dx * 0.004; camEl = THREE.MathUtils.clamp(camEl - dy * 0.004, 0.45, 1.2); }
+  else { const k = frustum * 2 / innerHeight; const right = new THREE.Vector3(Math.cos(camAz), 0, -Math.sin(camAz)); const fwd = new THREE.Vector3(Math.sin(camAz), 0, Math.cos(camAz)); camTarget.addScaledVector(right, -dx * k).addScaledVector(fwd, dy * k); }
+  placeCamera();
+});
+document.getElementById('tilt').onclick = () => { camAz = Math.PI / 4; camEl = Math.PI / 4; placeCamera(); };
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); const a2 = innerWidth / innerHeight; camera.left = -frustum * a2; camera.right = frustum * a2; camera.updateProjectionMatrix(); });
+
+// ── 루프: 랜턴 깜빡임, 주민 이동
+const clock = new THREE.Clock();
+function tick() {
+  const dt = Math.min(0.05, clock.getDelta()); const t = clock.elapsedTime;
+  lanterns.forEach(o => { o.l.intensity = o.base * (0.85 + 0.15 * Math.sin(t * 7 + o.seed) * Math.sin(t * 3.1 + o.seed)); });
+  actors.forEach(a => {
+    a.mixer.update(dt);
+    if (a.target) {
+      const d = a.target.clone().sub(a.root.position); d.y = 0; const dist = d.length();
+      if (dist < 0.15) { a.target = null; a.wait = 2 + Math.random() * 4; a.play('idle'); }
+      else { d.normalize(); a.root.position.addScaledVector(d, a.speed * dt); a.root.rotation.y = Math.atan2(d.x, d.z); a.play('walk'); }
+    } else {
+      a.wait -= dt;
+      if (a.wait <= 0 && spots.length) { const s = spots[Math.floor(Math.random() * spots.length)]; a.target = s.clone().add(new THREE.Vector3((Math.random() - .5) * 3, 0, (Math.random() - .5) * 3)); }
+    }
+  });
+  renderer.render(scene, camera); requestAnimationFrame(tick);
+}
+tick();
+</script>
+</body>
+</html>

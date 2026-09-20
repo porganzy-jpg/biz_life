@@ -1,0 +1,48 @@
+{
+  "_comment": "주민 역할 8종. ability = 방주 규칙에 실제로 적용되는 효과. counter_tags = 이 역할이 있으면 카드 없이도 자동 대항 확률(auto_counter)을 얻는 사건 태그. visual = Blender 치비 스프라이트 시그니처.",
+  "scout": {
+    "ko": "정찰병", "ability": "지상 정찰: 내일의 쪽지를 미리 알려주고, 표류자·유물 창고 같은 좋은 소식이 더 자주 온다",
+    "effects": {"event_preview": true, "positive_event_weight": 1.6}, "counter_tags": ["탐사", "방어"], "auto_counter": 0.35,
+    "visual": {"body": "#5b6b4a", "accent": "#2B2A28", "prop": "backpack_binoculars", "hood": true}
+  },
+  "cook": {
+    "ko": "요리사", "ability": "식량창고 생산 +1, 식량 소비가 줄고 사기가 오른다",
+    "effects": {"room_bonus": {"pantry": {"food": 1}}, "morale_daily": 1}, "counter_tags": ["열원", "보존"], "auto_counter": 0.35,
+    "visual": {"body": "#E0813A", "accent": "#E8DFCB", "prop": "pot_apron"}
+  },
+  "medic": {
+    "ko": "의무병", "ability": "부상자가 두 배 빨리 회복하고, 전염 사건을 절반 확률로 스스로 막는다",
+    "effects": {"heal_rate": 2}, "counter_tags": ["치료", "해독"], "auto_counter": 0.5,
+    "visual": {"body": "#E8DFCB", "accent": "#C8442F", "prop": "medic_bag_armband"}
+  },
+  "engineer": {
+    "ko": "기술자", "ability": "건설 비용 -20%, 기계 잔재 사건에 맞서고 전력·부품 생산이 오른다",
+    "effects": {"build_discount": 0.2, "room_bonus": {"well": {"water": 1}}}, "counter_tags": ["부품", "전력"], "auto_counter": 0.4,
+    "visual": {"body": "#4A463F", "accent": "#4FB7E6", "prop": "goggles_toolbelt_wrench"}
+  },
+  "farmer": {
+    "ko": "농부", "ability": "지상 채소밭이 자라 식량이 조금씩 늘고, 겨울·한파 사건에 강하다",
+    "effects": {"surface_food_daily": 1}, "counter_tags": ["온실", "열원"], "auto_counter": 0.35,
+    "visual": {"body": "#7a6a3a", "accent": "#5f9a4a", "prop": "straw_hat_watering_can"}
+  },
+  "scholar": {
+    "ko": "학자", "ability": "서고의 청사진 진행이 두 배, 책(ISBN) 유물에서 지식을 더 얻고 성문 오독을 막는다",
+    "effects": {"blueprint_rate": 2, "book_bonus": 2}, "counter_tags": ["지식", "청사진"], "auto_counter": 0.5,
+    "visual": {"body": "#6b5a7a", "accent": "#E0B54A", "prop": "glasses_book"}
+  },
+  "trader": {
+    "ko": "교섭가", "ability": "약탈자 정찰대와 말로 해결할 수 있고, 교역품 가치가 오른다",
+    "effects": {"trade_bonus": 1}, "counter_tags": ["교섭", "교역"], "auto_counter": 0.5,
+    "visual": {"body": "#8a4a3f", "accent": "#DED3BB", "prop": "coat_hat_scarf"}
+  },
+  "kid": {
+    "ko": "아이", "ability": "생산은 없지만 매일 사기 +1. 완구 유물과 함께면 +2. 위험한 사건에서 먼저 보호해야 한다",
+    "effects": {"morale_daily": 1, "toy_synergy": 1, "fragile": true}, "counter_tags": ["사기"], "auto_counter": 0.2,
+    "visual": {"body": "#E0B54A", "accent": "#3E7EA6", "prop": "raincoat_small", "small": true}
+  },
+  "_traits": {
+    "낙천적": {"morale_daily": 1}, "야맹증": {"night_penalty": true}, "손재주": {"build_discount": 0.1}, "미식가": {"food_daily": -1, "morale_daily": 1},
+    "불면증": {"night_bonus": true}, "겁쟁이": {"auto_counter": -0.1}, "강철 위장": {"infection_resist": 0.5}, "수다쟁이": {"talk_more": true}
+  },
+  "_names": ["하루", "도담", "온새", "가람", "누리", "다올", "새벽", "바람", "여울", "이슬", "마루", "소리"]
+}

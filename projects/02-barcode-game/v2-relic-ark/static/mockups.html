@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>잔해 방주 — 첫 화면 목업</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700;900&family=Noto+Sans+KR:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{--paper:#E8DFCB;--ink:#2B2A28;--lamp:#F2A93B;--mycel:#7DE0A8;--danger:#D9483B;--serif:"Noto Serif KR",serif;--sans:"Noto Sans KR",sans-serif;--mono:"JetBrains Mono",monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0e0d0b;overflow:hidden;font-family:var(--sans);color:var(--paper);display:flex;align-items:center;justify-content:center}
+#stage{position:relative;width:1280px;height:720px;overflow:hidden;background:#141311}
+/* 세계 레이어 */
+.world{position:absolute;inset:0;transform-origin:0 0}
+.sky{position:absolute;left:0;right:0;top:0;height:260px;background:url(/static/art/surface.jpg) center 30% / cover no-repeat;-webkit-mask:linear-gradient(180deg,#000 55%,transparent);mask:linear-gradient(180deg,#000 55%,transparent)}
+.plate{position:absolute;pointer-events:none}
+.tile{position:absolute;width:320px;height:320px;filter:drop-shadow(0 10px 12px rgba(0,0,0,.6))}
+.tile.dim{filter:brightness(.55) saturate(.8) drop-shadow(0 10px 12px rgba(0,0,0,.6))}
+.tile.dark{filter:brightness(.42) saturate(.7) drop-shadow(0 10px 12px rgba(0,0,0,.6))}
+.glow{position:absolute;width:260px;height:180px;border-radius:50%;background:radial-gradient(ellipse,rgba(242,169,59,.45),transparent 65%);mix-blend-mode:screen;pointer-events:none}
+.spr{position:absolute;height:74px;filter:drop-shadow(0 4px 4px rgba(0,0,0,.6))}
+.spr.flip{transform:scaleX(-1)}
+.dog{position:absolute;width:26px;height:16px;background:#3a2e22;border-radius:8px 10px 6px 6px;box-shadow:0 3px 4px rgba(0,0,0,.6)}
+.dog::before{content:"";position:absolute;left:-8px;top:-4px;width:12px;height:11px;background:#3a2e22;border-radius:5px}
+.fog{position:absolute;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(232,223,203,.0) 30%,rgba(200,190,170,.75) 70%,rgba(180,172,155,.92) 100%);mix-blend-mode:normal}
+.fogpaper{position:absolute;pointer-events:none;background:
+  radial-gradient(ellipse at 20% 30%,rgba(230,222,205,.9),transparent 45%),radial-gradient(ellipse at 70% 60%,rgba(220,212,195,.9),transparent 50%),radial-gradient(ellipse at 45% 85%,rgba(225,217,200,.9),transparent 45%),rgba(212,204,187,.62);
+  -webkit-mask:radial-gradient(ellipse at var(--hx,60%) var(--hy,50%),transparent 0,transparent 34%,#000 62%);mask:radial-gradient(ellipse at var(--hx,60%) var(--hy,50%),transparent 0,transparent 34%,#000 62%)}
+.dino{position:absolute;opacity:.55;filter:blur(.6px) drop-shadow(0 0 2px rgba(0,0,0,.5))}
+.dino img{height:100%}
+.rumor{position:absolute;width:34px;height:34px;border-radius:50%;border:2px solid var(--mycel);background:rgba(20,19,17,.55);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:900;color:var(--mycel);box-shadow:0 0 14px rgba(125,224,168,.6);animation:pulse 2.2s ease-in-out infinite}
+.rumor small{position:absolute;top:36px;left:50%;transform:translateX(-50%);white-space:nowrap;font:600 10px var(--mono);letter-spacing:.06em;color:var(--paper);text-shadow:0 1px 2px #000}
+@keyframes pulse{50%{box-shadow:0 0 26px rgba(125,224,168,.9)}}
+.postcard{position:absolute;width:56px;height:40px;background:var(--paper);border:2px solid var(--ink);transform:rotate(-6deg);box-shadow:2px 3px 0 rgba(0,0,0,.5);overflow:hidden}
+.postcard img{width:100%;height:100%;object-fit:cover}
+.landmark{position:absolute;font:600 10px var(--mono);letter-spacing:.14em;color:#CFC2A7;text-shadow:0 1px 2px #000;opacity:.9}
+.landmark i{display:block;width:1px;height:26px;background:#CFC2A7;margin:0 auto 4px;opacity:.6}
+/* HUD */
+.hud{position:absolute;left:0;right:0;top:0;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;background:linear-gradient(180deg,rgba(14,13,11,.75),transparent)}
+.title{font:900 20px var(--serif);letter-spacing:.02em;text-shadow:0 1px 0 #000}
+.title small{display:block;font:400 10px var(--mono);letter-spacing:.24em;color:#B8AE9C}
+.res{display:flex;gap:6px}
+.res span{font:600 11px var(--mono);background:rgba(43,42,40,.75);border:1px solid rgba(232,223,203,.2);padding:3px 8px;border-radius:2px}
+.res b{color:var(--lamp)}
+.clock{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:200px;text-align:center;pointer-events:none}
+.clock .arc{height:8px;border-radius:4px;background:linear-gradient(90deg,#3a3a5a 0 18%,#F2A93B 18% 30%,#9ad0e6 30% 68%,#e07a3a 68% 80%,#3a3a5a 80%);position:relative;border:1px solid rgba(0,0,0,.6)}
+.clock .arc i{position:absolute;top:-5px;width:4px;height:18px;background:var(--paper);border:1px solid #000;left:var(--t,52%)}
+.clock small{font:600 10px var(--mono);letter-spacing:.12em;color:#CFC2A7;text-shadow:0 1px 2px #000}
+.light{position:absolute;right:18px;top:64px;width:150px;pointer-events:none}
+.light .bar{height:6px;background:rgba(0,0,0,.5);border:1px solid rgba(232,223,203,.25)}
+.light .bar i{display:block;height:100%;width:var(--v,25%);background:linear-gradient(90deg,#F2A93B,#e0c070)}
+.light small{font:600 9px var(--mono);letter-spacing:.12em;color:#CFC2A7}
+.journal{position:absolute;left:18px;top:64px;font:italic 500 13px var(--serif);color:var(--paper);text-shadow:0 1px 2px #000;max-width:360px;line-height:1.5}
+.journal b{display:block;font:600 10px var(--mono);letter-spacing:.14em;color:var(--lamp);font-style:normal;margin-bottom:2px}
+/* 도크 + 손패 */
+.dock{position:absolute;left:0;right:0;bottom:0;height:150px;background:linear-gradient(180deg,transparent,rgba(14,13,11,.92) 40%);pointer-events:none}
+.hand{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:8px;align-items:flex-end}
+.card{width:88px;height:122px;border-radius:6px;background:#DED3BB;color:var(--ink);border:1.5px solid rgba(43,42,40,.6);padding:5px;position:relative;box-shadow:0 6px 14px rgba(0,0,0,.5);transition:transform .2s}
+.card .n{font:700 9.5px var(--serif);line-height:1.15;height:22px;overflow:hidden}
+.card .a{height:52px;background:#6E6A62 center/cover;border:1px solid rgba(43,42,40,.4);margin:3px 0}
+.card .t{font:600 7.5px var(--mono);color:#4A463F;letter-spacing:.04em}
+.card .bc{position:absolute;left:5px;right:5px;bottom:4px;height:9px;background:repeating-linear-gradient(90deg,#2B2A28 0 1px,transparent 1px 3px,#2B2A28 3px 5px,transparent 5px 6px)}
+.card.counter{background:#D9E2DC;border-color:#3f9a68}.card.rumor{background:#E8E2D0;border-color:#7DE0A8}.card.survivor{background:#E3D7C6}
+.card.lift{transform:translateY(-22px) rotate(-3deg);box-shadow:0 0 0 3px var(--lamp),0 10px 20px rgba(0,0,0,.6)}
+.actions{position:absolute;left:18px;bottom:16px;display:flex;flex-direction:column;gap:6px}
+.btn{font:700 12px var(--sans);background:linear-gradient(180deg,#DED3BB,#CFC2A7);color:var(--ink);border:1px solid #6E6A62;padding:8px 12px;border-radius:3px;box-shadow:0 3px 0 #2B2A28;min-width:150px;text-align:left}
+.btn small{display:block;font:400 9px var(--mono);color:#6E6A62}
+.btn.scan{background:linear-gradient(180deg,#F5B650,#E39A2E);border-color:#A86F1C}
+.rightpanel{position:absolute;right:18px;bottom:16px;width:220px;display:flex;flex-direction:column;gap:6px}
+.roster{background:rgba(43,42,40,.82);border:1px solid rgba(232,223,203,.18);padding:8px 10px;font-size:11px}
+.roster div{display:flex;align-items:center;gap:8px;padding:3px 0}
+.roster img{width:22px;height:26px;object-fit:contain}
+.roster i{font:600 9px var(--mono);color:#B8AE9C;margin-left:auto}
+.imp{display:inline-block;font:600 8px var(--mono);border:1px solid var(--lamp);color:var(--lamp);padding:0 4px;margin-left:4px}
+/* 사건(쪽지) */
+.slip{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) rotate(-1.5deg);width:420px;background:#F3ECDB;color:var(--ink);border:2px solid var(--danger);padding:16px 18px;box-shadow:6px 8px 0 rgba(0,0,0,.45)}
+.slip .fac{font:600 10px var(--mono);letter-spacing:.14em;color:var(--danger)}
+.slip h3{font:700 20px var(--serif);margin:2px 0 6px}
+.slip p{margin:0;font-size:13px;color:#4A463F;line-height:1.55}
+.slip .tags{margin-top:8px;font:600 10px var(--mono);color:#6E6A62}
+.slip .tags span{border:1px solid rgba(43,42,40,.3);padding:1px 6px;margin-right:4px}
+.timer{position:absolute;right:-16px;top:-18px;width:52px;height:52px;border-radius:50%;background:var(--danger);color:#fff;display:flex;align-items:center;justify-content:center;font:600 22px var(--mono);box-shadow:0 4px 0 rgba(0,0,0,.4)}
+.cart{position:absolute;width:64px;height:44px}
+.cart::before{content:"";position:absolute;left:8px;top:6px;width:48px;height:26px;background:#8a9297;border:2px solid #2B2A28;border-radius:2px 2px 6px 6px}
+.cart::after{content:"";position:absolute;left:12px;top:34px;width:8px;height:8px;border-radius:50%;background:#2B2A28;box-shadow:32px 0 0 #2B2A28}
+.cart img{position:absolute;left:14px;top:-14px;width:36px;height:24px;object-fit:cover;border:1px solid #2B2A28}
+.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,transparent 55%,rgba(10,9,8,.55) 100%)}
+.variant{position:absolute;left:18px;bottom:160px;font:600 10px var(--mono);letter-spacing:.14em;color:#8C8677}
+.split{position:absolute;top:0;bottom:0;width:2px;background:linear-gradient(180deg,transparent,rgba(242,169,59,.35),transparent);left:var(--x,50%);pointer-events:none}
+.night{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(6,10,20,.55) 0 30%,rgba(60,30,20,.25) 55%,rgba(255,140,60,.12) 100%);mix-blend-mode:multiply}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const q = new URLSearchParams(location.search); const V = q.get('v') || 'A';
+const S = document.getElementById('stage');
+const W = 554.2, H = 391.8, FX = 320, FY = 571.3, RES = 640, s = 0.5;   // 타일 메타
+const tile = (id, i, j, ox, oy, cls = '') => { const x = ox + (i - j) * W * s / 2, y = oy + (i + j) * H * s / 2; return `<img class="tile ${cls}" src="/static/art/iso/${id}.png" style="left:${x - FX * s}px;top:${y - FY * s}px;width:${RES * s}px;height:${RES * s}px;z-index:${10 + i + j}">`; };
+const spr = (role, x, y, dir = 'dl', flip = false, z = 40) => `<img class="spr ${flip ? 'flip' : ''}" src="/static/art/chars/${role}_${dir}_b.png" style="left:${x}px;top:${y}px;z-index:${z}">`;
+const card = (n, cls, art, t) => `<div class="card ${cls}"><div class="n">${n}</div><div class="a" style="background-image:url(${art})"></div><div class="t">${t}</div><div class="bc"></div></div>`;
+const hud = (day, extra = '') => `<div class="hud"><div class="title">잔해 방주<small>RELIC ARK</small></div><div class="res"><span>식량 <b>12</b></span><span>물 <b>7</b></span><span>의약 <b>2</b></span><span>지식 <b>5</b></span><span>사기 <b>6</b></span></div></div>
+  <div class="clock"><div class="arc"><i style="--t:${day}%"></i></div><small>DAY 6 · ${day < 30 ? '새벽' : day < 68 ? '낮' : day < 80 ? '저녁' : '밤'}</small></div>${extra}`;
+
+let html = '';
+if (V === 'A') {
+  // ── A. 문턱 컷: 어두운 안 / 밝은 밖, 반반. 완성판 기본 화면
+  html += `<div class="world">
+    <div class="sky" style="left:560px;right:-200px;height:330px;top:-20px"></div>
+    <img class="plate" src="/static/art/iso/ground_under.png" style="left:-160px;top:80px;width:1000px;filter:brightness(.55)">
+    <img class="plate" src="/static/art/iso/ground_surface.png" style="left:520px;top:-20px;width:1100px;filter:brightness(1.12) saturate(1.25) hue-rotate(-8deg)">
+    ${tile('mall_camp', 0, 0, 300, 250, 'dim')}${tile('hall', 1, 0, 300, 250, 'dim')}${tile('pantry', 0, 1, 300, 250, 'dark')}${tile('mall_food', 1, 1, 300, 250, 'dark')}${tile('library', 2, 1, 300, 250, 'dark')}
+    <div class="glow" style="left:180px;top:250px"></div><div class="glow" style="left:330px;top:330px"></div><div class="glow" style="left:120px;top:400px;width:200px"></div>
+    ${tile('mall_escalator', 3, 0, 300, 250)}${tile('lot', 4, 0, 300, 250)}
+    <div class="fogpaper" style="left:640px;top:0;width:640px;height:720px;--hx:30%;--hy:58%"></div>
+    <div class="dino" style="left:1010px;top:150px;height:140px"><img src="/static/art/charshow/qd_Triceratops.png"></div>
+    <div class="dino" style="left:1120px;top:120px;height:110px;opacity:.35"><img src="/static/art/charshow/qd_Stegosaurus.png"></div>
+    <div class="rumor" style="left:960px;top:470px">?<small>물소리 · 고양이의 젖은 발</small></div>
+    <div class="rumor" style="left:1080px;top:330px;border-color:#F2A93B;color:#F2A93B;box-shadow:0 0 14px rgba(242,169,59,.6)">↓<small>터널 입구 · 길손의 노래</small></div>
+    <div class="landmark" style="left:1180px;top:36px"><i></i>탑 · 하늘</div><div class="landmark" style="left:920px;top:60px"><i></i>굴뚝 · 불꽃</div>
+    ${spr('scout', 760, 380, 'dl', true, 60)}${spr('cook', 350, 340, 'dl', false, 60)}${spr('kid', 420, 372, 'dl', true, 60)}${spr('medic', 240, 395, 'ul', false, 60)}
+    <div class="dog" style="left:795px;top:436px;z-index:61"></div>
+    <div class="split" style="--x:600px"></div>
+    <div class="night"></div>
+  </div>
+  ${hud(46, `<div class="journal"><b>DAY 6 · 낮 · 맑음</b>정찰병 가람이 개와 함께 문턱을 넘었다. 사람들은 유리 너머에서 세기만 한다.</div><div class="light"><small>빛 노출 · 가람</small><div class="bar"><i style="--v:28%"></i></div></div>`)}
+  <div class="dock"></div>
+  <div class="actions"><button class="btn scan">▥ 리더 · 성문 해독<small>현실의 물건을 스캔 → 카트 도착</small></button><button class="btn">⌂ 자리 잡기<small>텐트 · 모닥불 · 선반</small></button></div>
+  <div class="hand">${card('붉은 말린 실의 부적', '', '/static/art/card_00.jpg', 'RELIC · 보급')}${card('정화의 물', 'counter', '/static/art/card_09.jpg', 'COUNTER · 해독')}${card('물소리', 'rumor', '/static/art/iso/well.png', 'RUMOR · 단서 2/3')}${card('가람 · 정찰병', 'survivor', '/static/art/chars/scout_dl_b.png', 'SURVIVOR · 각인 1')}</div>
+  <div class="rightpanel"><div class="roster"><div><img src="/static/art/chars/scout_dl_b.png">가람 · 정찰병<span class="imp">발자국</span><i>밖</i></div><div><img src="/static/art/chars/cook_dl_b.png">이슬 · 요리사<i>텐트촌</i></div><div><img src="/static/art/chars/medic_dl_b.png">누리 · 의무병<i>창고</i></div><div><img src="/static/art/chars/kid_dl_b.png">도담 · 아이<i>텐트촌</i></div><div>🐕 재 · 개<i>가람과</i></div></div></div>
+  <div class="variant">MOCKUP A · 문턱 컷 (기본 화면 · 안 45 / 밖 55)</div>`;
+} else if (V === 'B') {
+  // ── B. 발견의 순간: 밖이 넓게, 안개가 걷히며 힐링 스팟 드러남
+  html += `<div class="world">
+    <div class="sky" style="left:-100px;right:-100px;height:300px;top:-30px;filter:saturate(1.2) brightness(1.1)"></div>
+    <img class="plate" src="/static/art/iso/ground_surface.png" style="left:-60px;top:-40px;width:1500px;filter:brightness(1.15) saturate(1.3) hue-rotate(-8deg)">
+    ${tile('mall_escalator', 0, 0, 180, 200, 'dim')}${tile('mall_camp', -1, 0, 180, 200, 'dark')}
+    <div class="glow" style="left:60px;top:200px"></div>
+    ${tile('lot', 1, 0, 180, 200)}
+    <div style="position:absolute;left:640px;top:250px;width:420px;height:260px;border-radius:50%;background:radial-gradient(ellipse,rgba(60,200,190,.55),rgba(40,140,150,.35) 55%,transparent 75%);box-shadow:inset 0 0 40px rgba(255,255,255,.35);z-index:30"></div>
+    <img src="/static/art/iso/hall.png" style="position:absolute;left:690px;top:130px;width:360px;filter:hue-rotate(150deg) saturate(1.1) brightness(1.15) drop-shadow(0 10px 12px rgba(0,0,0,.4));z-index:31">
+    <div style="position:absolute;left:760px;top:330px;font-size:26px;z-index:32;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))">🐟</div><div style="position:absolute;left:900px;top:360px;font-size:20px;z-index:32">🐟</div><div style="position:absolute;left:830px;top:410px;font-size:22px;z-index:32">🐟</div>
+    <div class="fogpaper" style="left:300px;top:0;width:980px;height:720px;--hx:58%;--hy:48%"></div>
+    <div class="dino" style="left:1080px;top:110px;height:120px;opacity:.4"><img src="/static/art/charshow/qd_Triceratops.png"></div>
+    ${spr('scout', 640, 380, 'ul', false, 60)}<div class="dog" style="left:672px;top:436px;z-index:61"></div>
+    <div class="postcard" style="left:1180px;top:80px;z-index:70"><img src="/static/art/iso/well.png"></div>
+    <div class="landmark" style="left:1200px;top:40px"><i></i>엽서 1 / 6</div>
+  </div>
+  ${hud(60, `<div class="journal" style="max-width:520px;left:50%;transform:translateX(-50%);top:120px;text-align:center;font-size:17px"><b style="text-align:center">힐링 스팟 발견 · 물에 잠긴 전철</b>방주에서 온 사람들은 아무 말도 하지 않고, 들어갈 생각도 하지 않고, 문간에 서서 오래 본다.</div><div class="light"><small>빛 노출 · 가람</small><div class="bar"><i style="--v:71%;background:linear-gradient(90deg,#F2A93B,#D9483B)"></i></div><small style="color:#D9483B">해가 기울기 전에 돌아가야 한다</small></div>`)}
+  <div class="dock"></div>
+  <div class="actions"><button class="btn">◎ 엽서에 남기기<small>풍경 도감 · 사기 +3 전원</small></button><button class="btn">↩ 돌아가기<small>귀환 경로 · 32분</small></button></div>
+  <div class="hand">${card('물의 기억', 'counter', '/static/art/iso/well.png', 'IMPRINT 후보 · 가람')}${card('맑은 물 +4', '', '/static/art/card_04.jpg', 'RELIC · 자원')}${card('무엇을 쥐고 있는가', 'rumor', '/static/art/iso/ground_surface.png', 'GARDENER · 첫 문장')}</div>
+  <div class="variant">MOCKUP B · 발견의 순간 (밖 85 · 안개가 걷힘)</div>`;
+} else if (V === 'C') {
+  // ── C. 저녁의 위기: 대항 카드 3초, 랩터 접근, 카트 도착
+  html += `<div class="world">
+    <div class="sky" style="left:500px;right:-200px;height:330px;top:-20px;filter:sepia(.5) saturate(1.4) brightness(.8)"></div>
+    <img class="plate" src="/static/art/iso/ground_under.png" style="left:-160px;top:80px;width:1000px;filter:brightness(.5)">
+    <img class="plate" src="/static/art/iso/ground_surface.png" style="left:520px;top:-20px;width:1100px;filter:brightness(.75) sepia(.45) saturate(1.2)">
+    ${tile('mall_food', 0, 0, 300, 250, 'dim')}${tile('hall', 1, 0, 300, 250, 'dim')}${tile('pantry', 0, 1, 300, 250, 'dark')}${tile('infirmary', 1, 1, 300, 250, 'dark')}
+    <div class="glow" style="left:180px;top:250px"></div><div class="glow" style="left:330px;top:330px"></div>
+    ${tile('mall_escalator', 3, 0, 300, 250, 'dim')}${tile('lot', 4, 0, 300, 250, 'dim')}
+    <div class="dino" style="left:900px;top:230px;height:120px;opacity:.85;filter:brightness(.4) drop-shadow(0 0 6px rgba(217,72,59,.6))"><img src="/static/art/charshow/qd_Velociraptor.png"></div>
+    <div class="dino" style="left:1010px;top:290px;height:100px;opacity:.7;filter:brightness(.35)"><img src="/static/art/charshow/qd_Velociraptor.png"></div>
+    <div class="cart" style="left:610px;top:395px;z-index:62"><img src="/static/art/card_00.jpg"></div>
+    ${spr('trader', 560, 372, 'dl', true, 60)}${spr('scout', 760, 330, 'dl', false, 60)}<div class="dog" style="left:800px;top:386px;z-index:61"></div>${spr('cook', 350, 340, 'dl', false, 60)}${spr('kid', 420, 372, 'dl', true, 60)}
+    <div class="night" style="background:linear-gradient(90deg,rgba(6,10,20,.6) 0 30%,rgba(120,40,20,.35) 60%,rgba(255,90,40,.2) 100%)"></div>
+  </div>
+  ${hud(76, `<div class="journal"><b>DAY 6 · 저녁 · 바람</b>교섭가 마루가 카트를 끌고 돌아왔다. 그 뒤로 발자국 소리가 둘.</div><div class="light"><small>빛 노출 · 가람</small><div class="bar"><i style="--v:88%;background:#D9483B"></i></div></div>`)}
+  <div class="slip"><div class="timer">3</div><div class="fac">변이체 · 심각도 2 · 밤이 온다</div><h3>랩터 떼가 냄새를 쫓아온다</h3><p>카트에 실린 말린 실의 냄새가 초원까지 퍼졌다. 두 마리가 문턱 30걸음 밖에서 멈춰 섰다. 개가 으르렁거린다. 가람은 아직 밖이다.</p><div class="tags">대항 태그 <span>#조명</span><span>#소음</span><span>#방어</span> · 개 · 자동 대항 35%</div></div>
+  <div class="dock"></div>
+  <div class="hand">${card('빛 실 (조명)', 'counter lift', '/static/art/card_13.jpg', 'COUNTER · 조명 ✓')}${card('거품 우는 병', 'counter', '/static/art/card_05.jpg', 'COUNTER · 소음 ✓')}${card('붉은 말린 실의 부적', '', '/static/art/card_00.jpg', 'RELIC · 미끼?')}${card('가람 · 정찰병', 'survivor', '/static/art/chars/scout_dl_b.png', 'SURVIVOR · 밖')}${card('재 · 개', 'survivor', '', 'COMPANION · 경고')}</div>
+  <div class="variant">MOCKUP C · 저녁의 위기 (대항 3초 · 카트 도착 · 랩터 접근)</div>`;
+}
+S.innerHTML = html + '<div class="vignette"></div>';
+const fit = () => { const k = Math.min(innerWidth / 1280, innerHeight / 720); S.style.transform = `scale(${k})`; S.style.transformOrigin = '50% 50%'; }; fit(); addEventListener('resize', fit);
+</script>
+</body>
+</html>

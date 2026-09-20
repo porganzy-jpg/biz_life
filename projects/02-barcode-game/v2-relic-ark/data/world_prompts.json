@@ -1,0 +1,21 @@
+{
+  "_style": "anime background art, Makoto Shinkai and Studio Ghibli style, matte painting, lush overgrown greenery, dappled sunlight, saturated greens with warm orange accents, highly detailed, 8k, no text",
+  "_negative": "blurry, text, watermark, signature, logo, deformed, low quality, extra limbs, distorted faces, jpeg artifacts",
+  "_size": [832, 1216],
+  "healing": [
+    {"id": "spot_flooded_train", "seed": 88001, "prompt": "interior of an abandoned subway car flooded with crystal clear turquoise water, koi and goldfish swimming over the floor, pink and yellow flowers growing from the seats, vines on the hand straps, sunlight through the windows, serene"},
+    {"id": "spot_goldfish_canal", "seed": 88002, "prompt": "an old covered city stream broken open, clear turquoise water flowing under mossy stone arch bridges, big orange goldfish visible underwater in cross-section, vines and trees over the bridge, small survivors walking on the stone path"},
+    {"id": "spot_greenhouse_cafe", "seed": 88003, "prompt": "ruined glass arcade turned into a greenhouse, tall trees breaking through the iron and glass roof, abandoned cafe tables with orange awnings beside a flooded street of clear turquoise water, reflections, peaceful"},
+    {"id": "spot_forest_train_door", "seed": 88004, "prompt": "inside an abandoned train car overgrown with moss and vines, open door revealing a sunlit forest with rails disappearing into the trees, orange seats, hand straps, warm light on the floor"},
+    {"id": "spot_rooftop_garden", "seed": 88005, "prompt": "rooftop of a ruined department store turned into a wild garden, rainwater pond with lotus, deer drinking, distant overgrown city skyline, soft morning light"},
+    {"id": "spot_lantern_river", "seed": 88006, "prompt": "night riverside in a ruined city, thousands of fireflies over dark water, old paper lanterns still hanging from a broken bridge, reflections, a lone survivor sitting quietly, warm and cool light"}
+  ],
+  "world": [
+    {"id": "world_mall_interior", "seed": 88011, "prompt": "interior of a huge abandoned shopping mall, survivors camping between tall store shelves, tents and laundry lines, lanterns, plants growing through cracked floor, broken skylight letting in sunbeams, cozy survival"},
+    {"id": "world_mall_exterior_dino", "seed": 88012, "prompt": "exterior of a giant overgrown shopping mall in a ruined city at dusk, a herd of triceratops grazing on a grassy parking lot, a tyrannosaurus silhouette in the mist behind broken buildings, warm lights in the mall windows"},
+    {"id": "world_underground_warehouse", "seed": 88013, "prompt": "underground warehouse level of a mall turned into a home, concrete pillars, rooms built from shelving and tarps, warm lantern light, vines hanging from the ceiling, children playing, water dripping into a basin"},
+    {"id": "world_forgotten_station", "seed": 88014, "prompt": "abandoned subway platform connected to a mall basement, tents on the platform, campfire, old train half in the tunnel, glowing green fungus in the dark tunnel, safety line and tiles"},
+    {"id": "world_scavenging", "seed": 88015, "prompt": "two survivors pushing a shopping cart through an overgrown supermarket aisle, grabbing cans and instant noodles, sunlight through collapsed roof, a velociraptor shadow beyond the glass doors"},
+    {"id": "world_barcode_reader", "seed": 88016, "prompt": "close-up of weathered hands holding an ancient handheld barcode scanner glowing faint gold, scanning a faded ramen packet on a stone shelf, dust in the lantern light, mysterious, sacred relic"}
+  ]
+}

@@ -84,3 +84,13 @@ logs/
 **/android/key.properties
 *.jks
 *.keystore
+
+# RELIC ARK (v2-relic-ark) — 재생성 가능/대용량/비밀
+projects/02-barcode-game/v2-relic-ark/assets3d/
+!projects/02-barcode-game/v2-relic-ark/assets3d/README.md
+projects/02-barcode-game/v2-relic-ark/art_raw/
+projects/02-barcode-game/v2-relic-ark/certs/
+projects/02-barcode-game/v2-relic-ark/*.db
+projects/02-barcode-game/v2-relic-ark/*.log
+projects/02-barcode-game/v2-relic-ark/static/art/chars/legacy/
+.playwright-mcp/
