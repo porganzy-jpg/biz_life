@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+_joined*.wav
+out/
+tmp/

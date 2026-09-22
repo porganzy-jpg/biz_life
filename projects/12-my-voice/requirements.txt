@@ -1,0 +1,9 @@
+# Python 3.11 전용 (3.13에서는 의존 패키지가 빌드되지 않음)
+# 설치:  uv venv --python 3.11 .venv
+#        uv pip install --python .venv/Scripts/python.exe torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+#        uv pip install --python .venv/Scripts/python.exe -r requirements.txt
+infer-rvc-python
+edge-tts
+numpy==1.26.4      # pyworld 바이너리 호환 때문에 1.x 고정 필수
+librosa
+soundfile
