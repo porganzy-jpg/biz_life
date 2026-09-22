@@ -63,10 +63,13 @@ CHARACTERS = {
         "color": (255, 214, 0),     # 자막 노랑
     },
     # ── 02-barcode-game 쇼츠용 ──
-    "아조씨": {  # 독거아조씨 나레이션 - 채널 주인 톤(저음, 담담)
-        "voice": "ko-KR-InJoonNeural",
-        "pitch": "-25Hz",
-        "rate":  "-8%",
+    "아조씨": {  # 독거아조씨 나레이션 - 채널 주인 톤
+        # 실제 목소리 측정(유튜브 2025 클립): 중앙값 120Hz, p10 105, p90 150 — 좁고 안정적
+        # InJoon -25Hz는 p10이 60Hz까지 떨어져 억지 저음이 났다. Hyunsu -8Hz가 p10 89로 가장 근접.
+        # 음색 자체는 RVC 변환으로만 맞출 수 있다 (media/song/rvc/tts_to_voice.py)
+        "voice": "ko-KR-HyunsuMultilingualNeural",
+        "pitch": "-8Hz",
+        "rate":  "-5%",
         "color": (255, 244, 214),
     },
     "잠이": {    # 눈 감은 스파니엘 - 작고 부드럽게

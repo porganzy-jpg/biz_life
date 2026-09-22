@@ -12,3 +12,6 @@ song/rvc/models/
 song/rvc/dataset/
 song/rvc/ajossi_2022_young.zip
 song/song_sheet-*.png
+
+# 음성 클로닝 작업 폴더 — 정리본은 projects/12-my-voice/ 에 있다
+song/rvc/
