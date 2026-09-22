@@ -9,3 +9,12 @@ songs/*.mp3
 songs/*_파트/
 rmvpe.pt
 hubert_base.pt
+# 실험 중간 산출물 (재생성 가능)
+_*.wav
+blend/
+calib/
+sing/
+sing_ep/
+singfix/
+cmp*/
+rev/

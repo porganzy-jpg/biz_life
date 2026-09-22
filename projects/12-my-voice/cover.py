@@ -29,7 +29,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("song", help="노래 파일 (mp3/wav/m4a 등)")
 ap.add_argument("-o", "--out", default=None)
 ap.add_argument("--pitch", type=int, default=None, help="반음 조정. 생략하면 자동 계산")
-ap.add_argument("--index", type=float, default=1.0)
+ap.add_argument("--index", type=float, default=0.3, help="노래는 낮게. 인덱스는 말소리로 만들어져 노래에 강하게 걸면 음색이 흔들린다")
+ap.add_argument("--protect", type=float, default=0.33, help="노래는 0.33 권장")
 ap.add_argument("--vocal-gain", type=float, default=1.0)
 ap.add_argument("--inst-gain", type=float, default=1.0)
 ap.add_argument("--keep-parts", action="store_true", help="분리된 보컬/반주도 남김")
@@ -72,7 +73,7 @@ from infer_rvc_python import BaseLoader
 conv = BaseLoader(only_cpu=True, hubert_path=None, rmvpe_path=None)
 conv.apply_conf(tag="me", file_model=model, pitch_algo="rmvpe", pitch_lvl=pitch,
                 file_index=index, index_influence=a.index, respiration_median_filtering=3,
-                envelope_ratio=1.0, consonant_breath_protection=0.0)
+                envelope_ratio=1.0, consonant_breath_protection=a.protect)
 conv([str(sep)], tag_list=["me"], overwrite=False, parallel_workers=1,
      type_output="wav", show_progress=False)
 conv_vocal = sep.with_name("vocals_edited.wav")
