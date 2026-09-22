@@ -557,9 +557,9 @@ def airlock_tube(lamps):
                iso.mat("alt_bulb_m", "#FFE2B4", 0.3, emit="#FFA63C", strength=26), 12, 7)
     bpy.ops.object.light_add(type='SPOT', location=(cx + 0.45, cy - 2.62, z_bot + 0.72))
     l = bpy.context.object; l.name = "L_airlock_out"
-    l.data.color = iso.hexcol("#FFA63C"); l.data.energy = 2600; l.data.spot_size = math.radians(74)
-    l.data.spot_blend = 0.55; l.data.shadow_soft_size = 0.3
-    l.data.use_custom_distance = True; l.data.cutoff_distance = 12.0
+    l.data.color = iso.hexcol("#FFA63C"); l.data.energy = 2000; l.data.spot_size = math.radians(58)
+    l.data.spot_blend = 0.40; l.data.shadow_soft_size = 0.25
+    l.data.use_custom_distance = True; l.data.cutoff_distance = 10.0
     SC.aim(l, (cx + 1.4, cy - 7.0, 0.0))
     lamps.append(Vector((cx + 0.45, cy - 2.62, z_bot + 0.72)))
     return Vector((cx + 1.9, cy - 3.2, 0.0))       # 사다리 발치 = 주민이 서는 자리
@@ -831,7 +831,7 @@ def shot_hero():
 def shot_airlock():
     global M
     M = deep_materials()
-    deep_world(fog=0.0055)
+    deep_world(fog=0.0075)
     lamps, foot = build_dome()
     seafloor()
     particulates(31)
@@ -841,10 +841,15 @@ def shot_airlock():
     # 사다리를 막 내려선 주민 + 해치에서 지켜보는 주민 (잠수복 미구현 — 기존 역할 GLB 그대로)
     resident("scout", foot.x + 0.9, foot.y - 1.6, 0.0, rot_z=math.radians(212), h=1.72)
     resident("engineer", foot.x - 3.1, foot.y + 2.0, 2.37, rot_z=math.radians(22), h=1.68)
+    # 이 컷에서는 방 등불이 해저 전체를 균일하게 덮어 D1(난색 안/한색 밖)이 한 색으로 뭉갠다.
+    # 바깥을 비추는 것은 '에어락 등 하나'여야 하므로(D3) 실내 등은 이 컷에 한해 낮춘다.
+    for o in bpy.data.objects:
+        if o.type == 'LIGHT' and o.name.startswith("L_") and o.name not in ("L_airlock_out",):
+            o.data.energy *= 0.22 if o.name != "L_airlock" else 0.55
     noline_setup()
-    SC.preview(os.path.join(OUT_RAW, "dome_airlock.png"), ortho=15.5,
-               target=(foot.x - 0.6, foot.y + 0.9, 1.6), res=(1600, 900), az=AZ, el=EL,
-               freestyle=True, exposure=-0.30)
+    SC.preview(os.path.join(OUT_RAW, "dome_airlock.png"), ortho=17.5,
+               target=(foot.x - 0.3, foot.y + 1.4, 1.8), res=(1600, 900), az=AZ, el=EL,
+               freestyle=True, exposure=-0.05)
 
 
 def shot_depth():
