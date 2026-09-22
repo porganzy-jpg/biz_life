@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="서울 은평구 통일로 1080 은평뉴타운솔하임 A동 1층 117-1호(호가 12억원) 상업용 부동산 투자 심사 리포트. 수익환원법·현금흐름·민감도 분석 및 적정가 역산.">
+<meta name="robots" content="noindex">
+<style>
+/* ── 최소 리셋 (아티팩트 플랫폼이 제공했던 것을 대체) ───────── */
+*,*::before,*::after{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body,h1,h2,h3,h4,p,ul,ol,figure,table{margin:0;}
+ul,ol{padding:0;}
+img,svg{display:block;max-width:100%;}
+table{border-collapse:collapse;}
+button,input,select,textarea{font:inherit;color:inherit;}
+</style>
+<title>은평뉴타운솔하임 1층 상가 2개호 — 투자 심사 리포트</title>
+<style>
+/* ── 토큰: 라이트가 기본, 다크는 토큰만 재정의 ───────────────── */
+:root{
+  --ground:#F4F7FA;
+  --surface:#FFFFFF;
+  --surface-2:#EAEFF6;
+  --surface-3:#DFE7F1;
+  --ink:#131A24;
+  --ink-2:#54617A;
+  --ink-3:#8391A8;
+  --rule:#D7E0EC;
+  --rule-strong:#B9C6D8;
+  --accent:#1F4E9C;
+  --accent-soft:#D8E4F7;
+  --good:#14634A;
+  --good-soft:#D6EDE3;
+  --warn:#8A5B0A;
+  --warn-soft:#FAEBCF;
+  --critical:#A3201A;
+  --critical-soft:#F7DEDC;
+  --shadow:0 1px 2px rgba(19,26,36,.06),0 8px 24px -12px rgba(19,26,36,.18);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1218;
+    --surface:#151B24;
+    --surface-2:#1C2430;
+    --surface-3:#243040;
+    --ink:#E7ECF4;
+    --ink-2:#9BA7BA;
+    --ink-3:#6C7A8E;
+    --rule:#27313F;
+    --rule-strong:#3A4759;
+    --accent:#7BA8F0;
+    --accent-soft:#1B2C48;
+    --good:#5FC8A0;
+    --good-soft:#16342A;
+    --warn:#E0AE55;
+    --warn-soft:#3A2D14;
+    --critical:#F08278;
+    --critical-soft:#3A1F1C;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1218;
+  --surface:#151B24;
+  --surface-2:#1C2430;
+  --surface-3:#243040;
+  --ink:#E7ECF4;
+  --ink-2:#9BA7BA;
+  --ink-3:#6C7A8E;
+  --rule:#27313F;
+  --rule-strong:#3A4759;
+  --accent:#7BA8F0;
+  --accent-soft:#1B2C48;
+  --good:#5FC8A0;
+  --good-soft:#16342A;
+  --warn:#E0AE55;
+  --warn-soft:#3A2D14;
+  --critical:#F08278;
+  --critical-soft:#3A1F1C;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box;}
+
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,
+    'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;
+  font-size:16px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:880px;margin:0 auto;padding:0 24px 96px;}
+
+.lab{
+  font-family:ui-monospace,'SF Mono','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+  font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;
+}
+.num{
+  font-family:ui-monospace,'SF Mono','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ── 판정 배너 ───────────────────────────────────────── */
+.verdict{
+  margin:40px 0 8px;padding:32px;border-radius:4px;
+  background:var(--surface);border:1px solid var(--rule);
+  border-left:5px solid var(--warn);box-shadow:var(--shadow);
+}
+.verdict-top{
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:16px;
+  justify-content:space-between;margin-bottom:18px;
+}
+.verdict h1{
+  margin:0;font-size:clamp(30px,5.4vw,44px);font-weight:800;
+  letter-spacing:-.03em;line-height:1.1;color:var(--warn);
+  text-wrap:balance;
+}
+.score{
+  display:flex;align-items:baseline;gap:7px;
+  padding:7px 14px;border-radius:3px;
+  background:var(--warn-soft);color:var(--warn);
+  font-weight:700;white-space:nowrap;
+}
+.score b{font-size:22px;}
+.verdict p{margin:0 0 12px;color:var(--ink-2);font-size:17px;line-height:1.7;text-wrap:pretty;}
+.verdict p:last-child{margin-bottom:0;}
+.verdict p strong{color:var(--ink);font-weight:700;}
+.conds{
+  list-style:none;margin:16px 0 0;padding:16px 0 0;border-top:1px solid var(--rule);
+  display:flex;flex-direction:column;gap:9px;
+}
+.conds li{display:grid;grid-template-columns:auto 1fr;gap:11px;align-items:start;font-size:15px;}
+.conds .mk{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;font-weight:700;
+  color:var(--warn);background:var(--warn-soft);border-radius:3px;padding:2px 7px;
+  margin-top:3px;white-space:nowrap;
+}
+.conds b{font-weight:700;}
+
+.doc-head{padding-top:44px;}
+.doc-head .lab{display:block;margin-bottom:10px;}
+.doc-head h2{margin:0 0 6px;font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.4;}
+.doc-head .sub{margin:0;color:var(--ink-2);font-size:14.5px;}
+
+/* ── 정정 안내 ───────────────────────────────────────── */
+.revision{
+  margin-top:18px;padding:15px 18px;border-radius:4px;
+  background:var(--surface-2);border:1px dashed var(--rule-strong);
+  font-size:14px;color:var(--ink-2);line-height:1.6;
+}
+.revision b{color:var(--ink);}
+
+/* ── 섹션 ────────────────────────────────────────────── */
+section{margin-top:52px;}
+section > .lab{display:block;padding-bottom:10px;border-bottom:1px solid var(--rule-strong);margin-bottom:22px;}
+h3{margin:0 0 12px;font-size:19px;font-weight:700;letter-spacing:-.015em;text-wrap:balance;}
+p{margin:0 0 14px;text-wrap:pretty;}
+.note{color:var(--ink-2);font-size:14.5px;}
+
+/* ── 사실 그리드 ─────────────────────────────────────── */
+.facts{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden;
+}
+.fact{background:var(--surface);padding:15px 17px;}
+.fact .lab{display:block;margin-bottom:5px;font-size:10px;}
+.fact .v{font-size:19px;font-weight:700;letter-spacing:-.02em;}
+.fact .v small{font-size:13px;font-weight:500;color:var(--ink-2);letter-spacing:0;}
+
+/* ── 차트 ────────────────────────────────────────────── */
+figure{margin:0;}
+.chart{
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:24px 26px 18px;box-shadow:var(--shadow);
+}
+figcaption{margin-top:12px;font-size:13.5px;color:var(--ink-2);line-height:1.6;}
+.plot{position:relative;display:flex;flex-direction:column;gap:15px;padding-top:16px;}
+.row{display:grid;grid-template-columns:1fr;gap:5px;}
+.row-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;}
+.row-name{font-size:13.5px;font-weight:600;line-height:1.35;}
+.row-name em{font-style:normal;color:var(--ink-3);font-weight:500;font-size:12px;display:block;}
+.row-val{font-size:14px;font-weight:700;white-space:nowrap;}
+.track{position:relative;height:16px;background:var(--surface-2);border-radius:3px;overflow:hidden;}
+.bar{height:100%;border-radius:0 4px 4px 0;}
+.bar.good{background:var(--good);}
+.bar.warn{background:var(--warn);}
+.bar.crit{background:var(--critical);}
+.bar.acc{background:var(--accent);}
+.bar.neutral{background:var(--rule-strong);}
+.row-val.good{color:var(--good);}
+.row-val.warn{color:var(--warn);}
+.row-val.crit{color:var(--critical);}
+.row-val.acc{color:var(--accent);}
+
+.threshold{position:absolute;top:0;bottom:22px;width:2px;background:var(--ink);opacity:.72;}
+.threshold::after{
+  content:attr(data-label);position:absolute;top:-14px;left:-2px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+  letter-spacing:.05em;color:var(--ink);white-space:nowrap;font-weight:700;
+}
+.threshold.right::after{left:auto;right:-2px;}
+.axis{display:flex;justify-content:space-between;margin-top:12px;padding-top:8px;border-top:1px solid var(--rule);}
+.axis span{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+
+/* ── 표 ──────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:4px;background:var(--surface);}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:480px;}
+caption{text-align:left;padding:14px 17px 0;font-size:13.5px;color:var(--ink-2);}
+th,td{padding:10px 17px;text-align:right;border-bottom:1px solid var(--rule);}
+th:first-child,td:first-child{text-align:left;}
+thead th{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;background:var(--surface-2);
+  border-bottom:1px solid var(--rule-strong);white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:none;}
+td.n{font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;}
+tr.total td{background:var(--surface-2);font-weight:700;border-top:1px solid var(--rule-strong);}
+tr.hi td{background:var(--good-soft);}
+td.neg{color:var(--critical);}
+td.pos{color:var(--good);}
+.pill{display:inline-block;padding:2px 9px;border-radius:3px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+.pill.bad{background:var(--critical-soft);color:var(--critical);}
+.pill.mid{background:var(--surface-3);color:var(--ink-2);}
+.pill.warn{background:var(--warn-soft);color:var(--warn);}
+.pill.good{background:var(--good-soft);color:var(--good);}
+
+/* ── 계산 사다리 ─────────────────────────────────────── */
+.ladder{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:6px 0;box-shadow:var(--shadow);}
+.step{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 20px;border-bottom:1px solid var(--rule);}
+.step:last-child{border-bottom:none;}
+.step .k{font-size:14px;color:var(--ink-2);}
+.step .k b{color:var(--ink);font-weight:600;}
+.step .a{font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:14.5px;font-weight:600;white-space:nowrap;}
+.step.sum{background:var(--surface-2);border-top:1px solid var(--rule-strong);}
+.step.sum .a{font-size:17px;font-weight:800;}
+.step .a.minus{color:var(--critical);}
+
+/* ── 강조 박스 ───────────────────────────────────────── */
+.callout{border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--surface);border-radius:4px;padding:20px 22px;}
+.callout.crit{border-left-color:var(--critical);}
+.callout.warn{border-left-color:var(--warn);}
+.callout.good{border-left-color:var(--good);}
+.callout h4{margin:0 0 8px;font-size:16px;font-weight:700;letter-spacing:-.01em;}
+.callout p:last-child{margin-bottom:0;}
+.eq{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;
+  background:var(--surface-2);border-radius:3px;padding:12px 15px;font-size:13.5px;
+  line-height:1.9;overflow-x:auto;white-space:nowrap;color:var(--ink);
+}
+
+/* ── 체크리스트 ──────────────────────────────────────── */
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden;}
+.checks li{background:var(--surface);padding:14px 18px;display:grid;grid-template-columns:auto 1fr;gap:13px;align-items:start;}
+.checks .mk{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;font-weight:700;
+  color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:2px 7px;margin-top:2px;white-space:nowrap;
+}
+.checks .mk.hot{color:var(--critical);background:var(--critical-soft);}
+.checks b{display:block;font-size:15px;font-weight:700;margin-bottom:2px;}
+.checks span{font-size:14px;color:var(--ink-2);line-height:1.6;}
+
+/* ── 출처 ────────────────────────────────────────────── */
+.src{font-size:13.5px;color:var(--ink-2);}
+.src li{margin-bottom:7px;}
+.src a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--rule-strong);}
+.src a:hover,.src a:focus-visible{border-bottom-color:var(--accent);}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px;}
+
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--ink-3);}
+@media (max-width:560px){
+  .wrap{padding:0 16px 72px;}
+  .verdict{padding:24px 20px;}
+  .step{padding:11px 15px;}
+}
+</style>
+<style>
+/* ── 인쇄 / PDF 저장 ────────────────────────────────────
+   화면용 다크 토큰이 인쇄로 넘어가면 검은 배경이 통째로 찍힌다.
+   인쇄 시에는 라이트 팔레트로 고정하고 그림자·배경을 걷어낸다. */
+@media print{
+  :root{
+    --ground:#FFFFFF;--surface:#FFFFFF;--surface-2:#F4F7FA;--surface-3:#EAEFF6;
+    --ink:#000000;--ink-2:#333B49;--ink-3:#5A6577;
+    --rule:#C9D3E0;--rule-strong:#9AA8BB;
+    --accent:#12457F;--accent-soft:#EAF1FB;
+    --critical:#8C1A14;--critical-soft:#FBEEED;
+    --shadow:none;
+  }
+  body{background:#fff;font-size:10.5pt;line-height:1.5;}
+  .wrap{max-width:none;padding:0;}
+  .verdict{break-inside:avoid;}
+  section{break-inside:avoid-page;margin-top:22pt;}
+  figure,.ladder,.tbl-wrap,.callout,.checks,.facts{break-inside:avoid;}
+  .chart,.ladder,.callout,.verdict{box-shadow:none;}
+  thead{display:table-header-group;}
+  tr{break-inside:avoid;}
+  .src a{color:var(--accent);border-bottom:none;}
+  .src a::after{content:" (" attr(href) ")";font-size:8pt;color:var(--ink-3);word-break:break-all;}
+  footer{break-inside:avoid;}
+  @page{margin:16mm 14mm;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-head">
+    <span class="lab">투자 심사 리포트 · 상업용 부동산 · 개정 2판</span>
+    <h2>서울 은평구 통일로 1080 (진관동)<br>은평뉴타운솔하임 A동 1층 117-1호 — 상가 2개호 일괄</h2>
+    <p class="sub">호가 12억원 · 전용 92.6㎡(28평) · 1층 · 세탁소 + 약국 임차중 &nbsp;|&nbsp; 심사일 2026년 8월 8일</p>
+
+    <div class="revision">
+      <b>정정 사항</b> — 1판은 이 물건을 약국 1개호(18평 / 월세 290만원)로 계산했습니다.
+      실제로는 <b>세탁소와 약국 2개호를 12억원에 일괄 취득</b>하는 건으로,
+      임대수입이 <b>월 420만원(+45%)</b>, 면적이 <b>28평</b>입니다.
+      이 정정으로 판정이 <b>‘매수 부적합’에서 ‘조건부 매수’로 변경</b>되었습니다.
+      <br><br>
+      <b>추가 확인 (3판)</b> — <b>약국 계약 잔여기간 2년</b>이 확인되어
+      상가건물임대차보호법 검토를 6장에 추가했습니다.
+      <b>면적 기준(전용/분양)은 미확정</b>이므로 1장에서 두 경우를 모두 계산했습니다 —
+      <b>평가액과 판정은 두 경우가 동일</b>하며, 달라지는 것은 평당가 등 비교 지표입니다.
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-top">
+      <h1>조건부 매수</h1>
+      <div class="score"><span class="lab" style="color:inherit">종합</span><b class="num">56</b><span>/ 100</span></div>
+    </div>
+    <p>수익률이 시장 수준에 도달했습니다. 총수익률 <strong>4.39%</strong>는 국고채 3년물(3.67%)과
+    집합상가 시장평균(3.84%)을 모두 상회합니다. 수익환원법 평가액은 <strong>11.4억원</strong>으로
+    호가와의 격차가 <strong>5,900만원(4.9%)</strong>에 불과합니다 — 사실상 적정가 범위입니다.</p>
+    <p>입지 우려도 데이터로 해소됩니다. 구파발역 일평균 승하차는 <strong>42,117명</strong>(2025)으로
+    3호선 불광역과 동급이고, 배후에 <strong>은평뉴타운 17,207세대</strong>가 있습니다.
+    서울 상가 공실률은 <strong>9.4%</strong>로 전국(13.4%)보다 3.9%p 낮습니다.</p>
+    <p>다만 <strong>무조건 매수는 아닙니다.</strong> 실효 수익률 3.61%가 대출금리 5.20%보다 낮아
+    대출을 쓰는 순간 수익률이 훼손되고, 임대수입의 <strong>69%가 약국 한 곳</strong>에 걸려 있습니다.</p>
+
+    <ul class="conds">
+      <li><span class="mk">조건 1</span><div><b>무대출.</b> 대출 6억이면 매달 47만원, 9억이면 251만원씩 순유출됩니다. 역레버리지 구간이라 대출은 수익을 키우지 못하고 깎습니다 — 8장 판독표 참조.</div></li>
+      <li><span class="mk">조건 2</span><div><b>10년 이상 장기보유.</b> 5년 보유 시 IRR 4.01%, 10년이면 4.53%입니다. 왕복 거래비용(취득세 4.6% + 중개보수)을 상각할 시간이 필요합니다.</div></li>
+      <li><span class="mk">조건 3</span><div><b>약국의 ‘잔여 2년’이 무엇의 잔여인지 확인.</b> 현 계약 잔여인지, 계약갱신요구권(10년) 잔여인지에 따라 리스크가 정반대입니다 — 6장 참조. 이 하나가 투자의 성패를 가릅니다.</div></li>
+    </ul>
+  </div>
+
+  <!-- ───────── 임차 구성 ───────── -->
+  <section>
+    <span class="lab">01 — 임차 구성</span>
+    <h3>2개호 합산 월 420만원</h3>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>임차호</th><th>면적</th><th>보증금</th><th>월세</th><th>평당 월세</th><th>수익 비중</th></tr></thead>
+        <tbody>
+          <tr><td>약국</td><td class="n">18평</td><td class="n">5,000만원</td><td class="n">290만원</td><td class="n">16.1만원</td><td class="n">69.0%</td></tr>
+          <tr><td>세탁소</td><td class="n">10평</td><td class="n">2,500만원</td><td class="n">130만원</td><td class="n">13.0만원</td><td class="n">31.0%</td></tr>
+          <tr class="total"><td>합계</td><td class="n">28평</td><td class="n">7,500만원</td><td class="n">420만원</td><td class="n">15.0만원</td><td class="n">100%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="facts" style="margin-top:20px">
+      <div class="fact"><span class="lab">호가</span><div class="v num">12.0<small>억원</small></div></div>
+      <div class="fact"><span class="lab">평당 매매가</span><div class="v num">4,286<small>만원</small></div></div>
+      <div class="fact"><span class="lab">㎡당 월세</span><div class="v num">45,375<small>원</small></div></div>
+      <div class="fact"><span class="lab">실효 Cap Rate</span><div class="v num">3.61<small>%</small></div></div>
+      <div class="fact"><span class="lab">총수익률 상한</span><div class="v num">4.39<small>%</small></div></div>
+      <div class="fact"><span class="lab">임차인 수</span><div class="v num">2<small>개호</small></div></div>
+    </div>
+
+    <p class="note" style="margin-top:18px">
+      ㎡당 월세 45,375원은 부동산원 집계 집합상가 전국 평균(27,000원)의 <strong>1.7배</strong>로,
+      서울 역세권 1층으로서 타당한 수준입니다. 임대료 자체는 시장과 어긋나 있지 않습니다.
+      (단, 아래 면적 기준에 따라 이 배수는 달라집니다.)
+    </p>
+
+    <h3 style="margin-top:34px">면적 기준 — ‘28평’이 전용인가 분양인가</h3>
+    <p>상가 거래에서 가장 흔한 혼동 지점입니다. 두 면적은 이렇게 다릅니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>구분</th><th>포함 범위</th><th>어디에 쓰이나</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>전용면적</b></td>
+            <td style="text-align:right">내 점포 안쪽 — 실제 영업 공간</td>
+            <td style="text-align:right"><b>등기부등본·건축물대장에 기재</b></td>
+          </tr>
+          <tr>
+            <td><b>분양면적</b><br><span style="color:var(--ink-3);font-size:12.5px">(공급·계약면적)</span></td>
+            <td style="text-align:right">전용면적 + 공용면적 지분<br><span style="color:var(--ink-3);font-size:12.5px">복도·계단·엘리베이터·공용화장실·주차장</span></td>
+            <td style="text-align:right">광고·호가·중개 표시</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note" style="margin-top:12px">
+      <strong>상가는 아파트보다 전용률이 훨씬 낮습니다.</strong> 아파트가 70~80%인 데 비해
+      상가는 <strong>40~60%</strong>, 단지 내 상가는 50% 내외가 흔합니다.
+      공용 복도·화장실·계단 비중이 크기 때문입니다.
+      따라서 ‘28평’이 분양면적이라면 실제 영업 공간은 <strong>11~17평</strong>일 수 있습니다.
+    </p>
+
+    <div class="callout good" style="margin-top:22px">
+      <h4>먼저 안심할 부분 — 판정은 어느 쪽이든 동일합니다</h4>
+      <p class="note" style="margin-bottom:10px">수익환원법은 <strong>면적을 계산에 사용하지 않습니다.</strong>
+      실제로 받는 임대료(420만원)와 실제로 내는 가격(12억)만 쓰기 때문입니다.</p>
+      <div class="eq" style="margin-bottom:0">NOI 4,453만원 ÷ Cap Rate 3.8% = 11.72억원 &nbsp;&nbsp;(면적 무관)</div>
+    </div>
+
+    <div class="tbl-wrap" style="margin-top:22px">
+      <table>
+        <caption>두 경우 비교 — 무엇이 바뀌고 무엇이 안 바뀌는가</caption>
+        <thead><tr><th>항목</th><th>CASE A · 28평 = 전용</th><th>CASE B · 28평 = 분양(전용률 50%)</th></tr></thead>
+        <tbody>
+          <tr class="hi"><td>수익환원 평가액</td><td class="n">11.72억</td><td class="n">11.72억 <span class="pill good">동일</span></td></tr>
+          <tr class="hi"><td>기준 IRR</td><td class="n">4.63%</td><td class="n">4.63% <span class="pill good">동일</span></td></tr>
+          <tr class="hi"><td>판정</td><td>조건부 매수 (56점)</td><td>조건부 매수 (56점) <span class="pill good">동일</span></td></tr>
+          <tr><td>실제 영업 공간</td><td class="n">28평 (92.56㎡)</td><td class="n neg">14평 (46.28㎡)</td></tr>
+          <tr><td>전용 기준 평당 매매가</td><td class="n">4,286만원</td><td class="n neg">8,571만원</td></tr>
+          <tr><td>전용 기준 ㎡당 월세</td><td class="n">45,375원 (평균의 1.7배)</td><td class="n neg">90,750원 (평균의 3.4배)</td></tr>
+          <tr class="total"><td>재매각 시 표시</td><td>28평</td><td>28평(분양) / 14평(전용)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-wrap" style="margin-top:18px">
+      <table>
+        <caption>CASE B 세부 — 전용률에 따른 실제 면적과 지표</caption>
+        <thead><tr><th>전용률</th><th>전용면적</th><th>전용 평당가</th><th>전용 ㎡당 월세</th><th>부동산원 평균 대비</th></tr></thead>
+        <tbody>
+          <tr><td class="n">40%</td><td class="n">11.2평</td><td class="n">10,714만원</td><td class="n">113,437원</td><td class="n neg">4.2배</td></tr>
+          <tr><td class="n">50%</td><td class="n">14.0평</td><td class="n">8,571만원</td><td class="n">90,750원</td><td class="n neg">3.4배</td></tr>
+          <tr><td class="n">60%</td><td class="n">16.8평</td><td class="n">7,143만원</td><td class="n">75,625원</td><td class="n neg">2.8배</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn" style="margin-top:22px">
+      <h4>그래도 확인해야 하는 세 가지 이유</h4>
+      <p class="note" style="margin-bottom:8px"><strong>1. 임대료 인상 여력.</strong>
+      CASE B라면 전용 ㎡당 월세가 시장 평균의 3~4배가 됩니다. 이미 높게 받고 있다는 뜻이라,
+      앞서 제시한 <strong>‘2회 갱신으로 463만원 도달’ 경로가 현실성을 잃을 수 있습니다.</strong>
+      임차인이 감당 못 하면 인상이 아니라 이탈로 이어집니다.</p>
+      <p class="note" style="margin-bottom:8px"><strong>2. 재매각 시 불리.</strong>
+      분양면적 기준으로 사서 전용면적 기준으로 팔면 손해입니다. 매수·매도 기준을 일치시켜야 합니다.</p>
+      <p class="note" style="margin-bottom:0"><strong>3. 다른 매물과의 비교.</strong>
+      평당 4,286만원과 8,571만원은 완전히 다른 물건입니다. 비교 자체가 성립하지 않습니다.</p>
+    </div>
+
+    <div class="callout" style="margin-top:18px">
+      <h4>확인 방법</h4>
+      <p class="note" style="margin-bottom:0">
+      <strong>① 등기부등본</strong> — 인터넷등기소(iros.go.kr), 열람 700원.
+      <strong>여기 적힌 면적이 전용면적</strong>입니다. 가장 확실합니다.<br>
+      <strong>② 집합건축물대장</strong> — 정부24에서 무료. ‘전유부분’ 면적을 보면 됩니다.<br>
+      <strong>③ 중개사 질문법</strong> — “28평”이 아니라 <strong>“등기부상 전유면적이 몇 ㎡인가요?”</strong>로
+      ㎡ 숫자를 받아내세요. 받은 숫자를 3.3058로 나누면 평입니다
+      (92.56㎡ → 28평이면 CASE A, 46.28㎡ → 14평이면 CASE B).</p>
+    </div>
+  </section>
+
+  <!-- ───────── 입지·상권 ───────── -->
+  <section>
+    <span class="lab">02 — 입지 · 상권</span>
+    <h3>‘서울 외곽 + 산 인접 = 유동인구 부족’ 가설 검증</h3>
+    <p>은평구는 서울 북서쪽 끝이고 북한산 국립공원에 접합니다. 유동인구가 부족할 것이라는
+    우려는 합리적이지만, 실측 데이터는 다른 이야기를 합니다.</p>
+
+    <div class="facts">
+      <div class="fact"><span class="lab">구파발역 일평균 승하차</span><div class="v num">42,117<small>명 · 2025</small></div></div>
+      <div class="fact"><span class="lab">배후 은평뉴타운</span><div class="v num">17,207<small>세대</small></div></div>
+      <div class="fact"><span class="lab">진관동 인구</span><div class="v num">5<small>만명+</small></div></div>
+      <div class="fact"><span class="lab">서울 상가 공실률</span><div class="v num">9.4<small>% (전국 13.4%)</small></div></div>
+    </div>
+
+    <h3 style="margin-top:30px">① 유동인구는 부족하지 않습니다</h3>
+    <p>구파발역 일평균 승하차 42,117명(2025)은 3호선 <strong>불광역(41,769명)과 사실상 동급</strong>입니다.
+    은평뉴타운 입주 전인 2007년 17,498명에서 <strong>2.4배</strong>로 성장한 상권입니다.</p>
+
+    <figure>
+      <div class="chart">
+        <div class="plot" style="padding-top:6px">
+          <div class="row">
+            <div class="row-head"><span class="row-name">2007년<em>은평뉴타운 입주 전</em></span><span class="row-val num">17,498명</span></div>
+            <div class="track"><div class="bar neutral" style="width:39.5%"></div></div>
+          </div>
+          <div class="row">
+            <div class="row-head"><span class="row-name">2016년<em>롯데몰 은평점 개점</em></span><span class="row-val num">33,550명</span></div>
+            <div class="track"><div class="bar neutral" style="width:75.7%"></div></div>
+          </div>
+          <div class="row">
+            <div class="row-head"><span class="row-name">2019년<em>코로나 이전 최고</em></span><span class="row-val num">43,159명</span></div>
+            <div class="track"><div class="bar acc" style="width:97.4%"></div></div>
+          </div>
+          <div class="row">
+            <div class="row-head"><span class="row-name">2025년<em>최신 · 코로나 이전 수준 회복</em></span><span class="row-val good num">42,117명</span></div>
+            <div class="track"><div class="bar good" style="width:95.1%"></div></div>
+          </div>
+        </div>
+        <div class="axis"><span>0</span><span>11,000</span><span>22,000</span><span>33,000</span><span>44,300명</span></div>
+      </div>
+      <figcaption>구파발역 일평균 승하차 인원 추이. 팬데믹 이후 2019년 수준을 회복했습니다.</figcaption>
+    </figure>
+
+    <h3 style="margin-top:30px">② 그런데 이 물건에는 유동인구가 핵심이 아닙니다</h3>
+    <p>더 중요한 사실은 <strong>임차 업종이 유동인구 장사가 아니라는 점</strong>입니다.
+    약국은 인근 의원의 처방전과 동네 주민, 세탁소는 배후 세대의 반복 이용에 의존합니다.
+    지나가는 사람이 아니라 <strong>사는 사람</strong>이 수요의 근원입니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>업종</th><th>수익 비중</th><th>수요 기반</th><th>유동인구 민감도</th></tr></thead>
+        <tbody>
+          <tr><td>약국</td><td class="n">69.0%</td><td style="text-align:right">배후 세대 + 인근 의원 처방</td><td><span class="pill mid">낮음</span></td></tr>
+          <tr><td>세탁소</td><td class="n">31.0%</td><td style="text-align:right">배후 세대 반복 이용</td><td><span class="pill good">없음</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      배후 <strong>은평뉴타운 17,207세대, 진관동 인구 5만명 이상</strong>은 이 두 업종에 충분한 규모입니다.
+      만약 임차인이 카페·의류·요식업이었다면 유동인구 우려가 훨씬 심각했을 텐데,
+      <strong>업종 구성이 이미 이 상권의 성격에 맞게 형성되어 있습니다.</strong>
+    </p>
+
+    <div class="callout good" style="margin-top:22px">
+      <h4>가톨릭대학교 은평성모병원이 구파발역 3번 출구 인근에 있습니다</h4>
+      <p class="note" style="margin-bottom:0">약국 수요의 근원이 되는 대형 의료기관이 도보권에 있다는 점은
+      이 물건의 실질적 강점입니다. <strong>다만 병원 바로 앞 ‘문전약국’이 처방전 대부분을 흡수</strong>하므로,
+      이 약국이 병원 처방 수혜를 직접 받는지는 위치에 따라 다릅니다.
+      배후 세대 대상의 동네 약국일 가능성이 높으며, 그 경우에도 수요는 안정적이지만
+      <strong>성장 여력은 제한적</strong>입니다. 현장에서 확인이 필요한 항목입니다.</p>
+    </div>
+
+    <h3 style="margin-top:30px">③ 서울 프리미엄은 실재하고, 이미 가격에 반영돼 있습니다</h3>
+    <p>“수익률은 낮아도 공실이 적을 것”이라는 판단은 데이터로 뒷받침됩니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <caption>일반 상가 공실률 — 부동산원 2026년 2분기</caption>
+        <thead><tr><th>지역</th><th>공실률</th><th>전국 대비</th></tr></thead>
+        <tbody>
+          <tr class="hi"><td>서울</td><td class="n">9.4%</td><td class="n pos">−3.9%p</td></tr>
+          <tr><td>전국 평균</td><td class="n">13.4%</td><td class="n">—</td></tr>
+          <tr><td>광주</td><td class="n">16.5%</td><td class="n neg">+3.1%p</td></tr>
+          <tr><td>경북</td><td class="n">16.7%</td><td class="n neg">+3.3%p</td></tr>
+          <tr><td>충북</td><td class="n">17.4%</td><td class="n neg">+4.0%p</td></tr>
+          <tr><td>대구</td><td class="n">17.8%</td><td class="n neg">+4.4%p</td></tr>
+          <tr><td>세종</td><td class="n">22.8%</td><td class="n neg">+9.4%p</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout" style="margin-top:22px">
+      <h4>낮은 수익률은 낮은 위험의 ‘대가’입니다 — 공짜가 아닙니다</h4>
+      <p class="note" style="margin-bottom:0">서울 상가의 Cap Rate가 낮은 이유가 바로 공실 위험이 낮기 때문입니다.
+      즉 <strong>‘공실이 적다’는 장점은 이미 낮은 수익률이라는 형태로 가격에 지불되어 있습니다.</strong>
+      추가 보너스가 아니라 등가 교환입니다. 다만 이는 <strong>하방이 두텁다</strong>는 뜻이므로,
+      장기 보유·안정 선호 투자자에게는 실질적 이점입니다.</p>
+    </div>
+
+    <h3 style="margin-top:30px">④ 공실률 가정이 평가액을 얼마나 바꾸는가</h3>
+    <p>입지가 좋다면 공실률을 낮게 잡는 것이 정당합니다. 어느 수치를 쓰느냐에 따른 영향을 모두 계산했습니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>공실률 근거</th><th>공실률</th><th>NOI</th><th>실효 Cap</th><th>평가액</th></tr></thead>
+        <tbody>
+          <tr><td>전국 집합상가 (부동산원)</td><td class="n">10.5%</td><td class="n">4,217만</td><td class="n">3.51%</td><td class="n">11.10억</td></tr>
+          <tr><td>서울 일반상가 평균</td><td class="n">9.4%</td><td class="n">4,269만</td><td class="n">3.56%</td><td class="n">11.23억</td></tr>
+          <tr><td>역세권 B등급 (본문 기준)</td><td class="n">8.0%</td><td class="n">4,335만</td><td class="n">3.61%</td><td class="n">11.41억</td></tr>
+          <tr><td>전국 1층 상가</td><td class="n">6.7%</td><td class="n">4,396만</td><td class="n">3.66%</td><td class="n">11.57억</td></tr>
+          <tr class="hi"><td>서울 1층 + 생활밀착 업종 (추정)</td><td class="n">5.5%</td><td class="n">4,453만</td><td class="n">3.71%</td><td class="n">11.72억</td></tr>
+          <tr class="total"><td>완전 무공실 (이론 상한)</td><td class="n">0.0%</td><td class="n">4,712만</td><td class="n">3.93%</td><td class="n">12.40억</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      어떤 가정을 쓰든 평가액은 <strong>11.1억 ~ 12.4억</strong> 범위에 들어옵니다.
+      <strong>호가 12억은 이 범위 안</strong>이며, 이는 호가가 시장 논리를 벗어나지 않았다는 뜻입니다.
+      입지를 후하게 평가할수록 호가가 정당화됩니다.
+    </p>
+  </section>
+
+  <!-- ───────── 수익률 위치 ───────── -->
+  <section>
+    <span class="lab">03 — 수익률의 시장 내 위치</span>
+    <h3>시장 기준선을 넘어섰습니다</h3>
+    <p>상가의 가치는 임대수익이 결정합니다. 1판에서 이 물건이 탈락한 이유는 수익률이
+    무위험 수익률에도 미달했기 때문인데, 임대수입 정정으로 그 근거가 해소되었습니다.</p>
+
+    <figure>
+      <div class="chart">
+        <div class="plot">
+          <div class="threshold" style="left:76.5%" data-label="국고채 3.67%"></div>
+
+          <div class="row">
+            <div class="row-head">
+              <span class="row-name">이 물건 — 총수익률 상한<em>공실 0% · 운영비 0% 가정</em></span>
+              <span class="row-val good num">4.39%</span>
+            </div>
+            <div class="track"><div class="bar good" style="width:91.5%"></div></div>
+          </div>
+
+          <div class="row">
+            <div class="row-head">
+              <span class="row-name">집합상가 시장 평균<em>부동산원 2026 2분기 · 소득수익률 연환산</em></span>
+              <span class="row-val acc num">3.84%</span>
+            </div>
+            <div class="track"><div class="bar acc" style="width:80.0%"></div></div>
+          </div>
+
+          <div class="row">
+            <div class="row-head">
+              <span class="row-name">국고채 3년물<em>무위험 수익률 · 2026-08-05</em></span>
+              <span class="row-val num">3.67%</span>
+            </div>
+            <div class="track"><div class="bar neutral" style="width:76.5%"></div></div>
+          </div>
+
+          <div class="row">
+            <div class="row-head">
+              <span class="row-name">이 물건 — NOI 기준 실효 수익률<em>공실 8% · 운영비 10.5% 반영</em></span>
+              <span class="row-val warn num">3.61%</span>
+            </div>
+            <div class="track"><div class="bar warn" style="width:75.2%"></div></div>
+          </div>
+        </div>
+        <div class="axis"><span>0%</span><span>1.2%</span><span>2.4%</span><span>3.6%</span><span>4.8%</span></div>
+      </div>
+      <figcaption>연 수익률 비교. 검은 세로선은 국고채 3년물(3.67%) 기준선입니다.
+      총수입 기준으로는 기준선을 넉넉히 넘지만, 공실·운영비를 반영한 실효 수익률(3.61%)은
+      기준선과 사실상 동일합니다 — 초과 수익은 임대료가 아니라 자산가치 상승에서 나옵니다.</figcaption>
+    </figure>
+
+    <div class="callout good" style="margin-top:22px">
+      <h4>가정에 의존하지 않는 계산</h4>
+      <p class="note" style="margin-bottom:10px">Cap Rate·공실률은 추정치지만, 총수익률 상한은 단순 나눗셈입니다.</p>
+      <div class="eq">(420만 × 12) + (7,500만 × 3.0%) = 5,265만원 &nbsp;÷&nbsp; 12억원 &nbsp;=&nbsp; <b>4.39%</b></div>
+    </div>
+  </section>
+
+  <!-- ───────── 수익환원 평가 ───────── -->
+  <section>
+    <span class="lab">04 — 수익환원법 평가</span>
+    <h3>순영업소득(NOI) 산출</h3>
+
+    <div class="ladder">
+      <div class="step"><span class="k">연 임대료 <b>420만원 × 12</b></span><span class="a num">5,040만원</span></div>
+      <div class="step"><span class="k">보증금 운용수익 <b>7,500만원 × 3.0%</b></span><span class="a num">+ 225만원</span></div>
+      <div class="step"><span class="k"><b>잠재총수입 (PGI)</b></span><span class="a num">5,265만원</span></div>
+      <div class="step"><span class="k">공실손실 <b>8.0%</b> <span style="color:var(--ink-3)">— 역세권 B등급</span></span><span class="a num minus">− 421만원</span></div>
+      <div class="step"><span class="k">운영비 <b>10.5%</b> <span style="color:var(--ink-3)">— 관리·수선충당·보험</span></span><span class="a num minus">− 508만원</span></div>
+      <div class="step sum"><span class="k"><b>순영업소득 (NOI)</b></span><span class="a num">4,335만원</span></div>
+    </div>
+
+    <p style="margin-top:22px">시장 Cap Rate 3.80%(구파발역 역세권 B등급)를 적용하면:</p>
+    <div class="eq" style="margin-bottom:20px">4,335만원 ÷ 3.80% = <b>11억 4,084만원</b> &nbsp;&nbsp;←&nbsp; 수익환원 평가액</div>
+
+    <div class="tbl-wrap">
+      <table>
+        <caption>호가 대비 평가 격차</caption>
+        <thead><tr><th>구분</th><th>금액</th><th>호가 대비</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr><td>매도 호가</td><td class="n">12억 0,000만원</td><td class="n">—</td><td>—</td></tr>
+          <tr><td>수익환원 평가액</td><td class="n">11억 4,084만원</td><td class="n neg">−4.9%</td><td>—</td></tr>
+          <tr class="total"><td>격차</td><td class="n neg">−5,916만원</td><td class="n">협상 여지</td><td><span class="pill warn">다소 비쌈</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      거꾸로 계산하면, <strong>12억원이 정당화되려면 월세가 443만원</strong>이어야 합니다 —
+      현재 420만원의 1.05배입니다. 임대료 인상 한 번이면 도달하는 거리입니다.
+    </p>
+  </section>
+
+  <!-- ───────── 자금 구조 ───────── -->
+  <section>
+    <span class="lab">05 — 자금 구조가 결과를 가릅니다</span>
+    <h3>대출을 쓰면 손해, 안 쓰면 이익</h3>
+    <p>실효 수익률 3.42%가 상가담보대출 금리 5.20%보다 낮습니다. 빌린 돈의 이자가 그 돈이
+    벌어오는 수익보다 비싼 <strong>역레버리지</strong> 상태라, 대출 비중이 높을수록 수익률이 깎입니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <caption>10년 보유 · 요구수익률 5% 기준</caption>
+        <thead><tr><th>자금 구조</th><th>자기자본</th><th>기준 IRR</th><th>1년차 현금흐름</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr><td>LTV 60% (대출 7.2억)</td><td class="n">5억 4,888만</td><td class="n">2.70%</td><td class="n neg">−1,658만</td><td><span class="pill bad">부적합</span></td></tr>
+          <tr><td>LTV 40% (대출 4.8억)</td><td class="n">7억 4,888만</td><td class="n">3.37%</td><td class="n pos">+284만</td><td><span class="pill bad">부적합</span></td></tr>
+          <tr><td>LTV 20% (대출 2.4억)</td><td class="n">10억 2,888만</td><td class="n">4.41%</td><td class="n pos">+2,258만</td><td><span class="pill mid">보류</span></td></tr>
+          <tr class="hi"><td>무대출</td><td class="n">12억 6,888만</td><td class="n">4.53%</td><td class="n pos">+4,217만</td><td><span class="pill warn">조건부 매수</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      무대출 시 <strong>연 4,217만원(월 351만원)의 순현금이 들어옵니다.</strong>
+      자기자본 12.7억에 대한 현금수익률 3.32%입니다.
+      취득 부대비용은 취득세 5,520만 + 중개보수 1,188만 + 법무 180만 = <strong>6,888만원</strong>입니다.
+    </p>
+  </section>
+
+  <!-- ───────── 하방 리스크 ───────── -->
+  <section>
+    <span class="lab">06 — 하방 리스크 · 임차인 의존도</span>
+    <h3>약국 하나에 수익의 69%가 걸려 있습니다</h3>
+    <p>임차인이 2개라 단일 임차 물건보다 안전하지만, 두 임차인의 비중이 대등하지 않습니다.
+    각 임차인이 빠졌을 때 평가액이 어떻게 되는지 계산했습니다.</p>
+
+    <figure>
+      <div class="chart">
+        <div class="plot">
+          <div class="threshold right" style="left:95.2%" data-label="호가 12억"></div>
+
+          <div class="row">
+            <div class="row-head">
+              <span class="row-name">정상 — 2개호 모두 임차<em>NOI 4,335만 · 실효 Cap 3.61%</em></span>
+              <span class="row-val good num">11.41억</span>
+            </div>
+            <div class="track"><div class="bar good" style="width:90.5%"></div></div>
+          </div>
+
+          <div class="row">
+            <div class="row-head">
+              <span class="row-name">세탁소 공실 — 수익 −31%<em>NOI 2,989만 · 실효 Cap 2.49%</em></span>
+              <span class="row-val warn num">7.87억</span>
+            </div>
+            <div class="track"><div class="bar warn" style="width:62.5%"></div></div>
+          </div>
+
+          <div class="row">
+            <div class="row-head">
+              <span class="row-name">약국 공실 — 수익 −69%<em>NOI 1,346만 · 실효 Cap 1.12%</em></span>
+              <span class="row-val crit num">3.54억</span>
+            </div>
+            <div class="track"><div class="bar crit" style="width:28.1%"></div></div>
+          </div>
+        </div>
+        <div class="axis"><span>0억</span><span>3.2억</span><span>6.3억</span><span>9.5억</span><span>12.6억</span></div>
+      </div>
+      <figcaption>공실 시나리오별 수익환원 평가액. 검은 세로선은 호가(12억)입니다.
+      약국이 빠지면 평가액이 호가의 <strong>30% 수준</strong>으로 붕괴합니다 —
+      이 물건의 가치는 실질적으로 약국 임대차의 지속성에 달려 있습니다.</figcaption>
+    </figure>
+
+    <div class="callout crit" style="margin-top:22px">
+      <h4>약국은 좋은 임차인이지만, 집중 위험은 별개입니다</h4>
+      <p class="note" style="margin-bottom:0">약국은 이전 비용이 크고 위치 의존도가 높아 임차 안정성이 우수한 업종입니다.
+      실제로 이 물건의 강점입니다. 그러나 <strong>‘안정적이다’와 ‘한 곳에 69%를 걸어도 된다’는 다른 문제</strong>입니다.</p>
+    </div>
+
+    <h3 style="margin-top:34px">임대차 법률 검토 — 잔여 2년의 의미</h3>
+    <p>약국 계약 잔여기간이 2년으로 확인되었습니다. 이 숫자의 의미는
+    <strong>상가건물임대차보호법</strong> 적용 여부에 따라 달라집니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <caption>환산보증금 = 보증금 + (월차임 × 100) · 서울 기준 9억원 이하면 법 전면 적용</caption>
+        <thead><tr><th>임차호</th><th>보증금</th><th>월차임</th><th>환산보증금</th><th>법 적용</th></tr></thead>
+        <tbody>
+          <tr><td>약국</td><td class="n">5,000만원</td><td class="n">290만원</td><td class="n">3.40억</td><td><span class="pill good">전면 적용</span></td></tr>
+          <tr><td>세탁소</td><td class="n">2,500만원</td><td class="n">130만원</td><td class="n">1.55억</td><td><span class="pill good">전면 적용</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      두 임대차 모두 서울 기준 9억원을 크게 밑돌아 <strong>법이 전면 적용</strong>됩니다.
+      이는 <strong>계약갱신요구권 10년</strong>과 <strong>차임증액 5% 상한</strong>이 함께 걸린다는 뜻입니다.
+    </p>
+
+    <div class="callout warn" style="margin-top:22px">
+      <h4>‘잔여 2년’의 두 가지 해석 — 리스크가 정반대입니다</h4>
+      <p class="note" style="margin-bottom:10px"><strong>해석 A — 현 계약의 잔여 2년 (갱신요구권 아직 남음)</strong><br>
+      임차인이 원하면 최장 10년까지 갱신할 수 있고, 임대인은 정당 사유 없이 거절하지 못합니다.
+      약국은 권리금과 이전 비용 때문에 잔류 유인이 큽니다. <strong>매수자 입장에서 안정적</strong>입니다.</p>
+      <p class="note" style="margin-bottom:0"><strong>해석 B — 계약갱신요구권의 잔여 2년 (10년 중 8년 경과)</strong><br>
+      2년 뒤 임대인이 갱신을 거절할 수 있어 <strong>임대료를 시세로 정상화할 기회</strong>이지만,
+      동시에 <strong>약국이 이탈할 위험</strong>이기도 합니다.
+      건물이 2018년 초 입주이므로 약국이 준공 때부터 영업했다면 현재 8년 경과 —
+      <strong>해석 B에 해당할 가능성이 있습니다.</strong> 반드시 최초 계약일을 확인하세요.</p>
+    </div>
+
+    <h3 style="margin-top:30px">5% 증액 상한이 가치 실현을 막지는 않습니다</h3>
+    <p>앞서 12억이 정당화되는 임대료를 443만원으로 계산했는데, 법정 상한 5%로 도달 가능한지 확인했습니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>시점</th><th>월세</th><th>누적 인상률</th><th>목표(443만원) 대비</th></tr></thead>
+        <tbody>
+          <tr><td>현재</td><td class="n">420만원</td><td class="n">—</td><td class="n">94.8%</td></tr>
+          <tr><td>1회 갱신 후</td><td class="n">441만원</td><td class="n">+5.0%</td><td class="n">99.5%</td></tr>
+          <tr class="hi"><td>2회 갱신 후</td><td class="n">463만원</td><td class="n">+10.3%</td><td class="n pos">104.5%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      <strong>2회 갱신(통상 2~4년)이면 목표 임대료를 넘어섭니다.</strong>
+      법정 상한이 이 물건의 가치 실현을 가로막지는 않습니다.
+      다만 5%는 <em>상한</em>일 뿐 자동 인상이 아니며, 갱신 시 협의가 필요합니다.
+    </p>
+
+    <h3 style="margin-top:30px">약국 이탈 시점별 영향</h3>
+    <div class="tbl-wrap">
+      <table>
+        <caption>무대출 · 공실률 5.5% · 10년 보유 기준</caption>
+        <thead><tr><th>시나리오</th><th>월세</th><th>NOI</th><th>평가액</th><th>기준 IRR</th></tr></thead>
+        <tbody>
+          <tr class="hi"><td>약국 유지</td><td class="n">420만원</td><td class="n">4,453만원</td><td class="n">11.72억</td><td class="n pos">4.63%</td></tr>
+          <tr><td>이탈 → 즉시 동일조건 재임차</td><td class="n">420만원</td><td class="n">4,453만원</td><td class="n">11.72억</td><td class="n pos">4.63%</td></tr>
+          <tr><td>이탈 → 6개월 공실 후 재임차</td><td class="n">275만원</td><td class="n">2,981만원</td><td class="n">7.85억</td><td class="n">3.42%</td></tr>
+          <tr class="total"><td>이탈 → 장기 공실 (세탁소만)</td><td class="n">130만원</td><td class="n">1,383만원</td><td class="n neg">3.64억</td><td class="n neg">2.11%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      약국이 나가더라도 <strong>즉시 대체 임차인을 구하면 손실이 없습니다.</strong>
+      관건은 공실 기간이며, 6개월 공실만 발생해도 IRR이 4.63% → 3.42%로 국고채 수준 아래로 떨어집니다.
+      <strong>권리금 시장이 형성된 자리인지</strong>(= 후속 임차인이 대기하는 자리인지)가 실질적 방어선입니다.
+    </p>
+
+    <div class="callout" style="margin-top:22px">
+      <h4>매수 시 승계되는 것들</h4>
+      <p class="note" style="margin-bottom:0">대항요건을 갖춘 임대차는 <strong>양수인이 임대인 지위와 보증금 반환채무를 승계</strong>합니다
+      — 이 건에서는 보증금 <strong>7,500만원</strong>이 매수자의 채무가 됩니다(자기자본 계산에는 이미 반영).
+      또한 임대인은 임대차 종료 6개월 전부터 <strong>임차인의 권리금 회수를 방해할 수 없으며</strong>,
+      이 의무는 갱신요구권 기간이 지난 뒤에도 존속한다는 것이 대법원 입장(2019.5.16. 선고 2017다225312)입니다.
+      즉 <strong>“2년 뒤 내보내고 임대료를 대폭 올린다”는 계획은 법적으로 제약</strong>을 받습니다.</p>
+    </div>
+  </section>
+
+  <!-- ───────── 적정가 ───────── -->
+  <section>
+    <span class="lab">07 — 적정가 역산</span>
+    <h3>얼마면 살 만한가</h3>
+    <p>요구수익률을 정확히 충족시키는 매수가를 역산했습니다(무대출, NPV = 0 지점).</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>요구수익률</th><th>적정 매수가</th><th>호가 대비</th><th>성격</th></tr></thead>
+        <tbody>
+          <tr><td class="n">10.0%</td><td class="n">4억 4,300만원</td><td class="n neg">−63.1%</td><td>공격적 투자</td></tr>
+          <tr><td class="n">7.0%</td><td class="n">6억 4,800만원</td><td class="n neg">−46.0%</td><td>일반 투자</td></tr>
+          <tr><td class="n">6.0%</td><td class="n">7억 6,600만원</td><td class="n neg">−36.2%</td><td>보수적 투자</td></tr>
+          <tr><td class="n">5.0%</td><td class="n">9억 3,500만원</td><td class="n neg">−22.1%</td><td>안정 선호</td></tr>
+          <tr class="hi"><td class="n">4.5%</td><td class="n">10억 5,600만원</td><td class="n neg">−12.0%</td><td>현실적 협상 목표</td></tr>
+          <tr class="total"><td class="n">4.0%</td><td class="n">12억 500만원</td><td class="n pos">+0.4%</td><td>시장 Cap Rate 수준 = 현 호가</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn" style="margin-top:22px">
+      <h4>협상 목표 10.5억 ~ 11.4억</h4>
+      <p class="note" style="margin-bottom:10px">현 호가 12억은 <strong>요구수익률 4.0%에 해당하는 가격</strong>입니다.
+      시장 Cap Rate가 3.84%이므로 호가 자체는 시장 논리에 부합합니다 — 1판과 달리
+      <strong>바가지가 아닙니다.</strong></p>
+      <p class="note" style="margin-bottom:0">다만 수익환원 평가액이 11.4억이고 4.5% 기준 적정가가 10.56억이므로,
+      <strong>10.5억~11.4억 구간이 합리적 협상 목표</strong>입니다.
+      취득 부대비용 6,888만원을 감안하면 이 정도 조정은 받아둘 가치가 있습니다.</p>
+    </div>
+
+    <h3 style="margin-top:34px">입지를 후하게 평가하면 결론이 한 단계 올라갑니다</h3>
+    <p>서울 1층·생활밀착 업종 근거로 공실률을 5.5%로 낮추면(3장 참조) 판정이 달라집니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <caption>공실률 5.5% · 무대출 · 10년 보유 기준</caption>
+        <thead><tr><th>요구수익률</th><th>기준 IRR</th><th>적정 매수가</th><th>호가 대비</th><th>판정</th></tr></thead>
+        <tbody>
+          <tr><td class="n">5.0%</td><td class="n">4.63%</td><td class="n">10억 9,200만원</td><td class="n neg">−9.0%</td><td><span class="pill warn">조건부 매수</span></td></tr>
+          <tr class="hi"><td class="n">4.5%</td><td class="n">4.63%</td><td class="n">12억 4,100만원</td><td class="n pos">+3.5%</td><td><span class="pill good">매수 권장 85점</span></td></tr>
+          <tr><td class="n">4.0%</td><td class="n">4.63%</td><td class="n">14억 3,600만원</td><td class="n pos">+19.7%</td><td><span class="pill good">매수 권장 85점</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      즉 이 물건의 최종 판단은 <strong>“연 4.5% 수익률을 받아들일 수 있는가”</strong>로 압축됩니다.
+      국고채 3.67%에 0.8%p를 더 받는 대가로 부동산의 유동성 위험과 관리 부담을 지는 것이
+      합당한지가 결정 기준입니다. 서울 상가의 낮은 공실률(9.4%)을 하방 방어로 평가한다면 성립하고,
+      더 높은 수익을 원한다면 다른 자산군이 맞습니다.
+    </p>
+  </section>
+
+  <!-- ───────── 케이스별 판독표 ───────── -->
+  <section>
+    <span class="lab">08 — 케이스별 판독표</span>
+    <h3>면적 기준 × 대출 규모 — 6개 조합 전체 결과</h3>
+    <p>등기부를 확인하시기 전이므로 두 면적 케이스를 모두 계산했습니다.
+    <strong>등기부를 떼신 뒤 해당 행만 보시면 됩니다.</strong>
+    대출 6억·9억 시나리오도 함께 넣었습니다.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <caption>가정 — 요구수익률 5% · 10년 보유 · 대출금리 5.2% · 20년 원리금균등</caption>
+        <thead>
+          <tr><th>케이스</th><th>전용면적</th><th>공실률</th><th>성장률</th><th>NOI</th><th>평가액</th><th>실효 수익률</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hi"><td><b>CASE A</b><br><span style="color:var(--ink-3);font-size:12.5px">28평 = 전용</span></td>
+            <td class="n">28평</td><td class="n">5.5%</td><td class="n">2.0%</td>
+            <td class="n">4,453만원</td><td class="n">11.72억</td><td class="n">3.71%</td></tr>
+          <tr><td><b>CASE B</b><br><span style="color:var(--ink-3);font-size:12.5px">28평 = 분양 (전용률 50%)</span></td>
+            <td class="n">14평</td><td class="n">8.0%</td><td class="n">1.0%</td>
+            <td class="n">4,335만원</td><td class="n">11.41억</td><td class="n">3.61%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px">
+      CASE B에 더 보수적인 가정을 쓴 이유: 전용 기준 임대료가 시장 평균의 3.4배가 되므로
+      <strong>인상 여력이 제한되고(성장률 ↓) 임차인 이탈 위험이 커집니다(공실률 ↑)</strong>.
+      면적 자체가 평가액을 바꾸는 게 아니라, 면적이 알려주는 <strong>임대료의 시장 대비 위치</strong>가
+      미래 전제를 바꾸는 구조입니다.
+    </p>
+
+    <div class="tbl-wrap" style="margin-top:22px">
+      <table>
+        <caption>6개 조합 종합 — 실효 수익률(3.6~3.7%)이 대출금리(5.2%)보다 낮은 역레버리지 구간</caption>
+        <thead>
+          <tr><th>케이스 · 자금구조</th><th>자기자본</th><th>연 원리금</th><th>1년차 월 순현금</th><th>기준 IRR</th><th>적정가</th><th>판정</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hi"><td><b>A</b> · 무대출</td><td class="n">12.69억</td><td class="n">—</td>
+            <td class="n pos">+361만원</td><td class="n pos">4.63%</td><td class="n">10.92억</td>
+            <td><span class="pill warn">조건부 매수 56</span></td></tr>
+          <tr><td><b>A</b> · 대출 6억</td><td class="n">6.69억</td><td class="n">4,897만원</td>
+            <td class="n neg">−47만원</td><td class="n">4.26%</td><td class="n">10.72억</td>
+            <td><span class="pill mid">보류 50</span></td></tr>
+          <tr><td><b>A</b> · 대출 9억</td><td class="n">3.69억</td><td class="n">7,345만원</td>
+            <td class="n neg">−251만원</td><td class="n">3.84%</td><td class="n">10.62억</td>
+            <td><span class="pill bad">매수 부적합 22</span></td></tr>
+          <tr><td><b>B</b> · 무대출</td><td class="n">12.69억</td><td class="n">—</td>
+            <td class="n pos">+351만원</td><td class="n">3.73%</td><td class="n">10.64억</td>
+            <td><span class="pill mid">보류 44</span></td></tr>
+          <tr><td><b>B</b> · 대출 6억</td><td class="n">6.69억</td><td class="n">4,897만원</td>
+            <td class="n neg">−57만원</td><td class="n">2.76%</td><td class="n">10.44억</td>
+            <td><span class="pill bad">매수 부적합 26</span></td></tr>
+          <tr class="total"><td><b>B</b> · 대출 9억</td><td class="n">3.69억</td><td class="n">7,345만원</td>
+            <td class="n neg">−261만원</td><td class="n neg">1.58%</td><td class="n">10.35억</td>
+            <td><span class="pill bad">매수 부적합 0</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout crit" style="margin-top:22px">
+      <h4>6개 조합 중 통과는 하나뿐입니다</h4>
+      <p class="note" style="margin-bottom:10px">‘조건부 매수’가 나오는 조합은 <strong>CASE A + 무대출</strong> 하나입니다.
+      나머지는 보류이거나 부적합입니다.</p>
+      <p class="note" style="margin-bottom:0">대출을 늘릴수록 IRR이 일관되게 떨어집니다
+      (A: 4.63% → 4.26% → 3.84% / B: 3.73% → 2.76% → 1.58%).
+      이 물건의 실효 수익률 3.6~3.7%가 대출금리 5.2%보다 낮은
+      <strong>역레버리지</strong> 상태라, 빌린 돈이 벌어오는 것보다 이자가 더 비싸기 때문입니다.
+      <strong>대출은 수익을 키우는 수단이 아니라 깎는 요인입니다.</strong></p>
+    </div>
+
+    <div class="callout warn" style="margin-top:18px">
+      <h4>대출 9억은 현금흐름이 감당되는지부터 보셔야 합니다</h4>
+      <p class="note" style="margin-bottom:10px">대출 9억이면 <strong>매달 251만~261만원을 별도로 넣어야</strong> 합니다.
+      임대료를 받는데도 나가는 구조이며, 10년이면 누적 3억원 안팎의 추가 자금이 필요합니다.
+      자기자본이 3.69억으로 줄어드는 대신, 그만큼을 현금흐름으로 계속 메우는 셈입니다.</p>
+      <p class="note" style="margin-bottom:0">또한 <strong>대출 9억은 LTV 75%</strong>로,
+      개인 상가담보대출 통상 한도(최대 8억 수준)를 넘어설 수 있습니다.
+      사업자대출이나 공동담보 등 별도 구조가 필요한지 은행에 먼저 확인하시기 바랍니다.
+      대출 6억(LTV 50%)은 통상 한도 내라 실행에 무리가 없습니다.</p>
+    </div>
+
+    <div class="callout good" style="margin-top:18px">
+      <h4>등기부 확인 후 판독법</h4>
+      <p class="note" style="margin-bottom:0">
+      전유면적 <strong>92㎡ 내외</strong> → <strong>CASE A</strong> 행을 보세요.<br>
+      전유면적 <strong>46㎡ 내외</strong> → <strong>CASE B</strong> 행을 보세요.<br>
+      <strong>55~65㎡</strong>(전용률 60~70%) → 두 결론 사이를 보간하시면 됩니다.<br>
+      그리고 <strong>자금 계획에 해당하는 행</strong>을 고르시면 그것이 최종 판정입니다.</p>
+    </div>
+  </section>
+
+  <!-- ───────── 확인 사항 ───────── -->
+  <section>
+    <span class="lab">09 — 계약 전 확인 사항</span>
+    <h3>우선순위 순</h3>
+
+    <ul class="checks">
+      <li><span class="mk hot">최우선</span><div><b>약국의 최초 임대차 계약일</b><span>‘잔여 2년’이 현 계약의 잔여인지, 갱신요구권(10년)의 잔여인지를 가릅니다. 건물이 2018년 초 입주이므로 준공 때부터 영업했다면 갱신요구권이 곧 소진됩니다. 임대차계약서 원본으로 확인하세요.</span></div></li>
+      <li><span class="mk hot">최우선</span><div><b>약국 자리의 권리금 시세</b><span>후속 임차인이 대기하는 자리인지가 실질적 방어선입니다. 권리금이 형성돼 있다면 이탈해도 즉시 대체됩니다. 인근 중개사에 문의하세요.</span></div></li>
+      <li><span class="mk hot">최우선</span><div><b>인근 병원·의원 현황</b><span>약국 매출의 근원입니다. 은평성모병원이 구파발역 3번 출구에 있으나, 이 약국이 문전약국인지 동네약국인지에 따라 수요 성격이 다릅니다.</span></div></li>
+      <li><span class="mk hot">최우선</span><div><b>등기부상 전유면적 (㎡)</b><span>‘28평’이 전용인지 분양인지. 판정은 바뀌지 않지만 임대료 인상 여력과 재매각 조건이 달라집니다 — 1장 참조. 인터넷등기소 열람 700원.</span></div></li>
+      <li><span class="mk">필수</span><div><b>대지지분 면적</b><span>재건축·개발 가치의 근거. 수익으로 설명되지 않는 가격 프리미엄의 유일한 정당화 사유입니다.</span></div></li>
+      <li><span class="mk">필수</span><div><b>2개호의 등기 구분 여부</b><span>별도 호수로 분리 등기되어 있는지, 아니면 1개호를 물리적으로 나눠 쓰는지. 후자면 향후 개별 매각·개별 임대가 제약됩니다.</span></div></li>
+      <li><span class="mk">중요</span><div><b>월 관리비 부담 주체와 금액</b><span>소유자 부담이면 NOI가 줄어 평가액이 추가 하락합니다.</span></div></li>
+      <li><span class="mk">중요</span><div><b>임대료 인상 이력과 여력</b><span>월세를 443만원까지 올릴 수 있다면 현 호가가 완전히 정당화됩니다. 주변 시세와 비교하세요.</span></div></li>
+      <li><span class="mk">참고</span><div><b>건물 내 동일 층 상가의 최근 거래·호가</b><span>같은 건물 비교사례가 가장 정확합니다.</span></div></li>
+    </ul>
+  </section>
+
+  <!-- ───────── 한계 ───────── -->
+  <section>
+    <span class="lab">10 — 이 분석의 한계</span>
+    <div class="callout">
+      <h4>확인하지 못한 것</h4>
+      <p class="note" style="margin-bottom:10px"><strong>1. 인근 상가 실거래 비교 미실시.</strong>
+      국토교통부 상업업무용 실거래 API가 활용신청 미승인(403) 상태라 거래사례비교법을 적용하지 못했습니다.
+      현 판정은 <strong>수익환원법 단독</strong>입니다.</p>
+      <p class="note" style="margin-bottom:10px"><strong>2. Cap Rate는 전국 평균 기반.</strong>
+      부동산원 집합상가 전국 수치(연 3.84%)를 앵커로 삼고 역세권 프리미엄을 반영했습니다.
+      은평구 국지 수치는 아닙니다. 다만 총수익률 4.39% 계산은 이 추정과 무관하게 성립합니다.</p>
+      <p class="note" style="margin-bottom:10px"><strong>3. 공실률은 본문 8% 기준.</strong>
+      3장에서 5.5%~10.5% 전 구간을 계산해 제시했습니다. 서울 1층·생활밀착 업종이라는
+      근거로 5.5%를 적용하면 평가액이 11.72억으로 올라 호가와의 격차가 2.3%까지 좁혀집니다.
+      <strong>이 가정 하나가 판정을 ‘조건부 매수’에서 ‘매수 권장’으로 바꿀 수 있습니다</strong>(요구수익률 4.5% 기준).</p>
+      <p class="note" style="margin-bottom:10px"><strong>4. 상권 정량 데이터 미확보.</strong>
+      소상공인시장진흥공단 상권정보 API를 연동하지 않아 반경 내 약국 수·경쟁 밀도·카드매출을
+      확인하지 못했습니다. 유동인구는 지하철 승하차로 대리 측정했습니다.</p>
+      <p class="note" style="margin-bottom:0"><strong>5. 미래가치는 연 2% 성장 가정.</strong>
+      물가 수준의 기본 가정이며 구체적 개발 호재는 반영하지 않았습니다.</p>
+    </div>
+  </section>
+
+  <!-- ───────── 출처 ───────── -->
+  <section>
+    <span class="lab">11 — 데이터 출처</span>
+    <ul class="src">
+      <li>한국부동산원 <a href="https://www.reb.or.kr/reb/cm/cntnts/cntntsView.do?mi=10335&amp;cntntsId=1049&amp;statId=S237220284">상업용부동산 임대동향조사</a> 2026년 2분기 — 집합상가 소득수익률 분기 0.96%(연 3.84%), 공실률 10.5%, 투자수익률 1.30%, 전국 평균 임대료 27.0천원/㎡</li>
+      <li><a href="https://www.ajunews.com/view/20260730135917285">서울 상가만 버텼다 — 명동·뚝섬 웃고 지방 상권은 더 비었다</a> — 아주경제 (서울 일반상가 공실률 9.4%, 전국 13.4%, 세종 22.8% 등 지역별 수치)</li>
+      <li><a href="https://namu.wiki/w/%EA%B5%AC%ED%8C%8C%EB%B0%9C%EC%97%AD">구파발역</a> — 일평균 승하차 42,117명(2025), 2007년 17,498명 / 2016년 33,550명 / 2019년 43,159명, 은평성모병원 3번 출구</li>
+      <li><a href="https://namu.wiki/w/%EC%9D%80%ED%8F%89%EB%89%B4%ED%83%80%EC%9A%B4">은평뉴타운</a> — 총 17,207세대, 진관동 인구 5만명 이상</li>
+      <li><a href="http://www.conslove.co.kr/news/articleView.html?idxno=89173">부동산원, ’26년 2분기 상업용부동산 임대동향조사 결과 발표</a> — 한국건설신문</li>
+      <li><a href="https://www.etoday.co.kr/news/view/2609268">오피스는 오르고 상가는 내리고 — 자산가치가 끌어올린 투자수익률</a> — 이투데이 (유형별 소득·자본수익률)</li>
+      <li><a href="https://view.asiae.co.kr/article/2026080517424171162">국고채 금리 하락, 3년물 연 3.669%</a> — 아시아경제, 2026-08-05</li>
+      <li><a href="https://www.newsprime.co.kr/news/article/?no=306363">은평뉴타운솔하임, 복층형 오피스텔로 승부수</a> — 프라임경제 (오피스텔 288실 + 도시형생활주택 260세대, 3개동)</li>
+      <li><a href="https://namu.wiki/w/%EB%A1%AF%EB%8D%B0%EB%AA%B0%20%EC%9D%80%ED%8F%89%EC%A0%90">롯데몰 은평점</a> — 통일로 1050, 구파발역 4번 출구 직결</li>
+      <li><a href="https://www.gonews.kr/%EC%83%81%EA%B0%80%EB%8B%B4%EB%B3%B4%EB%8C%80%EC%B6%9C-%EA%B8%88%EB%A6%AC-%ED%95%9C%EB%8F%84-2026%EB%85%844%EC%9B%94-%EA%B7%9C%EC%A0%9C/">상가담보대출 금리·한도 2026</a> — 대출금리 5.2% 가정 근거</li>
+      <li><a href="https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1017941419&amp;chrClsCd=010202&amp;ancYnChk=">상가건물 임대차보호법</a> — 국가법령정보센터 (계약갱신요구권 10년, 차임증액 5% 상한, 권리금 회수기회 보호, 임대인 지위승계)</li>
+      <li><a href="https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&amp;csmSeq=627&amp;ccfNo=1&amp;cciNo=2&amp;cnpClsNo=1">상가건물 임대차보호법의 적용 범위</a> — 찾기쉬운 생활법령정보 (서울 환산보증금 9억원 기준)</li>
+      <li>대법원 2019.5.16. 선고 2017다225312, 225329 — 갱신요구권 기간 경과 후에도 권리금 회수기회 보호의무 존속</li>
+      <li>세율: 지방세법(취득세 4.6%, 재산세), 소득세법(양도소득세·장기보유특별공제 표1)</li>
+    </ul>
+  </section>
+
+  <footer>
+    분석 엔진: <code>biz_life / 06-home-finder / appraisal</code> · 수익환원법 + DCF + 시나리오 분석 · 개정 2판<br>
+    본 리포트는 공개 데이터와 제공된 임대 조건에 기반한 참고 자료이며 투자 권유가 아닙니다.
+    계약 전 등기부·집합건축물대장·임대차계약서·현장 확인이 필요합니다.
+  </footer>
+
+</div>
+</body>
+</html>

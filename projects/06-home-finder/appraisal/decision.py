@@ -55,7 +55,9 @@ def opportunity_cost(equity_krw: int, years: int, alt_rate: float) -> int:
 #   · 무위험수익률(RF)에 미달하면 "나쁜 투자", RF는 넘지만 요구수익률에
 #     못 미치면 "내 기준 미달"로 문구를 구분한다.
 # ─────────────────────────────────────────────────────────
-RISK_FREE_RATE = 0.032          # 국고채 3년 근사 — 이보다 낮으면 존재 이유가 없다
+# 국고채 3년물 — 이보다 낮으면 부동산을 보유할 존재 이유가 없다.
+# 2026-08-05 종가 3.669% (연합/아시아경제 보도 기준)
+RISK_FREE_RATE = 0.0367
 CASH_DRAIN_WARN = -0.02         # 1년차 현금수익률이 이보다 낮으면 유동성 경고
 
 VERDICT_STRONG = "매수 권장"
@@ -217,6 +219,87 @@ def target_price(prop: PropertyInput, profile: dict = None, tol: int = 1_000_000
         "asking_price": prop.asking_price_krw,
         "required_discount": discount,
         "discount_pct": round(discount / prop.asking_price_krw * 100, 1) if prop.asking_price_krw else 0,
+        "required_return": required,
+    }
+
+
+# ─────────────────────────────────────────────────────────
+# 역산 — "이 호가가 정당화되려면 월세가 얼마여야 하는가"
+#
+# 임대료를 아직 모르는 단계에서 쓴다. 산출된 필요 월세를 실제 호가 임대료와
+# 비교하면, 임대료 데이터 없이도 호가의 타당성을 즉시 판별할 수 있다.
+# ─────────────────────────────────────────────────────────
+def required_rent_for_value(
+    price_krw: int,
+    cap_grade: str = None,
+    deposit_krw: int = 0,
+    vacancy_rate: float = None,
+) -> dict:
+    """
+    수익환원법상 자산가치가 매수가와 같아지는 월 임대료를 역산한다.
+
+        가치 = NOI ÷ CapRate = 매수가   →   NOI = 매수가 × CapRate
+        NOI  = EGI × (1 − 운영비율)
+        EGI  = PGI × (1 − 공실률)
+        PGI  = 월세×12 + 보증금×운용수익률
+    """
+    grade = cap_grade or C.DEFAULT_CAP_GRADE
+    cap_rate = C.CAP_RATE_BY_GRADE[grade]
+    vacancy = C.VACANCY_BY_GRADE[grade] if vacancy_rate is None else vacancy_rate
+
+    opex_rate = C.OPEX_MGMT_RATE + C.OPEX_REPAIR_RESERVE + C.OPEX_INSURANCE_RATE
+
+    noi = price_krw * cap_rate
+    egi = noi / (1 - opex_rate)
+    pgi = egi / (1 - vacancy)
+    annual_rent = pgi - deposit_krw * C.DEPOSIT_YIELD
+
+    return {
+        "grade": grade,
+        "cap_rate": cap_rate,
+        "vacancy_rate": vacancy,
+        "required_noi": int(noi),
+        "required_monthly_rent": int(annual_rent / 12),
+        "required_annual_rent": int(annual_rent),
+    }
+
+
+def required_rent_for_return(
+    prop: PropertyInput,
+    profile: dict = None,
+    tol: int = 10_000,
+) -> dict:
+    """
+    요구수익률(IRR 기준)을 충족시키는 월 임대료를 이분법으로 역산한다.
+
+    수익환원법이 '시장이 매기는 값'이라면, 이쪽은 '내 기준을 넘는 값'이다.
+    레버리지·세금·매각까지 모두 반영되므로 보통 이쪽이 더 높은 월세를 요구한다.
+    """
+    import dataclasses
+
+    profile = profile or C.DEFAULT_PROFILE
+    required = prop.required_return if prop.required_return is not None else profile["required_return"]
+
+    def npv_at_rent(monthly: int) -> int:
+        rent = dataclasses.replace(prop.rent, monthly_rent_krw=int(monthly))
+        trial = dataclasses.replace(prop, rent=rent)
+        cf = build_cashflows(trial, profile, growth=C.BASE_GROWTH_RATE)
+        return npv(cf["flows"], required)
+
+    lo, hi = 0, 200_000_000  # 월 0 ~ 2억
+    if npv_at_rent(hi) < 0:
+        return {"achievable": False, "reason": "월 2억 임대료로도 요구수익률 충족 불가"}
+
+    while hi - lo > tol:
+        mid = (lo + hi) // 2
+        if npv_at_rent(mid) >= 0:
+            hi = mid
+        else:
+            lo = mid
+
+    return {
+        "achievable": True,
+        "required_monthly_rent": hi,
         "required_return": required,
     }
 
