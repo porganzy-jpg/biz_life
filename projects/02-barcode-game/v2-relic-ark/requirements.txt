@@ -1,0 +1,10 @@
+# 잔해 방주 서버·도구 의존성 (Blender 스크립트는 Blender 내장 파이썬이 실행하므로 여기 없음)
+fastapi
+uvicorn
+pydantic
+pillow
+numpy
+scipy
+soundfile
+cryptography
+jsonschema
