@@ -43,7 +43,22 @@
 - [배경→개발] S2-D 에셋 배치 규약(경로 / 파사드 원점=입구 바닥 중심·정면 Three +Z / 힐링 스팟 물 재질명 `Water` / `koi_1~5` 좌표 / 문간 마커 `marker_threshold` / 금붕어 빈 수면 6×4m 좌표)은 `docs/reports/bg_S2.md` §7에 정리했습니다. `static/world3d.js`는 개발 소유라 손대지 않았습니다.
 - [배경→PM] 시나리오 중계 3건(빛기둥 구멍 / 사람이 서는 문간 / 금붕어 빈 수면)은 `spot_flooded_train.glb`에 **전부 반영**했습니다(보고서 §7-5).
 
-## 스프린트 3 후보
+
+## 스프린트 3 (2026-09-22 착수) — "심해 유리돔이 첫 화면이 된다"
+목표 한 문장: **검은 물속 유리돔 단면 한 장으로 이 게임이 설명되게 한다.** 근거 `docs/CONCEPT_DEEP_SEA.md`, 결정 `DECISIONS.md` 2026-09-22.
+
+| 태스크 | 담당 | 내용 | 산출물 | 완료 기준 |
+|---|---|---|---|---|
+| S3-A | 시나리오 | 심해 1막 성경: `LORE_v3_바다가_보관한_것.md`, `WORLD_BIBLE_DEEP.md`(돔 문화 3~4·깊이 4구역·해양 생물 3~4·힐링 스팟 6·두 AI의 수중 언어), `data/events_deep.json`(12~16장), `SCRIPT_first_10min_deep.md` | 위 파일 + `docs/reports/scenario_S3.md` | JSON 유효·기존 스키마 준수, 금지어 0, 기존 성경과 모순 0, 사건이 전부 질문 형태(S3) |
+| S3-B | 배경 | **유리돔 단면 비주얼 테스트**: `tools/blender_dome.py`, 렌더 3장(첫 화면·에어락·깊이감), 가능하면 `dome_core.glb` | `art_raw/deep/*.png` + `docs/reports/bg_S3.md` | 설명 없이 "물속 유리돔"으로 읽힘, 유리가 반사+투과(D4), 주색 2개만(D1), 빈 물 40%+(D2), 생성 AI 0 |
+| S3-C | 개발 | **필수** `/api/spots` 신설(`spots.json`이 브라우저에 못 닿아 발견 텍스트가 JS 상수 — D7 위반). `SPOT_POS`를 `dev_world_S2.md` §3-3 표로 교체. `data/rumors.json` `unlock` ↔ `RUMOR_RULES` 동기화. `?debug_force_event=` 제거 스위치 | `server.py`, `docs/reports/dev_S3.md` | curl 로그 + 월드 화면 회귀 |
+| S3-D | 캐릭터 | (S3-B 판정 후 착수) 잠수복 주민·대형 해양 생물 | — | — |
+| S3-E | 사운드 | (S3-B 판정 후 착수) 수중 앰비언트: 압력·먼 울음·에어락 | — | — |
+| S3-PM | PM | S3-A/B 검수, 사용자에게 첫 화면 후보 제시, 2막(터널) 연결 설계, 기존 육상 에셋의 2·3막 재배치 표 | `docs/reports/review_sprint3.md` | 사용자가 첫 화면을 보고 판단할 수 있는 상태 |
+
+기존 육상 자산의 재배치(폐기 0): 몰 파사드·물에 잠긴 전철·일곱 부족·공룡·`world.html` 지형 → **3막 지상**. 침수 지하철 터널 → **2막 연결부**(신규).
+
+## 스프린트 3 후보(미배정)
 - [개발, **필수**] `/api/spots` 신설 — `data/spots.json`이 브라우저에 닿지 못해 발견 텍스트가 world3d.js 상수로 박혀 있다(D7 위반). 데이터는 API로만.
 - [개발] `SPOT_POS`를 dev_world_S2.md §3-3 제안표(지형 좌표계)로 교체.
 - [캐릭터] 역할 진화 표식 `evo_<role>` 8종 모델링(char_S2.md §3-2 아이디어 표), 각인 파츠 대비 개선(이빨 목걸이·등 뒤 파츠).
