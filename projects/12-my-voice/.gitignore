@@ -7,3 +7,5 @@ tmp/
 songs/*.wav
 songs/*.mp3
 songs/*_파트/
+rmvpe.pt
+hubert_base.pt
