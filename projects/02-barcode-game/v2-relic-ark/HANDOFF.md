@@ -34,12 +34,20 @@ python server.py --https    # https://…:8444 (폰 카메라 스캔용, 자체 
 
 | 빠진 것 | 왜 | 복구 |
 |---|---|---|
-| `assets3d/` | CC0 에셋 원본 팩(수백 MB) | `assets3d/README.md`에 출처 URL이 전부 있다. Kenney Survival Kit / Blocky Characters / Prototype, Quaternius Survival·Ultimate Animated Characters·Animated Dinosaurs를 같은 폴더명으로 내려받으면 `tools/blender_*.py`가 그대로 돈다 |
+| `assets3d/` (약 140MB) | CC0 에셋 원본 팩 | **`assets3d/README.md`는 깃에 있다**(출처 URL·폴더 구조·gdown 명령까지). 그대로 내려받아 풀면 `tools/blender_*.py`가 돈다 |
 | `art_raw/` | 중간 렌더 원본 | 도구로 재생성. 보여줄 컷은 `docs/reports/*.png`에 복사해 두었다(심해 돔 3장 포함) |
 | `certs/` | 자체 서명 키(비밀) | `python tools/make_cert.py` |
 | `*.db` | 플레이 저장 상태 | 첫 실행 시 자동 생성. 구버전 DB는 서버가 마이그레이션한다 |
 
 즉 **코드·데이터·문서·게임에 실제로 쓰이는 GLB와 오디오는 전부 깃에 있다.** 새 컴퓨터에서 없는 것은 원본 팩과 중간 산출물뿐이고 둘 다 복구 가능하다.
+
+### 클론만으로 되는 것 / 안 되는 것 (실제 클론해서 검증함, 2026-09-23)
+
+| | 상태 |
+|---|---|
+| 서버 기동·`/api/*`·세 화면(`index`·`world`·`deep`) | **된다.** 갓 클론한 저장소에서 `pip install -r requirements.txt && python server.py --port=8077` 로 전부 200 응답, 사건 54장(심해 16장) 로드, 스캔 정상 |
+| 기존 GLB·오디오로 게임 보기 | **된다.** 방 10·캐릭터 11·짐승공룡 6·씬 3·오디오 11·심해 렌더 4장 전부 깃에 있음 |
+| **3D를 다시 만들거나 단면 렌더를 이어서 고치기** | **assets3d 팩이 먼저 필요하다.** `blender_section.py` → `blender_dome.py` → `blender_scenes.py` → `blender_iso.py` 사슬이 CC0 소품을 읽는다. README대로 내려받으면 해결 |
 
 ## 3.5 중단 지점 — 다음 세션이 여기서 이어받는다
 

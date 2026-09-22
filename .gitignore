@@ -86,7 +86,9 @@ logs/
 *.keystore
 
 # RELIC ARK (v2-relic-ark) — 재생성 가능/대용량/비밀
-projects/02-barcode-game/v2-relic-ark/assets3d/
+# 디렉터리 자체를 제외하면 git이 안으로 들어가지 않아 아래 부정 규칙이 무효가 된다.
+# 그래서 디렉터리가 아니라 '내용물'을 제외한다(README만 통과시키기 위함).
+projects/02-barcode-game/v2-relic-ark/assets3d/*
 !projects/02-barcode-game/v2-relic-ark/assets3d/README.md
 projects/02-barcode-game/v2-relic-ark/art_raw/
 projects/02-barcode-game/v2-relic-ark/certs/
