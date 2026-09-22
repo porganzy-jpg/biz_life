@@ -10,6 +10,7 @@ FastAPI + SQLite. 단일 테스터 그룹용(uid는 클라이언트가 생성해
 from __future__ import annotations
 
 import json
+import os
 import random
 import socket
 import sqlite3
@@ -29,6 +30,9 @@ from relic_generator import RelicGenerator, Category, rescan_multiplier  # noqa:
 from storyteller import ArkState, pick_event, resolve, load_events  # noqa: E402
 
 DB = ROOT / "relic_ark.db"
+# ★ 개발 전용 훅 스위치. RELIC_DEV=1 일 때만 ?debug_* 질의가 살아난다(02_DEV §4-4 "배포 전 제거 목록").
+#   배포 빌드는 환경변수를 주지 않으므로 훅이 존재하지 않는 것과 같다.
+DEV_MODE = os.environ.get("RELIC_DEV") == "1"
 ROOMS = json.loads((ROOT / "data" / "rooms.json").read_text(encoding="utf-8"))
 ROOMS.pop("_comment", None)
 EVENTS = {e["id"]: e for e in load_events()}
@@ -42,7 +46,73 @@ GEN = RelicGenerator()
 # docs/GROWTH_AND_MYTH.md §1 (계단식 성장) · docs/TRUST_AND_COMPANIONS.md §3 (신뢰의 역전)
 IMPRINT_DATA = json.loads((ROOT / "data" / "imprints.json").read_text(encoding="utf-8"))
 IMPRINT_LIST = IMPRINT_DATA["imprints"]
+
+# ── 심해 1막 각인 4종 (런타임 우선 병합) ─────────────────────────
+# docs/WORLD_BIBLE_DEEP.md §7 표 + DECISIONS 2026-09-22(「발자국」은 육상 전용, 심해는 「두드림을 들은 자」).
+# data/imprints.json 은 시나리오 소유라 고치지 않고 여기서 덧붙인다. 같은 id가 파일에 생기면 **파일이 이긴다**
+# (아래 병합 루프가 file-first). 스프린트 2의 roles_evolved/imprint_lines 와 같은 방식.
+DEEP_IMPRINTS = [
+    {
+        "id": "saved_breath",
+        "name": "아낀 숨",
+        "crisis": "air_out",
+        "crisis_ko": "공기 부족 (숨이 바닥난 원정에서 생환)",
+        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
+                    "id_prefixes": ["deep_air"], "flags": ["air_survived"]},
+        "visual": {"keyword": "short_sentences_quiet", "ko": "짧아진 문장, 줄어든 말수",
+                   "line": "{name}의 문장이 짧아졌다. 숨을 아껴 본 사람은 말도 아낀다."},
+        "effect": {"air_cap": 0.2},
+        "cost": {"ko": "사람들이 그의 말을 놓친다 — 남의 사기를 덜 올린다", "effect": {"morale_heal_others": -1}},
+    },
+    {
+        "id": "crack_seen",
+        "name": "금을 본 자",
+        "crisis": "hull_breach",
+        "crisis_ko": "유리 균열 (방 하나를 닫고 생존)",
+        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
+                    "id_prefixes": ["deep_glass"], "flags": ["room_sealed"]},
+        "visual": {"keyword": "hand_on_glass", "ko": "늘 창을 만지며 지나간다",
+                   "line": "{name}은 이제 창을 만지며 지나간다. 손끝으로 먼저 안다."},
+        "effect": {"counter_bonus": {"부품": 0.3, "청사진": 0.2}},
+        "cost": {"ko": "닫힌 방 앞을 지나지 못한다 — 동선이 길어져 생산이 조금 준다",
+                 "effect": {"production_penalty": 0.05}},
+    },
+    {
+        "id": "depth_mark",
+        "name": "깊이의 자국",
+        "crisis": "descent",
+        "crisis_ko": "해구 하강 (무광층 아래에 처음 닿음)",
+        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
+                    "id_prefixes": ["deep_trench", "deep_ballast"], "flags": ["deep_descent"]},
+        "visual": {"keyword": "pressed_ears_low_voice", "ko": "귀와 코의 눌린 자국, 낮아진 목소리",
+                   "line": "{name}의 귀 뒤에 눌린 자국이 남았다. 목소리가 한 뼘 낮아졌다."},
+        "effect": {"depth_cap": 0.2},
+        "cost": {"ko": "얕은 곳에서 불안해한다 — 광층 체류 중 사기 −1", "effect": {"morale_daily": -1}},
+    },
+    {
+        # ★ 문구 대기 — PM 결정 4(2026-09-22)로 **자리만** 만든 각인. 외형·연출문·대가 문구는 시나리오 몫이며
+        #   WORLD_BIBLE_DEEP §7 표에 아직 행이 없다(TASKS 요청함에 등재). 판정·연결은 지금부터 동작한다.
+        "id": "knock_heard",
+        "name": "두드림을 들은 자",
+        "crisis": "beast",
+        "crisis_ko": "대형 생물 조우 (생환)",
+        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
+                    "id_prefixes": [], "flags": ["beast_left"]},
+        "visual": {"keyword": "pending", "ko": "(문구 대기 — 시나리오)",
+                   "line": "{name}은 그날 이후 달라졌다."},
+        "effect": {},
+        "cost": {"ko": "(문구 대기 — 시나리오)", "effect": {}},
+        "_pending_text": True,
+    },
+]
+_HAVE_IMPRINTS = {i["id"] for i in IMPRINT_LIST}
+IMPRINT_LIST += [i for i in DEEP_IMPRINTS if i["id"] not in _HAVE_IMPRINTS]   # 파일이 먼저, 코드가 나중
 IMPRINTS = {i["id"]: i for i in IMPRINT_LIST}
+
+# 심해 카드의 flag 별칭. data/events_deep.json 이 대형 생물 조우에 임시로 육상 flag(dino_escaped)를 쓰고 있다.
+# 데이터는 시나리오 소유라 고치지 않고 **읽을 때 옮긴다**(DECISIONS 2026-09-22: 물속엔 발자국이 없다).
+DEEP_FLAG_ALIAS = {"dino_escaped": "beast_left"}
+DEEP_EVENT_PREFIX = "deep_"
 IMPRINT_RULES = IMPRINT_DATA.get("_rules", {})
 MAX_IMPRINTS = int(IMPRINT_RULES.get("max_per_resident", 3))
 EVOLVE_AT = int(IMPRINT_RULES.get("evolve_at", 3))
@@ -98,14 +168,46 @@ NIGHT_START, NIGHT_END = 21, 5                 # 클라이언트 밤 톤(app.js)
 # docs/WORLD_PRESENTATION.md §1-3 "스캔 카테고리가 지도를 연다".
 # 월드 좌표(m)는 지도 표식용 임시값이다. data/spots.json 은 시나리오 소유라 좌표를 넣지 않고 여기 둔다.
 # 원점 = 몰 문턱. +x 동(숲·지상 노선), -x 서(강·터널), +y 남(지하 터널 방향), -y 북(언덕·옥상).
-SPOTS = json.loads((ROOT / "data" / "spots.json").read_text(encoding="utf-8"))
+# 스팟 파일 목록. 사건 카드 EVENT_FILES 와 같은 패턴 — 시나리오가 새 묶음을 내면 한 줄만 는다.
+#   spots.json      — 육상(3막으로 승격 예정)
+#   spots_deep.json — 심해 1막 여섯 곳. **아직 없어도 정상 동작한다**(시나리오 대기, DECISIONS 2026-09-22)
+SPOT_FILES = ("spots.json", "spots_deep.json")
+
+
+def load_spots(files: tuple | list = SPOT_FILES) -> list[dict]:
+    """스팟 전부를 한 목록으로 병합한다. id 는 파일을 넘어 유일해야 하고, 먼저 읽은 파일이 이긴다.
+    파일이 없거나 깨졌거나 id/name 이 없는 줄은 조용히 건너뛴다(게임이 죽지 않게. 이유는 표준출력에)."""
+    out: list[dict] = []
+    have: set = set()
+    for fname in files:
+        rows = _load_json(fname)
+        if rows is None:
+            continue
+        if not isinstance(rows, list):
+            rows = [v for k, v in rows.items() if not k.startswith("_")] if isinstance(rows, dict) else []
+        for s in rows:
+            if not isinstance(s, dict) or not s.get("id") or not s.get("name"):
+                print(f"[spots] {fname} 줄 건너뜀: id/name 없음 {str(s)[:40]}")
+                continue
+            if s["id"] in have:
+                print(f"[spots] {fname} 중복 id 건너뜀: {s['id']}")
+                continue
+            out.append({**s, "_src": fname}); have.add(s["id"])
+    return out
+
+
+SPOTS = load_spots()
+# 월드 좌표(m). 2026-09-22 S3-C: dev_world_S2.md §3-3 제안표로 교체했다.
+# 기준계 = world.html 지형(400×250m), 원점 = 몰 문턱, +x 바깥(동), +z 남. 여기의 두 번째 값이 월드 Z다
+# (/api/rumors·/api/spots 는 pos{x,y} 로 내보내고 클라이언트가 y 를 Z 로 읽는다 — S2 규약 유지).
+# 옛 임시값은 6곳 중 3곳이 지형 밖(-170·-120)이거나 강 한가운데였다.
 SPOT_POS = {
-    "spot_flooded_train":   (-120,  70),
-    "spot_goldfish_canal":  (  60,  95),
-    "spot_greenhouse_cafe": ( 130,  20),
-    "spot_forest_train_door": (170, -60),
-    "spot_rooftop_garden":  ( -60, -90),
-    "spot_lantern_river":   (-170,  40),
+    "spot_flooded_train":     ( 62,  30),
+    "spot_goldfish_canal":    (100, -18),
+    "spot_greenhouse_cafe":   ( 30,  92),
+    "spot_rooftop_garden":    (-30, 105),
+    "spot_lantern_river":     (148,  55),
+    "spot_forest_train_door": (178,  70),
 }
 # spot_id -> 누적 스캔 카테고리 조건. 2026-09-20 PM 요청으로 data/rumors.json 의 단서 카테고리를
 # 게이트에 합쳤다(문구·의약·전자로 오는 소문도 실제로 열리게).
@@ -119,6 +221,49 @@ RUMOR_RULES = {
 }
 CAT_KO = {"food": "식품", "drink": "음료", "medical": "의약·화학", "electronics": "전자", "stationery": "문구",
           "book": "도서", "apparel": "의류", "tobacco": "담배·주류", "unknown": "정체불명"}
+
+
+def spot_gate(sid: str, spot: dict | None = None) -> dict | None:
+    """그 스팟을 여는 조건. **정본은 서버의 RUMOR_RULES**(DECISIONS 2026-09-20).
+    표에 없는 새 스팟(심해 6곳 등)만 파일의 unlock 을 임시 게이트로 받아 준다 —
+    그렇지 않으면 시나리오가 파일을 채워도 영영 안 열린다. 표에 들어오면 표가 이긴다."""
+    rule = RUMOR_RULES.get(sid)
+    if rule:
+        return {"categories": list(rule["categories"]), "need": int(rule["need"]), "source": "rules"}
+    unlock = (spot or {}).get("unlock")
+    if isinstance(unlock, dict) and isinstance(unlock.get("category"), str):
+        return {"categories": [unlock["category"]], "need": int(unlock.get("count") or 1), "source": "file"}
+    return None
+
+
+def scan_counts(uid: str) -> dict:
+    with db() as con:
+        rows = con.execute("SELECT category, COUNT(*) c FROM scans WHERE uid=? GROUP BY category", (uid,)).fetchall()
+    return {r["category"]: r["c"] for r in rows}
+
+
+def rumor_rule_audit() -> list[dict]:
+    """`data/rumors.json` 줄별 `unlock` ↔ 서버 `RUMOR_RULES` 동기화 점검. 정본은 서버 표(DECISIONS 2026-09-20).
+
+    파일의 `unlock` 은 **해금 조건이 아니라 그 한 줄이 읽힐 조건**(사다리)이므로 값이 표와 다른 것 자체는
+    결함이 아니다. 실제 결함은 하나뿐이다 — **스팟이 열리는 순간 읽을 수 있는 줄이 한 줄도 없는 경우.**
+    그때 서버는 조건을 못 채운 줄로 되돌아가고, 플레이어는 아직 얻지 않은 지식이 적힌 소문을 읽는다.
+    최악의 경로(표의 카테고리 하나만으로 need 를 채운 경우)를 전수 검사한다."""
+    lines = rumor_lines()
+    rows = []
+    for sid, rule in RUMOR_RULES.items():
+        pool = lines.get(sid) or []
+        for cat in rule["categories"]:                       # 한 카테고리만으로 문턱을 넘는 최악의 경로
+            counts = {cat: rule["need"]}
+            ready = [ln for ln in pool if not ln.get("category") or counts.get(ln["category"], 0) >= (ln.get("count") or 0)]
+            if not ready:
+                rows.append({
+                    "spot": sid, "path": f"{cat}×{rule['need']}",
+                    "server": f"{'·'.join(rule['categories'])}×{rule['need']}",
+                    "file": ", ".join(f"{ln.get('category')}×{ln.get('count')}" for ln in pool) or "(줄 없음)",
+                    "why": "해금 순간 읽을 수 있는 줄 0 → 조건 미달 줄로 폴백",
+                })
+    return rows
 RUMORS_PATH = ROOT / "data" / "rumors.json"    # 시나리오 에이전트가 만드는 중. 있으면 단서 문장을 여기서 가져온다
 _RUMORS_CACHE: dict = {"mtime": None, "by_spot": {}}
 
@@ -360,7 +505,8 @@ def grant_imprints(st: dict, ev: dict | None, flags: list[str], targets: list[di
         out.append({
             "resident": r["name"], "resident_id": r["id"], "role_ko": r.get("role_ko"),
             "imprint": {"id": imp["id"], "name": imp["name"], "crisis_ko": imp.get("crisis_ko"),
-                        "visual": imp["visual"]["ko"], "effect": imp["effect"], "cost": imp["cost"].get("ko")},
+                        "visual": imp["visual"]["ko"], "effect": imp["effect"], "cost": imp["cost"].get("ko"),
+                        "pending": bool(imp.get("_pending_text"))},
             "line": line,
             "evolved": evolved, "evolved_ko": r.get("evolved_ko") if evolved else None,
         })
@@ -539,7 +685,8 @@ def public_state(st: dict, uid: str) -> dict:
         "residents_list": st.get("residents_list", []), "effects": role_effects(st),
         # 각인·신뢰 (residents_list[].imprints / .crises / .trust 와 함께 읽는다)
         "imprints_catalog": {i["id"]: {"name": i["name"], "crisis_ko": i.get("crisis_ko"), "visual": i["visual"]["ko"],
-                                       "line": i["visual"]["line"], "effect": i["effect"], "cost": i["cost"].get("ko")}
+                                       "line": i["visual"]["line"], "effect": i["effect"], "cost": i["cost"].get("ko"),
+                                       "pending": bool(i.get("_pending_text"))}
                              for i in IMPRINT_LIST},
         "trust": {r["id"]: {"avg": trust_avg(r), "to": r.get("trust", {})} for r in st.get("residents_list", [])},
     }
@@ -695,11 +842,14 @@ def seen_once(st: dict) -> set:
 
 
 @app.get("/api/event/today")
-def event_today(uid: str, debug_force_event: str | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 사건을 이 id로 덮어쓰고 미해결 상태로 되돌린다. 각인·신뢰 테스트용. 배포 전 제거할 것.")):
+def event_today(uid: str, debug_force_event: str | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 사건을 이 id로 덮어쓰고 미해결 상태로 되돌린다. 각인·신뢰 테스트용. RELIC_DEV=1 환경변수에서만 동작한다.")):
     st = load_state(uid)
     tick_production(st)
     day = day_of(st)
     te = st["today_event"]
+    if debug_force_event and not DEV_MODE:
+        # 배포 환경에는 이 훅이 없는 것과 같다. 존재를 알리지 않기 위해 404.
+        raise HTTPException(404, "없는 질의입니다")
     if debug_force_event:
         # ★ 개발 전용 — 사건은 하루 1회라 테스트가 불가능하므로 강제 주입한다. 정식 플레이 경로 아님.
         if debug_force_event not in EVENTS:
@@ -782,6 +932,10 @@ def event_resolve(inp: ResolveIn):
 
     # ── 계단식 성장: 처음 겪는 종류의 위기를 **나가서** 넘긴 사람만 변한다 ──
     ev_flags = [f for f in [applied.get("flag")] if f] + list(applied.get("flags") or [])
+    if ev["id"].startswith(DEEP_EVENT_PREFIX):
+        # 심해 카드가 쓰는 육상 flag 를 심해 것으로 옮겨 읽는다(물속엔 발자국이 없다 — DECISIONS 2026-09-22).
+        # 데이터 파일(events_deep.json, 시나리오 소유)은 손대지 않는다.
+        ev_flags = [DEEP_FLAG_ALIAS.get(f, f) for f in ev_flags]
     if applied.get("spot_clue"):
         ev_flags.append("healing_spot_found")     # 힐링 스팟 단서를 얻은 날 → 「물의 기억」
     seed = f"{inp.uid}|{te['day']}"
@@ -816,15 +970,13 @@ def rumors(uid: str):
     """소문 = 힐링 스팟 단서. 현실의 스캔 카테고리 누적이 지도를 연다(WORLD_PRESENTATION §1-3).
     도서를 읽던 사람에게는 강의 등불이, 음료·의약을 모으던 사람에게는 물에 잠긴 전철이 먼저 들린다."""
     st = load_state(uid)
-    with db() as con:
-        rows = con.execute("SELECT category, COUNT(*) c FROM scans WHERE uid=? GROUP BY category", (uid,)).fetchall()
-    counts = {r["category"]: r["c"] for r in rows}
+    counts = scan_counts(uid)
     lines = rumor_lines()
     seen = st.setdefault("rumors_seen", [])
     out, changed = [], False
     for spot in SPOTS:
         sid = spot.get("id")
-        rule = RUMOR_RULES.get(sid)
+        rule = spot_gate(sid, spot)
         if not rule:
             continue
         have = sum(counts.get(c, 0) for c in rule["categories"])
@@ -840,8 +992,10 @@ def rumors(uid: str):
             # 조건을 이미 채운 줄을 먼저 쓴다(해금 여부 자체는 위의 RUMOR_RULES 가 정한다).
             pool = lines.get(sid) or []
             ready = [ln for ln in pool if not ln.get("category") or counts.get(ln["category"], 0) >= ln.get("count", 0)]
-            pool = ready or pool
-            pick = random.Random(f"{uid}|{sid}|rumor").choice(pool) if pool else None
+            # S3 동기화 점검(rumor_rule_audit)에서 나온 결함: 서버 표가 파일의 가장 싼 줄보다 먼저 열리는
+            # 스팟이 4곳 있다. 예전에는 조건을 못 채운 줄로 되돌아가 **아직 얻지 않은 지식이 적힌 소문**을
+            # 읽혔다. 이제는 조건 없는 spots.json 의 clue_text 로 물러난다(수치는 시나리오 확인 대기).
+            pick = random.Random(f"{uid}|{sid}|rumor").choice(ready) if ready else None
         x, y = SPOT_POS.get(sid, (0, 0))
         out.append({
             "spot_id": sid, "name": spot.get("name"),
@@ -855,6 +1009,43 @@ def rumors(uid: str):
         })
     if changed:
         save_state(uid, st)
+    return out
+
+
+@app.get("/api/spots")
+def spots(uid: str | None = None):
+    """힐링 스팟 정본. 발견문·좌표·자원·위험·무리 힌트는 **여기가 유일한 출처**다(02_DEV D7).
+    `data/spots.json` 은 /static 에 없어 브라우저가 못 읽으므로 발견 텍스트가 world3d.js 상수로
+    박혀 있었다 — 그 상수를 대신한다. `spots_deep.json` 이 생기면 자동으로 함께 나온다.
+
+    /api/rumors 와의 역할 분담(필드가 겹쳐서 정한다)
+      · **/api/spots = 스팟 그 자체**(name·discovery_text·resource·danger_note·tribe_hint·pos·gate). 정적.
+      · **/api/rumors = 소문 한 줄의 상태**(clue_text 문장 고르기·is_new·who). 동적.
+      · 겹치는 `unlocked`·`progress`·`pos` 는 두 API 가 같은 함수(spot_gate·SPOT_POS)를 부르므로 값이 갈라지지 않는다.
+      · `clue_text` 는 /api/spots 가 내지 않는다 — 같은 문장을 두 곳에서 고르면 시드가 갈라진다(D6).
+    uid 를 주면 그 방주 기준 해금 여부·진행도가 함께 온다. 없으면 잠긴 상태로 본다."""
+    counts = scan_counts(uid) if uid else {}
+    seen = set(load_state(uid).get("rumors_seen") or []) if uid else set()
+    out = []
+    for spot in SPOTS:
+        sid = spot["id"]
+        gate = spot_gate(sid, spot)
+        have = sum(counts.get(c, 0) for c in gate["categories"]) if gate else 0
+        unlocked = bool(uid) and bool(gate) and have >= gate["need"]
+        x, y = SPOT_POS.get(sid, (0, 0))
+        out.append({
+            "id": sid, "name": spot.get("name"),
+            "discovery_text": spot.get("discovery_text"),
+            "resource": spot.get("resource"), "danger_note": spot.get("danger_note"),
+            "tribe_hint": spot.get("tribe_hint"),
+            "pos": {"x": x, "y": y}, "has_pos": sid in SPOT_POS,
+            "unlocked": unlocked, "rumor_seen": sid in seen,
+            "progress": ({"have": min(have, gate["need"]), "need": gate["need"]} if gate else None),
+            "gate": ({"categories": gate["categories"],
+                      "categories_ko": "·".join(CAT_KO.get(c, c) for c in gate["categories"]),
+                      "need": gate["need"], "source": gate["source"]} if gate else None),
+            "source_file": spot.get("_src"),
+        })
     return out
 
 

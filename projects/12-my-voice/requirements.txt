@@ -3,6 +3,7 @@
 #        uv pip install --python .venv/Scripts/python.exe torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 #        uv pip install --python .venv/Scripts/python.exe -r requirements.txt
 infer-rvc-python
+demucs            # 노래 보컬 분리 (cover.py)
 edge-tts
 numpy==1.26.4      # pyworld 바이너리 호환 때문에 1.x 고정 필수
 librosa

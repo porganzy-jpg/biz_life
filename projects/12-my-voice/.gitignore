@@ -4,3 +4,6 @@ __pycache__/
 _joined*.wav
 out/
 tmp/
+songs/*.wav
+songs/*.mp3
+songs/*_파트/

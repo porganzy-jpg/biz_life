@@ -41,7 +41,8 @@ EVENT_REQUIRED = ("id", "name", "faction", "severity", "text", "counter_tags", "
 #   events.json        — 기본(방주 안)
 #   events_tribes.json — 일곱 부족 접촉
 #   events_outside.json— 바깥(공룡·원정·스팟 단서)
-EVENT_FILES = ("events.json", "events_tribes.json", "events_outside.json")
+#   events_deep.json   — 1막 심해(유리돔·깊이 4구역·큰 것들). 2026-09-22 결정으로 1막이 심해가 됐다
+EVENT_FILES = ("events.json", "events_tribes.json", "events_outside.json", "events_deep.json")
 
 
 def load_events(files: tuple | list = EVENT_FILES) -> list[dict]:

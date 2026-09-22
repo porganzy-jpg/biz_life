@@ -52,6 +52,12 @@
 - [시나리오(S3-A)→배경·캐릭터] 첫 10분이 요구하는 것 표는 `docs/SCRIPT_first_10min_deep.md` §4에 있습니다(돔 단면 첫 화면 / 에어락 문턱 2방향 / 목만 들어오는 긴목 / 문어 / 은빛 떼 글자 / 물 찬 방).
 - [시나리오(S3-A)→개발] 공기 게이지는 **숫자가 아니라 줄어드는 띠**로 요청합니다(각박함을 수치로 읽지 않게. 육상 빛 게이지와 같은 자리).
 
+- [개발(S3-C)→시나리오, **필수**] 「두드림을 들은 자」(`knock_heard`) 각인의 **외형·연출문·대가 한 줄**이 없습니다 — `WORLD_BIBLE_DEEP.md` §7 표에 1행 추가해 주세요. 판정·연결은 끝났고(심해 `dino_escaped`→`beast_left` 매핑) 지금은 자리표시라 서버가 `pending` 플래그로 화면 노출을 막고 있습니다. `data/imprints.json` 에 id `knock_heard` 정식 항목을 넣으면 코드의 자리표시가 자동으로 밀려납니다(파일 우선 병합).
+- [개발(S3-C)→시나리오] `data/rumors.json` 줄별 `unlock` 수치 확인 요청: 4개 스팟(`spot_goldfish_canal`·`spot_forest_train_door`·`spot_rooftop_garden`·`spot_lantern_river`)이 **열리는 순간 읽을 수 있는 소문 줄이 0줄**입니다(가장 싼 줄이 서버 문턱보다 높음). 지금은 `spots.json` 의 `clue_text` 로 물러나게 고쳐 두었으니 동작은 정상이지만, 첫 소문을 시나리오 문장으로 읽히려면 각 스팟에 서버 문턱 이하 조건의 줄이 한 줄씩 필요합니다. 대조표는 `docs/reports/dev_S3.md` §5.
+- [개발(S3-C)→시나리오] `data/spots_deep.json` 신설 대기 중 — `/api/spots` 목록 병합 로더 완료(파일이 없어도 정상). 필드는 `spots.json` 과 동일(`id`·`name`·`discovery_text`·`clue_text`·`resource`·`danger_note`·`tribe_hint`), 줄마다 `unlock:{category,count}` 를 넣으면 서버 표에 없는 동안 임시 게이트로 씁니다. 파일이 들어오면 개발이 `SPOT_POS`(심해 좌표)와 `RUMOR_RULES` 6줄을 붙입니다.
+- [개발(S3-C)→시나리오] `data/events_deep.json` 16장의 `tribe` 필드가 비어 있습니다 — 스키마 enum 에 `gauge`·`anchor`·`net`·`guest` 를 넣고 클라이언트 표기(눈금/닻/그물/손님 **무리**)까지 붙였으니, 낯선 돔 카드에 `tribe` 를 채우면 화면에 무리 이름이 바로 뜹니다(`faction:"tribe"` 는 그대로).
+- [개발(S3-C)→PM] `?debug_force_event=` 는 이제 **`RELIC_DEV=1` 에서만** 동작합니다(기본 404). 개발·검수 시 서버를 `RELIC_DEV=1 python server.py` 로 띄워 주세요. 02_DEV §4-4 '배포 전 제거 목록'에서 이 항목은 닫힌 것으로 봐 주십시오.
+
 
 ## 스프린트 3 (2026-09-22 착수) — "심해 유리돔이 첫 화면이 된다"
 목표 한 문장: **검은 물속 유리돔 단면 한 장으로 이 게임이 설명되게 한다.** 근거 `docs/CONCEPT_DEEP_SEA.md`, 결정 `DECISIONS.md` 2026-09-22.

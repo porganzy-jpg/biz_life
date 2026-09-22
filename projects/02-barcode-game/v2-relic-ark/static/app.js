@@ -27,7 +27,11 @@
   const TYPE_KO = { supply: '보급', counter: '대항', facility: '시설', event: '이벤트', blueprint: '청사진', gear: '장비', trade: '교역' };
   const RAR_KO = { common: '일반 · COMMON', uncommon: '고급 · UNCOMMON', rare: '희귀 · RARE', epic: '에픽 · EPIC', legendary: '전설 · LEGENDARY' };
   const FAC_KO = { mycel: '균류 군체', scavs: '약탈자', machine: '기계 잔재', mutant: '변이체', world: '반도 잔해', tribe: '부족', gardener: '정원사', reader: '리더' };
-  const TRIBE_KO = { wayfarer: '길손', shelf: '진열대', flame: '불꽃', white: '하얀', archive: '서고', greenhouse: '온실', tower: '탑' };
+  // 육상 일곱(3막) + 심해 넷(1막). 1막 사람들은 '부족'이라는 말을 모른다 — 심해 넷만 '무리'로 부른다(DECISIONS 2026-09-22)
+  const TRIBE_KO = { wayfarer: '길손', shelf: '진열대', flame: '불꽃', white: '하얀', archive: '서고', greenhouse: '온실', tower: '탑',
+                     gauge: '눈금', anchor: '닻', net: '그물', guest: '손님' };
+  const DEEP_TRIBES = new Set(['gauge', 'anchor', 'net', 'guest']);
+  const tribeLabel = (t) => `${TRIBE_KO[t] || t} ${DEEP_TRIBES.has(t) ? '무리' : '부족'}`;
   const ROOM_IMG = { pantry: 'room_pantry.jpg', well: 'room_well.jpg', infirmary: 'room_infirmary.jpg', library: 'room_library.jpg' };
   const VOICE_KO = { reader: '리더', gardener: '정원사' };   // 리더=주황(과거의 목소리) / 정원사=청록(현재의 손)
   const SURFACE_SLOTS = 2, FLOOR_W = 2; // 슬롯 0-1 지상, 2-9 지하(층당 2칸)
@@ -233,7 +237,8 @@
     const cat = ark.imprints_catalog || {};
     return (r.imprints || []).map(id => {
       const im = cat[id]; if (!im) return '';
-      return `<span class="imp" title="${esc(im.visual)} — 대가: ${esc(im.cost || '')}">刻 ${esc(im.name)}</span>`;
+      const tip = im.pending ? im.name : `${im.visual} — 대가: ${im.cost || ''}`;   // 문구 대기 각인은 자리표시 문구를 노출하지 않는다
+      return `<span class="imp" title="${esc(tip)}">刻 ${esc(im.name)}</span>`;
     }).join('');
   }
   function trustOf(r) { const t = (ark.trust || {})[r.id]; return t ? t.avg : 0; }
@@ -386,7 +391,7 @@
     await refresh();
     const d = await api(`/api/event/today?uid=${uid}`); const ev = d.event, st = d.state, pos = !!ev.positive;
     openSheet(`<div class="eyebrow">오늘의 쪽지 · DAY ${st.day}</div><h2>쪽지가 도착했습니다</h2><p class="hint">시간 안에 대항 카드를 누르세요. 대항할 방이 있으면 카드 없이도 반은 막습니다.</p>
-      <div class="slip ${pos ? 'pos' : ''}" id="slip"><div class="timer" id="tm">${ev.timer_sec}</div><div class="fac">${ev.tribe ? esc(TRIBE_KO[ev.tribe] || ev.tribe) + ' 부족' : esc(FAC_KO[ev.faction] || ev.faction)} · 심각도 ${ev.severity}</div><h3>${esc(ev.name)}</h3><p>${esc(ev.text)}</p>
+      <div class="slip ${pos ? 'pos' : ''}" id="slip"><div class="timer" id="tm">${ev.timer_sec}</div><div class="fac">${ev.tribe ? esc(tribeLabel(ev.tribe)) : esc(FAC_KO[ev.faction] || ev.faction)} · 심각도 ${ev.severity}</div><h3>${esc(ev.name)}</h3><p>${esc(ev.text)}</p>
       <div class="tags">대항 태그 ${ev.counter_tags.map(t => `<span>#${esc(t)}</span>`).join('')}${ev.counter_room ? ` · 방 <span>${rooms[ev.counter_room].name}${d.room_backup ? ' ✓' : ' ✗'}</span>` : ''}</div></div>
       <div class="counter-row" id="crow"></div><div class="result" id="result"></div>`);
     requestAnimationFrame(() => setTimeout(() => $('#slip').classList.add('in'), 30));
@@ -410,7 +415,7 @@
     const ns = r.new_imprints || []; if (!ns.length) return '';
     return `<div class="imprint-news">${ns.map(n => `<div class="one"><b>${esc(n.resident)}에게 각인 「${esc(n.imprint.name)}」${josa(n.imprint.name, '이', '가')} 생겼다</b>
       <div class="vis">${esc(n.line)}</div>
-      <div class="meta">외형 — ${esc(n.imprint.visual)} · 대가 — ${esc(n.imprint.cost || '없음')}</div>
+      ${n.imprint.pending ? '' : `<div class="meta">외형 — ${esc(n.imprint.visual)} · 대가 — ${esc(n.imprint.cost || '없음')}</div>`}
       ${n.evolved ? `<div class="evoline">세 번째 각인. ${esc(n.resident)}의 역할이 「${esc(n.evolved_ko)}」로 진화했다.</div>` : ''}</div>`).join('')}</div>`;
   }
   function showResult(r, ev, replay) {
@@ -425,7 +430,8 @@
     const crow = $('#crow'); if (crow) crow.innerHTML = '';
   }
 
-  window.ARK = { openEvent, refresh, voiceToast, renderRumors };   // world.html(S2-A)에서도 같은 연출을 쓸 수 있게
+  // world.html(S2-A)에서도 같은 연출을 쓸 수 있게. tribeLabel 은 1막 '무리' / 3막 '부족' 표기 규칙을 한 곳에 둔다
+  window.ARK = { openEvent, refresh, voiceToast, renderRumors, tribeLabel, TRIBE_KO, FAC_KO };
   $('#zin').addEventListener('click', () => { const vp = $('#world'); zoomAt(1.3, vp.clientWidth / 2, vp.clientHeight / 2); });
   $('#zout').addEventListener('click', () => { const vp = $('#world'); zoomAt(1 / 1.3, vp.clientWidth / 2, vp.clientHeight / 2); });
   $('#zfit').addEventListener('click', () => fitView(true));
