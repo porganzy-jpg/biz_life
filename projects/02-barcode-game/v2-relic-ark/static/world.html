@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>잔해 방주 — 연속 지형 본 화면</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23141311'/%3E%3Ccircle cx='8' cy='8' r='3.4' fill='%23F2A93B'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --ink:#E8DFCB; --dark:#141311; --panel:rgba(20,19,17,.72); --line:#4a4640;
+    --lantern:#F2A93B; --teal:#63C7BE; --danger:#D9603F;
+  }
+  html,body{margin:0;height:100%;background:var(--dark);color:var(--ink);
+    font-family:"Noto Sans KR",system-ui,sans-serif;overflow:hidden;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  #c{display:block;width:100%;height:100%;touch-action:none}
+
+  /* ── 가로 화면 강제 안내(세로로 들면 덮는다) ───────────────── */
+  #rotate{position:fixed;inset:0;z-index:40;display:none;place-items:center;text-align:center;
+    background:#0e0d0c;color:var(--ink);font-size:1rem;line-height:1.9;padding:24px}
+  @media (orientation:portrait) and (max-width:900px){ #rotate{display:grid} }
+
+  /* ── HUD ─────────────────────────────────────────────────── */
+  .panel{position:fixed;z-index:5;background:var(--panel);border:1px solid var(--line);
+    padding:8px 10px;font-size:.76rem;line-height:1.5;backdrop-filter:blur(2px)}
+  #hudTop{left:10px;top:10px;min-width:190px}
+  #hudTop b{color:var(--lantern);font-family:"Noto Serif KR",serif;font-size:.86rem}
+  #dayBar{position:relative;height:8px;margin:6px 0 4px;background:#2b2a28;border:1px solid #3d3a35;overflow:hidden}
+  #dayFill{position:absolute;inset:0 auto 0 0;width:0%;background:linear-gradient(90deg,#3b4b63,#cfd6c8 33%,#C2705A 66%,#121722);transition:width .2s linear}
+  #dayMark{position:absolute;top:-2px;width:2px;height:12px;background:#fff;box-shadow:0 0 4px #000}
+  #phaseName{color:var(--lantern)}
+  #res{position:fixed;left:10px;bottom:10px;z-index:5;display:flex;gap:6px}
+  #res div{background:var(--panel);border:1px solid var(--line);padding:6px 9px;font-size:.74rem;min-width:52px;text-align:center}
+  #res span{display:block;color:var(--lantern);font-size:.95rem;font-weight:700}
+
+  #ctl{position:fixed;right:10px;top:10px;z-index:5;display:flex;flex-direction:column;gap:5px;align-items:stretch}
+  #ctl .row{display:flex;gap:5px}
+  button{background:#2B2A28;color:var(--ink);border:1px solid #6E6A62;padding:0 10px;min-height:32px;
+    cursor:pointer;font-size:.76rem;font-family:inherit;flex:1;white-space:nowrap}
+  button:hover{background:#4A463F}
+  button.on{background:#54401d;border-color:var(--lantern);color:#FFD89A}
+  button.key{background:#3a2f16;border-color:var(--lantern);color:#FFD89A;font-weight:700}
+
+  #who{position:fixed;right:10px;bottom:10px;z-index:5;display:flex;gap:5px}
+  #who button{min-width:62px}
+
+  #hint{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:4;
+    font-size:.72rem;color:#9d958a;background:rgba(20,19,17,.5);padding:4px 10px;pointer-events:none}
+
+  /* ── 저녁 경고 배너 ──────────────────────────────────────── */
+  #warn{position:fixed;left:50%;top:14%;transform:translate(-50%,-6px);z-index:8;
+    background:rgba(90,28,16,.86);border:1px solid var(--danger);color:#FFD9C8;
+    padding:10px 22px;font-family:"Noto Serif KR",serif;font-size:1.05rem;letter-spacing:.08em;
+    opacity:0;pointer-events:none;transition:opacity .5s,transform .5s}
+  #warn.show{opacity:1;transform:translate(-50%,0)}
+
+  /* ── 발견 연출 오버레이 ──────────────────────────────────── */
+  #discover{position:fixed;inset:0;z-index:9;display:none;place-items:end center;padding-bottom:9vh;pointer-events:none}
+  #discover.show{display:grid}
+  #discover .box{max-width:min(760px,86vw);text-align:center;pointer-events:auto;
+    background:linear-gradient(180deg,rgba(12,22,22,.30),rgba(12,22,22,.86));
+    border-top:1px solid rgba(99,199,190,.5);border-bottom:1px solid rgba(99,199,190,.5);
+    padding:22px 26px;opacity:0;transform:translateY(10px);transition:opacity 1.2s,transform 1.2s}
+  #discover.show .box{opacity:1;transform:translateY(0)}
+  #discover h2{margin:0 0 10px;font-family:"Noto Serif KR",serif;font-weight:500;
+    color:var(--teal);font-size:1.5rem;letter-spacing:.14em}
+  #discover p{margin:0;font-size:.86rem;line-height:2;color:#DCE9E6;text-align:left;text-wrap:pretty}
+  #discover .close{margin-top:16px;max-width:160px}
+
+  /* 리더·정원사 한 줄 (app.js voiceToast 와 같은 톤. 이 화면은 app.js를 로드하지 않는다) */
+  #voice{position:fixed;left:50%;bottom:16%;transform:translate(-50%,8px);z-index:7;max-width:min(680px,80vw);
+    background:rgba(20,19,17,.82);border-left:3px solid var(--lantern);padding:9px 16px;
+    opacity:0;transition:opacity .6s,transform .6s;pointer-events:none}
+  #voice.show{opacity:1;transform:translate(-50%,0)}
+  #voice b{display:block;color:var(--lantern);font-size:.68rem;letter-spacing:.14em;margin-bottom:3px}
+  #voice span{font-family:"Noto Serif KR",serif;font-size:.92rem;line-height:1.8}
+
+  #toast{position:fixed;left:50%;top:6%;transform:translateX(-50%);z-index:8;
+    background:rgba(20,19,17,.85);border:1px solid var(--line);padding:7px 14px;font-size:.78rem;
+    opacity:0;transition:opacity .35s;pointer-events:none}
+  #toast.show{opacity:1}
+
+  #log{position:fixed;left:10px;top:50%;z-index:3;font-family:ui-monospace,monospace;font-size:.62rem;
+    color:#8d857a;max-width:46vw;white-space:pre-wrap;display:none}
+  body.debug #log{display:block}
+
+  /* ── 폰 가로(844×390) ────────────────────────────────────── */
+  @media (max-height:460px){
+    .panel{font-size:.68rem;padding:6px 8px}
+    #hudTop{min-width:150px}
+    #res div{padding:4px 7px;min-width:44px;font-size:.66rem}
+    #res span{font-size:.84rem}
+    /* D8 터치 영역: 세로 390px 화면에 44px 3줄은 화면의 1/3을 먹는다 →
+       가장 자주 누르는 하단 주민 선택만 44px, 우측 보조 버튼은 36px로 타협 */
+    button{font-size:.7rem;min-height:36px;padding:0 8px}
+    #who button{min-height:44px}
+    #btnScan{min-height:44px}
+    #discover p{font-size:.76rem;line-height:1.85}
+    #discover .box{padding:14px 18px}
+    #hint{display:none}
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="rotate">화면을 가로로 돌려 주세요.<br><small style="color:#9d958a">잔해 방주는 가로 화면입니다.</small></div>
+
+<div class="panel" id="hudTop">
+  <b>잔해 방주</b> <span id="dayNo">1일차</span>
+  <div id="dayBar"><div id="dayFill"></div><div id="dayMark" style="left:0%"></div></div>
+  <div><span id="phaseName">새벽</span> · <span id="fps">–</span>fps</div>
+</div>
+
+<div id="ctl">
+  <div class="row"><button id="btnScan" class="key">성문 해독(스캔)</button></div>
+  <div class="row"><button id="btnPhase">시간 넘기기</button><button id="btnAuto">자동</button></div>
+  <div class="row"><button id="btnHome">홀 허브 복귀</button><button id="btnView">시점 초기화</button></div>
+</div>
+
+<div id="res">
+  <div>식량<span id="rFood">–</span></div>
+  <div>물<span id="rWater">–</span></div>
+  <div>의약<span id="rMed">–</span></div>
+  <div>사기<span id="rMorale">–</span></div>
+</div>
+
+<div id="who">
+  <button data-who="scout" class="on">정찰병</button>
+  <button data-who="cook">요리사</button>
+  <button data-who="medic">의사</button>
+  <button data-who="all">전원</button>
+</div>
+
+<div id="hint">지면을 탭 = 그곳으로 보낸다 · 휠/두 손가락 = 줌 · 드래그 = 팬 · 우클릭 드래그 = 기울기</div>
+
+<div id="warn">해가 기운다. 돌아와야 한다.</div>
+
+<div id="discover"><div class="box">
+  <h2 id="dTitle"></h2><p id="dText"></p>
+  <button class="close" id="dClose">문턱으로 돌아간다</button>
+</div></div>
+
+<div id="voice"><b></b><span></span></div>
+<div id="toast"></div>
+<div id="log"></div>
+
+<script type="module" src="/static/world3d.js"></script>
+</body>
+</html>
