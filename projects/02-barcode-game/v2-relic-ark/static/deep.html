@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>잔해 방주 — 심해 1막 샘플</title>
+<style>
+  :root{
+    --bg:#071114; --bg2:#0b1b20; --ink:#cdd8d6; --dim:#7d908f;
+    --lamp:#e8a13c; --lamp-soft:#f0c078; --teal:#2fa8a0; --line:#1b2f35;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+    line-height:1.75; letter-spacing:-.01em;
+  }
+  .wrap{max-width:1100px;margin:0 auto;padding:0 20px 120px}
+  header.hero{position:relative;text-align:center;padding:0}
+  header.hero img{width:100%;display:block;border-bottom:1px solid var(--line)}
+  .hero-cap{padding:38px 20px 10px}
+  .kicker{color:var(--teal);font-size:12px;letter-spacing:.32em;margin:0 0 14px}
+  h1{font-size:30px;margin:0 0 16px;font-weight:700}
+  .pitch{color:var(--lamp-soft);font-size:17px;max-width:680px;margin:0 auto;line-height:1.9}
+  .meta{color:var(--dim);font-size:12.5px;margin-top:20px}
+
+  section{margin-top:76px}
+  h2{font-size:19px;margin:0 0 6px;color:#fff;font-weight:700}
+  h2 .num{color:var(--teal);font-weight:400;margin-right:10px;font-size:14px}
+  .sub{color:var(--dim);font-size:13.5px;margin:0 0 26px}
+
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:20px}
+  .panel h3{margin:0 0 4px;font-size:15.5px;color:var(--lamp)}
+  .panel .tag{color:var(--dim);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase}
+  .panel p{margin:10px 0 0;font-size:13.5px}
+  .quote{margin-top:12px;padding-left:12px;border-left:2px solid var(--teal);
+         color:var(--teal);font-size:13px;font-style:italic}
+  .taboo{margin-top:12px;color:var(--lamp-soft);font-size:13px}
+  .taboo b{color:var(--lamp)}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:400;font-size:12px;letter-spacing:.1em}
+  td.zone{color:var(--lamp);white-space:nowrap;font-weight:700}
+
+  .card{background:linear-gradient(180deg,#0e2027,#0a171c);border:1px solid var(--line);
+        border-left:3px solid var(--lamp);border-radius:8px;padding:18px 20px}
+  .card .hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  .card h4{margin:0;font-size:15px;color:#fff}
+  .sev{font-size:11px;color:var(--dim);white-space:nowrap}
+  .card p{margin:10px 0 0;font-size:13.5px;color:#bccac8}
+  .tags{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}
+  .tags span{font-size:11px;color:var(--teal);border:1px solid #1f4a4a;border-radius:3px;padding:2px 7px}
+
+  figure{margin:0}
+  figure img{width:100%;display:block;border:1px solid var(--line);border-radius:8px}
+  figcaption{color:var(--dim);font-size:12.5px;margin-top:10px}
+
+  .beats{border-left:1px solid var(--line);padding-left:0;margin:0;list-style:none}
+  .beat{position:relative;padding:0 0 26px 26px}
+  .beat:before{content:"";position:absolute;left:-5px;top:9px;width:9px;height:9px;
+               border-radius:50%;background:var(--lamp)}
+  .beat .t{color:var(--teal);font-size:12px;letter-spacing:.1em}
+  .beat .h{color:#fff;font-size:14.5px;margin-top:2px}
+  .beat .d{color:var(--dim);font-size:13px;margin-top:4px}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .chips span{font-size:12.5px;color:#9fb0ae;background:#0e1f24;border:1px solid var(--line);
+              border-radius:20px;padding:5px 12px}
+  .note{color:var(--dim);font-size:12.5px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+  @media(max-width:820px){.g2,.g4{grid-template-columns:1fr}h1{font-size:23px}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <img src="art/deep/dome_hero.png" alt="검은 물속의 유리돔 단면">
+  <div class="hero-cap">
+    <p class="kicker">잔해 방주 · 1막</p>
+    <h1>심해 유리돔</h1>
+    <p class="pitch">깊고 검은 물속에 떠 있는 유리돔 하나.<br>그 안의 불 켜진 방들이 게임의 첫 화면이고, 밖은 아름답지만 숨을 쉴 수 없다.</p>
+    <p class="meta">2026-09-23 · 세계관·사건 16장·렌더 3장까지 완료 / 실시간 화면은 다음 스프린트</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <h2><span class="num">01</span>왜 바다인가</h2>
+  <p class="sub">인간은 바다에 버렸고, 바다는 200년간 보관했다.</p>
+  <div class="panel">
+    <p>차갑고 어둡고 눌린 물은 물건을 늙히지 않는다. 그래서 육상 잔해의 글자는 지워졌지만
+       <b style="color:var(--lamp-soft)">해구에서 건진 포장지의 성문은 아직 읽힌다.</b>
+       스캔이 왜 이 세계의 핵심 행위인지가 설정이 아니라 물리로 설명된다.</p>
+    <p>플레이어가 편의점에서 찍은 그 봉지가, 200년 뒤 해구에서 건져지는 같은 물건이다.</p>
+    <div class="quote">1막의 진실은 “우리는 갇혔다”가 아니라 “우리는 갇힌 줄 모른다”이다.</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">02</span>네 개의 돔 무리</h2>
+  <p class="sub">살아남은 방식이 문화가 된다. 육상 일곱 무리와 같은 원리.</p>
+  <div class="grid g4">
+    <div class="panel">
+      <span class="tag">관측 기지</span><h3>눈금</h3>
+      <p>재지 않은 것은 없는 것이다.</p>
+      <div class="taboo"><b>금기</b> 재지 않고 말하는 것</div>
+      <div class="quote">“열둘. 왼쪽. 커진다.”</div>
+    </div>
+    <div class="panel">
+      <span class="tag">채굴 플랫폼</span><h3>닻</h3>
+      <p>깊이 내려간 자가 어른이다. 조상이 남긴 구멍을 찾아 막는 것이 평생의 일이다. 왜 막아야 하는지는 잊혔다.</p>
+      <div class="taboo"><b>금기</b> 열린 구멍을 그대로 두는 것</div>
+      <div class="quote">“막는다. 셋이면 된다.”</div>
+    </div>
+    <div class="panel">
+      <span class="tag">양식장</span><h3>그물</h3>
+      <p>먹인 것만이 돌아온다.</p>
+      <div class="taboo"><b>금기</b> 떼를 세는 것. 세는 순간 재고가 된다</div>
+      <div class="quote">“조금 더 두면 돼요. 아직 안 찼어요.”</div>
+    </div>
+    <div class="panel">
+      <span class="tag">관광 잠수정</span><h3>손님</h3>
+      <p>구경하러 왔다가 못 돌아갔다. 200년째 스스로를 손님이라 부른다.</p>
+      <div class="taboo"><b>금기</b> 같은 자리에 두 밤 머무는 것</div>
+      <div class="quote">“잠시 후 도착합니다. 두 사람 자리는 있습니다.”</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">03</span>네 개의 깊이</h2>
+  <p class="sub">세로축 하나가 지도이자 난이도이자 연대다. 금기 넷은 미신처럼 들리지만 전부 물리적 사실이다.</p>
+  <table>
+    <tr><th>구역</th><th>빛</th><th>성격</th><th>금기</th></tr>
+    <tr><td class="zone">광층</td><td>위에서 내려오는 회청색</td><td>밝고 따뜻하고 금지된 곳</td>
+        <td>천장을 오래 보지 말 것. 오래 보면 올라가고 싶어진다. 올라가면 터진다</td></tr>
+    <tr><td class="zone">박광층</td><td>위쪽만 희미하게</td><td>모든 것이 그림자로 먼저 온다</td>
+        <td>위로 빛을 비추지 말 것. 위에서 보면 우리가 보인다</td></tr>
+    <tr><td class="zone">무광층</td><td>없다. 모든 빛은 살아 있거나 사람이 켠 것</td><td>돔들이 사는 층. 집의 층</td>
+        <td>부르는 빛에 답하지 말 것. 어둠 속의 예쁜 빛은 대개 입의 일부다</td></tr>
+    <tr><td class="zone">해구</td><td>없다. 랜턴도 멀리 못 간다</td><td>성문층. 인간이 버린 것이 쌓인 곳</td>
+        <td>혼자 가지 말 것. 가져온 것을 세기 전에 돔에 들이지 말 것</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="num">04</span>큰 것들</h2>
+  <p class="sub">학명을 쓰지 않는다. 돔 사람들이 부르는 이름만 쓴다.</p>
+  <div class="grid g2">
+    <div class="panel">
+      <span class="tag">박광층</span><h3>긴목</h3>
+      <p>몸은 아직 어둠 속인데 창 앞에는 목만 와 있다. 불빛을 좋아해 유리에 얼굴을 붙이고 들여다본다.
+         해치려는 것이 아니라 궁금해하는 것이다. 그러나 그 무게로 유리에 금이 간다.</p>
+      <div class="quote">이 세계에서 가장 무서운 것은 악의가 아니라 호기심이다.</div>
+    </div>
+    <div class="panel">
+      <span class="tag">무광층 경계</span><h3>문지기</h3>
+      <p>조명을 켜면 보이지만 동시에 부른다. 존재를 아는 방법은 하나뿐이다. 주변의 다른 소리가 전부 사라진다.</p>
+      <div class="quote">물이 조용해지면, 사람들은 “바다가 숨을 들이켰다”고 말한다.</div>
+    </div>
+    <div class="panel">
+      <span class="tag">돔 안팎</span><h3>동거 문어</h3>
+      <p>위협이 아니라 식구다. 에어락 틈으로 나갔다가 무언가를 물고 돌아온다. 성문이 찍힌 뚜껑, 색이 남은 조각.
+         사람에게 이름을 받고, 좋아하는 사람의 손목을 감는다. 힐링 스팟의 첫 단서는 언제나 문어가 물고 온다.</p>
+      <div class="quote">이 세계에서 인간이 무언가를 껴안는 유일한 장면이 여기 있다.</div>
+    </div>
+    <div class="panel">
+      <span class="tag">해구 · 목격자 없음</span><h3>먼 울음</h3>
+      <p>본 사람이 없다. 실루엣조차 없다. 해구 쪽에서 아주 낮은 소리가 일정한 간격으로 올라오고,
+         눈금 무리는 200년치 일지에 그 간격을 적어 왔다. 간격은 조금씩 짧아지고 있다.</p>
+      <div class="quote">1막에서 답을 주지 않는 유일한 것. 정체는 2막 입구에서 회수된다.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">05</span>사건 카드 16장</h2>
+  <p class="sub">전부 마지막 문장이 질문이다. 옳은 선택이 없는 카드가 섞여 있다.</p>
+  <div class="grid g2">
+    <div class="card"><div class="hd"><h4>유리에 금</h4><span class="sev">위험도 2</span></div>
+      <p>새벽에 누가 손톱으로 유리를 긁었다고 했다. 아침에 보니 소리가 아니라 금이었고, 그 방에는 아이들 침상이 있다.
+         지금 닫으면 유리는 버티고, 안의 것은 두고 나와야 한다.</p>
+      <div class="tags"><span>#부품</span><span>#청사진</span></div></div>
+
+    <div class="card"><div class="hd"><h4>숨이 얕다</h4><span class="sev">위험도 2</span></div>
+      <p>환기구 바람이 어제보다 미지근하다. 산소판 한 장이 상해서, 모두가 쓰면 사흘이고 반이 참으면 엿새다.
+         누가 반이 될지는 아직 아무도 말하지 않는다.</p>
+      <div class="tags"><span>#전력</span><span>#부품</span></div></div>
+
+    <div class="card"><div class="hd"><h4>창에 닿은 목</h4><span class="sev">위험도 2</span></div>
+      <p>몸은 아직 어둠 속인데 창에는 이미 얼굴이 붙어 있다. 해치려는 것이 아니라 들여다보는 중이라 더 오래 머물고,
+         유리는 그 무게로 조금씩 휜다. 불을 끄면 갈 것이다. 끄면 우리도 못 본다.</p>
+      <div class="tags"><span>#조명</span><span>#야행</span></div></div>
+
+    <div class="card"><div class="hd"><h4>물이 조용해졌다</h4><span class="sev">위험도 3</span></div>
+      <p>문지기가 왔다는 뜻이다.</p>
+      <div class="tags"><span>#방어</span><span>#야행</span><span>#조명</span></div></div>
+  </div>
+  <div class="chips">
+    <span>따뜻한 굴뚝</span><span>낯선 불빛의 두드림</span><span>물살이 놓고 간 것</span><span>떼가 한 줄을 쓴다</span>
+    <span>안내 방송이 켜졌다</span><span>이음매의 검은 것</span><span>해구에서 오는 소리</span><span>가라앉은 큰 것</span>
+    <span>도크의 낯선 칼</span><span>깨어난 하역 팔</span><span>가라앉지 않는 사람</span><span>여덟 팔이 물고 온 것</span>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">06</span>첫 10분</h2>
+  <p class="sub">설명 없이 이 게임이 무엇인지 몸으로 알게 하는 10분. 보다 → 나가다 → 돌아오다 → 커지다 → 찾아오다.</p>
+  <ul class="beats">
+    <li class="beat"><div class="t">0:00</div><div class="h">완전한 검정 15초</div>
+      <div class="d">부유물 몇 점과 압력이 귀를 누르는 저음만. 빈 화면을 견디게 해서 다음 컷의 불빛을 크게 만든다.</div></li>
+    <li class="beat"><div class="t">0:15</div><div class="h">돔 단면이 열린다</div>
+      <div class="d">주황 점 하나가 창이 되고, 창이 방이 되고, 방이 돔 전체로. 자막도 UI도 없다. 첫 감정은 “저 안이 따뜻해 보인다”.</div></li>
+    <li class="beat"><div class="t">2:30</div><div class="h">에어락에서 리더의 목소리가 끊긴다</div>
+      <div class="d">끊긴 것이 대사다. 문 안은 리더, 문 밖은 정원사. 1막 전체를 요약하는 한 컷.</div></li>
+    <li class="beat"><div class="t">3:00</div><div class="h">첫 채집</div>
+      <div class="d">랜턴이 닿는 반경만 보인다. 공기 게이지가 처음 나타난다. 숫자가 아니라 줄어드는 띠.</div></li>
+    <li class="beat"><div class="t">6:20</div><div class="h">문어가 아이 손목을 감는다</div>
+      <div class="d">사람끼리는 아직 한 번도 닿지 않았다.</div></li>
+    <li class="beat"><div class="t">8:40</div><div class="h">목이 하나 들어와 창에 얼굴을 붙인다</div>
+      <div class="d">유리를 똑똑 두드린다. 위협은 소리에서 실루엣, 실루엣에서 형체 순서로 온다.</div></li>
+    <li class="beat"><div class="t">9:30</div><div class="h">은빛 떼가 잠깐 글자 비슷한 모양이 된다</div>
+      <div class="d">정원사의 첫 문장. 아무도 읽지 못한다. 플레이어만 그것이 문장이었음을 안다.</div></li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="num">07</span>화면</h2>
+  <p class="sub">Blender 절차 생성. 생성 AI 이미지 0장.</p>
+  <div class="grid g2">
+    <figure><img src="art/deep/dome_depth.png" alt="깊이감">
+      <figcaption>깊이감. 돔은 작고 물은 넓다. 큰 것들이 멀리 지나간다.</figcaption></figure>
+    <figure><img src="art/deep/dome_airlock.png" alt="에어락">
+      <figcaption>에어락. 돔 아래 해저로 사람이 내려선다. 잠수복은 아직 없어 기존 모델 그대로다.</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">08</span>지금 상태</h2>
+  <div class="grid g2">
+    <div class="panel"><h3>되어 있는 것</h3>
+      <p>세계관 성경 2편, 사건 카드 16장(서버에서 실제로 뽑힘), 힐링 스팟 6곳 본문, 각인 4종,
+         스팟 API, 첫 10분 대본, 유리돔 단면 생성기와 렌더 3장, dome_core.glb</p></div>
+    <div class="panel"><h3>다음</h3>
+      <p>막 구분(심해·터널·지상 카드 분리), 공기·깊이 게이지, 심해 실시간 화면,
+         잠수복과 큰 것들 모델, 수중 사운드</p></div>
+  </div>
+  <p class="note">육상 세계(쇼핑몰·일곱 부족·공룡)는 폐기되지 않았다. 침수 지하철 터널을 지나 도달하는 3막 콘텐츠로 남아 있고, 이미 돌아가는 화면이 있다.</p>
+</section>
+
+</div>
+</body>
+</html>
