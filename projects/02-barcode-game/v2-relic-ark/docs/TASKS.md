@@ -43,6 +43,15 @@
 - [배경→개발] S2-D 에셋 배치 규약(경로 / 파사드 원점=입구 바닥 중심·정면 Three +Z / 힐링 스팟 물 재질명 `Water` / `koi_1~5` 좌표 / 문간 마커 `marker_threshold` / 금붕어 빈 수면 6×4m 좌표)은 `docs/reports/bg_S2.md` §7에 정리했습니다. `static/world3d.js`는 개발 소유라 손대지 않았습니다.
 - [배경→PM] 시나리오 중계 3건(빛기둥 구멍 / 사람이 서는 문간 / 금붕어 빈 수면)은 `spot_flooded_train.glb`에 **전부 반영**했습니다(보고서 §7-5).
 
+- [시나리오(S3-A)→개발] `data/events_deep.json`(16장) 신규. 서버 EVENTS 병합 목록에 추가해 주세요(현재 `events.json`+`events_tribes.json`+`events_outside.json`만 읽는지 확인 필요). 스키마·id 유일성은 검증 완료(보고서 `scenario_S3.md` §3).
+- [시나리오(S3-A)→개발] `data/events_schema.json` `faction` enum에 심해 무리용 값이 없습니다. 낯선 돔 카드는 임시로 `faction:"tribe"` + `tribe` 필드 비움으로 처리했습니다. `tribe` enum에 `gauge`(눈금)·`anchor`(닻)·`net`(그물)·`guest`(손님) 4개 추가를 요청합니다. 클라이언트 `FAC_KO`/부족 한국어 표기도 함께.
+- [시나리오(S3-A)→개발] `data/imprints.json` 각인 3종 신설 요청: 「아낀 숨」(공기 부족, id_prefixes `deep_air`), 「금을 본 자」(유리 균열, `deep_glass`), 「깊이의 자국」(해구 하강, `deep_trench`/`deep_ballast`). 표는 `docs/WORLD_BIBLE_DEEP.md` §7. 현재 이 3계열 카드는 각인이 안 붙습니다.
+- [시나리오(S3-A)→PM] 「발자국」 각인이 육상 이름입니다. 심해 대형 생물 카드는 `flag:"dino_escaped"`로 같은 각인에 연결해 두었습니다 — 이름을 「지나간 것의 자국」 계열로 일반화할지 결정 필요(DECISIONS 후보).
+- [시나리오(S3-A)→PM·개발] 심해 힐링 스팟 6곳 본문을 `docs/WORLD_BIBLE_DEEP.md` §4에 `spots.json` 필드 형식 그대로 써 두었습니다. `data/spots.json`에 바로 넣으면 S3-C(`/api/spots`·`SPOT_POS` 교체)와 충돌할 수 있어 **대기 중**입니다. 넣을 시점과 파일(기존 `spots.json` vs 신규 `spots_deep.json`)을 지정해 주세요. 사건 카드가 참조하는 id: `spot_vent_garden`, `spot_whale_fall`, `spot_kelp_ceiling`(나머지 3곳은 아직 단서 카드 없음).
+- [시나리오(S3-A)→사운드] 1막의 핵심 연출 하나: **에어락을 나가면 리더의 목소리가 완전히 끊기고, 들어오면 돌아온다.** 안=리더(스피커) / 밖=정원사(물·떼·해류). 오디오 버스를 안/밖으로 분리해 주세요(`docs/SCRIPT_first_10min_deep.md` 2:30·3:40 비트, `WORLD_BIBLE_DEEP.md` §5-1).
+- [시나리오(S3-A)→배경·캐릭터] 첫 10분이 요구하는 것 표는 `docs/SCRIPT_first_10min_deep.md` §4에 있습니다(돔 단면 첫 화면 / 에어락 문턱 2방향 / 목만 들어오는 긴목 / 문어 / 은빛 떼 글자 / 물 찬 방).
+- [시나리오(S3-A)→개발] 공기 게이지는 **숫자가 아니라 줄어드는 띠**로 요청합니다(각박함을 수치로 읽지 않게. 육상 빛 게이지와 같은 자리).
+
 
 ## 스프린트 3 (2026-09-22 착수) — "심해 유리돔이 첫 화면이 된다"
 목표 한 문장: **검은 물속 유리돔 단면 한 장으로 이 게임이 설명되게 한다.** 근거 `docs/CONCEPT_DEEP_SEA.md`, 결정 `DECISIONS.md` 2026-09-22.
