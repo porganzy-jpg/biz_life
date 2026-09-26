@@ -62,7 +62,7 @@
 | 해저에서 조각 줍기(첫 채집, 3:00 비트) | `sfx_collect.ogg` | sfx -8dB | 아니오 | 없음 | `world:collect_deep` (payload `{item_id}`) |
 | 격벽이 닫히고 방이 잠김(8:00~8:40 비트) | `sfx_room_flood.ogg` | sfx -3dB(임팩트라 크게) | 아니오 | 없음. **재생 종료 직후 그 room_id의 로컬 앰비언트 emitter를 영구 mute**(아래 §5-3 참고) | `world:room_flood` (payload `{room_id}`) |
 | 열수구 정원 발견 | `cue_vent_garden.ogg` | music -6dB(평소 0, 이 순간만 페이드인) | 예(30초 반복) | 파일 자체 **0.8초 무음 선행**(A10) + fade-in 0.3초 + amb 버스 -6dB 덕킹 | `world:spot_found` (payload `{spot_id: "spot_vent_garden", cue: "cue_vent_garden.ogg"}` — 기존 서프이스 스팟과 이벤트명을 통일하고 `cue` 필드로 파일만 바꿔 끼운다. 향후 스팟 5개도 같은 이벤트로 확장) |
-| 「먼 울음」(해구, 정체 비공개) | `amb_far_call.ogg` | amb -9dB(가끔 들리되 묻히지 않게) | 아니오(원샷, 게임이 간격을 두고 반복 트리거) | 없음. **간격은 게임 로직이 결정**(설정상 진행에 따라 점점 짧아짐 — 초기 권장 90~150초 랜덤, 폭을 서서히 좁힘). 해구에 있을 때만 재생 후보 | `world:far_call` |
+| 「먼 울음」(해구, 정체 비공개) | `amb_far_call.ogg` | amb -9dB(가끔 들리되 묻히지 않게) | 아니오(원샷, 게임이 간격을 두고 반복 트리거) | 없음. **간격 커브는 PM이 확정**(`docs/reports/review_sprint4.md`): 기본 90초 → 방주 층수(깊이)가 늘 때마다 5초씩 감소 → 하한 40초. 내려갈수록 가까워진다는 뜻과 성장 방향(아래)이 맞물린다. 해구에 있을 때만 재생 후보 | `world:far_call` |
 
 ### 5-2. 에어락 크로스페이드 규격 — **이 스프린트의 핵심 연출**
 
@@ -98,8 +98,8 @@
 2. 이벤트 9개 연결: `world:airlock_exit`, `world:airlock_enter`, `world:depth_enter_trench`,
    `world:depth_leave_trench`, `world:glass_crack`, `world:knock_glass`, `world:air_low`,
    `world:collect_deep`, `world:room_flood`. 그리고 기존 `world:spot_found`에 `cue` 페이로드 필드 추가(§5-1 표).
-3. `world:far_call`은 게임 쪽 타이머가 호출한다(간격 조절은 사운드 소관이 아님) — 초기 간격 90~150초 랜덤, 진행에
-   따라 점점 좁히는 커브(예: 1막 후반부로 갈수록 최소 간격이 줄어드는 선형/지수 감소)는 개발·PM 결정 사항으로 남긴다.
+3. `world:far_call`은 게임 쪽 타이머가 호출한다. 간격 커브는 **PM이 확정**(`docs/reports/review_sprint4.md`,
+   2026-09-26): 기본 90초 → 방주 층수(깊이)가 늘 때마다 5초씩 감소 → 하한 40초.
 4. `world:room_flood` 처리 후 room 상태에 `flooded: true` 저장(§5-3).
 
 ### 5-5. 파일 목록 (심해분, static/audio/)

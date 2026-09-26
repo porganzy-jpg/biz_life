@@ -90,30 +90,26 @@ def envelope_variation_db(env):
     return float(20 * np.log10((hi + 1e-9) / (lo + 1e-9)))
 
 
-def event_density(x, sr, smooth_hz=45.0, min_gap_sec=0.08):
-    """순간 사건(물방울·클릭·발소리 등 '빠른 어택') 개수/초.
-    느린 포락(8Hz)은 숨소리 같은 완만한 스웰까지 어택으로 오검출하므로, 여기서는 더 빠른 포락(45Hz)
-    위에서 **온셋 강도 함수**(단기 구간 내 상승분, 가우시안차 방식과 유사)를 써서 완만한 스웰과
-    날카로운 어택을 구분한다. 임계값은 신호별 분포(중앙값+MAD)로 적응시켜 절대음량 차이에 덜 민감하게 한다."""
-    env_fast = envelope(x, sr, smooth_hz=smooth_hz)
-    env_db = 20 * np.log10(np.maximum(env_fast, 1e-6))
-    # 약 12ms 전 대비 상승량(빠른 어택만 포착 — 숨소리 스웰은 초 단위라 이 윈도우에서 상승분이 작다)
-    win = max(1, int(0.012 * sr))
-    rise = env_db[win:] - env_db[:-win]
-    rise = np.maximum(rise, 0)
-    if np.max(rise) <= 0:
-        return 0.0, 0
-    med = np.median(rise)
-    mad = np.median(np.abs(rise - med)) + 1e-9
-    thresh = med + 6.0 * mad
-    peaks, _ = signal.find_peaks(rise, height=thresh, distance=max(1, int(min_gap_sec * sr)))
+def event_density(x, sr, fast_hz=45.0, floor_hz=1.2, margin_db=4.0, min_gap_sec=0.10):
+    """순간 사건(물방울·클릭·발소리 등 '배경 위로 튀어나오는 것') 개수/초.
+    연속 배경(바람·해류·히스 같은 상시 노이즈)은 그 자체로도 미세하게 흔들리므로, 단순 미분/온셋으로는
+    배경 텍스처를 사건으로 오검출한다. 여기서는 **빠른 포락(45Hz)이 느린 지역 배경(1.2Hz)보다
+    margin_db 이상 튀어나온 순간**만 '사건'으로 센다 — 숨소리 같은 완만한 스웰은 배경 자체를 따라
+    올라가므로 초과폭이 작고, 물방울/클릭처럼 배경 위에 얹힌 순간음만 큰 초과폭을 남긴다."""
+    env_fast = envelope(x, sr, smooth_hz=fast_hz)
+    env_floor = envelope(x, sr, smooth_hz=floor_hz)
+    excess_db = 20 * np.log10(np.maximum(env_fast, 1e-7)) - 20 * np.log10(np.maximum(env_floor, 1e-7))
+    peaks, _ = signal.find_peaks(excess_db, height=margin_db, distance=max(1, int(min_gap_sec * sr)))
     dur = len(x) / sr
     return float(len(peaks) / dur), int(len(peaks))
 
 
-def envelope_autocorr_period(env, sr, min_period=0.3, max_period=10.0):
-    """포락 자기상관에서 (0.3~10초 구간의) 최대 피크 지연을 '주기'로 보고한다.
-    두 앰비언트가 이 주기·계수가 비슷하면 같은 변조를 공유한다는 뜻(PM이 지적한 허위 유사성)."""
+def envelope_autocorr_period(env, sr, min_period=1.0, max_period=10.0):
+    """포락 자기상관에서 (1~10초 구간의) **뚜렷한 국소 피크**를 '주기'로 보고한다.
+    구간 내 최댓값(argmax)만 보면 순수 비주기(단조 감쇠) 신호에서도 탐색 구간 경계값을 억지로
+    '주기'로 잘못 보고하게 된다(경계 인공물). 그래서 인접 값보다 실제로 더 큰 **국소 피크**만 인정하고,
+    없으면 "뚜렷한 주기 없음"(period=None)을 보고한다 — 두 파일 모두 이 경우라면 그 자체가
+    "공유 변조가 없다"는 좋은 신호다."""
     factor = max(1, int(sr / 200))  # ~200Hz로 다운샘플(속도)
     e = env[::factor] - np.mean(env[::factor])
     sr_ds = sr / factor
@@ -124,11 +120,14 @@ def envelope_autocorr_period(env, sr, min_period=0.3, max_period=10.0):
     lag_min = int(min_period * sr_ds)
     lag_max = min(int(max_period * sr_ds), len(ac) - 1)
     if lag_max <= lag_min:
-        return 0.0, 0.0
+        return None, 0.0
     seg = ac[lag_min:lag_max]
-    idx = int(np.argmax(seg))
-    period = (idx + lag_min) / sr_ds
-    coef = float(seg[idx])
+    peaks, _ = signal.find_peaks(seg)
+    if len(peaks) == 0:
+        return None, float(np.max(seg))  # 국소 피크 없음 = 뚜렷한 주기성 없음
+    best = peaks[np.argmax(seg[peaks])]
+    period = (best + lag_min) / sr_ds
+    coef = float(seg[best])
     return period, coef
 
 
@@ -211,16 +210,19 @@ def main():
             r = by_name[fname]
             ex = analyze_ambient_extra(r)
             extra[fname] = ex
-            print(f"{fname:<24}{r['below200']*100:>11.1f}%{ex['var_db']:>14.1f}{ex['density']:>16.2f}{ex['ac_period']:>16.2f}{ex['ac_coef']:>12.2f}")
+            period_str = f"{ex['ac_period']:.2f}" if ex['ac_period'] is not None else "없음"
+            print(f"{fname:<24}{r['below200']*100:>11.1f}%{ex['var_db']:>14.1f}{ex['density']:>16.2f}{period_str:>16}{ex['ac_coef']:>12.2f}")
 
         d_in = extra["amb_dome_inside.ogg"]
         d_out = extra["amb_outside_deep.ogg"]
         gap_centroid = abs(by_name["amb_dome_inside.ogg"]["centroid"] - by_name["amb_outside_deep.ogg"]["centroid"])
         gap_var = abs(d_in["var_db"] - d_out["var_db"])
         gap_density = abs(d_in["density"] - d_out["density"])
-        period_close = abs(d_in["ac_period"] - d_out["ac_period"]) < 0.5 and min(d_in["ac_coef"], d_out["ac_coef"]) > 0.5
+        both_have_period = d_in["ac_period"] is not None and d_out["ac_period"] is not None
+        period_close = (both_have_period and abs(d_in["ac_period"] - d_out["ac_period"]) < 0.5
+                         and min(d_in["ac_coef"], d_out["ac_coef"]) > 0.5)
         print(f"\n[안/밖 분리 진단] 중심주파수 차={gap_centroid:.1f}Hz, 포락변동 차={gap_var:.1f}dB, "
-              f"사건밀도 차={gap_density:.2f}회/초, 공유주기 의심={'예(위험)' if period_close else '아니오'}")
+              f"사건밀도 차={gap_density:.2f}회/초, 공유주기 의심={'예(위험)' if period_close else '아니오(뚜렷한 주기 없음 또는 서로 다름)'}")
         separation_ok = gap_density > 0.5 and not period_close
         print(f"분리 판정: {'OK' if separation_ok else 'FAIL — 안/밖이 스펙트럼·포락상 너무 비슷함'}")
 

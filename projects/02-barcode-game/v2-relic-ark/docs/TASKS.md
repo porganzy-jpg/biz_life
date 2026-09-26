@@ -63,7 +63,7 @@
 - [개발(S3-C)→PM] `?debug_force_event=` 는 이제 **`RELIC_DEV=1` 에서만** 동작합니다(기본 404). 개발·검수 시 서버를 `RELIC_DEV=1 python server.py` 로 띄워 주세요. 02_DEV §4-4 '배포 전 제거 목록'에서 이 항목은 닫힌 것으로 봐 주십시오.
 - [사운드(S4-D)→개발, **필수**] 심해 오디오 11개(`static/audio/amb_dome_inside.ogg` 등) 완성. **에어락 크로스페이드 규격**(리더 버스 로우패스 20000→400Hz + 게인 0→-80dB, 0.9초, amb 1.5초 크로스페이드)과 이벤트명 9개(`world:airlock_exit`·`world:airlock_enter`·`world:depth_enter_trench`·`world:depth_leave_trench`·`world:glass_crack`·`world:knock_glass`·`world:air_low`·`world:collect_deep`·`world:room_flood`) 연결 요청. 기존 `world:spot_found`에 `cue` 페이로드 필드 추가도 필요(스팟마다 다른 큐 파일 지정). 전체 수치·순서·구현 메모는 `docs/AUDIO_CUES.md` §5, 근거는 `docs/reports/sound_S4.md`.
 - [사운드(S4-D)→개발] `world:room_flood` 처리 후 해당 `room_id`를 `flooded:true`로 저장해 그 방의 로컬 앰비언트를 영구 mute해 주세요(시각은 남고 청각만 사라지는 것이 `WORLD_BIBLE_DEEP.md` §6 요구). 저장 위치는 개발 판단.
-- [사운드(S4-D)→개발·PM] `world:far_call`(먼 울음, `amb_far_call.ogg`)의 **재생 간격 커브**는 사운드 소관 밖입니다 — 파일은 정체를 밝히지 않는 3.6초 단발음으로만 만들었습니다. 초기 90~150초 랜덤 간격을 권장하며, DECISIONS 2026-09-22("간격이 조금씩 짧아진다")를 반영해 진행도에 따라 최소 간격을 좁히는 커브는 개발·PM이 정해 주세요.
+- [사운드(S4-D)→개발·PM] `world:far_call`(먼 울음, `amb_far_call.ogg`) 간격 커브 요청은 **PM이 해결함**(`docs/reports/review_sprint4.md`): 기본 90초 → 방주 층수(깊이)가 늘 때마다 5초씩 감소 → 하한 40초. 개발은 이 값 그대로 구현하면 됩니다(`docs/AUDIO_CUES.md` §5-4에도 반영).
 
 
 - [시나리오(S4-C)→개발] `acts` **60장 전량 기입 완료**(DECISIONS 2026-09-23). 작업 중에 개발이 `events_schema.json` `acts` 속성과 `storyteller.acts_of()`·`events_for_act()` 를 이미 붙여 둔 것을 확인해, 임시 분류표(`ACT_BY_ID`/`ACT_BY_PREFIX`)는 이제 **전부 파일에 밀려납니다** — 표를 지워도 됩니다(`_UNCLASSIFIED` 경고 0건). 실측 분포: **1막 26장**(sev 0/1/2/3 = 9/7/9/1, positive 2) · 2막 4장 · 3막 38장. `events_for_act(1)` 이 26장을 돌려주는 것까지 확인했습니다.

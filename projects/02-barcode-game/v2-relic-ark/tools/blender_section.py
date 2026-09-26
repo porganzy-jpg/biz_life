@@ -320,15 +320,15 @@ def far_silhouettes():
     rnd = random.Random(1234)
     dk = zone_gradient("FarDark", mult=0.55)
     dk2 = zone_gradient("FarDark2", mult=0.72)
-    # 해구 바닥 능선 — 화면 맨 아래를 닫는다
+    # 해구 바닥 능선 — 화면 맨 아래를 닫는다. 칠흑보다 아주 조금만 밝아서 윤곽만 읽힌다
     ridge = []
     x = -80.0
     while x < 80.0:
-        w = rnd.uniform(6.0, 15.0); hgt = rnd.uniform(1.6, 5.2)
-        ridge.append([Vector((x, 15.0, -30)), Vector((x + w, 15.0, -30)),
-                      Vector((x + w, 15.0, -11.4 + hgt)), Vector((x, 15.0, -11.4 + hgt))])
+        w = rnd.uniform(6.0, 15.0); hgt = rnd.uniform(1.4, 4.6)
+        ridge.append([Vector((x, 8.0, -30)), Vector((x + w, 8.0, -30)),
+                      Vector((x + w, 8.0, -12.0 + hgt)), Vector((x, 8.0, -12.0 + hgt))])
         x += w * 0.92
-    DOME.mesh_of_quads("PRV_ridge", ridge, dk).name = "PRV_ridge"
+    DOME.mesh_of_quads("PRV_ridge", ridge, flat_mat("Ridge", "#050D13")).name = "PRV_ridge"
     # 먼 바위 덩어리 — 둥근 것만. 박광층 쪽에만 조금.
     for k in range(7):
         y = rnd.uniform(12.0, 24.0)
@@ -341,13 +341,29 @@ def far_silhouettes():
                    0.05, dk2, 5).name = "PRV_farcable"
 
 
+def fish_shoal(cx, cz, n, spread, y, seed, mult=0.50, size=0.32):
+    """평면 실루엣 물고기 떼. 부유물만으로는 '우주'로 보일 수 있다(합격 기준 ④).
+    떼는 위쪽 박광층에만 — 아래 해구는 비어 있어야 깊이가 산다."""
+    rnd = random.Random(seed)
+    m = zone_gradient("Shoal%d" % seed, mult=mult)
+    for k in range(n):
+        a = rnd.uniform(0, 6.2832); r = rnd.random() ** 0.62
+        x = cx + math.cos(a) * spread[0] * r
+        z = cz + math.sin(a) * spread[1] * r
+        sz = size * rnd.uniform(0.7, 1.3)
+        ry = math.radians(rnd.uniform(-22, 22))
+        iso.cube("PRV_fish", (x, y, z), (sz, 0.04, sz * 0.34), m, rot=(0, ry, 0))
+        iso.cube("PRV_fish", (x - sz * 0.66, y, z), (sz * 0.30, 0.04, sz * 0.52), m, rot=(0, ry, 0))
+
+
 def marine_snow():
     """부유물 — 1차 대비 절반 이하, 반투명, 전부 물빛 계열. 방 불빛보다 절대 밝지 않다(지적 5)."""
     rnd = random.Random(818)
-    tiers = [(9,  0.70, (-8.0, -5.0), "#16323D", 0.055, 1.0),
-             (22, 0.30, (-4.2, -2.2), "#1B3B47", 0.075, 1.4),
-             (48, 0.125, (4.0, 9.0),  "#20475A", 0.11, 2.0),
-             (64, 0.055, (11.0, 21.0), "#12303C", 0.13, 1.6)]
+    tiers = [(10, 0.70, (-8.0, -5.0), "#16323D", 0.060, 1.0),
+             (26, 0.30, (-4.2, -2.2), "#1B3B47", 0.085, 1.4),
+             (56, 0.125, (4.0, 9.0),  "#20475A", 0.125, 2.0),
+             (72, 0.055, (11.0, 21.0), "#12303C", 0.145, 1.6),
+             (32, 0.10, (-6.0, -3.0), "#02090D", 0.30, 1.3)]     # 밝은 위쪽 물에서만 보이는 어두운 알갱이
     for ti, (n, r, dep, col, al, stretch) in enumerate(tiers):
         mt = soft_mat("Snow%d" % ti, col, al, 1.0, 0.06 if ti < 2 else 0.24)
         quads = []
@@ -497,7 +513,7 @@ MOTIF = {"lounge": motif_arch, "quarters": motif_zigzag, "greenhouse": motif_che
 def room_halo(x0, x1, z0, z1):
     """F7. 방 둘레의 어두운 여백(지적 4). 그라데이션이 아니라 **계단 세 칸**이다(§1-3).
     안쪽일수록 검고 바깥으로 갈수록 그 높이의 물색으로 돌아간다."""
-    for mkey, mar, y in (("halo2", 1.95, 4.0), ("halo1", 0.78, 3.6)):
+    for mkey, mar, y in (("halo2", 1.45, 4.0), ("halo1", 0.72, 3.6)):
         q = [Vector((x0 - mar, y, z0 - mar)), Vector((x1 + mar, y, z0 - mar)),
              Vector((x1 + mar, y, z1 + mar)), Vector((x0 - mar, y, z1 + mar))]
         DOME.mesh_of_quads("PRV_halo", [q], M[mkey]).name = "PRV_halo"
@@ -790,7 +806,7 @@ def materials():
     M["glow_near"] = flat_mat("GlowNear", "#FFF0D2", alpha=0.62)
     M["glow_far"] = flat_mat("GlowFar", "#F2C983", alpha=0.26)
     M["halo1"] = flat_mat("Halo1", "#01060A")
-    M["halo2"] = zone_gradient("Halo2", mult=0.30)
+    M["halo2"] = zone_gradient("Halo2", mult=0.52)
     M["pat_light"] = PAL["cream"]
     M["pat_dark"] = PAL["char"]
     M["freshwater"] = flat_mat("FreshWater", PAL["bone"], alpha=0.75)
@@ -952,7 +968,7 @@ def section_world():
 
 
 NOLINE_EXTRA = ("PRV_backdrop", "PRV_haze", "PRV_snow", "PRV_jelly", "PRV_jhalo", "PRV_shaft",
-                "PRV_ridge", "PRV_farrock", "PRV_farcable", "PRV_lev", "PRV_halo",
+                "PRV_ridge", "PRV_farrock", "PRV_farcable", "PRV_lev", "PRV_halo", "PRV_fish",
                 "PRV_glow1_", "PRV_glow2_", "PRV_pool_", "dome_backglass", "pat_")
 
 
@@ -1028,7 +1044,7 @@ def paper_and_vignette(grain=0.11, vig=0.10):
         msk = ng.nodes.new("CompositorNodeEllipseMask")
         msk.inputs["Size"].default_value = (1.02, 1.12)
         blur = ng.nodes.new("CompositorNodeBlur")
-        blur.inputs["Size"].default_value = 210.0
+        blur.inputs["Size"].default_value = (190.0, 190.0)   # 5.x: 2D 픽셀 벡터
         ng.links.new(msk.outputs["Mask"], blur.inputs["Image"])
         vm = ng.nodes.new("ShaderNodeMapRange")
         vm.inputs["To Min"].default_value = 1.0 - vig
@@ -1085,6 +1101,8 @@ def build(extras=True):
     if extras:
         marine_snow()
         soft_jellies()
+        fish_shoal(-20.5, 16.5, 34, (5.6, 3.2), 9.0, 41)
+        fish_shoal(19.0, 20.0, 22, (4.2, 2.4), 12.0, 63)
         DOME.leviathan(sr=-13.0, su=23.0, depth=-14.0, length=24.0, seed=5)    # 박광층을 지나간다(D6)
         DOME.leviathan(sr=21.0, su=11.0, depth=-8.0, length=12.0, seed=8)
     flatten_materials()

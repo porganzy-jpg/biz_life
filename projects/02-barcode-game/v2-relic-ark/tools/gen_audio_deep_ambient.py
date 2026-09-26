@@ -174,7 +174,9 @@ def gen_outside_deep(seed=102):
     t = np.arange(n) / SR
 
     # 1) 압력 + 먼 해류: 리버브가 걸리는 "공간" 서브믹스(호흡과 분리)
-    pressure = 0.5 * np.sin(2 * np.pi * 32.0 * t) + 0.5 * np.sin(2 * np.pi * 38.0 * t)
+    # 근접한 두 기본음(32/38Hz)은 6Hz 맥놀이(비트)를 만들어 순간 사건 검출기가 그 맥놀이를
+    # "사건"으로 오검출했다(PM 검증 2라운드) — 배음 관계(34Hz+2배음)로 바꿔 맥놀이를 없앤다.
+    pressure = 0.62 * np.sin(2 * np.pi * 34.0 * t) + 0.30 * np.sin(2 * np.pi * 68.0 * t)
     pressure_env = 0.75 + 0.25 * _lfo(n, RAW_LEN / 2, phase=0.4)
     pressure = lowpass(pressure * pressure_env, 70.0)
 
@@ -191,18 +193,22 @@ def gen_outside_deep(seed=102):
     inhale_mask = phase < 0.45
     exhale_mask = (phase >= 0.48) & (phase < 0.80)
 
+    # PM 검증(사건 밀도) 재조정: 실제 호흡은 "느린 스웰"이지 "빠른 어택"이 아니어야 한다.
+    # 지수를 올려 상승 곡선 자체를 완만하게 만든다(첫 라운드에서 exhale이 너무 날카로워 순간
+    # 사건으로 오검출됐다 — 회당 상승에 걸리는 시간을 늘려 사건 밀도 검출기와 사람 귀 모두에게
+    # "튀는 소리"가 아니라 "부풀었다 가라앉는 소리"로 들리게 한다).
     inhale_shape = np.clip(phase / 0.45, 0, 1)
-    inhale_env = np.where(inhale_mask, np.sin(inhale_shape * np.pi) ** 1.4, 0.0)  # 길고 부드러운 들숨
+    inhale_env = np.where(inhale_mask, np.sin(inhale_shape * np.pi) ** 1.8, 0.0)  # 길고 아주 부드러운 들숨
     exhale_shape = np.clip((phase - 0.48) / 0.32, 0, 1)
-    exhale_env = np.where(exhale_mask, np.sin(exhale_shape * np.pi) ** 0.7, 0.0)  # 짧고 거친 날숨
+    exhale_env = np.where(exhale_mask, np.sin(exhale_shape * np.pi) ** 1.6, 0.0)  # 날숨도 완만하게(어택 아님)
 
     inhale_noise = bandpass(rng.standard_normal(n), 150, 900)   # 들숨: 낮고 부드러움
     exhale_noise = bandpass(rng.standard_normal(n), 500, 2500)  # 날숨: 높고 거침(호흡기 특유의 쉿 소리)
     breath = 0.15 * inhale_noise * inhale_env + 0.11 * exhale_noise * exhale_env
 
-    # 헬멧 공명(좁은 대역 살짝 강조 — "가깝다"는 느낌의 근원) + 저역 웅웅과 안 겹치게 하이패스
+    # 헬멧 공명(좁은 대역 살짝 강조 — "가깝다"는 느낌의 근원, 진폭을 낮춰 잔물결로 오검출되지 않게)
     breath_res = bandpass(breath, 320, 520)
-    breath = breath + 0.22 * breath_res
+    breath = breath + 0.12 * breath_res
     breath = highpass(breath, 110.0)
 
     buf = space_bed + breath  # 호흡은 리버브 없이 그대로 얹는다(건조함 유지)

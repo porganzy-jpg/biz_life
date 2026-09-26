@@ -84,6 +84,19 @@ MOTIF_KO = {"hatch": "빗금(기운 자국)", "dots": "박음질 점", "cross": 
             "diamond": "마름모", "rings": "따개비 고리"}
 
 
+def srgb_to_lin(hexc):
+    """★ 기존 파이프라인(blender_chars_v2.hexcol)은 sRGB 값을 선형 슬롯에 그대로 넣는다.
+    그러면 렌더 결과가 의도한 색보다 한참 밝게 나온다(올리브 #8D8F4A → 화면 #C4C593).
+    민속화풍은 **팔레트가 화면에 그대로 찍혀야** 하므로 여기서만 제대로 변환한다.
+    기존 산출물과 톤이 어긋나는 것은 의도한 것이다(B안은 새 화풍이다)."""
+    h = hexc.lstrip('#')
+    out = []
+    for i in (0, 2, 4):
+        c = int(h[i:i + 2], 16) / 255.0
+        out.append(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4)
+    return tuple(out)
+
+
 def folk_family(hexc):
     """재질의 **원본(빛 안 받은) 색**으로 계열을 정한다. 렌더된 픽셀은 환경광에 씻겨
     채도가 0.1 대로 떨어져 색상 분류가 불가능하다(1회차에서 정찰병 올리브가 갈색이 됐다).
@@ -109,7 +122,7 @@ def folk_family(hexc):
         return "olive"
     if hu < 262:
         return "burnt"        # 청록~남색은 사람에게 쓰지 않는다 (§5) → 따뜻한 강조로 번역
-    return "oxblood"
+    return "umber"            # 자주 → 흙. 적갈로 보내면 학자가 교섭가·의무병과 겹친다
 
 
 # 카메라 파생값: 셀 중앙(128)이 look_z, 아래로 PPM px = 1m
@@ -247,8 +260,8 @@ def run_render():
             rmp = nt.nodes.new('ShaderNodeValToRGB')
             rmp.color_ramp.interpolation = 'CONSTANT'
             e0, e1 = rmp.color_ramp.elements[0], rmp.color_ramp.elements[1]
-            e0.position = 0.0; e0.color = (*m.hexcol(shadowc), 1)
-            e1.position = 0.42; e1.color = (*m.hexcol(lightc), 1)
+            e0.position = 0.0; e0.color = (*srgb_to_lin(shadowc), 1)
+            e1.position = 0.42; e1.color = (*srgb_to_lin(lightc), 1)
             emi = nt.nodes.new('ShaderNodeEmission')
             nt.links.new(dif.outputs[0], s2r.inputs[0])
             nt.links.new(s2r.outputs[0], rmp.inputs[0])
@@ -267,6 +280,7 @@ def run_render():
         fs = sc.view_layers[0].freestyle_settings
         if fs.linesets and fs.linesets[0].linestyle:
             fs.linesets[0].linestyle.thickness = 1.6
+            fs.linesets[0].linestyle.color = srgb_to_lin(FOLK_LINE)
         sc.render.filepath = path
         bpy.ops.render.render(write_still=True)
 
@@ -386,8 +400,9 @@ def run_post():
     def warp(a, amp, seed):
         """§1-9 손으로 그은 선 — 저주파 노이즈로 화면 전체를 미세하게 뒤튼다."""
         h, w = a.shape[:2]
-        dx = (noise(h, w, 22, seed) - 0.5) * 2 * amp
-        dy = (noise(h, w, 22, seed + 1) - 0.5) * 2 * amp
+        zz = max(1, h // CELL)
+        dx = (noise(h, w, 22 * zz, seed) - 0.5) * 2 * amp
+        dy = (noise(h, w, 22 * zz, seed + 1) - 0.5) * 2 * amp
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
         sy = np.clip(yy + dy, 0, h - 1.001); sx = np.clip(xx + dx, 0, w - 1.001)
         y0 = sy.astype(np.int32); x0 = sx.astype(np.int32)
@@ -429,18 +444,20 @@ def run_post():
     def bands(arr, role, norm_h, T, seed):
         """§1-5 장식 무늬 — 목 실링의 물결 + 역할마다 다른 옷단 무늬."""
         h, w = arr.shape[:2]
+        z = h / float(CELL)          # 쇼케이스 512px 도 같은 코드로
         u = norm_h / 1.60
-        jitfield = (noise(h, w, 14, seed + 7) - 0.5) * 2.2
+        jitfield = (noise(h, w, int(14 * z), seed + 7) - 0.5) * 2.2 * z
         out = arr.copy()
         v = out[..., :3].max(-1)
-        for z_m, kind, bh in ((1.030 * u, "wave", 13), (0.345 * u, MOTIF[role], 16)):
-            r0 = int(round(BASE_Y - z_m * PPM - bh / 2))
+        for z_m, kind, bh0 in ((1.030 * u, "wave", 13), (0.345 * u, MOTIF[role], 16)):
+            bh = int(round(bh0 * z))
+            r0 = int(round((BASE_Y - z_m * PPM) * z - bh / 2))
             r1 = r0 + bh
             if r0 < 0 or r1 > h:
                 continue
             sub = slice(r0, r1)
             yy, xx = np.mgrid[0:bh, 0:w].astype(np.float32)
-            mk = motif_mask(kind, xx, yy, bh, jitfield[sub])
+            mk = motif_mask(kind, xx / z, yy / z, bh / z, jitfield[sub] / z)
             solid = out[sub, :, 3] > 0.6
             mk = mk & solid
             light = v[sub] >= (V_LIGHT + V_SHADOW) / 2   # 밝은 면엔 검정, 그림자엔 크림
@@ -453,13 +470,14 @@ def run_post():
 
     def outline(arr, seed):
         """두께가 자리마다 달라지는 어두운 외곽선 (§1-9)."""
+        z = max(1, int(round(arr.shape[0] / float(CELL))))
         a8 = (arr[..., 3] * 255).astype(np.uint8)
         im = Image.fromarray(a8)
-        gA = np.asarray(im.filter(ImageFilter.MaxFilter(RING_MIN * 2 + 1))
-                          .filter(ImageFilter.GaussianBlur(1.0)), dtype=np.float32) / 255.0
-        gB = np.asarray(im.filter(ImageFilter.MaxFilter(RING_MAX * 2 + 1))
-                          .filter(ImageFilter.GaussianBlur(1.0)), dtype=np.float32) / 255.0
-        wgt = np.clip((noise(arr.shape[0], arr.shape[1], 30, seed + 3) - 0.28) * 1.9, 0, 1)
+        gA = np.asarray(im.filter(ImageFilter.MaxFilter(RING_MIN * 2 * z + 1))
+                          .filter(ImageFilter.GaussianBlur(1.0 * z)), dtype=np.float32) / 255.0
+        gB = np.asarray(im.filter(ImageFilter.MaxFilter(RING_MAX * 2 * z + 1))
+                          .filter(ImageFilter.GaussianBlur(1.0 * z)), dtype=np.float32) / 255.0
+        wgt = np.clip((noise(arr.shape[0], arr.shape[1], 30 * z, seed + 3) - 0.28) * 1.9, 0, 1)
         grown = gA * (1 - wgt) + gB * wgt
         ring = (grown > 0.5) & (arr[..., 3] < 0.5)
         out = arr.copy()
@@ -471,13 +489,14 @@ def run_post():
     def folk(a, role, norm_h, T, seed):
         # 팔레트와 2단 음영은 렌더에서 이미 끝났다. 여기서는 §1-9(흔들리는 선),
         # §1-5(반복 무늬), §1-4(종이 결), 그리고 외곽선만 얹는다.
-        a = warp(a, WOBBLE, seed)
+        a = warp(a, WOBBLE * max(1, a.shape[0] // CELL), seed)
         rgb = a[..., :3]
         v = rgb.max(-1)
         rgb = np.where((v < LINE_V)[..., None], LINEC, rgb)   # Freestyle 선을 더 눌러 또렷하게
         out = np.dstack([rgb, a[..., 3]])
         out = bands(out, role, norm_h, T, seed)
-        g = 1.0 + (noise(a.shape[0], a.shape[1], 3, seed + 11) - 0.5) * 2 * GRAIN
+        g = 1.0 + (noise(a.shape[0], a.shape[1], 3 * max(1, a.shape[0] // CELL),
+                         seed + 11) - 0.5) * 2 * GRAIN
         out[..., :3] = np.clip(out[..., :3] * g[..., None], 0, 1)
         return outline(out, seed)
 
