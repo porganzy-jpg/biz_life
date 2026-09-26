@@ -61,7 +61,17 @@
 - [개발(S3-C)→시나리오] `data/spots_deep.json` 신설 대기 중 — `/api/spots` 목록 병합 로더 완료(파일이 없어도 정상). 필드는 `spots.json` 과 동일(`id`·`name`·`discovery_text`·`clue_text`·`resource`·`danger_note`·`tribe_hint`), 줄마다 `unlock:{category,count}` 를 넣으면 서버 표에 없는 동안 임시 게이트로 씁니다. 파일이 들어오면 개발이 `SPOT_POS`(심해 좌표)와 `RUMOR_RULES` 6줄을 붙입니다.
 - [개발(S3-C)→시나리오] `data/events_deep.json` 16장의 `tribe` 필드가 비어 있습니다 — 스키마 enum 에 `gauge`·`anchor`·`net`·`guest` 를 넣고 클라이언트 표기(눈금/닻/그물/손님 **무리**)까지 붙였으니, 낯선 돔 카드에 `tribe` 를 채우면 화면에 무리 이름이 바로 뜹니다(`faction:"tribe"` 는 그대로).
 - [개발(S3-C)→PM] `?debug_force_event=` 는 이제 **`RELIC_DEV=1` 에서만** 동작합니다(기본 404). 개발·검수 시 서버를 `RELIC_DEV=1 python server.py` 로 띄워 주세요. 02_DEV §4-4 '배포 전 제거 목록'에서 이 항목은 닫힌 것으로 봐 주십시오.
+- [사운드(S4-D)→개발, **필수**] 심해 오디오 11개(`static/audio/amb_dome_inside.ogg` 등) 완성. **에어락 크로스페이드 규격**(리더 버스 로우패스 20000→400Hz + 게인 0→-80dB, 0.9초, amb 1.5초 크로스페이드)과 이벤트명 9개(`world:airlock_exit`·`world:airlock_enter`·`world:depth_enter_trench`·`world:depth_leave_trench`·`world:glass_crack`·`world:knock_glass`·`world:air_low`·`world:collect_deep`·`world:room_flood`) 연결 요청. 기존 `world:spot_found`에 `cue` 페이로드 필드 추가도 필요(스팟마다 다른 큐 파일 지정). 전체 수치·순서·구현 메모는 `docs/AUDIO_CUES.md` §5, 근거는 `docs/reports/sound_S4.md`.
+- [사운드(S4-D)→개발] `world:room_flood` 처리 후 해당 `room_id`를 `flooded:true`로 저장해 그 방의 로컬 앰비언트를 영구 mute해 주세요(시각은 남고 청각만 사라지는 것이 `WORLD_BIBLE_DEEP.md` §6 요구). 저장 위치는 개발 판단.
+- [사운드(S4-D)→개발·PM] `world:far_call`(먼 울음, `amb_far_call.ogg`)의 **재생 간격 커브**는 사운드 소관 밖입니다 — 파일은 정체를 밝히지 않는 3.6초 단발음으로만 만들었습니다. 초기 90~150초 랜덤 간격을 권장하며, DECISIONS 2026-09-22("간격이 조금씩 짧아진다")를 반영해 진행도에 따라 최소 간격을 좁히는 커브는 개발·PM이 정해 주세요.
 
+
+- [시나리오(S4-C)→개발] `acts` **60장 전량 기입 완료**(DECISIONS 2026-09-23). 작업 중에 개발이 `events_schema.json` `acts` 속성과 `storyteller.acts_of()`·`events_for_act()` 를 이미 붙여 둔 것을 확인해, 임시 분류표(`ACT_BY_ID`/`ACT_BY_PREFIX`)는 이제 **전부 파일에 밀려납니다** — 표를 지워도 됩니다(`_UNCLASSIFIED` 경고 0건). 실측 분포: **1막 26장**(sev 0/1/2/3 = 9/7/9/1, positive 2) · 2막 4장 · 3막 38장. `events_for_act(1)` 이 26장을 돌려주는 것까지 확인했습니다.
+- [시나리오(S4-C)→개발, **필수**] `data/imprints.json` 에 「두드림을 들은 자」(`knock_heard`) 정식 항목 등재 요청. 외형·대가 문구는 `docs/WORLD_BIBLE_DEEP.md` §7 표(1행 추가 완료), 연출문은 `data/imprint_lines.json` 의 `knock_heard` 줄. `server.py DEEP_IMPRINTS` 의 `_pending_text` 자리표시를 해제해도 됩니다. 대가는 **야간 생산 −**(밤에 두드리는 소리가 더 자주 들려 손이 느려진다) — 수치는 개발 몫.
+- [시나리오(S4-C)→개발] `data/dialogue.json` 에 1막 줄 12개 추가(`game_start`·`surface_trip`·`spot_deep`·`spot_water_reflection`·`night`·`first_ally`·`scan_unknown`·`event_fail`). **결함 하나**: 대사 줄에 막 구분이 없어 1막에서도 육상 소재 줄(비단잉어·숲·바람·일곱 물줄기)이 같은 태그에서 뽑힙니다. ① 줄별 `acts` 허용(`dialogue_schema.json` 도 `additionalProperties:false`) 또는 ② 서버가 막으로 거르기 중 하나를 골라 주세요. 그리고 `when` enum에 **`airlock_in`**(에어락을 다시 넘어 들어온 순간, 리더 목소리 복귀) 추가 요청 — 지금은 밖(`surface_trip`)만 있고 귀환 자리가 없어 첫 10분 3:40 비트의 "값은… 0입니다" 줄을 넣지 못했습니다.
+- [시나리오(S4-C)→개발] `data/spots_deep.json` 6곳 반영 확인함 — `/api/spots` 12곳, `spot_gate` 전부 `source=rules`, `rumor_rule_audit()` **결함 0**. 스팟의 `unlock` 은 서버 `RUMOR_RULES_DEEP` 과 값이 같으니 이제 **표가 정본**입니다(파일 쪽은 표가 비었을 때의 폴백으로만 남김). 좌표는 개발 표(`SPOT_POS_DEEP`)가 성경 §4의 구역과 맞습니다 — 시나리오 이견 없음.
+- [시나리오(S4-C)→캐릭터] 심해 각인 4종의 외형 파츠 `imp_<id>` 요청: `imp_saved_breath`(짧아진 문장 — 다문 입·좁아진 어깨), `imp_crack_seen`(늘 창을 만지는 손 — 장갑 손끝만 닳음), `imp_depth_mark`(귀·코의 눌린 자국), **`imp_knock_heard`**(만지기 전에 두 번 두드리는 버릇 — 손가락 마디에 굳은살, 귀가 소리 쪽으로 돌아간 각도). 외형 근거는 `docs/WORLD_BIBLE_DEEP.md` §7.
+- [시나리오(S4-C)→PM] 1막 풀 26장 중 **4장이 육상 파일(`events.json`)** 입니다: `famine`·`drought`·`confusion`·`relic_cache`. 근거는 "장소를 타지 않는 것만 전 막 공용"(DECISIONS 2026-09-23) — 항아리가 빈다/물이 샌다/성문을 잘못 읽는다/봉인된 상자가 나온다는 돔에서도 그대로 성립합니다. 나머지 6장은 지하 강·철길·빛의 사원·회색 개·까치·밤 기온이 나와 [3]으로 뒀습니다. 다르게 보시면 알려 주세요.
 
 ## 스프린트 3 (2026-09-22 착수) — "심해 유리돔이 첫 화면이 된다"
 목표 한 문장: **검은 물속 유리돔 단면 한 장으로 이 게임이 설명되게 한다.** 근거 `docs/CONCEPT_DEEP_SEA.md`, 결정 `DECISIONS.md` 2026-09-22.
@@ -77,6 +87,8 @@
 
 기존 육상 자산의 재배치(폐기 0): 몰 파사드·물에 잠긴 전철·일곱 부족·공룡·`world.html` 지형 → **3막 지상**. 침수 지하철 터널 → **2막 연결부**(신규).
 
+
+## 스프린트 4 (2026-09-26 착수) — S4-C 시나리오 ✅통과 · S4-D 사운드 ⚠️조건부
 
 ## 스프린트 4 (2026-09-26 착수) — "심해 1막이 목표 화풍으로 보이고, 막이 갈린다"
 목표 한 문장: **평면 단면 거점 화면을 목표 화풍(평면 민속화풍)으로 세우고, 1막 카드 풀을 분리한다.**

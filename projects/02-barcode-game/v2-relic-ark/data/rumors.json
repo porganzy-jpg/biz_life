@@ -40,6 +40,16 @@
     }
   },
   {
+    "id": "rumor_canal_wet_hem",
+    "spot_id": "spot_goldfish_canal",
+    "text": "교역 자리에 앉았던 사람의 바짓단이 무릎까지 젖어 있었다. 방주에서 걸어 닿는 거리에 무릎이 젖을 만한 물은 없다.",
+    "source": "wayfarer",
+    "unlock": {
+      "category": "tobacco",
+      "count": 2
+    }
+  },
+  {
     "id": "rumor_canal_fish_breath",
     "spot_id": "spot_goldfish_canal",
     "text": "고양이가 사흘째 같은 시각에 사라졌다가 같은 방향에서 돌아온다. 돌아온 날은 입가에 비린내가 남아 있다.",
@@ -110,6 +120,16 @@
     }
   },
   {
+    "id": "rumor_forest_two_rails",
+    "spot_id": "spot_forest_train_door",
+    "text": "까마귀가 높이 돌다가 같은 자리에만 두 번 내려앉았다. 그 아래에 가느다란 금속 선 두 줄이 나란히 누워 나무들 사이로 들어간다.",
+    "source": "crow",
+    "unlock": {
+      "category": "electronics",
+      "count": 2
+    }
+  },
+  {
     "id": "rumor_forest_night_sniff",
     "spot_id": "spot_forest_train_door",
     "text": "개가 밤새 문 앞에서 바깥을 향해 킁킁거렸다. 아침에 그 자리에 씨앗 두 알이 떨어져 있었다.",
@@ -137,6 +157,26 @@
     "unlock": {
       "category": "electronics",
       "count": 3
+    }
+  },
+  {
+    "id": "rumor_roof_grass_seeds",
+    "spot_id": "spot_rooftop_garden",
+    "text": "고양이 목덜미에 마른 풀씨가 여럿 붙어 돌아왔다. 목덜미에 붙으려면 사람 키보다 높은 데서 떨어져야 한다.",
+    "source": "cat",
+    "unlock": {
+      "category": "apparel",
+      "count": 2
+    }
+  },
+  {
+    "id": "rumor_roof_stair_water",
+    "spot_id": "spot_rooftop_garden",
+    "text": "개가 무너진 계단참까지만 올라갔다가 되돌아 내려온다. 발바닥에 고인 물 냄새와 풀 냄새가 함께 묻어 있다.",
+    "source": "dog",
+    "unlock": {
+      "category": "medical",
+      "count": 2
     }
   },
   {
@@ -170,6 +210,26 @@
     }
   },
   {
+    "id": "rumor_river_erased_line",
+    "spot_id": "spot_lantern_river",
+    "text": "서고에서 빌려 온 낭독 목록 끝줄이 지워져 있었다. 눌린 자국으로 '물가에서 등을 띄우던 밤'까지만 읽힌다.",
+    "source": "wayfarer",
+    "unlock": {
+      "category": "book",
+      "count": 2
+    }
+  },
+  {
+    "id": "rumor_river_scorched_paper",
+    "spot_id": "spot_lantern_river",
+    "text": "고양이가 물고 온 얇은 종이는 태운 것이 아니라 안쪽에서 오래 그을려 있다. 종이로 무엇을 감싸 두면 그렇게 된다.",
+    "source": "cat",
+    "unlock": {
+      "category": "stationery",
+      "count": 2
+    }
+  },
+  {
     "id": "rumor_river_folded_paper",
     "spot_id": "spot_lantern_river",
     "text": "까마귀가 얇은 종이 한 장을 떨어뜨렸다. 접힌 자국이 여섯이고, 안쪽에 그을음이 동그랗게 남아 있다.",
@@ -196,6 +256,126 @@
     "source": "crow",
     "unlock": {
       "category": "electronics",
+      "count": 6
+    }
+  },
+  {
+    "id": "rumor_vent_warm_arms",
+    "spot_id": "spot_vent_garden",
+    "text": "문어가 돌아와 아이 손목을 감았는데 평소보다 미지근했다. 그 방향에서 돌아온 날만 그렇다.",
+    "source": "octopus",
+    "unlock": {
+      "category": "electronics",
+      "count": 2
+    }
+  },
+  {
+    "id": "rumor_vent_two_rests",
+    "spot_id": "spot_vent_garden",
+    "text": "닻 무리가 손짓으로만 방향을 알려 주었다. 말을 아끼는 사람들이 손을 두 번 편 것은 두 번 쉬어 가라는 뜻이었다.",
+    "source": "anchor",
+    "unlock": {
+      "category": "electronics",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_jelly_not_danger",
+    "spot_id": "spot_jelly_bloom",
+    "text": "눈금 무리의 일지에 열아홉, 아래, 느리다, 위험 아님이라고 적혀 있었다. 위험 아님을 적은 것은 그날이 처음이다.",
+    "source": "gauge",
+    "unlock": {
+      "category": "stationery",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_jelly_lantern_off",
+    "spot_id": "spot_jelly_bloom",
+    "text": "그물 무리가 떼를 쉬게 하는 자리가 있다고 했다. 거기서는 랜턴을 끄는 것이 예의이고, 이유는 가 보면 안다고 했다.",
+    "source": "net",
+    "unlock": {
+      "category": "stationery",
+      "count": 5
+    }
+  },
+  {
+    "id": "rumor_courtyard_same_mark",
+    "spot_id": "spot_sunken_courtyard",
+    "text": "손님 무리가 뚜껑에 찍힌 무늬를 알아보았다. 항로에서 늘 지나치는 자리에 같은 무늬가 바닥째 깔려 있다고 한다.",
+    "source": "guest",
+    "unlock": {
+      "category": "book",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_courtyard_fresh_edge",
+    "spot_id": "spot_sunken_courtyard",
+    "text": "문어가 물고 온 조각은 타일이었다. 깨진 면이 새것처럼 날카로우니, 최근에 무언가 한 번 더 기울었다는 뜻이다.",
+    "source": "octopus",
+    "unlock": {
+      "category": "book",
+      "count": 5
+    }
+  },
+  {
+    "id": "rumor_whale_one_more_table",
+    "spot_id": "spot_whale_fall",
+    "text": "그물 무리가 올해는 밥상이 하나 늘었다고 했다. 어디냐고 묻자 가져갈 양을 먼저 정하고 오라고만 했다.",
+    "source": "net",
+    "unlock": {
+      "category": "food",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_whale_thick_smell",
+    "spot_id": "spot_whale_fall",
+    "text": "문어가 며칠째 같은 방향에서 돌아오는데 돌아올 때마다 냄새가 짙다. 아이들이 그 냄새를 싫어하기 시작했다.",
+    "source": "octopus",
+    "unlock": {
+      "category": "food",
+      "count": 5
+    }
+  },
+  {
+    "id": "rumor_brine_shore_below",
+    "spot_id": "spot_brine_lake",
+    "text": "닻 무리의 노인이 물속에도 물가가 있다고 했다. 농담인 줄 알고 웃었는데 그는 웃지 않았다.",
+    "source": "anchor",
+    "unlock": {
+      "category": "drink",
+      "count": 3
+    }
+  },
+  {
+    "id": "rumor_brine_no_one_sent",
+    "spot_id": "spot_brine_lake",
+    "text": "눈금 무리가 200년치 수면 높이를 적어 둔 표를 보여 주었다. 사람을 보냈다는 줄만 한 줄도 없다.",
+    "source": "gauge",
+    "unlock": {
+      "category": "drink",
+      "count": 5
+    }
+  },
+  {
+    "id": "rumor_kelp_new_color",
+    "spot_id": "spot_kelp_ceiling",
+    "text": "문어가 놓고 간 조각에 돔 안에서 아무도 본 적 없는 색이 남아 있다. 아이가 그것을 초록이라고 부르기로 했다.",
+    "source": "octopus",
+    "unlock": {
+      "category": "apparel",
+      "count": 4
+    }
+  },
+  {
+    "id": "rumor_kelp_next_view",
+    "spot_id": "spot_kelp_ceiling",
+    "text": "손님 무리의 낡은 방송에 다음 전망 지점이라는 말이 나온다. 그 자리가 어디인지는 방송만 알고 있다.",
+    "source": "guest",
+    "unlock": {
+      "category": "apparel",
       "count": 6
     }
   }

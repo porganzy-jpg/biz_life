@@ -30,6 +30,11 @@
                    "gauge", "anchor", "net", "guest"],
           "description": "선택. 무리·부족 사건 카드에만 넣는다. 육상 일곱 부족(3막): wayfarer=길손, shelf=진열대, flame=불꽃, white=하얀, archive=서고, greenhouse=온실, tower=탑 (docs/WORLD_BIBLE_v2.md §1~7 순서). 심해 네 무리(1막): gauge=눈금, anchor=닻, net=그물, guest=손님 (docs/WORLD_BIBLE_DEEP.md §1-1~1-4). **1막 화면 표기는 '무리'이고 '부족'이라는 말은 3막에서 처음 나온다**(DECISIONS 2026-09-22) — 클라이언트 app.js 가 심해 넷에만 '무리'를 붙인다."
         },
+        "acts": {
+          "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true,
+          "items": {"type": "integer", "enum": [1, 2, 3]},
+          "description": "선택(권장). 이 카드가 나올 수 있는 **막**. 1=심해 유리돔(1막) · 2=침수 지하철 터널(2막) · 3=지상 쇼핑몰(3막). 장소를 타지 않는 카드(질병·굶주림·물·불신)는 [1,2,3]. DECISIONS 2026-09-23 — 1막이 심해인데 육상 공룡·부족 카드가 같은 풀에서 나오던 결함의 교정이다. **필드가 없으면** 서버가 임시 분류표(engine/storyteller.py ACT_BY_ID·ACT_BY_PREFIX: deep_*→[1], dino_*·tribe_*→[3])로 판정하고, 표에도 없으면 [1,2,3]로 두고 표준출력에 알린다. 파일에 적으면 **언제나 파일이 이긴다.**"
+        },
         "severity": {"type": "integer", "minimum": 0, "maximum": 3, "description": "0=위협 아님(긍정·중립), 1=가벼움, 2=심각, 3=재난. storyteller.weight_for() 가 1~3일차와 하드코어에서 이 값을 본다."},
         "text": {"type": "string", "minLength": 10, "maxLength": 160, "description": "쪽지 본문 2~3문장. 실제 종교·경전·인물·지명 금지."},
         "counter_tags": {

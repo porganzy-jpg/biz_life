@@ -1,6 +1,7 @@
 {
   "_comment": "각인 8종의 '다음 날 아침' 연출 문장. docs/GROWTH_AND_MYTH.md §1: 변화는 계단이고, 위기 다음 날 아침 갑자기 보인다. 교본 S8: 각인 문장은 사건의 감각(냄새·소리·온도)으로 쓴다. 능력 수치는 쓰지 않는다 — 그건 data/imprints.json 의 effect/cost 가 말한다. 소유: 시나리오.",
-  "_version": 1,
+  "_version": 2,
+  "_v2_note": "2026-09-26(S4-C): 심해 각인 「두드림을 들은 자」(knock_heard) 1줄 추가. 외형·대가는 docs/WORLD_BIBLE_DEEP.md §7 표. server.py DEEP_IMPRINTS 의 자리표시(_pending_text)를 이 줄로 대체하고 data/imprints.json 에 정식 항목으로 등재하면 자리표시가 밀려난다. 나머지 심해 각인 3종(saved_breath·crack_seen·depth_mark)의 줄은 이미 server.py 안에 있어 중복 기재하지 않았다.",
   "_for_dev": "data/imprints.json 의 imprints[].visual.line 을 아래 line 으로 교체하면 된다(개발 소유 파일이라 직접 고치지 않았다). {name} 은 주민 이름 치환. 이름 뒤에 조사가 붙지 않도록 전부 '{name}의 …' 형태로 썼다(하루/도담처럼 받침 유무가 갈려도 안전하다). 표시 시점: 위기 해결 다음 날 아침 첫 화면, 해당 주민 1명에게 1회.",
 
   "lines": [
@@ -35,6 +36,10 @@
     {
       "imprint_id": "water_memory",
       "line": "{name}의 머리카락이 아직 마르지 않아 베개가 서늘하다. 랜턴 기름 냄새를 처음으로 답답하다고 말했다."
+    },
+    {
+      "imprint_id": "knock_heard",
+      "line": "{name}의 손끝에 아직 유리의 떨림이 남아 있다. 무엇을 만지기 전에 두 번 두드리고, 대답을 기다린다."
     }
   ]
 }

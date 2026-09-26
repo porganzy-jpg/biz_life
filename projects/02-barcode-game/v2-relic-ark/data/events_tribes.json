@@ -1,106 +1,519 @@
 [
-  {"id": "tribe_wayfarer_passing", "name": "지나가는 줄", "faction": "tribe", "tribe": "wayfarer", "severity": 1,
-   "text": "선로 저편에서 혀 튀기는 소리가 다가온다. 길손의 줄이 등짐을 지고 방주 옆을 지나간다. 아무도 문을 열지 않고, 유리 너머에서 세기만 한다. 먼저 나간 것은 우리 개였고, 줄의 맨 앞 개와 코를 맞댄 뒤에야 사람들이 서로를 보았다.",
-   "counter_tags": ["교섭", "교역"], "counter_room": null,
-   "on_fail": {"morale": -1}, "on_counter": {"trade": 2, "knowledge": 1}, "timer_sec": 5, "positive": true},
-
-  {"id": "tribe_wayfarer_song_toll", "name": "노래 값", "faction": "tribe", "tribe": "wayfarer", "severity": 1,
-   "text": "줄의 늙은 길잡이가 새 노선의 걷는 노래를 판다. 값은 소금과 기름, 그리고 담보다. 신뢰로 여는 거래는 이 세계에 남아 있지 않다. 노래를 반만 배우면 반만 걸을 수 있고, 반만 걸은 자는 돌아오지 못한다.",
-   "counter_tags": ["교역", "지식"], "counter_room": "library",
-   "on_fail": {"food": -2, "morale": -1}, "on_counter": {"knowledge": 3}, "timer_sec": 4},
-
-  {"id": "tribe_wayfarer_blind_dog", "name": "눈이 된 개", "faction": "tribe", "tribe": "wayfarer", "severity": 2,
-   "text": "줄이 지나간 자리에 개 한 마리가 남았다. 다리를 절면서도 벽에 코를 대고 주인의 기름 표식을 계속 찾는다. 멈추는 것이 죽음인 부족은 개를 위해 멈추지 못했다. 방주의 아이가 먼저 다가갔고, 어른들은 한참 뒤에 섰다.",
-   "counter_tags": ["치료", "사기"], "counter_room": "infirmary",
-   "on_fail": {"morale": -3}, "on_counter": {"capture": "dog", "morale": 3}, "timer_sec": 4},
-
-  {"id": "tribe_shelf_audit", "name": "재고 감사관", "faction": "tribe", "tribe": "shelf", "severity": 2,
-   "text": "조합의 감사관이 장부를 들고 왔다. 그는 우리 창고를 세고, 버려진 것을 찾는다. 이 부족에서 가장 무거운 죄는 버림이다. 그는 웃지 않고, 우리 중 누구와도 눈을 맞추지 않으며, 손목의 성문만 확인한다.",
-   "counter_tags": ["지식", "교역"], "counter_room": "library",
-   "on_fail": {"morale": -2, "trade": -1}, "on_counter": {"trade": 2}, "timer_sec": 3},
-
-  {"id": "tribe_shelf_wrist_mark", "name": "손목의 성문", "faction": "tribe", "tribe": "shelf", "severity": 1,
-   "text": "이웃 통로의 사내가 소매를 걷고 손목을 내민다. 자기 이름을 읽어 달라는 것이다. 유물이 아니라 사람을 읽는 첫 순간이다. 리더가 읽어 주는 이름과 그가 말한 이름이 같을지, 아무도 장담하지 못한다.",
-   "counter_tags": ["해독", "지식"], "counter_room": null,
-   "on_fail": {"morale": -1}, "on_counter": {"knowledge": 2, "resident": 1}, "timer_sec": 5, "positive": true},
-
-  {"id": "tribe_shelf_collateral_box", "name": "담보 상자", "faction": "tribe", "tribe": "shelf", "severity": 2,
-   "text": "거래의 담보로 봉인된 상자가 들어왔다. 규칙은 하나, 거래가 끝나기 전에는 열지 않는다. 무게가 장부와 맞지 않는다는 말이 이미 통로를 돌고 있다. 고양이가 상자 위에서 내려오지 않는 것이 유일하게 믿을 만한 정보다.",
-   "counter_tags": ["교섭", "보존"], "counter_room": "pantry",
-   "on_fail": {"food": -3, "morale": -2}, "on_counter": {"food": 3, "trade": 1}, "timer_sec": 3},
-
-  {"id": "tribe_flame_debt_collector", "name": "빚 징수원", "faction": "tribe", "tribe": "flame", "severity": 2,
-   "text": "검댕 묻은 손이 종이 한 장을 내민다. 200년 전 양식 그대로의 고지서다. 미납 시 공급 중단. 그는 귀가 먹어 우리의 변명을 듣지 못하고, 듣고 싶어 하지도 않는다. 빛은 빚이라는 말이 이 세계의 속담이자 계약이다.",
-   "counter_tags": ["전력", "교섭"], "counter_room": null,
-   "on_fail": {"power": -3, "morale": -1}, "on_counter": {"parts": 2}, "timer_sec": 3},
-
-  {"id": "tribe_flame_sleeping_ancestor", "name": "잠든 조상", "faction": "tribe", "tribe": "flame", "severity": 1,
-   "text": "불꽃 부족이 멈춘 발전기 하나를 수레에 싣고 왔다. 옆판에는 지워진 글씨로 이름이 적혀 있고, 그들은 그것을 조상이라 부른다. 고쳐 달라는 것이 아니라 함께 깨워 달라는 것이다. 새로 만드는 것은 금기이고, 되돌리는 것만이 허락된다.",
-   "counter_tags": ["부품", "전력"], "counter_room": null,
-   "on_fail": {"parts": -2, "morale": -1}, "on_counter": {"power": 3, "knowledge": 1}, "timer_sec": 4},
-
-  {"id": "tribe_flame_hand_speech", "name": "진동으로 말하는 사절", "faction": "tribe", "tribe": "flame", "severity": 1,
-   "text": "사절은 손과 발바닥으로 말한다. 우리는 그 손을 읽지 못하고, 그는 우리 입을 읽지 못한다. 오해 하나에 창고 절반이 걸려 있다. 발밑에서는 두 부족의 고양이가 아무 통역 없이 서로를 지나친다.",
-   "counter_tags": ["교섭", "지식"], "counter_room": null,
-   "on_fail": {"trade": -1, "morale": -2}, "on_counter": {"trade": 2, "knowledge": 1}, "timer_sec": 3},
-
-  {"id": "tribe_white_glass_visit", "name": "유리 너머의 문진", "faction": "tribe", "tribe": "white", "severity": 1,
-   "text": "하얀 부족의 의무단이 왔다. 그들은 문 앞에 유리판을 세우고 장갑 낀 손끝으로 우리를 가리키며 묻는다. 고쳐 주면서도 끝내 닿지 않는다. 그들에게 닿지 않는 것은 무례가 아니라 사랑이다.",
-   "counter_tags": ["치료", "해독"], "counter_room": "infirmary",
-   "on_fail": {"injured": 1, "morale": -1}, "on_counter": {"med": 3}, "timer_sec": 4},
-
-  {"id": "tribe_white_quarantine_demand", "name": "격리 요구", "faction": "tribe", "tribe": "white", "severity": 3,
-   "text": "기침하는 주민 하나를 내놓으라고 한다. 오염원은 둘이 되기 전에 하나일 때 끊어야 한다는 것이다. 주민들은 서로를 보지 않고 바닥을 본다. 문 안쪽에서는 그 사람의 개가 문틈에 코를 박고 비켜서지 않는다.",
-   "counter_tags": ["치료", "교섭"], "counter_room": "infirmary",
-   "on_fail": {"morale": -4, "injured": 1}, "on_counter": {"med": 2, "morale": 1}, "timer_sec": 3},
-
-  {"id": "tribe_white_cold_box", "name": "차가운 상자", "faction": "tribe", "tribe": "white", "severity": 2,
-   "text": "하얀 부족이 호위를 산다. 짐은 서리 낀 금속 상자 하나, 안에 든 것은 아직 태어나지 않은 사람들이라고 했다. 값은 선불이고 담보는 우리 창고 열쇠다. 그들이 맡기는 것은 우리를 믿어서가 아니라 열쇠를 믿어서다.",
-   "counter_tags": ["방어", "치료"], "counter_room": null,
-   "on_fail": {"med": -1, "morale": -2}, "on_counter": {"med": 3, "knowledge": 2}, "timer_sec": 3},
-
-  {"id": "tribe_archive_reading_invite", "name": "죄의 낭독 초대", "faction": "tribe", "tribe": "archive", "severity": 1,
-   "text": "종이를 겹쳐 입은 아이가 초대장을 놓고 갔다. 1년에 한 번, 서고 부족은 인간이 무슨 짓을 했는지 처음부터 끝까지 읽는다. 끝까지 들은 자에게만 청사진을 준다. 값은 물자가 아니라 견디는 일이다.",
-   "counter_tags": ["지식", "청사진"], "counter_room": "library",
-   "on_fail": {"knowledge": -1}, "on_counter": {"knowledge": 4, "morale": -2}, "timer_sec": 5, "positive": true},
-
-  {"id": "tribe_archive_black_list", "name": "검은 명단", "faction": "tribe", "tribe": "archive", "severity": 2,
-   "text": "서고의 벽에는 속인 자들의 이름이 새겨져 있고, 그 글씨는 지워지지 않는다. 오늘 그 벽에서 우리 방주의 옛 이름이 발견되었다는 소식이 왔다. 200년 전 누가 무엇을 했는지 우리는 모른다. 기억은 신뢰보다 오래 산다.",
-   "counter_tags": ["교섭", "지식"], "counter_room": "library",
-   "on_fail": {"morale": -3, "trade": -1}, "on_counter": {"knowledge": 2}, "timer_sec": 3},
-
-  {"id": "tribe_archive_price_reading", "name": "성문은 값이다", "faction": "tribe", "tribe": "archive", "severity": 0,
-   "text": "서고의 어린 사서가 우리 유물의 줄무늬를 손끝으로 훑더니 말했다. 이건 신의 글자가 아니라 값이에요. 해독자는 대답하지 못했다. 그런데 그 값이 우리를 먹여 살렸으니, 무엇이 다른가 하는 질문만 남았다.",
-   "counter_tags": ["지식", "사기"], "counter_room": "library",
-   "on_fail": {"morale": -1}, "on_counter": {"knowledge": 3, "morale": 1}, "timer_sec": 5, "positive": true},
-
-  {"id": "tribe_greenhouse_seed_trade", "name": "몰래 사는 씨앗", "faction": "tribe", "tribe": "greenhouse", "severity": 0,
-   "text": "베일을 쓴 사람이 밤에 왔다. 낮에는 아무도 온실 부족과 거래한다고 말하지 않지만, 씨앗은 모두가 산다. 값은 소금과 침묵이다. 손톱에 초록 물이 든 손이 유리 너머로 봉지를 밀어 넣는다.",
-   "counter_tags": ["온실", "교역"], "counter_room": null,
-   "on_fail": {"morale": -1}, "on_counter": {"food": 3, "trade": 1}, "timer_sec": 5, "positive": true},
-
-  {"id": "tribe_greenhouse_returning_child", "name": "돌아갈 아이", "faction": "tribe", "tribe": "greenhouse", "severity": 1,
-   "text": "순례하는 줄 한가운데에 모자를 벗은 아이가 걷는다. 빛을 견딘다는 아이다. 부족 전체가 그 아이를 축으로 삼아 재편되었다. 하룻밤 재워 달라는 청에 사람들은 망설였고, 방주의 개들이 먼저 꼬리를 흔들었다.",
-   "counter_tags": ["사기", "온실"], "counter_room": null,
-   "on_fail": {"morale": -2}, "on_counter": {"morale": 3, "knowledge": 1}, "timer_sec": 4, "positive": true},
-
-  {"id": "tribe_greenhouse_threshold_guide", "name": "문턱까지만", "faction": "tribe", "tribe": "greenhouse", "severity": 1,
-   "text": "온실의 안내인은 지도를 그려 주지 않고 말로만 길을 준다. 우리도 안에서는 못 산다, 문턱까지만 간다고 했다. 대가는 우리 물 절반과, 돌아오지 못해도 원망하지 않겠다는 약속이다. 약속은 담보가 없어서 가장 싼 값이다.",
-   "counter_tags": ["탐사", "교섭"], "counter_room": null,
-   "on_fail": {"water": -3, "morale": -1}, "on_counter": {"spot_clue": "spot_greenhouse_cafe", "morale": 2}, "timer_sec": 4},
-
-  {"id": "tribe_tower_mirror_signal", "name": "거울 신호", "faction": "tribe", "tribe": "tower", "severity": 0,
-   "text": "지상 굴뚝 너머에서 빛이 세 번 깜빡였다. 탑이 값을 부르는 신호다. 그들이 파는 것은 내일의 날씨와 공룡이 지나갈 길이고, 받는 것은 우리 방주의 이야기다. 그들은 내려올 수 없어서 이야기에 굶주려 있다.",
-   "counter_tags": ["탐사", "지식"], "counter_room": null,
-   "on_fail": {"morale": -1}, "on_counter": {"knowledge": 2, "trade": 1}, "timer_sec": 5, "positive": true},
-
-  {"id": "tribe_tower_crow_messenger", "name": "내려온 까마귀", "faction": "tribe", "tribe": "tower", "severity": 0,
-   "text": "까마귀 한 마리가 창턱에 앉아 종이 조각을 떨어뜨렸다. 글씨는 없고 그림 하나뿐이다. 사람은 거짓 소식을 팔지만 까마귀가 거짓을 물어 온 적은 없다. 아이가 말린 실 한 조각을 내밀자 까마귀는 떠나지 않았다.",
-   "counter_tags": ["사기", "탐사"], "counter_room": null,
-   "on_fail": {}, "on_counter": {"capture": "crow", "morale": 2}, "timer_sec": 5, "positive": true},
-
-  {"id": "tribe_tower_watching_silence", "name": "보고만 있었다", "faction": "tribe", "tribe": "tower", "severity": 2,
-   "text": "지난밤의 습격을 탑은 낮부터 보고 있었다. 그들은 소식은 팔아도 판단은 팔지 않는다는 계율을 지켰다. 높은 곳에서 보면 모두 작다고, 거울이 그렇게 대답했다. 우리 개는 그 밤에 짖었는데, 사람은 아무도 짖지 않았다.",
-   "counter_tags": ["방어", "교섭"], "counter_room": null,
-   "on_fail": {"food": -3, "morale": -3}, "on_counter": {"morale": 1, "knowledge": 1}, "timer_sec": 3}
+  {
+    "id": "tribe_wayfarer_passing",
+    "name": "지나가는 줄",
+    "faction": "tribe",
+    "tribe": "wayfarer",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "선로 저편에서 혀 튀기는 소리가 다가온다. 길손의 줄이 등짐을 지고 방주 옆을 지나간다. 아무도 문을 열지 않고, 유리 너머에서 세기만 한다. 먼저 나간 것은 우리 개였고, 줄의 맨 앞 개와 코를 맞댄 뒤에야 사람들이 서로를 보았다.",
+    "counter_tags": [
+      "교섭",
+      "교역"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "morale": -1
+    },
+    "on_counter": {
+      "trade": 2,
+      "knowledge": 1
+    },
+    "timer_sec": 5,
+    "positive": true
+  },
+  {
+    "id": "tribe_wayfarer_song_toll",
+    "name": "노래 값",
+    "faction": "tribe",
+    "tribe": "wayfarer",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "줄의 늙은 길잡이가 새 노선의 걷는 노래를 판다. 값은 소금과 기름, 그리고 담보다. 신뢰로 여는 거래는 이 세계에 남아 있지 않다. 노래를 반만 배우면 반만 걸을 수 있고, 반만 걸은 자는 돌아오지 못한다.",
+    "counter_tags": [
+      "교역",
+      "지식"
+    ],
+    "counter_room": "library",
+    "on_fail": {
+      "food": -2,
+      "morale": -1
+    },
+    "on_counter": {
+      "knowledge": 3
+    },
+    "timer_sec": 4
+  },
+  {
+    "id": "tribe_wayfarer_blind_dog",
+    "name": "눈이 된 개",
+    "faction": "tribe",
+    "tribe": "wayfarer",
+    "severity": 2,
+    "acts": [
+      3
+    ],
+    "text": "줄이 지나간 자리에 개 한 마리가 남았다. 다리를 절면서도 벽에 코를 대고 주인의 기름 표식을 계속 찾는다. 멈추는 것이 죽음인 부족은 개를 위해 멈추지 못했다. 방주의 아이가 먼저 다가갔고, 어른들은 한참 뒤에 섰다.",
+    "counter_tags": [
+      "치료",
+      "사기"
+    ],
+    "counter_room": "infirmary",
+    "on_fail": {
+      "morale": -3
+    },
+    "on_counter": {
+      "capture": "dog",
+      "morale": 3
+    },
+    "timer_sec": 4
+  },
+  {
+    "id": "tribe_shelf_audit",
+    "name": "재고 감사관",
+    "faction": "tribe",
+    "tribe": "shelf",
+    "severity": 2,
+    "acts": [
+      3
+    ],
+    "text": "조합의 감사관이 장부를 들고 왔다. 그는 우리 창고를 세고, 버려진 것을 찾는다. 이 부족에서 가장 무거운 죄는 버림이다. 그는 웃지 않고, 우리 중 누구와도 눈을 맞추지 않으며, 손목의 성문만 확인한다.",
+    "counter_tags": [
+      "지식",
+      "교역"
+    ],
+    "counter_room": "library",
+    "on_fail": {
+      "morale": -2,
+      "trade": -1
+    },
+    "on_counter": {
+      "trade": 2
+    },
+    "timer_sec": 3
+  },
+  {
+    "id": "tribe_shelf_wrist_mark",
+    "name": "손목의 성문",
+    "faction": "tribe",
+    "tribe": "shelf",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "이웃 통로의 사내가 소매를 걷고 손목을 내민다. 자기 이름을 읽어 달라는 것이다. 유물이 아니라 사람을 읽는 첫 순간이다. 리더가 읽어 주는 이름과 그가 말한 이름이 같을지, 아무도 장담하지 못한다.",
+    "counter_tags": [
+      "해독",
+      "지식"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "morale": -1
+    },
+    "on_counter": {
+      "knowledge": 2,
+      "resident": 1
+    },
+    "timer_sec": 5,
+    "positive": true
+  },
+  {
+    "id": "tribe_shelf_collateral_box",
+    "name": "담보 상자",
+    "faction": "tribe",
+    "tribe": "shelf",
+    "severity": 2,
+    "acts": [
+      3
+    ],
+    "text": "거래의 담보로 봉인된 상자가 들어왔다. 규칙은 하나, 거래가 끝나기 전에는 열지 않는다. 무게가 장부와 맞지 않는다는 말이 이미 통로를 돌고 있다. 고양이가 상자 위에서 내려오지 않는 것이 유일하게 믿을 만한 정보다.",
+    "counter_tags": [
+      "교섭",
+      "보존"
+    ],
+    "counter_room": "pantry",
+    "on_fail": {
+      "food": -3,
+      "morale": -2
+    },
+    "on_counter": {
+      "food": 3,
+      "trade": 1
+    },
+    "timer_sec": 3
+  },
+  {
+    "id": "tribe_flame_debt_collector",
+    "name": "빚 징수원",
+    "faction": "tribe",
+    "tribe": "flame",
+    "severity": 2,
+    "acts": [
+      3
+    ],
+    "text": "검댕 묻은 손이 종이 한 장을 내민다. 200년 전 양식 그대로의 고지서다. 미납 시 공급 중단. 그는 귀가 먹어 우리의 변명을 듣지 못하고, 듣고 싶어 하지도 않는다. 빛은 빚이라는 말이 이 세계의 속담이자 계약이다.",
+    "counter_tags": [
+      "전력",
+      "교섭"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "power": -3,
+      "morale": -1
+    },
+    "on_counter": {
+      "parts": 2
+    },
+    "timer_sec": 3
+  },
+  {
+    "id": "tribe_flame_sleeping_ancestor",
+    "name": "잠든 조상",
+    "faction": "tribe",
+    "tribe": "flame",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "불꽃 부족이 멈춘 발전기 하나를 수레에 싣고 왔다. 옆판에는 지워진 글씨로 이름이 적혀 있고, 그들은 그것을 조상이라 부른다. 고쳐 달라는 것이 아니라 함께 깨워 달라는 것이다. 새로 만드는 것은 금기이고, 되돌리는 것만이 허락된다.",
+    "counter_tags": [
+      "부품",
+      "전력"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "parts": -2,
+      "morale": -1
+    },
+    "on_counter": {
+      "power": 3,
+      "knowledge": 1
+    },
+    "timer_sec": 4
+  },
+  {
+    "id": "tribe_flame_hand_speech",
+    "name": "진동으로 말하는 사절",
+    "faction": "tribe",
+    "tribe": "flame",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "사절은 손과 발바닥으로 말한다. 우리는 그 손을 읽지 못하고, 그는 우리 입을 읽지 못한다. 오해 하나에 창고 절반이 걸려 있다. 발밑에서는 두 부족의 고양이가 아무 통역 없이 서로를 지나친다.",
+    "counter_tags": [
+      "교섭",
+      "지식"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "trade": -1,
+      "morale": -2
+    },
+    "on_counter": {
+      "trade": 2,
+      "knowledge": 1
+    },
+    "timer_sec": 3
+  },
+  {
+    "id": "tribe_white_glass_visit",
+    "name": "유리 너머의 문진",
+    "faction": "tribe",
+    "tribe": "white",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "하얀 부족의 의무단이 왔다. 그들은 문 앞에 유리판을 세우고 장갑 낀 손끝으로 우리를 가리키며 묻는다. 고쳐 주면서도 끝내 닿지 않는다. 그들에게 닿지 않는 것은 무례가 아니라 사랑이다.",
+    "counter_tags": [
+      "치료",
+      "해독"
+    ],
+    "counter_room": "infirmary",
+    "on_fail": {
+      "injured": 1,
+      "morale": -1
+    },
+    "on_counter": {
+      "med": 3
+    },
+    "timer_sec": 4
+  },
+  {
+    "id": "tribe_white_quarantine_demand",
+    "name": "격리 요구",
+    "faction": "tribe",
+    "tribe": "white",
+    "severity": 3,
+    "acts": [
+      3
+    ],
+    "text": "기침하는 주민 하나를 내놓으라고 한다. 오염원은 둘이 되기 전에 하나일 때 끊어야 한다는 것이다. 주민들은 서로를 보지 않고 바닥을 본다. 문 안쪽에서는 그 사람의 개가 문틈에 코를 박고 비켜서지 않는다.",
+    "counter_tags": [
+      "치료",
+      "교섭"
+    ],
+    "counter_room": "infirmary",
+    "on_fail": {
+      "morale": -4,
+      "injured": 1
+    },
+    "on_counter": {
+      "med": 2,
+      "morale": 1
+    },
+    "timer_sec": 3
+  },
+  {
+    "id": "tribe_white_cold_box",
+    "name": "차가운 상자",
+    "faction": "tribe",
+    "tribe": "white",
+    "severity": 2,
+    "acts": [
+      3
+    ],
+    "text": "하얀 부족이 호위를 산다. 짐은 서리 낀 금속 상자 하나, 안에 든 것은 아직 태어나지 않은 사람들이라고 했다. 값은 선불이고 담보는 우리 창고 열쇠다. 그들이 맡기는 것은 우리를 믿어서가 아니라 열쇠를 믿어서다.",
+    "counter_tags": [
+      "방어",
+      "치료"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "med": -1,
+      "morale": -2
+    },
+    "on_counter": {
+      "med": 3,
+      "knowledge": 2
+    },
+    "timer_sec": 3
+  },
+  {
+    "id": "tribe_archive_reading_invite",
+    "name": "죄의 낭독 초대",
+    "faction": "tribe",
+    "tribe": "archive",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "종이를 겹쳐 입은 아이가 초대장을 놓고 갔다. 1년에 한 번, 서고 부족은 인간이 무슨 짓을 했는지 처음부터 끝까지 읽는다. 끝까지 들은 자에게만 청사진을 준다. 값은 물자가 아니라 견디는 일이다.",
+    "counter_tags": [
+      "지식",
+      "청사진"
+    ],
+    "counter_room": "library",
+    "on_fail": {
+      "knowledge": -1
+    },
+    "on_counter": {
+      "knowledge": 4,
+      "morale": -2
+    },
+    "timer_sec": 5,
+    "positive": true
+  },
+  {
+    "id": "tribe_archive_black_list",
+    "name": "검은 명단",
+    "faction": "tribe",
+    "tribe": "archive",
+    "severity": 2,
+    "acts": [
+      3
+    ],
+    "text": "서고의 벽에는 속인 자들의 이름이 새겨져 있고, 그 글씨는 지워지지 않는다. 오늘 그 벽에서 우리 방주의 옛 이름이 발견되었다는 소식이 왔다. 200년 전 누가 무엇을 했는지 우리는 모른다. 기억은 신뢰보다 오래 산다.",
+    "counter_tags": [
+      "교섭",
+      "지식"
+    ],
+    "counter_room": "library",
+    "on_fail": {
+      "morale": -3,
+      "trade": -1
+    },
+    "on_counter": {
+      "knowledge": 2
+    },
+    "timer_sec": 3
+  },
+  {
+    "id": "tribe_archive_price_reading",
+    "name": "성문은 값이다",
+    "faction": "tribe",
+    "tribe": "archive",
+    "severity": 0,
+    "acts": [
+      3
+    ],
+    "text": "서고의 어린 사서가 우리 유물의 줄무늬를 손끝으로 훑더니 말했다. 이건 신의 글자가 아니라 값이에요. 해독자는 대답하지 못했다. 그런데 그 값이 우리를 먹여 살렸으니, 무엇이 다른가 하는 질문만 남았다.",
+    "counter_tags": [
+      "지식",
+      "사기"
+    ],
+    "counter_room": "library",
+    "on_fail": {
+      "morale": -1
+    },
+    "on_counter": {
+      "knowledge": 3,
+      "morale": 1
+    },
+    "timer_sec": 5,
+    "positive": true
+  },
+  {
+    "id": "tribe_greenhouse_seed_trade",
+    "name": "몰래 사는 씨앗",
+    "faction": "tribe",
+    "tribe": "greenhouse",
+    "severity": 0,
+    "acts": [
+      3
+    ],
+    "text": "베일을 쓴 사람이 밤에 왔다. 낮에는 아무도 온실 부족과 거래한다고 말하지 않지만, 씨앗은 모두가 산다. 값은 소금과 침묵이다. 손톱에 초록 물이 든 손이 유리 너머로 봉지를 밀어 넣는다.",
+    "counter_tags": [
+      "온실",
+      "교역"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "morale": -1
+    },
+    "on_counter": {
+      "food": 3,
+      "trade": 1
+    },
+    "timer_sec": 5,
+    "positive": true
+  },
+  {
+    "id": "tribe_greenhouse_returning_child",
+    "name": "돌아갈 아이",
+    "faction": "tribe",
+    "tribe": "greenhouse",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "순례하는 줄 한가운데에 모자를 벗은 아이가 걷는다. 빛을 견딘다는 아이다. 부족 전체가 그 아이를 축으로 삼아 재편되었다. 하룻밤 재워 달라는 청에 사람들은 망설였고, 방주의 개들이 먼저 꼬리를 흔들었다.",
+    "counter_tags": [
+      "사기",
+      "온실"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "morale": -2
+    },
+    "on_counter": {
+      "morale": 3,
+      "knowledge": 1
+    },
+    "timer_sec": 4,
+    "positive": true
+  },
+  {
+    "id": "tribe_greenhouse_threshold_guide",
+    "name": "문턱까지만",
+    "faction": "tribe",
+    "tribe": "greenhouse",
+    "severity": 1,
+    "acts": [
+      3
+    ],
+    "text": "온실의 안내인은 지도를 그려 주지 않고 말로만 길을 준다. 우리도 안에서는 못 산다, 문턱까지만 간다고 했다. 대가는 우리 물 절반과, 돌아오지 못해도 원망하지 않겠다는 약속이다. 약속은 담보가 없어서 가장 싼 값이다.",
+    "counter_tags": [
+      "탐사",
+      "교섭"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "water": -3,
+      "morale": -1
+    },
+    "on_counter": {
+      "spot_clue": "spot_greenhouse_cafe",
+      "morale": 2
+    },
+    "timer_sec": 4
+  },
+  {
+    "id": "tribe_tower_mirror_signal",
+    "name": "거울 신호",
+    "faction": "tribe",
+    "tribe": "tower",
+    "severity": 0,
+    "acts": [
+      3
+    ],
+    "text": "지상 굴뚝 너머에서 빛이 세 번 깜빡였다. 탑이 값을 부르는 신호다. 그들이 파는 것은 내일의 날씨와 공룡이 지나갈 길이고, 받는 것은 우리 방주의 이야기다. 그들은 내려올 수 없어서 이야기에 굶주려 있다.",
+    "counter_tags": [
+      "탐사",
+      "지식"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "morale": -1
+    },
+    "on_counter": {
+      "knowledge": 2,
+      "trade": 1
+    },
+    "timer_sec": 5,
+    "positive": true
+  },
+  {
+    "id": "tribe_tower_crow_messenger",
+    "name": "내려온 까마귀",
+    "faction": "tribe",
+    "tribe": "tower",
+    "severity": 0,
+    "acts": [
+      3
+    ],
+    "text": "까마귀 한 마리가 창턱에 앉아 종이 조각을 떨어뜨렸다. 글씨는 없고 그림 하나뿐이다. 사람은 거짓 소식을 팔지만 까마귀가 거짓을 물어 온 적은 없다. 아이가 말린 실 한 조각을 내밀자 까마귀는 떠나지 않았다.",
+    "counter_tags": [
+      "사기",
+      "탐사"
+    ],
+    "counter_room": null,
+    "on_fail": {},
+    "on_counter": {
+      "capture": "crow",
+      "morale": 2
+    },
+    "timer_sec": 5,
+    "positive": true
+  },
+  {
+    "id": "tribe_tower_watching_silence",
+    "name": "보고만 있었다",
+    "faction": "tribe",
+    "tribe": "tower",
+    "severity": 2,
+    "acts": [
+      3
+    ],
+    "text": "지난밤의 습격을 탑은 낮부터 보고 있었다. 그들은 소식은 팔아도 판단은 팔지 않는다는 계율을 지켰다. 높은 곳에서 보면 모두 작다고, 거울이 그렇게 대답했다. 우리 개는 그 밤에 짖었는데, 사람은 아무도 짖지 않았다.",
+    "counter_tags": [
+      "방어",
+      "교섭"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "food": -3,
+      "morale": -3
+    },
+    "on_counter": {
+      "morale": 1,
+      "knowledge": 1
+    },
+    "timer_sec": 3
+  }
 ]
