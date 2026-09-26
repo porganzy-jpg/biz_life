@@ -37,7 +37,7 @@
         ],
         "properties": {
           "when": {
-            "description": "상황 태그. hooked=true 인 태그는 이미 서버가 화면에 띄우고 있다.",
+            "description": "상황 태그. hooked=true 인 태그는 이미 서버가 화면에 띄우고 있다. airlock_in = 에어락으로 **돌아온** 순간(리더 목소리가 돌아오는 자리, SCRIPT_first_10min_deep 3:40). airlock_out = 나가는 순간(리더가 끊기므로 정원사만). 두 태그는 원정 시스템이 붙는 날 연결된다 — 지금 줄을 채워 두면 그날 코드 수정 없이 뜬다.",
             "enum": [
               "game_start",
               "scan_unknown",
@@ -65,7 +65,10 @@
               "debt",
               "trade",
               "surface_trip",
-              "ending_hint"
+              "ending_hint",
+              "airlock_out",
+              "airlock_in",
+              "far_call"
             ]
           },
           "text": {
@@ -75,6 +78,21 @@
           },
           "note": {
             "type": "string"
+          },
+          "acts": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3
+              ]
+            },
+            "description": "선택(권장). 이 줄을 할 수 있는 막. 1=심해 유리돔 · 2=침수 터널 · 3=지상. **1막 사람들은 숲도 비단잉어도 본 적이 없고 '일곱'은 육상의 셈이다**(DECISIONS 2026-09-22) — 장소·생물·숫자를 말하는 줄에는 반드시 적는다. 없으면 전 막 공용으로 본다. 서버 voice_for(tag, seed, act=) 가 거르고, 그 막에 할 말이 없으면 아무 말도 하지 않는다."
           }
         },
         "additionalProperties": false
@@ -97,6 +115,9 @@
     "event_counter": "POST /api/event/resolve — 막아낸 날",
     "spot_water_reflection": "POST /api/event/resolve — on_counter 에 spot_clue 가 있는 날 (없으면 spot_found 로 대체)",
     "spot_found": "위 대체용 + 스팟 발견 연출(S2-A 월드 화면)",
-    "scan_drink": "POST /api/scan — category=drink (없으면 scan_food 로 대체)"
+    "scan_drink": "POST /api/scan — category=drink (없으면 scan_food 로 대체)",
+    "airlock_in": "예약 — 원정 귀환 연출이 붙는 날 (지금은 호출부 없음). 줄은 미리 채워도 된다",
+    "airlock_out": "예약 — 에어락 진출. 1막에서 리더는 여기서 끊긴다(정원사만)",
+    "_acts": "모든 태그 공통: 줄의 acts 배열이 현재 막과 겹칠 때만 뜬다(2026-09-26)"
   }
 }

@@ -1,0 +1,106 @@
+/* 잔해 방주 — 1막 거점 화면(정면 평면 단면)의 가장자리 UI.
+   DECISIONS 2026-09-23: 평면 단면 + 성장 방향은 아래.
+   팔레트는 docs/refs/REF_ART_FLAT_FOLK.md §5 — 크림/황토/적갈/숯검정은 '안', 청록~남색은 '물'에만. */
+:root{
+  --water-far:#0a2a33;      /* 광층에 가까운 물 */
+  --water:#061a21;
+  --abyss:#01060a;          /* 해구 */
+  --cream:#e6d7b0;          /* 가장 밝은 값 */
+  --ochre:#c08a33;
+  --lamp:#f0b055;
+  --oxblood:#8c3b2e;
+  --charcoal:#14110c;
+  --ink:#d8cbae;
+  --dim:#7e8d8c;
+  --line:#1b2f35;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--abyss); color:var(--ink); overflow:hidden;
+  font-family:"Noto Sans KR","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+#base{position:fixed; inset:0}
+#cv{position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab}
+#cv.dragging{cursor:grabbing}
+
+/* ── 가장자리 UI ─────────────────────────────────── */
+.hud{position:absolute; z-index:5; user-select:none}
+.hud-tl{top:12px; left:12px}
+.hud-bl{left:12px; bottom:12px}
+.hud-br{right:12px; bottom:12px}
+
+.row1{display:flex; align-items:baseline; gap:10px}
+.day{font-size:19px; font-weight:700; color:var(--cream); letter-spacing:.04em;
+     text-shadow:0 1px 0 #000, 0 0 12px #000}
+.act{font-size:11px; color:var(--lamp); border:1px solid #3d2d15; background:rgba(20,17,12,.72);
+     border-radius:3px; padding:2px 7px; letter-spacing:.12em}
+.res{display:flex; flex-wrap:wrap; gap:4px 8px; margin-top:7px; max-width:min(52vw,340px)}
+.res span{font-size:11.5px; color:var(--dim); background:rgba(6,26,33,.7); border:1px solid var(--line);
+          border-radius:3px; padding:2px 7px; white-space:nowrap}
+.res span b{color:var(--cream); font-weight:700; margin-left:4px}
+
+/* 게이지: 숫자를 쓰지 않는다. 길이가 값이다 */
+.gauges{display:flex; flex-direction:column; gap:9px}
+.g{display:flex; align-items:center; gap:8px}
+.gk{font-size:11px; color:var(--dim); width:26px; letter-spacing:.1em}
+.gz{font-size:11px; color:var(--lamp)}
+.band{position:relative; width:132px; height:9px; background:rgba(1,6,10,.8);
+      border:1px solid var(--line); border-radius:2px; overflow:hidden}
+.band::after{content:""; position:absolute; inset:0; width:var(--v,0%);
+             background:repeating-linear-gradient(90deg,var(--cream) 0 7px,transparent 7px 10px);
+             opacity:.92}
+.band.down::after{background:repeating-linear-gradient(90deg,var(--lamp) 0 7px,transparent 7px 10px)}
+
+.zoomctl{display:flex; gap:6px}
+.zoomctl button{width:44px; height:44px; font-size:19px; color:var(--ink);
+  background:rgba(6,26,33,.82); border:1px solid var(--line); border-radius:6px; cursor:pointer}
+.zoomctl button:active{background:#0e343f}
+
+/* ── 상세·증축 패널 ─────────────────────────────── */
+.panel{
+  position:absolute; z-index:8; right:12px; top:12px; width:min(330px,42vw);
+  max-height:calc(100% - 92px); overflow:auto;
+  background:rgba(10,14,12,.95); border:1px solid #2a2419; border-left:3px solid var(--ochre);
+  border-radius:8px; padding:18px 18px 16px;
+}
+.panel .close{position:absolute; right:6px; top:4px; width:34px; height:34px; background:none;
+  border:0; color:var(--dim); font-size:22px; cursor:pointer}
+.panel h2{margin:0 0 2px; font-size:17px; color:var(--cream); font-weight:700}
+.panel .sub{margin:0 0 12px; font-size:11.5px; color:var(--dim); letter-spacing:.1em}
+.panel p.desc{margin:0 0 14px; font-size:13px; line-height:1.8; color:#b9ae94}
+.panel h3{margin:14px 0 6px; font-size:11px; color:var(--dim); letter-spacing:.16em; font-weight:400}
+.kv{display:flex; flex-wrap:wrap; gap:5px}
+.kv span{font-size:11.5px; color:var(--ink); background:#171b18; border:1px solid #2a2419;
+         border-radius:3px; padding:3px 8px}
+.who{display:flex; align-items:center; gap:9px; padding:7px 0; border-top:1px solid #20241f}
+.who i{width:12px; height:12px; border-radius:2px; display:inline-block; flex:0 0 auto}
+.who b{font-weight:700; color:var(--cream); font-size:13px}
+.who em{font-style:normal; color:var(--dim); font-size:11.5px}
+.who .hurt{color:var(--oxblood)}
+
+.blist{display:flex; flex-direction:column; gap:8px; margin-top:4px}
+.bopt{display:block; width:100%; text-align:left; min-height:44px; cursor:pointer;
+  background:#151a17; border:1px solid #2a2419; border-left:3px solid var(--ochre);
+  border-radius:5px; padding:9px 11px; color:var(--ink)}
+.bopt:disabled{cursor:not-allowed; opacity:.45; border-left-color:#3a3a3a}
+.bopt b{display:block; font-size:13.5px; color:var(--cream)}
+.bopt small{display:block; margin-top:3px; font-size:11px; color:var(--dim)}
+.bopt.lack small{color:var(--oxblood)}
+
+.toast{position:absolute; left:50%; bottom:76px; transform:translate(-50%,10px); z-index:9;
+  background:rgba(10,14,12,.95); border:1px solid #2a2419; border-radius:5px;
+  padding:9px 15px; font-size:13px; color:var(--cream); opacity:0; pointer-events:none;
+  transition:opacity .25s, transform .25s}
+.toast.on{opacity:1; transform:translate(-50%,0)}
+
+/* ── 폰 세로 (390×844) ──────────────────────────── */
+@media (max-width:560px){
+  .panel{right:0; left:0; top:auto; bottom:0; width:auto; max-height:56%;
+         border-radius:12px 12px 0 0; border-left:0; border-top:3px solid var(--ochre)}
+  .hud-bl{bottom:12px}
+  .hud-br{bottom:12px}
+  .band{width:108px}
+  .res{max-width:62vw}
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>잔해 방주 — 거점 단면</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/base.css">
+</head>
+<body>
+<div id="base">
+
+  <!-- 화면 가운데는 언제나 거점이다. UI 는 가장자리에만 (REF_CROSS_SECTION §1-9) -->
+  <canvas id="cv" aria-label="방주 단면"></canvas>
+
+  <!-- 좌상단: 날·막·자원 -->
+  <header class="hud hud-tl">
+    <div class="row1"><span class="day" id="dayline">Day —</span><span class="act" id="actline">1막</span></div>
+    <div class="res" id="resbar"></div>
+  </header>
+
+  <!-- 좌하단: 공기·깊이 (숫자가 아니라 줄어드는 띠) -->
+  <div class="hud hud-bl gauges">
+    <div class="g" id="gAir">
+      <span class="gk">공기</span>
+      <div class="band" id="bandAir"></div>
+    </div>
+    <div class="g" id="gDepth">
+      <span class="gk">깊이</span>
+      <div class="band down" id="bandDepth"></div>
+      <span class="gz" id="zoneline">무광층</span>
+    </div>
+  </div>
+
+  <!-- 우하단: 카메라 -->
+  <div class="hud hud-br zoomctl">
+    <button id="zin" title="확대">+</button>
+    <button id="zout" title="축소">−</button>
+    <button id="zfit" title="맞춤">⌖</button>
+  </div>
+
+  <!-- 상세 / 증축 패널 -->
+  <aside class="panel" id="panel" hidden>
+    <button class="close" id="panelClose" aria-label="닫기">×</button>
+    <div class="panel-body" id="panelBody"></div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+</div>
+<script src="/static/base.js"></script>
+</body>
+</html>

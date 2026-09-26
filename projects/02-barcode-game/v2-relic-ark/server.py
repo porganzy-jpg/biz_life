@@ -27,7 +27,7 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "engine"))
 from relic_generator import RelicGenerator, Category, rescan_multiplier  # noqa: E402
-from storyteller import ArkState, pick_event, resolve, load_events  # noqa: E402
+from storyteller import ArkState, pick_event, resolve, load_events, acts_of, events_for_act  # noqa: E402
 
 DB = ROOT / "relic_ark.db"
 # ★ 개발 전용 훅 스위치. RELIC_DEV=1 일 때만 ?debug_* 질의가 살아난다(02_DEV §4-4 "배포 전 제거 목록").
@@ -36,6 +36,14 @@ DEV_MODE = os.environ.get("RELIC_DEV") == "1"
 ROOMS = json.loads((ROOT / "data" / "rooms.json").read_text(encoding="utf-8"))
 ROOMS.pop("_comment", None)
 EVENTS = {e["id"]: e for e in load_events()}
+# 막(acts) — DECISIONS 2026-09-23. 1 심해 / 2 터널 / 3 지상. 방주 상태의 act 가 오늘의 사건 풀을 고른다.
+ACTS = (1, 2, 3)
+ACT_KO = {1: "심해 유리돔", 2: "침수 터널", 3: "지상 쇼핑몰"}
+ACT_POOL_SIZE = {a: len(events_for_act(a, list(EVENTS.values()))) for a in ACTS}
+ACT_POOL_TARGET = 24      # 1막 최소 목표(DECISIONS 2026-09-23). 밑돌면 기동 로그에 남긴다
+if ACT_POOL_SIZE[1] < ACT_POOL_TARGET:
+    print(f"[acts] 1막 풀 {ACT_POOL_SIZE[1]}장 — 목표 {ACT_POOL_TARGET}장에 {ACT_POOL_TARGET - ACT_POOL_SIZE[1]}장 모자란다 "
+          f"(2막 {ACT_POOL_SIZE[2]} · 3막 {ACT_POOL_SIZE[3]})")
 TEMPLATES = json.loads((ROOT / "data" / "relic_templates.json").read_text(encoding="utf-8"))
 ROLES = json.loads((ROOT / "data" / "roles.json").read_text(encoding="utf-8"))
 ROLE_IDS = [k for k in ROLES if not k.startswith("_")]
@@ -90,19 +98,20 @@ DEEP_IMPRINTS = [
         "cost": {"ko": "얕은 곳에서 불안해한다 — 광층 체류 중 사기 −1", "effect": {"morale_daily": -1}},
     },
     {
-        # ★ 문구 대기 — PM 결정 4(2026-09-22)로 **자리만** 만든 각인. 외형·연출문·대가 문구는 시나리오 몫이며
-        #   WORLD_BIBLE_DEEP §7 표에 아직 행이 없다(TASKS 요청함에 등재). 판정·연결은 지금부터 동작한다.
+        # 2026-09-26(S4): 시나리오 S4-C 가 WORLD_BIBLE_DEEP §7 표 1행과 imprint_lines.json 줄을 채웠다 →
+        # 자리표시(_pending_text)를 풀고 정식 문구로 바꾼다. 연출문은 imprint_lines.json 이 다시 덮어쓴다(파일 우선).
         "id": "knock_heard",
         "name": "두드림을 들은 자",
         "crisis": "beast",
-        "crisis_ko": "대형 생물 조우 (생환)",
+        "crisis_ko": "대형 생물 조우 (긴목·문지기가 다녀가고 생환)",
         "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
                     "id_prefixes": [], "flags": ["beast_left"]},
-        "visual": {"keyword": "pending", "ko": "(문구 대기 — 시나리오)",
-                   "line": "{name}은 그날 이후 달라졌다."},
-        "effect": {},
-        "cost": {"ko": "(문구 대기 — 시나리오)", "effect": {}},
-        "_pending_text": True,
+        "visual": {"keyword": "knock_twice_and_wait",
+                   "ko": "무엇을 만지기 전에 두 번 두드리고 대답을 기다린다. 귀가 소리 쪽으로 먼저 돈다",
+                   "line": "{name}의 손끝에 아직 유리의 떨림이 남아 있다. 무엇을 만지기 전에 두 번 두드리고, 대답을 기다린다."},
+        "effect": {"counter_bonus": {"야행": 0.2}},
+        "cost": {"ko": "두드리는 소리가 나면 하던 일을 멈춘다 — 밤 작업이 느려진다",
+                 "effect": {"night_production": -1}},
     },
 ]
 _HAVE_IMPRINTS = {i["id"] for i in IMPRINT_LIST}
@@ -156,7 +165,12 @@ VOICE_LINES: dict[str, list[dict]] = {}
 for _who in ("reader", "gardener"):
     for _line in DIALOGUE.get(_who, []):
         if isinstance(_line, dict) and _line.get("when") and _line.get("text"):
-            VOICE_LINES.setdefault(_line["when"], []).append({"who": _who, "text": _line["text"]})
+            # 줄마다 acts 배열(없으면 전 막 공용). 1막 사람들은 숲도 일곱도 모른다(DECISIONS 2026-09-22) —
+            # 값 기입은 시나리오, 거르는 것은 여기(2026-09-26 PM 요청).
+            _raw = _line.get("acts")
+            _acts = sorted({int(a) for a in _raw if isinstance(a, (int, float)) and int(a) in (1, 2, 3)})                 if isinstance(_raw, list) else None
+            VOICE_LINES.setdefault(_line["when"], []).append(
+                {"who": _who, "text": _line["text"], "acts": _acts or [1, 2, 3]})
 VOICE_KO = {"reader": "리더", "gardener": "정원사"}
 VOICE_WEIGHT = {"reader": 2, "gardener": 1}    # 방주 안에서는 리더가 더 자주 들린다(정원사는 바깥·물가에서)
 # 스캔 대사 태그는 카테고리에서 바로 만든다(scan_medical 등을 시나리오가 채우면 코드 수정 없이 붙는다).
@@ -219,6 +233,47 @@ RUMOR_RULES = {
     "spot_rooftop_garden":    {"categories": ["apparel", "medical"], "need": 2},
     "spot_lantern_river":     {"categories": ["book", "stationery"], "need": 2},
 }
+
+# ── 심해 1막 자리 (data/spots_deep.json 대기) ────────────────────────────────
+# 파일이 들어오면 **코드 수정 없이** 여기 두 표만 채우면 붙는다. 지금은 비어 있어도 정상이고,
+# 비어 있는 동안에는 파일의 unlock(임시 게이트)과 파일의 pos/depth 가 대신 쓰인다.
+# 좌표계(육상과 다르다): x = 척추 기준 좌우(m, +가 오른쪽), y = **깊이(m, 아래가 +)**.
+#   무광층 0 ~ 약 400, 해구 400 이상. 화면 위(광층)는 음수. DECISIONS 2026-09-23 '성장 방향은 아래'.
+# 깊이는 WORLD_BIBLE_DEEP §4 의 각 스팟 구역 표기를 그대로 옮긴 값이다(광층 < -258 / 박광층 -258~-106 /
+# 무광층 -106~180 / 해구 문턱 180~240 / 해구 240~). 같은 경계가 static/base.js 의 ZONES 와 1:1이다.
+SPOT_POS_DEEP: dict[str, tuple[int, int]] = {
+    "spot_kelp_ceiling":     ( -60, -290),   # 광층 — 위를 보는 숲
+    "spot_sunken_courtyard": (-190, -150),   # 박광층 — 침몰선 안뜰
+    "spot_jelly_bloom":      (  95,   80),   # 무광층 — 등불 떼
+    "spot_vent_garden":      (-140,  120),   # 무광층 — 열수구 정원
+    "spot_brine_lake":       ( 170,  175),   # 무광층 바닥 — 물속의 호수
+    "spot_whale_fall":       (  60,  230),   # 해구 입구 — 가라앉은 큰 것
+}
+# 해금 조건의 정본은 서버 표(DECISIONS 2026-09-20). 값은 `data/spots_deep.json` 의 unlock 을 그대로
+# 옮겼다 — 시나리오가 정한 숫자를 바꾸지 않고 정본 자리만 서버로 가져온 것이다(밸런스 변경 아님).
+RUMOR_RULES_DEEP: dict[str, dict] = {
+    "spot_vent_garden":      {"categories": ["electronics"], "need": 2},
+    "spot_jelly_bloom":      {"categories": ["stationery"],  "need": 3},
+    "spot_sunken_courtyard": {"categories": ["book"],        "need": 3},
+    "spot_whale_fall":       {"categories": ["food"],        "need": 3},
+    "spot_brine_lake":       {"categories": ["drink"],       "need": 3},
+    "spot_kelp_ceiling":     {"categories": ["apparel"],     "need": 4},
+}
+SPOT_POS.update(SPOT_POS_DEEP)
+RUMOR_RULES.update(RUMOR_RULES_DEEP)
+
+
+def spot_pos_of(sid: str, spot: dict | None = None) -> tuple[int, int] | None:
+    """스팟 좌표. 표가 정본이고, 표에 없으면 파일의 pos{x,y} 또는 pos{x,depth} 를 받아 준다
+    (심해 6곳이 들어오는 날 화면이 바로 켜지게. 값이 없으면 None → 클라이언트가 안 그린다)."""
+    if sid in SPOT_POS:
+        return SPOT_POS[sid]
+    p = (spot or {}).get("pos")
+    if isinstance(p, dict):
+        x, y = p.get("x"), (p.get("y") if p.get("y") is not None else p.get("depth"))
+        if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+            return (int(x), int(y))
+    return None
 CAT_KO = {"food": "식품", "drink": "음료", "medical": "의약·화학", "electronics": "전자", "stationery": "문구",
           "book": "도서", "apparel": "의류", "tobacco": "담배·주류", "unknown": "정체불명"}
 
@@ -331,6 +386,8 @@ def new_state() -> dict:
         "recent_events": [],
         "today_event": None,    # {"day":n, "event_id":..., "resolved":bool, "countered":bool}
         "hardcore": False,
+        # 지금 있는 막. 1 심해 유리돔(1막) / 2 침수 터널 / 3 지상. DECISIONS 2026-09-23 — 오늘의 사건 풀을 이 값이 고른다
+        "act": 1,
         "blueprint_progress": 0,
         "seen_events": [],      # 이미 한 번 나온 사건 id. 부족 첫 접촉(tribe_*)은 여기 있으면 다시 뽑지 않는다
         "rumors_seen": [],      # 이미 해금한 힐링 스팟 단서 id
@@ -390,6 +447,8 @@ def migrate_state(st: dict) -> bool:
     for key in ("seen_events", "rumors_seen", "morning_pending"):
         if not isinstance(st.get(key), list):
             st[key] = []; changed = True
+    if st.get("act") not in ACTS:        # 구버전 방주는 전부 1막(심해)에서 시작한다
+        st["act"] = 1; changed = True
     te = st.get("today_event")
     if te and te.get("event_id") and te["event_id"] not in st["seen_events"]:
         st["seen_events"].append(te["event_id"]); changed = True     # 이미 겪은 오늘의 사건은 겪은 것으로
@@ -399,9 +458,14 @@ def migrate_state(st: dict) -> bool:
 # ─────────────────────────────────────────────────────────────
 # 두 AI의 목소리 (data/dialogue.json 의 when 태그)
 # ─────────────────────────────────────────────────────────────
-def voice_for(tag: str, seed: str, who: str | None = None) -> dict | None:
-    """상황 태그에 맞는 한 줄. 같은 입력이면 같은 줄(D6: 시드 결정성)."""
+def voice_for(tag: str, seed: str, who: str | None = None, act: int | None = None) -> dict | None:
+    """상황 태그에 맞는 한 줄. 같은 입력이면 같은 줄(D6: 시드 결정성).
+    act 를 주면 그 막에서 할 수 있는 말만 남긴다. acts 가 없는 줄은 전 막 공용이므로
+    시나리오가 값을 채우기 전에도 지금과 똑같이 동작한다(줄이 갑자기 사라지지 않는다)."""
     pool = [ln for ln in VOICE_LINES.get(tag, []) if who is None or ln["who"] == who]
+    if act in (1, 2, 3):
+        in_act = [ln for ln in pool if act in ln.get("acts", [1, 2, 3])]
+        pool = in_act or []        # 그 막에서 할 말이 없으면 **말하지 않는다**(엉뚱한 막의 대사보다 침묵이 낫다)
     if not pool:
         return None
     rng = random.Random(f"voice|{seed}|{tag}")
@@ -669,9 +733,48 @@ def tick_production(st: dict) -> dict:
 
 
 def ark_state_obj(st: dict) -> ArkState:
-    return ArkState(day=day_of(st), resources=dict(st["resources"]), rooms=[r["id"] for r in st["rooms"]],
+    return ArkState(day=day_of(st), act=int(st.get("act") or 1),
+                    resources=dict(st["resources"]), rooms=[r["id"] for r in st["rooms"]],
                     residents=st["residents"], injured=st["injured"], recent_events=list(st["recent_events"]),
                     hardcore=st["hardcore"])
+
+
+# ── 공기·깊이 게이지 ─────────────────────────────────────────
+# SCRIPT_first_10min_deep.md 3:00 비트와 시나리오 요청: **숫자가 아니라 줄어드는 띠**.
+# 원정 시스템이 아직 없으므로 공기는 고정값이고(fixed=true), 깊이는 이미 존재하는 것
+# (가장 깊은 방의 층)에서 나온다 — 고정값을 띄우면 아래로 증축했는데 깊이가 그대로인
+# 거짓말이 화면에 남는다(D2: 모든 숫자는 화면의 무엇으로 보인다).
+FLOOR_SLOTS = 2             # 한 층에 방 2칸. index.html·base.js 와 같은 규약(slot // 2 = 층)
+DOME_FLOOR = 1              # 깊이 0 m 의 층 = 시작 방(slot 2)이 있는 층. 그 위 슬롯 0·1 은 돔 상부다
+DEPTH_PER_FLOOR = 60        # 층 하나 = 60 m. static/base.js 의 같은 상수와 맞춘다
+DEPTH_ZONES = ((0, "무광층"), (150, "해구 문턱"), (210, "해구"))   # static/base.js ZONES 와 같은 경계(m)
+AIR_FIXED = 0.82            # ★ 원정(공기 소모)이 생기면 실제 값으로 바뀐다. 지금은 UI 자리만
+
+
+def depth_zone(m: int) -> str:
+    name = DEPTH_ZONES[0][1]
+    for edge, ko in DEPTH_ZONES:
+        if m >= edge:
+            name = ko
+    return name
+
+
+def gauges_of(st: dict) -> dict:
+    deepest = max([r["slot"] // FLOOR_SLOTS for r in st["rooms"]] or [DOME_FLOOR])
+    floors = deepest + 1
+    depth_m = max(0, deepest - DOME_FLOOR) * DEPTH_PER_FLOOR
+    depth_max = (SLOTS // FLOOR_SLOTS - 1 - DOME_FLOOR) * DEPTH_PER_FLOOR
+    return {
+        # value 는 0~1. 클라이언트는 이 값을 **띠의 길이**로만 쓴다(숫자로 찍지 않는다)
+        "air":   {"ko": "공기", "value": AIR_FIXED, "fixed": True,
+                  "note": "원정 시스템 전까지 고정 — UI 자리만"},
+        "depth": {"ko": "깊이", "value": (depth_m / depth_max) if depth_max else 0.0, "fixed": False,
+                  "m": depth_m, "max_m": depth_max, "floors": floors, "zone": depth_zone(depth_m)},
+        # 「먼 울음」 간격(초). PM 2026-09-26 커브: 90초에서 시작해 한 층 내려갈 때마다 5초씩, 하한 40초.
+        # 내려갈수록 가까워진다 = 성장 방향이 아래라는 결정과 같은 말이다. **정체는 1막에서 밝히지 않는다** —
+        # 서버는 간격만 내려보내고 이름도 설명도 붙이지 않는다. 사운드 층이 붙는 날 이 값을 그대로 쓰면 된다.
+        "far_call_sec": max(40, 90 - 5 * max(0, deepest - DOME_FLOOR)),
+    }
 
 
 def public_state(st: dict, uid: str) -> dict:
@@ -681,7 +784,10 @@ def public_state(st: dict, uid: str) -> dict:
         "day": day_of(st), "resources": st["resources"], "rooms": st["rooms"], "residents": st["residents"],
         "injured": st["injured"], "hand": st["hand"], "hardcore": st["hardcore"],
         "scans_today": today, "scan_cap": DAILY_SCAN_CAP, "blueprint_progress": st["blueprint_progress"],
-        "today_event": st["today_event"], "slots": SLOTS,
+        "today_event": st["today_event"], "slots": SLOTS, "floor_slots": FLOOR_SLOTS, "dome_floor": DOME_FLOOR,
+        # 막: 오늘의 사건이 어느 풀에서 나왔는지와 같은 값이다(DECISIONS 2026-09-23)
+        "act": int(st.get("act") or 1), "act_ko": ACT_KO.get(int(st.get("act") or 1), ""),
+        "gauges": gauges_of(st),
         "residents_list": st.get("residents_list", []), "effects": role_effects(st),
         # 각인·신뢰 (residents_list[].imprints / .crises / .trust 와 함께 읽는다)
         "imprints_catalog": {i["id"]: {"name": i["name"], "crisis_ko": i.get("crisis_ko"), "visual": i["visual"]["ko"],
@@ -769,14 +875,23 @@ def scan(inp: ScanIn):
     # 스캔은 버튼이 아니라 세계에 물자가 도착하는 장면이다(WORLD_PRESENTATION §1-3) → 두 AI 중 하나가 한 줄 읊는다
     vseed = f"{inp.uid}|{code}|{today}"
     cat = card.category.value
-    voice = voice_for(f"scan_{cat}", vseed) or voice_for(SCAN_VOICE_FALLBACK.get(cat, ""), vseed)
+    _act = int(st.get("act") or 1)
+    voice = voice_for(f"scan_{cat}", vseed, act=_act) or voice_for(SCAN_VOICE_FALLBACK.get(cat, ""), vseed, act=_act)
     return {"card": card_d, "gained": gained, "rescan_multiplier": mult, "first_time": first_time,
             "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice}
 
 
 @app.get("/api/ark")
-def get_ark(uid: str):
+def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 이 방주의 막(1 심해/2 터널/3 지상)을 바꾼다. 막별 사건 풀 검증용. RELIC_DEV=1 에서만 동작한다.")):
     st = load_state(uid)
+    if debug_act is not None:
+        if not DEV_MODE:
+            raise HTTPException(404, "없는 질의입니다")     # 존재를 알리지 않는다(DECISIONS 2026-09-23)
+        if debug_act not in ACTS:
+            raise HTTPException(400, f"없는 막입니다: {debug_act}")
+        st["act"] = debug_act
+        st["today_event"] = None      # 막이 바뀌면 오늘의 사건도 그 막에서 다시 뽑는다
+        save_state(uid, st)
     produced = tick_production(st)
     day = day_of(st)
     # 각인의 다음 날 아침: 밀린 연출 문장을 한 번만 내려보내고 큐에서 뺀다
@@ -794,8 +909,9 @@ def get_ark(uid: str):
     out["morning_lines"] = morning
     # 목소리: 첫 화면(game_start) > 야간 진입(night). 하루 안에서는 같은 줄(D6)
     out["is_night"] = is_night()
-    out["voice"] = (first_light and voice_for("game_start", f"{uid}|start")) \
-        or (voice_for("night", f"{uid}|{day}") if out["is_night"] else None)
+    _act = int(st.get("act") or 1)
+    out["voice"] = (first_light and voice_for("game_start", f"{uid}|start", act=_act)) \
+        or (voice_for("night", f"{uid}|{day}", act=_act) if out["is_night"] else None)
     return out
 
 
@@ -872,6 +988,7 @@ def event_today(uid: str, debug_force_event: str | None = Query(None, descriptio
     room_ids = [r["id"] for r in st["rooms"]]
     matching = [c["id"] for c in st["hand"] if set(c.get("tags", [])) & set(ev["counter_tags"])]
     return {"event": ev, "state": te, "matching_card_ids": matching,
+            "act": int(st.get("act") or 1), "event_acts": acts_of(ev),
             "room_backup": bool(ev.get("counter_room") and ev["counter_room"] in room_ids)}
 
 
@@ -958,10 +1075,12 @@ def event_resolve(inp: ResolveIn):
             "new_imprints": new_imprints, "trust_delta": TRUST_ON_COUNTER if countered else TRUST_ON_FAIL,
             "participants": [{"id": r["id"], "name": r["name"], "role_ko": r.get("evolved_ko") or r.get("role_ko")}
                              for r in participants],
-            "voice": voice_for("event_counter" if countered else "event_fail", f"{seed}|{ev['id']}"),
+            "voice": voice_for("event_counter" if countered else "event_fail", f"{seed}|{ev['id']}",
+                               act=int(st.get("act") or 1)),
             # 스팟 단서를 얻은 날에는 물에 비친 문장이 한 줄 더 온다 (WORLD_PRESENTATION §2-8)
-            "spot_voice": (voice_for("spot_water_reflection", f"{seed}|spot")
-                           or voice_for("spot_found", f"{seed}|spot")) if applied.get("spot_clue") else None,
+            "spot_voice": (voice_for("spot_water_reflection", f"{seed}|spot", act=int(st.get("act") or 1))
+                           or voice_for("spot_found", f"{seed}|spot", act=int(st.get("act") or 1)))
+                          if applied.get("spot_clue") else None,
             "state": public_state(st, inp.uid)}
 
 
@@ -996,7 +1115,7 @@ def rumors(uid: str):
             # 스팟이 4곳 있다. 예전에는 조건을 못 채운 줄로 되돌아가 **아직 얻지 않은 지식이 적힌 소문**을
             # 읽혔다. 이제는 조건 없는 spots.json 의 clue_text 로 물러난다(수치는 시나리오 확인 대기).
             pick = random.Random(f"{uid}|{sid}|rumor").choice(ready) if ready else None
-        x, y = SPOT_POS.get(sid, (0, 0))
+        x, y = spot_pos_of(sid, spot) or (0, 0)
         out.append({
             "spot_id": sid, "name": spot.get("name"),
             "clue_text": (pick or {}).get("text") or (spot.get("clue_text") if unlocked else None),
@@ -1032,13 +1151,15 @@ def spots(uid: str | None = None):
         gate = spot_gate(sid, spot)
         have = sum(counts.get(c, 0) for c in gate["categories"]) if gate else 0
         unlocked = bool(uid) and bool(gate) and have >= gate["need"]
-        x, y = SPOT_POS.get(sid, (0, 0))
+        pos = spot_pos_of(sid, spot)
+        x, y = pos or (0, 0)
         out.append({
             "id": sid, "name": spot.get("name"),
             "discovery_text": spot.get("discovery_text"),
             "resource": spot.get("resource"), "danger_note": spot.get("danger_note"),
             "tribe_hint": spot.get("tribe_hint"),
-            "pos": {"x": x, "y": y}, "has_pos": sid in SPOT_POS,
+            "pos": {"x": x, "y": y}, "has_pos": pos is not None,
+            "act": 1 if spot.get("_src") == "spots_deep.json" else 3,
             "unlocked": unlocked, "rumor_seen": sid in seen,
             "progress": ({"have": min(have, gate["need"]), "need": gate["need"]} if gate else None),
             "gate": ({"categories": gate["categories"],
@@ -1096,7 +1217,7 @@ def stats(all: bool = False):
 async def no_cache(request, call_next):
     """Phase 0: 정적 파일 캐시 금지 (테스터 브라우저가 옛 JS/CSS/타일을 붙잡는 문제 방지)."""
     resp = await call_next(request)
-    if request.url.path == "/" or request.url.path.startswith("/static"):
+    if request.url.path in ("/", "/base") or request.url.path.startswith("/static"):
         resp.headers["Cache-Control"] = "no-store, max-age=0"
     return resp
 
@@ -1110,6 +1231,18 @@ def index():
         if p.exists():
             html = html.replace(f"/static/{name}\"", f"/static/{name}?v={int(p.stat().st_mtime)}\"")
     from fastapi.responses import HTMLResponse
+    return HTMLResponse(html)
+
+
+@app.get("/base")
+def base_screen():
+    """1막 거점 화면 — 정면 평면 단면(DECISIONS 2026-09-23). index 와 같은 방식으로 정적 링크에 버전을 붙인다."""
+    from fastapi.responses import HTMLResponse
+    html = (ROOT / "static" / "base.html").read_text(encoding="utf-8")
+    for name in ("base.css", "base.js"):
+        p = ROOT / "static" / name
+        if p.exists():
+            html = html.replace(f"/static/{name}\"", f"/static/{name}?v={int(p.stat().st_mtime)}\"")
     return HTMLResponse(html)
 
 

@@ -1,0 +1,155 @@
+{
+ "cell": 256,
+ "ppm": 110.0,
+ "baseline": 240,
+ "ortho": 2.3273,
+ "view": "front_ortho",
+ "note": "cell 좌상단 기준. 발 기준선은 셀 위에서 baseline px.",
+ "clips": [
+  "Idle",
+  "Walk",
+  "PickUp"
+ ],
+ "rows": {
+  "Idle": 0,
+  "Walk": 1,
+  "PickUp": 2
+ },
+ "frames": 5,
+ "clip_range": null,
+ "variants": {
+  "a": "렌더 그대로(부드러운 음영·옅은 선) — 비교용 한 벌",
+  "b": "평면 민속화풍 — 팔레트 강제·음영 2단·역할별 반복 무늬·흔들리는 선"
+ },
+ "palette": {
+  "cream": [
+   "#F2E7CE",
+   "#B39A70"
+  ],
+  "ochre": [
+   "#E4B453",
+   "#8E5F1B"
+  ],
+  "burnt": [
+   "#DC7728",
+   "#84360F"
+  ],
+  "oxblood": [
+   "#B03A24",
+   "#5C170F"
+  ],
+  "olive": [
+   "#8D8F4A",
+   "#464821"
+  ],
+  "umber": [
+   "#96703F",
+   "#49331D"
+  ],
+  "charcoal": [
+   "#39312A",
+   "#15110E"
+  ]
+ },
+ "line_color": "#12100D",
+ "sheet": "static/art/chars/front/<a|b>/<role>.png",
+ "hero": [
+  "scout",
+  "medic",
+  "kid",
+  "engineer"
+ ],
+ "imprint_example": {
+  "ids": [
+   "warden",
+   "footprint",
+   "empty_stomach"
+  ],
+  "roles": [
+   "cook",
+   "scout"
+  ]
+ },
+ "roles": {
+  "scout": {
+   "h": 1.6812,
+   "px": 184.9,
+   "blend": "BlueSoldier_Male",
+   "threshold": 0.557,
+   "motif": "hatch",
+   "motif_ko": "빗금(기운 자국)",
+   "norm_h": 1.6,
+   "folk_render": true
+  },
+  "cook": {
+   "h": 1.9727,
+   "px": 217.0,
+   "blend": "Chef_Hat",
+   "threshold": 0.72,
+   "motif": "dots",
+   "motif_ko": "박음질 점",
+   "norm_h": 1.6,
+   "folk_render": true
+  },
+  "medic": {
+   "h": 1.6216,
+   "px": 178.4,
+   "blend": "Doctor_Female_Young",
+   "threshold": 0.72,
+   "motif": "cross",
+   "motif_ko": "십자 박음",
+   "norm_h": 1.58,
+   "folk_render": true
+  },
+  "engineer": {
+   "h": 1.6627,
+   "px": 182.9,
+   "blend": "Casual2_Male",
+   "threshold": 0.561,
+   "motif": "zig",
+   "motif_ko": "지그재그 이음매",
+   "norm_h": 1.62,
+   "folk_render": true
+  },
+  "farmer": {
+   "h": 1.8025,
+   "px": 198.3,
+   "blend": "Cowboy_Male",
+   "threshold": 0.718,
+   "motif": "saw",
+   "motif_ko": "톱니",
+   "norm_h": 1.6,
+   "folk_render": true
+  },
+  "scholar": {
+   "h": 1.6011,
+   "px": 176.1,
+   "blend": "Casual_Female",
+   "threshold": 0.69,
+   "motif": "bars",
+   "motif_ko": "세로 이중선",
+   "norm_h": 1.56,
+   "folk_render": true
+  },
+  "trader": {
+   "h": 1.6627,
+   "px": 182.9,
+   "blend": "Casual3_Male",
+   "threshold": 0.69,
+   "motif": "diamond",
+   "motif_ko": "마름모",
+   "norm_h": 1.62,
+   "folk_render": true
+  },
+  "kid": {
+   "h": 1.2074,
+   "px": 132.8,
+   "blend": "Casual_Bald",
+   "threshold": 0.72,
+   "motif": "rings",
+   "motif_ko": "따개비 고리",
+   "norm_h": 1.2,
+   "folk_render": true
+  }
+ }
+}

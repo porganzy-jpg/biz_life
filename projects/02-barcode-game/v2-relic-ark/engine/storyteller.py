@@ -22,6 +22,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 @dataclass
 class ArkState:
     day: int = 1
+    act: int = 1                                       # 1 심해 / 2 터널 / 3 지상 (DECISIONS 2026-09-23)
     resources: dict = field(default_factory=lambda: {
         "food": 5, "water": 5, "med": 0, "power": 0, "parts": 0,
         "morale": 5, "cloth": 0, "trade": 0, "knowledge": 0, "scrap": 0,
@@ -43,6 +44,69 @@ EVENT_REQUIRED = ("id", "name", "faction", "severity", "text", "counter_tags", "
 #   events_outside.json— 바깥(공룡·원정·스팟 단서)
 #   events_deep.json   — 1막 심해(유리돔·깊이 4구역·큰 것들). 2026-09-22 결정으로 1막이 심해가 됐다
 EVENT_FILES = ("events.json", "events_tribes.json", "events_outside.json", "events_deep.json")
+
+
+# ─────────────────────────────────────────────────────────────
+# 막(acts) — DECISIONS 2026-09-23
+#   1 심해 유리돔 / 2 침수 지하철 터널 / 3 지상 쇼핑몰. [1,2,3] 이면 어디서나.
+#   정본은 카드 파일의 `acts` 배열(data/events_schema.json)이고, **파일이 언제나 이긴다.**
+#   아래 표는 시나리오가 값을 적기 전까지의 **임시 분류표**다. 파일에 acts 가 들어오면
+#   그 카드는 이 표를 쳐다보지도 않는다(acts_of() 첫 줄).
+# ─────────────────────────────────────────────────────────────
+ACT_DEEP, ACT_TUNNEL, ACT_SURFACE = 1, 2, 3
+ALL_ACTS = (1, 2, 3)
+
+# 접두어 규칙: deep_* 는 1막, dino_* 와 부족 카드(tribe_*)는 3막(지상 콘텐츠로 유지).
+# 2026-09-26(S4-C 이후): 사건 60장 **전부** 파일에 acts 가 들어와 아래 두 표는 지금 한 장도 타지 않는다.
+# 지우지 않고 남기는 이유는 안전망이다 — acts 없는 카드가 새로 들어올 때 dino_/tribe_ 가 1막으로
+# 새지 않게 막는다(그 사고가 dev_S3 R7 이었다). 파일이 언제나 이기므로 시나리오 작업을 방해하지 않는다.
+ACT_BY_PREFIX = (("deep_", (1,)), ("dino_", (3,)), ("tribe_", (3,)))
+
+# id 별 규칙(접두어보다 먼저 본다). events.json 10장 중 **장소를 타지 않는 것**
+# (질병·물·굶주림·불신 계열)만 전 막 공용으로 둔다 — 나머지는 본문이 장소를 말한다.
+ACT_BY_ID = {
+    "infection":  ALL_ACTS,   # 포자·질병: 돔 이음매에서도 같은 일이 난다
+    "famine":     ALL_ACTS,   # 굶주림: 빈 항아리는 어디서나 빈다
+    "drought":    ALL_ACTS,   # 물탱크 균열: 심해에서 마실 물은 더 절실하다
+    "confusion":  ALL_ACTS,   # 성문 오독: 바코드를 읽는 한 어느 막에서도 난다
+    "cold_snap":  (2, 3),     # "밤 기온" — 공기가 있는 곳의 사건
+    "drifter":    (2, 3),     # "잠든 철길 쪽에서 걸어왔다"
+    "relic_cache": (2, 3),    # "콘크리트 아래 굴착"
+    "raid_scavs": (2, 3),     # "회색 개들" — 물속엔 개가 없다(심해 약탈은 deep_cut_moorings)
+    "machine_patrol": (3,),   # 빛의 사원 경비 드론(심해 기계는 deep_dock_arms)
+    "mutant_magpie":  (3,),   # 까치 떼
+    "expedition_late_return": (2, 3),   # 빛 게이지 = 해가 있는 곳
+    "wet_paws_at_dawn": (3,),
+    "crow_paper_scrap": (3,),
+}
+
+_UNCLASSIFIED: set = set()      # acts 도 없고 표에도 없는 카드. 한 번만 알린다
+
+
+def acts_of(event: dict) -> list[int]:
+    """이 카드가 나올 수 있는 막. 파일의 acts > id 표 > 접두어 > (모름이면) 전 막 공용.
+    모르는 카드를 1막에서 지워 버리는 대신 전 막 공용으로 두는 이유: **안 나오는 카드는
+    화면에서 사라져 아무도 못 본다**(D4 막힘은 버그). 대신 목록을 표준출력에 남긴다."""
+    raw = event.get("acts")
+    if isinstance(raw, list):
+        vals = sorted({int(a) for a in raw if isinstance(a, (int, float)) and int(a) in ALL_ACTS})
+        if vals:
+            return vals
+    eid = event.get("id", "")
+    if eid in ACT_BY_ID:
+        return list(ACT_BY_ID[eid])
+    for prefix, acts in ACT_BY_PREFIX:
+        if eid.startswith(prefix):
+            return list(acts)
+    if eid and eid not in _UNCLASSIFIED:
+        _UNCLASSIFIED.add(eid)
+        print(f"[storyteller] acts 미지정 카드 → 전 막 공용으로 둔다: {eid}")
+    return list(ALL_ACTS)
+
+
+def events_for_act(act: int, events: list[dict] | None = None) -> list[dict]:
+    """그 막에서 뽑힐 수 있는 카드만. 1막 풀 크기 점검(시뮬레이션)에도 쓴다."""
+    return [e for e in (events if events is not None else load_events()) if act in acts_of(e)]
 
 
 def load_events(files: tuple | list = EVENT_FILES) -> list[dict]:
@@ -122,6 +186,13 @@ def pick_event(ark: ArkState, events: list[dict] | None = None, rng: random.Rand
     게임이 멈추지 않도록 원래 풀로 되돌아간다."""
     events = events or load_events()
     rng = rng or random.Random()
+    # 막 필터가 먼저다 — 1막(심해)에 육상 공룡·부족 카드가 섞이던 결함(dev_S3 R7)의 교정.
+    # 그 막의 카드가 하나도 없으면 게임을 멈추는 대신 전체 풀로 되돌아간다(막힘은 버그).
+    in_act = [e for e in events if ark.act in acts_of(e)]
+    if in_act:
+        events = in_act
+    else:
+        print(f"[storyteller] {ark.act}막 카드가 0장이라 전체 풀로 되돌아간다")
     if exclude:
         pool = [e for e in events if e["id"] not in exclude]
         if pool:
@@ -152,9 +223,14 @@ def resolve(event: dict, ark: ArkState, countered: bool) -> dict:
 
 
 if __name__ == "__main__":
-    # 7일 시뮬레이션: 의무실 없는 방주가 어떤 사건을 겪는지 본다
+    # 막별 카드 풀 크기 (DECISIONS 2026-09-23: 1막은 최소 24장이 목표)
+    _all = load_events()
+    for a in ALL_ACTS:
+        pool = events_for_act(a, _all)
+        print(f"  {a}막 풀 {len(pool):>2}장 / 전체 {len(_all)}장")
+    # 7일 시뮬레이션: 의무실 없는 방주가 어떤 사건을 겪는지 본다 (1막 기준)
     rng = random.Random(880)
-    ark = ArkState(rooms=["pantry", "well"])
+    ark = ArkState(rooms=["pantry", "well"], act=1)
     for d in range(1, 8):
         ark.day = d
         ev = pick_event(ark, rng=rng)
