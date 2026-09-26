@@ -41,6 +41,10 @@
 - [개발(시스템)→사운드] 오디오 버스·트리거 연결은 S2-B 범위 밖(스프린트 3). 현재 서버가 이미 내보내는 신호: `/api/scan.voice`, `/api/event/resolve.voice|spot_voice`, `/api/ark.is_night|voice|morning_lines`.
 
 - [배경→개발] S2-D 에셋 배치 규약(경로 / 파사드 원점=입구 바닥 중심·정면 Three +Z / 힐링 스팟 물 재질명 `Water` / `koi_1~5` 좌표 / 문간 마커 `marker_threshold` / 금붕어 빈 수면 6×4m 좌표)은 `docs/reports/bg_S2.md` §7에 정리했습니다. `static/world3d.js`는 개발 소유라 손대지 않았습니다.
+- [캐릭터(S4-C)→PM] **판단 요청**: `static/charshow2d.html` 의 §3(70px)만 보고 A안/B안을 정해 주세요. 캐릭터 담당 추천은 **B안(납작한 그림체)** — 근거는 `docs/reports/char_S4.md` §6. 채택되면 후처리가 정식 파이프라인이 되고, A안은 아이소(2·3막)용으로 남습니다.
+- [캐릭터(S4-C)→개발] 정면 단면용 스프라이트 시트 규약: `static/art/chars/front/<a|b>/<role>.png` (셀 256px · 가로=프레임 5 · 세로=클립 Idle/Walk/PickUp). 메타는 `static/art/chars/front/front_meta.json`. **미터당 110px 고정 · 발 기준선 = 셀 위에서 240px**. 클라이언트는 `scale = 원하는1.6m높이 / 176` 하나만 쓰면 8역할 키 비율이 자동으로 맞습니다(아이 1.21m는 실제로 작게 나옵니다). 셀을 세로로 잘라 바닥에 맞추지 말고, 셀 바닥을 바닥선보다 `16*scale` px 아래에 두세요.
+- [캐릭터(S4-C)→배경] `section_hero.png` 의 방 뒷벽(#e4ce9a)·바닥(#5f5953)·어두운 구석(#1a180d) 색을 그대로 써서 검증했습니다. **요청**: 방 안 벽과 바닥의 명도 차가 지금처럼 크면(0.89 ↔ 0.10) 한 인물의 상반신과 다리가 정반대 대비 환경에 놓입니다. 사람이 서는 띠(바닥에서 위로 약 1.7m)만이라도 명도 폭을 0.35~0.65로 좁혀 주시면 캐릭터 가독성이 크게 올라갑니다.
+- [캐릭터(S4-C)→PM·시나리오] **정면 단면의 제약 발견**: 깊이 방향(카메라 쪽으로 숙이는) 동작은 읽히지 않습니다. `PickUp` 을 전 구간 쓰면 얼굴이 사라지고 덩어리가 됩니다(비교 페이지 §5 '실패 컷'). 1막 거점의 일하는 동작은 **좌우·상하 동작으로 다시 설계**해야 합니다(팔을 옆으로 뻗기, 쭈그려 앉기, 물건을 옆으로 옮기기). 사건·대사에서 "몸을 숙여 ~을 줍는다" 류의 묘사를 화면으로 보여줄 계획이라면 미리 알려 주세요.
 - [배경→PM] 시나리오 중계 3건(빛기둥 구멍 / 사람이 서는 문간 / 금붕어 빈 수면)은 `spot_flooded_train.glb`에 **전부 반영**했습니다(보고서 §7-5).
 
 - [시나리오(S3-A)→개발] `data/events_deep.json`(16장) 신규. 서버 EVENTS 병합 목록에 추가해 주세요(현재 `events.json`+`events_tribes.json`+`events_outside.json`만 읽는지 확인 필요). 스키마·id 유일성은 검증 완료(보고서 `scenario_S3.md` §3).
@@ -72,6 +76,22 @@
 | S3-PM | PM | S3-A/B 검수, 사용자에게 첫 화면 후보 제시, 2막(터널) 연결 설계, 기존 육상 에셋의 2·3막 재배치 표 | `docs/reports/review_sprint3.md` | 사용자가 첫 화면을 보고 판단할 수 있는 상태 |
 
 기존 육상 자산의 재배치(폐기 0): 몰 파사드·물에 잠긴 전철·일곱 부족·공룡·`world.html` 지형 → **3막 지상**. 침수 지하철 터널 → **2막 연결부**(신규).
+
+
+## 스프린트 4 (2026-09-26 착수) — "심해 1막이 목표 화풍으로 보이고, 막이 갈린다"
+목표 한 문장: **평면 단면 거점 화면을 목표 화풍(평면 민속화풍)으로 세우고, 1막 카드 풀을 분리한다.**
+근거: `docs/refs/REF_ART_FLAT_FOLK.md`, `docs/refs/REF_CROSS_SECTION.md`, `DECISIONS.md` 2026-09-23.
+
+| 태스크 | 담당 | 내용 | 산출물 | 완료 기준 |
+|---|---|---|---|---|
+| S4-A | 배경 | 평면 단면 렌더 완성. sRGB/선형 버그 수정 + HANDOFF §3.5 지적 5건 + **목표 화풍 적용**(음영 2단·흙 팔레트·장식 무늬·손그림 선·단색 면 배경) | `tools/blender_section.py`, `section_hero/zoom/palette.png`, `docs/reports/bg_S4.md` | 거점 전체가 한 장에, 방이 색과 무늬로 구분, 위→아래 어두워짐, 우주로 안 보임, 가장 밝은 것은 방 등불 |
+| S4-B | 개발 | **`acts` 막 구분**(1심해/2터널/3지상/[1,2,3]공용) + **`static/base.html` 평면 단면 화면 뼈대** + 공기 게이지 자리 + spots_deep 자동 연결 준비 | `server.py`, `engine/`, `static/base.html`·`base.js`, `docs/reports/dev_S4.md` | 회귀 7항목, 1막 풀 24장 이상 확인, 폰 세로·데스크톱 스크린샷, 콘솔 에러 0 |
+| S4-C | 시나리오 | `data/spots_deep.json` 신설(6곳) + 소문 결함 4스팟 수정 + 「두드림을 들은 자」 각인 완성 + 심해 카드 `tribe`·`acts` 기입 | 위 파일 + `docs/reports/scenario_S4.md` | JSON 유효·금지어 0·스팟마다 즉시 읽히는 줄 1개 이상·1막 24장 |
+| S4-D | 사운드 | 심해 앰비언트 3 + **에어락에서 리더 목소리가 끊기는 전환** + SFX 5 + 발견 큐 + 「먼 울음」(정체 봉인) | `static/audio/*.ogg`, `AUDIO_CUES.md` 심해 절, `docs/reports/sound_S4.md` | 심해분 ≤2MB, 스펙트럼 중심 돔 안 < 바깥 < 해구 |
+| S4-E | 캐릭터 | 정면 2D 스프라이트 화풍 확정(A/B/덩어리 비교, 70·110px 가독성) → **대표 캐릭터 4종 쇼케이스** | `tools/render_sprites.py`, `static/charshow2d.html`, `docs/reports/char_S4.md` | 70px에서 역할 구분, 어두운 방 배경에서 안 묻힘, 팔레트 띠 포함 |
+| S4-PM | PM | 검수(재현), 화풍 일관성 판정(배경과 캐릭터가 같은 팔레트인가), 통합, 사용자에게 대표 캐릭터·단면 화면 제시 | `docs/reports/review_sprint4.md` | 체크리스트 + "더 재미있게 했는가" |
+
+병렬 안전성: 소유 파일이 겹치지 않는다. 배경=`blender_section.py`·`art/deep`, 캐릭터=`render_sprites.py`·`art/chars`, 개발=`server.py`·`engine`·`base.html`·`*_schema.json`, 시나리오=`data/` 내용 파일, 사운드=`audio/`. 개발은 내용 파일을 런타임 병합으로만 건드린다.
 
 ## 스프린트 3 후보(미배정)
 - [개발, **필수**] `/api/spots` 신설 — `data/spots.json`이 브라우저에 닿지 못해 발견 텍스트가 world3d.js 상수로 박혀 있다(D7 위반). 데이터는 API로만.
