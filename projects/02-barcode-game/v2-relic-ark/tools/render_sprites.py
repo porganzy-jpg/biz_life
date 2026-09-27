@@ -191,9 +191,10 @@ def run_render():
                 continue
             mn = (o.data.materials[0].name or "").split('.')[0]
             if mn == "eye_white":
-                o.scale = tuple(c * 0.44 for c in o.scale)
+                o.scale = tuple(c * 0.52 for c in o.scale)
             elif mn == "eye":
-                o.scale = tuple(c * 0.86 for c in o.scale)
+                # 흰자보다 크면 동공이 뺨으로 흘러내린 것처럼 보인다(10회차에서 발견)
+                o.scale = tuple(c * 0.56 for c in o.scale)
         nk = m.bone_pos(arm, "Neck")
         hp = m.bone_pos(arm, "Hips")
         # (2) §3 번역: 털 목도리 → 잠수복 목 실링 고무테. 같은 물결의 반복 3겹
@@ -215,14 +216,19 @@ def run_render():
         #     원작의 새 두개골·부리 형태는 쓰지 않는다(REF §6). 명백한 기계 배관으로 번역.
         if role == "scout":
             hd = m.bone_pos(arm, "Head")
-            hm = m.mat("folk_helm", "#8A7A5E", 0.45, 0.35)
+            hm = m.mat("folk_helm", "#655C50", 0.45)      # 흙 계열로 스냅 → 돔
+            vz = m.mat("folk_visor", "#8A7A5E", 0.4, 0.3)  # 황토 계열로 스냅 → 면갑(밝게 떨어진다)
             dk = m.mat("folk_helmdk", "#3B3025", 0.7)
             m.ball(arm, "Head", hm, (hd.x, hd.y + 0.010 * u, hd.z + 0.345 * u),
                    (0.530 * u, 0.520 * u, 0.440 * u))
-            m.box(arm, "Head", hm, (hd.x, hd.y - 0.205 * u, hd.z + 0.500 * u),
-                  (0.385 * u, 0.150 * u, 0.030 * u), rot=(math.radians(-52), 0, 0))
-            m.box(arm, "Head", dk, (hd.x, hd.y - 0.165 * u, hd.z + 0.450 * u),
-                  (0.400 * u, 0.030 * u, 0.030 * u))
+            # 들어 올린 면갑 — 이마 위로 젖혀 세운 판. 얼굴을 덮지 않는다(REF §1-8 의 원리만)
+            m.box(arm, "Head", vz, (hd.x, hd.y - 0.175 * u, hd.z + 0.605 * u),
+                  (0.430 * u, 0.235 * u, 0.034 * u), rot=(math.radians(-34), 0, 0))
+            m.box(arm, "Head", dk, (hd.x, hd.y - 0.150 * u, hd.z + 0.470 * u),
+                  (0.450 * u, 0.034 * u, 0.034 * u))       # 경첩
+            for sx in (-1, 1):                              # 면갑 걸쇠 두 개
+                m.box(arm, "Head", dk, (hd.x + sx * 0.205 * u, hd.y - 0.150 * u, hd.z + 0.520 * u),
+                      (0.030 * u, 0.030 * u, 0.110 * u))
             m.tube(arm, "Head", dk, (hd.x + 0.230 * u, hd.y + 0.060 * u, hd.z + 0.315 * u),
                    0.027 * u, 0.175 * u, rot=(math.radians(26), 0, 0))
             m.tube(arm, "Head", dk, (hd.x + 0.230 * u, hd.y + 0.015 * u, hd.z + 0.195 * u),
@@ -284,7 +290,49 @@ def run_render():
         sc.render.filepath = path
         bpy.ops.render.render(write_still=True)
 
-    roles = ONLY or ROLE_ORDER
+    def build_octopus():
+        """동거 문어 (WORLD_BIBLE_DEEP §3-4) — 위협이 아니라 식구.
+        아마추어 없이 원시 도형만. 발 원점 z=0, 정면 -Y. 팔레트는 folk_materials 가 입힌다.
+        C5(짐승은 사람보다 따뜻하게·눈은 사람보다 밝게)를 지킨다."""
+        import bpy
+        from mathutils import Vector, Matrix, Euler
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        m.sc = bpy.context.scene
+        body = m.mat("oct_body", "#B24A2E", 0.95)     # 적갈 계열로 스냅된다
+        dark = m.mat("oct_dark", "#5C1A10", 0.95)
+        iris = m.mat("oct_iris", "#E8B24E", 0.4)      # 짐승의 눈은 사람보다 밝게 (C5)
+        pup = m.mat("eye", "#17120f", 0.25)           # 이름 eye → 팔레트에서 검정 유지
+        suck = m.mat("oct_suck", "#EFD9B8", 0.9)
+        def ball(mat, pos, size):
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5, segments=18, ring_count=10)
+            o = bpy.context.object
+            o.matrix_world = (Matrix.Translation(Vector(pos)) @
+                              Matrix.Diagonal(Vector(size).to_4d()))
+            o.data.materials.append(mat)
+            return o
+        # 외투막(머리)
+        ball(body, (0, 0, 0.335), (0.345, 0.325, 0.42))
+        ball(body, (0, 0, 0.175), (0.415, 0.375, 0.30))
+        # 눈 둘 — 크고 밝다
+        for sx in (1, -1):
+            ball(iris, (sx * 0.118, -0.128, 0.310), (0.140, 0.115, 0.140))
+            ball(pup, (sx * 0.121, -0.176, 0.307), (0.078, 0.062, 0.098))
+        # 팔 여덟 — 밖으로 퍼졌다가 바닥에 닿는다. 빨판은 반복 점(§1-5)
+        for k in range(8):
+            th = (k / 8.0) * math.tau + 0.2
+            for j in range(11):
+                t = j / 10.0
+                rad = 0.07 + t * 0.44
+                z = max(0.026, 0.155 - t * 0.135 + 0.075 * math.sin(t * 3.1))
+                sz = 0.125 - t * 0.092
+                ball(body if t < 0.72 else dark,
+                     (math.cos(th) * rad, math.sin(th) * rad, z), (sz, sz, sz * 0.86))
+                if 2 <= j <= 8 and j % 2 == 0 and math.sin(th) < 0.1:
+                    ball(suck, (math.cos(th) * rad, math.sin(th) * rad - sz * 0.48,
+                                z - sz * 0.12), (sz * 0.26, sz * 0.26, sz * 0.26))
+        return 0.52
+
+    roles = [r for r in (ONLY or ROLE_ORDER) if r in m.ROLE_DEF]
     folk = "--folk" in argv or FOLK
     out_root = RAWF if folk else RAW
     meta = {"cell": CELL, "ppm": PPM, "baseline": BASE_Y, "ortho": round(ORTHO, 4),
@@ -330,6 +378,18 @@ def run_render():
             (folk_render if folk else m.render)(os.path.join(rdir, "imp3_0.png"))
             print("RENDERED", role, "imp3", flush=True)
 
+        # 대표 캐릭터 쇼케이스 — 같은 프레이밍으로 해상도만 2배 (512px)
+        if folk and role in HERO:
+            arm, mesh, props, _ = m.build(role, "Idle", 0.0)
+            folk_extras(arm, role); folk_materials()
+            m.RES = CELL * 2
+            front_camera(); front_lights()
+            arm.location = base_loc
+            bpy.context.view_layer.update()
+            folk_render(os.path.join(rdir, "hero_0.png"))
+            m.RES = CELL
+            print("RENDERED", role, "hero512", flush=True)
+
         # 실패 컷 — PickUp 전 구간(0~100%). 비교 페이지 §5 에 "쓰지 않는 이유"로 붙인다.
         if role in IMP_ROLES and not folk:
             arm, mesh, props, _ = m.build(role, "Idle", 0.0)
@@ -342,6 +402,22 @@ def run_render():
                     bpy.context.view_layer.update()
                     m.render(os.path.join(rdir, "blob_%d.png" % i))
                 print("RENDERED", role, "blob", flush=True)
+
+    if folk and (not ONLY or "octopus" in ONLY):
+        odir = os.path.join(out_root, "octopus")
+        os.makedirs(odir, exist_ok=True)
+        h_oct = build_octopus()
+        folk_materials()
+        front_camera(); front_lights()
+        bpy.context.view_layer.update()
+        folk_render(os.path.join(odir, "Idle_0.png"))
+        m.RES = CELL * 2
+        front_camera(); front_lights()
+        folk_render(os.path.join(odir, "hero_0.png"))
+        m.RES = CELL
+        meta["roles"]["octopus"] = {"h": h_oct, "px": round(h_oct * PPM, 1),
+                                    "norm_h": 1.60, "blend": "procedural"}
+        print("RENDERED octopus", flush=True)
 
     os.makedirs(OUT, exist_ok=True)
     mp = os.path.join(out_root, "render_meta.json")
@@ -376,7 +452,7 @@ def run_post():
     SAT = 1.35                     # 환경광에 씻긴 채도를 재질 수준으로 되돌린다(과장 아님)
     WOBBLE = 1.35                  # px (256 기준) — §1-9
     RING_MIN, RING_MAX = 3, 6      # 외곽선 두께 범위 — 자리마다 달라진다
-    GRAIN = 0.085                  # §1-4 종이 결
+    GRAIN = 0.055                  # §1-4 종이 결 (512px 쇼케이스에서 거칠어 0.085→0.055)
 
     def hx(h):
         h = h.lstrip('#')
@@ -449,6 +525,8 @@ def run_post():
         jitfield = (noise(h, w, int(14 * z), seed + 7) - 0.5) * 2.2 * z
         out = arr.copy()
         v = out[..., :3].max(-1)
+        if role not in MOTIF:
+            return arr
         for z_m, kind, bh0 in ((1.030 * u, "wave", 13), (0.345 * u, MOTIF[role], 16)):
             bh = int(round(bh0 * z))
             r0 = int(round((BASE_Y - z_m * PPM) * z - bh / 2))
@@ -539,6 +617,12 @@ def run_post():
                       "folk_render": rb != ra}
         print("SHEET", role, "T=%.3f" % T, MOTIF[role], flush=True)
 
+        hp_ = os.path.join(rb, "hero_0.png")
+        if os.path.exists(hp_):
+            to_img(folk(load(hp_), role, nh, T, seed)).save(
+                os.path.join(OUT, "b", role + "_hero.png"))
+            print("HERO", role, flush=True)
+
         for tag, src in (("imp3", rb), ):
             fp = os.path.join(src, tag + "_0.png")
             if os.path.exists(fp):
@@ -560,6 +644,19 @@ def run_post():
             st.save(os.path.join(OUT, "blob", role + "_pickup_full.png"))
             print("BLOB", role, flush=True)
 
+    # 동거 문어 — 클립 없이 낱장 두 장
+    od = os.path.join(RAWF, "octopus")
+    if os.path.exists(os.path.join(od, "Idle_0.png")):
+        seed = 9001
+        T = threshold(os.path.join(od, "Idle_0.png"))
+        for src, dst in (("Idle_0.png", "octopus_idle.png"), ("hero_0.png", "octopus_hero.png")):
+            fp = os.path.join(od, src)
+            if os.path.exists(fp):
+                to_img(folk(load(fp), "octopus", 1.60, T, seed)).save(os.path.join(OUT, "b", dst))
+        info["octopus"] = {"threshold": round(T, 3), "motif": None, "motif_ko": "-",
+                           "norm_h": 1.60, "folk_render": True}
+        print("OCTOPUS", flush=True)
+
     out_meta = {
         "cell": CELL, "ppm": PPM, "baseline": BASE_Y, "ortho": meta.get("ortho"),
         "view": "front_ortho",
@@ -573,7 +670,8 @@ def run_post():
         "sheet": "static/art/chars/front/<a|b>/<role>.png",
         "hero": HERO,
         "imprint_example": {"ids": IMP_TRIPLE, "roles": [r for r in IMP_ROLES if r in roles]},
-        "roles": {r: dict(meta["roles"][r], **info.get(r, {})) for r in roles},
+        "roles": {r: dict(meta["roles"].get(r, metaf.get("roles", {}).get(r, {})),
+                          **info.get(r, {})) for r in list(roles) + (["octopus"] if "octopus" in info else [])},
     }
     json.dump(out_meta, open(os.path.join(OUT, "front_meta.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)

@@ -320,15 +320,27 @@ def far_silhouettes():
     rnd = random.Random(1234)
     dk = zone_gradient("FarDark", mult=0.55)
     dk2 = zone_gradient("FarDark2", mult=0.72)
-    # 해구 바닥 능선 — 화면 맨 아래를 닫는다. 칠흑보다 아주 조금만 밝아서 윤곽만 읽힌다
-    ridge = []
-    x = -80.0
-    while x < 80.0:
-        w = rnd.uniform(6.0, 15.0); hgt = rnd.uniform(1.4, 4.6)
-        ridge.append([Vector((x, 8.0, -30)), Vector((x + w, 8.0, -30)),
-                      Vector((x + w, 8.0, -12.0 + hgt)), Vector((x, 8.0, -12.0 + hgt))])
-        x += w * 0.92
-    DOME.mesh_of_quads("PRV_ridge", ridge, flat_mat("Ridge", "#050D13")).name = "PRV_ridge"
+    # 해구 바닥 능선 — 화면 맨 아래를 닫는다.
+    # 각진 검은 막대가 되지 않게 좁은 기둥을 촘촘히 세우고 윗변을 부드럽게 잇는다.
+    def ridge_band(y, base_z, amp, step, seed, hexc):
+        r2 = random.Random(seed)
+        ctrl = [r2.uniform(0.0, 1.0) for _ in range(14)]
+        quads = []
+        x = -84.0
+        prev = None
+        while x < 84.0:
+            t = (x + 84.0) / 168.0 * (len(ctrl) - 1)
+            i = int(t); f = t - i
+            f = f * f * (3 - 2 * f)                       # smoothstep
+            hgt = base_z + amp * (ctrl[i] * (1 - f) + ctrl[min(i + 1, len(ctrl) - 1)] * f)
+            if prev is not None:
+                quads.append([Vector((x - step, y, -34)), Vector((x, y, -34)),
+                              Vector((x, y, hgt)), Vector((x - step, y, prev))])
+            prev = hgt; x += step
+        DOME.mesh_of_quads("PRV_ridge", quads, flat_mat("Ridge%d" % seed, hexc)).name = "PRV_ridge"
+
+    ridge_band(9.0, -11.6, 3.2, 0.7, 501, "#04090E")      # 먼 능선
+    ridge_band(3.5, -12.6, 2.1, 0.7, 977, "#010508")      # 가까운 능선, 더 검다
     # 먼 바위 덩어리 — 둥근 것만. 박광층 쪽에만 조금.
     for k in range(7):
         y = rnd.uniform(12.0, 24.0)
@@ -359,8 +371,8 @@ def fish_shoal(cx, cz, n, spread, y, seed, mult=0.50, size=0.32):
 def marine_snow():
     """부유물 — 1차 대비 절반 이하, 반투명, 전부 물빛 계열. 방 불빛보다 절대 밝지 않다(지적 5)."""
     rnd = random.Random(818)
-    tiers = [(10, 0.70, (-8.0, -5.0), "#16323D", 0.060, 1.0),
-             (26, 0.30, (-4.2, -2.2), "#1B3B47", 0.085, 1.4),
+    tiers = [(10, 0.44, (-8.0, -5.0), "#16323D", 0.045, 1.0),
+             (26, 0.24, (-4.2, -2.2), "#1B3B47", 0.070, 1.4),
              (56, 0.125, (4.0, 9.0),  "#20475A", 0.125, 2.0),
              (72, 0.055, (11.0, 21.0), "#12303C", 0.145, 1.6),
              (32, 0.10, (-6.0, -3.0), "#02090D", 0.30, 1.3)]     # 밝은 위쪽 물에서만 보이는 어두운 알갱이
@@ -447,13 +459,13 @@ def motif_teeth(rid, x0, x1, z, m, unit=0.52):
         _bar(rid, x, z + h / 2, 0.24, h, m)
 
 
-def motif_dots(rid, x0, x1, z, m, unit=0.46):
-    """창고 — 점 격자. 세어 놓은 재고."""
+def motif_dots(rid, x0, x1, z, m, unit=0.42):
+    """창고 — 점 격자(정사각). 세어 놓은 재고. 에어락의 마름모와 헷갈리지 않게 회전 없음."""
     n = max(2, int((x1 - x0) / unit))
-    for row, dz in enumerate((0.0, 0.26, 0.52)):
+    for row, dz in enumerate((0.0, 0.24, 0.48)):
         for k in range(n):
-            x = x0 + (k + 0.5) * (x1 - x0) / n + (0.2 if row % 2 else 0.0)
-            _bar(rid, x, z + dz, 0.11, 0.11, m, math.radians(45))
+            x = x0 + (k + 0.5) * (x1 - x0) / n
+            _bar(rid, x, z + dz, 0.13, 0.13, m)
 
 
 def motif_hatch(rid, x0, x1, z, m, unit=0.34):
@@ -465,13 +477,15 @@ def motif_hatch(rid, x0, x1, z, m, unit=0.34):
         _bar(rid, x, z + h / 2, 0.10, h, m)
 
 
-def motif_wave(rid, x0, x1, z, m, unit=0.30):
-    """목욕탕 — 물결. 민물의 사치."""
-    n = max(4, int((x1 - x0) / unit))
-    for k in range(n):
-        x = x0 + (k + 0.5) * (x1 - x0) / n
-        dz = math.sin(k * 0.9) * 0.17
-        _bar(rid, x, z + dz, 0.22, 0.085, m, math.radians(math.cos(k * 0.9) * 34))
+def motif_wave(rid, x0, x1, z, m, unit=0.22):
+    """목욕탕 — 물결. 민물의 사치. 마디가 이어져 한 줄의 파도로 읽혀야 한다."""
+    n = max(6, int((x1 - x0) / unit))
+    for row, dz0 in enumerate((0.0, 0.34)):
+        for k in range(n):
+            x = x0 + (k + 0.5) * (x1 - x0) / n
+            ph = k * 0.62 + row * 1.6
+            dz = math.sin(ph) * 0.15
+            _bar(rid, x, z + dz0 + dz, 0.30, 0.10, m, math.radians(math.cos(ph) * 40))
 
 
 def motif_diamond(rid, x0, x1, z, m, unit=0.76):
@@ -877,6 +891,24 @@ def _char_materials():
     return out
 
 
+LUM_CAP = 0.76           # 등불(1.0)·헤일로보다 항상 어둡게
+
+
+def _palette_clamp(col):
+    """§5 팔레트 규율: 청록~남색은 물 전용. 방·사람·소품에서 몰아낸다.
+    푸른 것은 같은 명도의 황토로, 초록은 탁한 올리브로 돌린다. 명도는 상한을 넘지 않는다."""
+    r, g, b = col
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    if b > r and b >= g:                       # 파랑·청록 → 황토
+        col = (lum * 1.22, lum * 0.98, lum * 0.58)
+    elif g > r * 1.05:                         # 초록 → 탁한 올리브
+        col = (lum * 0.96, lum * 1.08, lum * 0.52)
+    lum = 0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]
+    if lum > LUM_CAP:
+        col = tuple(c * (LUM_CAP / lum) for c in col)
+    return tuple(max(0.0, min(1.0, c)) for c in col)
+
+
 def flatten_materials():
     chars = _char_materials()
     for m in list(bpy.data.materials):
@@ -899,13 +931,14 @@ def flatten_materials():
         except Exception:
             estr, ecol = 0.0, (0, 0, 0)
         if m.name in chars:                       # 사람은 난색 팔레트 안으로 끌어온다(§5)
-            col = tuple(c * 0.35 + w * 0.65 for c, w in zip(col, WARM))
+            col = tuple(c * 0.22 + w * 0.78 for c, w in zip(col, WARM))
             lum = 0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]
-            col = tuple(c * 0.55 + lum * 0.45 for c in col)
+            col = tuple(c * 0.62 + lum * 0.38 for c in col)
             lum = 0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]
-            if lum > 0.34:                        # F7. 사람은 절대 등불보다 밝지 않다
-                col = tuple(c * (0.34 / lum) for c in col)
+            if lum > 0.40:                        # F7. 사람은 절대 등불보다 밝지 않다
+                col = tuple(c * (0.40 / lum) for c in col)
             img = None
+        col = _palette_clamp(col)
         _rebuild_flat(m, col, alpha, img, ecol, estr)
 
 
@@ -981,6 +1014,7 @@ def handdrawn_lines():
     fs = vl.freestyle_settings
     ls = fs.linesets[0] if fs.linesets else fs.linesets.new("relic")
     ls.select_silhouette = ls.select_crease = ls.select_border = True
+    fs.crease_angle = math.radians(152.0)      # 잔주름 대신 굵은 형태선만(§1-9)
     ls.select_by_collection = True
     ls.collection = bpy.data.collections["NOLINE"]
     ls.collection_negation = 'EXCLUSIVE'
@@ -1001,6 +1035,54 @@ def handdrawn_lines():
     g1.amplitude, g1.frequency, g1.octaves, g1.seed = 1.35, 2.6, 3, 7
     g2 = st.geometry_modifiers.new(name="g_sin", type='SINUS_DISPLACEMENT')
     g2.wavelength, g2.amplitude, g2.phase = 26.0, 0.75, 0.4
+    _char_lineset(fs)
+
+
+def _char_lineset(fs):
+    """§1-6 덩어리진 실루엣 / §1-7 얼굴은 최소.
+    사람은 주름선을 전부 버리고 바깥 실루엣 한 줄만 굵게 긋는다."""
+    sc = bpy.context.scene
+    noline = bpy.data.collections.get("NOLINE")
+    ch = bpy.data.collections.new("CHARLINE")
+    sc.collection.children.link(ch)
+    n_moved = 0
+    for o in list(bpy.data.objects):
+        n = o
+        while n is not None and not n.name.startswith("PRV_char_"):
+            n = n.parent
+        if n is None:
+            continue
+        try:
+            ch.objects.link(o)
+        except Exception:
+            pass
+        if noline is not None and o.name not in noline.objects:
+            try:
+                noline.objects.link(o)      # 기본 라인셋(주름선 포함)에서는 제외
+                n_moved += 1
+            except Exception:
+                pass
+    print("CHARLINE", n_moved, flush=True)
+    ls2 = fs.linesets.new("chars")
+    ls2.select_silhouette = True
+    ls2.select_crease = False
+    ls2.select_border = False
+    ls2.select_by_collection = True
+    ls2.collection = ch
+    ls2.collection_negation = 'INCLUSIVE'
+    if ls2.linestyle is None:
+        ls2.linestyle = bpy.data.linestyles.new("chars_ls")
+    st2 = ls2.linestyle
+    st2.color = srgb_hexcol(PAL["char"])
+    st2.thickness = 2.4
+    try:
+        st2.caps = 'ROUND'
+    except Exception:
+        pass
+    mo = st2.thickness_modifiers.new(name="th_noise", type='NOISE')
+    mo.amplitude, mo.period, mo.seed = 0.9, 13, 11
+    g = st2.geometry_modifiers.new(name="g_perlin", type='PERLIN_NOISE_2D')
+    g.amplitude, g.frequency, g.octaves, g.seed = 0.9, 3.2, 2, 5
 
 
 def noline_setup():
@@ -1118,7 +1200,7 @@ def shot_hero():
 
 def shot_zoom():
     build(extras=True)
-    render(os.path.join(OUT_RAW, "section_zoom.png"), ortho=24.0, target=(0.0, 0, 3.2),
+    render(os.path.join(OUT_RAW, "section_zoom.png"), ortho=21.0, target=(0.0, 0, 3.5),
            grain=0.09, vig=0.08)
 
 

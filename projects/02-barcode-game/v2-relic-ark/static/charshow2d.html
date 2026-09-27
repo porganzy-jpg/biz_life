@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>잔해 방주 — 평면 단면용 2D 캐릭터 시험 (A안 / B안)</title>
+<title>잔해 방주 — 대표 캐릭터와 화풍 시험 (평면 민속화풍)</title>
 <style>
   :root{
     /* 단면 화면의 실제 색 — static/art/deep/section_hero.png 에서 직접 샘플링했다 */
-    --water-deep:#092838; --water-mid:#1f5d6c; --water-black:#04131a;
+    --water-deep:#092838; --water-black:#04131a;
     --wall-quarters:#e4ce9a; --floor-quarters:#b49053;
     --wall-workshop:#936e4f; --floor-workshop:#5f5953;
     --wall-green:#8f8f64;    --floor-green:#5e6046;
@@ -16,36 +16,58 @@
     --ink:#e8e2d4; --dim:#93a3ab;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:#050b10;color:var(--ink);
-       font-family:"Malgun Gothic","Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6}
-  header{padding:26px 28px 10px;border-bottom:1px solid #12222b}
-  h1{margin:0 0 6px;font-size:20px;letter-spacing:-.3px}
-  h2{margin:34px 0 4px;font-size:16px;color:#ffd79a;border-left:3px solid #c98a36;padding-left:9px}
-  h3{margin:20px 0 6px;font-size:13px;color:#9fd3c4;font-weight:600}
-  p.note{margin:2px 0 14px;color:var(--dim);max-width:78ch}
-  main{padding:0 28px 80px}
+  body{margin:0;background:#0a0806;color:var(--ink);
+       font-family:"Malgun Gothic","Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.62}
+  header{padding:26px 28px 14px;border-bottom:1px solid #241c13;background:#12100d}
+  h1{margin:0 0 6px;font-size:21px;letter-spacing:-.3px;color:#F2E7CE}
+  h2{margin:38px 0 4px;font-size:16px;color:#E4B453;border-left:3px solid #DC7728;padding-left:9px}
+  h3{margin:20px 0 6px;font-size:13px;color:#B39A70;font-weight:600}
+  p.note{margin:2px 0 14px;color:var(--dim);max-width:80ch}
+  main{padding:0 28px 90px}
   .grid{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
   .row1{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding-bottom:6px}
+  .card{background:#171310;border:1px solid #2b2119;border-radius:6px;padding:8px}
   .plate{border-radius:3px}
-  .card{background:#0b1a22;border:1px solid #16303c;border-radius:6px;padding:8px}
   .cap{font-size:11px;color:var(--dim);text-align:center;margin-top:4px}
   .sp{image-rendering:auto;background-repeat:no-repeat}
   table.spec{border-collapse:collapse;margin:8px 0 6px;font-size:12px}
-  table.spec td,table.spec th{border:1px solid #1d3641;padding:3px 9px;text-align:left}
-  table.spec th{background:#0d222c;color:#ffd79a;font-weight:600}
+  table.spec td,table.spec th{border:1px solid #2e241b;padding:3px 9px;text-align:left}
+  table.spec th{background:#1d1710;color:#E4B453;font-weight:600}
   .ab{display:flex;gap:26px;flex-wrap:wrap}
   .abcol{flex:1 1 440px;min-width:380px}
-  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;margin-left:6px}
-  .tA{background:#33302a;color:#e0d6c4}
-  .tB{background:#4a2c12;color:#ffc98a}
 
-  /* 배경 띠 — 방 안 색 위에 올려 보는 용도 */
+  /* 대표 캐릭터 */
+  .heroes{display:flex;flex-wrap:wrap;gap:14px}
+  .hero{flex:1 1 300px;min-width:290px;max-width:340px;background:#141110;
+        border:1px solid #33271c;border-radius:9px;overflow:hidden}
+  .hero .big{position:relative;height:270px;display:flex;align-items:flex-end;justify-content:center;
+             background:radial-gradient(120% 90% at 50% 20%, #2a2119 0%, #12100d 78%)}
+  .hero .meta{padding:10px 13px 14px}
+  .hero .nm{font-size:16px;color:#F2E7CE;font-weight:700}
+  .hero .rl{font-size:11px;color:#DC7728;margin-left:6px}
+  .hero .ds{font-size:12px;color:#9c9080;margin-top:3px}
+  .hero .sizes{display:flex;gap:10px;align-items:flex-end;padding:0 13px 10px}
+  .hero .sizebox{position:relative;border-radius:4px;display:flex;align-items:flex-end;
+                 justify-content:center;overflow:hidden}
+  .hero .szlbl{font-size:10px;color:#7d7266;text-align:center;margin-top:3px}
+  .mot{display:inline-block;font-size:10px;background:#2b2119;color:#E4B453;
+       padding:1px 7px;border-radius:9px;margin-left:6px}
+
+  /* 팔레트 */
+  .pal{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 4px}
+  .swatch{width:132px;border:1px solid #2e241b;border-radius:6px;overflow:hidden;background:#171310}
+  .swatch .hi{height:42px} .swatch .lo{height:26px}
+  .swatch .t{font-size:11px;padding:4px 7px 6px;color:#9c9080}
+  .swatch .t b{color:#F2E7CE;display:block;font-size:12px}
+  .swatch code{font-size:10px;color:#7d7266}
+
+  /* 배경 띠 */
   .band{display:flex;align-items:flex-end;gap:14px;padding:12px 16px 0;overflow-x:auto}
-  .bandwrap .lbl{position:absolute;left:6px;top:5px;font-size:11px;font-weight:700;z-index:2;
-                  color:#f2ece0;background:#000000a6;padding:1px 7px;border-radius:8px}
   .bandwrap{position:relative;border-radius:4px;overflow:hidden;margin-bottom:8px}
+  .bandwrap .lbl{position:absolute;left:6px;top:5px;font-size:11px;font-weight:700;z-index:2;
+                 color:#f2ece0;background:#000000a6;padding:1px 7px;border-radius:8px}
 
-  /* 단면 방 재현: 두꺼운 물(검정) 테두리 + 밝은 뒷벽 + 어두운 바닥 (REF_CROSS_SECTION §1-3·4) */
+  /* 단면 방 재현 */
   .room{position:relative;border:7px solid var(--frame);border-radius:3px;overflow:hidden;
         display:flex;align-items:flex-end;padding:0 18px;gap:16px}
   .room .floor{position:absolute;left:0;right:0;bottom:0;height:26%}
@@ -57,79 +79,108 @@
 </head>
 <body>
 <header>
-  <h1>평면 단면용 2D 캐릭터 시험 — A안(렌더 그대로) / B안(납작한 그림체)</h1>
+  <h1>대표 캐릭터와 화풍 시험 — 평면 민속화풍</h1>
   <p class="note">
-    1막 거점이 45° 아이소에서 <b>정면 평면 단면</b>으로 바뀌었다(DECISIONS 2026-09-23).
-    기존 <code>*_dl_*.png / *_ul_*.png</code> 는 아이소 방위라 새 화면에 쓸 수 없다.
-    <b>새로 그리지 않고</b> 이미 있는 8역할 GLB를 정면 직교로 다시 렌더해 뽑았다 — 생성 AI는 한 점도 쓰지 않았다.
-    이 페이지의 목적 하나: <b>캐릭터를 2D로 갈지 눈으로 판단하는 것</b>. 최종 채택이 아니라 비교 자료다.
-    <b>원본 256px에서 예쁜 것은 의미가 없다. §3의 70px를 먼저 보라.</b>
+    1막 거점이 <b>정면 평면 단면</b>으로 바뀌었고(DECISIONS 2026-09-23), 화풍 목표가
+    <code>docs/refs/REF_ART_FLAT_FOLK.md</code>로 정해졌다.
+    <b>새로 그리지 않았다.</b> 이미 있는 8역할 GLB를 정면 직교로 다시 렌더하고, 재질 단계에서 팔레트와
+    2단 음영을 굽고, 후처리로 무늬·손자국·외곽선을 얹었다 — <b>생성 AI는 한 점도 쓰지 않았다.</b>
+    원작(레퍼런스)의 캐릭터·투구 형태·목도리 실루엣·문양은 하나도 가져오지 않았다(REF §6).
+    가져온 것은 §1의 원리뿐이고, 소재는 §3대로 <b>잠수복 목 실링 · 들어 올린 면갑 · 기운 자국</b>으로 번역했다.
   </p>
 </header>
 
 <main>
-  <h2>0. 규약</h2>
-  <table class="spec" id="spec"></table>
+  <h2>1. 대표 캐릭터 — 이 게임의 얼굴 다섯</h2>
   <p class="note">
-    두 안은 <b>같은 렌더에서 나왔다.</b> 다른 것은 후처리뿐이다 —
-    <span class="tag tA">A</span> 렌더 그대로(부드러운 음영 + 옅은 Freestyle 선, 현재 톤 유지) ·
-    <span class="tag tB">B</span> 음영 3단 포스터화 + 4px 어두운 외곽선 + 채도 무릎 곡선.
+    큰 그림은 화풍을 보기 위한 것이고, 오른쪽 아래 <b>70px·110px</b>이 실제 게임 크기다.
+    합격 기준은 하나 — <b>70px에서 다섯이 서로 구분되는가.</b>
   </p>
+  <div class="heroes" id="heroes"></div>
 
-  <h2>1. 8역할 정면 스프라이트 — A / B 나란히 (원본 256px)</h2>
-  <p class="note">Idle 0프레임. 발끝이 셀 아래에서 16px 째 기준선에 맞는다. 배경은 방 뒷벽 색(<code>#e4ce9a</code>).</p>
+  <h2>2. 팔레트 — 직접 고르시라</h2>
+  <p class="note">
+    계열마다 <b>(밝은 면, 그림자) 두 값뿐</b>이다(REF §1-3). 중간 명도가 없어서 작게 줄여도 면이 뭉개지지 않는다.
+    <b>청록·남색은 사람에게 쓰지 않는다</b> — 물에만 쓴다(REF §5). 원본 역할색의 청록(기술자 고글 <code>#4FB7E6</code>,
+    아이 <code>#3E7EA6</code>)은 번트오렌지로, 자주(학자 <code>#6b5a7a</code>)는 흙으로 번역했다.
+    바꾸고 싶은 색을 지목해 주시면 <code>tools/render_sprites.py</code>의 <code>FOLK_PALETTE</code> 한 줄만 고치면 전원에게 반영된다.
+  </p>
+  <div class="pal" id="pal"></div>
+
+  <h2>3. 이 화풍이 무엇을 하는가 (REF §1 대조표)</h2>
+  <table class="spec" id="principles"></table>
+
+  <h2>4. 8역할 — A안(렌더 그대로) / B안(평면 민속화풍)</h2>
+  <p class="note">
+    A안은 비교용 한 벌이다. 지금 <code>static/art/chars/*_dl_*.png</code>가 쓰던 톤 — 부드러운 음영, 옅은 선.
+    B안은 위 화풍. 배경은 방 뒷벽 색(<code>#e4ce9a</code>).
+  </p>
   <div class="ab">
     <div class="abcol"><h3>A안 — 렌더 그대로</h3><div class="row1" id="full_a"></div></div>
-    <div class="abcol"><h3>B안 — 납작한 그림체</h3><div class="row1" id="full_b"></div></div>
+    <div class="abcol"><h3>B안 — 평면 민속화풍</h3><div class="row1" id="full_b"></div></div>
   </div>
 
-  <h2>2. 110px 축소</h2>
-  <p class="note">거점 화면에서 방 한 칸이 큼직하게 보일 때의 크기.</p>
+  <h2>5. 110px 축소</h2>
   <div id="s110"></div>
 
-  <h2>3. 70px 축소 — <span style="color:#ff9e5a">이게 실제 크기다</span></h2>
+  <h2>6. 70px 축소 — <span style="color:#DC7728">이게 실제 크기다</span></h2>
   <p class="note">
-    거점 전체가 한 화면에 들어올 때 사람 하나가 차지하는 크기.
-    세 배경은 실제 단면 렌더에서 뽑은 색이다: 밝은 뒷벽 <code>#e4ce9a</code> · 바닥 <code>#5f5953</code> · 어두운 구석 <code>#1a180d</code>.
-    <b>한 스프라이트가 이 셋 위에 동시에 놓인다.</b> 한쪽에서만 읽히면 실패다.
+    세 배경은 실제 단면 렌더에서 뽑은 색이다: 밝은 뒷벽 <code>#e4ce9a</code> · 바닥 <code>#5f5953</code> ·
+    어두운 구석 <code>#1a180d</code>. <b>한 스프라이트가 이 셋 위에 동시에 놓인다.</b> 한쪽에서만 읽히면 실패다.
   </p>
   <div id="s70"></div>
 
-  <h2>4. 방 배경 위 — 단면 화면 그대로</h2>
-  <p class="note">
-    물(검정 테두리)·밝은 뒷벽·어두운 바닥·방마다 다른 색(REF_CROSS_SECTION §1-3·4, D1 개정).
-    사람은 70px. 왼쪽 방이 A안, 오른쪽 방이 B안이다.
-  </p>
+  <h2>7. 방 배경 위 — 단면 화면 그대로</h2>
+  <p class="note">물(검정 테두리)·밝은 뒷벽·어두운 바닥·방마다 다른 색. 사람은 70px. 왼쪽이 A안, 오른쪽이 B안.</p>
   <div id="rooms"></div>
 
-  <h2>5. 애니메이션 프레임 (클립 3종 × 5프레임)</h2>
+  <h2>8. 애니메이션 (클립 3종 × 5프레임)</h2>
   <p class="note">
-    Idle / Walk / PickUp(일하는 포즈, 04 C7). 시트에서 <code>steps(5)</code>로 재생한다. 110px.
-    <b style="color:#ff9e5a">발견</b>: PickUp을 0~100%로 뽑으면 정면 단면에서 <b>죽는다.</b>
-    캐릭터가 카메라 쪽으로 완전히 접히면서 얼굴이 사라지고 등짐만 남은 덩어리가 된다.
-    평면 단면은 <b>깊이 방향 동작을 읽지 못한다</b> — 그래서 읽히는 구간(0~22%, "아래로 손을 뻗는다")만 썼다.
-    제대로 된 일하는 모션은 좌우·상하로 새로 만들어야 한다.
-    아래 <b>실패 컷</b>이 그 증거다.
+    Idle / Walk / PickUp(일하는 포즈, 04 C7). <code>steps(5)</code>로 재생. 110px.
+    <b style="color:#DC7728">발견</b>: PickUp을 0~100%로 뽑으면 정면 단면에서 <b>죽는다</b> —
+    캐릭터가 카메라 쪽으로 접히면서 얼굴이 사라지고 덩어리가 된다. 평면 단면은 <b>깊이 방향 동작을 읽지 못한다.</b>
+    그래서 읽히는 구간(0~22%)만 썼다. 아래가 그 <b>실패 컷</b>이다.
   </p>
   <div class="grid" id="fail"></div>
   <div id="anim"></div>
 
-  <h2>6. 각인 3개를 켠 변형</h2>
+  <h2>9. 각인 3개를 켠 변형</h2>
   <p class="note">
-    <code>imp_warden</code>(오른뺨 흉터+등의 방망이) · <code>imp_footprint</code>(목의 이빨 끈) · <code>imp_empty_stomach</code>(허리 가죽띠).
-    3D 노드를 켜고 <b>같은 파이프라인으로 다시 렌더</b>했을 뿐이다 — 2D로 가도 각인 조합이 죽지 않는다는 증거.
+    <code>imp_warden</code> · <code>imp_footprint</code> · <code>imp_empty_stomach</code>.
+    3D 노드를 켜고 같은 파이프라인으로 다시 렌더했을 뿐이다 — 2D로 가도 각인 조합이 죽지 않는다는 증거.
   </p>
   <div id="imp"></div>
+
+  <h2>10. 규약</h2>
+  <table class="spec" id="spec"></table>
 </main>
 
 <script>
 const CELL = 256, PPM = 110, BASE = 240;
 const ROLE_KO = {scout:"정찰병", cook:"요리사", medic:"의무병", engineer:"기술자",
-                 farmer:"농부", scholar:"학자", trader:"교섭가", kid:"아이"};
+                 farmer:"농부", scholar:"학자", trader:"교섭가", kid:"아이", octopus:"동거 문어"};
+const HERO_TXT = {
+  scout:   ["에어락으로 나가는 사람", "문을 넘는 순간 공기 게이지가 시작되고 리더의 목소리가 끊긴다. 잠수복 목 실링과 들어 올린 면갑 — 이 게임의 얼굴."],
+  medic:   ["숨을 세는 사람", "공기가 이 게임의 시계다. 숨을 세는 일이 곧 시간을 세는 일이라서, 의무병이 그 주제를 짊어진다."],
+  kid:     ["문어가 손목을 감는 사람", "이 세계에서 인간이 무언가를 껴안는 유일한 순간의 주인공. 사람끼리는 아직 한 번도 닿지 않았다."],
+  engineer:["유리의 금을 막는 사람", "방을 잃는 것이 이 게임의 죽음이다. 주민이 아니라 공간이 죽는다."],
+  octopus: ["위협이 아니라 식구", "에어락의 손가락만 한 틈으로 나갔다 돌아온다. 힐링 스팟의 첫 단서는 언제나 이 녀석이 물고 온다."]
+};
+const PRINCIPLES = [
+  ["§1-1 제한된 따뜻한 팔레트", "재질 단계에서 7계열로 강제 스냅. 청록·남색은 사람에게 쓰지 않는다"],
+  ["§1-2 극단적 명도 대비", "밝은 면은 크림(#F2E7CE), 선은 거의 검정(#12100D). 중간 명도가 없다"],
+  ["§1-3 평면 채색·음영 2단", "Diffuse → ShaderToRGB → 상수 보간 ColorRamp → Emission. 그라데이션 0"],
+  ["§1-4 질감은 손자국", "종이 결을 곱하기로. 광택·반사 제거(전부 Emission)"],
+  ["§1-5 장식 무늬가 디테일을 대신", "목 실링의 물결 + 역할마다 다른 옷단 무늬 8종"],
+  ["§1-6 덩어리진 실루엣", "잠수복 자락(아래가 넓은 원뿔) + 무게추 벨트. 머리가 상대적으로 작아진다"],
+  ["§1-7 얼굴은 최소", "흰자 0.44배로 줄여 눈 점 하나. 표정은 자세가 말한다"],
+  ["§1-9 손으로 그은 흔들리는 선", "저주파 노이즈로 화면을 미세하게 뒤틀고, 외곽선 두께를 3~6px 사이에서 자리마다 다르게"],
+  ["§3 소재 번역", "털 목도리 → 잠수복 목 실링 · 새 두개골 → 들어 올린 면갑과 배기관 · 기하 문양 → 기운 자국"],
+  ["§6 하지 않은 것", "원작의 캐릭터·투구·목도리·문양·구도 0. 생성 AI 0"]
+];
 let META = null;
 
-function sprite(variant, role, row, col, H, opt) {
-  // H = 1.6m 인물이 화면에서 갖는 높이(px). 전 역할 공통 배율이라 키 비율이 남는다.
+function sheetSprite(variant, role, row, col, H, opt) {
   const k = H / (1.6 * PPM), c = CELL * k;
   const d = document.createElement('div');
   d.className = 'sp';
@@ -139,93 +190,138 @@ function sprite(variant, role, row, col, H, opt) {
   d.style.backgroundPosition = `${(-col * c).toFixed(1)}px ${(-row * c).toFixed(1)}px`;
   if (opt && opt.anim) {
     const n = META.frames, w = (n * CELL * k).toFixed(3);
-    const name = `walk_${role}_${row}_${Math.round(H)}`;
+    const name = `anim_${role}_${row}_${Math.round(H)}`;
     const st = document.createElement('style');
-    st.textContent = `@keyframes ${name}{from{background-position-x:0}` +
-                     `to{background-position-x:-${w}px}}`;
+    st.textContent = `@keyframes ${name}{from{background-position-x:0}to{background-position-x:-${w}px}}`;
     document.head.appendChild(st);
     d.style.animation = `${name} ${opt.anim}s steps(${n}) infinite`;
     d.style.backgroundPositionY = `${(-row * c).toFixed(1)}px`;
   }
   return d;
 }
-function single(variant, role, H, tag) {   // 각인 등 낱장 PNG
+function fileSprite(url, H) {           // 한 장짜리 PNG(셀 1개 분량)
   const k = H / (1.6 * PPM), c = CELL * k;
   const d = document.createElement('div');
   d.className = 'sp';
   d.style.width = d.style.height = c.toFixed(1) + 'px';
-  d.style.backgroundImage = `url(/static/art/chars/front/${variant}/${role}_${tag}.png)`;
+  d.style.backgroundImage = `url(${url})`;
   d.style.backgroundSize = `${c.toFixed(1)}px ${c.toFixed(1)}px`;
   return d;
 }
-function card(el, cap, bg) {
-  const w = document.createElement('div');
-  w.className = 'card';
-  const plate = document.createElement('div');
-  plate.className = 'plate';
-  if (bg) plate.style.background = bg;
-  plate.appendChild(el);
-  w.appendChild(plate);
-  const p = document.createElement('div'); p.className = 'cap'; p.textContent = cap;
-  w.appendChild(p);
-  return w;
+function anySprite(variant, role, H, opt) {
+  if (role === 'octopus') return fileSprite(`/static/art/chars/front/b/octopus_idle.png`, H);
+  return sheetSprite(variant, role, (opt && opt.row) || 0, 0, H, opt);
 }
-function band(parent, variant, H, bg, label) {
+function card(el, cap, bg) {
+  const w = document.createElement('div'); w.className = 'card';
+  const plate = document.createElement('div'); plate.className = 'plate';
+  if (bg) plate.style.background = bg;
+  plate.appendChild(el); w.appendChild(plate);
+  const p = document.createElement('div'); p.className = 'cap'; p.textContent = cap;
+  w.appendChild(p); return w;
+}
+function band(parent, variant, H, bg, label, list) {
   const wrap = document.createElement('div'); wrap.className = 'bandwrap';
   wrap.style.background = bg;
   const l = document.createElement('div'); l.className = 'lbl'; l.textContent = label;
   wrap.appendChild(l);
-  const b = document.createElement('div'); b.className = 'band';
-  b.style.paddingBottom = '10px';
-  for (const r of META.order) b.appendChild(sprite(variant, r, 0, 0, H));
+  const b = document.createElement('div'); b.className = 'band'; b.style.paddingBottom = '10px';
+  for (const r of list) b.appendChild(anySprite(variant, r, H));
   wrap.appendChild(b); parent.appendChild(wrap);
 }
 
 fetch('/static/art/chars/front/front_meta.json').then(r => r.json()).then(m => {
   META = m;
-  META.order = ["scout","cook","medic","engineer","farmer","scholar","trader","kid"];
-  META.order = META.order.filter(r => m.roles[r]);
+  const ORDER = ["scout","cook","medic","engineer","farmer","scholar","trader","kid"].filter(r => m.roles[r]);
+  const HEROES = (m.hero || ["scout","medic","kid","engineer"]).filter(r => m.roles[r])
+                  .concat(m.roles.octopus ? ["octopus"] : []);
 
-  // 0. 규약 표
-  const t = document.getElementById('spec');
-  const rows = [["시점", m.view + " — 카메라 (0,−20,look) 에서 +Y. 화면 가로 +X / 세로 +Z"],
-                ["셀", m.cell + "px · 미터당 " + m.ppm + "px · 발 기준선 셀 위에서 " + m.baseline + "px"],
-                ["직교 시야", m.ortho + " m"],
-                ["시트", "가로 = 프레임 " + m.frames + " · 세로 = 클립 " + m.clips.join(" / ")],
-                ["역할 실측 키", META.order.map(r => ROLE_KO[r] + " " + m.roles[r].h.toFixed(2) + "m(" + m.roles[r].px + "px)").join(" · ")]];
-  t.innerHTML = "<tr><th>항목</th><th>값</th></tr>" +
-    rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
+  // ── 1. 대표 캐릭터
+  const hs = document.getElementById('heroes');
+  for (const r of HEROES) {
+    const box = document.createElement('div'); box.className = 'hero';
+    const big = document.createElement('div'); big.className = 'big';
+    const url = `/static/art/chars/front/b/${r === 'octopus' ? 'octopus_hero' : r + '_hero'}.png`;
+    const bigEl = fileSprite(url, 250);
+    bigEl.style.marginBottom = (-(CELL - BASE) * (250 / (1.6 * PPM)) + 6) + 'px';
+    big.appendChild(bigEl); box.appendChild(big);
 
-  // 1. 원본 256
-  for (const v of ['a','b']) {
-    const g = document.getElementById('full_' + v);
-    for (const r of META.order)
-      g.appendChild(card(sprite(v, r, 0, 0, 150), ROLE_KO[r], 'var(--wall-quarters)'));
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const t = HERO_TXT[r] || ["", ""];
+    const mo = m.roles[r] && m.roles[r].motif_ko && m.roles[r].motif_ko !== '-'
+             ? `<span class="mot">무늬 · ${m.roles[r].motif_ko}</span>` : '';
+    meta.innerHTML = `<div class="nm">${ROLE_KO[r]}<span class="rl">${t[0]}</span>${mo}</div>` +
+                     `<div class="ds">${t[1]}</div>`;
+    box.appendChild(meta);
+
+    const sz = document.createElement('div'); sz.className = 'sizes';
+    for (const [H, bg, lbl] of [[110, 'var(--wall-quarters)', '110px · 밝은 벽'],
+                                [70, 'var(--wall-quarters)', '70px · 밝은 벽'],
+                                [70, 'var(--wall-dark)', '70px · 어두운 방']]) {
+      const wrap = document.createElement('div');
+      const sb = document.createElement('div'); sb.className = 'sizebox';
+      sb.style.background = bg; sb.style.width = '86px'; sb.style.height = (H + 42) + 'px';
+      const s = anySprite('b', r, H);   // 셀 아래 16px 여백은 그대로 둔다(발 기준선 규약)
+      sb.appendChild(s); wrap.appendChild(sb);
+      const cap = document.createElement('div'); cap.className = 'szlbl'; cap.textContent = lbl;
+      wrap.appendChild(cap); sz.appendChild(wrap);
+    }
+    box.appendChild(sz); hs.appendChild(box);
   }
 
-  // 2·3. 축소
-  for (const [id, H] of [['s110',110], ['s70',70]]) {
+  // ── 2. 팔레트
+  const pal = document.getElementById('pal');
+  const PAL_KO = {cream:"크림 / 뼈", ochre:"황토", burnt:"번트오렌지", oxblood:"적갈",
+                  olive:"탁한 올리브", umber:"흙", charcoal:"숯검정"};
+  for (const [k, [hi, lo]] of Object.entries(m.palette || {})) {
+    const s = document.createElement('div'); s.className = 'swatch';
+    s.innerHTML = `<div class="hi" style="background:${hi}"></div>` +
+                  `<div class="lo" style="background:${lo}"></div>` +
+                  `<div class="t"><b>${PAL_KO[k] || k}</b><code>${hi} / ${lo}</code></div>`;
+    pal.appendChild(s);
+  }
+  const s = document.createElement('div'); s.className = 'swatch';
+  s.innerHTML = `<div class="hi" style="background:${m.line_color}"></div>` +
+                `<div class="lo" style="background:#092838"></div>` +
+                `<div class="t"><b>선 / 물</b><code>${m.line_color} / #092838</code></div>`;
+  pal.appendChild(s);
+
+  // ── 3. 원리 대조표
+  document.getElementById('principles').innerHTML =
+    "<tr><th>레퍼런스 원리</th><th>우리가 한 것</th></tr>" +
+    PRINCIPLES.map(p => `<tr><td>${p[0]}</td><td>${p[1]}</td></tr>`).join("");
+
+  // ── 4. 8역할 A/B
+  for (const v of ['a', 'b']) {
+    const g = document.getElementById('full_' + v);
+    for (const r of ORDER) g.appendChild(card(sheetSprite(v, r, 0, 0, 150), ROLE_KO[r], 'var(--wall-quarters)'));
+  }
+
+  // ── 5·6. 축소
+  for (const [id, H] of [['s110', 110], ['s70', 70]]) {
     const host = document.getElementById(id);
-    for (const v of ['a','b']) {
+    for (const v of ['a', 'b']) {
       const h3 = document.createElement('h3');
-      h3.textContent = (v === 'a' ? 'A안 — 렌더 그대로' : 'B안 — 납작한 그림체') + `  (${H}px)`;
+      h3.textContent = (v === 'a' ? 'A안 — 렌더 그대로' : 'B안 — 평면 민속화풍') + `  (${H}px)`;
       host.appendChild(h3);
-      band(host, v, H, 'var(--wall-quarters)', '밝은 뒷벽');
-      band(host, v, H, 'var(--floor-workshop)', '바닥');
-      band(host, v, H, 'var(--wall-dark)', '어두운 구석');
+      const list = v === 'b' && m.roles.octopus ? ORDER.concat(['octopus']) : ORDER;
+      band(host, v, H, 'var(--wall-quarters)', '밝은 뒷벽', list);
+      band(host, v, H, 'var(--floor-workshop)', '바닥', list);
+      band(host, v, H, 'var(--wall-dark)', '어두운 구석', list);
     }
   }
 
-  // 4. 방 안에 넣기
-  const ROOMS = [["거주", 'var(--wall-quarters)', 'var(--floor-quarters)', ["cook","medic","kid"]],
-                 ["공방", 'var(--wall-workshop)', 'var(--floor-workshop)', ["engineer","trader"]],
-                 ["온실", 'var(--wall-green)', 'var(--floor-green)', ["farmer","scholar","kid"]],
-                 ["창고", 'var(--wall-dark)', 'var(--floor-dark)', ["scout","trader"]]];
+  // ── 7. 방 안에 넣기
+  const ROOMS = [["거주", 'var(--wall-quarters)', 'var(--floor-quarters)', ["cook", "medic", "kid"]],
+                 ["공방", 'var(--wall-workshop)', 'var(--floor-workshop)', ["engineer", "trader"]],
+                 ["온실", 'var(--wall-green)', 'var(--floor-green)', ["farmer", "scholar", "kid"]],
+                 ["창고", 'var(--wall-dark)', 'var(--floor-dark)', ["scout", "trader"]]];
   const host = document.getElementById('rooms');
   const box = document.createElement('div'); box.className = 'rooms';
-  for (const [name, wall, floor, who] of ROOMS) {
+  for (const [name, wall, floor, who0] of ROOMS) {
     const row = document.createElement('div'); row.className = 'roomrow';
-    for (const v of ['a','b']) {
+    for (const v of ['a', 'b']) {
+      const who = (v === 'b' && name === '거주' && m.roles.octopus) ? who0.concat(['octopus']) : who0;
       const rm = document.createElement('div'); rm.className = 'room';
       rm.style.background = wall; rm.style.height = '118px';
       const fl = document.createElement('div'); fl.className = 'floor';
@@ -233,10 +329,10 @@ fetch('/static/art/chars/front/front_meta.json').then(r => r.json()).then(m => {
       const lb = document.createElement('div'); lb.className = 'rlbl';
       lb.textContent = name + ' · ' + v.toUpperCase(); rm.appendChild(lb);
       for (const r of who) {
-        const s = sprite(v, r, 0, 0, 70);
-        s.style.position = 'relative';
-        s.style.marginBottom = (-(CELL - BASE) * (70 / (1.6 * PPM)) - 4) + 'px';
-        rm.appendChild(s);
+        const sp = anySprite(v, r, 70);
+        sp.style.position = 'relative';
+        sp.style.marginBottom = (-(CELL - BASE) * (70 / (1.6 * PPM)) - 4) + 'px';
+        rm.appendChild(sp);
       }
       row.appendChild(rm);
     }
@@ -244,46 +340,55 @@ fetch('/static/art/chars/front/front_meta.json').then(r => r.json()).then(m => {
   }
   host.appendChild(box);
 
-  // 5. 애니메이션
-  const an = document.getElementById('anim');
-  for (const [v, rowsShown, title] of [['b', [0,1,2], 'B안 — 3클립 전부'],
-                                       ['a', [1],     'A안 — Walk 만 (대조용)']]) {
-    const h3 = document.createElement('h3'); h3.textContent = title; an.appendChild(h3);
-    const g = document.createElement('div'); g.className = 'grid';
-    for (const r of META.order) for (const row of rowsShown) {
-      const dur = [1.6, 0.8, 1.4][row] || 1.2;
-      g.appendChild(card(sprite(v, r, row, 0, 110, {anim: dur}),
-                         ROLE_KO[r] + ' · ' + META.clips[row], 'var(--wall-quarters)'));
-    }
-    an.appendChild(g);
-  }
-  // 실패 컷 — 왜 PickUp 전 구간을 쓰지 않는지
+  // ── 8. 애니메이션 + 실패 컷
   const fg = document.getElementById('fail');
-  for (const r of ['scout','cook']) {
-    const el = document.createElement('div');
-    el.className = 'sp';
+  for (const r of ['scout', 'cook']) {
+    const el = document.createElement('div'); el.className = 'sp';
     el.style.width = el.style.height = '160px';
     el.style.backgroundImage = `url(/static/art/chars/front/blob/${r}_pickup_full.png)`;
     el.style.backgroundSize = '800px 160px';
-    el.style.backgroundPosition = '0 0';
-    el.style.animation = `blobanim 2.5s steps(5) infinite`;
+    el.style.animation = 'blobanim 2.5s steps(5) infinite';
     fg.appendChild(card(el, ROLE_KO[r] + ' · PickUp 0~100% (쓰지 않는다)', 'var(--wall-quarters)'));
   }
-  const st = document.createElement('style');
-  st.textContent = '@keyframes blobanim{from{background-position-x:0}to{background-position-x:-800px}}';
-  document.head.appendChild(st);
+  const bst = document.createElement('style');
+  bst.textContent = '@keyframes blobanim{from{background-position-x:0}to{background-position-x:-800px}}';
+  document.head.appendChild(bst);
 
-  // 6. 각인
+  const an = document.getElementById('anim');
+  for (const [v, rowsShown, title] of [['b', [0, 1, 2], 'B안 — 3클립 전부'],
+                                       ['a', [1], 'A안 — Walk 만 (대조용)']]) {
+    const h3 = document.createElement('h3'); h3.textContent = title; an.appendChild(h3);
+    const g = document.createElement('div'); g.className = 'grid';
+    for (const r of ORDER) for (const row of rowsShown) {
+      const dur = [1.6, 0.8, 1.4][row] || 1.2;
+      g.appendChild(card(sheetSprite(v, r, row, 0, 110, {anim: dur}),
+                         ROLE_KO[r] + ' · ' + m.clips[row], 'var(--wall-quarters)'));
+    }
+    an.appendChild(g);
+  }
+
+  // ── 9. 각인
   const ip = document.getElementById('imp');
   const g = document.createElement('div'); g.className = 'grid';
-  for (const r of (m.imprint_example && m.imprint_example.roles) || []) {
-    for (const v of ['a','b']) {
-      g.appendChild(card(sprite(v, r, 0, 0, 176), ROLE_KO[r] + ' · 기본 · ' + v.toUpperCase(), 'var(--wall-quarters)'));
-      g.appendChild(card(single(v, r, 176, 'imp3'), ROLE_KO[r] + ' · 각인3 · ' + v.toUpperCase(), 'var(--wall-quarters)'));
-      g.appendChild(card(single(v, r, 70, 'imp3'), ROLE_KO[r] + ' · 각인3 · 70px · ' + v.toUpperCase(), 'var(--wall-quarters)'));
-    }
+  for (const r of ((m.imprint_example && m.imprint_example.roles) || [])) {
+    g.appendChild(card(sheetSprite('b', r, 0, 0, 176), ROLE_KO[r] + ' · 기본', 'var(--wall-quarters)'));
+    g.appendChild(card(fileSprite(`/static/art/chars/front/b/${r}_imp3.png`, 176),
+                       ROLE_KO[r] + ' · 각인3', 'var(--wall-quarters)'));
+    g.appendChild(card(fileSprite(`/static/art/chars/front/b/${r}_imp3.png`, 70),
+                       ROLE_KO[r] + ' · 각인3 · 70px', 'var(--wall-quarters)'));
   }
   ip.appendChild(g);
+
+  // ── 10. 규약
+  const rows = [["시점", m.view + " — 카메라 (0,−20,look) 에서 +Y. 화면 가로 +X / 세로 +Z"],
+                ["셀", m.cell + "px · 미터당 " + m.ppm + "px · 발 기준선 셀 위에서 " + m.baseline + "px"],
+                ["직교 시야", m.ortho + " m"],
+                ["시트", "가로 = 프레임 " + m.frames + " · 세로 = 클립 " + m.clips.join(" / ")],
+                ["쇼케이스", "b/&lt;role&gt;_hero.png (512px, 같은 프레이밍)"],
+                ["역할 무늬", ORDER.map(r => ROLE_KO[r] + " " + (m.roles[r].motif_ko || "-")).join(" · ")],
+                ["실측 키", ORDER.map(r => ROLE_KO[r] + " " + m.roles[r].h.toFixed(2) + "m").join(" · ")]];
+  document.getElementById('spec').innerHTML =
+    "<tr><th>항목</th><th>값</th></tr>" + rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
 }).catch(e => {
   document.querySelector('main').insertAdjacentHTML('afterbegin',
     '<p style="color:#ff8a6a">front_meta.json 을 읽지 못했다: ' + e + '</p>');

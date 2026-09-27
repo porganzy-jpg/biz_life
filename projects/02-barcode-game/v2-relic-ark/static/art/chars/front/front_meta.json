@@ -125,7 +125,7 @@
    "h": 1.6011,
    "px": 176.1,
    "blend": "Casual_Female",
-   "threshold": 0.69,
+   "threshold": 0.616,
    "motif": "bars",
    "motif_ko": "세로 이중선",
    "norm_h": 1.56,
@@ -149,6 +149,16 @@
    "motif": "rings",
    "motif_ko": "따개비 고리",
    "norm_h": 1.2,
+   "folk_render": true
+  },
+  "octopus": {
+   "h": 0.52,
+   "px": 57.2,
+   "norm_h": 1.6,
+   "blend": "procedural",
+   "threshold": 0.624,
+   "motif": null,
+   "motif_ko": "-",
    "folk_render": true
   }
  }
