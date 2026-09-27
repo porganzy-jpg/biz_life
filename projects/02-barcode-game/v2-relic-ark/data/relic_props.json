@@ -1,0 +1,61 @@
+{
+  "_comment": "E1 찍은 물건이 방에 쌓인다 — 카테고리별 창고 소품 이름 34종(8카테고리 4개씩 + unknown 2개). 배경·캐릭터가 이 목록으로 선반 스프라이트를 만든다. 근거: docs/PLAYER_JOURNEY.md §2 E1·J5(최우선), data/relic_templates.json 의 카테고리 어휘. 소유: 시나리오(이름만).",
+  "_version": 1,
+  "_for_art": "이름이 곧 그림의 주문서다. shape 는 한 단어 형태 힌트, slots 는 선반에서 차지하는 가로 칸 수 제안(1 또는 2)일 뿐 정본이 아니다 — 격자 규격은 배경·개발이 정한다. 전부 **선반 위에 놓이는 물건**이고 바닥에 서는 큰 가구는 없다. 팔레트는 흙 계열, 청록·남색은 쓰지 않는다(물 전용, DECISIONS 2026-09-26 화풍 판정). 정면 평면 단면 화면이라 깊이 방향 형태는 읽히지 않는다 — 옆모습 실루엣으로 구분되게.",
+  "_for_dev": "스캔한 유물의 category 로 이 목록에서 하나를 골라 창고 선반 한 칸에 놓는다. 같은 카테고리를 여러 번 찍으면 목록을 돌아가며 쓰고(4개 순환), 다 돌면 같은 소품이 나란히 쌓이는 편이 '재고가 찬다'는 느낌에 맞다. id 는 스프라이트 파일명에 그대로 쓸 수 있게 영문으로 지었다. unknown 두 개는 성문을 못 읽은 스캔 전용이다.",
+
+  "props": {
+    "food": [
+      {"id": "prop_noodle_box", "name": "면 상자", "shape": "상자", "slots": 2},
+      {"id": "prop_dry_jar", "name": "마른 항아리", "shape": "단지", "slots": 1},
+      {"id": "prop_seed_sack", "name": "씨앗 자루", "shape": "자루", "slots": 1},
+      {"id": "prop_crisp_bundle", "name": "바삭 봉지 묶음", "shape": "묶음", "slots": 2}
+    ],
+    "drink": [
+      {"id": "prop_long_neck_bottle", "name": "목 긴 병", "shape": "병", "slots": 1},
+      {"id": "prop_flat_canteen", "name": "납작 물통", "shape": "통", "slots": 1},
+      {"id": "prop_cap_heap", "name": "마개 무더기", "shape": "무더기", "slots": 1},
+      {"id": "prop_empty_bottle_row", "name": "빈 병 줄", "shape": "줄", "slots": 2}
+    ],
+    "medical": [
+      {"id": "prop_twelve_cell_box", "name": "열두 칸 상자", "shape": "상자", "slots": 1},
+      {"id": "prop_rolled_strips", "name": "감은 띠 뭉치", "shape": "뭉치", "slots": 1},
+      {"id": "prop_brown_vial", "name": "갈색 작은 병", "shape": "병", "slots": 1},
+      {"id": "prop_white_crock", "name": "하얀 단지", "shape": "단지", "slots": 1}
+    ],
+    "electronics": [
+      {"id": "prop_cell_tin", "name": "번개 알 통", "shape": "통", "slots": 1},
+      {"id": "prop_black_panel", "name": "검은 판", "shape": "판", "slots": 2},
+      {"id": "prop_tangled_light_thread", "name": "엉킨 빛 실", "shape": "뭉치", "slots": 1},
+      {"id": "prop_gauge_piece", "name": "계기 조각", "shape": "판", "slots": 1}
+    ],
+    "stationery": [
+      {"id": "prop_stick_bundle", "name": "막대 다발", "shape": "다발", "slots": 1},
+      {"id": "prop_pressed_paper_stack", "name": "눌린 종이 묶음", "shape": "묶음", "slots": 2},
+      {"id": "prop_color_chip_pile", "name": "붙는 색 조각 더미", "shape": "무더기", "slots": 1},
+      {"id": "prop_little_person_doll", "name": "작은 사람 인형", "shape": "인형", "slots": 1}
+    ],
+    "book": [
+      {"id": "prop_standing_books", "name": "세운 책 줄", "shape": "줄", "slots": 2},
+      {"id": "prop_stacked_books", "name": "눕힌 책 더미", "shape": "무더기", "slots": 1},
+      {"id": "prop_loose_leaf_box", "name": "낱장 상자", "shape": "상자", "slots": 1},
+      {"id": "prop_fused_block", "name": "붙어 버린 뭉치", "shape": "뭉치", "slots": 1}
+    ],
+    "apparel": [
+      {"id": "prop_folded_cloth", "name": "갠 천 더미", "shape": "무더기", "slots": 2},
+      {"id": "prop_hung_coat", "name": "걸린 겉옷", "shape": "걸이", "slots": 1},
+      {"id": "prop_single_boot", "name": "신발 한 짝", "shape": "신발", "slots": 1},
+      {"id": "prop_name_patch_box", "name": "이름표 천 상자", "shape": "상자", "slots": 1}
+    ],
+    "tobacco": [
+      {"id": "prop_foil_bundle", "name": "은박 묶음", "shape": "묶음", "slots": 1},
+      {"id": "prop_thin_paper_box", "name": "얇은 종이 상자", "shape": "상자", "slots": 1},
+      {"id": "prop_sealed_flask", "name": "봉인된 병", "shape": "병", "slots": 1},
+      {"id": "prop_dry_leaf_box", "name": "마른 잎 상자", "shape": "상자", "slots": 2}
+    ],
+    "unknown": [
+      {"id": "prop_nameless_box", "name": "이름 없는 상자", "shape": "상자", "slots": 1},
+      {"id": "prop_unread_lump", "name": "정체 모를 덩어리", "shape": "덩어리", "slots": 1}
+    ]
+  }
+}
