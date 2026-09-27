@@ -1217,7 +1217,7 @@ def stats(all: bool = False):
 async def no_cache(request, call_next):
     """Phase 0: 정적 파일 캐시 금지 (테스터 브라우저가 옛 JS/CSS/타일을 붙잡는 문제 방지)."""
     resp = await call_next(request)
-    if request.url.path in ("/", "/base") or request.url.path.startswith("/static"):
+    if request.url.path in ("/", "/base", "/journey") or request.url.path.startswith("/static"):
         resp.headers["Cache-Control"] = "no-store, max-age=0"
     return resp
 
@@ -1243,6 +1243,17 @@ def base_screen():
         p = ROOT / "static" / name
         if p.exists():
             html = html.replace(f"/static/{name}\"", f"/static/{name}?v={int(p.stat().st_mtime)}\"")
+    return HTMLResponse(html)
+
+
+@app.get("/journey")
+def journey_page():
+    """사용자 여정 14단계 화면 시안(기획안 부록). 정적 페이지이고 게임 상태를 읽지 않는다."""
+    from fastapi.responses import HTMLResponse
+    html = (ROOT / "static" / "journey.html").read_text(encoding="utf-8")
+    p = ROOT / "static" / "journey.css"
+    if p.exists():
+        html = html.replace('/static/journey.css"', f'/static/journey.css?v={int(p.stat().st_mtime)}"')
     return HTMLResponse(html)
 
 

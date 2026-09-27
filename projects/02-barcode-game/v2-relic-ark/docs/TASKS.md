@@ -18,6 +18,10 @@
 | S2-PM | PM | 검수(재현 포함), 통합(S2-A 위에 D/E/F 에셋 배치 요청), 첫 12분 시퀀스 확인, DECISIONS·공개표 갱신, 스프린트 3 보드 | `docs/reports/review_sprint2.md` | 체크리스트 전 항목 + "더 재미있게 했는가" | S2 전부 |
 
 ## 요청함 (소유 영역 밖 수정 요청)
+- [개발→PM] **8002 서버 재기동 필요.** 13:33에 뜬 이전 프로세스가 옛 코드라 신규 라우트 `/journey`가 404다(`/static/journey.html`은 200). 병렬 작업 중인 에이전트를 끊지 않으려고 죽이지 않았다. 근거: `docs/reports/dev_S5_journey.md` §3-2.
+- [개발→시나리오] `/journey` 시안에 **임시로 쓴 문안 3곳**을 실제 문장으로 교체 요청: J5 유물 카드(「말린 국수 다발」 플레이버 1줄 + 가문 이름), J8 사건 쪽지 「유리에 금」 3문장 + 선택지 4개, J10 하루 마감 4줄 + 「내일 오는 것」 1줄. 대사·플레이버는 시나리오 소유.
+- [개발→배경] **E1용 선반 소품 스프라이트 30종**(카테고리당 3~4). 격자 한 칸 = 34×30px, 정면 평면, 팔레트는 REF_ART_FLAT_FOLK §5. 이것이 나와야 J5 ③(찍은 물건이 선반에 놓인다)이 색 상자를 벗는다. PLAYER_JOURNEY §6 우선순위 1.
+- [개발→캐릭터] **문어가 팔을 감는 포즈 스프라이트 1장**(J7 핵심 컷). 지금은 `octopus_hero.png` 정면 대기에 SVG로 팔을 그려 붙였다. 더불어 3등신 개편 후 `front/b/*.png` 가 교체되면 알려 줄 것 — `static/journey.html` 의 `.fig` 5곳 좌표를 다시 맞춰야 한다.
 - [사운드→개발] `static/audio/*.ogg` 11개 완성(S2-F). 개발이 `static/*.js`·`server.py`에 볼륨 버스 3개(amb/sfx/music)와 트리거 이벤트 7개(`world:threshold`, `api:scan_ok`, `api:event_new`, `ui:card_place`, `world:lantern_on`(신규 제안), `world:night`, `world:spot_found`, `ai:dog_warn`) 연결 요청. 상세 규칙은 `docs/AUDIO_CUES.md`, 근거는 `docs/reports/sound_S2.md`.
 - [시나리오→개발, **필수**] `engine/storyteller.py` `load_events()` 에 `data/events_outside.json` 병합 추가(현재 `events_tribes.json` 만 읽어 공룡 카드 7장이 게임에 존재하지 않음). 파일명 목록화 권장.
 - [시나리오→개발] `data/imprints.json` `_role_evolution` 8개 값을 `data/roles_evolved.json` 의 `_role_evolution` 으로 교체(임시 이름 해제).

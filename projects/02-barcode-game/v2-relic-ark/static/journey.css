@@ -1,0 +1,365 @@
+/* ─────────────────────────────────────────────────────────────
+   잔해 방주 — 사용자 여정 14단계 화면 시안 (2026-09-27)
+   기획안용 그림 페이지. 실제 게임 코드가 아니라 "이렇게 흐른다"를 보이는 판.
+   팔레트는 docs/refs/REF_ART_FLAT_FOLK.md §5 를 그대로 따른다.
+     실내·사람 = 크림/황토/번트오렌지/적갈/숯검정/올리브
+     물         = 청록 → 남색 → 검정 (여기만 차갑다)
+     화면에서 가장 밝은 것은 언제나 방 안의 등불.
+   UI 는 가장자리에만 (REF_CROSS_SECTION §1-9).
+   ───────────────────────────────────────────────────────────── */
+:root{
+  /* 물 (차가운 쪽) */
+  --water-far:#0a2a33; --water:#07202a; --deep:#04141c; --abyss:#01060a;
+  /* 안 (따뜻한 쪽) */
+  --cream:#e6d7b0; --bone:#d8c9a3; --ochre:#c08a33; --lamp:#f0b055;
+  --oxblood:#8c3b2e; --charcoal:#14110c; --olive:#8c9161; --copper:#a2603a;
+  --gold:#c6a23a;
+  /* 문서 톤 (deep.html 계열) */
+  --bg:#071114; --bg2:#0b1b20; --ink:#cdd8d6; --dim:#7d908f;
+  --teal:#2fa8a0; --line:#1b2f35;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Noto Sans KR","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+  line-height:1.75; letter-spacing:-.01em;
+  -webkit-text-size-adjust:100%;
+}
+img{display:block}
+.wrap{max-width:1180px; margin:0 auto; padding:0 22px 110px}
+
+/* ── 페이지 머리 ─────────────────────────────────── */
+header.top{position:relative; border-bottom:1px solid var(--line); overflow:hidden}
+header.top .bg{width:100%; height:min(38vh,300px); object-fit:cover; object-position:50% 40%; opacity:.55}
+header.top .veil{position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(7,17,20,.25),rgba(7,17,20,.92) 72%,var(--bg))}
+header.top .cap{position:relative; text-align:center; padding:26px 20px 34px; margin-top:-96px}
+.kicker{color:var(--teal); font-size:12px; letter-spacing:.32em; margin:0 0 12px}
+h1{font-size:clamp(22px,3.4vw,32px); margin:0 0 14px; color:#fff; font-weight:700}
+.pitch{color:#f0c078; font-size:clamp(14px,1.6vw,17px); max-width:660px; margin:0 auto; line-height:1.9}
+.meta{color:var(--dim); font-size:12.5px; margin-top:16px}
+
+section{margin-top:66px}
+h2{font-size:19px; margin:0 0 6px; color:#fff; font-weight:700}
+h2 .num{color:var(--teal); font-weight:400; margin-right:10px; font-size:14px}
+.sub{color:var(--dim); font-size:13.5px; margin:0 0 24px}
+
+/* ── 한 화면 요약: 다섯 동사 + 감정 곡선 ─────────── */
+.verbs{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+.verb{background:var(--bg2); border:1px solid var(--line); border-top:2px solid var(--lamp);
+      border-radius:8px; padding:14px 14px 16px}
+.verb .n{color:var(--teal); font-size:11px; letter-spacing:.18em}
+.verb h3{margin:4px 0 6px; font-size:17px; color:var(--cream); font-weight:700}
+.verb p{margin:0; font-size:12.5px; color:var(--dim); line-height:1.7}
+.verb .j{margin-top:9px; font-size:11px; color:var(--lamp); letter-spacing:.06em}
+
+.curvebox{margin-top:16px; background:var(--bg2); border:1px solid var(--line);
+          border-radius:10px; padding:16px 10px 6px; overflow-x:auto}
+.curvebox svg{display:block; width:100%; min-width:720px; height:auto}
+
+/* ── 단계 블록 ───────────────────────────────────── */
+.step{display:grid; grid-template-columns:auto minmax(0,1fr); gap:38px;
+      align-items:center; padding:40px 0; border-top:1px solid var(--line)}
+.step.stack{align-items:start}
+.step.stack{grid-template-columns:minmax(0,1fr)}
+.step.stack .shots{margin-bottom:26px}
+.shots{display:flex; gap:16px; flex-wrap:wrap}
+.shotcap{margin:10px 0 0; font-size:11.5px; color:var(--dim); text-align:center;
+         max-width:calc(var(--pw)*1px); line-height:1.6}
+
+/* 폰 프레임 — 390×844 를 통째로 축소해서 비율을 지킨다 */
+.shot{--pw:300}
+.step.stack .shot{--pw:236}
+.frame{
+  position:relative; width:calc(var(--pw)*1px); height:calc(var(--pw)*844/390*1px);
+  border-radius:calc(var(--pw)*0.085*1px); border:1px solid #2b3c41;
+  background:#000; overflow:hidden; box-shadow:0 12px 34px rgba(0,0,0,.65), 0 0 0 4px #0b1215;
+}
+.frame .notch{position:absolute; z-index:40; top:calc(var(--pw)*0.022*1px); left:50%;
+  transform:translateX(-50%); width:calc(var(--pw)*0.22*1px); height:calc(var(--pw)*0.016*1px);
+  border-radius:99px; background:#0e1a1e}
+.scr{position:absolute; left:0; top:0; width:390px; height:844px; transform-origin:0 0;
+  transform:scale(calc(var(--pw)/390)); overflow:hidden;
+  background:linear-gradient(180deg,#0a2a33 0%,#07202a 30%,#04141c 58%,#020a10 80%,#01060a 100%);
+  font-size:13px; color:var(--ink)}
+/* 부유물 — 마크업 없이 (CONCEPT_DEEP_SEA D5) */
+.scr::before{content:""; position:absolute; inset:0; pointer-events:none; z-index:1;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 14%, rgba(230,215,176,.16), transparent 100%),
+    radial-gradient(1.2px 1.2px at 78% 9%,  rgba(230,215,176,.13), transparent 100%),
+    radial-gradient(1.8px 1.8px at 31% 37%, rgba(230,215,176,.10), transparent 100%),
+    radial-gradient(1.2px 1.2px at 88% 44%, rgba(230,215,176,.12), transparent 100%),
+    radial-gradient(1.4px 1.4px at 6% 58%,  rgba(230,215,176,.10), transparent 100%),
+    radial-gradient(1.2px 1.2px at 62% 66%, rgba(230,215,176,.09), transparent 100%),
+    radial-gradient(1.6px 1.6px at 22% 78%, rgba(230,215,176,.08), transparent 100%),
+    radial-gradient(1.2px 1.2px at 91% 84%, rgba(230,215,176,.07), transparent 100%),
+    radial-gradient(1.3px 1.3px at 45% 92%, rgba(230,215,176,.06), transparent 100%);
+}
+.scr.dark{background:linear-gradient(180deg,#02090c,#01060a 60%,#000)}
+
+/* ── 화면 안의 가장자리 UI (base.css 와 같은 말) ─── */
+.hud{position:absolute; z-index:20}
+.hud.tl{top:16px; left:14px}
+.hud.bl{left:14px; bottom:18px}
+.hud.br{right:14px; bottom:18px}
+.r1{display:flex; align-items:baseline; gap:9px}
+.r1 b{font-size:19px; color:var(--cream); letter-spacing:.04em; text-shadow:0 1px 0 #000,0 0 12px #000}
+.r1 em{font-style:normal; font-size:10px; color:var(--lamp); border:1px solid #3d2d15;
+  background:rgba(20,17,12,.72); border-radius:3px; padding:2px 6px; letter-spacing:.12em}
+.res{display:flex; flex-wrap:wrap; gap:4px 6px; margin-top:7px; max-width:220px}
+.res span{font-size:10.5px; color:var(--dim); background:rgba(6,26,33,.7);
+  border:1px solid var(--line); border-radius:3px; padding:2px 6px; white-space:nowrap}
+.res span b{color:var(--cream); margin-left:4px}
+.gauges{display:flex; flex-direction:column; gap:9px}
+.g{display:flex; align-items:center; gap:8px}
+.g i{font-style:normal; font-size:10px; color:var(--dim); width:24px; letter-spacing:.08em}
+.g u{text-decoration:none; font-size:10px; color:var(--lamp)}
+.band{position:relative; width:118px; height:9px; background:rgba(1,6,10,.8);
+  border:1px solid var(--line); border-radius:2px; overflow:hidden}
+.band::after{content:""; position:absolute; inset:0; width:var(--v,60%);
+  background:repeating-linear-gradient(90deg,var(--cream) 0 7px,transparent 7px 10px); opacity:.92}
+.band.down::after{background:repeating-linear-gradient(90deg,var(--lamp) 0 7px,transparent 7px 10px)}
+.band.low::after{background:repeating-linear-gradient(90deg,var(--oxblood) 0 7px,transparent 7px 10px)}
+.zoomctl{display:flex; gap:6px}
+.zoomctl span{width:40px; height:40px; display:grid; place-items:center; font-size:17px;
+  color:var(--ink); background:rgba(6,26,33,.82); border:1px solid var(--line); border-radius:6px}
+.zoomctl.off span{opacity:.3}
+
+/* 화면 안 패널 / 토스트 */
+.ipanel{position:absolute; z-index:22; right:12px; top:16px; width:168px;
+  background:rgba(10,14,12,.95); border:1px solid #2a2419; border-left:3px solid var(--ochre);
+  border-radius:8px; padding:12px 12px 11px}
+.ipanel h4{margin:0 0 2px; font-size:13px; color:var(--cream)}
+.ipanel .s{margin:0 0 9px; font-size:9.5px; color:var(--dim); letter-spacing:.1em}
+.bopt{display:block; min-height:38px; background:#151a17; border:1px solid #2a2419;
+  border-left:3px solid var(--ochre); border-radius:5px; padding:7px 9px; margin-bottom:6px}
+.bopt b{display:block; font-size:11.5px; color:var(--cream)}
+.bopt small{display:block; margin-top:2px; font-size:9.5px; color:var(--dim)}
+.bopt.no{opacity:.45; border-left-color:#3a3a3a}
+.itoast{position:absolute; z-index:24; left:50%; transform:translateX(-50%); bottom:92px;
+  background:rgba(10,14,12,.95); border:1px solid #2a2419; border-radius:5px;
+  padding:8px 14px; font-size:12px; color:var(--cream); white-space:nowrap}
+.ilabel{position:absolute; z-index:23; font-size:10.5px; color:var(--cream);
+  background:rgba(10,14,12,.86); border:1px solid #2a2419; border-radius:3px; padding:3px 7px;
+  letter-spacing:.06em; white-space:nowrap}
+
+/* ── 방주 단면 ───────────────────────────────────── */
+.ark{position:absolute; inset:0; z-index:8}
+.spine{position:absolute; background:linear-gradient(90deg,#1b1a12,#3a3018 50%,#1b1a12);
+  border-left:2px solid var(--charcoal); border-right:2px solid var(--charcoal)}
+.spine::after{content:""; position:absolute; inset:0;
+  background:repeating-linear-gradient(180deg,transparent 0 7px,rgba(230,215,176,.22) 7px 9px)}
+.room{position:absolute; border:3px solid var(--charcoal); border-radius:2px; overflow:hidden;
+  background:var(--c,#b4712f); box-shadow:0 0 22px rgba(240,176,85,.14)}
+.room .fl{position:absolute; left:0; right:0; bottom:0; height:7px; background:var(--fl,#54351a)}
+.room .bk{position:absolute; left:0; right:0; top:0; height:42%; background:var(--sh,#815022)}
+.room .lamp{position:absolute; top:3px; left:var(--x,50%); width:22px; height:22px;
+  margin-left:-11px; border-radius:50%;
+  background:radial-gradient(circle,rgba(255,225,170,.98) 0 22%,rgba(240,176,85,.45) 45%,transparent 72%)}
+.room .p{position:absolute; bottom:7px; left:var(--x,50%); width:5px; height:14px;
+  background:var(--pc,#d8c9a3); border-radius:1px 1px 0 0}
+.room .p::before{content:""; position:absolute; left:-1px; top:-6px; width:7px; height:6px;
+  border-radius:2px; background:var(--pc,#d8c9a3)}
+.room .p.sit{height:9px}
+.room .obj{position:absolute; bottom:7px; left:var(--x,50%); width:var(--w,9px); height:var(--h,8px);
+  background:var(--k,#5c421a); border:1px solid var(--charcoal)}
+.room .shelf{position:absolute; left:6px; right:6px; height:2px; background:#4a3415}
+.room.flood{background:#0b2b33; box-shadow:none}
+.room.flood .bk{background:#08222a}
+.room.flood .fl{background:#071a20}
+.room.dashed{background:transparent; border:2px dashed #3f5a5f; box-shadow:none}
+.room.dashed .fl,.room.dashed .bk{display:none}
+.room.sel{outline:2px solid var(--lamp); outline-offset:2px}
+
+/* 등불 헤일로 (물속으로 새는 빛) */
+.halo{position:absolute; z-index:7; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle,rgba(240,176,85,.20),rgba(240,176,85,.06) 45%,transparent 72%)}
+
+/* 깊이 눈금 (오른쪽 가장자리) */
+.ruler{position:absolute; z-index:18; right:0; top:0; bottom:0; width:58px;
+  background:linear-gradient(90deg,transparent,rgba(1,6,10,.55))}
+.ruler .tk{position:absolute; right:8px; font-size:9.5px; color:var(--dim); letter-spacing:.1em}
+.ruler .tk::before{content:""; position:absolute; right:-8px; top:50%; width:6px; height:1px;
+  background:#2d4148}
+.ruler .tk.on{color:var(--lamp)}
+.ruler .here{position:absolute; right:4px; width:44px; height:0; border-top:1px dashed var(--lamp)}
+
+/* ── 개별 화면 조각 ─────────────────────────────── */
+/* J1 : 떠오르는 등불 */
+.rise{position:absolute; z-index:5; left:50%; transform:translateX(-50%); bottom:-90px;
+  width:420px; height:300px;
+  background:radial-gradient(ellipse at 50% 100%,rgba(240,176,85,.42),rgba(200,120,45,.16) 38%,transparent 68%)}
+/* 랜턴 반경 (J4·J12) */
+.lantern{position:absolute; z-index:6; border-radius:50%;
+  background:radial-gradient(circle,rgba(240,176,85,.34) 0 26%,rgba(240,176,85,.12) 48%,transparent 74%)}
+/* 문턱 (J3) */
+.inside{position:absolute; z-index:6; background:linear-gradient(180deg,#c08a33,#8c6222)}
+.inside .wall{position:absolute; inset:0;
+  background:repeating-linear-gradient(90deg,rgba(20,17,12,.16) 0 2px,transparent 2px 16px)}
+.hatch{position:absolute; z-index:12; border-radius:50%; border:6px solid #3a3018;
+  background:radial-gradient(circle,#0a2a33,#02090c); box-shadow:0 0 0 3px var(--charcoal)}
+.hatch .spk{position:absolute; left:50%; top:50%; width:2px; height:64%; margin:-32% 0 0 -1px;
+  background:#5c421a; transform-origin:50% 50%}
+/* 카메라 뷰 (J5) */
+.camview{position:absolute; z-index:6; inset:0; background:#05100f}
+.bracket{position:absolute; z-index:10; width:34px; height:34px; border:2px solid var(--lamp)}
+.scanline{position:absolute; z-index:11; left:56px; right:56px; height:2px;
+  background:linear-gradient(90deg,transparent,var(--lamp),transparent)}
+.shutter{position:absolute; z-index:12; left:50%; bottom:46px; transform:translateX(-50%);
+  width:66px; height:66px; border-radius:50%; border:3px solid var(--cream);
+  background:rgba(230,215,176,.16)}
+.shutter::after{content:""; position:absolute; inset:7px; border-radius:50%; background:var(--cream)}
+/* 유물 카드 */
+.rcard{position:absolute; z-index:14; border:2px solid var(--charcoal); border-left:5px solid var(--oxblood);
+  border-radius:6px; background:linear-gradient(180deg,#e6d7b0,#cdba8c); color:#2a1f10;
+  padding:14px 13px; box-shadow:0 18px 40px rgba(0,0,0,.6)}
+.rcard .hd{font-size:9.5px; letter-spacing:.2em; color:#7a5a25}
+.rcard h5{margin:5px 0 2px; font-size:16px; color:#2a1f10; font-weight:700}
+.rcard .fam{font-size:10.5px; color:#8c3b2e}
+.rcard .art{margin:10px 0; height:92px; border:1px solid #b09a6b; background:#dcc99c;
+  display:grid; place-items:center}
+.rcard .fv{font-size:10.5px; line-height:1.7; color:#55401f}
+.rcard.flip{transform:perspective(700px) rotateY(-26deg)}
+.veilblack{position:absolute; z-index:13; inset:0; background:rgba(1,6,10,.82)}
+.firstmeet{position:absolute; z-index:15; left:0; right:0; text-align:center;
+  font-size:11px; letter-spacing:.34em; color:var(--lamp)}
+/* 이름 입력 (J7) */
+.namebox{position:absolute; z-index:22; left:26px; right:26px;
+  background:rgba(10,14,12,.95); border:1px solid #2a2419; border-top:3px solid var(--ochre);
+  border-radius:8px; padding:14px 14px 15px}
+.namebox .q{margin:0 0 10px; font-size:12px; color:var(--dim); letter-spacing:.06em}
+.namefield{display:flex; align-items:center; height:42px; padding:0 12px; border-radius:5px;
+  background:#0d1512; border:1px solid #3a3018}
+.namefield span{font-size:16px; color:var(--cream)}
+.caret{display:inline-block; width:2px; height:20px; background:var(--lamp); margin-left:3px}
+.namebox .ok{margin-top:10px; height:40px; border-radius:5px; background:#3a3018;
+  border:1px solid var(--ochre); color:var(--cream); font-size:13px; display:grid; place-items:center}
+/* 사건 쪽지 (J8) */
+.note{position:absolute; z-index:16; left:26px; right:26px;
+  background:linear-gradient(180deg,#e6d7b0,#d5c298); color:#2a1f10;
+  border:2px solid var(--charcoal); border-radius:4px; padding:16px 16px 14px;
+  box-shadow:0 20px 44px rgba(0,0,0,.66)}
+.note h5{margin:0 0 9px; font-size:15px; font-weight:700}
+.note p{margin:0 0 5px; font-size:11.5px; line-height:1.7; color:#4a3718}
+.note p.ask{color:#8c3b2e; font-weight:700}
+.note .tg{display:flex; gap:5px; margin-top:11px}
+.note .tg span{font-size:9px; color:#7a5a25; border:1px solid #b09a6b; border-radius:3px; padding:1px 6px}
+.timer{position:absolute; z-index:17; right:34px; width:46px; height:46px}
+.opts{position:absolute; z-index:16; left:26px; right:26px; display:flex; flex-direction:column; gap:7px}
+.opt{min-height:40px; background:#151a17; border:1px solid #2a2419; border-left:3px solid var(--ochre);
+  border-radius:5px; padding:7px 10px}
+.opt b{display:block; font-size:12px; color:var(--cream)}
+.opt small{display:block; font-size:9.5px; color:var(--dim); margin-top:2px}
+.opt.risk{border-left-color:var(--oxblood)}
+/* 하루 마감 (J10) */
+.sheet{position:absolute; z-index:20; left:20px; right:20px;
+  background:rgba(9,13,11,.96); border:1px solid #2a2419; border-radius:10px; padding:16px 16px 14px}
+.sheet h5{margin:0 0 3px; font-size:15px; color:var(--cream)}
+.sheet .s{margin:0 0 12px; font-size:9.5px; color:var(--dim); letter-spacing:.16em}
+.chg{display:flex; gap:9px; align-items:flex-start; padding:8px 0; border-top:1px solid #20241f}
+.chg i{width:7px; height:7px; border-radius:2px; margin-top:6px; flex:0 0 auto; background:var(--ochre)}
+.chg i.o{background:var(--oxblood)} .chg i.g{background:var(--olive)} .chg i.c{background:var(--cream)}
+.chg b{display:block; font-size:11.5px; color:var(--cream); font-weight:700}
+.chg small{display:block; font-size:10px; color:var(--dim); margin-top:1px}
+.logbox{margin-top:12px; border-top:1px solid #20241f; padding-top:11px}
+.logbox .lb{display:flex; justify-content:space-between; align-items:baseline}
+.logbox .lb span{font-size:9.5px; color:var(--dim); letter-spacing:.14em}
+.logbox .lb b{font-size:13px; color:var(--lamp)}
+.logbox .lb b s{color:var(--dim); font-size:11px; margin-right:6px}
+.logbox svg{display:block; width:100%; height:40px; margin-top:7px}
+.logbox .cap{margin:5px 0 0; font-size:9.5px; color:var(--dim)}
+/* 각인 (J11) */
+.beforeafter{position:absolute; z-index:14; display:flex; align-items:flex-end; gap:0}
+.arrowr{position:absolute; z-index:14; color:var(--lamp); font-size:18px}
+/* 해구 문턱 (J14) */
+.nobuild{position:absolute; z-index:14; left:0; right:0; height:16px;
+  background:repeating-linear-gradient(135deg,rgba(140,59,46,.55) 0 6px,transparent 6px 12px);
+  border-top:2px solid var(--oxblood); border-bottom:2px solid var(--oxblood)}
+.blackout{position:absolute; z-index:13; left:0; right:0; bottom:0; background:#000}
+/* 유리에 비친 것 / 두드림 (J9) */
+.knock{position:absolute; z-index:14; border:2px solid rgba(230,215,176,.5); border-radius:50%}
+.glass{position:absolute; z-index:12; border:4px solid #3a3018; border-radius:10px;
+  background:rgba(10,42,51,.35)}
+.glass::after{content:""; position:absolute; left:8%; top:6%; width:26%; height:60%;
+  background:linear-gradient(160deg,rgba(230,215,176,.16),transparent); transform:skewX(-14deg)}
+.frozen{position:absolute; z-index:26; left:50%; bottom:20px; transform:translateX(-50%);
+  font-size:10px; letter-spacing:.22em; color:var(--dim)}
+/* 스프라이트 */
+.fig{position:absolute; z-index:15}
+.fig img{width:100%; height:100%}
+.fig.sil img{filter:brightness(.16) contrast(1.4)}
+.fig.warm img{filter:saturate(1.05)}
+
+/* ── 오른쪽 설명 네 줄 ──────────────────────────── */
+.jhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+.jno{color:var(--teal); font-size:12px; letter-spacing:.2em; font-weight:700}
+.jtitle{margin:0; font-size:clamp(18px,2.2vw,23px); color:#fff; font-weight:700}
+.jtime{color:var(--dim); font-size:11.5px; letter-spacing:.1em;
+  border:1px solid var(--line); border-radius:99px; padding:2px 9px}
+.jlead{margin:10px 0 0; font-size:13.5px; color:#9fb0ae; line-height:1.85; max-width:56ch}
+.rows{display:grid; grid-template-columns:96px minmax(0,1fr); margin:18px 0 0}
+.rows dt{grid-column:1; color:var(--dim); font-size:11px; letter-spacing:.12em;
+  padding:12px 12px 12px 0; border-top:1px solid #152328}
+.rows dd{grid-column:2; margin:0; padding:12px 0; font-size:13.5px; line-height:1.8;
+  color:#c8d4d2; border-top:1px solid #152328}
+.rows dd b{color:var(--lamp); font-weight:700}
+.rows dd em{font-style:normal; color:var(--teal)}
+.etag{display:inline-block; font-size:10.5px; letter-spacing:.1em; color:#07202a;
+  background:var(--lamp); border-radius:3px; padding:1px 7px; margin-right:6px; font-weight:700}
+
+/* ── 보강 일곱 ───────────────────────────────────── */
+.ecards{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+.ecard{background:var(--bg2); border:1px solid var(--line); border-left:3px solid var(--lamp);
+  border-radius:8px; padding:15px 15px 16px}
+.ecard .id{color:var(--lamp); font-size:11px; letter-spacing:.2em; font-weight:700}
+.ecard h3{margin:4px 0 7px; font-size:15px; color:var(--cream); font-weight:700}
+.ecard p{margin:0; font-size:12.5px; color:#9fb0ae; line-height:1.75}
+.ecard .fix{margin-top:9px; font-size:11px; color:var(--teal)}
+.ecard.star{border-left-color:var(--oxblood)}
+.ecard.star .id{color:var(--oxblood)}
+
+.mxwrap{margin-top:20px; overflow-x:auto; -webkit-overflow-scrolling:touch}
+table.mx{width:100%; min-width:560px; border-collapse:collapse; font-size:13px}
+table.mx th,table.mx td{border-bottom:1px solid var(--line); padding:10px 8px; text-align:center}
+table.mx th{color:var(--dim); font-weight:400; font-size:11.5px; letter-spacing:.1em}
+table.mx td:first-child,table.mx th:first-child{text-align:left; white-space:nowrap}
+table.mx td.on{color:var(--lamp); font-weight:700}
+table.mx td.off{color:#22343a}
+table.mx tbody tr:hover{background:rgba(47,168,160,.05)}
+
+.foot{color:var(--dim); font-size:12.5px; margin-top:34px; padding-top:18px;
+  border-top:1px solid var(--line)}
+.foot a{color:var(--teal)}
+
+/* ── 1280×720 보정 ──────────────────────────────── */
+@media (max-width:1240px){
+  .shot{--pw:268}
+  .step{gap:28px}
+  .ecards{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:980px){
+  .verbs{grid-template-columns:repeat(2,1fr)}
+}
+/* ── 폰 세로 (390×844) ─────────────────────────── */
+@media (max-width:760px){
+  .wrap{padding:0 16px 80px}
+  .step{grid-template-columns:minmax(0,1fr); gap:22px; padding:30px 0}
+  .shots{justify-content:center}
+  .shot{--pw:300}
+  .step.stack .shot{--pw:220}
+  .step.stack .shots{margin-bottom:18px}
+  .verbs{grid-template-columns:1fr}
+  .ecards{grid-template-columns:1fr}
+  .rows{grid-template-columns:76px minmax(0,1fr)}
+  .rows dt{font-size:10.5px; padding-right:8px}
+  .rows dd{font-size:13px}
+  header.top .cap{margin-top:-60px}
+  table.mx{font-size:11.5px}
+  table.mx th,table.mx td{padding:8px 3px}
+}
+@media (max-width:420px){
+  .shot{--pw:280}
+  .step.stack .shot{--pw:280}   /* 폰에서는 3컷을 한 장씩 세로로 — 작게 줄이면 읽히지 않는다 */
+  .step.stack .shots{gap:26px}
+}

@@ -19,7 +19,8 @@
  "clip_range": null,
  "variants": {
   "a": "렌더 그대로(부드러운 음영·옅은 선) — 비교용 한 벌",
-  "b": "평면 민속화풍 — 팔레트 강제·음영 2단·역할별 반복 무늬·흔들리는 선"
+  "b": "평면 민속화풍 — 팔레트 강제·음영 2단·역할별 반복 무늬·흔들리는 선",
+  "c": "b 와 같은 화풍 + 비율 보정(3등신·큰 눈·둥근 아래·과장된 동작). 팔레트·음영·무늬·선은 b 와 한 줄도 다르지 않다"
  },
  "palette": {
   "cream": [
@@ -52,7 +53,7 @@
   ]
  },
  "line_color": "#12100D",
- "sheet": "static/art/chars/front/<a|b>/<role>.png",
+ "sheet": "static/art/chars/front/<a|b|c>/<role>.png",
  "hero": [
   "scout",
   "medic",
@@ -66,7 +67,6 @@
    "empty_stomach"
   ],
   "roles": [
-   "cook",
    "scout"
   ]
  },
@@ -79,7 +79,14 @@
    "motif": "hatch",
    "motif_ko": "빗금(기운 자국)",
    "norm_h": 1.6,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.557,
+   "land_c": {
+    "wave": 0.8971,
+    "hem": 0.2509,
+    "head": 0.9467
+   },
+   "h_c": 1.6812
   },
   "cook": {
    "h": 1.9727,
@@ -99,7 +106,14 @@
    "motif": "cross",
    "motif_ko": "십자 박음",
    "norm_h": 1.58,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.706,
+   "land_c": {
+    "wave": 0.8917,
+    "hem": 0.2501,
+    "head": 0.9411
+   },
+   "h_c": 1.6216
   },
   "engineer": {
    "h": 1.6627,
@@ -109,7 +123,14 @@
    "motif": "zig",
    "motif_ko": "지그재그 이음매",
    "norm_h": 1.62,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.604,
+   "land_c": {
+    "wave": 0.9145,
+    "hem": 0.2566,
+    "head": 0.9651
+   },
+   "h_c": 1.6627
   },
   "farmer": {
    "h": 1.8025,
@@ -149,7 +170,14 @@
    "motif": "rings",
    "motif_ko": "따개비 고리",
    "norm_h": 1.2,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.72,
+   "land_c": {
+    "wave": 0.6813,
+    "hem": 0.1916,
+    "head": 0.719
+   },
+   "h_c": 1.2074
   },
   "octopus": {
    "h": 0.52,
@@ -159,7 +187,52 @@
    "threshold": 0.624,
    "motif": null,
    "motif_ko": "-",
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.682,
+   "h_c": 0.57
   }
+ },
+ "cute": {
+  "head": 1.26,
+  "neck": 0.7,
+  "leg": 0.78,
+  "leg_xz": 1.3,
+  "arm": 0.84,
+  "arm_xz": 1.12,
+  "fist": 1.08,
+  "shoulder": 0.72,
+  "torso_y": 0.88,
+  "torso_xz": 1.06,
+  "abdomen_y": 0.86,
+  "abdomen_xz": 1.1,
+  "hips_xz": 1.16,
+  "eye": 0.95,
+  "pupil": 0.62,
+  "eye_drop": 0.075,
+  "eye_wide": 1.06,
+  "hilite": 0.3,
+  "skirt": 1.04
+ },
+ "exag": {
+  "idle_breath": 0.011,
+  "idle_tilt": 0.9,
+  "walk_bob": 0.052,
+  "walk_tilt": 3.6,
+  "walk_squash": 0.045,
+  "pick_lean": 6.0,
+  "pick_squat": 0.05,
+  "pick_tilt": 4.0
+ },
+ "cute_roles": [
+  "scout",
+  "medic",
+  "engineer",
+  "kid",
+  "octopus"
+ ],
+ "anim_seconds": {
+  "Idle": 2.8,
+  "Walk": 0.8,
+  "PickUp": 1.4
  }
 }

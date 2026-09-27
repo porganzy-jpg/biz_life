@@ -53,6 +53,31 @@
   .mot{display:inline-block;font-size:10px;background:#2b2119;color:#E4B453;
        padding:1px 7px;border-radius:9px;margin-left:6px}
 
+  /* S5-C 전·후 비교 */
+  .ba{display:flex;flex-wrap:wrap;gap:12px}
+  .bacard{flex:1 1 430px;min-width:400px;max-width:560px;background:#141110;
+          border:1px solid #33271c;border-radius:9px;overflow:hidden}
+  .bacard .pair{display:flex}
+  .bacard .half{flex:1;position:relative;height:250px;display:flex;align-items:flex-end;
+                justify-content:center;overflow:hidden;
+                background:radial-gradient(120% 90% at 50% 20%, #2a2119 0%, #12100d 78%)}
+  .bacard .half+.half{border-left:1px dashed #3b2d20}
+  .bacard .tag{position:absolute;left:8px;top:7px;font-size:10px;letter-spacing:.4px;
+               padding:1px 7px;border-radius:9px;background:#00000099}
+  .tag.before{color:#9c9080;border:1px solid #3b2d20}
+  .tag.after{color:#12100d;background:#E4B453;font-weight:700}
+  .bacard .meta{padding:9px 13px 12px}
+  .bacard .nm{font-size:15px;color:#F2E7CE;font-weight:700}
+  .bacard .rl{font-size:11px;color:#DC7728;margin-left:6px}
+  .minirow{display:flex;gap:8px;padding:0 13px 11px;flex-wrap:wrap}
+  .minibox{position:relative;border-radius:4px;display:flex;align-items:flex-end;
+           justify-content:center;overflow:hidden}
+  .minicap{font-size:9px;color:#7d7266;text-align:center;margin-top:2px}
+  .chk{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 2px}
+  .chk div{font-size:11px;background:#1d1710;border:1px solid #2e241b;border-radius:14px;
+           padding:3px 11px;color:#b9ac98}
+  .chk b{color:#E4B453}
+
   /* 팔레트 */
   .pal{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 4px}
   .swatch{width:132px;border:1px solid #2e241b;border-radius:6px;overflow:hidden;background:#171310}
@@ -91,6 +116,31 @@
 </header>
 
 <main>
+  <h2>0. 더 귀엽게 — 전 · 후 (스프린트 5-C)</h2>
+  <p class="note">
+    <b>화풍은 그대로다.</b> 팔레트 7계열·음영 2단·역할별 반복 무늬·손그림 선·종이 결은
+    아래 §2~§6과 <b>한 줄도 다르지 않다</b>(후처리 함수 <code>folk()</code>를 그대로 통과한다).
+    바뀐 것은 <b>비율과 인상</b>뿐이다 — 머리를 키우고, 눈을 키워 내리고, 아래를 둥글게 하고, 동작을 과장했다.
+    <b>채도를 올리거나 분홍을 넣지 않았다</b>(§5-3-5). 메시도 새로 만들지 않았다 —
+    <b>뼈 스케일</b>만 바꾸고 <b>총 키는 다시 원래대로</b> 맞췄으므로 실측 키·미터당 110px·발 기준선 규약이 그대로다.
+  </p>
+  <div class="chk" id="cutechk"></div>
+  <div class="ba" id="beforeafter"></div>
+
+  <h3>0-1. 70px 한 줄 — <span style="color:#DC7728">다섯이 갈리는가 (최우선 합격 기준)</span></h3>
+  <p class="note">위가 전(b), 아래가 후(c). 배경 셋은 실제 단면 렌더에서 뽑은 색이다.</p>
+  <div id="c70"></div>
+
+  <h3>0-2. 110px</h3>
+  <div id="c110"></div>
+
+  <h3>0-3. 동작 과장 — 걸음의 상하 흔들림 · 드는 동작의 젖힘 · 서 있을 때의 호흡</h3>
+  <p class="note">
+    정면 직교는 깊이 방향을 읽지 못하므로(§8의 실패 컷) 과장은 전부 <b>화면 평면 안</b>에서 준다:
+    상하 흔들림 · 좌우 기울기 · 눌림. 왼쪽이 전(b), 오른쪽이 후(c).
+  </p>
+  <div id="canim"></div>
+
   <h2>1. 대표 캐릭터 — 이 게임의 얼굴 다섯</h2>
   <p class="note">
     큰 그림은 화풍을 보기 위한 것이고, 오른쪽 아래 <b>70px·110px</b>이 실제 게임 크기다.
@@ -209,8 +259,16 @@ function fileSprite(url, H) {           // 한 장짜리 PNG(셀 1개 분량)
   return d;
 }
 function anySprite(variant, role, H, opt) {
-  if (role === 'octopus') return fileSprite(`/static/art/chars/front/b/octopus_idle.png`, H);
+  // 문어는 시트가 아니라 낱장이고 A안(렌더 그대로) 판이 없다 → b 로 떨어뜨린다
+  if (role === 'octopus') {
+    const v = (variant === 'c') ? 'c' : 'b';
+    return fileSprite(`/static/art/chars/front/${v}/octopus_idle.png`, H);
+  }
   return sheetSprite(variant, role, (opt && opt.row) || 0, 0, H, opt);
+}
+function heroUrl(variant, role) {
+  return `/static/art/chars/front/${variant}/` +
+         (role === 'octopus' ? 'octopus_hero' : role + '_hero') + '.png';
 }
 function card(el, cap, bg) {
   const w = document.createElement('div'); w.className = 'card';
@@ -235,6 +293,92 @@ fetch('/static/art/chars/front/front_meta.json').then(r => r.json()).then(m => {
   const ORDER = ["scout","cook","medic","engineer","farmer","scholar","trader","kid"].filter(r => m.roles[r]);
   const HEROES = (m.hero || ["scout","medic","kid","engineer"]).filter(r => m.roles[r])
                   .concat(m.roles.octopus ? ["octopus"] : []);
+
+  // ── 0. 전·후 (S5-C 비율 보정)
+  const CUTE_OK = (m.cute_roles || []).length > 0;
+  const CROLES = HEROES.filter(r => (m.cute_roles || []).includes(r));
+  if (CUTE_OK) {
+    const c = m.cute || {};
+    const e = m.exag || {};
+    const chips = [
+      ['머리 뼈', '×' + (c.head || '-')], ['목 길이', '×' + (c.neck || '-')],
+      ['다리 길이', '×' + (c.leg || '-')], ['어깨 폭', '×' + (c.shoulder || '-')],
+      ['허리 폭', '×' + (c.hips_xz || '-')], ['눈(흰자)', '×' + (c.eye || '-') + ' · folk 는 ×0.52'],
+      ['눈 내림', ((c.eye_drop || 0) * 100).toFixed(1) + 'cm'],
+      ['걸음 흔들림', ((e.walk_bob || 0) * 100).toFixed(1) + 'cm'],
+      ['드는 젖힘', (e.pick_lean || 0) + '°'], ['호흡', ((e.idle_breath || 0) * 100).toFixed(1) + 'cm'],
+      ['팔레트', '변경 0'], ['음영 단수', '2단 그대로']];
+    document.getElementById('cutechk').innerHTML =
+      chips.map(x => `<div>${x[0]} <b>${x[1]}</b></div>`).join('');
+
+    const ba = document.getElementById('beforeafter');
+    for (const r of CROLES) {
+      const box = document.createElement('div'); box.className = 'bacard';
+      const pair = document.createElement('div'); pair.className = 'pair';
+      for (const [v, cls, lbl] of [['b', 'before', '전 (S4)'], ['c', 'after', '후 (S5)']]) {
+        const half = document.createElement('div'); half.className = 'half';
+        const t = document.createElement('div'); t.className = 'tag ' + cls; t.textContent = lbl;
+        const el = fileSprite(heroUrl(v, r), 230);
+        el.style.marginBottom = (-(CELL - BASE) * (230 / (1.6 * PPM)) + 6) + 'px';
+        half.appendChild(t); half.appendChild(el); pair.appendChild(half);
+      }
+      box.appendChild(pair);
+      const mt = document.createElement('div'); mt.className = 'meta';
+      const t2 = HERO_TXT[r] || ["", ""];
+      mt.innerHTML = `<div class="nm">${ROLE_KO[r]}<span class="rl">${t2[0]}</span></div>`;
+      box.appendChild(mt);
+      const mr = document.createElement('div'); mr.className = 'minirow';
+      for (const [v, H, bg, lbl] of [['b', 110, 'var(--wall-quarters)', '전 110'],
+                                     ['c', 110, 'var(--wall-quarters)', '후 110'],
+                                     ['b', 70, 'var(--wall-quarters)', '전 70'],
+                                     ['c', 70, 'var(--wall-quarters)', '후 70'],
+                                     ['b', 70, 'var(--wall-dark)', '전 70·어둠'],
+                                     ['c', 70, 'var(--wall-dark)', '후 70·어둠']]) {
+        const w = document.createElement('div');
+        const sb = document.createElement('div'); sb.className = 'minibox';
+        // 셀(256px)이 그림 높이(176px)보다 크다 — 상자를 셀 높이에 맞춰야 머리가 안 잘린다
+        const cw = Math.round(CELL * H / (1.6 * PPM));
+        sb.style.background = bg; sb.style.width = Math.round(cw * 0.52) + 'px';
+        sb.style.height = cw + 'px';
+        sb.appendChild(anySprite(v, r, H));
+        w.appendChild(sb);
+        const cp = document.createElement('div'); cp.className = 'minicap'; cp.textContent = lbl;
+        w.appendChild(cp); mr.appendChild(w);
+      }
+      box.appendChild(mr); ba.appendChild(box);
+    }
+
+    for (const [id, H] of [['c70', 70], ['c110', 110]]) {
+      const host = document.getElementById(id);
+      for (const [v, ttl] of [['b', '전 (S4 화풍 확정판)'], ['c', '후 (S5 비율 보정)']]) {
+        const h4 = document.createElement('h3'); h4.textContent = ttl + `  (${H}px)`;
+        host.appendChild(h4);
+        for (const [bg, lbl] of [['var(--wall-quarters)', '밝은 뒷벽'],
+                                 ['var(--floor-workshop)', '바닥'],
+                                 ['var(--wall-dark)', '어두운 구석']])
+          band(host, v, H, bg, lbl, CROLES);
+      }
+    }
+
+    const ca = document.getElementById('canim');
+    for (const [row, ttl, dur] of [[1, 'Walk — 걸을 때 상하 흔들림', 0.8],
+                                   [2, 'PickUp — 드는 동작(뒤로 젖힘 + 무릎)', 1.4],
+                                   [0, 'Idle — 아주 느린 호흡', 2.8]]) {
+      const h4 = document.createElement('h3'); h4.textContent = ttl; ca.appendChild(h4);
+      const g = document.createElement('div'); g.className = 'grid';
+      for (const r of CROLES) {
+        if (r === 'octopus') continue;
+        for (const v of ['b', 'c'])
+          g.appendChild(card(sheetSprite(v, r, row, 0, 120, {anim: dur}),
+                             ROLE_KO[r] + ' · ' + (v === 'b' ? '전' : '후'),
+                             'var(--wall-quarters)'));
+      }
+      ca.appendChild(g);
+    }
+  } else {
+    document.getElementById('cutechk').innerHTML =
+      '<div style="color:#ff8a6a">비율 보정판(c)이 아직 없다 — <code>render_sprites.py -- cute</code> 후 <code>post --cute</code></div>';
+  }
 
   // ── 1. 대표 캐릭터
   const hs = document.getElementById('heroes');

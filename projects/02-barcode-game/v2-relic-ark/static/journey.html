@@ -1,0 +1,1177 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>잔해 방주 — 사용자 여정 14단계 화면 시안</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/journey.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     머리 — 이 페이지가 무엇인지
+     ══════════════════════════════════════════════════════════ -->
+<header class="top">
+  <img class="bg" src="/static/art/deep/section_hero.png" alt="검은 물속의 방주 단면">
+  <div class="veil"></div>
+  <div class="cap">
+    <p class="kicker">잔해 방주 · 1막 · 기획안 부록</p>
+    <h1>사용자 여정 14단계 — 화면 시안</h1>
+    <p class="pitch">첫 숨부터 해구 문턱까지. 플레이어가 무엇을 보고, 무엇을 하고,<br>
+       무엇을 느끼고, 그때 어떤 시스템이 움직이는가를 한 장씩 그려 둔 판.</p>
+    <p class="meta">2026-09-27 · 사양은 <b>PLAYER_JOURNEY.md §3</b> 여정 표 · 화풍은 REF_ART_FLAT_FOLK §5 · 시안은 전부 HTML·CSS·SVG로 그렸다</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ══════════════════════════════════════════════════════════
+     0. 한 화면 요약
+     ══════════════════════════════════════════════════════════ -->
+<section id="summary">
+  <h2><span class="num">00</span>한 화면 요약 — 다섯 동사와 감정 곡선</h2>
+  <p class="sub">1막 전체가 이 다섯 동사의 한 바퀴다. 10분에 한 바퀴를 다 돌리고, 하루·주·달이 같은 바퀴를 더 크게 돈다.</p>
+
+  <div class="verbs">
+    <div class="verb"><div class="n">01</div><h3>보다</h3>
+      <p>검은 물에 뜬 불 켜진 상자들. 설명도 UI도 없이 "저 안이 따뜻해 보인다"만 남긴다.</p>
+      <div class="j">J1 · J2</div></div>
+    <div class="verb"><div class="n">02</div><h3>나가다</h3>
+      <p>에어락을 넘으면 목소리가 끊기고 시점이 바뀐다. 랜턴 반경만 보이고 공기가 줄어든다.</p>
+      <div class="j">J3 · J4</div></div>
+    <div class="verb"><div class="n">03</div><h3>돌아오다</h3>
+      <p>현실의 바코드가 카드가 되고, 카드가 <b>선반 위의 물건</b>이 된다. 이 게임의 정체성.</p>
+      <div class="j">J5</div></div>
+    <div class="verb"><div class="n">04</div><h3>커지다</h3>
+      <p>아래로 한 칸. 단면이 넓어지고 창이 하나 늘고, 그 창으로 식구가 들어온다.</p>
+      <div class="j">J6 · J7</div></div>
+    <div class="verb"><div class="n">05</div><h3>찾아오다</h3>
+      <p>쪽지 한 장에 방을 잃고, 유리 밖에서 무언가가 두드린다. 그리고 하루가 닫힌다.</p>
+      <div class="j">J8 · J9 · J10</div></div>
+  </div>
+
+  <div class="curvebox">
+    <svg viewBox="0 0 1000 250" role="img" aria-label="14단계 감정 곡선">
+      <!-- 동사 띠 -->
+      <g font-size="11" letter-spacing="2" fill="#01060a" font-weight="700">
+        <rect x="42"  y="10" width="120" height="16" rx="3" fill="#c08a33"/><text x="102" y="22" text-anchor="middle">보다</text>
+        <rect x="168" y="10" width="126" height="16" rx="3" fill="#a2603a"/><text x="231" y="22" text-anchor="middle">나가다</text>
+        <rect x="300" y="10" width="70"  height="16" rx="3" fill="#f0b055"/><text x="335" y="22" text-anchor="middle">돌아오다</text>
+        <rect x="376" y="10" width="128" height="16" rx="3" fill="#c6a23a"/><text x="440" y="22" text-anchor="middle">커지다</text>
+        <rect x="510" y="10" width="196" height="16" rx="3" fill="#8c3b2e" /><text x="608" y="22" text-anchor="middle" fill="#e6d7b0">찾아오다</text>
+        <rect x="712" y="10" width="256" height="16" rx="3" fill="#123840"/><text x="840" y="22" text-anchor="middle" fill="#2fa8a0">같은 바퀴를 더 크게 — 하루 · 주 · 달</text>
+      </g>
+
+      <!-- 격자 -->
+      <line x1="40" y1="130" x2="965" y2="130" stroke="#1b2f35" stroke-dasharray="4 6"/>
+      <text x="40" y="126" font-size="9" fill="#44595e" letter-spacing="2">평온</text>
+      <line x1="40" y1="190" x2="965" y2="190" stroke="#132126"/>
+
+      <!-- 감정 곡선 -->
+      <polyline fill="none" stroke="#f0b055" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"
+        points="60,108 128,88 197,145 265,166 334,82 402,67 471,55 539,160 608,178 676,103 745,79 813,45 882,133 950,85"/>
+      <!-- 점과 이름 -->
+      <g fill="#e6d7b0" font-size="10.5" text-anchor="middle">
+        <circle cx="60"  cy="108" r="4" fill="#f0b055"/><text x="60"  y="212">J1 첫 숨</text>
+        <circle cx="128" cy="88"  r="4" fill="#f0b055"/><text x="128" y="212">J2 들여다</text>
+        <circle cx="197" cy="145" r="4" fill="#f0b055"/><text x="197" y="212">J3 문턱</text>
+        <circle cx="265" cy="166" r="4" fill="#f0b055"/><text x="265" y="212">J4 채집</text>
+        <circle cx="334" cy="82"  r="5.5" fill="#e6d7b0"/><text x="334" y="212">J5 첫 스캔</text>
+        <circle cx="402" cy="67"  r="4" fill="#f0b055"/><text x="402" y="212">J6 증축</text>
+        <circle cx="471" cy="55"  r="5.5" fill="#e6d7b0"/><text x="471" y="212">J7 문어</text>
+        <circle cx="539" cy="160" r="4" fill="#8c3b2e"/><text x="539" y="212">J8 사건</text>
+        <circle cx="608" cy="178" r="4" fill="#8c3b2e"/><text x="608" y="212">J9 두드림</text>
+        <circle cx="676" cy="103" r="5.5" fill="#e6d7b0"/><text x="676" y="212">J10 마감</text>
+        <circle cx="745" cy="79"  r="4" fill="#f0b055"/><text x="745" y="212">J11 각인</text>
+        <circle cx="813" cy="45"  r="4" fill="#f0b055"/><text x="813" y="212">J12 발견</text>
+        <circle cx="882" cy="133" r="4" fill="#f0b055"/><text x="882" y="212">J13 내려감</text>
+        <circle cx="950" cy="85"  r="5.5" fill="#e6d7b0"/><text x="944" y="212">J14 해구</text>
+      </g>
+      <g font-size="9.5" fill="#7d908f" text-anchor="middle">
+        <text x="60"  y="232">0:00</text><text x="197" y="232">2:30</text><text x="334" y="232">4:20</text>
+        <text x="471" y="232">6:20</text><text x="608" y="232">8:40</text><text x="676" y="232">10:00</text>
+        <text x="745" y="232">3일</text><text x="813" y="232">1주</text><text x="882" y="232">2주</text><text x="947" y="232">1개월</text>
+      </g>
+      <text x="965" y="126" font-size="9" fill="#44595e" text-anchor="end" letter-spacing="2">굵은 점 = 공들인 다섯 장</text>
+    </svg>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J1 — 첫 숨  ★공들인 장
+     ══════════════════════════════════════════════════════════ -->
+<section id="j1" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr dark">
+          <!-- 거의 검정. 아래에서 돔의 주황 불빛이 떠오르는 중간 상태. UI 0 -->
+          <div class="rise"></div>
+          <svg style="position:absolute;left:0;bottom:0;width:390px;height:330px;z-index:9" viewBox="0 0 390 330">
+            <!-- 돔 윤곽. 아직 절반만 올라왔다 -->
+            <path d="M40 330 A155 155 0 0 1 350 330 Z" fill="#0a0d0b" stroke="#1b1a12" stroke-width="3"/>
+            <path d="M40 330 A155 155 0 0 1 350 330 Z" fill="none" stroke="#3a3018" stroke-width="2" opacity=".7"/>
+            <!-- 돔 안, 이제 막 보이기 시작한 방 세 칸 -->
+            <g opacity=".92">
+              <rect x="150" y="246" width="92" height="40" fill="#c08a33" stroke="#14110c" stroke-width="3"/>
+              <rect x="150" y="246" width="92" height="15" fill="#8c6222"/>
+              <circle cx="196" cy="256" r="9" fill="#ffe6b0" opacity=".95"/>
+              <rect x="176" y="272" width="5" height="12" fill="#e6d7b0"/><rect x="175" y="266" width="7" height="6" rx="2" fill="#e6d7b0"/>
+              <rect x="212" y="272" width="5" height="12" fill="#d8c9a3"/><rect x="211" y="266" width="7" height="6" rx="2" fill="#d8c9a3"/>
+            </g>
+            <g opacity=".62">
+              <rect x="86" y="292" width="80" height="38" fill="#a2603a" stroke="#14110c" stroke-width="3"/>
+              <circle cx="126" cy="302" r="8" fill="#ffdca0" opacity=".8"/>
+              <rect x="228" y="292" width="80" height="38" fill="#8c9161" stroke="#14110c" stroke-width="3"/>
+              <circle cx="268" cy="302" r="8" fill="#ffdca0" opacity=".8"/>
+            </g>
+            <!-- 물에 새는 빛 -->
+            <ellipse cx="196" cy="280" rx="170" ry="92" fill="#f0b055" opacity=".07"/>
+          </svg>
+          <!-- 부유물 두 점만, 아주 느리게 (연출 메모용 정지 컷) -->
+          <div style="position:absolute;left:96px;top:210px;width:3px;height:3px;border-radius:50%;background:rgba(230,215,176,.30);z-index:10"></div>
+          <div style="position:absolute;left:286px;top:158px;width:2px;height:2px;border-radius:50%;background:rgba(230,215,176,.22);z-index:10"></div>
+        </div>
+      </div>
+      <p class="shotcap">0:22 시점. 화면의 3/4이 아직 검정이다. UI·자막 0개.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J1</span><h2 class="jtitle">첫 숨</h2><span class="jtime">0:00 – 0:40</span></div>
+    <p class="jlead">검정 15초를 견디게 해서 다음 컷의 불빛을 크게 만든다. 대비는 비용이 0인 연출이다.
+       이 장면이 성공했는지는 한 문장으로 판정한다 — <b>"저 안이 따뜻해 보인다"</b>가 남았는가.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>완전한 검정 → 화면 아래에서 주황 점 하나가 떠오르고, 점이 창이 되고, 창이 방이 되고, 방이 <b>돔 단면 전체</b>로 열린다.</dd>
+      <dt>무엇을 하는가</dt><dd>없다. 할 수 없다. 손가락을 올리면 카메라가 아주 조금 따라오는 것이 전부.</dd>
+      <dt>무엇을 느끼는가</dt><dd>"저 안이 따뜻해 보인다." 이 게임의 첫 감정이자 유일하게 반드시 성공해야 하는 감정.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><b>UI 0 · 자막 0.</b> 세 번째 색을 쓰지 않는다(등불색과 물의 검정뿐). 시점은 정면 직교 단면으로 고정.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J2 — 들여다보기
+     ══════════════════════════════════════════════════════════ -->
+<section id="j2" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div style="position:absolute;left:0;right:0;top:0;height:150px;z-index:2;background:linear-gradient(180deg,rgba(120,180,190,.10),transparent)"></div>
+          <div class="ark">
+            <div class="halo" style="left:60px;top:170px;width:270px;height:200px"></div>
+            <div class="spine" style="left:186px;top:272px;width:18px;height:190px"></div>
+            <!-- 돔 방 (공용) -->
+            <div class="room sel" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:128px;top:210px;width:134px;height:62px">
+              <div class="bk"></div><div class="fl"></div>
+              <div class="lamp" style="--x:32%"></div><div class="lamp" style="--x:70%"></div>
+              <span class="p" style="--x:26%;--pc:#e6d7b0"></span>
+              <span class="p sit" style="--x:44%;--pc:#8c9161"></span>
+              <span class="p" style="--x:60%;--pc:#d8c9a3"></span>
+              <span class="p" style="--x:80%;--pc:#a2603a"></span>
+              <span class="obj" style="--x:50%;--w:26px;--h:7px;--k:#6d5326"></span>
+            </div>
+            <!-- 2층 -->
+            <div class="room" style="--c:#d8c9a3;--sh:#a2946f;--fl:#6d6349;left:96px;top:280px;width:90px;height:60px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div>
+              <span class="p" style="--x:34%;--pc:#8c3b2e"></span><span class="p" style="--x:62%;--pc:#14110c"></span>
+              <span class="obj" style="--x:16%;--w:12px;--h:16px;--k:#6d6349"></span>
+            </div>
+            <div class="room" style="--c:#8c9161;--sh:#666a45;--fl:#454833;left:204px;top:280px;width:90px;height:60px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:46%"></div>
+              <span class="p" style="--x:30%;--pc:#d8c9a3"></span><span class="p sit" style="--x:66%;--pc:#e6d7b0"></span>
+              <span class="obj" style="--x:84%;--w:10px;--h:20px;--k:#3f4430"></span>
+            </div>
+            <!-- 3층 -->
+            <div class="room" style="--c:#a2603a;--sh:#74432a;--fl:#4d2d1c;left:96px;top:340px;width:90px;height:60px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:54%"></div>
+              <span class="p" style="--x:40%;--pc:#e6d7b0"></span>
+              <span class="obj" style="--x:74%;--w:16px;--h:12px;--k:#5c3620"></span>
+            </div>
+            <div class="room dashed" style="left:204px;top:340px;width:90px;height:60px"></div>
+            <!-- 돔 유리 -->
+            <svg style="position:absolute;left:100px;top:150px;width:190px;height:130px;z-index:-1" viewBox="0 0 190 130">
+              <path d="M5 130 A92 92 0 0 1 185 130" fill="rgba(240,176,85,.05)" stroke="#5c4a22" stroke-width="5"/>
+              <path d="M95 38 v92 M42 50 v80 M148 50 v80" stroke="#3a3018" stroke-width="2"/>
+              <circle cx="95" cy="26" r="9" fill="#f0b055" opacity=".9"/>
+            </svg>
+            <!-- 먼 지형 : 화면 아래는 아직 아무것도 없다 -->
+            <svg style="position:absolute;left:0;bottom:0;width:390px;height:170px;z-index:-2" viewBox="0 0 390 170" aria-hidden="true">
+              <path d="M0 116 q84 -26 176 -6 t214 -10 L390 170 L0 170Z" fill="#020a0e"/>
+              <path d="M0 148 q110 -18 206 4 t184 -8 L390 170 L0 170Z" fill="#010609"/>
+            </svg>
+          </div>
+          <div class="ilabel" style="left:128px;top:186px">공용실 · 4명</div>
+          <!-- UI 는 가장자리에만 -->
+          <div class="hud tl"><div class="r1"><b>Day 1</b><em>1막</em></div>
+            <div class="res"><span>식량<b>4</b></span><span>부품<b>1</b></span><span>약<b>0</b></span></div></div>
+          <div class="hud br zoomctl"><span>+</span><span>−</span><span>⌖</span></div>
+          <div class="frozen" style="bottom:70px">두 손가락으로 줌 · 끌어서 팬</div>
+        </div>
+      </div>
+      <p class="shotcap">방 하나를 키우면 그 방 사람이 하는 일이 보인다. 빈 방이 없다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J2</span><h2 class="jtitle">들여다보기</h2><span class="jtime">0:40 – 2:30</span></div>
+    <p class="jlead">개미집을 들여다보는 눈. 관찰의 쾌감이 그대로 조작이 된다. 이 구간에서 플레이어는
+      아무것도 배우지 않고 그냥 본다 — 그런데 다 본 뒤에는 방이 몇 개고 누가 무엇을 하는지 알고 있다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>방마다 다른 색, 방마다 사람 2~6명, 그 사이를 잇는 유리 척추. 방과 방 사이는 <em>두꺼운 검정 = 물</em>이고 그 물은 흐른다.</dd>
+      <dt>무엇을 하는가</dt><dd>줌·팬. 방을 확대하면 그 방 소리만 커지고 방 이름이 짧게 뜬다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>관찰의 쾌감. "이 안을 더 보고 싶다."</dd>
+      <dt>어떤 시스템</dt><dd class="sys">개미집 관찰. <b>UI는 가장자리에만</b> — 가운데는 언제나 거점이다. 빈 방은 만들지 않는다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J3 — 문턱
+     ══════════════════════════════════════════════════════════ -->
+<section id="j3" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr dark">
+          <!-- 왼쪽 절반: 안(등불색). 오른쪽 절반: 밖(검정) -->
+          <div class="inside" style="left:0;top:0;width:196px;height:844px">
+            <div class="wall"></div>
+            <div style="position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(180deg,#d8a14a,#c08a33 60%,#8c6222)"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:150px;background:#6b4a1c"></div>
+            <div style="position:absolute;left:28px;top:96px;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle,#fff0cc,#f0b055 55%,transparent 78%)"></div>
+            <!-- 안쪽 소품: 걸린 장비 -->
+            <div style="position:absolute;left:22px;top:330px;width:46px;height:70px;background:#8c6222;border:3px solid #14110c"></div>
+            <div style="position:absolute;left:100px;top:352px;width:30px;height:48px;background:#a2603a;border:3px solid #14110c"></div>
+          </div>
+          <!-- 문턱 선 -->
+          <div style="position:absolute;left:196px;top:0;width:8px;height:844px;background:#14110c;z-index:11"></div>
+          <!-- 해치 -->
+          <div class="hatch" style="left:118px;top:430px;width:168px;height:168px">
+            <span class="spk" style="transform:rotate(0deg)"></span>
+            <span class="spk" style="transform:rotate(60deg)"></span>
+            <span class="spk" style="transform:rotate(120deg)"></span>
+            <span style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:#3a3018"></span>
+          </div>
+          <!-- 사람 하나가 문턱에 서 있다 (실루엣) -->
+          <div class="fig sil" style="left:96px;top:300px;width:250px;height:250px">
+            <img src="/static/art/chars/front/b/scout_hero.png" alt="문턱에 선 사람">
+          </div>
+          <!-- 리더 목소리가 끊긴다 -->
+          <div style="position:absolute;z-index:24;right:14px;top:16px;display:flex;align-items:center;gap:7px">
+            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M3 8h3l4-3v10l-4-3H3z" fill="#7d908f"/>
+              <path d="M13 6l5 8M18 6l-5 8" stroke="#8c3b2e" stroke-width="2"/>
+            </svg>
+            <span style="font-size:10px;letter-spacing:.14em;color:#8c3b2e">리더 신호 끊김</span>
+          </div>
+          <div class="itoast" style="bottom:120px">문을 연다</div>
+          <div class="hud bl gauges"><div class="g"><i>공기</i><div class="band" style="--v:100%"></div></div></div>
+        </div>
+      </div>
+      <p class="shotcap">안은 등불색, 밖은 검정, 그 사이에 사람 하나. 1막 전체를 요약하는 한 컷.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J3</span><h2 class="jtitle">문턱</h2><span class="jtime">2:30 – 3:00</span></div>
+    <p class="jlead">문을 넘으면 <b>화면 방식 자체가 바뀐다</b> — 정면 단면에서 45° 아이소로.
+      동시에 리더의 목소리가 끊긴다. 소리와 시점이 한 번에 바뀌는 유일한 컷이고, 그래서 이 게임에서 가장 싼 연출이자 가장 센 연출이다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>에어락. 화면 왼쪽은 등불색 벽, 오른쪽은 아무것도 없는 검정. 그 경계에 사람 하나의 실루엣.</dd>
+      <dt>무엇을 하는가</dt><dd>탭 한 번. 문을 연다. 이 구간의 조작은 그것뿐이다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>긴장. 그리고 무엇보다 <em>조용해졌다</em>는 감각.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><b>리더 목소리가 끊긴다</b>(사운드 버스 분리). 시점이 단면 → 아이소로 전환. 공기 띠가 곧 등장할 자리를 비워 둔다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J4 — 첫 채집
+     ══════════════════════════════════════════════════════════ -->
+<section id="j4" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr dark">
+          <!-- 화면의 60%가 아무것도 없음 -->
+          <div class="lantern" style="left:56px;top:400px;width:290px;height:290px;
+               background:radial-gradient(circle,rgba(240,176,85,.26) 0 22%,rgba(240,176,85,.09) 44%,transparent 72%)"></div>
+          <!-- 해저 바닥 -->
+          <svg style="position:absolute;left:0;bottom:0;width:390px;height:300px;z-index:8" viewBox="0 0 390 300">
+            <path d="M0 210 Q70 186 140 206 T280 198 T390 214 L390 300 L0 300Z" fill="#0a1418"/>
+            <path d="M0 232 Q90 214 180 230 T390 232 L390 300 L0 300Z" fill="#070f12"/>
+            <!-- 주울 수 있는 조각 하나. 화면에서 가장 밝다 -->
+            <g transform="translate(176 190)">
+              <rect x="0" y="0" width="30" height="20" rx="2" fill="#e6d7b0" stroke="#14110c" stroke-width="2.5"/>
+              <g fill="#14110c">
+                <rect x="4" y="4" width="2" height="12"/><rect x="8" y="4" width="1" height="12"/>
+                <rect x="11" y="4" width="3" height="12"/><rect x="16" y="4" width="1" height="12"/>
+                <rect x="19" y="4" width="2" height="12"/><rect x="23" y="4" width="3" height="12"/>
+              </g>
+            </g>
+            <ellipse cx="191" cy="214" rx="46" ry="12" fill="#f0b055" opacity=".18"/>
+            <!-- 먼 실루엣 하나 (아직 형체 아님) -->
+            <path d="M300 150 q28 -14 60 4 q-26 16 -60 -4Z" fill="#050d10" opacity=".9"/>
+          </svg>
+          <!-- 랜턴을 든 사람 -->
+          <div class="fig sil" style="left:34px;top:470px;width:166px;height:166px">
+            <img src="/static/art/chars/front/b/scout_hero.png" alt="랜턴을 든 채집자">
+          </div>
+          <div class="ilabel" style="left:212px;top:596px">성문이 찍힌 조각</div>
+          <!-- 공기 = 행동 횟수. 숫자가 아니라 줄어드는 띠 -->
+          <div class="hud bl gauges">
+            <div class="g"><i>공기</i><div class="band" style="--v:62%"></div></div>
+            <div class="g"><i>깊이</i><div class="band down" style="--v:18%"></div><u>무광층</u></div>
+          </div>
+          <div class="hud tl"><div class="r1"><b>Day 1</b><em>밖</em></div></div>
+          <div class="frozen" style="bottom:74px">랜턴이 닿는 곳만 보인다</div>
+        </div>
+      </div>
+      <p class="shotcap">화면의 60%가 비어 있다. 공기 띠가 여기서 처음 등장한다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J4</span><h2 class="jtitle">첫 채집</h2><span class="jtime">3:00 – 3:40</span></div>
+    <p class="jlead">각박함을 설명하지 않고 <b>시계로 만든다.</b> 공기는 숫자가 아니라 줄어드는 띠이고,
+      띠가 줄면 할 수 있는 행동이 줄어든다. 빈 물이 40% 아래로 내려가면 이 장면은 실패다 — 돔이 주인공이 아니게 된다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>랜턴 반경만 보이는 해저. 화면 대부분이 검정. 그 안에서 <b>가장 밝은 것은 주울 수 있는 조각</b> 하나.</dd>
+      <dt>무엇을 하는가</dt><dd>조각 하나 줍기. 한 번의 탭이 공기 한 칸.</dd>
+      <dt>무엇을 느끼는가</dt><dd>각박함. 그리고 "여기 오래 있으면 안 되겠다".</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><b>공기 = 행동 횟수.</b> 시점은 45° 아이소. 멀리 있는 것은 형체가 아니라 실루엣으로만 보인다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J5 — 첫 스캔  ★공들인 장 (3컷)
+     ══════════════════════════════════════════════════════════ -->
+<section id="j5" class="step stack">
+  <div class="shots">
+
+    <!-- 컷 1 : 카메라 뷰 -->
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr dark">
+          <div class="camview">
+            <!-- 현실의 선반 (카메라가 보는 것) -->
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,#12181a,#0a1012)"></div>
+            <div style="position:absolute;left:0;right:0;top:300px;height:250px;background:#171d1f"></div>
+            <div style="position:absolute;left:96px;top:322px;width:200px;height:190px;background:#c9a24c;border:3px solid #14110c;border-radius:4px"></div>
+            <div style="position:absolute;left:112px;top:344px;width:168px;height:44px;background:#8c3b2e"></div>
+            <div style="position:absolute;left:112px;top:404px;width:168px;height:16px;background:#e6d7b0"></div>
+            <!-- 바코드 -->
+            <svg style="position:absolute;left:120px;top:436px;width:152px;height:60px;z-index:9" viewBox="0 0 152 60">
+              <rect width="152" height="60" fill="#e6d7b0"/>
+              <g fill="#14110c">
+                <rect x="8" y="6" width="4" height="42"/><rect x="16" y="6" width="2" height="42"/>
+                <rect x="22" y="6" width="6" height="42"/><rect x="32" y="6" width="2" height="42"/>
+                <rect x="38" y="6" width="4" height="42"/><rect x="46" y="6" width="8" height="42"/>
+                <rect x="58" y="6" width="2" height="42"/><rect x="64" y="6" width="5" height="42"/>
+                <rect x="73" y="6" width="3" height="42"/><rect x="80" y="6" width="7" height="42"/>
+                <rect x="91" y="6" width="2" height="42"/><rect x="97" y="6" width="4" height="42"/>
+                <rect x="105" y="6" width="6" height="42"/><rect x="115" y="6" width="2" height="42"/>
+                <rect x="121" y="6" width="5" height="42"/><rect x="130" y="6" width="3" height="42"/>
+                <rect x="137" y="6" width="7" height="42"/>
+              </g>
+              <text x="76" y="57" font-size="8" fill="#14110c" text-anchor="middle" letter-spacing="3">8 801234 567890</text>
+            </svg>
+          </div>
+          <!-- 조준 브래킷 -->
+          <div class="bracket" style="left:56px;top:300px;border-right:0;border-bottom:0"></div>
+          <div class="bracket" style="right:56px;top:300px;border-left:0;border-bottom:0"></div>
+          <div class="bracket" style="left:56px;top:520px;border-right:0;border-top:0"></div>
+          <div class="bracket" style="right:56px;top:520px;border-left:0;border-top:0"></div>
+          <div class="scanline" style="top:466px"></div>
+          <div class="shutter"></div>
+          <div class="hud tl"><div class="r1"><b>Day 1</b><em>스캔</em></div>
+            <div class="res"><span>오늘<b>0 / 20</b></span></div></div>
+          <div class="frozen" style="bottom:130px">현실의 물건을 찍는다</div>
+        </div>
+      </div>
+      <p class="shotcap">① 카메라 뷰 — 게임이 현실을 본다</p>
+    </div>
+
+    <!-- 컷 2 : 유물 카드 뒤집힘 + 첫 만남 -->
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div class="ark" style="opacity:.35">
+            <div class="spine" style="left:186px;top:272px;width:18px;height:190px"></div>
+            <div class="room" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:128px;top:210px;width:134px;height:62px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#d8c9a3;--sh:#a2946f;--fl:#6d6349;left:96px;top:280px;width:90px;height:60px"><div class="bk"></div><div class="fl"></div></div>
+            <div class="room" style="--c:#8c9161;--sh:#666a45;--fl:#454833;left:204px;top:280px;width:90px;height:60px"><div class="bk"></div><div class="fl"></div></div>
+          </div>
+          <div class="veilblack"></div>
+          <div class="firstmeet" style="top:150px">처 음 　 보 는 　 가 문</div>
+          <!-- 뒤집히는 유물 카드 -->
+          <div class="rcard flip" style="left:66px;top:206px;width:258px">
+            <div class="hd">유물 · 마른 식량</div>
+            <h5>말린 국수 다발</h5>
+            <div class="fam">붉은 실 가문 · 1 / 5</div>
+            <div class="art">
+              <svg width="150" height="76" viewBox="0 0 150 76" aria-hidden="true">
+                <rect x="24" y="14" width="102" height="48" rx="4" fill="#c9a24c" stroke="#14110c" stroke-width="3"/>
+                <path d="M34 26h82M34 36h82M34 46h82" stroke="#8c3b2e" stroke-width="3"/>
+                <rect x="52" y="4" width="46" height="12" rx="2" fill="#8c3b2e" stroke="#14110c" stroke-width="2"/>
+              </svg>
+            </div>
+            <p class="fv">“물에 넣으면 부푼다. 200년 전에는 이것을 급할 때 먹었다고 한다.
+               왜 급했는지는 적혀 있지 않다.”</p>
+          </div>
+          <div class="ilabel" style="left:66px;top:520px;z-index:16">가문 도감 +1 · 붉은 실 가문이 열렸다</div>
+          <div class="itoast" style="bottom:170px">선반으로 옮기는 중…</div>
+        </div>
+      </div>
+      <p class="shotcap">② 카드 한 장이 뒤집힌다 — 새 가문이라 전체 화면으로 <b style="color:#f0b055">(E7)</b></p>
+    </div>
+
+    <!-- 컷 3 : 창고 선반에 놓인다 (E1) -->
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div style="position:absolute;left:0;right:0;top:0;height:130px;z-index:2;background:linear-gradient(180deg,rgba(120,180,190,.08),transparent)"></div>
+          <div class="ark">
+            <div class="halo" style="left:36px;top:250px;width:320px;height:290px"></div>
+            <!-- 확대된 창고 한 칸 -->
+            <div class="room" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:44px;top:288px;width:302px;height:214px">
+              <div class="bk" style="height:34%"></div><div class="fl" style="height:14px"></div>
+              <div class="lamp" style="--x:50%;width:44px;height:44px;margin-left:-22px;top:6px"></div>
+              <!-- 선반 세 단 -->
+              <div class="shelf" style="top:78px"></div>
+              <div class="shelf" style="top:124px"></div>
+              <div class="shelf" style="top:170px"></div>
+              <!-- 이미 있던 물건들 : 선반 위에 놓인다 -->
+              <span class="obj" style="--x:7%;--w:22px;--h:24px;--k:#8c6222;bottom:128px"></span>
+              <span class="obj" style="--x:20%;--w:14px;--h:20px;--k:#6d5326;bottom:128px"></span>
+              <span class="obj" style="--x:62%;--w:18px;--h:22px;--k:#74432a;bottom:128px"></span>
+              <span class="obj" style="--x:78%;--w:12px;--h:18px;--k:#4d2d1c;bottom:128px"></span>
+              <span class="obj" style="--x:10%;--w:26px;--h:20px;--k:#666a45;bottom:82px"></span>
+              <span class="obj" style="--x:66%;--w:16px;--h:22px;--k:#8c6222;bottom:82px"></span>
+              <span class="obj" style="--x:82%;--w:20px;--h:18px;--k:#4d2d1c;bottom:82px"></span>
+              <span class="obj" style="--x:12%;--w:30px;--h:22px;--k:#74432a;bottom:36px"></span>
+              <span class="obj" style="--x:34%;--w:18px;--h:26px;--k:#6d5326;bottom:36px"></span>
+              <!-- 방금 놓인 것 — 화면에서 가장 밝다 -->
+              <span class="obj" style="--x:36%;--w:36px;--h:30px;--k:#e0b962;bottom:82px;border-width:2px;box-shadow:0 0 18px rgba(240,176,85,.95)"></span>
+              <span style="position:absolute;left:36%;bottom:104px;width:36px;height:5px;background:#8c3b2e"></span>
+              <!-- 창고지기 -->
+              <span class="p" style="--x:86%;--pc:#e6d7b0;height:26px;width:9px;bottom:14px"></span>
+              <span class="p" style="--x:70%;--pc:#8c9161;height:22px;width:8px;bottom:14px"></span>
+            </div>
+            <div style="position:absolute;left:44px;top:502px;width:302px;height:4px;background:#14110c"></div>
+          </div>
+          <svg style="position:absolute;left:150px;top:236px;width:60px;height:56px;z-index:18" viewBox="0 0 60 56" aria-hidden="true">
+            <path d="M30 2 v40 M18 30 l12 14 l12 -14" stroke="#f0b055" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>
+          <div class="ilabel" style="left:44px;top:214px">선반 2-3 · 말린 국수 다발</div>
+          <div class="itoast" style="bottom:210px">어제 편의점에서 찍은 그것이 여기 있다</div>
+          <div class="hud tl"><div class="r1"><b>Day 1</b><em>1막</em></div>
+            <div class="res"><span>식량<b>7</b></span><span>창고<b>7 / 12</b></span></div></div>
+          <div class="hud br zoomctl"><span>+</span><span>−</span><span>⌖</span></div>
+        </div>
+      </div>
+      <p class="shotcap">③ 그 물건이 <b style="color:#f0b055">창고 선반에 놓인다 (E1)</b> — 자원 숫자로 환전되지 않는다</p>
+    </div>
+  </div>
+
+  <div>
+    <div class="jhead"><span class="jno">J5</span><h2 class="jtitle">첫 스캔</h2><span class="jtime">4:20 – 5:20</span>
+      <span class="jtime" style="color:#f0b055;border-color:#3d2d15">이 게임의 정체성</span></div>
+    <p class="jlead">지금까지 기획의 가장 큰 구멍은 <b>"라면을 찍었는데 식량 +3이 돌아온다"</b>였다.
+      유일무이한 훅이 자원 숫자로 환전되어 사라진다. 그래서 세 번째 컷이 이 페이지에서 가장 중요한 그림이다 —
+      <b>찍은 물건이 선반 한 칸을 실제로 차지한다.</b> 단면 화면(관찰)과 바코드(현실)가 여기서 비로소 한 몸이 된다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>① 카메라 뷰 → ② 카드 한 장이 뒤집힌다 → ③ <b>그 물건이 창고 선반에 놓인다.</b> 새 가문이면 ②가 전체 화면이 된다.</dd>
+      <dt>무엇을 하는가</dt><dd>실제 바코드 촬영 한 번. 그리고 선반이 채워지는 것을 본다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>"현실이 들어왔다." 다음 날 편의점에서 다른 것을 찍고 싶어진다.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><span class="etag">E1</span>찍은 물건이 방에 쌓인다(선반 격자·소품 30종). <span class="etag">E7</span>첫 카테고리·첫 가문은 전체 화면 공개. 같은 바코드 = 언제나 같은 유물.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J6 — 첫 증축
+     ══════════════════════════════════════════════════════════ -->
+<section id="j6" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div style="position:absolute;left:0;right:0;top:0;height:140px;z-index:2;background:linear-gradient(180deg,rgba(120,180,190,.09),transparent)"></div>
+          <div class="ark">
+            <div class="halo" style="left:56px;top:180px;width:280px;height:300px"></div>
+            <div class="spine" style="left:186px;top:272px;width:18px;height:250px"></div>
+            <div class="room" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:128px;top:210px;width:134px;height:62px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:36%"></div>
+              <span class="p" style="--x:30%;--pc:#e6d7b0"></span><span class="p" style="--x:58%;--pc:#8c9161"></span></div>
+            <div class="room" style="--c:#d8c9a3;--sh:#a2946f;--fl:#6d6349;left:96px;top:280px;width:90px;height:60px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div>
+              <span class="p" style="--x:38%;--pc:#8c3b2e"></span></div>
+            <div class="room" style="--c:#8c9161;--sh:#666a45;--fl:#454833;left:204px;top:280px;width:90px;height:60px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div>
+              <span class="p sit" style="--x:60%;--pc:#e6d7b0"></span></div>
+            <div class="room" style="--c:#a2603a;--sh:#74432a;--fl:#4d2d1c;left:96px;top:340px;width:90px;height:60px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div>
+              <span class="p" style="--x:44%;--pc:#d8c9a3"></span></div>
+            <!-- 새로 붙는 칸 : 아래로 -->
+            <div class="room sel" style="--c:#c6a23a;--sh:#8f7326;--fl:#5e4c1c;left:204px;top:340px;width:90px;height:60px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div>
+              <span class="p" style="--x:36%;--pc:#e6d7b0"></span><span class="p" style="--x:66%;--pc:#a2603a"></span>
+              <!-- 바깥이 보이는 창 -->
+              <span style="position:absolute;right:6px;top:22px;width:22px;height:20px;background:#0a2a33;border:2px solid #14110c"></span>
+            </div>
+            <div class="room dashed" style="left:96px;top:400px;width:90px;height:60px">
+              <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#3f5a5f;font-size:22px">+</span>
+            </div>
+            <svg style="position:absolute;left:100px;top:150px;width:190px;height:130px;z-index:-1" viewBox="0 0 190 130">
+              <path d="M5 130 A92 92 0 0 1 185 130" fill="none" stroke="#3a3018" stroke-width="5"/>
+              <circle cx="95" cy="26" r="9" fill="#f0b055" opacity=".9"/>
+            </svg>
+          </div>
+          <!-- 증축 패널 : 가장자리 -->
+          <div class="ipanel" style="top:560px;right:12px;left:12px;width:auto">
+            <h4>아래로 한 칸</h4><p class="s">깊이 −60 m · 무광층</p>
+            <div class="bopt"><b>서고</b><small>부품 3 · 유리 2 — 창이 하나 늘어난다</small></div>
+            <div class="bopt no"><b>양식실</b><small>부품 5 · 씨앗 1 — 부품이 모자란다</small></div>
+          </div>
+          <div class="itoast" style="bottom:340px">단면이 넓어졌다</div>
+          <div class="hud tl"><div class="r1"><b>Day 1</b><em>1막</em></div>
+            <div class="res"><span>부품<b>0</b></span><span>유리<b>1</b></span><span>방<b>5</b></span></div></div>
+          <div class="hud bl gauges"><div class="g"><i>깊이</i><div class="band down" style="--v:24%"></div><u>무광층</u></div></div>
+        </div>
+      </div>
+      <p class="shotcap">성장 방향은 위가 아니라 <b style="color:#f0b055">아래</b>다. 증축·난이도·희귀도·이야기가 한 동작에 묶인다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J6</span><h2 class="jtitle">첫 증축</h2><span class="jtime">5:20 – 6:20</span></div>
+    <p class="jlead">방 하나가 자란다. 유리 한 겹이 늘고 단면이 물리적으로 넓어진다.
+      중요한 것은 방향이다 — <b>아래로 자란다.</b> 내려갈수록 유물이 좋아지고 위험해지고 그 소리에 가까워진다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>척추가 한 마디 길어지고 그 옆에 방 한 칸이 붙는다. 점선으로 표시된 다음 자리가 그 아래에 하나 더 생긴다.</dd>
+      <dt>무엇을 하는가</dt><dd>배치. 어떤 방을 어디에 붙일지 고르는 한 번의 선택.</dd>
+      <dt>무엇을 느끼는가</dt><dd>성취. 화면이 넓어지는 것을 눈으로 본다.</dd>
+      <dt>어떤 시스템</dt><dd class="sys">격자 병합 · <b>깊이 축</b>. 같은 종류의 방이 붙으면 벽이 사라지고 하나의 넓은 방이 된다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J7 — 식구 (문어)  ★공들인 장
+     ══════════════════════════════════════════════════════════ -->
+<section id="j7" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <!-- 방금 지은 창가 방 하나를 확대했다 -->
+          <div class="ark">
+            <div class="halo" style="left:24px;top:150px;width:344px;height:330px"></div>
+            <div class="room" style="--c:#c6a23a;--sh:#8f7326;--fl:#5e4c1c;left:30px;top:190px;width:330px;height:300px">
+              <div class="bk" style="height:30%"></div><div class="fl" style="height:16px"></div>
+              <div class="lamp" style="--x:26%;width:46px;height:46px;margin-left:-23px;top:10px"></div>
+              <div class="shelf" style="top:210px;left:16px;right:190px"></div>
+              <span class="obj" style="--x:8%;--w:20px;--h:22px;--k:#8f7326;bottom:106px"></span>
+              <span class="obj" style="--x:22%;--w:16px;--h:18px;--k:#74432a;bottom:106px"></span>
+            </div>
+            <!-- 창 : 바깥이 보인다 -->
+            <div class="glass" style="left:212px;top:224px;width:126px;height:118px"></div>
+            <!-- 창을 통과해 들어온 문어 -->
+            <div class="fig" style="left:196px;top:176px;width:230px;height:230px">
+              <img src="/static/art/chars/front/b/octopus_hero.png" alt="창으로 들어온 문어">
+            </div>
+            <!-- 문어가 감은 팔 : 아이 손목까지 -->
+            <svg style="position:absolute;left:150px;top:368px;width:140px;height:80px;z-index:16" viewBox="0 0 140 80" aria-hidden="true">
+              <path d="M132 8 q-40 8 -62 26 q-16 13 -32 16" fill="none" stroke="#8c3b2e" stroke-width="7" stroke-linecap="round"/>
+              <path d="M132 8 q-40 8 -62 26 q-16 13 -32 16" fill="none" stroke="#c0503c" stroke-width="3" stroke-linecap="round"/>
+              <g fill="#e6d7b0"><circle cx="106" cy="16" r="2"/><circle cx="92" cy="22" r="2"/><circle cx="78" cy="29" r="2"/><circle cx="64" cy="37" r="2"/><circle cx="52" cy="44" r="2"/></g>
+            </svg>
+            <!-- 아이 -->
+            <div class="fig warm" style="left:36px;top:250px;width:230px;height:230px">
+              <img src="/static/art/chars/front/b/kid_hero.png" alt="손목을 내준 아이">
+            </div>
+          </div>
+          <!-- 이름 입력칸 -->
+          <div class="namebox" style="bottom:118px">
+            <p class="q">이 아이에게 이름을 지어 주세요</p>
+            <div class="namefield"><span>여덟</span><span class="caret"></span></div>
+            <div class="ok">정했다</div>
+          </div>
+          <div class="frozen" style="bottom:78px">이름은 한 번만 짓는다</div>
+          <div class="hud tl"><div class="r1"><b>Day 2</b><em>1막</em></div></div>
+        </div>
+      </div>
+      <p class="shotcap">사람끼리는 아직 한 번도 닿지 않았다. 이 세계에서 무언가를 껴안는 첫 장면.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J7</span><h2 class="jtitle">식구</h2><span class="jtime">6:20 – 7:00 · 2일차</span></div>
+    <p class="jlead">첫날 정들 대상이 없다는 것이 이 기획의 구멍이었다. 각인은 며칠이 걸린다.
+      그래서 <b>2일차에 문어가 들어오고 플레이어가 이름을 짓는다.</b> 압박이 아니라 선물이라 아늑함을 해치지 않고,
+      성경의 신뢰 역전(사람 0, 짐승 높음)을 첫날부터 몸으로 알린다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>창으로 들어온 문어가 아이 손목을 감는다. 그리고 화면 아래에서 <b>이름 입력칸</b>이 올라온다.</dd>
+      <dt>무엇을 하는가</dt><dd>이름을 짓는다. 딱 한 번, 되돌릴 수 없다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>애착. 그리고 내일도 켜 볼 이유 하나.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><span class="etag">E3</span>매일 한 번 밖에 나갔다가 무언가를 물고 온다. 물어 오는 것은 <b>전날 플레이어가 찍은 카테고리</b>에 영향을 받는다 — 스캔이 세계에 흔적을 남긴다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J8 — 첫 사건
+     ══════════════════════════════════════════════════════════ -->
+<section id="j8" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div class="ark">
+            <div class="halo" style="left:80px;top:40px;width:230px;height:170px"></div>
+            <div class="spine" style="left:186px;top:126px;width:18px;height:120px"></div>
+            <div class="room" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:128px;top:70px;width:134px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:36%;--pc:#e6d7b0"></span><span class="p" style="--x:62%;--pc:#8c9161"></span></div>
+            <div class="room" style="--c:#d8c9a3;--sh:#a2946f;--fl:#6d6349;left:96px;top:126px;width:90px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:44%;--pc:#8c3b2e"></span></div>
+            <div class="room sel" style="--c:#8c9161;--sh:#666a45;--fl:#454833;left:204px;top:126px;width:90px;height:56px">
+              <div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:40%"></div>
+              <span class="p" style="--x:30%;--pc:#e6d7b0"></span>
+              <!-- 유리에 금 -->
+              <svg style="position:absolute;inset:0;z-index:4" viewBox="0 0 90 56" aria-hidden="true">
+                <path d="M78 2 l-13 15 l8 6 l-15 11 l9 8 l-17 13" fill="none" stroke="#e6d7b0" stroke-width="2.4"/>
+                <path d="M65 17 l10 9 M50 34 l-11 5" fill="none" stroke="#e6d7b0" stroke-width="1.6" opacity=".7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="veilblack" style="top:196px;background:linear-gradient(180deg,rgba(1,6,10,0),rgba(1,6,10,.86) 34px,rgba(1,6,10,.9))"></div>
+          <!-- 3초 타이머 -->
+          <svg class="timer" style="top:222px" viewBox="0 0 46 46" aria-label="3초">
+            <circle cx="23" cy="23" r="19" fill="rgba(10,14,12,.9)" stroke="#2a2419" stroke-width="3"/>
+            <circle cx="23" cy="23" r="19" fill="none" stroke="#8c3b2e" stroke-width="3"
+              stroke-dasharray="119" stroke-dashoffset="46" transform="rotate(-90 23 23)" stroke-linecap="round"/>
+            <text x="23" y="28" font-size="15" fill="#e6d7b0" text-anchor="middle" font-weight="700">3</text>
+          </svg>
+          <!-- 쪽지 3문장 -->
+          <div class="note" style="top:280px">
+            <h5>유리에 금</h5>
+            <p>바깥쪽 유리 한 겹에 금이 갔다. 아직 물은 들어오지 않는다.</p>
+            <p>닻 무리는 구멍을 막는 것이 평생의 일이라고 했다.</p>
+            <p class="ask">누구를, 무엇으로 막을 것인가?</p>
+            <div class="tg"><span>압력</span><span>유리</span><span>3초</span></div>
+          </div>
+          <!-- 선택지 : 어떤 선택도 완전히 옳지 않다 -->
+          <div class="opts" style="top:502px">
+            <div class="opt"><b>수리공을 보낸다</b><small>성공 확률 높음 · 실패하면 부상</small></div>
+            <div class="opt"><b>「굳는 반죽」 카드를 쓴다</b><small>확실하다 · 카드를 잃는다</small></div>
+            <div class="opt risk"><b>격벽을 닫는다</b><small style="color:#c98a7c">방 하나를 영구히 잃는다 · 사람은 산다</small></div>
+            <div class="opt risk"><b>감수한다</b><small>아무것도 하지 않는다</small></div>
+          </div>
+          <div class="hud tl"><div class="r1"><b>Day 2</b><em>사건</em></div></div>
+        </div>
+      </div>
+      <p class="shotcap">쪽지는 세 문장. 마지막 문장은 언제나 질문이다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J8</span><h2 class="jtitle">첫 사건</h2><span class="jtime">7:00 – 8:40</span></div>
+    <p class="jlead">3초 안에 읽혀야 하므로 쪽지는 세 문장을 넘지 않는다.
+      그리고 <b>옳은 선택이 없다.</b> 실패하면 방이 닫히고, 닫힌 방은 사라지지 않고 <b>물이 찬 채로 계속 보인다</b> —
+      상실을 텍스트가 아니라 화면에 영구히 남은 자리로 본다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>「유리에 금」 쪽지. 3초 타이머. 그 뒤로 금이 간 그 방이 비쳐 보인다.</dd>
+      <dt>무엇을 하는가</dt><dd>카드 / 방 / 사람 중 하나를 건다. 넷 다 무언가를 잃는다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>상실의 무게. 이 게임에 전투는 없고, 방 하나를 잃는 것이 곧 죽음이다.</dd>
+      <dt>어떤 시스템</dt><dd class="sys">사건 카드 × 태그 대항. 상대의 의도(태그)를 항상 노출해서 계획이 가능하게 한다. 실패는 버그가 아니라 <em>서사</em>가 된다 — 각인의 씨앗.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J9 — 두드림
+     ══════════════════════════════════════════════════════════ -->
+<section id="j9" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr dark">
+          <!-- 방 안에서 창을 본다 -->
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,#1a1408,#0f0c06 60%,#070603)"></div>
+          <div style="position:absolute;left:0;right:0;top:0;height:120px;background:#6b4a1c"></div>
+          <div style="position:absolute;left:24px;top:40px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#fff0cc,#f0b055 52%,transparent 76%)"></div>
+          <!-- 창 -->
+          <div class="glass" style="left:38px;top:190px;width:314px;height:330px;
+               background:linear-gradient(160deg,#0d2f38,#09222a 45%,#061820)"></div>
+          <!-- 목 하나가 들어와 유리에 얼굴을 붙인다. 전신이 아니라 목만 (D6) -->
+          <svg style="position:absolute;left:42px;top:194px;width:306px;height:322px;z-index:13" viewBox="0 0 306 322" aria-hidden="true">
+            <defs><clipPath id="win"><rect x="0" y="0" width="306" height="322" rx="6"/></clipPath></defs>
+            <g clip-path="url(#win)">
+              <path d="M306 322 q-44 -74 -74 -134 q-26 -52 -4 -98 q24 -48 78 -64 L306 0 Z"
+                    fill="#02090c" stroke="rgba(47,168,160,.30)" stroke-width="2"/>
+              <path d="M228 92 q36 -32 78 -26 v76 q-48 10 -78 -18 q-16 -14 0 -32Z"
+                    fill="#030e12" stroke="rgba(47,168,160,.22)" stroke-width="1.6"/>
+              <ellipse cx="266" cy="100" rx="10" ry="8" fill="#c9a24c" opacity=".92"/>
+              <ellipse cx="266" cy="100" rx="3.4" ry="7" fill="#14110c"/>
+              <path d="M234 128 q30 10 70 4" stroke="#061419" stroke-width="5" fill="none"/>
+              <path d="M242 148 q28 8 62 2" stroke="rgba(47,168,160,.16)" stroke-width="2" fill="none"/>
+            </g>
+          </svg>
+          <!-- 두드림 파문 : 얼굴이 유리에 닿은 자리 -->
+          <div class="knock" style="left:226px;top:270px;width:56px;height:56px;opacity:.6"></div>
+          <div class="knock" style="left:208px;top:252px;width:92px;height:92px;opacity:.32"></div>
+          <div class="knock" style="left:188px;top:232px;width:132px;height:132px;opacity:.15"></div>
+          <div class="ilabel" style="left:120px;top:548px">똑 · 똑 · 똑</div>
+          <!-- 조작 불가 -->
+          <div class="hud br zoomctl off"><span>+</span><span>−</span><span>⌖</span></div>
+          <div class="hud tl" style="opacity:.4"><div class="r1"><b>Day 2</b><em>1막</em></div></div>
+          <div class="frozen" style="bottom:74px">3초간 조작할 수 없다</div>
+        </div>
+      </div>
+      <p class="shotcap">위협은 소리 → 실루엣 → 형체 순서로 온다. 아직 목만 왔다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J9</span><h2 class="jtitle">두드림</h2><span class="jtime">8:40 – 9:30</span></div>
+    <p class="jlead">1막에서 처음 배워야 하는 것은 "밖에는 우리보다 큰 것이 있다"이지 "싸워야 한다"가 아니다.
+      그래서 <b>이것은 공격하지 않는다.</b> 악의가 아니라 호기심이라 더 오래 머물고, 그래서 더 무섭다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>랜턴이 훑고 간 자리에 아무것도 없다. 한 박자 뒤, 같은 자리에 <b>목이 하나 들어와 창에 얼굴을 붙인다.</b></dd>
+      <dt>무엇을 하는가</dt><dd>없다. 3초간 조작할 수 없다 — 가장자리 UI가 함께 어두워진다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>공포와 호기심이 같은 크기로.</dd>
+      <dt>어떤 시스템</dt><dd class="sys">위협 노출 3단계(소리 → 실루엣 → 형체). 전신은 1막 끝까지 보여 주지 않는다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J10 — 하루 마감  ★공들인 장
+     ══════════════════════════════════════════════════════════ -->
+<section id="j10" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <!-- 뒤에는 잠든 방주 -->
+          <div class="ark" style="opacity:.62">
+            <div class="spine" style="left:186px;top:526px;width:18px;height:114px"></div>
+            <div class="room" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:128px;top:470px;width:134px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#d8c9a3;--sh:#a2946f;--fl:#6d6349;left:96px;top:526px;width:90px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room flood" style="left:204px;top:526px;width:90px;height:56px"><div class="bk"></div><div class="fl"></div></div>
+            <div class="room" style="--c:#a2603a;--sh:#74432a;--fl:#4d2d1c;left:96px;top:582px;width:90px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#c6a23a;--sh:#8f7326;--fl:#5e4c1c;left:204px;top:582px;width:90px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+          </div>
+          <div class="veilblack" style="background:rgba(1,6,10,.5)"></div>
+
+          <div class="sheet" style="top:96px">
+            <h5>오늘 바뀐 것</h5>
+            <p class="s">D A Y  2 　 · 　 잠 들 기 전</p>
+            <div class="chg"><i class="c"></i><div><b>「여덟」이 식구가 됐다</b><small>창으로 들어와 아이 손목을 감았다</small></div></div>
+            <div class="chg"><i></i><div><b>여덟이 뚜껑 하나를 물어 왔다</b><small>어제 찍은 마른 식량 계열 · 붉은 실 가문 2 / 5</small></div></div>
+            <div class="chg"><i class="o"></i><div><b>동편 의무실을 잃었다</b><small>격벽이 닫혔다. 사람은 모두 살았다</small></div></div>
+            <div class="chg"><i class="g"></i><div><b>창고에 네 칸이 찼다</b><small>선반 2-3 · 2-4 · 3-1 · 3-2</small></div></div>
+
+            <div class="logbox">
+              <div class="lb"><span>눈 금  일 지 　 먼  울 음</span><b><s>90초</s>85초</b></div>
+              <svg viewBox="0 0 300 40" aria-label="울음 간격 기록">
+                <line x1="0" y1="30" x2="300" y2="30" stroke="#2a2419"/>
+                <g stroke="#7d908f" stroke-width="2">
+                  <line x1="14" y1="12" x2="14" y2="30"/><line x1="46" y1="12" x2="46" y2="30"/>
+                  <line x1="78" y1="12" x2="78" y2="30"/><line x1="110" y1="12" x2="110" y2="30"/>
+                  <line x1="142" y1="12" x2="142" y2="30"/><line x1="174" y1="12" x2="174" y2="30"/>
+                </g>
+                <g stroke="#f0b055" stroke-width="2">
+                  <line x1="204" y1="8" x2="204" y2="30"/><line x1="234" y1="8" x2="234" y2="30"/>
+                  <line x1="264" y1="8" x2="264" y2="30"/><line x1="294" y1="8" x2="294" y2="30"/>
+                </g>
+                <text x="94" y="40" font-size="8" fill="#7d908f" text-anchor="middle">90 · 90 · 90 · 90 · 90</text>
+                <text x="249" y="40" font-size="8" fill="#f0b055" text-anchor="middle">85 · 85 · 85</text>
+              </svg>
+              <p class="cap">200년 전 눈금 무리가 시작한 일지를 오늘 당신이 이었다.</p>
+            </div>
+          </div>
+
+          <div class="sheet" style="top:640px;background:rgba(9,13,11,.9)">
+            <p class="s" style="margin:0 0 8px">내 일 　 오 는  것</p>
+            <div class="chg" style="border-top:0;padding-top:0"><i></i><div><b>표류자 한 사람이 문을 두드린다</b><small>받을지 말지는 그때 고른다</small></div></div>
+          </div>
+          <div class="frozen" style="bottom:24px">아무 곳이나 눌러 하루를 닫는다</div>
+        </div>
+      </div>
+      <p class="shotcap">세션의 마침표와 다음 세션의 낚싯바늘을 한 화면이 동시에 한다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J10</span><h2 class="jtitle">하루 마감</h2><span class="jtime">10:00 · 매일</span></div>
+    <p class="jlead">하루가 끝나는 느낌이 없어서 "오늘은 여기까지"와 "내일 이게 궁금하다"가 둘 다 안 생겼다.
+      마감 컷은 <b>오늘 바뀐 것만</b> 보여 준다. 그리고 화면 아래에 <b>울음 간격</b>이 적힌다 —
+      이 게임 최고의 미스터리를 플레이어가 처음으로 <em>만질 수 있게</em> 되는 순간이다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>누가 각인을 받았고, 문어가 무엇을 물어 왔고, 무엇을 잃었고, <b>울음 간격이 90초에서 85초가 됐고</b>, 내일 무엇이 오는지.</dd>
+      <dt>무엇을 하는가</dt><dd>없다. 한 번 눌러 하루를 닫는다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>마침표. 그리고 내일의 낚싯바늘 — 숫자가 줄어드는 것을 봤다는 사실만으로.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><span class="etag">E6</span>하루 마감 컷. <span class="etag">E4</span>눈금 일지 — 간격은 방주가 아래로 자랄수록 짧아진다(층당 −5초, 하한 40초). <b>정체는 2막 입구까지 밝히지 않는다.</b></dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J11 — 첫 각인
+     ══════════════════════════════════════════════════════════ -->
+<section id="j11" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div class="ark">
+            <div class="halo" style="left:30px;top:190px;width:330px;height:300px"></div>
+            <!-- 아침. 한 방을 확대해 두 모습을 나란히 -->
+            <div class="room" style="--c:#b4712f;--sh:#815022;--fl:#54351a;left:30px;top:200px;width:330px;height:280px">
+              <div class="bk" style="height:32%"></div><div class="fl" style="height:16px"></div>
+              <div class="lamp" style="--x:50%;width:48px;height:48px;margin-left:-24px;top:8px"></div>
+              <span style="position:absolute;left:18px;bottom:16px;width:60px;height:26px;background:#6d6349;border:2px solid #14110c"></span>
+              <span style="position:absolute;right:20px;bottom:16px;width:44px;height:38px;background:#8c6222;border:2px solid #14110c"></span>
+            </div>
+          </div>
+          <!-- 어제 -->
+          <div class="fig" style="left:44px;top:236px;width:190px;height:190px;opacity:.45;filter:grayscale(.5)">
+            <img src="/static/art/chars/front/b/scout_hero.png" alt="어제의 그 사람">
+          </div>
+          <div class="ilabel" style="left:78px;top:432px">어제</div>
+          <!-- 오늘 : 각인 3 -->
+          <div class="fig" style="left:196px;top:244px;width:174px;height:174px">
+            <img src="/static/art/chars/front/b/scout_imp3.png" alt="각인을 받은 뒤">
+          </div>
+          <div class="ilabel" style="left:236px;top:432px;border-color:#3d2d15;color:#f0b055">오늘</div>
+          <div class="arrowr" style="left:176px;top:326px">→</div>
+
+          <div class="ipanel" style="top:520px;right:20px;left:20px;width:auto">
+            <h4>물벼락을 겪은 사람</h4><p class="s">각 인 　 1 　 · 　 그 물  무 리</p>
+            <div class="bopt" style="border-left-color:#8c9161"><b>숨을 오래 참는다</b><small>밖에서 공기 한 칸을 덜 쓴다</small></div>
+            <p style="margin:8px 0 0;font-size:10.5px;color:#7d908f;line-height:1.7">
+              겪어 본 적 없는 종류의 위기를 넘긴 사람만 변한다. 아무도 이 변화를 설명해 주지 않는다.</p>
+          </div>
+          <div class="hud tl"><div class="r1"><b>Day 3</b><em>아침</em></div></div>
+        </div>
+      </div>
+      <p class="shotcap">알림이 아니라 <b style="color:#f0b055">외형</b>으로 안다. 아침에 보니 저 사람이 달라져 있다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J11</span><h2 class="jtitle">첫 각인</h2><span class="jtime">3일차</span></div>
+    <p class="jlead">성장은 막대가 차오르는 것이 아니라 <b>계단</b>이다. 그리고 그 계단은 화면에 보인다 —
+      옷이 기워지고, 장비가 붙고, 자세가 바뀐다. 각인은 "처음 겪는 종류의 위기"에만 붙으므로 희소하다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>아침에 한 사람의 <b>외형이 변해 있다.</b> 어제와 오늘을 나란히 두면 실루엣이 다르다.</dd>
+      <dt>무엇을 하는가</dt><dd>없다. 발견하는 것이 전부다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>"저 사람이 변했다." 이름을 기억하게 되는 지점.</dd>
+      <dt>어떤 시스템</dt><dd class="sys">계단식 성장 = 사건 × 주민. 같은 사건도 겪어 본 사람에게는 각인을 남기지 않는다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J12 — 첫 발견
+     ══════════════════════════════════════════════════════════ -->
+<section id="j12" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr dark">
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,#02090c,#04141c 45%,#061a1c)"></div>
+          <!-- 안개가 걷히고 카메라가 내려앉는다 -->
+          <div class="lantern" style="left:20px;top:300px;width:350px;height:350px;
+               background:radial-gradient(circle,rgba(240,176,85,.20) 0 30%,rgba(47,168,160,.09) 54%,transparent 76%)"></div>
+          <svg style="position:absolute;left:0;bottom:186px;width:390px;height:520px;z-index:9" viewBox="0 0 390 520" aria-hidden="true">
+            <!-- 열수구 굴뚝들 -->
+            <path d="M60 520 l18 -190 l16 -8 l14 198Z" fill="#120d0a" stroke="#241a12" stroke-width="2"/>
+            <path d="M176 520 l14 -240 l20 -10 l18 250Z" fill="#150f0b" stroke="#2a1e14" stroke-width="2"/>
+            <path d="M300 520 l12 -150 l14 -6 l14 156Z" fill="#120d0a" stroke="#241a12" stroke-width="2"/>
+            <!-- 굴뚝 입의 따뜻한 빛 -->
+            <ellipse cx="86" cy="326" rx="14" ry="7" fill="#f0b055" opacity=".8"/>
+            <ellipse cx="196" cy="276" rx="17" ry="8" fill="#ffd28a" opacity=".9"/>
+            <ellipse cx="314" cy="366" rx="12" ry="6" fill="#f0b055" opacity=".75"/>
+            <!-- 피어오르는 것 -->
+            <g fill="none" stroke="#e6d7b0" stroke-width="2" opacity=".2">
+              <path d="M86 320 q-8 -40 4 -70 q10 -26 2 -50"/>
+              <path d="M196 270 q10 -50 -4 -84 q-10 -26 2 -52"/>
+              <path d="M314 360 q8 -34 -2 -60"/>
+            </g>
+            <!-- 정원 : 관 무리 -->
+            <g>
+              <rect x="150" y="470" width="6" height="46" rx="3" fill="#e6d7b0"/><circle cx="153" cy="468" r="5" fill="#8c3b2e"/>
+              <rect x="164" y="482" width="6" height="34" rx="3" fill="#e6d7b0"/><circle cx="167" cy="480" r="5" fill="#8c3b2e"/>
+              <rect x="178" y="464" width="6" height="52" rx="3" fill="#d8c9a3"/><circle cx="181" cy="462" r="5" fill="#a2603a"/>
+              <rect x="226" y="476" width="6" height="40" rx="3" fill="#e6d7b0"/><circle cx="229" cy="474" r="5" fill="#8c3b2e"/>
+              <rect x="240" y="486" width="6" height="30" rx="3" fill="#d8c9a3"/><circle cx="243" cy="484" r="5" fill="#a2603a"/>
+              <rect x="92"  y="484" width="6" height="32" rx="3" fill="#d8c9a3"/><circle cx="95"  cy="482" r="5" fill="#8c3b2e"/>
+              <rect x="292" y="480" width="6" height="36" rx="3" fill="#e6d7b0"/><circle cx="295" cy="478" r="5" fill="#8c3b2e"/>
+            </g>
+            <!-- 바닥 -->
+            <path d="M0 500 q90 -14 190 2 t200 -4 L390 520 L0 520Z" fill="#0a1214"/>
+          </svg>
+          <!-- 앞쪽 바위 턱 : 여기까지가 갈 수 있는 곳 -->
+          <svg style="position:absolute;left:0;bottom:0;width:390px;height:200px;z-index:12" viewBox="0 0 390 200" aria-hidden="true">
+            <path d="M0 52 q70 -22 150 -6 q96 20 240 -14 L390 200 L0 200Z" fill="#010709"/>
+            <path d="M0 62 q70 -22 150 -6 q96 20 240 -14" fill="none" stroke="#0d2228" stroke-width="2"/>
+          </svg>
+          <!-- 문간에 서 있는 사람 (들어갈 수 없다) -->
+          <div class="fig sil" style="left:2px;top:512px;width:196px;height:196px;z-index:14">
+            <img src="/static/art/chars/front/b/scout_hero.png" alt="문간에 선 사람">
+          </div>
+          <!-- 들어갈 수 없는 경계 -->
+          <div style="position:absolute;left:128px;top:700px;right:0;height:0;border-top:1px dashed rgba(140,59,46,.85);z-index:18"></div>
+          <div class="ilabel" style="left:150px;top:672px;border-color:#5a2a22;color:#c98a7c">여기서부터는 거주할 수 없다</div>
+          <div class="hud bl gauges">
+            <div class="g"><i>공기</i><div class="band low" style="--v:17%"></div></div>
+            <div class="g"><i>깊이</i><div class="band down" style="--v:44%"></div><u>무광층</u></div>
+          </div>
+          <div class="hud tl"><div class="r1"><b>Day 7</b><em>밖</em></div></div>
+          <div class="itoast" style="bottom:96px;z-index:26">열수구 정원 — 발견 1 / 12</div>
+        </div>
+      </div>
+      <p class="shotcap">아름다운데 들어갈 수 없다. 이 게임에서 가장 중요한 한 문장.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J12</span><h2 class="jtitle">첫 발견</h2><span class="jtime">1주차</span></div>
+    <p class="jlead">힐링 스팟은 그 자체가 아름다워서 감동적인 것이 아니라 <b>위기 직후에 나타나기 때문에</b> 감동적이다.
+      그리고 공기는 17%밖에 남지 않았다 — 오래 머물 수 없다는 사실이 아름다움을 더 진하게 만든다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>안개가 걷히고 카메라가 내려앉는다. 열수구 정원. 굴뚝 입에서 나오는 빛이 이 바깥에서 유일하게 따뜻한 것이다.</dd>
+      <dt>무엇을 하는가</dt><dd>문간에 서 있는다. 그것 말고 할 수 있는 것이 없다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>아름다움 + 들어갈 수 없음. 두 감정이 같이 와야 한다.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><b>스팟은 거주 불가.</b> 12곳이 8개 카테고리에 흩어져 있어 "다양하게 찍기"를 시스템이 직접 민다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J13 — 내려가기
+     ══════════════════════════════════════════════════════════ -->
+<section id="j13" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div style="position:absolute;left:0;right:0;top:0;height:110px;z-index:2;background:linear-gradient(180deg,rgba(120,180,190,.07),transparent)"></div>
+          <div class="ark">
+            <div class="halo" style="left:50px;top:120px;width:290px;height:260px"></div>
+            <div class="spine" style="left:186px;top:200px;width:18px;height:400px"></div>
+            <div class="room" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:132px;top:140px;width:126px;height:58px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:36%;--pc:#e6d7b0"></span></div>
+            <div class="room" style="--c:#d8c9a3;--sh:#a2946f;--fl:#6d6349;left:100px;top:206px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:50%;--pc:#8c3b2e"></span></div>
+            <div class="room flood" style="left:204px;top:206px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div></div>
+            <div class="room" style="--c:#a2603a;--sh:#74432a;--fl:#4d2d1c;left:100px;top:262px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:44%;--pc:#d8c9a3"></span></div>
+            <div class="room" style="--c:#c6a23a;--sh:#8f7326;--fl:#5e4c1c;left:204px;top:262px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:60%;--pc:#8c9161"></span></div>
+            <div class="room" style="--c:#8c9161;--sh:#666a45;--fl:#454833;left:100px;top:318px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p sit" style="--x:40%;--pc:#e6d7b0"></span></div>
+            <div class="room" style="--c:#b4712f;--sh:#815022;--fl:#54351a;left:204px;top:318px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:52%;--pc:#d8c9a3"></span></div>
+            <div class="room" style="--c:#a2603a;--sh:#74432a;--fl:#4d2d1c;left:100px;top:374px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#8c6222;--sh:#6a4818;--fl:#3f2c10;left:204px;top:374px;width:86px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:36%;--pc:#e6d7b0"></span></div>
+            <div class="room" style="--c:#74432a;--sh:#52301e;--fl:#331d12;left:132px;top:430px;width:126px;height:56px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:60%;--pc:#8c9161"></span></div>
+            <div class="room dashed" style="left:132px;top:492px;width:126px;height:56px">
+              <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#3f5a5f;font-size:22px">+</span>
+            </div>
+          </div>
+          <!-- 깊이 눈금 -->
+          <div class="ruler">
+            <div class="tk" style="top:60px">광층</div>
+            <div class="tk" style="top:140px">박광층</div>
+            <div class="tk on" style="top:300px">무광층</div>
+            <div class="tk" style="top:600px">해구 문턱</div>
+            <div class="tk" style="top:720px">해구</div>
+            <div class="here" style="top:494px"></div>
+          </div>
+          <!-- 일지 : 화면 한 구석 -->
+          <div style="position:absolute;z-index:22;left:14px;bottom:86px;width:158px;
+                      background:rgba(10,14,12,.9);border:1px solid #2a2419;border-left:3px solid #f0b055;
+                      border-radius:6px;padding:9px 10px">
+            <div style="font-size:9px;letter-spacing:.16em;color:#7d908f">눈 금  일 지</div>
+            <div style="font-size:15px;color:#f0b055;font-weight:700;margin-top:3px">
+              <s style="color:#7d908f;font-size:12px">85초</s> 70초</div>
+            <div style="font-size:9.5px;color:#7d908f;margin-top:2px">세 층 내려온 뒤</div>
+          </div>
+          <div class="hud tl"><div class="r1"><b>Day 15</b><em>1막</em></div>
+            <div class="res"><span>방<b>11</b></span><span>사람<b>9</b></span></div></div>
+          <div class="hud bl gauges" style="bottom:18px">
+            <div class="g"><i>깊이</i><div class="band down" style="--v:58%"></div><u>−420 m</u></div></div>
+          <div class="hud br zoomctl"><span>+</span><span>−</span><span>⌖</span></div>
+        </div>
+      </div>
+      <p class="shotcap">위의 밝은 층은 멀어지고, 아래의 검정은 가까워진다. 일지의 숫자가 그것을 센다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J13</span><h2 class="jtitle">내려가기</h2><span class="jtime">2주차</span></div>
+    <p class="jlead">세로축 하나가 지도이자 난이도이자 희귀도이자 이야기다. 군더더기가 없다.
+      그리고 화면 맨 위에는 <b>갈 수 없는 밝은 층</b>이 항상 떠 있다 — 아래로 자랄수록 그 빛은 멀어진다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>깊이 띠가 내려가 있고, 방이 열한 칸이 됐고, 잃은 방 하나는 <b>물이 찬 채로 그대로 있다.</b> 일지의 간격은 70초.</dd>
+      <dt>무엇을 하는가</dt><dd>아래로 증축. 이제는 내려가는 것이 목적이다.</dd>
+      <dt>무엇을 느끼는가</dt><dd>서스펜스. 아무도 강요하지 않았는데 숫자가 줄고 있다.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><span class="etag">E4</span>눈금 일지 — 층당 −5초. 깊이가 유물 등급·사건 난이도·스팟 목록을 동시에 바꾼다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     J14 — 해구 문턱  ★공들인 장
+     ══════════════════════════════════════════════════════════ -->
+<section id="j14" class="step">
+  <div class="shots">
+    <div class="shot">
+      <div class="frame"><div class="notch"></div>
+        <div class="scr">
+          <div style="position:absolute;left:0;right:0;top:0;height:90px;z-index:2;background:linear-gradient(180deg,rgba(120,180,190,.05),transparent)"></div>
+          <!-- 방주는 이제 위로 밀려 올라가 있다 : 화면 아래가 주인공이다 -->
+          <div class="ark">
+            <div class="halo" style="left:70px;top:70px;width:250px;height:200px;opacity:.7"></div>
+            <div class="spine" style="left:186px;top:110px;width:18px;height:420px"></div>
+            <div class="room" style="--c:#c08a33;--sh:#8c6222;--fl:#5c421a;left:140px;top:70px;width:110px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#d8c9a3;--sh:#a2946f;--fl:#6d6349;left:112px;top:116px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#8c9161;--sh:#666a45;--fl:#454833;left:204px;top:116px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room flood" style="left:112px;top:162px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div></div>
+            <div class="room" style="--c:#a2603a;--sh:#74432a;--fl:#4d2d1c;left:204px;top:162px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#c6a23a;--sh:#8f7326;--fl:#5e4c1c;left:112px;top:208px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#b4712f;--sh:#815022;--fl:#54351a;left:204px;top:208px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#8c6222;--sh:#6a4818;--fl:#3f2c10;left:112px;top:254px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#74432a;--sh:#52301e;--fl:#331d12;left:204px;top:254px;width:74px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div></div>
+            <div class="room" style="--c:#6d4a1c;--sh:#4e3413;--fl:#2f1f0b;left:140px;top:300px;width:110px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:60%;--pc:#e6d7b0"></span></div>
+            <!-- 마지막 칸. 여기가 끝이다 -->
+            <div class="room" style="--c:#5c3d18;--sh:#432c11;--fl:#281a08;left:140px;top:346px;width:110px;height:42px"><div class="bk"></div><div class="fl"></div><div class="lamp" style="--x:50%"></div><span class="p" style="--x:40%;--pc:#d8c9a3"></span></div>
+            <!-- 지어지지 않는 자리 -->
+            <div class="room dashed" style="left:140px;top:394px;width:110px;height:42px;border-color:#5a2a22">
+              <svg style="position:absolute;inset:0" viewBox="0 0 110 42" aria-hidden="true">
+                <path d="M6 6 L104 36 M104 6 L6 36" stroke="#8c3b2e" stroke-width="2.5"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 지어지지 않는 경계선 -->
+          <div class="nobuild" style="top:452px"></div>
+          <div class="ilabel" style="left:50%;transform:translateX(-50%);top:480px;z-index:24;border-color:#5a2a22;color:#e6d7b0;background:rgba(30,10,8,.92)">
+            여기서부터는 지어지지 않는다</div>
+          <!-- 그 아래 검정 -->
+          <div class="blackout" style="top:470px;height:374px"></div>
+          <div style="position:absolute;z-index:14;left:0;right:0;top:470px;height:90px;
+                      background:linear-gradient(180deg,rgba(10,42,51,.25),transparent)"></div>
+          <!-- 검정 속에서 울음 하나 -->
+          <svg style="position:absolute;z-index:15;left:60px;top:586px;width:270px;height:90px" viewBox="0 0 270 90" aria-hidden="true">
+            <g fill="none" stroke="#2fa8a0" stroke-width="1.6" opacity=".34">
+              <path d="M135 88 q-52 -26 -62 -58"/><path d="M135 88 q52 -26 62 -58"/>
+              <path d="M135 88 q-20 -34 -18 -70"/><path d="M135 88 q20 -34 18 -70"/>
+            </g>
+            <circle cx="135" cy="88" r="4" fill="#2fa8a0" opacity=".6"/>
+          </svg>
+          <div class="ilabel" style="left:50%;transform:translateX(-50%);top:660px;background:rgba(1,6,10,.8);border-color:#123840;color:#2fa8a0">
+            먼 울음 · 41초</div>
+
+          <!-- 깊이 눈금 : 맨 아래가 해구 -->
+          <div class="ruler">
+            <div class="tk" style="top:24px">광층</div>
+            <div class="tk" style="top:100px">박광층</div>
+            <div class="tk" style="top:250px">무광층</div>
+            <div class="tk on" style="top:452px">해구 문턱</div>
+            <div class="tk" style="top:700px">해구</div>
+            <div class="here" style="top:394px"></div>
+          </div>
+
+          <!-- 결심 -->
+          <div class="ipanel" style="left:20px;right:20px;top:706px;width:auto;border-left-color:#8c3b2e">
+            <h4>더는 내려갈 수 없다</h4><p class="s">거 점 은 　 해 구 에 　 닿 지 　 못 한 다</p>
+            <div class="bopt" style="border-left-color:#8c3b2e"><b>걸어서 간다</b><small>원정대를 꾸린다 · 돌아오지 못할 수 있다</small></div>
+          </div>
+          <div class="hud tl"><div class="r1"><b>Day 31</b><em>1막 끝</em></div></div>
+        </div>
+      </div>
+      <p class="shotcap">깊이 띠가 맨 아래에 닿았다. 그 아래는 <b style="color:#f0b055">지어지지 않고</b>, 검다.</p>
+    </div>
+  </div>
+  <div>
+    <div class="jhead"><span class="jno">J14</span><h2 class="jtitle">해구 문턱</h2><span class="jtime">1개월 · 1막의 절정</span></div>
+    <p class="jlead">한 달 동안 아래로만 자란 거점이 <b>더는 자라지 않는다.</b>
+      이 제약 하나가 1막의 절정을 만든다 — 지금까지의 방법(짓기)으로는 갈 수 없고, 남은 방법은 걸어서 가는 것뿐이다.
+      그리고 그 아래에서 41초마다 무언가 운다.</p>
+    <dl class="rows">
+      <dt>무엇을 보는가</dt><dd>깊이 띠가 맨 아래에 있다. 다음 자리에는 <b>×</b>가 그어져 있고, 그 아래는 아무 정보도 없는 검정이다.</dd>
+      <dt>무엇을 하는가</dt><dd>원정을 결심한다. 거점을 키우는 게임에서 처음으로 <em>거점을 떠나는</em> 선택.</dd>
+      <dt>무엇을 느끼는가</dt><dd>한 달치 성장이 벽에 닿은 감각. 그리고 그 벽 너머가 궁금하다.</dd>
+      <dt>어떤 시스템</dt><dd class="sys"><b>거점은 해구에 닿지 못한다.</b> 울음 간격은 하한 40초에 가까워져 있다 — 정체는 여전히 밝히지 않는다. 2막 전환의 감정이 여기서 예약된다.</dd>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     보강 일곱
+     ══════════════════════════════════════════════════════════ -->
+<section id="e7">
+  <h2><span class="num">15</span>보강 일곱 — 압박 대신 끌어당김</h2>
+  <p class="sub">아늑함을 지키려고 압박을 뺐다. 그건 옳다. 그런데 뺀 자리에 끌어당김을 넣지 않았다. 밀지 않으려면 당겨야 한다.</p>
+
+  <div class="ecards">
+    <div class="ecard star"><div class="id">E1 ★최우선</div><h3>찍은 물건이 방에 쌓인다</h3>
+      <p>라면을 찍으면 면 상자가, 건전지를 찍으면 배터리 통이 선반 한 칸을 차지한다. 숫자로 환전되지 않는다.</p>
+      <div class="fix">J5 · 소품 30종 · 선반 격자</div></div>
+    <div class="ecard"><div class="id">E2</div><h3>가문 도감과 세트</h3>
+      <p>제조 가문 18개. 한 가문을 일정 수 모으면 그 가문의 이야기 한 조각과 방 장식 하나가 열린다.</p>
+      <div class="fix">J5 · 장기 수집 · Phase 2로 미뤄도 된다</div></div>
+    <div class="ecard"><div class="id">E3</div><h3>문어 — 첫날의 식구</h3>
+      <p>2일차에 들어온다. 이름을 지어 주면 매일 한 번 밖에서 무언가를 물고 온다. 물어 오는 것은 어제 찍은 카테고리를 따른다.</p>
+      <div class="fix">J7 · J10 · 첫날 애착</div></div>
+    <div class="ecard"><div class="id">E4</div><h3>눈금 일지</h3>
+      <p>울음이 온 시각과 간격이 화면 한 곳에 기록된다. 90초 → 층당 −5초 → 하한 40초. 미스터리를 만질 수 있게 만든다.</p>
+      <div class="fix">J10 · J13 · J14 · 정체는 봉인</div></div>
+    <div class="ecard"><div class="id">E5</div><h3>주민의 작은 바람</h3>
+      <p>책 한 권, 따뜻한 자리, 단것 한 번. 들어주면 그 사람의 대사 한 줄이 영구히 바뀐다.</p>
+      <div class="fix">J2 · J11 · 분 단위 할 일</div></div>
+    <div class="ecard"><div class="id">E6</div><h3>하루 마감 컷</h3>
+      <p>자기 전 한 장. 오늘 바뀐 것만. 세션의 마침표와 다음 세션의 낚싯바늘을 한 화면이 동시에 한다.</p>
+      <div class="fix">J10 · 하루 만에 만들 수 있다</div></div>
+    <div class="ecard"><div class="id">E7</div><h3>첫 만남은 크게</h3>
+      <p>새 카테고리·새 가문을 처음 찍으면 전체 화면 카드 공개. 두 번째부터는 조용히 지나간다.</p>
+      <div class="fix">J5 · 다양하게 찍는 행위에 직접 보상</div></div>
+    <div class="ecard" style="border-left-color:#2fa8a0">
+      <div class="id" style="color:#2fa8a0">지표</div><h3>무엇이 움직이는가</h3>
+      <p>E1·E2·E7 → 하루 스캔 6회, 카테고리 4종.<br>E3·E4·E6 → 재방문과 3일 리텐션.<br>E5 → 주민 이름을 기억하는가.</p>
+      <div class="fix" style="color:#7d908f">새 시스템은 일지 하나뿐이다</div></div>
+  </div>
+
+  <div class="mxwrap">
+  <table class="mx">
+    <thead>
+      <tr><th>보강</th><th>J1</th><th>J2</th><th>J3</th><th>J4</th><th>J5</th><th>J6</th><th>J7</th>
+          <th>J8</th><th>J9</th><th>J10</th><th>J11</th><th>J12</th><th>J13</th><th>J14</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>E1 물건이 쌓인다</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td></tr>
+      <tr><td>E2 가문 도감</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td></tr>
+      <tr><td>E3 문어</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="on">●</td><td class="on">●</td><td class="off">·</td></tr>
+      <tr><td>E4 눈금 일지</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="on">●</td></tr>
+      <tr><td>E5 주민의 바람</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="on">●</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="off">·</td></tr>
+      <tr><td>E6 하루 마감</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="on">●</td></tr>
+      <tr><td>E7 첫 만남</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="on">●</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="off">·</td><td class="on">●</td><td class="off">·</td><td class="off">·</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="foot">
+    사양 원본: <b>docs/PLAYER_JOURNEY.md §2·§3</b> · 화풍: <b>docs/refs/REF_ART_FLAT_FOLK.md §1·§5</b> ·
+    단면 원리: <b>docs/refs/REF_CROSS_SECTION.md</b> · 비트 표: <b>docs/SCRIPT_first_10min_deep.md</b><br>
+    이 페이지의 폰 화면은 전부 HTML·CSS·인라인 SVG로 그렸다. 배경 한 장과 캐릭터 스프라이트만 기존 에셋을 쓴다.
+    실제 동작 화면은 <a href="/base">/base</a>에서 볼 수 있다.
+  </p>
+</section>
+
+</div>
+</body>
+</html>
