@@ -20,7 +20,8 @@
  "variants": {
   "a": "렌더 그대로(부드러운 음영·옅은 선) — 비교용 한 벌",
   "b": "평면 민속화풍 — 팔레트 강제·음영 2단·역할별 반복 무늬·흔들리는 선",
-  "c": "b 와 같은 화풍 + 비율 보정(3등신·큰 눈·둥근 아래·과장된 동작). 팔레트·음영·무늬·선은 b 와 한 줄도 다르지 않다"
+  "c": "b 와 같은 화풍 + 비율 보정(3등신·큰 눈·둥근 아래·과장된 동작). 팔레트·음영·무늬·선은 b 와 한 줄도 다르지 않다",
+  "d": "S6-A 「괴기함 빼기」 — 얼굴을 다 그린다(흰자·큰 동공·눈썹·입·볼 홍조·주근깨) · 입과 눈썹이 클립마다 바뀐다 · 따뜻한 살구색 피부 · 중간 명도 팔레트 · 음영 3단 · 부드러운 가장자리와 거친 결 · 복슬복슬한 부피 · 엉뚱함 하나씩"
  },
  "palette": {
   "cream": [
@@ -66,7 +67,10 @@
    "footprint",
    "empty_stomach"
   ],
-  "roles": []
+  "roles": [
+   "cook",
+   "scout"
+  ]
  },
  "roles": {
   "scout": {
@@ -84,7 +88,16 @@
     "hem": 0.2509,
     "head": 0.9467
    },
-   "h_c": 1.6812
+   "h_c": 1.6812,
+   "threshold_d": 0.447,
+   "land_d": {
+    "wave": 0.9713,
+    "hem": 0.3041,
+    "head": 1.0267
+   },
+   "h_d": 1.6812,
+   "whimsy": "너무 큰 장갑 + 한쪽으로 흘러내린 두건 · 주근깨",
+   "freckle": true
   },
   "cook": {
    "h": 1.9727,
@@ -101,7 +114,16 @@
     "hem": 0.3885,
     "head": 1.247
    },
-   "h_c": 1.9727
+   "h_c": 1.9727,
+   "threshold_d": 0.72,
+   "land_d": {
+    "wave": 1.2316,
+    "hem": 0.427,
+    "head": 1.2924
+   },
+   "h_d": 1.9727,
+   "whimsy": "너무 큰 장갑",
+   "freckle": false
   },
   "medic": {
    "h": 1.6216,
@@ -118,7 +140,16 @@
     "hem": 0.2501,
     "head": 0.9411
    },
-   "h_c": 1.6216
+   "h_c": 1.6216,
+   "threshold_d": 0.72,
+   "land_d": {
+    "wave": 0.9623,
+    "hem": 0.3016,
+    "head": 1.0172
+   },
+   "h_d": 1.6216,
+   "whimsy": "너무 큰 장갑",
+   "freckle": false
   },
   "engineer": {
    "h": 1.6627,
@@ -135,7 +166,16 @@
     "hem": 0.2566,
     "head": 0.9651
    },
-   "h_c": 1.6627
+   "h_c": 1.6627,
+   "threshold_d": 0.42,
+   "land_d": {
+    "wave": 0.9868,
+    "hem": 0.3094,
+    "head": 1.0431
+   },
+   "h_d": 1.6627,
+   "whimsy": "너무 큰 장갑(그래서 렌치가 상대적으로 작아 보인다)",
+   "freckle": false
   },
   "farmer": {
    "h": 1.8025,
@@ -152,7 +192,16 @@
     "hem": 0.2436,
     "head": 0.9285
    },
-   "h_c": 1.8025
+   "h_c": 1.8025,
+   "threshold_d": 0.702,
+   "land_d": {
+    "wave": 0.9615,
+    "hem": 0.2998,
+    "head": 1.0164
+   },
+   "h_d": 1.8025,
+   "whimsy": "너무 큰 장갑 · 주근깨",
+   "freckle": true
   },
   "scholar": {
    "h": 1.6011,
@@ -169,7 +218,16 @@
     "hem": 0.2469,
     "head": 0.9292
    },
-   "h_c": 1.6011
+   "h_c": 1.6011,
+   "threshold_d": 0.424,
+   "land_d": {
+    "wave": 0.9501,
+    "hem": 0.2978,
+    "head": 1.0043
+   },
+   "h_d": 1.6011,
+   "whimsy": "너무 큰 장갑 + 콧등에 걸친 동근 안경",
+   "freckle": false
   },
   "trader": {
    "h": 1.6627,
@@ -186,7 +244,16 @@
     "hem": 0.2565,
     "head": 0.965
    },
-   "h_c": 1.6627
+   "h_c": 1.6627,
+   "threshold_d": 0.584,
+   "land_d": {
+    "wave": 0.9868,
+    "hem": 0.3094,
+    "head": 1.0431
+   },
+   "h_d": 1.6627,
+   "whimsy": "너무 큰 장갑",
+   "freckle": false
   },
   "kid": {
    "h": 1.2074,
@@ -203,7 +270,16 @@
     "hem": 0.1916,
     "head": 0.719
    },
-   "h_c": 1.2074
+   "h_c": 1.2074,
+   "threshold_d": 0.72,
+   "land_d": {
+    "wave": 0.7331,
+    "hem": 0.23,
+    "head": 0.7749
+   },
+   "h_d": 1.2074,
+   "whimsy": "너무 큰 장갑 · 주근깨",
+   "freckle": true
   },
   "octopus": {
    "h": 0.52,
@@ -215,7 +291,9 @@
    "motif_ko": "-",
    "folk_render": true,
    "threshold_c": 0.682,
-   "h_c": 0.57
+   "h_c": 0.57,
+   "threshold_d": 0.553,
+   "h_d": 0.57
   }
  },
  "cute": {
@@ -264,5 +342,102 @@
   "Idle": 2.8,
   "Walk": 0.8,
   "PickUp": 1.4
- }
+ },
+ "warm": {
+  "head": 1.12,
+  "neck": 0.78,
+  "leg": 0.88,
+  "leg_xz": 1.34,
+  "arm": 0.9,
+  "arm_xz": 1.2,
+  "fist": 1.34,
+  "shoulder": 0.8,
+  "torso_y": 0.92,
+  "torso_xz": 1.12,
+  "abdomen_y": 0.92,
+  "abdomen_xz": 1.16,
+  "hips_xz": 1.2,
+  "eye": 0.85,
+  "pupil": 0.86,
+  "eye_drop": 0.07,
+  "eye_wide": 1.02,
+  "hilite": 0.3,
+  "skirt": 1.1
+ },
+ "warm_face": {
+  "eye_flat": 0.8,
+  "eye_widen": 1.06,
+  "brow_up": 0.08,
+  "brow_w": 0.082,
+  "brow_h": 0.027,
+  "brow_tilt": 5.0,
+  "brow_tilt_effort": 17.0,
+  "brow_effort": 0.016,
+  "brow_raise": 0.022,
+  "mouth_drop": 0.15,
+  "mouth_w": 0.088,
+  "mouth_h": 0.026,
+  "mouth_curve": 0.014,
+  "open_w": 0.062,
+  "open_h": 0.052,
+  "blush_out": 1.28,
+  "blush_drop": 0.078,
+  "blush_r": 0.054,
+  "freckle_r": 0.009
+ },
+ "warm_palette": {
+  "cream": [
+   "#F0E4C8",
+   "#C3AB81"
+  ],
+  "ochre": [
+   "#E4B453",
+   "#A9781F"
+  ],
+  "burnt": [
+   "#DC7728",
+   "#9C4C17"
+  ],
+  "oxblood": [
+   "#B03A24",
+   "#743227"
+  ],
+  "olive": [
+   "#8D8F4A",
+   "#5C5E2C"
+  ],
+  "umber": [
+   "#9A7645",
+   "#61492C"
+  ],
+  "charcoal": [
+   "#4E443B",
+   "#352D25"
+  ],
+  "skin": [
+   "#E9BE92",
+   "#BD8A5F"
+  ]
+ },
+ "warm_line": "#2B2119",
+ "warm_expr": {
+  "Idle": "다문 미소 · 순한 눈썹",
+  "Walk": "살짝 벌린 미소 · 올라간 눈썹",
+  "PickUp": "힘주어 벌린 입 · 찡그린 눈썹"
+ },
+ "warm_motif": {
+  "zig": "zigr",
+  "saw": "scallop"
+ },
+ "warm_roles": [
+  "scout",
+  "cook",
+  "medic",
+  "engineer",
+  "farmer",
+  "scholar",
+  "trader",
+  "kid",
+  "octopus"
+ ]
 }

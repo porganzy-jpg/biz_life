@@ -1,0 +1,353 @@
+{
+ "_comment": "E1 선반 소품 스프라이트. 격자 한 칸 34×30px, slots=2 는 68×30px. 바닥선 = 이미지 맨 아래(소품은 선반 위에 놓인다). 1배가 배치 정본, x4/ 는 같은 그림의 4배(고해상 화면용).",
+ "_source": "data/relic_props.json (이름·카테고리 = 시나리오 소유)",
+ "_style": "docs/refs/REF_ART_FLAT_FOLK.md §1·§5 — 평면 2단 음영, 흙 팔레트, 손그림 외곽선",
+ "cell": {
+  "w": 34,
+  "h": 30
+ },
+ "scale4x_dir": "x4",
+ "line_color": "#12100D",
+ "palette": {
+  "cream": [
+   "#F2E7CE",
+   "#B39A70"
+  ],
+  "bone": [
+   "#D9C9A3",
+   "#9E8A62"
+  ],
+  "ochre": [
+   "#E4B453",
+   "#8E5F1B"
+  ],
+  "umber": [
+   "#96703F",
+   "#49331D"
+  ],
+  "burnt": [
+   "#DC7728",
+   "#84360F"
+  ],
+  "oxblood": [
+   "#B03A24",
+   "#5C170F"
+  ],
+  "olive": [
+   "#8D8F4A",
+   "#464821"
+  ],
+  "char": [
+   "#39312A",
+   "#15110E"
+  ]
+ },
+ "props": {
+  "prop_noodle_box": {
+   "name": "면 상자",
+   "category": "food",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_noodle_box.png",
+   "file4x": "static/art/props/x4/prop_noodle_box.png"
+  },
+  "prop_dry_jar": {
+   "name": "마른 항아리",
+   "category": "food",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_dry_jar.png",
+   "file4x": "static/art/props/x4/prop_dry_jar.png"
+  },
+  "prop_seed_sack": {
+   "name": "씨앗 자루",
+   "category": "food",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_seed_sack.png",
+   "file4x": "static/art/props/x4/prop_seed_sack.png"
+  },
+  "prop_crisp_bundle": {
+   "name": "바삭 봉지 묶음",
+   "category": "food",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_crisp_bundle.png",
+   "file4x": "static/art/props/x4/prop_crisp_bundle.png"
+  },
+  "prop_long_neck_bottle": {
+   "name": "목 긴 병",
+   "category": "drink",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_long_neck_bottle.png",
+   "file4x": "static/art/props/x4/prop_long_neck_bottle.png"
+  },
+  "prop_flat_canteen": {
+   "name": "납작 물통",
+   "category": "drink",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_flat_canteen.png",
+   "file4x": "static/art/props/x4/prop_flat_canteen.png"
+  },
+  "prop_cap_heap": {
+   "name": "마개 무더기",
+   "category": "drink",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_cap_heap.png",
+   "file4x": "static/art/props/x4/prop_cap_heap.png"
+  },
+  "prop_empty_bottle_row": {
+   "name": "빈 병 줄",
+   "category": "drink",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_empty_bottle_row.png",
+   "file4x": "static/art/props/x4/prop_empty_bottle_row.png"
+  },
+  "prop_twelve_cell_box": {
+   "name": "열두 칸 상자",
+   "category": "medical",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_twelve_cell_box.png",
+   "file4x": "static/art/props/x4/prop_twelve_cell_box.png"
+  },
+  "prop_rolled_strips": {
+   "name": "감은 띠 뭉치",
+   "category": "medical",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_rolled_strips.png",
+   "file4x": "static/art/props/x4/prop_rolled_strips.png"
+  },
+  "prop_brown_vial": {
+   "name": "갈색 작은 병",
+   "category": "medical",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_brown_vial.png",
+   "file4x": "static/art/props/x4/prop_brown_vial.png"
+  },
+  "prop_white_crock": {
+   "name": "하얀 단지",
+   "category": "medical",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_white_crock.png",
+   "file4x": "static/art/props/x4/prop_white_crock.png"
+  },
+  "prop_cell_tin": {
+   "name": "번개 알 통",
+   "category": "electronics",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_cell_tin.png",
+   "file4x": "static/art/props/x4/prop_cell_tin.png"
+  },
+  "prop_black_panel": {
+   "name": "검은 판",
+   "category": "electronics",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_black_panel.png",
+   "file4x": "static/art/props/x4/prop_black_panel.png"
+  },
+  "prop_tangled_light_thread": {
+   "name": "엉킨 빛 실",
+   "category": "electronics",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_tangled_light_thread.png",
+   "file4x": "static/art/props/x4/prop_tangled_light_thread.png"
+  },
+  "prop_gauge_piece": {
+   "name": "계기 조각",
+   "category": "electronics",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_gauge_piece.png",
+   "file4x": "static/art/props/x4/prop_gauge_piece.png"
+  },
+  "prop_stick_bundle": {
+   "name": "막대 다발",
+   "category": "stationery",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_stick_bundle.png",
+   "file4x": "static/art/props/x4/prop_stick_bundle.png"
+  },
+  "prop_pressed_paper_stack": {
+   "name": "눌린 종이 묶음",
+   "category": "stationery",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_pressed_paper_stack.png",
+   "file4x": "static/art/props/x4/prop_pressed_paper_stack.png"
+  },
+  "prop_color_chip_pile": {
+   "name": "붙는 색 조각 더미",
+   "category": "stationery",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_color_chip_pile.png",
+   "file4x": "static/art/props/x4/prop_color_chip_pile.png"
+  },
+  "prop_little_person_doll": {
+   "name": "작은 사람 인형",
+   "category": "stationery",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_little_person_doll.png",
+   "file4x": "static/art/props/x4/prop_little_person_doll.png"
+  },
+  "prop_standing_books": {
+   "name": "세운 책 줄",
+   "category": "book",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_standing_books.png",
+   "file4x": "static/art/props/x4/prop_standing_books.png"
+  },
+  "prop_stacked_books": {
+   "name": "눕힌 책 더미",
+   "category": "book",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_stacked_books.png",
+   "file4x": "static/art/props/x4/prop_stacked_books.png"
+  },
+  "prop_loose_leaf_box": {
+   "name": "낱장 상자",
+   "category": "book",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_loose_leaf_box.png",
+   "file4x": "static/art/props/x4/prop_loose_leaf_box.png"
+  },
+  "prop_fused_block": {
+   "name": "붙어 버린 뭉치",
+   "category": "book",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_fused_block.png",
+   "file4x": "static/art/props/x4/prop_fused_block.png"
+  },
+  "prop_folded_cloth": {
+   "name": "갠 천 더미",
+   "category": "apparel",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_folded_cloth.png",
+   "file4x": "static/art/props/x4/prop_folded_cloth.png"
+  },
+  "prop_hung_coat": {
+   "name": "걸린 겉옷",
+   "category": "apparel",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_hung_coat.png",
+   "file4x": "static/art/props/x4/prop_hung_coat.png"
+  },
+  "prop_single_boot": {
+   "name": "신발 한 짝",
+   "category": "apparel",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_single_boot.png",
+   "file4x": "static/art/props/x4/prop_single_boot.png"
+  },
+  "prop_name_patch_box": {
+   "name": "이름표 천 상자",
+   "category": "apparel",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_name_patch_box.png",
+   "file4x": "static/art/props/x4/prop_name_patch_box.png"
+  },
+  "prop_foil_bundle": {
+   "name": "은박 묶음",
+   "category": "tobacco",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_foil_bundle.png",
+   "file4x": "static/art/props/x4/prop_foil_bundle.png"
+  },
+  "prop_thin_paper_box": {
+   "name": "얇은 종이 상자",
+   "category": "tobacco",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_thin_paper_box.png",
+   "file4x": "static/art/props/x4/prop_thin_paper_box.png"
+  },
+  "prop_sealed_flask": {
+   "name": "봉인된 병",
+   "category": "tobacco",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_sealed_flask.png",
+   "file4x": "static/art/props/x4/prop_sealed_flask.png"
+  },
+  "prop_dry_leaf_box": {
+   "name": "마른 잎 상자",
+   "category": "tobacco",
+   "slots": 2,
+   "w": 68,
+   "h": 30,
+   "file": "static/art/props/prop_dry_leaf_box.png",
+   "file4x": "static/art/props/x4/prop_dry_leaf_box.png"
+  },
+  "prop_nameless_box": {
+   "name": "이름 없는 상자",
+   "category": "unknown",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_nameless_box.png",
+   "file4x": "static/art/props/x4/prop_nameless_box.png"
+  },
+  "prop_unread_lump": {
+   "name": "정체 모를 덩어리",
+   "category": "unknown",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_unread_lump.png",
+   "file4x": "static/art/props/x4/prop_unread_lump.png"
+  }
+ }
+}

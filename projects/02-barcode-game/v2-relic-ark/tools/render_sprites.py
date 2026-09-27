@@ -42,7 +42,8 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 MODE = argv[0] if argv else "render"
 FOLK = MODE == "folk"
 CUTE_MODE = MODE == "cute"          # S5-C: 비율 보정판(3등신). 화풍은 folk 그대로 쓴다
-if FOLK or CUTE_MODE: MODE = "render"
+WARM_MODE = MODE == "warm"          # S6-A: 괴기함 빼기(d). cute 비율 위에 「사람다운 얼굴」을 얹는다
+if FOLK or CUTE_MODE or WARM_MODE: MODE = "render"
 ONLY = [a for a in argv[1:] if not a.startswith("-")]
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -50,6 +51,7 @@ ROOT = os.path.dirname(HERE)
 RAW = os.path.join(ROOT, "art_raw", "chars_front")
 RAWF = os.path.join(ROOT, "art_raw", "chars_folk")
 RAWC = os.path.join(ROOT, "art_raw", "chars_cute")
+RAWW = os.path.join(ROOT, "art_raw", "chars_warm")
 OUT = os.path.join(ROOT, "static", "art", "chars", "front")
 
 # ── 시트 규약 ────────────────────────────────────────────────
@@ -138,6 +140,99 @@ EXAG = dict(
     pick_tilt=4.0,       # °
 )
 
+# ══════════════════════════════════════════════════════════════════
+# S6-A 「괴기함 빼기」 변형 d  (REF_ART_FLAT_FOLK §0 정정 · §7)
+# ══════════════════════════════════════════════════════════════════
+#   전제가 바뀌었다. 초판 §1-7("얼굴은 최소, 코·입 없음")은 **오독**이었고,
+#   원작은 **얼굴을 전부 그린다** — 눈동자·흰자·눈썹·입(상황에 따라 벌어진다)·주근깨·볼 홍조.
+#   그래서 d 의 핵심은 비율이 아니라 **얼굴**이다.
+#     (1) 얼굴을 다 그린다: 흰자 + 큰 동공 + 눈썹 + 입 + 볼 홍조 (+ 일부 역할 주근깨)
+#     (2) 입과 눈썹이 **클립마다 바뀐다** — 서 있을 땐 다문 미소, 걸을 땐 살짝 웃고,
+#         물건을 들 땐 힘주어 벌린다. 감정을 얼굴이 직접 말한다(§1-7 정정).
+#     (3) 피부는 따뜻한 살구·모래색, **중간 명도**. 검정 위에 뜨는 마스크가 되지 않게(§7-3-2·5)
+#     (4) 음영 2단 → **3단**(§1-3 정정: 완전 평면이 아니다)
+#     (5) 가장자리를 부드럽게, 연필 결을 강하게(§1-3·§1-4 정정)
+#     (6) 복슬복슬한 부피: 두툼한 목 실링 4겹 · 둥근 어깨 언덕 · 흘러내리는 자락(§7-3-7)
+#     (7) 엉뚱함 하나씩: 너무 큰 장갑(전원) + 역할마다 하나(§7-3-8)
+#     (8) 3등신을 고집하지 않는다 — c(머리 ×1.26, 약 2.9등신)에서 되돌려 **땅딸막한 3.5등신쯤**으로
+WARMP = dict(
+    head=1.12,        # c 의 1.26 에서 되돌린다(§7-3 추가 5: "3등신 고집하지 말 것")
+    neck=0.78,
+    leg=0.88, leg_xz=1.34,   # 다리는 덜 줄이고 더 통통하게 = 땅딸막
+    arm=0.90, arm_xz=1.20,
+    fist=1.34,        # §7-3-8 엉뚱함 — 전원 「너무 큰 장갑」
+    shoulder=0.80,
+    torso_y=0.92, torso_xz=1.12,
+    abdomen_y=0.92, abdomen_xz=1.16,
+    hips_xz=1.20,
+    eye=0.85,         # 흰자 배율(원본 build_props 대비)
+    pupil=0.86,       # 동공 / 흰자 — §7-3-3 「흰자 면적↓ 동공↑」
+    eye_drop=0.070, eye_wide=1.02,
+    hilite=0.30,
+    skirt=1.10,       # 흘러내리는 자락 = 부피
+)
+WARM_HEAD = {"cook": 0.90}          # 요리모자가 머리 메시 안에 있다(c 와 같은 이유).
+#   3회차: 1.02 로도 얼굴이 가로로 긴 판이 돼 눈이 양 끝에 붙었다 → 더 줄여 몸을 키운다
+# 얼굴 부품의 치수. 전부 1.6m 기준 미터, 역할 키 u 배로 줄인다.
+WARM_FACE = dict(
+    eye_flat=0.80, eye_widen=1.06,  # 눈을 납작하고 넓게 = 노려보지 않는 눈
+    brow_up=0.080, brow_w=0.082, brow_h=0.027,
+    brow_tilt=5.0,                  # ° 바깥 끝을 올린다(순한 인상)
+    brow_tilt_effort=17.0,          # ° 힘쓸 때 안쪽 끝이 내려간다
+    brow_effort=0.016,              # 힘쓸 때 눈썹을 눈 쪽으로 내린다
+    brow_raise=0.022,               # 걸을 때 눈썹을 올린다
+    mouth_drop=0.150, mouth_w=0.088, mouth_h=0.026, mouth_curve=0.014,
+    open_w=0.062, open_h=0.052,     # 벌린 입
+    blush_out=1.28, blush_drop=0.078, blush_r=0.054,
+    freckle_r=0.009,
+)
+FRECKLE = ("kid", "farmer", "scout")     # 주근깨를 주는 역할(§1-7 정정)
+# 머리에 무엇을 쓴 역할은 그 테두리가 눈썹을 먹는다 → 눈썹을 조금 내린다(2회차에서 발견)
+BROW_Z = {"scout": -0.016, "cook": -0.010, "farmer": -0.012, "trader": -0.010}
+# 원본 베이스 메시에 **콧수염**이 있는 역할(요리사 Chef_Hat · 농부 Cowboy_Male)이 있다.
+#   3회차 확대 컷에서 그 수염과 입이 겹쳐 부리처럼 읽혔다 → 입을 수염 아래로 내리고 넓힌다.
+MOUTH_Z = {"cook": -0.040, "farmer": -0.034}
+MOUTH_K = {"cook": 1.25, "farmer": 1.15}
+# 얼굴이 넓은 베이스는 같은 배율이라도 눈이 검은 판 두 장으로 보인다
+EYE_K = {"cook": 0.78, "farmer": 0.80}   # 수염·얼굴이 넓은 베이스는 동공이 수염과 붙는다
+# §7-3-8 엉뚱함 — 역할마다 하나. 큰 장갑은 WARMP["fist"] 로 전원 공통이다.
+WHIMSY_KO = {"scout": "너무 큰 장갑 + 한쪽으로 흘러내린 두건 · 주근깨",
+             "cook": "너무 큰 장갑", "medic": "너무 큰 장갑",
+             "engineer": "너무 큰 장갑(그래서 렌치가 상대적으로 작아 보인다)",
+             "farmer": "너무 큰 장갑 · 주근깨", "scholar": "너무 큰 장갑 + 콧등에 걸친 동근 안경",
+             "trader": "너무 큰 장갑", "kid": "너무 큰 장갑 · 주근깨"}
+# 얼굴 표정 — 클립마다 다르다(§1-7 정정 「감정을 얼굴이 직접 표현한다」)
+EXPR_KO = {"Idle": "다문 미소 · 순한 눈썹", "Walk": "살짝 벌린 미소 · 올라간 눈썹",
+           "PickUp": "힘주어 벌린 입 · 찡그린 눈썹"}
+# 중간 명도의 따뜻한 팔레트 (§7-3-5 · §1-2 정정).
+#   밝은 면은 거의 그대로 두고 **그림자를 끌어올렸다** — 색상(hue)은 한 계열도 바꾸지 않았다.
+#   그래서 흙 팔레트 계열은 유지되고 인물 안의 명도 폭만 절반으로 줄어든다.
+WARM_PALETTE = {
+    "cream":    ("#F0E4C8", "#C3AB81"),
+    "ochre":    ("#E4B453", "#A9781F"),
+    "burnt":    ("#DC7728", "#9C4C17"),
+    "oxblood":  ("#B03A24", "#743227"),
+    "olive":    ("#8D8F4A", "#5C5E2C"),
+    "umber":    ("#9A7645", "#61492C"),
+    "charcoal": ("#4E443B", "#352D25"),   # 숯검정을 중간 어둠으로 — 인물은 검정을 쓰지 않는다
+    "skin":     ("#E9BE92", "#BD8A5F"),   # §7-3-2 따뜻한 살구·모래색
+}
+WARM_LINE = "#2B2119"                     # 선도 검정이 아니라 따뜻한 짙은 갈색
+# 재질 이름 → (밝은 면, 그림자). 같은 값 두 개면 음영이 갈리지 않는 평면(홍조·입 등)
+WARM_MAT = {
+    "skin":      WARM_PALETTE["skin"],
+    "face":      ("#EFC79B", "#C4915F"),
+    "eye":       ("#2E241D", "#2E241D"),   # 동공 — 검정이 아닌 따뜻한 짙은 갈색, 평면
+    "eye_white": ("#EFE3CB", "#EFE3CB"),   # 흰자도 순백이 아니다
+    "brow":      ("#3B2C21", "#3B2C21"),
+    "mouth":     ("#7A4A34", "#7A4A34"),
+    "blush":     ("#DE9E79", "#DE9E79"),   # §7-3-6 살아 있음의 신호 하나
+    "freckle":   ("#CE9A72", "#CE9A72"),
+    "hilite":    ("#F6EFDF", "#F6EFDF"),
+}
+# §7-3-4 톱니를 둥근 물결로. 무늬는 유지하되 **형태만** 둥글게 한다
+WARM_MOTIF = {"zig": "zigr", "saw": "scallop"}
+
 
 def srgb_to_lin(hexc):
     """★ 기존 파이프라인(blender_chars_v2.hexcol)은 sRGB 값을 선형 슬롯에 그대로 넣는다.
@@ -191,6 +286,10 @@ ORTHO = CELL / PPM                       # = 2.3273 m (세로 시야)
 def run_render():
     import bpy, importlib.util
     from mathutils import Vector
+
+    WARM = WARM_MODE                       # S6-A 변형 d
+    CU = WARMP if WARM else CUTE           # 비율 손잡이 (d 는 3등신을 조금 되돌린다)
+    CHEAD = WARM_HEAD if WARM else CUTE_HEAD
 
     # blender_chars_v2 를 모듈로 그대로 쓴다 (재질·소품·각인·정규화를 재정의하지 않는다)
     spec = importlib.util.spec_from_file_location("bchars", os.path.join(HERE, "blender_chars_v2.py"))
@@ -281,25 +380,169 @@ def run_render():
                 eyes.append((mn, o))
         hl = m.mat("eye_hl", "#F6EFDF", 0.3)     # 크림 계열로 스냅 → 하이라이트 하나
         for mn, o in eyes:
-            # 흰자는 원본(build_props) 대비 CUTE["eye"] 배, 동공은 흰자의 pupil 배.
+            # 흰자는 원본(build_props) 대비 CU["eye"] 배, 동공은 흰자의 pupil 배.
             # 원본 동공/흰자 비가 약 0.64 이므로 동공 쪽은 그 비를 나눠서 맞춘다.
-            k = CUTE["eye"] if mn == "eye_white" else CUTE["eye"] * (CUTE["pupil"] / 0.64)
+            k = CU["eye"] if mn == "eye_white" else CU["eye"] * (CU["pupil"] / 0.64)
             o.scale = tuple(c * k for c in o.scale)
         bpy.context.view_layer.update()
         for mn, o in eyes:
             x = o.matrix_world.translation.x
             prop_world_move(o, arm, "Head",
-                            (x * (CUTE["eye_wide"] - 1.0), 0, -CUTE["eye_drop"] * u))
+                            (x * (CU["eye_wide"] - 1.0), 0, -CU["eye_drop"] * u))
         bpy.context.view_layer.update()
         for mn, o in eyes:                       # 동공 위에 하이라이트 점 하나
             if mn != "eye":
                 continue
             p = o.matrix_world.translation
             sx = 1.0 if p.x >= 0 else -1.0
-            r = 0.058 * u * CUTE["eye"] * CUTE["hilite"] / 0.30
+            r = 0.058 * u * CU["eye"] * CU["hilite"] / 0.30
             m.ball(arm, "Head", hl,
                    (p.x + sx * 0.022 * u, p.y - 0.020 * u, p.z + 0.028 * u), (r, r * 0.9, r))
         bpy.context.view_layer.update()
+
+    # ── S6-A: 얼굴을 다 그린다 (REF §1-7 정정) ─────────────────────────
+    #   build_props 가 만든 눈의 **원본 치수**. 여기서 비율을 다시 계산한다.
+    WHITE0 = (0.30, 0.24, 0.34)
+    PUP0 = (0.19, 0.16, 0.22)
+
+    def warm_face(arm, role):
+        """눈·눈썹·입·볼 홍조·주근깨를 전부 만든다. 입과 눈썹은 **클립마다 다른 것**을
+        켠다(§1-7 정정 「감정을 얼굴이 직접 표현한다」).
+        반환: {클립: 그 클립에서 보일 오브젝트 목록}, 그리고 전체 목록."""
+        import bpy
+        u = m.ROLE_DEF[role]["h"] / 1.60
+        F = WARM_FACE
+        whites, pupils = [], []
+        for o in list(bpy.data.objects):
+            if o.type != 'MESH' or not o.data.materials:
+                continue
+            mn = (o.data.materials[0].name or "").split('.')[0]
+            if mn == "eye_white":
+                whites.append(o)
+            elif mn == "eye":
+                pupils.append(o)
+        # (1) 눈 — 흰자는 줄이고 납작하게, 동공은 키운다(§7-3-3 노려보는 인상 제거)
+        E, P = WARMP["eye"] * EYE_K.get(role, 1.0), WARMP["pupil"]
+        gx, gz = F["eye_widen"], F["eye_flat"]
+        kx = P * E * gx * WHITE0[0] / PUP0[0]
+        kz = P * E * gz * WHITE0[2] / PUP0[2]
+        for o in whites:
+            o.scale = (o.scale[0] * E * gx, o.scale[1] * E, o.scale[2] * E * gz)
+        for o in pupils:
+            o.scale = (o.scale[0] * kx, o.scale[1] * E, o.scale[2] * kz)
+        bpy.context.view_layer.update()
+        for o in whites + pupils:
+            x = o.matrix_world.translation.x
+            prop_world_move(o, arm, "Head",
+                            (x * (WARMP["eye_wide"] - 1.0), 0, -WARMP["eye_drop"] * u))
+        bpy.context.view_layer.update()
+        # 기준점: 동공의 월드 위치(좌·우)와 얼굴 앞면 y
+        ep = sorted((o.matrix_world.translation.copy() for o in pupils), key=lambda v: v.x)
+        if len(ep) < 2:
+            return {}, []
+        eL, eR = ep[0], ep[-1]                     # x 작은 쪽 / 큰 쪽
+        fy = min(eL.y, eR.y)                       # 얼굴에서 가장 앞(카메라는 -Y 쪽)
+        cx = (eL.x + eR.x) * 0.5
+        ez = (eL.z + eR.z) * 0.5
+        ew = abs(eR.x - eL.x)
+        m_hl = m.mat("hilite", "#F6EFDF", 0.3)
+        m_brow = m.mat("brow", "#3B2C21", 0.8)
+        m_mouth = m.mat("mouth", "#7A4A34", 0.8)
+        m_blush = m.mat("blush", "#DE9E79", 0.9)
+        m_frec = m.mat("freckle", "#C98F65", 0.9)
+
+        def dot(mat, pos, size):
+            return m.ball(arm, "Head", mat, pos, size)
+
+        # (2) 눈 하이라이트 — 살아 있는 눈
+        for e in (eL, eR):
+            r = 0.052 * u * E * WARMP["hilite"] / 0.30
+            dot(m_hl, (e.x + (0.020 if e is eR else -0.020) * u, fy - 0.014 * u,
+                       e.z + 0.026 * u), (r, r * 0.85, r))
+
+        # (3) 눈썹 세 벌 — 순한 / 올라간 / 찡그린. 세 개의 작은 구로 부드러운 활을 만든다
+        def brow_set(lift, tilt):
+            """눈썹 한 쌍. 구 여러 개로 만들면 각자 외곽선을 받아 **고리 세 개**로 읽힌다
+            (3회차 확대 컷에서 발견) → 긴 타원 **하나**로 한 획을 긋는다."""
+            objs = []
+            lift = lift + BROW_Z.get(role, 0.0)
+            for e in (eL, eR):
+                side = 1.0 if e.x >= cx else -1.0     # +1 = 오른쪽(화면 왼쪽)
+                objs.append(m.ball(
+                    arm, "Head", m_brow,
+                    (e.x + side * 0.012 * u, fy + 0.004 * u,
+                     e.z + (F["brow_up"] + lift) * u),
+                    (F["brow_w"] * u, F["brow_h"] * 0.8 * u, F["brow_h"] * u),
+                    rot=(0, math.radians(-side * tilt), 0)))
+            return objs
+
+        brows = {"Idle": brow_set(0.0, F["brow_tilt"]),
+                 "Walk": brow_set(F["brow_raise"], F["brow_tilt"] * 1.4),
+                 "PickUp": brow_set(-F["brow_effort"], F["brow_tilt_effort"])}
+
+        # (4) 입 세 벌 — 다문 미소 / 살짝 벌린 미소 / 힘주어 벌린 입
+        mz = ez - (F["mouth_drop"] - MOUTH_Z.get(role, 0.0)) * u
+        mw_k = MOUTH_K.get(role, 1.0)
+        def mouth_line(curve, w, h):
+            objs = []
+            n = 5
+            for k in range(n):
+                t = (k / (n - 1.0)) * 2 - 1                 # -1 .. 1
+                x = cx + t * w * 0.5 * u
+                z = mz + curve * (t * t) * u                # 양끝이 올라간다 = 미소
+                rr = h * u * (1.0 - 0.20 * abs(t))
+                objs.append(dot(m_mouth, (x, fy - 0.004 * u, z),
+                                (w * 0.40 * u, h * 0.9 * u, rr)))
+            return objs
+
+        def mouth_open(w, h, curve):
+            objs = [dot(m_mouth, (cx, fy - 0.004 * u, mz - h * 0.18 * u),
+                        (w * u, h * 0.7 * u, h * u))]
+            objs += mouth_line(curve, w * 1.25, F["mouth_h"] * 0.72)
+            return objs
+
+        mouths = {"Idle": mouth_line(F["mouth_curve"], F["mouth_w"] * mw_k, F["mouth_h"]),
+                  "Walk": mouth_open(F["open_w"] * 0.72 * mw_k, F["open_h"] * 0.62,
+                                     F["mouth_curve"] * 1.4),
+                  "PickUp": mouth_open(F["open_w"] * mw_k, F["open_h"],
+                                       -F["mouth_curve"] * 0.5)}
+
+        # (5) 볼 홍조 — 채도를 올리는 것이 아니라 살아 있음의 신호 하나 (§7-3-6)
+        for e in (eL, eR):
+            side = 1.0 if e.x >= cx else -1.0
+            r = F["blush_r"] * u
+            dot(m_blush, (cx + side * ew * 0.5 * F["blush_out"], fy + 0.010 * u,
+                          e.z - F["blush_drop"] * u), (r, r * 0.55, r * 0.66))
+        # (6) 주근깨 — 일부 역할만
+        if role in FRECKLE:
+            for e in (eL, eR):
+                side = 1.0 if e.x >= cx else -1.0
+                for dx, dz in ((0.30, 0.0), (0.55, -0.012), (0.80, -0.004)):
+                    r = F["freckle_r"] * u
+                    dot(m_frec, (cx + side * dx * ew * 0.5, fy + 0.006 * u,
+                                 e.z - 0.072 * u + dz * u), (r, r * 0.6, r))
+
+        # (7) §7-3-8 엉뚱함 — 학자는 콧등에 걸친 동근 안경
+        if role == "scholar":
+            gl = m.mat("brow", "#3B2C21", 0.8)
+            for e in (eL, eR):
+                m.ring(arm, "Head", gl, (e.x, fy - 0.012 * u, e.z - 0.022 * u),
+                       0.088 * u, 0.012 * u, rot=(math.radians(90), 0, 0))
+            m.ball(arm, "Head", gl, (cx, fy - 0.012 * u, ez - 0.022 * u),
+                   (ew * 0.34, 0.012 * u, 0.012 * u))
+
+        expr = {c: brows[c] + mouths[c] for c in ("Idle", "Walk", "PickUp")}
+        allo = [o for v in expr.values() for o in v]
+        bpy.context.view_layer.update()
+        return expr, allo
+
+    def show_expr(expr, allo, clip):
+        """클립에 맞는 입·눈썹만 켠다."""
+        keep = set(id(o) for o in expr.get(clip, []))
+        for o in allo:
+            v = id(o) in keep
+            o.hide_viewport = not v
+            o.hide_render = not v
 
     # 손에 든 소품은 키 정규화(몸 메시 기준)에 포함되지 않는다. 다리를 줄이면 손이
     # 발 쪽으로 내려오므로 긴 소품이 셀 아래로 삐져나간다. 기술자의 렌치가 255px(셀 끝)에
@@ -330,20 +573,20 @@ def run_render():
             if name in P:
                 b = P[name]
                 b.scale = (b.scale[0] * sxz, b.scale[1] * sy, b.scale[2] * sxz)
-        hk = CUTE_HEAD.get(role, CUTE["head"])
+        hk = CHEAD.get(role, CU["head"])
         s("Head", hk, hk)                              # §5-3-1 머리를 키운다
-        s("Neck", CUTE["neck"], 1.0)
-        s("Torso", CUTE["torso_y"], CUTE["torso_xz"])
-        s("Abdomen", CUTE["abdomen_y"], CUTE["abdomen_xz"])
-        s("Hips", 1.0, CUTE["hips_xz"])                # §5-3-3 아래를 넓게
-        s("Shoulder.L", CUTE["shoulder"], 1.0)         # §5-3-3 각진 어깨를 없앤다
-        s("Shoulder.R", CUTE["shoulder"], 1.0)
+        s("Neck", CU["neck"], 1.0)
+        s("Torso", CU["torso_y"], CU["torso_xz"])
+        s("Abdomen", CU["abdomen_y"], CU["abdomen_xz"])
+        s("Hips", 1.0, CU["hips_xz"])                # §5-3-3 아래를 넓게
+        s("Shoulder.L", CU["shoulder"], 1.0)         # §5-3-3 각진 어깨를 없앤다
+        s("Shoulder.R", CU["shoulder"], 1.0)
         for n in ("UpperArm.L", "UpperArm.R", "LowerArm.L", "LowerArm.R"):
-            s(n, CUTE["arm"], CUTE["arm_xz"])
+            s(n, CU["arm"], CU["arm_xz"])
         for n in ("Fist.L", "Fist.R"):
-            s(n, CUTE["fist"], CUTE["fist"])
+            s(n, CU["fist"], CU["fist"])
         for n in ("UpperLeg.L", "UpperLeg.R", "LowerLeg.L", "LowerLeg.R"):
-            s(n, CUTE["leg"], CUTE["leg_xz"])
+            s(n, CU["leg"], CU["leg_xz"])
         bpy.context.view_layer.update()
 
     # 다리를 줄이면 발 IK 타깃이 닿지 않는다 → 발을 그만큼 올려 준다.
@@ -351,7 +594,7 @@ def run_render():
 
     def cute_frame(arm, role):
         """액션이 매 프레임 덮어쓰는 **위치** 보정. assign_action 뒤에 다시 건다."""
-        dz = LEG_RIG * (1.0 - CUTE["leg"]) * arm.scale[2]
+        dz = LEG_RIG * (1.0 - CU["leg"]) * arm.scale[2]
         for n in ("Foot.L", "Foot.R"):
             if n in arm.pose.bones:
                 world_move(arm, n, (0, 0, dz))
@@ -389,7 +632,7 @@ def run_render():
             world_rot(arm, "Abdomen", 'Y', EXAG["pick_tilt"] * k)
         bpy.context.view_layer.update()
 
-    def folk_extras(arm, role, cute=False):
+    def folk_extras(arm, role, cute=False, warm=False):
         """★ 좌표 단위 주의: build() 가 이미 정규화(스케일+이동)를 끝낸 뒤라
         m.bone_pos() 는 **미터**를 돌려준다. blender_chars_v2.build_props 는 정규화 전
         원본 리그 단위(전체 3.078)로 썼지만 여기서는 전부 미터다. 1회차에 이걸 놓쳐
@@ -416,15 +659,40 @@ def run_render():
         hp = m.bone_pos(arm, "Hips")
         # (2) §3 번역: 털 목도리 → 잠수복 목 실링 고무테. 같은 물결의 반복 3겹
         rub = m.mat("folk_seal", "#43302A", 0.95)
-        for dz, r, t in ((-0.030, 0.150, 0.020), (0.012, 0.172, 0.024), (0.054, 0.146, 0.018)):
+        if warm:
+            # §7-3-7 복슬복슬한 부피 — 두툼하고 부드러운 네 겹. 톱니가 아니라 주름이다.
+            seal = ((-0.048, 0.168, 0.036), (-0.004, 0.196, 0.042),
+                    (0.042, 0.182, 0.038), (0.082, 0.150, 0.028))
+        else:
+            seal = ((-0.030, 0.150, 0.020), (0.012, 0.172, 0.024), (0.054, 0.146, 0.018))
+        for dz, r, t in seal:
             m.ring(arm, "Neck", rub, (nk.x, nk.y + 0.010 * u, nk.z + dz * u), r * u, t * u)
+        if warm and role == "scout":
+            # §7-3-8 엉뚱함 — 한쪽으로 흘러내린 두건(헬멧 아래에 쓴 천 한 장)
+            hd0 = m.bone_pos(arm, "Head")
+            hood = m.mat("folk_hood", "#8D8F4A", 0.95)
+            m.ball(arm, "Head", hood,
+                   (hd0.x - 0.105 * u, hd0.y + 0.055 * u, hd0.z + 0.145 * u),
+                   (0.215 * u, 0.185 * u, 0.235 * u))
+            m.ball(arm, "Head", hood,
+                   (hd0.x - 0.150 * u, hd0.y + 0.030 * u, hd0.z - 0.020 * u),
+                   (0.130 * u, 0.115 * u, 0.165 * u))
+        if warm:
+            # 둥근 어깨 언덕 — 각진 어깨를 덩어리로 덮는다(§7-3-7)
+            sh = m.mat("folk_shoulder", v["body"], 0.92)
+            for bn in ("Shoulder.L", "Shoulder.R"):
+                if bn not in arm.pose.bones:
+                    continue
+                sp = m.bone_pos(arm, bn)
+                m.ball(arm, bn, sh, (sp.x, sp.y + 0.004 * u, sp.z - 0.012 * u),
+                       (0.185 * u, 0.175 * u, 0.150 * u))
         # (3) §1-6 덩어리진 실루엣 — 아래가 넓은 잠수복 자락 + 무게추 벨트
         #     "주민은 헤엄치지 않고 무게추로 해저를 걷는다"(CONCEPT_DEEP_SEA §7) 를 형상으로
         sk = m.mat("folk_skirt", v["body"], 0.92)
         if cute:
             # §5-3-3 「실루엣 아래쪽을 둥글게」 — 원뿔(직선 옆면 + 각진 밑단)을 버리고
             # 눌린 구로 바꾼다. 아래가 넓고 모서리가 없는 덩어리가 된다.
-            kw = CUTE["skirt"]
+            kw = CU["skirt"]
             m.ball(arm, "Hips", sk, (hp.x, hp.y + 0.006 * u, hp.z - 0.045 * u),
                    (0.640 * u * kw, 0.470 * u * kw, 0.430 * u))
             # 허리로 이어지는 곡면. 크게 하면 가슴의 시그니처(의무병의 붉은 십자 등)를 덮는다.
@@ -446,13 +714,21 @@ def run_render():
             hm = m.mat("folk_helm", "#655C50", 0.45)      # 흙 계열로 스냅 → 돔
             vz = m.mat("folk_visor", "#8A7A5E", 0.4, 0.3)  # 황토 계열로 스냅 → 면갑(밝게 떨어진다)
             dk = m.mat("folk_helmdk", "#3B3025", 0.7)
-            m.ball(arm, "Head", hm, (hd.x, hd.y + 0.010 * u, hd.z + 0.345 * u),
-                   (0.530 * u, 0.520 * u, 0.440 * u))
+            m.ball(arm, "Head", hm,
+                   (hd.x, hd.y + 0.010 * u, hd.z + (0.392 if warm else 0.345) * u),
+                   (0.530 * u, 0.520 * u, (0.400 if warm else 0.440) * u))
             # 들어 올린 면갑 — 이마 위로 젖혀 세운 판. 얼굴을 덮지 않는다(REF §1-8 의 원리만)
             # cute: 머리가 1.26배가 되면 이 판이 머리 위의 **탁자**처럼 읽힌다 → 줄여서 돔에 붙인다.
             fv = 0.78 if cute else 1.0
-            m.box(arm, "Head", vz, (hd.x, hd.y - 0.165 * u, hd.z + (0.520 if cute else 0.605) * u),
-                  (0.430 * u * fv, 0.235 * u * fv, 0.034 * u), rot=(math.radians(-34), 0, 0))
+            if warm:
+                # 1회차에서 이 면갑이 머리 위의 **탁자**(직선 판)로 읽혔다.
+                # 둥근 판으로 바꾸고 돔에 붙여 모서리를 없앤다(§1-3 정정 · §7-3-7).
+                m.ball(arm, "Head", vz, (hd.x, hd.y - 0.120 * u, hd.z + 0.445 * u),
+                       (0.430 * u, 0.240 * u, 0.115 * u), rot=(math.radians(-24), 0, 0))
+            else:
+                m.box(arm, "Head", vz,
+                      (hd.x, hd.y - 0.165 * u, hd.z + (0.520 if cute else 0.605) * u),
+                      (0.430 * u * fv, 0.235 * u * fv, 0.034 * u), rot=(math.radians(-34), 0, 0))
             m.box(arm, "Head", dk, (hd.x, hd.y - 0.150 * u, hd.z + 0.470 * u),
                   (0.450 * u, 0.034 * u, 0.034 * u))       # 경첩
             for sx in (-1, 1):                              # 면갑 걸쇠 두 개
@@ -463,7 +739,7 @@ def run_render():
             m.tube(arm, "Head", dk, (hd.x + 0.230 * u, hd.y + 0.015 * u, hd.z + 0.195 * u),
                    0.027 * u, 0.125 * u, rot=(math.radians(74), 0, 0))
 
-    def folk_materials():
+    def folk_materials(warm=False):
         """§1-1 팔레트 강제 + §1-3 음영 2단을 **재질 단계**에서 끝낸다.
         후처리에서 명도만 두 값으로 밀면 계열 정보가 사라져 숯검정 옷이 흰옷이 된다
         (3회차에 기술자가 통째로 크림이 됐다). 그래서 계열별 (밝은 면, 그림자) 쌍을
@@ -482,10 +758,16 @@ def run_render():
             #   그대로 넣는 기존 규약이라(char_S2.md §8) 저장값 = hex/255 이다.
             hexc = "#%02x%02x%02x" % tuple(int(round(max(0.0, min(1.0, c[i])) * 255))
                                            for i in range(3))
-            fam = "charcoal" if base == "eye" else folk_family(hexc)
-            lightc, shadowc = FOLK_PALETTE[fam]
-            if base == "eye":
-                lightc = shadowc = FOLK_LINE          # 눈동자는 선과 같은 검정 한 값
+            if warm:
+                # §7-3-2·5 살색은 따뜻한 살구, 얼굴 부품은 전용 값,
+                #   나머지는 그림자를 끌어올린 중간 명도 팔레트
+                key = WARM_MAT.get(base) or WARM_MAT.get(base.lower())
+                lightc, shadowc = key if key else WARM_PALETTE[folk_family(hexc)]
+            else:
+                fam = "charcoal" if base == "eye" else folk_family(hexc)
+                lightc, shadowc = FOLK_PALETTE[fam]
+                if base == "eye":
+                    lightc = shadowc = FOLK_LINE      # 눈동자는 선과 같은 검정 한 값
             nt = mt.node_tree
             nt.nodes.clear()
             out = nt.nodes.new('ShaderNodeOutputMaterial')
@@ -497,6 +779,15 @@ def run_render():
             e0, e1 = rmp.color_ramp.elements[0], rmp.color_ramp.elements[1]
             e0.position = 0.0; e0.color = (*srgb_to_lin(shadowc), 1)
             e1.position = 0.42; e1.color = (*srgb_to_lin(lightc), 1)
+            if warm and lightc != shadowc:
+                # REF §1-3 정정: 완전 평면이 아니다 — 중간을 한 단 더 둔다(2단 → 3단)
+                sh_ = [int(shadowc.lstrip('#')[q:q+2], 16) / 255.0 for q in (0, 2, 4)]
+                li_ = [int(lightc.lstrip('#')[q:q+2], 16) / 255.0 for q in (0, 2, 4)]
+                mid = "#%02x%02x%02x" % tuple(
+                    int(round(255 * (a * 0.45 + b * 0.55))) for a, b in zip(sh_, li_))
+                e1.position = 0.62
+                em = rmp.color_ramp.elements.new(0.30)
+                em.color = (*srgb_to_lin(mid), 1)
             emi = nt.nodes.new('ShaderNodeEmission')
             nt.links.new(dif.outputs[0], s2r.inputs[0])
             nt.links.new(s2r.outputs[0], rmp.inputs[0])
@@ -511,11 +802,14 @@ def run_render():
         sc = m.sc
         # 재질이 Emission 이라 환경광은 의미가 없지만, 혹시 남은 BSDF 를 위해 0 에 가깝게
         sc.world.node_tree.nodes["Background"].inputs[1].default_value = 0.0
-        sc.render.line_thickness = 1.6
+        # warm(d): 선도 검정이 아니라 따뜻한 짙은 갈색, 조금 가늘게 — 가장자리를 부드럽게(§1-3 정정)
+        lw = 1.35 if WARM else 1.6
+        lc = WARM_LINE if WARM else FOLK_LINE
+        sc.render.line_thickness = lw
         fs = sc.view_layers[0].freestyle_settings
         if fs.linesets and fs.linesets[0].linestyle:
-            fs.linesets[0].linestyle.thickness = 1.6
-            fs.linesets[0].linestyle.color = srgb_to_lin(FOLK_LINE)
+            fs.linesets[0].linestyle.thickness = lw
+            fs.linesets[0].linestyle.color = srgb_to_lin(lc)
         sc.render.filepath = path
         bpy.ops.render.render(write_still=True)
 
@@ -589,17 +883,20 @@ def run_render():
         ev.to_mesh_clear()
         return (min(pts), max(pts)) if pts else (0.0, 1.0)
 
-    def setup(role, folk, cute, imprints=False):
+    def setup(role, folk, cute, imprints=False, warm=False):
         """역할 하나를 세우고(folk 화풍 → 비율 보정 → 키 재정규화) 기준 변환을 돌려준다.
         ★ 재정규화가 핵심이다. 비율만 바꾸고 **총 키는 보정 전과 똑같이** 되돌려 놓기 때문에
           `실측 키`·`미터당 110px`·`발 기준선 240px` 규약이 그대로 유지된다."""
         arm, mesh, props, imps = m.build(role, "Idle", 0.0, imprints=imprints)
         lo0, hi0 = measure(mesh)                    # 보정 전 실측 키 — 이 값을 지킨다
+        expr, allo = {}, []
         if folk or cute:
-            folk_extras(arm, role, cute=cute)
-            if cute:
+            folk_extras(arm, role, cute=cute, warm=warm)
+            if warm:
+                expr, allo = warm_face(arm, role)   # 얼굴을 다 그린다 (REF §1-7 정정)
+            elif cute:
                 cute_eyes(arm, role)
-            folk_materials()
+            folk_materials(warm=warm)
         if cute:
             if arm.animation_data:
                 arm.animation_data.action = None   # 위 pose_frame 의 ★ 와 같은 이유
@@ -618,7 +915,8 @@ def run_render():
         land = {"wave": round(m.bone_pos(arm, "Neck").z, 4),
                 "hem": round(m.bone_pos(arm, "Hips").z - 0.121 * u, 4),
                 "head": round(m.bone_pos(arm, "Head").z, 4)}
-        return arm, mesh, props, imps, tuple(arm.location), tuple(arm.scale), (lo0, hi0), land
+        return (arm, mesh, props, imps, tuple(arm.location), tuple(arm.scale),
+                (lo0, hi0), land, expr, allo)
 
     def pose_frame(arm, role, base_loc, base_scale, act, t, clip, f, cute):
         """한 프레임을 만든다. 액션은 location/rotation 을 덮어쓰므로 보정을 다시 건다.
@@ -637,24 +935,28 @@ def run_render():
             exaggerate(arm, clip, f, role)
         bpy.context.view_layer.update()
 
-    roles = [r for r in (ONLY or (HERO if CUTE_MODE else ROLE_ORDER)) if r in m.ROLE_DEF]
-    folk = "--folk" in argv or FOLK or CUTE_MODE
-    cute = CUTE_MODE
-    out_root = RAWC if cute else (RAWF if folk else RAW)
+    roles = [r for r in (ONLY or (ROLE_ORDER if (WARM or not CUTE_MODE) else HERO))
+             if r in m.ROLE_DEF]
+    folk = "--folk" in argv or FOLK or CUTE_MODE or WARM
+    cute = CUTE_MODE or WARM        # 비율 보정 경로는 d 도 그대로 쓴다(손잡이만 WARMP)
+    out_root = RAWW if WARM else (RAWC if cute else (RAWF if folk else RAW))
     meta = {"cell": CELL, "ppm": PPM, "baseline": BASE_Y, "ortho": round(ORTHO, 4),
             "view": "front_ortho", "clips": CLIPS, "frames": NFRAME, "roles": {},
-            "cute": CUTE if cute else None, "exag": EXAG if cute else None}
+            "cute": CU if cute else None, "exag": EXAG if cute else None}
 
     for role in roles:
         rdir = os.path.join(out_root, role)
         os.makedirs(rdir, exist_ok=True)
         # 한 번만 짓고 클립을 갈아 끼운다 (역할당 blend 로드 1회)
-        arm, mesh, props, _, base_loc, base_scale, (lo, hi), land = setup(role, folk, cute)
+        (arm, mesh, props, _, base_loc, base_scale, (lo, hi), land,
+         expr, allo) = setup(role, folk, cute, warm=WARM)
         front_camera(); front_lights()
         for clip, t0, t1, cyclic in (CLIP_SPEC_CUTE if cute else CLIP_SPEC):
             act = next((a for a in bpy.data.actions if a.name == clip), None)
             if act is None:
                 print("MISSING CLIP", role, clip, flush=True); continue
+            if WARM:
+                show_expr(expr, allo, clip)     # 클립마다 다른 입·눈썸
             for i in range(NFRAME):
                 f = i / float(NFRAME) if cyclic else i / float(NFRAME - 1)
                 pose_frame(arm, role, base_loc, base_scale, act, t0 + (t1 - t0) * f, clip, f, cute)
@@ -666,7 +968,10 @@ def run_render():
 
         # 각인 3개 겹침 변형 (Idle 0프레임 한 장)
         if role in IMP_ROLES:
-            arm, mesh, props, imps, bl, bs, _hh, _ld = setup(role, folk, cute, imprints=True)
+            (arm, mesh, props, imps, bl, bs, _hh, _ld,
+             expr2, allo2) = setup(role, folk, cute, imprints=True, warm=WARM)
+            if WARM:
+                show_expr(expr2, allo2, "Idle")
             for iid, e, parts in imps:
                 vis = iid in IMP_TRIPLE
                 for o in [e] + parts:
@@ -678,7 +983,10 @@ def run_render():
 
         # 대표 캐릭터 쇼케이스 — 같은 프레이밍으로 해상도만 2배 (512px)
         if folk and role in HERO:
-            arm, mesh, props, _i, bl, bs, _hh, _ld = setup(role, folk, cute)
+            (arm, mesh, props, _i, bl, bs, _hh, _ld,
+             expr3, allo3) = setup(role, folk, cute, warm=WARM)
+            if WARM:
+                show_expr(expr3, allo3, "Idle")
             m.RES = CELL * 2
             front_camera(); front_lights()
             bpy.context.view_layer.update()
@@ -688,7 +996,7 @@ def run_render():
 
         # 실패 컷 — PickUp 전 구간(0~100%). 비교 페이지 §5 에 "쓰지 않는 이유"로 붙인다.
         if role in IMP_ROLES and not folk:
-            arm, mesh, props, _i, bl, bs, _hh, _ld = setup(role, folk, cute)
+            arm, mesh, props, _i, bl, bs, _hh, _ld, _e, _a = setup(role, folk, cute)
             front_camera(); front_lights()
             act = next((a for a in bpy.data.actions if a.name == "PickUp"), None)
             if act:
@@ -702,7 +1010,7 @@ def run_render():
         odir = os.path.join(out_root, "octopus")
         os.makedirs(odir, exist_ok=True)
         h_oct = build_octopus(cute=cute)
-        folk_materials()
+        folk_materials(warm=WARM)
         front_camera(); front_lights()
         bpy.context.view_layer.update()
         folk_render(os.path.join(odir, "Idle_0.png"))
@@ -755,6 +1063,16 @@ def run_post():
 
     LINEC = hx(FOLK_LINE)
     CREAM = hx(FOLK_PALETTE["cream"][0])
+    # ── S6-A(d) 「괴기함 빼기」 후처리 상수 ─────────────────────────────
+    #   §1-2 정정: 인물에 극단적 명도 대비를 쓰지 않는다 → 선도 검정이 아니라 따뜻한 갈색
+    #   §1-3 정정: 매끈한 벡터 면 금지 → 종이·연필 결을 두 배로, 외곽선 가장자리를 부드럽게
+    LINEC_W = hx(WARM_LINE)
+    CREAM_W = hx(WARM_PALETTE["cream"][0])
+    MOTIF_DARK_W = hx("#4A3A2C")     # 무늬의 어두운 값도 검정이 아니다
+    LINE_V_W = 0.205                 # 선으로 간주할 명도 상한(숯검정 그림자 0.208 은 살린다)
+    GRAIN_W = 0.105                  # 연필 결 — b/c 의 0.055 에서 두 배
+    RING_W = (2, 5)                  # 외곽선 두께 범위(조금 가늘게)
+    FEATHER_W = 0.34                 # 외곽선 바깥 가장자리를 부드럽게 만드는 폭
 
     def noise(h, w, scale, seed):
         rng = np.random.default_rng(seed)
@@ -810,9 +1128,21 @@ def run_post():
             rr = np.sqrt(((tx % 10) - 5) ** 2 + (t - H / 2) ** 2)
             return (rr > 1.5) & (rr < 3.0)
         if kind == "wave":    return np.abs(t - (H / 2 + 2.2 * np.sin(tx * 0.72))) < 1.5
+        # ── §7-3-4 톱니를 둥근 물결로. 무늬는 유지하되 형태만 둥글게 한다 ──
+        if kind == "wave_soft":       # 목 실링 — 부드러운 주름 한 줄(이빨로 읽히지 않게)
+            return np.abs(t - (H / 2 + 1.35 * np.sin(tx * 0.42))) < 2.1
+        if kind == "zigr":            # 지그재그 → 사인 물결
+            return np.abs(t - (H / 2 + 2.0 * np.sin(tx * 0.55))) < 1.8
+        if kind == "scallop":         # 톱니 → 부챗살(반원의 연속)
+            rr = np.sqrt(((tx % 9) - 4.5) ** 2 + (t - (H / 2 + 2.6)) ** 2)
+            return (rr > 2.1) & (rr < 3.7) & (t < H / 2 + 2.6)
+        if kind == "hatchr":          # 빗금 → 둥근 점선 빗금
+            return (np.sqrt(((tx % 7) - 3.5) ** 2 + ((t - H / 2) % 5 - 2.5) ** 2) < 1.5)
+        if kind == "petal":           # 마름모 → 꽃잎(둥근 마름모)
+            return (((tx % 10) - 5) ** 2 / 9.0 + (t - H / 2) ** 2 / 5.5) < 1.0
         return np.zeros_like(tx, dtype=bool)
 
-    def bands(arr, role, norm_h, T, seed, land=None):
+    def bands(arr, role, norm_h, T, seed, land=None, warm=False):
         """§1-5 장식 무늬 — 목 실링의 물결 + 역할마다 다른 옷단 무늬.
         비율 보정판(c)은 목·허리 높이가 달라지므로 렌더가 실측해 넘겨준 land 를 쓴다."""
         h, w = arr.shape[:2]
@@ -825,7 +1155,12 @@ def run_post():
             return arr
         wave_z = (land or {}).get("wave", 1.030 * u)
         hem_z = (land or {}).get("hem", 0.345 * u)
-        for z_m, kind, bh0 in ((wave_z, "wave", 13), (hem_z, MOTIF[role], 16)):
+        mk_role = MOTIF[role]
+        neck_kind = "wave"
+        if warm:                       # §7-3-4 목의 지그재그를 둥근 물결로, 톱니 무늬는 둥글게
+            neck_kind = "wave_soft"
+            mk_role = WARM_MOTIF.get(mk_role, mk_role)
+        for z_m, kind, bh0 in ((wave_z, neck_kind, 13), (hem_z, mk_role, 16)):
             bh = int(round(bh0 * z))
             r0 = int(round((BASE_Y - z_m * PPM) * z - bh / 2))
             r1 = r0 + bh
@@ -836,46 +1171,69 @@ def run_post():
             mk = motif_mask(kind, xx / z, yy / z, bh / z, jitfield[sub] / z)
             solid = out[sub, :, 3] > 0.6
             mk = mk & solid
-            light = v[sub] >= (V_LIGHT + V_SHADOW) / 2   # 밝은 면엔 검정, 그림자엔 크림
-            col_dark = LINEC
-            col_light = CREAM
+            light = v[sub] >= (V_LIGHT + V_SHADOW) / 2   # 밝은 면엔 어두운 무늘, 그림자엔 밝은 무늘
+            col_dark = MOTIF_DARK_W if warm else LINEC
+            col_light = CREAM_W if warm else CREAM
             for ch in range(3):
                 out[sub, :, ch] = np.where(mk, np.where(light, col_dark[ch], col_light[ch]),
                                            out[sub, :, ch])
         return out
 
-    def outline(arr, seed):
-        """두께가 자리마다 달라지는 어두운 외곽선 (§1-9)."""
+    def outline(arr, seed, warm=False):
+        """두께가 자리마다 달라지는 어두운 외곽선 (§1-9).
+        warm(d) 은 바깥 가장자를 **부드럽게** 끝낸다 — 벡터처럼 딱 떨어지는
+        면을 금지한다(REF §1-3 정정). 부분 투명도로 끝나므로 70px 축소에서도
+        계단이 덜 생긴다."""
         z = max(1, int(round(arr.shape[0] / float(CELL))))
+        rmin, rmax = (RING_W if warm else (RING_MIN, RING_MAX))
+        col = LINEC_W if warm else LINEC
         a8 = (arr[..., 3] * 255).astype(np.uint8)
         im = Image.fromarray(a8)
-        gA = np.asarray(im.filter(ImageFilter.MaxFilter(RING_MIN * 2 * z + 1))
-                          .filter(ImageFilter.GaussianBlur(1.0 * z)), dtype=np.float32) / 255.0
-        gB = np.asarray(im.filter(ImageFilter.MaxFilter(RING_MAX * 2 * z + 1))
-                          .filter(ImageFilter.GaussianBlur(1.0 * z)), dtype=np.float32) / 255.0
+        gA = np.asarray(im.filter(ImageFilter.MaxFilter(rmin * 2 * z + 1))
+                          .filter(ImageFilter.GaussianBlur((1.4 if warm else 1.0) * z)),
+                        dtype=np.float32) / 255.0
+        gB = np.asarray(im.filter(ImageFilter.MaxFilter(rmax * 2 * z + 1))
+                          .filter(ImageFilter.GaussianBlur((1.4 if warm else 1.0) * z)),
+                        dtype=np.float32) / 255.0
         wgt = np.clip((noise(arr.shape[0], arr.shape[1], 30 * z, seed + 3) - 0.28) * 1.9, 0, 1)
         grown = gA * (1 - wgt) + gB * wgt
-        ring = (grown > 0.5) & (arr[..., 3] < 0.5)
         out = arr.copy()
+        if warm:
+            k = np.clip((grown - (0.5 - FEATHER_W / 2)) / FEATHER_W, 0, 1)
+            k = np.where(arr[..., 3] < 0.5, k, 0.0)
+            for ch in range(3):
+                out[..., ch] = out[..., ch] * (1 - k) + col[ch] * k
+            out[..., 3] = np.maximum(out[..., 3], k)
+            return out
+        ring = (grown > 0.5) & (arr[..., 3] < 0.5)
         for ch in range(3):
-            out[ring, ch] = LINEC[ch]
+            out[ring, ch] = col[ch]
         out[ring, 3] = 1.0
         return out
 
-    def folk(a, role, norm_h, T, seed, land=None):
+    def folk(a, role, norm_h, T, seed, land=None, warm=False):
         # 팔레트와 2단 음영은 렌더에서 이미 끝났다. 여기서는 §1-9(흔들리는 선),
         # §1-5(반복 무늬), §1-4(종이 결), 그리고 외곽선만 얹는다.
         # ★ 비율 보정판(c)도 **이 함수를 그대로** 통과한다 — 화풍을 바꾸지 않는다는 보증.
-        a = warp(a, WOBBLE * max(1, a.shape[0] // CELL), seed)
+        zz = max(1, a.shape[0] // CELL)
+        a = warp(a, WOBBLE * zz, seed)
         rgb = a[..., :3]
         v = rgb.max(-1)
-        rgb = np.where((v < LINE_V)[..., None], LINEC, rgb)   # Freestyle 선을 더 눌러 또렷하게
+        if warm:
+            # 딱 끊지 않고 **부드럽게** 선 쌍으로 섮는다(가장자를 부드럽게)
+            wl = np.clip((LINE_V_W - v) / (LINE_V_W * 0.55), 0, 1)[..., None]
+            rgb = rgb * (1 - wl) + LINEC_W * wl
+        else:
+            rgb = np.where((v < LINE_V)[..., None], LINEC, rgb)
         out = np.dstack([rgb, a[..., 3]])
-        out = bands(out, role, norm_h, T, seed, land)
-        g = 1.0 + (noise(a.shape[0], a.shape[1], 3 * max(1, a.shape[0] // CELL),
-                         seed + 11) - 0.5) * 2 * GRAIN
+        out = bands(out, role, norm_h, T, seed, land, warm)
+        gs = GRAIN_W if warm else GRAIN
+        g = 1.0 + (noise(a.shape[0], a.shape[1], 3 * zz, seed + 11) - 0.5) * 2 * gs
+        if warm:      # 연필 결 — 거친 결 한 겹을 더 올린다(§1-4)
+            g = g * (1.0 + (noise(a.shape[0], a.shape[1], 9 * zz, seed + 23) - 0.5)
+                     * 2 * gs * 0.7)
         out[..., :3] = np.clip(out[..., :3] * g[..., None], 0, 1)
-        return outline(out, seed)
+        return outline(out, seed, warm)
 
     def threshold(p):
         a = load(p)
@@ -890,11 +1248,19 @@ def run_post():
     metaf = json.load(open(metaf_p, encoding="utf-8")) if os.path.exists(metaf_p) else {"roles": {}}
     metac_p = os.path.join(RAWC, "render_meta.json")
     metac = json.load(open(metac_p, encoding="utf-8")) if os.path.exists(metac_p) else {"roles": {}}
+    metaw_p = os.path.join(RAWW, "render_meta.json")
+    metaw = json.load(open(metaw_p, encoding="utf-8")) if os.path.exists(metaw_p) else {"roles": {}}
     # --cute : 비율 보정판(c)만 다시 만든다. a/b 는 손대지 않는다(화풍 확정분 보호).
     CUTE_ONLY = "--cute" in argv
-    roles = ONLY or ([r for r in ROLE_ORDER if r in metac.get("roles", {})] if CUTE_ONLY
-                     else [r for r in ROLE_ORDER if r in meta["roles"]])
-    for sub in ("a", "b", "c"):
+    # --warm : S6-A 변형 d 만 다시 만든다. a/b/c 는 손대지 않는다(되돌리기를 공짜로 유지)
+    WARM_ONLY = "--warm" in argv
+    if WARM_ONLY:
+        roles = ONLY or [r for r in ROLE_ORDER if r in metaw.get("roles", {})]
+    elif CUTE_ONLY:
+        roles = ONLY or [r for r in ROLE_ORDER if r in metac.get("roles", {})]
+    else:
+        roles = ONLY or [r for r in ROLE_ORDER if r in meta["roles"]]
+    for sub in ("a", "b", "c", "d"):
         os.makedirs(os.path.join(OUT, sub), exist_ok=True)
 
     def cute_assets(role, seed):
@@ -925,8 +1291,39 @@ def run_post():
         print("CUTE", role, "T=%.3f" % T, "land", land, flush=True)
         return {"threshold_c": round(T, 3), "land_c": land, "h_c": rmeta.get("h")}
 
+    def warm_assets(role, seed):
+        """S6-A 변형 d — 얼굴을 다 그린 판. 후처리도 warm 경로를 탄다(부드러운 가장자리·연필 결)."""
+        rw = os.path.join(RAWW, role)
+        rmeta = metaw.get("roles", {}).get(role) or {}
+        if not os.path.exists(os.path.join(rw, "Idle_0.png")):
+            return None
+        nh = rmeta.get("norm_h", 1.60)
+        land = rmeta.get("land")
+        T = threshold(os.path.join(rw, "Idle_0.png"))
+        sheet = Image.new("RGBA", (CELL * NFRAME, CELL * len(CLIPS)), (0, 0, 0, 0))
+        for r, clip in enumerate(CLIPS):
+            for i in range(NFRAME):
+                fp = os.path.join(rw, "%s_%d.png" % (clip, i))
+                if os.path.exists(fp):
+                    sheet.paste(to_img(folk(load(fp), role, nh, T, seed, land, True)),
+                                (i * CELL, r * CELL))
+        sheet.save(os.path.join(OUT, "d", role + ".png"))
+        for src, dst in (("hero_0.png", "_hero.png"), ("imp3_0.png", "_imp3.png")):
+            fp = os.path.join(rw, src)
+            if os.path.exists(fp):
+                to_img(folk(load(fp), role, nh, T, seed, land, True)).save(
+                    os.path.join(OUT, "d", role + dst))
+        print("WARM", role, "T=%.3f" % T, "land", land, flush=True)
+        return {"threshold_d": round(T, 3), "land_d": land, "h_d": rmeta.get("h"),
+                "whimsy": WHIMSY_KO.get(role), "freckle": role in FRECKLE}
+
     info = {}
     for role in roles:
+        if WARM_ONLY:
+            wi = warm_assets(role, 1000 + 7 * ROLE_ORDER.index(role))
+            if wi:
+                info[role] = wi
+            continue
         if CUTE_ONLY:
             ci = cute_assets(role, 1000 + 7 * ROLE_ORDER.index(role))
             if ci:
@@ -982,23 +1379,26 @@ def run_post():
             print("BLOB", role, flush=True)
 
     # 동거 문어 — 클립 없이 낱장 두 장
-    for src_root, sub, key in ((RAWF, "b", "b"), (RAWC, "c", "c")):
+    for src_root, sub in ((RAWF, "b"), (RAWC, "c"), (RAWW, "d")):
         od = os.path.join(src_root, "octopus")
         if not os.path.exists(os.path.join(od, "Idle_0.png")):
             continue
-        if CUTE_ONLY and sub != "c":
+        if (CUTE_ONLY and sub != "c") or (WARM_ONLY and sub != "d"):
             continue
         seed = 9001
         T = threshold(os.path.join(od, "Idle_0.png"))
         for s_, d_ in (("Idle_0.png", "octopus_idle.png"), ("hero_0.png", "octopus_hero.png")):
             fp = os.path.join(od, s_)
             if os.path.exists(fp):
-                to_img(folk(load(fp), "octopus", 1.60, T, seed)).save(os.path.join(OUT, sub, d_))
+                to_img(folk(load(fp), "octopus", 1.60, T, seed, None, sub == "d")).save(
+                    os.path.join(OUT, sub, d_))
         oi = info.setdefault("octopus", {})
         oi.update({"motif": None, "motif_ko": "-", "norm_h": 1.60, "folk_render": True})
-        oi["threshold" if sub == "b" else "threshold_c"] = round(T, 3)
+        oi["threshold" if sub == "b" else "threshold_" + sub] = round(T, 3)
         if sub == "c":
             oi["h_c"] = (metac.get("roles", {}).get("octopus") or {}).get("h")
+        if sub == "d":
+            oi["h_d"] = (metaw.get("roles", {}).get("octopus") or {}).get("h")
         print("OCTOPUS", sub, flush=True)
 
     fm_p = os.path.join(OUT, "front_meta.json")
@@ -1013,20 +1413,30 @@ def run_post():
         "variants": {"a": "렌더 그대로(부드러운 음영·옅은 선) — 비교용 한 벌",
                      "b": "평면 민속화풍 — 팔레트 강제·음영 2단·역할별 반복 무늬·흔들리는 선",
                      "c": "b 와 같은 화풍 + 비율 보정(3등신·큰 눈·둥근 아래·과장된 동작). "
-                          "팔레트·음영·무늬·선은 b 와 한 줄도 다르지 않다"},
+                          "팔레트·음영·무늬·선은 b 와 한 줄도 다르지 않다",
+                     "d": "S6-A 「괴기함 빼기」 — 얼굴을 다 그린다(흰자·큰 동공·눈썹·입·볼 홍조·주근깨) · "
+                          "입과 눈썹이 클립마다 바뀐다 · 따뜻한 살구색 피부 · 중간 명도 팔레트 · "
+                          "음영 3단 · 부드러운 가장자리와 거친 결 · 복슬복슬한 부피 · 엉뚱함 하나씩"},
         "palette": {k: list(v) for k, v in FOLK_PALETTE.items()},
         "line_color": FOLK_LINE,
         "sheet": "static/art/chars/front/<a|b|c>/<role>.png",
         "hero": HERO,
         "cute": CUTE, "exag": EXAG,
         "cute_roles": [r for r in ROLE_ORDER + ["octopus"] if r in metac.get("roles", {})],
+        "warm": WARMP, "warm_face": WARM_FACE,
+        "warm_palette": {k: list(v) for k, v in WARM_PALETTE.items()},
+        "warm_line": WARM_LINE,
+        "warm_expr": EXPR_KO,
+        "warm_motif": WARM_MOTIF,
+        "warm_roles": [r for r in ROLE_ORDER + ["octopus"] if r in metaw.get("roles", {})],
         "anim_seconds": {"Idle": 2.8, "Walk": 0.8, "PickUp": 1.4},
         "imprint_example": {"ids": IMP_TRIPLE, "roles": [r for r in IMP_ROLES if r in roles]},
     })
     prev_roles = dict(prev.get("roles") or {})
     for r in list(roles) + (["octopus"] if "octopus" in info else []):
         base = dict(prev_roles.get(r) or {})
-        base.update(meta["roles"].get(r) or metaf.get("roles", {}).get(r) or {})
+        base.update(meta["roles"].get(r) or metaf.get("roles", {}).get(r)
+                    or metaw.get("roles", {}).get(r) or {})
         base.update(info.get(r, {}))
         prev_roles[r] = base
     out_meta["roles"] = prev_roles

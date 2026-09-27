@@ -40,11 +40,19 @@ blender -b --python tools/blender_section.py -- all
 
 코드 재사용: blender_dome → blender_scenes → blender_iso 를 import 로 그대로 쓴다.
 """
-import bpy, sys, os, math, importlib.util, random
+import bpy, sys, os, math, importlib.util, random, json
 from mathutils import Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 MODE = argv[0] if argv else "all"
+
+# ══════════════════════════════════════════════════════════════
+# S6-B. 「방 안을 들어가 앉고 싶은 곳으로」
+#   REF_ART_FLAT_FOLK §7-4 환경 교정 넷 + 2026-09-27 정정 ①②
+#   COZY=False 로 돌리면 S4-A 그대로 — 전·후 비교를 정직하게 내기 위한 스위치다.
+#   바깥 물은 어느 쪽에서도 손대지 않는다.
+# ══════════════════════════════════════════════════════════════
+COZY = True
 
 HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.dirname(HERE)
 OUT_RAW = os.path.join(ROOT, "art_raw", "deep")
@@ -524,6 +532,187 @@ MOTIF = {"lounge": motif_arch, "quarters": motif_zigzag, "greenhouse": motif_che
 # ══════════════════════════════════════════════════════════════
 # 방 — 깊이 1.7m 의 얕은 디오라마 (형상은 그대로, 채색만 평면 2단)
 # ══════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
+# S6-B ①  빛이 번진다 — 정정 ①: 광원 주위만 밝은 것이 아니라 **빛이 방 전체를 데운다**.
+#         그림자도 검정이 아니라 따뜻한 갈색. 안팎 대비는 명도가 아니라 색온도로.
+# ══════════════════════════════════════════════════════════════
+WARM_SHADOW = "#4A3524"        # 방 안의 그림자 — 검정 금지. 따뜻한 갈색 하나로 통일
+
+
+def mixhex(a, b, t):
+    a = a.lstrip('#'); b = b.lstrip('#')
+    return "#%02x%02x%02x" % tuple(
+        max(0, min(255, int(int(a[i:i + 2], 16) * (1 - t) + int(b[i:i + 2], 16) * t))) for i in (0, 2, 4))
+
+
+def warm_shade(hue, f=0.66, t=0.42):
+    """방 안 그림자. 바탕색을 어둡게 누르되 **따뜻한 갈색 쪽으로** 끌어온다(정정 ①)."""
+    return mixhex(hx(hue, f), WARM_SHADOW, t)
+
+
+def warm_mat(name, hexc, alpha, rx, rz):
+    """중심에서 가장자리로 사라지는 따뜻한 번짐.
+
+    기존 `soft_mat` 을 쓰지 않는 이유: 그쪽 Mapping 은 **스케일이 먼저, 위치가 나중**이라
+    (0.5,0.5)·scale2 → (1,1)·loc(-0.5) = (0.5,0.5) 로 중심이 어긋난다. 실제로 1~3차 렌더에서
+    번짐이 거의 안 보인 원인이 이것이었다. 물(부유물·해파리·빛기둥)이 그 함수를 쓰고 있어
+    고치면 바깥이 바뀌므로, **여기서는 손대지 않고 오브젝트 좌표로 새로 짠다.**"""
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    nt = m.node_tree; nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (1.0 / max(rx, 1e-4), 1.0, 1.0 / max(rz, 1e-4))
+    grad = nt.nodes.new("ShaderNodeTexGradient"); grad.gradient_type = 'SPHERICAL'
+    ramp = nt.nodes.new("ShaderNodeValToRGB"); ramp.color_ramp.interpolation = 'EASE'
+    cr = ramp.color_ramp
+    cr.elements[0].position = 0.0; cr.elements[0].color = (0, 0, 0, 1)
+    cr.elements[1].position = 1.0; cr.elements[1].color = (alpha, alpha, alpha, 1)
+    em = nt.nodes.new("ShaderNodeEmission"); em.inputs[1].default_value = 1.0
+    em.inputs[0].default_value = (*srgb_hexcol(hexc), 1)
+    mix = nt.nodes.new("ShaderNodeMixShader"); tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+    nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs["Vector"], grad.inputs["Vector"])
+    nt.links.new(grad.outputs["Fac"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], mix.inputs[0])
+    nt.links.new(tr.outputs[0], mix.inputs[1]); nt.links.new(em.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    _blend(m)
+    return _mark(m)
+
+
+def soft_blob(name, cx, cz, rx, rz, hexc, alpha=0.30, y=0.42, core=0.62):
+    """가장자리가 풀린 따뜻한 번짐. 정정 ②: 매끈한 벡터 면 금지 — 경계를 풀어 준다.
+    (core 는 옛 호출부 호환용으로 남겨 두고 쓰지 않는다 — 감쇠는 반지름이 정한다)"""
+    q = [Vector((-rx, 0, -rz)), Vector((rx, 0, -rz)), Vector((rx, 0, rz)), Vector((-rx, 0, rz))]
+    o = DOME.mesh_of_quads("PRV_warm_" + name, [q], warm_mat("warmm_" + name, hexc, alpha, rx, rz))
+    o.name = "PRV_warm_" + name
+    o.location = (cx, y, cz)
+    return o
+
+
+def hxcap(hue, f, cap=0.90):
+    """밝게 올리되 날아가지 않게. 크림·뼈 방이 하얗게 타는 것을 막는다."""
+    h = hx(hue, f).lstrip('#')
+    r, g, b = (int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    if lum > cap:
+        r, g, b = (c * (cap / lum) for c in (r, g, b))
+    return "#%02x%02x%02x" % tuple(int(c * 255) for c in (r, g, b))
+
+
+def warm_room(x0, x1, z0, hue, rid):
+    """방 하나를 통째로 데우는 빛(정정 ①). **원 모양이 보이면 실패다** —
+    빛은 도형이 아니라 방 전체의 온도여야 한다. 그래서 방을 다 덮는 낮은 알파 한 겹으로
+    깔고, 밝기 차이는 room_shell 의 바탕색 자체가 이미 올려 두었다."""
+    cx = (x0 + x1) / 2
+    w = (x1 - x0)
+    # 번짐은 **방 안에 갇혀 있어야** 한다. 물 쪽으로 새면 안개 뭉치로 읽혀
+    # "바깥은 차갑고 검다"(합격 기준 ②)가 깨진다. 4차 렌더에서 실제로 그랬다.
+    soft_blob(rid + "_all", cx, z0 + RH * 0.50, w * 0.54, RH * 0.62,
+              hxcap(hue, 1.22), alpha=0.22, y=0.26)
+    soft_blob(rid + "_back", cx, z0 + RH * 0.54, w * 0.50, RH * 0.56,
+              hxcap(hue, 1.34), alpha=0.22, y=DEPTH - 0.08)
+
+
+# ══════════════════════════════════════════════════════════════
+# S6-B ②  생활의 흔적 — §7-4-2. 방마다 최소 5~6가지.
+#         "오늘 밤 누가 여기서 잔다"(B4)를 그림으로 증명하는 물건들.
+# ══════════════════════════════════════════════════════════════
+def pot_steam(x, y, z, rid, r=0.42):
+    """김이 오르는 냄비. 온기의 가장 직접적인 증거."""
+    iso.cyl("pot_" + rid, (x, y, z + r * 0.62), r, r * 1.05, M["metal"], verts=14)
+    iso.cyl("potlid_" + rid, (x, y, z + r * 1.22), r * 0.92, 0.07, M["frame_lt"], verts=14)
+    iso.cube("pothdl_" + rid, (x + r * 1.15, y, z + r * 0.70), (0.30, 0.09, 0.07), M["frame_lt"])
+    for k in range(4):                      # 김 — 위로 갈수록 크고 옅게
+        soft_blob("steam_%s_%d" % (rid, k), x + math.sin(k * 1.7) * 0.22 * (k + 1),
+                  z + r * 1.5 + k * 0.42, 0.26 + k * 0.13, 0.22 + k * 0.10,
+                  "#FFF2DC", alpha=0.30 - k * 0.055, y=y - 0.18, core=0.55)
+
+
+def hanging_cloth(x0, x1, z, rid, n=4, drop=0.70, y=0.28):
+    """널어 둔 천. 줄 하나에 천 몇 장 — 사람이 오늘 빨래를 했다."""
+    iso.cube("cline_" + rid, ((x0 + x1) / 2, y, z), (x1 - x0, 0.035, 0.035), M["frame_lt"])
+    keys = ("fabric", "pillow", "fabric2", "tarp")
+    for k in range(n):
+        cx = x0 + (x1 - x0) * (k + 0.5) / n
+        d = drop * (0.72 + 0.42 * ((k * 37) % 5) / 4.0)
+        wq = 0.40 + 0.10 * (k % 3)
+        DOME.mesh_of_quads("cloth_%s_%d" % (rid, k),
+                           [[Vector((cx - wq, y + 0.02, z - d)), Vector((cx + wq, y + 0.02, z - d)),
+                             Vector((cx + wq * 0.82, y + 0.02, z)), Vector((cx - wq * 0.82, y + 0.02, z))]],
+                           M[keys[k % 4]])
+
+
+def folded_stack(x, y, z, rid, n=3, w=0.62):
+    """개어 둔 담요. 쓰지 않을 때도 자리를 지키는 물건이 방을 집으로 만든다."""
+    keys = ("fabric", "tarp", "fabric2")      # 흰 베개천은 등불보다 밝아진다 — 천 계열로
+    for k in range(n):
+        iso.cube("fold_%s_%d" % (rid, k), (x + (0.03 if k % 2 else -0.03), y, z + 0.09 + k * 0.17),
+                 (w * (1.0 - k * 0.06), w * 0.72, 0.16), M[keys[k % 3]])
+
+
+def wall_notes(x, z, rid, n=4, seed=3):
+    """벽에 붙인 종이. 셈한 날짜, 잊지 말 것, 아이가 그린 것."""
+    rnd = random.Random(seed)
+    for k in range(n):
+        nx = x + (k - (n - 1) / 2.0) * 0.44 + rnd.uniform(-0.06, 0.06)
+        nz = z + rnd.uniform(-0.18, 0.18)
+        iso.cube("note_%s_%d" % (rid, k), (nx, DEPTH - 0.05, nz), (0.28, 0.03, 0.34),
+                 M["paper"], rot=(0, rnd.uniform(-0.18, 0.18), 0))
+
+
+def leaning_thing(x, z, rid, kind="plank", lean=0.20, h=1.5, y=0.30):
+    """벽에 기대어 둔 물건. 세워 둔 것이 아니라 **놓아 둔** 것 — 사람이 방금 놓았다."""
+    mt = {"plank": M["wood"], "pole": M["frame_lt"], "net": M["tarp"]}.get(kind, M["wood"])
+    if kind == "pole":
+        iso.cyl("lean_" + rid, (x, y, z + h / 2), 0.055, h, mt, rot=(0, lean, 0), verts=8)
+    else:
+        iso.cube("lean_" + rid, (x, y, z + h / 2), (0.28 if kind == "plank" else 0.46, 0.09, h),
+                 mt, rot=(0, lean, 0))
+
+
+def floor_shoes(x, y, z, rid):
+    """바닥에 벗어 둔 신발 한 켤레. 이 방에 사람이 있다는 가장 조용한 증거."""
+    for k, dx in enumerate((-0.16, 0.16)):
+        iso.cube("shoe_%s_%d" % (rid, k), (x + dx, y, z + 0.075), (0.20, 0.34, 0.15),
+                 M["wood_dk"], rot=(0, 0, 0.12 * (1 if k else -1)))
+        iso.cube("shoetop_%s_%d" % (rid, k), (x + dx, y + 0.09, z + 0.18), (0.19, 0.16, 0.13),
+                 M["wood_dk"], rot=(0, 0, 0.12 * (1 if k else -1)))
+
+
+def cup_on(x, y, z, rid, n=2):
+    """놓아 둔 컵. 조금 전까지 누가 앉아 있었다."""
+    for k in range(n):
+        iso.cyl("cup_%s_%d" % (rid, k), (x + k * 0.26, y, z + 0.07), 0.075, 0.14, M["paper"], verts=10)
+
+
+def deco_rail(x, z, rid, filled=1, slots=3):
+    """§7-4-4 **장식을 거는 자리.** E2 가문 도감 보상이 여기 걸린다.
+    빈 고리가 보여야 '아직 걸 것이 남았다'가 읽히고, 방이 넓어지는 것이 아니라
+    **따뜻해지는 것**으로 자란다."""
+    w = 0.52 * slots
+    iso.cube("rail_" + rid, (x, DEPTH - 0.07, z), (w, 0.05, 0.08), M["frame_lt"])
+    for k in range(slots):
+        hx_ = x - w / 2 + (k + 0.5) * w / slots
+        iso.cyl("hook_%s_%d" % (rid, k), (hx_, DEPTH - 0.10, z - 0.10), 0.028, 0.17,
+                M["frame_lt"], verts=6)
+        if k < filled:                       # 걸려 있는 것 — 가문 실타래
+            mk = M["red"] if k % 2 == 0 else M["yellow"]
+            iso.cyl("skein_%s_%d" % (rid, k), (hx_, DEPTH - 0.12, z - 0.36), 0.15, 0.13,
+                    mk, rot=(math.radians(90), 0, 0), verts=12)
+            iso.cube("tail_%s_%d" % (rid, k), (hx_ + 0.05, DEPTH - 0.13, z - 0.62),
+                     (0.05, 0.04, 0.30), mk, rot=(0, 0.18, 0))
+
+
+def warm_rug(x, z, w, rid, d=1.15):
+    """깔개. 바닥에 천이 깔린 방과 맨바닥인 방은 다른 방이다."""
+    DOME.mesh_of_quads("rug_" + rid,
+                       [[Vector((x - w / 2, DEPTH - d, z + 0.014)), Vector((x + w / 2, DEPTH - d, z + 0.014)),
+                         Vector((x + w / 2 * 0.72, 0.10, z + 0.014)), Vector((x - w / 2 * 0.72, 0.10, z + 0.014))]],
+                       M["fabric"])
+
+
 def room_halo(x0, x1, z0, z1):
     """F7. 방 둘레의 어두운 여백(지적 4). 그라데이션이 아니라 **계단 세 칸**이다(§1-3).
     안쪽일수록 검고 바깥으로 갈수록 그 높이의 물색으로 돌아간다."""
@@ -535,12 +724,21 @@ def room_halo(x0, x1, z0, z1):
 
 def room_shell(x0, x1, z0, hue, rid):
     """절두각뿔 상자. 채색은 기본색 / 그림자색 딱 2단(§1-3). 방 안에 그라데이션 없음."""
-    base = hx(hue, 0.88)                      # 기본색 — 등불보다 항상 어둡게 눌러 둔다(F7)
-    shade = hx(hue, 0.46)                     # 단 한 단계의 그림자. 이것이 전부다.
+    if COZY:
+        # 정정 ①: 빛이 방 전체를 데운다. 그림자는 검정이 아니라 따뜻한 갈색.
+        # 안팎 대비는 명도 극단이 아니라 **색온도**로 만든다 — 물은 그대로 차갑다.
+        base = hx(hue, 1.00)
+        floor_c = warm_shade(hue, 0.82, 0.26)      # 바닥은 빛이 고이는 곳이라 제일 밝은 그림자
+        side_c = warm_shade(hue, 0.66, 0.40)
+        ceil_c = warm_shade(hue, 0.54, 0.50)
+    else:
+        base = hx(hue, 0.88)                  # 기본색 — 등불보다 항상 어둡게 눌러 둔다(F7)
+        floor_c = side_c = ceil_c = hx(hue, 0.46)
+    shade = side_c
     backm = flat_mat("back_" + rid, base)
-    floorm = flat_mat("floor_" + rid, shade)
-    ceilm = flat_mat("ceil_" + rid, shade)
-    sidem = flat_mat("side_" + rid, shade)
+    floorm = flat_mat("floor_" + rid, floor_c)
+    ceilm = flat_mat("ceil_" + rid, ceil_c)
+    sidem = flat_mat("side_" + rid, side_c)
     z1 = z0 + RH
     room_halo(x0, x1, z0, z1)
     fx0, fx1, fz0, fz1 = x0, x1, z0, z1
@@ -558,7 +756,11 @@ def room_shell(x0, x1, z0, hue, rid):
     DOME.mesh_of_quads("r_%s_back" % rid, [[Vector((bx0, D, bz0)), Vector((bx1, D, bz0)),
                                             Vector((bx1, D, bz1)), Vector((bx0, D, bz1))]], backm)
     # F5. 장식 문양 — 뒷벽 위·아래 띠 두 줄
-    pm = flat_mat("pat_m_" + rid, M["pat_light"] if _is_dark(hue) else M["pat_dark"])
+    pcol = M["pat_light"] if _is_dark(hue) else M["pat_dark"]
+    if COZY:
+        # 문양은 벽의 결이지 주인공이 아니다. 대비를 반쯤 낮춰 생활 소품이 먼저 읽히게 한다.
+        pcol = mixhex(pcol, base, 0.48)
+    pm = flat_mat("pat_m_" + rid, pcol)
     fn = MOTIF.get(rid, motif_dots)
     fn(rid, bx0 + 0.25, bx1 - 0.25, bz1 - 0.55, pm)
     fn(rid, bx0 + 0.25, bx1 - 0.25, bz0 + 0.09, pm)
@@ -584,16 +786,50 @@ def room_lamp(x, z0, hue, rid):
     top = z0 + RH
     iso.cyl("lw_" + rid, (x, 0.55, top - 0.18), 0.02, 0.36, M["frame"], rot=(math.radians(90), 0, 0))
     iso.cyl("ls_" + rid, (x, 0.55, top - 0.44), 0.22, 0.18, M["frame_lt"])
-    # 등불 헤일로 — 평면 원 두 겹(§1-3: 그라데이션 금지)
-    disc("PRV_glow2_" + rid, x, top - 0.52, 1.05, M["glow_far"], y=0.50)
-    disc("PRV_glow1_" + rid, x, top - 0.52, 0.52, M["glow_near"], y=0.49)
-    o = iso.sphere("lb_" + rid, (x, 0.48, top - 0.52), 0.155, M["bulb"], 12, 7)
+    if not COZY:
+        # 등불 헤일로 — 평면 원 두 겹(§1-3 초판: 그라데이션 금지)
+        disc("PRV_glow2_" + rid, x, top - 0.52, 1.05, M["glow_far"], y=0.50)
+        disc("PRV_glow1_" + rid, x, top - 0.52, 0.52, M["glow_near"], y=0.49)
+        o = iso.sphere("lb_" + rid, (x, 0.48, top - 0.52), 0.155, M["bulb"], 12, 7)
+        o.name = "PRV_bulb_" + rid
+        pw = 1.65
+        qp = [Vector((x - pw, DEPTH - 0.55, z0 + 0.012)), Vector((x + pw, DEPTH - 0.55, z0 + 0.012)),
+              Vector((x + pw * 0.62, 0.12, z0 + 0.012)), Vector((x - pw * 0.62, 0.12, z0 + 0.012))]
+        DOME.mesh_of_quads("PRV_pool_" + rid, [qp],
+                           flat_mat("poolm_" + rid, hx(hue, 1.34))).name = "PRV_pool_" + rid
+        return
+    # ── §7-4-1 빛이 번진다 ──────────────────────────────────
+    # 계단 넷(민속화의 방식: 빛을 도형으로) + 가장자리를 푼 큰 번짐(정정 ②).
+    zb = top - 0.52
+    # ── 뒷벽에 쏟아지는 빛 ──────────────────────────────────
+    # 정면 단면에서 깊이는 1.7m 뿐이라 **바닥은 거의 안 보인다.**
+    # 그래서 빛이 번지는 자리는 뒷벽이다. 등불 밑에서 아래로 벌어지는 사다리꼴 —
+    # 민속화가 빛을 그리는 방식(도형)이고, 가장자리는 번짐으로 푼다(정정 ②).
+    yb = DEPTH - 0.055
+    # 알파 0.2 로 30% 밝은 색을 얹으면 화면은 6% 밖에 안 밝아진다(3차 렌더가 그랬다).
+    # 빛으로 읽히려면 색도 알파도 과감해야 한다.
+    for k, (wt, wb, f, a) in enumerate(((0.62, 3.35, 1.55, 0.34), (0.44, 2.05, 1.95, 0.42))):
+        q = [Vector((x - wt, yb - k * 0.008, zb - 0.10)), Vector((x + wt, yb - k * 0.008, zb - 0.10)),
+             Vector((x + wb, yb - k * 0.008, z0 + 0.03)), Vector((x - wb, yb - k * 0.008, z0 + 0.03))]
+        DOME.mesh_of_quads("PRV_cone%d_%s" % (k, rid), [q],
+                           flat_mat("conem%d_%s" % (k, rid), hxcap(hue, f, 0.86), alpha=a)).name = \
+            "PRV_cone%d_%s" % (k, rid)
+    soft_blob(rid + "_wall", x, zb - 0.85, 3.6, 2.1, hxcap(hue, 1.95, 0.90), alpha=0.46,
+              y=DEPTH - 0.075)
+    # ── 등불 둘레의 공기 번짐 ───────────────────────────────
+    soft_blob(rid + "_lampwide", x, zb - 0.95, 2.9, 1.80, "#FFC57E", alpha=0.36, y=0.62)
+    soft_blob(rid + "_lamp", x, zb - 0.10, 1.55, 1.25, "#FFE2B2", alpha=0.56, y=0.54)
+    soft_blob(rid + "_core", x, zb, 0.60, 0.56, "#FFF6E4", alpha=0.85, y=0.52)
+    o = iso.sphere("lb_" + rid, (x, 0.44, zb), 0.15, M["bulb"], 12, 7)
     o.name = "PRV_bulb_" + rid
-    # 바닥의 빛 웅덩이 — 민속화의 방식: 빛을 그라데이션이 아니라 '도형'으로 그린다
-    pw = 1.65
-    qp = [Vector((x - pw, DEPTH - 0.55, z0 + 0.012)), Vector((x + pw, DEPTH - 0.55, z0 + 0.012)),
-          Vector((x + pw * 0.62, 0.12, z0 + 0.012)), Vector((x - pw * 0.62, 0.12, z0 + 0.012))]
-    DOME.mesh_of_quads("PRV_pool_" + rid, [qp], flat_mat("poolm_" + rid, hx(hue, 1.34))).name = "PRV_pool_" + rid
+    # ── 바닥에 고이는 빛 웅덩이 (보이는 만큼만) ─────────────
+    for k, (pw, f, a) in enumerate(((2.45, 1.50, 0.55), (1.45, 1.85, 0.48))):
+        zz = z0 + 0.010 + k * 0.004
+        qp = [Vector((x - pw, DEPTH - 0.50, zz)), Vector((x + pw, DEPTH - 0.50, zz)),
+              Vector((x + pw * 0.60, 0.10, zz)), Vector((x - pw * 0.60, 0.10, zz))]
+        DOME.mesh_of_quads("PRV_pool%d_%s" % (k, rid), [qp],
+                           flat_mat("poolm%d_%s" % (k, rid), hxcap(hue, f, 0.86), alpha=a)).name = \
+            "PRV_pool%d_%s" % (k, rid)
 
 
 def disc(name, x, z, r, m, y=0.45, verts=14):
@@ -607,6 +843,108 @@ def people(xs, z0, kinds, ys=None):
     for i, (x, k) in enumerate(zip(xs, kinds)):
         y = (ys[i] if ys else 0.55 + (i % 3) * 0.32)
         DOME.resident(k, x, y, z0, rot_z=math.radians(180 + (-22 if i % 2 else 20)), h=1.70)
+
+
+# ══════════════════════════════════════════════════════════════
+# S6-B ③  쉬는 자세 — §7-4-3. 전부 서서 일하지 않는다. 앉고 기대고 눕는다.
+#         인물은 캐릭터 담당의 정면 스프라이트를 그대로 쓴다(화풍 일치).
+#         변형 경로는 한 곳에서만 바뀐다 — 담당이 `d` 를 내면 CHAR_VAR 만 고친다.
+# ══════════════════════════════════════════════════════════════
+CHAR_VAR = os.environ.get("RELIC_CHAR_VAR", "c")
+CHAR_ROOT = os.path.join(ROOT, "static", "art", "chars", "front")
+CHAR_FALLBACK = ("c", "b", "a")
+
+
+def char_meta():
+    try:
+        return json.load(open(os.path.join(CHAR_ROOT, "front_meta.json"), encoding="utf-8"))
+    except Exception:
+        return {"cell": 256, "ppm": 110.0, "baseline": 240, "frames": 5,
+                "rows": {"Idle": 0, "Walk": 1, "PickUp": 2}}
+
+
+CM = char_meta()
+CELL = float(CM.get("cell", 256))
+PPM = float(CM.get("ppm", 110.0))
+BASE_PX = float(CM.get("baseline", 240))
+NFRAME = int(CM.get("frames", 5))
+ROWS = CM.get("rows", {"Idle": 0, "Walk": 1, "PickUp": 2})
+NROW = max(3, max(ROWS.values()) + 1)
+SP_H = CELL / PPM                      # 셀 한 칸의 실제 크기(m)
+SP_FOOT = (CELL - BASE_PX) / PPM       # 셀 바닥에서 발 기준선까지(m)
+_IMG = {}
+
+
+def char_image(role):
+    for var in ([CHAR_VAR] + [v for v in CHAR_FALLBACK if v != CHAR_VAR]):
+        p = os.path.join(CHAR_ROOT, var, role + ".png")
+        if os.path.exists(p):
+            if p not in _IMG:
+                _IMG[p] = bpy.data.images.load(p, check_existing=True)
+            return _IMG[p]
+    return None
+
+
+def sprite_mat(name, img, frame, row, tint):
+    """스프라이트 한 칸. 이미 2단 음영이 구워져 있으므로 셰이딩하지 않고,
+    방의 등불색을 곱해서 **인물이 그 빛 안에 잠기게** 한다(정정 ①)."""
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    nt = m.node_tree; nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    uv = nt.nodes.new("ShaderNodeUVMap"); uv.uv_map = "UVMap"
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (1.0 / NFRAME, 1.0 / NROW, 1.0)
+    mp.inputs["Location"].default_value = (frame / NFRAME, 1.0 - (row + 1) / NROW, 0.0)
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img; tex.extension = 'CLIP'; tex.interpolation = 'Linear'
+    mul = nt.nodes.new("ShaderNodeMix"); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'
+    mul.inputs["Factor"].default_value = 1.0
+    mul.inputs[7].default_value = (*tint, 1.0)
+    em = nt.nodes.new("ShaderNodeEmission"); em.inputs[1].default_value = 1.0
+    mix = nt.nodes.new("ShaderNodeMixShader"); tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+    nt.links.new(uv.outputs["UV"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
+    nt.links.new(tex.outputs["Color"], mul.inputs[6])
+    nt.links.new(mul.outputs[2], em.inputs[0])
+    nt.links.new(tex.outputs["Alpha"], mix.inputs[0])
+    nt.links.new(tr.outputs[0], mix.inputs[1]); nt.links.new(em.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    _blend(m)
+    return _mark(m)
+
+
+def char(role, x, zfeet, y=0.62, pose="stand", frame=0, tint=(1.0, 0.94, 0.82),
+         flip=False, sc=1.0, tilt=0.0):
+    """pose: stand(서서) / work(일하는) / walk / sit(앉은) / lean(기댄) / lie(누운)"""
+    img = char_image(role)
+    if img is None:
+        return None
+    row = {"stand": ROWS.get("Idle", 0), "sit": ROWS.get("Idle", 0), "lean": ROWS.get("Idle", 0),
+           "lie": ROWS.get("Idle", 0), "walk": ROWS.get("Walk", 1),
+           "work": ROWS.get("PickUp", 2)}.get(pose, 0)
+    rot = {"lean": 0.22, "lie": math.radians(80.0)}.get(pose, 0.0) + tilt
+    if flip:
+        rot = -rot
+    w = h = SP_H * sc
+    foot = SP_FOOT * sc
+    q = [Vector((-w / 2, 0, -foot)), Vector((w / 2, 0, -foot)),
+         Vector((w / 2, 0, -foot + h)), Vector((-w / 2, 0, -foot + h))]
+    mname = "sp_%s_%s_%d_%d" % (role, pose, frame, int(x * 37) & 0xFFF)
+    mt = sprite_mat(mname, img, frame % NFRAME, row, tint)
+    if flip:
+        mt.node_tree.nodes["Mapping"].inputs["Scale"].default_value = (-1.0 / NFRAME, 1.0 / NROW, 1.0)
+        mt.node_tree.nodes["Mapping"].inputs["Location"].default_value = \
+            ((frame % NFRAME + 1) / NFRAME, 1.0 - (row + 1) / NROW, 0.0)
+    o = mesh_uv_quads("PRV_sp_%s_%d" % (role, int(x * 41) & 0xFFFF), [q], mt)
+    o.name = "PRV_sp_%s_%d" % (role, int(x * 41) & 0xFFFF)
+    o.location = (x, y, zfeet + (0.26 * sc if pose == "lie" else 0.0))
+    o.rotation_euler = (0, rot, 0)
+    return o
+
+
+def seat_block(x, y, z, w=0.80, h=0.42, m=None):
+    """앉은 사람의 다리를 가려 주는 방석·걸상. 스프라이트를 앉은 것으로 읽히게 하는 장치."""
+    iso.cube("seatb_%d" % (int(x * 53) & 0xFFFF), (x, y, z + h / 2), (w, 0.62, h), m or M["fabric2"])
 
 
 # ══════════════════════════════════════════════════════════════
@@ -724,6 +1062,213 @@ def fill_lounge(x0, x1, z0):
     for k in range(6):
         iso.cyl("rp", (c - 2.5 + k * 1.0, 0.16, z0 + 0.5), 0.05, 1.0, M["frame_lt"], verts=8)
     iso.cube("rt", (c, 0.16, z0 + 1.0), (5.4, 0.1, 0.1), M["frame_lt"])
+
+
+# ══════════════════════════════════════════════════════════════
+# S6-B ④  E1 — 찍은 물건이 선반에 쌓인다
+#   static/art/props/ 의 34종을 그대로 창고 선반에 얹는다.
+#   "내가 어제 편의점에서 찍은 그 라면이 저 선반에 있다"(PLAYER_JOURNEY §2 E1)
+# ══════════════════════════════════════════════════════════════
+PROPS_DIR = os.path.join(ROOT, "static", "art", "props")
+PCELL_W, PCELL_H = 0.44, 0.388          # 격자 한 칸(34×30px)이 방 안에서 갖는 크기(m)
+_PMETA = None
+
+
+def props_meta():
+    global _PMETA
+    if _PMETA is None:
+        try:
+            _PMETA = json.load(open(os.path.join(PROPS_DIR, "props_meta.json"), encoding="utf-8"))
+        except Exception:
+            _PMETA = {"props": {}}
+    return _PMETA
+
+
+def png_sprite(name, path, cx, zbase, y, w, h):
+    if not os.path.exists(path):
+        return None
+    if path not in _IMG:
+        _IMG[path] = bpy.data.images.load(path, check_existing=True)
+    m = bpy.data.materials.new("pm_" + name); m.use_nodes = True
+    nt = m.node_tree; nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    uv = nt.nodes.new("ShaderNodeUVMap"); uv.uv_map = "UVMap"
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = _IMG[path]; tex.extension = 'CLIP'; tex.interpolation = 'Linear'
+    em = nt.nodes.new("ShaderNodeEmission"); em.inputs[1].default_value = 1.0
+    mix = nt.nodes.new("ShaderNodeMixShader"); tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+    nt.links.new(uv.outputs["UV"], tex.inputs["Vector"])
+    nt.links.new(tex.outputs["Color"], em.inputs[0])
+    nt.links.new(tex.outputs["Alpha"], mix.inputs[0])
+    nt.links.new(tr.outputs[0], mix.inputs[1]); nt.links.new(em.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    _blend(m); _mark(m)
+    q = [Vector((cx - w / 2, y, zbase)), Vector((cx + w / 2, y, zbase)),
+         Vector((cx + w / 2, y, zbase + h)), Vector((cx - w / 2, y, zbase + h))]
+    o = mesh_uv_quads("PRV_sp_prop_" + name, [q], m)
+    o.name = "PRV_sp_prop_" + name
+    return o
+
+
+SHELF_ROWS = [
+    ["prop_noodle_box", "prop_dry_jar", "prop_seed_sack", "prop_long_neck_bottle",
+     "prop_cap_heap", "prop_crisp_bundle"],
+    ["prop_empty_bottle_row", "prop_twelve_cell_box", "prop_white_crock", "prop_cell_tin",
+     "prop_stick_bundle", "prop_flat_canteen", "prop_brown_vial"],
+    ["prop_folded_cloth", "prop_stacked_books", "prop_nameless_box", "prop_foil_bundle",
+     "prop_single_boot", "prop_rolled_strips", "prop_unread_lump"],
+]
+
+
+def shelf_props(x0, x1, z0, rid):
+    """창고 뒷벽의 선반 세 단. 여기가 바코드와 거점이 만나는 자리다."""
+    meta = props_meta().get("props", {})
+    bx0, bx1 = x0 + INSET_X + 0.30, x1 - INSET_X - 0.30
+    for lv, row in enumerate(SHELF_ROWS):
+        zb = z0 + 0.30 + lv * 0.74
+        iso.cube("pshelf_%s_%d" % (rid, lv), ((bx0 + bx1) / 2, DEPTH - 0.26, zb - 0.055),
+                 (bx1 - bx0 + 0.24, 0.40, 0.11), M["wood"])
+        x = bx0 + 0.06
+        for pid in row:
+            info = meta.get(pid)
+            if info is None:
+                continue
+            w = PCELL_W * int(info.get("slots", 1))
+            if x + w > bx1:
+                break
+            png_sprite("%s_%s" % (rid, pid), os.path.join(PROPS_DIR, "x4", pid + ".png"),
+                       x + w / 2, zb, DEPTH - 0.30, w, PCELL_H)
+            x += w + 0.055
+
+
+# ══════════════════════════════════════════════════════════════
+# S6-B ⑤  방마다 생활의 흔적 5~6가지 + 쉬는 사람 (§7-4-2·3)
+# ══════════════════════════════════════════════════════════════
+def cozy_fill(rid, x0, x1, z0, hue):
+    c = (x0 + x1) / 2
+    if rid == "quarters":
+        folded_stack(c - 3.5, 0.55, z0, rid, 3, 0.66)
+        folded_stack(c + 3.6, 0.50, z0, rid + "b", 2, 0.58)
+        hanging_cloth(c + 1.8, c + 5.4, z0 + 2.48, rid, 4, 0.66, y=0.30)
+        wall_notes(c - 2.2, z0 + 2.00, rid, 5, 11)
+        floor_shoes(c - 4.9, 0.40, z0, rid)
+        floor_shoes(c + 2.2, 0.36, z0, rid + "b")
+        pot_steam(c + 5.1, 0.52, z0 + 0.32, rid, 0.34)
+        iso.cube("nstand", (c + 5.1, 0.52, z0 + 0.16), (0.7, 0.62, 0.32), M["wood_dk"])
+        cup_on(c + 2.6, 0.72, z0 + 0.30, rid)
+        deco_rail(c - 0.2, z0 + 2.34, rid, filled=1, slots=3)
+        warm_rug(c - 3.4, z0, 3.0, rid)
+        at(z0, iso.plant, c + 6.2, 0.45, 0.58)
+    elif rid == "lounge":
+        warm_rug(c, z0, 5.2, rid, d=1.25)
+        folded_stack(c + 2.35, 0.75, z0 + 0.52, rid, 2, 0.50)
+        cup_on(c - 0.35, 0.40, z0 + 0.48, rid, 3)
+        wall_notes(c - 3.1, z0 + 2.05, rid, 4, 5)
+        deco_rail(c + 2.9, z0 + 2.18, rid, filled=2, slots=3)
+        hanging_cloth(c - 4.4, c - 2.2, z0 + 2.42, rid, 2, 0.50, y=0.26)
+        floor_shoes(c - 2.3, 0.34, z0, rid)
+        pot_steam(c + 0.9, 0.42, z0 + 0.48, rid, 0.26)
+    elif rid == "greenhouse":
+        hanging_cloth(c - 2.6, c + 0.4, z0 + 2.50, rid, 3, 0.52, y=0.24)   # 말리는 씨앗 주머니
+        wall_notes(c + 2.2, z0 + 2.05, rid, 4, 23)
+        leaning_thing(x1 - 1.1, z0, rid, "pole", 0.22, 1.7, 0.34)
+        floor_shoes(x0 + 1.5, 0.34, z0, rid)
+        folded_stack(x1 - 1.9, 0.48, z0, rid, 2, 0.46)
+        cup_on(c + 2.4, 0.42, z0 + 0.02, rid, 1)
+        deco_rail(c - 2.9, z0 + 2.30, rid, filled=1, slots=2)
+    elif rid == "workshop":
+        wall_notes(c - 2.6, z0 + 1.55, rid, 5, 41)
+        leaning_thing(x0 + 0.95, z0, rid, "plank", 0.19, 2.0, 0.34)
+        leaning_thing(x0 + 1.45, z0, rid + "b", "pole", 0.15, 1.6, 0.26)
+        folded_stack(c + 2.9, 0.44, z0, rid, 2, 0.44)                       # 개어 둔 걸레
+        cup_on(c - 1.6, 0.52, z0 + 0.93, rid)
+        pot_steam(c + 1.9, 0.48, z0 + 0.93, rid, 0.24)
+        floor_shoes(c - 2.9, 0.34, z0, rid)
+        deco_rail(c + 2.3, z0 + 2.30, rid, filled=1, slots=3)
+    elif rid == "storage":
+        shelf_props(x0, x1, z0, rid)
+        wall_notes(c + 2.5, z0 + 2.70, rid, 4, 61)
+        folded_stack(x0 + 1.3, 0.46, z0, rid, 3, 0.52)
+        floor_shoes(x1 - 1.6, 0.34, z0, rid)
+        cup_on(c - 0.1, 0.40, z0 + 0.02, rid, 1)
+        leaning_thing(x0 + 0.85, z0, rid, "plank", 0.16, 1.5, 0.30)
+        deco_rail(c - 2.2, z0 + 2.72, rid, filled=1, slots=2)
+    elif rid == "library":
+        cup_on(c - 0.9, 0.55, z0 + 0.80, rid, 2)
+        wall_notes(c + 1.9, z0 + 2.45, rid, 3, 77)
+        folded_stack(c + 1.9, 0.48, z0, rid, 2, 0.46)
+        floor_shoes(c - 2.0, 0.34, z0, rid)
+        at(z0, iso.plant, c + 2.3, 0.46, 0.52)
+        deco_rail(c - 1.6, z0 + 2.45, rid, filled=2, slots=2)
+        warm_rug(c - 0.6, z0, 2.4, rid, d=0.95)
+    elif rid == "bath":
+        for k in range(5):                       # 김 — 목욕탕의 온기
+            soft_blob("bathsteam%d" % k, c - 1.6 + k * 0.85, z0 + 1.35 + (k % 3) * 0.32,
+                      0.62 + (k % 3) * 0.16, 0.48 + (k % 2) * 0.16, "#FFF2DC",
+                      alpha=0.24, y=0.24, core=0.52)
+        folded_stack(c + 2.6, 0.48, z0, rid, 3, 0.50)
+        wall_notes(c - 2.9, z0 + 2.20, rid, 3, 97)
+        floor_shoes(c - 2.6, 0.36, z0, rid)
+        cup_on(c - 1.9, 0.44, z0 + 0.88, rid, 1)
+        at(z0, iso.plant, c + 3.1, 0.44, 0.50)
+        deco_rail(c + 0.4, z0 + 2.36, rid, filled=1, slots=2)
+    elif rid == "airlock":
+        wall_notes(x0 + 1.5, z0 + 2.05, rid, 5, 13)                          # 나간 날 셈
+        floor_shoes(c - 2.4, 0.36, z0, rid)
+        folded_stack(c - 0.4, 0.44, z0, rid, 2, 0.48)
+        hanging_cloth(c - 2.6, c + 0.2, z0 + 2.72, rid, 3, 0.44, y=0.24)     # 말리는 천
+        cup_on(x0 + 0.9, 0.44, z0 + 0.02, rid, 1)
+        leaning_thing(x0 + 0.7, z0, rid, "pole", 0.17, 1.6, 0.28)
+        pot_steam(x0 + 1.9, 0.46, z0 + 0.02, rid, 0.28)
+
+
+# (역할, 화면 x 비율, 자세, 프레임, 깊이 y, 좌우반전, 크기)
+COZY_CAST = {
+    "quarters": [("scholar", 0.10, "lie", 0, 0.95, False, 1.00),
+                 ("medic", 0.34, "sit", 1, 0.60, False, 1.00),
+                 ("cook", 0.58, "work", 3, 0.48, True, 1.00),
+                 ("kid", 0.76, "sit", 2, 0.42, False, 0.86),
+                 ("trader", 0.90, "stand", 0, 0.66, True, 1.00)],
+    "lounge": [("farmer", 0.28, "sit", 0, 0.42, False, 1.00),
+               ("scholar", 0.50, "sit", 2, 0.40, True, 1.00),
+               ("kid", 0.66, "lie", 0, 0.34, False, 0.86),
+               ("trader", 0.84, "lean", 1, 0.62, True, 1.00)],
+    "greenhouse": [("farmer", 0.24, "work", 2, 0.46, False, 1.00),
+                   ("kid", 0.52, "sit", 0, 0.42, True, 0.86),
+                   ("medic", 0.80, "stand", 1, 0.62, True, 1.00)],
+    "workshop": [("engineer", 0.24, "work", 3, 0.46, False, 1.00),
+                 ("scout", 0.52, "sit", 0, 0.40, True, 1.00),
+                 ("trader", 0.79, "work", 1, 0.58, True, 1.00)],
+    "storage": [("trader", 0.22, "work", 2, 0.44, False, 1.00),
+                ("kid", 0.78, "sit", 1, 0.40, True, 0.86)],
+    "library": [("scholar", 0.34, "sit", 0, 0.44, False, 1.00),
+                ("medic", 0.70, "lean", 2, 0.58, True, 1.00)],
+    "bath": [("cook", 0.26, "sit", 1, 0.40, False, 1.00),
+             ("farmer", 0.54, "stand", 0, 0.64, True, 1.00),
+             ("kid", 0.80, "sit", 3, 0.38, False, 0.86)],
+    "airlock": [("scout", 0.26, "stand", 2, 0.44, False, 1.00),
+                ("engineer", 0.52, "work", 0, 0.60, True, 1.00),
+                ("medic", 0.80, "sit", 1, 0.40, False, 1.00)],
+}
+
+
+def cozy_people(rid, x0, x1, z0, hue):
+    """§7-4-3. 앉고 기대고 눕는 사람을 섞는다. 전부 서서 일하는 방은 일터지 집이 아니다."""
+    tint = tuple(min(1.0, v) for v in (1.0, 0.93, 0.80))
+    for role, t, pose, fr, y, flip, sc in COZY_CAST.get(rid, []):
+        x = x0 + (x1 - x0) * t
+        zf = z0
+        if pose == "sit":
+            zf = z0 - 0.40 * sc              # 다리를 방석 뒤로 내려 앉은 키를 만든다
+            seat_block(x, y - 0.30, z0, 0.86 * sc, 0.40, M["fabric2"])
+        elif pose == "lie":
+            zf = z0 + 0.10
+            iso.cube("mat_%s_%s" % (rid, role), (x + 0.75, y + 0.10, z0 + 0.09),
+                     (2.3, 0.85, 0.18), M["fabric"])
+        char(role, x, zf, y=y, pose=pose, frame=fr, tint=tint, flip=flip, sc=sc)
+        if pose == "lie":                    # 덮은 담요 — 누운 사람 위로
+            iso.cube("blank_%s_%s" % (rid, role), (x + 0.42, y - 0.22, z0 + 0.30),
+                     (1.5, 0.52, 0.44), M["pillow"], rot=(0, 0.06, 0))
 
 
 # ══════════════════════════════════════════════════════════════
@@ -859,13 +1404,21 @@ def build_base():
             room_lamp((x0 + x1) / 2 - 3.6, z0, hue, rid + "b")
             room_lamp((x0 + x1) / 2 + 3.6, z0, hue, rid + "c")
         fill(x0, x1, z0)
-        rnd = random.Random(hash(rid) % 9999)
-        xs = [x0 + (x1 - x0) * (i + 0.5) / max(npc, 1) + rnd.uniform(-0.5, 0.5) for i in range(npc)]
-        people(xs, z0, [CREW[(hash(rid) + i) % 8] for i in range(npc)])
+        if COZY:
+            cozy_fill(rid, x0, x1, z0, hue)
+            cozy_people(rid, x0, x1, z0, hue)
+            warm_room(x0, x1, z0, hue, rid)      # 번짐은 소품 위에 얹혀야 '빛에 잠긴다'가 된다
+        else:
+            rnd = random.Random(hash(rid) % 9999)
+            xs = [x0 + (x1 - x0) * (i + 0.5) / max(npc, 1) + rnd.uniform(-0.5, 0.5) for i in range(npc)]
+            people(xs, z0, [CREW[(hash(rid) + i) % 8] for i in range(npc)])
     dig_face(-8.5, -(SPINE + GAP), L[4])
     spine(DOME_C.z - 1.0, L[4] - 1.6)
     glass_dome(z_lounge)
-    DOME.resident("trader", 0.0, 0.7, L[3] + 0.05, rot_z=math.radians(180), h=1.68)
+    if COZY:
+        char("trader", 0.0, L[3] + 0.05, y=0.60, pose="walk", frame=2, sc=0.98)
+    else:
+        DOME.resident("trader", 0.0, 0.7, L[3] + 0.05, rot_z=math.radians(180), h=1.68)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1002,7 +1555,11 @@ def section_world():
 
 NOLINE_EXTRA = ("PRV_backdrop", "PRV_haze", "PRV_snow", "PRV_jelly", "PRV_jhalo", "PRV_shaft",
                 "PRV_ridge", "PRV_farrock", "PRV_farcable", "PRV_lev", "PRV_halo", "PRV_fish",
-                "PRV_glow1_", "PRV_glow2_", "PRV_pool_", "dome_backglass", "pat_")
+                "PRV_glow1_", "PRV_glow2_", "PRV_pool_", "dome_backglass", "pat_",
+                # S6-B: 번짐·빛웅덩이·스프라이트에는 외곽선을 긋지 않는다.
+                # 스프라이트는 그림 안에 이미 손그림 선이 들어 있어서 사각 테두리가 생기면 망가진다.
+                "PRV_glow0_", "PRV_glow3_", "PRV_pool0_", "PRV_pool1_", "PRV_pool2_",
+                "PRV_warm_", "PRV_sp_", "PRV_cone")
 
 
 def handdrawn_lines():
@@ -1120,8 +1677,19 @@ def paper_and_vignette(grain=0.11, vig=0.10):
             return mx.outputs[2]
 
         cur = rl.outputs["Image"]
+        if COZY:
+            # 정정 ②: 매끈한 벡터 면 금지. 면과 면의 경계를 조금 풀어 준다.
+            sb = ng.nodes.new("CompositorNodeBlur")
+            sb.inputs["Size"].default_value = (3.0, 3.0)
+            ng.links.new(cur, sb.inputs["Image"])
+            sm = ng.nodes.new("ShaderNodeMix"); sm.data_type = 'RGBA'; sm.blend_type = 'MIX'
+            sm.inputs["Factor"].default_value = 0.30
+            ng.links.new(cur, sm.inputs[6]); ng.links.new(sb.outputs["Image"], sm.inputs[7])
+            cur = sm.outputs[2]
         cur = grain_layer(46.0, 1.0 - grain, 1.0 + grain * 0.55, cur)     # 종이 결(굵게)
         cur = grain_layer(340.0, 1.0 - grain * 0.45, 1.0 + grain * 0.2, cur)  # 연필 자국(가늘게)
+        if COZY:
+            cur = grain_layer(11.0, 1.0 - grain * 0.60, 1.0 + grain * 0.35, cur)   # 큰 붓결
         # 비네트 — 가장자리를 숯검정 쪽으로
         msk = ng.nodes.new("CompositorNodeEllipseMask")
         msk.inputs["Size"].default_value = (1.02, 1.12)
@@ -1205,6 +1773,39 @@ def shot_zoom():
 
 
 # ══════════════════════════════════════════════════════════════
+# S6-B 산출물 — 온기판 전체 / 방 2칸 확대 / 전·후 비교용 이전판
+#   비교 컷은 같은 카메라·같은 해상도로만 낸다. 구도를 바꾸면 비교가 거짓말이 된다.
+# ══════════════════════════════════════════════════════════════
+ZOOM2 = dict(ortho=18.6, target=(0.0, 0, 3.55))     # 공방 + 창고(E1 선반) 두 칸, 척추를 사이에
+
+
+def shot_warm():
+    build(extras=True)
+    render(os.path.join(OUT_RAW, "section_warm.png"), ortho=62.0, target=(0.4, 0, 6.6),
+           grain=0.19, vig=0.10)
+
+
+def shot_roomzoom():
+    build(extras=True)
+    render(os.path.join(OUT_RAW, "section_room_zoom.png"), grain=0.17, vig=0.07, **ZOOM2)
+
+
+def shot_before():
+    global COZY
+    COZY = False
+    build(extras=True)
+    render(os.path.join(OUT_RAW, "_before_room_zoom.png"), grain=0.09, vig=0.07, **ZOOM2)
+
+
+def shot_before_hero():
+    global COZY
+    COZY = False
+    build(extras=True)
+    render(os.path.join(OUT_RAW, "_before_hero.png"), ortho=62.0, target=(0.4, 0, 6.6),
+           grain=0.11, vig=0.10)
+
+
+# ══════════════════════════════════════════════════════════════
 # 팔레트 띠 — 색과 문양을 한 장으로 (작업 기준표)
 # ══════════════════════════════════════════════════════════════
 def shot_palette():
@@ -1262,7 +1863,9 @@ def _water_strip():
 
 
 if __name__ == "__main__":
-    jobs = {"hero": shot_hero, "zoom": shot_zoom, "palette": shot_palette}
+    jobs = {"hero": shot_hero, "zoom": shot_zoom, "palette": shot_palette,
+            "warm": shot_warm, "roomzoom": shot_roomzoom,
+            "before": shot_before, "beforehero": shot_before_hero}
     for k in (["hero", "zoom", "palette"] if MODE == "all" else [MODE]):
         jobs[k]()
     print("ALL DONE", flush=True)
