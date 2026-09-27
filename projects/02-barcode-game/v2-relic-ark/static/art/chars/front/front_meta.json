@@ -66,9 +66,7 @@
    "footprint",
    "empty_stomach"
   ],
-  "roles": [
-   "scout"
-  ]
+  "roles": []
  },
  "roles": {
   "scout": {
@@ -96,7 +94,14 @@
    "motif": "dots",
    "motif_ko": "박음질 점",
    "norm_h": 1.6,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.72,
+   "land_c": {
+    "wave": 1.1948,
+    "hem": 0.3885,
+    "head": 1.247
+   },
+   "h_c": 1.9727
   },
   "medic": {
    "h": 1.6216,
@@ -124,7 +129,7 @@
    "motif_ko": "지그재그 이음매",
    "norm_h": 1.62,
    "folk_render": true,
-   "threshold_c": 0.604,
+   "threshold_c": 0.573,
    "land_c": {
     "wave": 0.9145,
     "hem": 0.2566,
@@ -140,7 +145,14 @@
    "motif": "saw",
    "motif_ko": "톱니",
    "norm_h": 1.6,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.702,
+   "land_c": {
+    "wave": 0.8798,
+    "hem": 0.2436,
+    "head": 0.9285
+   },
+   "h_c": 1.8025
   },
   "scholar": {
    "h": 1.6011,
@@ -150,7 +162,14 @@
    "motif": "bars",
    "motif_ko": "세로 이중선",
    "norm_h": 1.56,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.588,
+   "land_c": {
+    "wave": 0.8804,
+    "hem": 0.2469,
+    "head": 0.9292
+   },
+   "h_c": 1.6011
   },
   "trader": {
    "h": 1.6627,
@@ -160,7 +179,14 @@
    "motif": "diamond",
    "motif_ko": "마름모",
    "norm_h": 1.62,
-   "folk_render": true
+   "folk_render": true,
+   "threshold_c": 0.69,
+   "land_c": {
+    "wave": 0.9144,
+    "hem": 0.2565,
+    "head": 0.965
+   },
+   "h_c": 1.6627
   },
   "kid": {
    "h": 1.2074,
@@ -225,8 +251,12 @@
  },
  "cute_roles": [
   "scout",
+  "cook",
   "medic",
   "engineer",
+  "farmer",
+  "scholar",
+  "trader",
   "kid",
   "octopus"
  ],

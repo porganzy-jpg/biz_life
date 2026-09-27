@@ -62,7 +62,7 @@
     catch (e) { return 'anon'; }
   })();
   const qs = new URLSearchParams(location.search);
-  const CHAR_VARIANT = qs.get('chars') || 'b';       // ?chars=a|b|none — 캐릭터 담당의 A/B 판정 전까지
+  const CHAR_VARIANT = qs.get('chars') || 'c';       // ?chars=a|b|c|none — c = 3등신 보정판(DECISIONS 2026-09-27). b는 화풍 확정판, a는 부드러운 음영
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   let ark = null, catalog = {}, slots = 10, floorSlots = 2, spots = [];
@@ -95,7 +95,8 @@
       s.img.onload = () => { s.ok = s.img.naturalWidth > 0; };
       s.img.onerror = () => {
         s.ok = false;
-        if (s.tried === 0) { s.tried = 1; s.img.src = '/static/art/chars/front/a/' + role + '.png'; }
+        if (s.tried === 0) { s.tried = 1; s.img.src = '/static/art/chars/front/b/' + role + '.png'; }
+        else if (s.tried === 1) { s.tried = 2; s.img.src = '/static/art/chars/front/a/' + role + '.png'; }
       };
       s.img.src = '/static/art/chars/front/' + CHAR_VARIANT + '/' + role + '.png';
     }
