@@ -3,6 +3,7 @@
 > **이 문서의 용도**: 여기부터 읽으면 다른 문서를 뒤지지 않고 개발을 시작할 수 있다.
 > 성경(세계관)과 교본(직군 원칙)은 그대로 두고, 이 문서는 **무엇을 어떤 순서로 만들 것인가**와 **아직 정하지 않은 것**을 모은다.
 > 충돌하면 `DECISIONS.md`가 최신이고 이 문서가 그다음이다.
+> **빠진 것 목록**: `docs/OPEN_GAPS.md` — 아직 정리 안 된 것을 급한 순(A~D)으로. 새 작업을 열기 전에 여기를 본다.
 > **짝 문서**: `docs/COMBAT_AND_DEFENSE.md`(배치 방어), `docs/ROOMS_AND_ITEMS.md`(방·재료·장비), `docs/RESIDENT_STATS.md`(스탯·체형), `docs/PLAYER_JOURNEY.md` — 사용자 여정 14단계, 몰입 보강 일곱(E1~E7), 전체 검수. 화면 시안은 `/static/journey.html`.
 
 ---
