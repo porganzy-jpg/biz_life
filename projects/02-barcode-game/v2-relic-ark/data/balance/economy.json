@@ -120,13 +120,13 @@
       "hall":       {"ko": "홀", "cap": 6, "produces": {}, "build": {"scrap": 4, "parts": 2},
                      "lv2": {"cost": {"parts": 6, "knowledge": 2}, "opens": "습격 중 재배치 1회"},
                      "lv3": {"cost": {"parts": 14, "knowledge": 5}, "cond": "해구 문턱 도달", "opens": "동시 2명 재배치"}},
-      "quarters":   {"ko": "거주실", "cap": 4, "produces": {"morale": 1}, "build": {"cloth": 3, "food": 2},
+      "quarters":   {"ko": "거주실", "cap": 4, "produces": {"morale": 1}, "build": {"food": 2, "scrap": 1},
                      "lv2": {"cost": {"cloth": 6, "food": 4}, "opens": "정원 6, 각인 아침 연출", "cap_after": 6, "produces_after": {"morale": 2}},
                      "lv3": {"cost": {"cloth": 14, "med": 4}, "cond": "각인 3개 보유자 1명", "opens": "정원 8, 꿈 대사", "cap_after": 8, "produces_after": {"morale": 3}}},
-      "storage":    {"ko": "창고", "cap": 4, "produces": {}, "shelves": 6, "build": {"scrap": 3, "parts": 1},
+      "storage":    {"ko": "창고", "cap": 4, "produces": {}, "shelves": 6, "build": {"scrap": 1, "food": 1},
                      "lv2": {"cost": {"parts": 5, "cloth": 3}, "opens": "선반 12, 자동 정렬", "shelves_after": 12},
                      "lv3": {"cost": {"parts": 12, "knowledge": 4}, "opens": "선반 20, 가문별 진열", "shelves_after": 20}},
-      "well":       {"ko": "정수실", "cap": 2, "produces": {"water": 3}, "build": {"water": 4, "parts": 2},
+      "well":       {"ko": "정수실", "cap": 2, "produces": {"water": 3}, "build": {"water": 3, "parts": 1},
                      "lv2": {"cost": {"parts": 6, "water": 4}, "opens": "역삼투", "produces_after": {"water": 4.8}},
                      "lv3": {"cost": {"parts": 15, "med": 5}, "opens": "잉여 물 → 교역품", "produces_after": {"water": 6}}},
       "greenhouse": {"ko": "온실", "cap": 3, "produces": {"food": 3}, "build": {"food": 6, "cloth": 3},
@@ -151,6 +151,14 @@
                      "_basis": "생산 0 인 방(DECISIONS 2026-10-01). 사기만 올린다. 비용을 교역품(담배·주류 10%)으로 둔 것은 **다른 방과 재료가 겹치지 않게** 하기 위해서다 — 부품을 아껴 쓰는 사람도 이 방은 지을 수 있다"},
       "bath":       {"ko": "물 끓이는 방", "cap": 3, "produces": {"morale": 2, "heal": 0.5}, "build": {"water": 8, "parts": 4}, "cond": "발전실 Lv2",
                      "_basis": "생산 0 인 방 둘째. 200년 만의 더운물"}
+    },
+    "_first_three_free_ish": "거주실·창고·정수실의 건설비는 시작 자원(식량 4·물 4·부품 1·잔해 2)으로 **첫날 안에 셋 다 지어지도록** 맞췄다. 목표 곡선의 '1일 3칸'은 플레이어가 벌어야 하는 목표가 아니라 **튜토리얼이 끝나면 서 있는 자리**라는 뜻이다(B4: 첫날부터 모자람을 느끼게 하지 않는다).",
+    "storage_cap": {
+      "per_material": "창고 선반 수 × 6 (창고 없음 4칸 → 24 / Lv1 6 → 36 / Lv2 12 → 72 / Lv3 20 → 120)",
+      "overflow": "넘치는 분은 들어오지 않는다. '창고가 가득 찼다'로만 알린다.",
+      "_status": "⚠ 신규 제안",
+      "_basis": "시뮬레이션에서 **식량이 30일차에 627 까지 불어났다**(소비 6/일, 수입 15/일). 상한이 없으면 1주일 뒤 식량·물은 의미 없는 숫자가 되고, 그러면 스캔 카테고리 절반(식품·음료 = 실제 바코드의 55%)이 보상 없는 행동이 된다. 상한을 두면 식량이 찼을 때 **다른 카테고리를 찍을 이유**가 생긴다 — 지표 H2(카테고리 4종)를 가격이 아니라 구조로 미는 장치이고(B5), 동시에 창고 레벨업에 처음으로 분명한 쓸모가 생긴다.",
+      "_not_punishing": "넘쳐서 잃는 것은 **이미 남아도는 재료**뿐이다. 모자란 재료는 절대 상한에 닿지 않으므로 손해를 체감할 일이 없다(B4)."
     },
     "_cost_philosophy": "건설비는 싸고(3~10), 레벨업은 비싸다(Lv2 8~11, Lv3 20~24). **넓히는 것은 쉽고 깊게 하는 것은 어렵다** — 목표 곡선이 '1개월에 12칸이지만 Lv3 은 하나'이기 때문이다. 12칸을 먼저 깔아 두고 어디를 올릴지 고르는 것이 1개월차의 결정이 된다.",
     "_bottleneck_note": "Lv2·Lv3 비용의 과반이 parts 다. 이것은 의도다 — 전자 카테고리를 찍게 만드는 유일하게 강한 동기이고(B5), ROOMS_AND_ITEMS 원문 수치가 이미 그 모양이었다. 다만 전자 바코드가 현실에서 드물어 체감 병목이 되므로 salvage·octopus_gift 로 완화한다."

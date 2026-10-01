@@ -1,82 +1,240 @@
 {
   "_doc": "위협 등급 1~5 — 세기·빈도·보상. 기획·밸런스 소유.",
-  "_pair": ["data/balance/defense.json", "docs/BALANCE.md §3", "docs/COMBAT_AND_DEFENSE.md §4"],
+  "_pair": [
+    "data/balance/defense.json",
+    "docs/BALANCE.md §3",
+    "docs/COMBAT_AND_DEFENSE.md §4"
+  ],
   "_version": "2026-10-01",
-
   "grade_source": {
     "_rule": "위협 등급은 **거점 최심부 깊이**로만 정해진다. 날짜·주민 수·자원량은 등급을 올리지 않는다.",
     "_basis": "DECISIONS 2026-09-23 '성장 방향은 아래' + 2026-10-01 '거점이 아래로 자랄수록 더 센 것이 온다'. 그리고 B4: 난이도를 **시간이 밀면** 조급해지고, **플레이어가 당기면** 아늑함이 유지된다. 띄엄띄엄 하는 사람은 얕은 곳에 오래 머물고, 그에게는 센 것이 오지 않는다 — 뒤처지는 벌이 아니라 그 사람의 속도다.",
     "_implementation": "server.py:882-907 의 depth_m = max(0, deepest_floor - DOME_FLOOR) * 60. SLOTS=10·FLOOR_SLOTS=2·DEPTH_PER_FLOOR=60 이라 실제로 가능한 깊이는 0·60·120·180 네 단계뿐이다. 그래서 등급 5 만 깊이가 아니라 **깊이 180m + 방 10칸 이상**으로 연다.",
     "map": [
-      {"grade": 1, "depth_m": 0,   "zone": "무광층 상단(돔)",   "rooms_min": 0,  "_typical_day_normal_player": "1~5일"},
-      {"grade": 2, "depth_m": 60,  "zone": "무광층",            "rooms_min": 0,  "_typical_day_normal_player": "5~12일"},
-      {"grade": 3, "depth_m": 120, "zone": "무광층 하부",        "rooms_min": 0,  "_typical_day_normal_player": "12~22일"},
-      {"grade": 4, "depth_m": 180, "zone": "해구 문턱",          "rooms_min": 0,  "_typical_day_normal_player": "22일~"},
-      {"grade": 5, "depth_m": 180, "zone": "해구가 올려보낸 것", "rooms_min": 10, "_typical_day_normal_player": "30일~ (1막 절정)"}
+      {
+        "grade": 1,
+        "depth_m": 0,
+        "zone": "무광층 상단(돔)",
+        "rooms_min": 0,
+        "_typical_day_normal_player": "1~5일"
+      },
+      {
+        "grade": 2,
+        "depth_m": 60,
+        "zone": "무광층",
+        "rooms_min": 0,
+        "_typical_day_normal_player": "5~12일"
+      },
+      {
+        "grade": 3,
+        "depth_m": 120,
+        "zone": "무광층 하부",
+        "rooms_min": 0,
+        "_typical_day_normal_player": "12~22일"
+      },
+      {
+        "grade": 4,
+        "depth_m": 180,
+        "zone": "해구 문턱",
+        "rooms_min": 0,
+        "_typical_day_normal_player": "22일~"
+      },
+      {
+        "grade": 5,
+        "depth_m": 180,
+        "zone": "해구가 올려보낸 것",
+        "rooms_min": 10,
+        "_typical_day_normal_player": "30일~ (1막 절정)"
+      }
     ],
     "_act1_coverage": "1막에 등급 1~5 가 **전부** 나온다. 다만 4·5 는 해구 문턱(180m)까지 내려간 방주에게만 온다. 거점은 해구에 닿지 못하므로(DECISIONS 2026-09-26) 등급 6 은 없고, 그 위는 2막이 받는다."
   },
-
   "need_by_grade": {
-    "1": 2.5, "2": 3.5, "3": 4.5, "4": 6.5, "5": 8.0,
+    "1": 2.5,
+    "2": 3.5,
+    "3": 4.5,
+    "4": 6.5,
+    "5": 8.0,
     "_step": "1.0 · 1.0 · 2.0 · 1.5 — 일부러 일정하지 않다",
     "_basis": "**시뮬레이션으로 정한 값이다**(sim_economy 표 D4). 처음엔 등간격 1.5(3.5~9.5)로 뒀는데 돌려 보니 등급 2 에서 막는 비율이 49% 까지 떨어졌다 — 플레이어의 힘은 등간격으로 늘지 않기 때문이다. 방 Lv2 와 두 번째 도구가 한꺼번에 들어오는 등급 3→4 구간에서 플레이어가 크게 세지므로, need 도 거기서 크게(+2.0) 뛰고 앞뒤는 완만하게(+1.0) 둔다. 한 칸 1.0 은 **보통 사람 한 명분**이라, 한 구역 내려갈 때마다 '사람을 한 명 더 넣어야 한다'가 성립한다(B6: 성장의 단위가 숫자가 아니라 사람).",
     "_measured": "등급별 막음/금/상실 = 76/24/0 · 60/36/4 · 64/31/6 · 74/23/3 · 70/28/2 (%)",
     "_calibration": "달성 가능 점수 범위와 대조. 1일차(Lv1·주민3·도구0): 3.7~5.5 대 need 4.0~6.0. 2주차(Lv2·보강대·각인1): 6.2~9.5 대 need 6.5~9.0. 1개월(Lv2~3·도구상한·각인2·정원4): 9.0~12.5 대 need 8.0~12.0. 세 구간 모두 **need 가 달성 범위의 한가운데**에 있다 = 배치가 결과를 가른다."
   },
-
   "creature_offset": {
-    "swarm": 0.5, "longneck": 0.0, "warden": 0.5, "claws": -0.5, "octopus": 0.0,
-    "_basis": "등급이 세기를 주도하고 종은 ±0.5 로만 흔든다. 작은 떼는 한꺼번에 여러 이음매라 +0.5, 문지기는 돔 전체를 누르므로 +0.5, 손톱 무리는 방까지 닿는 수가 적어 −0.5. 긴목은 기준점 — 긴목은 세기가 아니라 **불을 껐는가**로 갈리는 생물이라 일부러 중립이다."
+    "swarm": 0.5,
+    "longneck": 0.0,
+    "warden": 0.5,
+    "claws": -0.5,
+    "octopus": 0.0,
+    "_basis": "등급이 세기를 주도하고 종은 ±0.5 로만 흔든다. 작은 떼는 한꺼번에 여러 이음매라 +0.5, 문지기는 돔 전체를 누르므로 +0.5, 손톱 무리는 방까지 닿는 수가 적어 −0.5. 긴목은 기준점 — 긴목은 세기가 아니라 **불을 껐는가**로 갈리는 생물이라 일부러 중립이다.",
+    "mirror_eye": 0.5,
+    "straight_one": 0.0,
+    "lid": 1.0,
+    "needle": -0.5,
+    "big_maw": 1.0,
+    "follower": 0.5,
+    "upper_child": -0.5,
+    "shade": 0.0,
+    "far_cry": 0.0,
+    "_extended": "신규 일곱. 덮개·큰 입이 +1.0 으로 가장 비싼 것은 둘 다 방 하나가 아니라 **거점 전체의 결정**을 요구하기 때문이다. 바늘·윗물 아이는 −0.5 — 지나가는 것이고 겁먹은 것이다."
   },
-
   "severity": {
     "add_per_step": 1.0,
     "_basis": "severity 1 단계 = 0.67 명분. 등급 한 칸(1.5)보다 작아야 '깊이가 등급을 정하고 그날의 운이 조금 흔든다'가 된다. 운이 깊이를 이기면 안 된다(B4 — 운으로 방을 잃는 것이 가장 나쁜 경험이다).",
     "weights_by_grade": {
-      "1": [8, 2, 0], "2": [6, 3, 1], "3": [5, 3, 2], "4": [4, 4, 2], "5": [3, 4, 3],
+      "1": [
+        8,
+        2,
+        0
+      ],
+      "2": [
+        6,
+        3,
+        1
+      ],
+      "3": [
+        5,
+        3,
+        2
+      ],
+      "4": [
+        4,
+        4,
+        2
+      ],
+      "5": [
+        3,
+        4,
+        3
+      ],
       "_comment": "[sev0, sev1, sev2] 가중치. 등급 1 에는 sev2 가 아예 없다 — 배우는 구간에 최악을 보여 주지 않는다."
     }
   },
-
   "frequency": {
     "_rule": "raid_chance = 그날 **무언가 오기는 할** 확률(문어 포함). 실제 위협 확률 = raid_chance × (문어 아닌 가중치 비율).",
     "_guardrail": "모든 등급에서 **조용한 날이 과반**이어야 한다(COMBAT_AND_DEFENSE §6-1). 아래 표의 quiet_day_rate 가 전부 0.5 를 넘는지 확인할 것.",
     "by_grade": {
-      "1": {"raid_chance": 0.35, "weights": {"swarm": 4, "longneck": 2, "warden": 0, "claws": 0, "octopus": 6},
-            "threat_day_rate": 0.175, "quiet_day_rate": 0.825,
-            "_basis": "6일에 한 번꼴로만 위협. 문어 가중치가 가장 높아 '무언가 왔는데 그게 선물이었다'가 첫 경험이 되게 했다(E3). 문지기·손톱 무리는 아직 안 온다 — 각각 전원 차단과 원정을 전제하는데 둘 다 1주차에 없다."},
-      "2": {"raid_chance": 0.42, "weights": {"swarm": 4, "longneck": 3, "warden": 1, "claws": 1, "octopus": 5},
-            "threat_day_rate": 0.27, "quiet_day_rate": 0.73,
-            "_basis": "네 종이 전부 등장. 문지기를 여기서 처음 보여 주되 가중치 1 — 전원 차단이 그날 생산을 통째로 먹기 때문에 자주 오면 경제가 흔들린다."},
-      "3": {"raid_chance": 0.48, "weights": {"swarm": 3, "longneck": 3, "warden": 2, "claws": 2, "octopus": 4},
-            "threat_day_rate": 0.343, "quiet_day_rate": 0.657},
-      "4": {"raid_chance": 0.52, "weights": {"swarm": 3, "longneck": 3, "warden": 2, "claws": 3, "octopus": 3},
-            "threat_day_rate": 0.409, "quiet_day_rate": 0.591},
-      "5": {"raid_chance": 0.55, "weights": {"swarm": 2, "longneck": 3, "warden": 3, "claws": 3, "octopus": 3},
-            "threat_day_rate": 0.432, "quiet_day_rate": 0.568,
-            "_basis": "가장 깊은 곳에서도 열흘 중 엿새는 조용하다. 이 숫자가 0.5 아래로 내려가면 이 게임은 아늑한 생존물이 아니게 된다 — **넘지 말 것**."}
+      "1": {
+        "raid_chance": 0.35,
+        "weights": {
+          "swarm": 4,
+          "longneck": 2,
+          "warden": 0,
+          "claws": 0,
+          "octopus": 6
+        },
+        "threat_day_rate": 0.175,
+        "quiet_day_rate": 0.825,
+        "_basis": "6일에 한 번꼴로만 위협. 문어 가중치가 가장 높아 '무언가 왔는데 그게 선물이었다'가 첫 경험이 되게 했다(E3). 문지기·손톱 무리는 아직 안 온다 — 각각 전원 차단과 원정을 전제하는데 둘 다 1주차에 없다."
+      },
+      "2": {
+        "raid_chance": 0.42,
+        "weights": {
+          "swarm": 4,
+          "longneck": 3,
+          "warden": 1,
+          "claws": 1,
+          "octopus": 5
+        },
+        "threat_day_rate": 0.27,
+        "quiet_day_rate": 0.73,
+        "_basis": "네 종이 전부 등장. 문지기를 여기서 처음 보여 주되 가중치 1 — 전원 차단이 그날 생산을 통째로 먹기 때문에 자주 오면 경제가 흔들린다."
+      },
+      "3": {
+        "raid_chance": 0.48,
+        "weights": {
+          "swarm": 3,
+          "longneck": 3,
+          "warden": 2,
+          "claws": 2,
+          "octopus": 4
+        },
+        "threat_day_rate": 0.343,
+        "quiet_day_rate": 0.657
+      },
+      "4": {
+        "raid_chance": 0.52,
+        "weights": {
+          "swarm": 3,
+          "longneck": 3,
+          "warden": 2,
+          "claws": 3,
+          "octopus": 3
+        },
+        "threat_day_rate": 0.409,
+        "quiet_day_rate": 0.591
+      },
+      "5": {
+        "raid_chance": 0.55,
+        "weights": {
+          "swarm": 2,
+          "longneck": 3,
+          "warden": 3,
+          "claws": 3,
+          "octopus": 3
+        },
+        "threat_day_rate": 0.432,
+        "quiet_day_rate": 0.568,
+        "_basis": "가장 깊은 곳에서도 열흘 중 엿새는 조용하다. 이 숫자가 0.5 아래로 내려가면 이 게임은 아늑한 생존물이 아니게 된다 — **넘지 말 것**."
+      }
     },
     "_claws_caveat": "⚠ 임시값(B7). 손톱 무리의 관문(밖에 사람 0명)은 원정 시스템이 없으면 **항상 통과**한다 = 공짜 승리. 그래서 지금 가중치를 낮게 뒀다. 원정이 붙으면 등급 3~5 가중치를 3~4 로 올릴 것.",
     "_first_day": "RAID_FIRST_DAY = 2 유지. 첫날은 들여다보기만 한다."
   },
-
   "rewards": {
     "_rule": "자원·유물·이야기를 섞되 **이야기가 가장 크다**(COMBAT_AND_DEFENSE §9). 자원 보상은 일부러 적다 — 습격이 수입원이 되면 플레이어가 습격을 기다리게 되고, 그것은 이 게임의 정서가 아니다.",
     "_scale_check": "등급 5 를 막아도 재료 7 개. 보통 플레이어의 하루 스캔 수입(≈34)의 20% 다. 습격은 **수입이 아니라 사건**이다.",
     "held": {
-      "1": {"parts": 1, "morale": 1},
-      "2": {"parts": 1, "cloth": 1, "morale": 1},
-      "3": {"parts": 2, "cloth": 1, "morale": 1, "relic_draw": {"count": 1, "rarity_floor": "uncommon"}},
-      "4": {"parts": 2, "cloth": 2, "med": 1, "morale": 2, "relic_draw": {"count": 1, "rarity_floor": "rare"}},
-      "5": {"parts": 3, "cloth": 2, "med": 2, "morale": 2, "relic_draw": {"count": 1, "rarity_floor": "epic"}},
+      "1": {
+        "parts": 1,
+        "morale": 1
+      },
+      "2": {
+        "parts": 1,
+        "cloth": 1,
+        "morale": 1
+      },
+      "3": {
+        "parts": 2,
+        "cloth": 1,
+        "morale": 1,
+        "relic_draw": {
+          "count": 1,
+          "rarity_floor": "uncommon"
+        }
+      },
+      "4": {
+        "parts": 2,
+        "cloth": 2,
+        "med": 1,
+        "morale": 2,
+        "relic_draw": {
+          "count": 1,
+          "rarity_floor": "rare"
+        }
+      },
+      "5": {
+        "parts": 3,
+        "cloth": 2,
+        "med": 2,
+        "morale": 2,
+        "relic_draw": {
+          "count": 1,
+          "rarity_floor": "epic"
+        }
+      },
       "_severity_bonus": "severity 만큼 가장 큰 항목에 더한다",
       "_story": "**처음 겪는 종류**의 생물을 막으면 각인(기존 규칙, imprints.json._rules.first_time_only). 등급이 올라가도 각인 확률은 변하지 않는다 — 각인은 횟수가 아니라 처음이 주는 것이다(B6)."
     },
     "scarred": {
       "morale": -1,
-      "room_crack": {"room_base_penalty": -0.5, "repair": {"patch": 1},
-                     "_basis": "금은 남는다. 다음 습격 때 그 방의 바탕이 0.5 낮고, 봉합 패치 하나로 복구된다. 영구 손실이 아니라 **할 일**이라 아늑함을 해치지 않으면서 흔적(§3-6)이 수치로 남는다."}
+      "room_crack": {
+        "room_base_penalty": -0.5,
+        "repair": {
+          "patch": 1
+        },
+        "_basis": "금은 남는다. 다음 습격 때 그 방의 바탕이 0.5 낮고, 봉합 패치 하나로 복구된다. 영구 손실이 아니라 **할 일**이라 아늑함을 해치지 않으면서 흔적(§3-6)이 수치로 남는다."
+      }
     },
     "breached": {
       "morale": -3,
@@ -84,14 +242,37 @@
       "_basis": "이 게임의 죽음. 되돌릴 수 없고 화면에 물 찬 방으로 영구히 남는다(COMBAT_AND_DEFENSE §6-3). 주민은 죽지 않는다 — 잃는 것은 방까지다.",
       "_kid_extra": "아이가 그 방에 있었으면 사기 추가 −2(defense.json non_score_rules.kid_fragile)"
     },
-    "passed_octopus": {"scrap": 1, "morale": 1, "_note": "문어의 날. 자세한 선물 규칙은 economy.json octopus_gift."}
+    "passed_octopus": {
+      "scrap": 1,
+      "morale": 1,
+      "_note": "문어의 날. 자세한 선물 규칙은 economy.json octopus_gift."
+    }
   },
-
   "_target_outcome_distribution": {
     "_comment": "시뮬레이션이 맞춰야 할 목표. tools/sim_economy.py 가 등급별로 이 표를 낸다.",
     "held": "0.60~0.75",
     "scarred": "0.20~0.35",
     "breached": "≤0.05",
     "_basis": "B4. 방을 잃는 일이 20판에 한 번이면 '일어날 수 있는 일'로 기억되고, 5판에 한 번이면 압박이 된다. 등급 1 은 breached 0.00 이 강제된다(grade1_shield)."
+  },
+  "min_grade": {
+    "_rule": "그 생물이 처음 나타날 수 있는 등급. 깊이로만 열린다.",
+    "swarm": 1,
+    "longneck": 1,
+    "warden": 2,
+    "claws": 2,
+    "straight_one": 2,
+    "mirror_eye": 3,
+    "needle": 3,
+    "upper_child": 3,
+    "lid": 4,
+    "big_maw": 4,
+    "follower": 5,
+    "octopus": 1,
+    "shade": 2,
+    "far_cry": 3,
+    "_basis_mirror_eye": "거울눈은 **등급 3 전에는 절대 나오지 않는다.** 긴목의 '불을 끈다'를 충분히 익힌 뒤라야 그것이 오답이 되는 경험이 성립한다(시나리오 DECISIONS 제안 ②).",
+    "_basis_lid": "덮개는 이 게임의 주된 동사(사람을 옮긴다)가 최악수인 생물이라 가장 늦게(등급 4) 나온다.",
+    "_basis_follower": "따라온 것은 해구에서 유물을 올려 본 방주에게만 온다 = 등급 5."
   }
 }
