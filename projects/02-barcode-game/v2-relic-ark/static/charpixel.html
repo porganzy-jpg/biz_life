@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>잔해 방주 — 도트 캐릭터 샘플 여섯</title>
+<style>
+  :root{
+    --bg:#140e0b; --panel:#1e1510; --line:#3a281d;
+    --ink:#e8d2a8; --dim:#a98f70; --accent:#e0a44a; --cold:#5d9aa2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+       line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 16px 80px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.4px}
+  h2{font-size:19px;margin:0 0 4px}
+  .sub{color:var(--dim);font-size:14px;margin:0 0 22px}
+  .rules{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+         padding:14px 18px;margin:0 0 26px;font-size:14px}
+  .rules b{color:var(--accent)}
+  .rules ol{margin:8px 0 0;padding-left:20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        overflow:hidden;display:flex;flex-direction:column}
+  .card h2{padding:12px 14px 0}
+  .tag{display:inline-block;font-size:12px;color:#17100c;background:var(--accent);
+       border-radius:5px;padding:1px 7px;margin-left:6px;vertical-align:2px}
+  .tag.cold{background:var(--cold);color:#0d1a1c}
+  .meta{padding:0 14px 10px;color:var(--dim);font-size:12.5px}
+  /* 판정 컷: 실제 렌더 방 위에 실제 크기로 걷는다 */
+  .stage{position:relative;width:305px;height:270px;margin:0 auto;
+         background-image:url('art/chars/pixel/room_plate.png');
+         background-size:305px 270px;image-rendering:pixelated}
+  .walker{position:absolute;image-rendering:pixelated;
+          background-repeat:no-repeat;transform-origin:bottom left}
+  .walker.run{animation:walk .5s steps(3) infinite}
+  @keyframes walk{from{background-position-x:0}to{background-position-x:-300%}}
+  .shadow{position:absolute;border-radius:50%;background:rgba(8,5,3,.55);
+          filter:blur(5px)}
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+  .shots img{width:100%;border-radius:7px;border:1px solid var(--line);display:block}
+  .shots .full{grid-column:1 / -1}
+  .note{padding:0 14px 14px;font-size:12.5px;color:var(--dim)}
+  .note b{color:var(--ink);font-weight:600}
+  .bar{display:flex;gap:10px;align-items:center;padding:0 14px 12px}
+  button{background:#2b1e16;color:var(--ink);border:1px solid var(--line);
+         border-radius:7px;padding:5px 11px;font-size:12.5px;cursor:pointer;
+         font-family:inherit}
+  button:hover{border-color:var(--accent)}
+  .wide{margin:30px 0 0}
+  .wide img{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
+  .cap{color:var(--dim);font-size:13px;margin:8px 0 0}
+  .px1{image-rendering:pixelated}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>도트 캐릭터 샘플 여섯 — 같은 인물(정찰병)</h1>
+  <p class="sub">2026-10-01 · 전부 손으로 찍은 도트(생성 AI 없음) · 배경은 실제 렌더
+     <code>art/deep/section_room_zoom.png</code> · 전부 정수 배율 최근접 확대</p>
+
+  <div class="rules">
+    <b>2.5D 전제</b> — 배경은 3D 렌더, 캐릭터는 도트.
+    <ol>
+      <li>해상도 대비는 의도된 것이다. 확대는 <b>최근접·정수 배율</b>만(x2·x3·x4). 소수 배율 금지.</li>
+      <li>캐릭터는 <b>방의 등불색 틴트</b>를 받고 아래로 갈수록 어두워진다. 안 하면 스티커가 된다.</li>
+      <li>발밑 <b>접지 그림자</b> 타원 하나. 없으면 공중에 뜬다.</li>
+      <li>팔레트를 <b>배경 렌더에서 추출</b>해 당긴 뒤, 벽에 묻히지 않게 대비만 다시 벌렸다.</li>
+      <li>방 깊이 1.7m — 벽에 가깝게 서고 앞뒤 겹침이 없다.</li>
+    </ol>
+    공통 제약 셋: ①구식 헬멧·목 실링·공기통·허리 랜턴 ②흙 계열 따뜻한 바탕(차가운 색은 헬멧 유리와 물에만)
+    ③얼굴이 보이는 방향은 눈·눈썹·입을 반드시 그린다(P5만 예외).
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="wide">
+    <h2>여섯 비교 — 같은 방, 같은 빛</h2>
+    <img src="art/chars/pixel/scene_all.png" alt="여섯 장면 비교" class="px1">
+    <p class="cap">실제 렌더 방 위 1배. 이것이 판정 컷이다.</p>
+  </div>
+
+  <div class="wide">
+    <h2>판독 시험 — 110px / 70px</h2>
+    <img src="art/chars/pixel/contact.png" alt="70px 110px 판독" class="px1">
+    <p class="cap">이 한 장만 비정수 배율(정확히 70·110px)이다. 작게 줄였을 때 무엇으로 보이는지 보기 위한 시험이고,
+       실제 출하는 위의 정수 배율을 쓴다.</p>
+  </div>
+</div>
+
+<script>
+const DIRS = [
+ {k:'p1', t:'P1 · 32px 초간결', tag:'가장 또렷한 끝',
+  face:'2×2 눈 + 1px 눈썹 + 3px 입. 표정은 교체 스프라이트 한 장으로만 바꾼다',
+  roles:'헬멧 색과 어깨 실루엣만으로 8역할. 소품은 1~2px',
+  cost:'프레임당 ~300px. 8역할×4동작을 하루에 다 찍을 수 있다'},
+ {k:'p2', t:'P2 · 48px 생활형', tag:'가장 유력',
+  face:'3×3 눈 + 반짝임 + 볼 홍조 + 5px 웃는 입. 눈·입만 바꿔 감정 6종',
+  roles:'모자·앞치마·등짐 같은 8~10px 파츠를 덧대면 8역할이 즉시 갈린다',
+  cost:'프레임당 ~1,100px. 걷기 3프레임이 20분. 8역할 재색 자동화 가능'},
+ {k:'p3', t:'P3 · 64px 디테일', tag:'',
+  face:'4×4 눈 + 흰자 + 벌린 입 + 주근깨. 눈썹 각도만으로 감정 8종',
+  roles:'장비 교체가 눈에 보인다 — 주머니·금구·수선 자국이 역할의 이력이 된다',
+  cost:'프레임당 ~2,000px. 애니 비용이 P2의 2배. 8역할이면 부담이 커진다'},
+ {k:'p4', t:'P4 · HD-2D 밀착', tag:'가장 부드러운 끝',
+  face:'3×3 눈 + 유리 너머. 빛이 표정을 돕는다(등불 쪽 뺨이 밝다)',
+  roles:'음영 6단이라 역할별 천 재질(가죽·고무·캔버스)을 색으로 구분할 수 있다',
+  cost:'프레임당 ~1,500px + 가장자리 풀기 후처리. 자동화되어 추가 비용은 거의 없다'},
+ {k:'p5', t:'P5 · 실루엣 중심', tag:'물속용', cold:true,
+  face:'얼굴을 그리지 않는다. 면갑의 물빛 테와 랜턴 밝기가 기분을 말한다',
+  roles:'어깨판 폭·장비 돌출만으로 구분. 8역할까지는 어렵고 4~5종이 한계',
+  cost:'가장 싸다. 프레임당 실질 색 4개. 다만 밝은 방에서는 구멍처럼 보인다'},
+ {k:'p6', t:'P6 · 굵은 외곽선 치비', tag:'모바일',
+  face:'4×5 큰 눈 + 벌린 입 + 혀 1px. 작은 화면에서 표정이 가장 멀리 간다',
+  roles:'머리가 크므로 모자·헬멧 변형만으로 8역할. 몸은 거의 공용',
+  cost:'프레임당 ~1,200px. 외곽선 2px이라 수정이 번거롭지만 재사용률이 가장 높다'},
+];
+const PLATE_FLOOR = 248, PLATE_CX = 138;
+const SPR = {p1:[22,32,4], p2:[32,48,3], p3:[42,64,2], p4:[36,64,2], p5:[34,48,3], p6:[38,42,3]};
+
+const grid = document.getElementById('grid');
+DIRS.forEach(d=>{
+  const [w,h,k] = SPR[d.k];
+  const sw = w*k, sh = h*k;
+  const left = Math.round(PLATE_CX - sw/2), top = PLATE_FLOOR - sh;
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `
+   <h2>${d.t}${d.tag?`<span class="tag${d.cold?' cold':''}">${d.tag}</span>`:''}</h2>
+   <div class="meta">원본 ${w}×${h}px · 실사용 ×${k} = ${sh}px (방 주민 키 132px)</div>
+   <div class="stage">
+     <div class="shadow" style="left:${left+sw*0.11}px;top:${PLATE_FLOOR-sh*0.055}px;
+          width:${sw*0.78}px;height:${Math.max(5,sh*0.09)}px"></div>
+     <div class="walker" id="w_${d.k}"
+          style="left:${left}px;top:${top}px;width:${sw}px;height:${sh}px;
+                 background-image:url('art/chars/pixel/${d.k}/walk_sheet_lit.png');
+                 background-size:${sw*3}px ${sh}px"></div>
+   </div>
+   <div class="bar">
+     <button data-k="${d.k}">걷기 ▶</button>
+     <span class="meta" style="padding:0">실제 렌더 방 · 1배 · 정수 배율 ×${k}</span>
+   </div>
+   <div class="shots">
+     <img class="full" src="art/chars/pixel/${d.k}/scene.png" alt="${d.k} 판정 컷">
+     <img src="art/chars/pixel/${d.k}/face.png" alt="${d.k} 얼굴">
+     <img src="art/chars/pixel/${d.k}/full4x.png" alt="${d.k} 4배">
+     <img class="full" src="art/chars/pixel/${d.k}/room.png" alt="${d.k} 배율별 크기">
+     <img class="full" src="art/chars/pixel/${d.k}/walk.png" alt="${d.k} 걷기 3프레임">
+   </div>
+   <div class="note">
+     <b>표정</b> ${d.face}<br>
+     <b>8역할 확장</b> ${d.roles}<br>
+     <b>애니 비용</b> ${d.cost}
+   </div>`;
+  grid.appendChild(el);
+});
+
+document.querySelectorAll('button[data-k]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const el = document.getElementById('w_'+b.dataset.k);
+    const on = el.classList.toggle('run');
+    b.textContent = on ? '정지 ■' : '걷기 ▶';
+  });
+});
+</script>
+</body>
+</html>

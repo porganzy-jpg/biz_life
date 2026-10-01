@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>잔해 방주 — 캐릭터 컨셉 여섯</title>
+<style>
+  :root{
+    --ink:#17120c; --panel:#23190f; --panel2:#2c2013; --line:#4a3520;
+    --cream:#f0e2c6; --bone:#d9c8a4; --ochre:#d8a241; --amber:#e8b85c;
+    --oxblood:#8b3a2a; --olive:#6e6a3c; --dim:#a9906c;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:
+      radial-gradient(1100px 520px at 50% -140px, #3a2a19 0%, #17120c 70%),
+      var(--ink);
+    color:var(--cream);
+    font-family:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+    line-height:1.7;
+  }
+  header{max-width:1180px;margin:0 auto;padding:56px 24px 12px}
+  .crit{
+    font-size:1.45rem; font-weight:700; letter-spacing:-.01em;
+    border-left:5px solid var(--ochre); padding:10px 0 10px 18px; margin:0 0 14px;
+  }
+  .crit small{display:block;font-weight:400;font-size:.92rem;color:var(--dim);margin-top:6px}
+  h1{font-size:1.05rem;font-weight:600;color:var(--amber);margin:0 0 4px;letter-spacing:.06em}
+  .lead{color:var(--bone);font-size:.95rem;max-width:74ch;margin:0 0 6px}
+  .warn{color:var(--dim);font-size:.85rem;max-width:80ch;border-top:1px solid var(--line);
+        margin-top:20px;padding-top:14px}
+  main{max-width:1180px;margin:0 auto;padding:16px 24px 90px}
+
+  .c{
+    display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:30px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:14px;
+    padding:26px; margin:0 0 30px;
+  }
+  .c > .art{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .art img.full{width:100%;max-width:360px;border-radius:10px;display:block}
+  .tag{
+    align-self:flex-start; font-size:.78rem; letter-spacing:.1em; color:var(--ink);
+    background:var(--ochre); border-radius:999px; padding:3px 12px; font-weight:700;
+  }
+  h2{margin:0 0 2px;font-size:1.5rem;letter-spacing:-.01em}
+  h2 span{font-size:.9rem;color:var(--dim);font-weight:400;margin-left:10px;letter-spacing:.04em}
+  .one{color:var(--amber);font-size:1.02rem;margin:0 0 14px}
+  .row{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:6px 0 16px}
+  .row figure{margin:0;text-align:center}
+  .row figcaption{font-size:.74rem;color:var(--dim);margin-top:5px;letter-spacing:.04em}
+  .row img{display:block;border-radius:6px;background:#100c07}
+  .pix img{image-rendering:pixelated}
+  img.face{width:230px;height:230px;border-radius:10px;display:block}
+  dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0;font-size:.93rem}
+  dt{color:var(--amber);white-space:nowrap}
+  dd{margin:0;color:var(--bone)}
+  .cost{display:inline-block;color:var(--ochre);letter-spacing:2px}
+  @media (max-width:860px){ .c{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <p class="crit">고르는 기준: 저 사람을 지켜 주고 싶은가.
+    <small>아늑한 생존물의 주인공은 보호하고 싶은 대상이어야 한다. 잘 그렸는가가 아니라 그것 하나로 고른다.</small>
+  </p>
+  <h1>캐릭터 컨셉 여섯 — 제로베이스 탐색</h1>
+  <p class="lead">
+    같은 인물(<b>정찰병</b>)을 여섯 방향으로 따로 만들었다. 기존 <code>a·b·c</code>를 고친 것이 아니라
+    각자 자기 형태 언어로 처음부터 그린 것이다. 공통 제약은 셋뿐 —
+    ①심해 잠수복 차림 ②흙 계열 따뜻한 색이 바탕(차가운 색은 물과 유리에만) ③70px에서 실루엣이 읽힌다.
+  </p>
+  <p class="lead">
+    같은 사람임을 알아보는 표식 여섯: 머리에 얹은 구식 헬멧과 부리 같은 배기관 · 두툼한 목 실링 ·
+    등의 공기통 · 허리의 랜턴(이 인물의 유일한 광원) · 왼 어깨의 기운 자국(빗금) · 너무 큰 장갑과 무게추 부츠.
+  </p>
+</header>
+
+<main>
+
+<!-- C1 -->
+<section class="c">
+  <div class="art">
+    <span class="tag">C1</span>
+    <img class="full" src="art/chars/concepts/c1/full.png" alt="C1 동화 삽화 전신">
+  </div>
+  <div>
+    <h2>동화 삽화 <span>storybook · 약 4.2등신</span></h2>
+    <p class="one">따뜻한 황토 빛에 잠긴 손그림. 얼굴을 전부 그리고 연필 결을 남긴다.</p>
+    <div class="row">
+      <figure><img class="face" src="art/chars/concepts/c1/face.png" alt="C1 얼굴"><figcaption>얼굴 확대</figcaption></figure>
+      <figure><img src="art/chars/concepts/c1/t70.png" alt="70px"><figcaption>70px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c1/t110.png" alt="110px"><figcaption>110px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c1/sil70.png" alt="실루엣"><figcaption>70px 실루엣</figcaption></figure>
+    </div>
+    <dl>
+      <dt>표정</dt><dd>얼굴이 직접 말한다 — 눈동자·눈썹·입·주근깨·볼 홍조. 여섯 중 감정 폭이 가장 넓다.</dd>
+      <dt>8역할 확장</dt><dd>같은 덩어리에 <b>머리 물건 하나 + 앞치마 색 하나 + 반복 무늬 하나</b>를 바꾼다. 앞치마 색이 역할 색이 된다.</dd>
+      <dt>제작 비용</dt><dd><span class="cost">●●●●○</span> 가장 비싸다. 결·음영·손그림 선을 역할마다 다시 얹어야 하고 애니메이션이 특히 비싸다.</dd>
+      <dt>위험</dt><dd>세부가 많아 70px에서 뭉친다. 지금도 여섯 중 축소 판독이 가장 약하다.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- C2 -->
+<section class="c">
+  <div class="art">
+    <span class="tag">C2</span>
+    <img class="full" src="art/chars/concepts/c2/full.png" alt="C2 통통 치비 전신">
+  </div>
+  <div>
+    <h2>통통 치비 <span>cozy chibi · 약 2.4등신</span></h2>
+    <p class="one">머리가 크고 선이 굵고 색이 평평하다. 모바일 아늑한 게임의 정석.</p>
+    <div class="row">
+      <figure><img class="face" src="art/chars/concepts/c2/face.png" alt="C2 얼굴"><figcaption>얼굴 확대</figcaption></figure>
+      <figure><img src="art/chars/concepts/c2/t70.png" alt="70px"><figcaption>70px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c2/t110.png" alt="110px"><figcaption>110px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c2/sil70.png" alt="실루엣"><figcaption>70px 실루엣</figcaption></figure>
+    </div>
+    <dl>
+      <dt>표정</dt><dd>큰 눈과 눈썹 각도. 눈 하나가 화면의 큰 면적이라 70px에서도 기분이 보인다.</dd>
+      <dt>8역할 확장</dt><dd>머리 물건과 몸통 색만 갈아도 구분된다. 머리가 커서 모자·고글·마스크가 잘 읽힌다 — 8역할에 가장 유리하다.</dd>
+      <dt>제작 비용</dt><dd><span class="cost">●●○○○</span> 가장 싸다. 질감이 없어 색만 갈면 되고 애니메이션도 단순하다.</dd>
+      <dt>위험</dt><dd>흔하다. "어디서 본 모바일 게임"으로 읽힐 수 있고 심해의 무게감이 약해진다.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- C3 -->
+<section class="c">
+  <div class="art">
+    <span class="tag">C3</span>
+    <img class="full" src="art/chars/concepts/c3/full.png" alt="C3 잠수복이 캐릭터다 전신">
+  </div>
+  <div>
+    <h2>잠수복이 캐릭터다 <span>suit-first · 체형 없음</span></h2>
+    <p class="one">사람의 몸을 지운다. 누빈 자루 하나와 둥근 헬멧, 그리고 창 안의 불빛.</p>
+    <div class="row">
+      <figure><img class="face" src="art/chars/concepts/c3/face.png" alt="C3 헬멧 확대"><figcaption>헬멧 확대</figcaption></figure>
+      <figure><img src="art/chars/concepts/c3/t70.png" alt="70px"><figcaption>70px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c3/t110.png" alt="110px"><figcaption>110px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c3/sil70.png" alt="실루엣"><figcaption>70px 실루엣</figcaption></figure>
+    </div>
+    <div class="row">
+      <figure><img src="art/chars/concepts/c3/moods.png" alt="헬멧 세 표정" style="width:100%;max-width:520px">
+        <figcaption>표정은 창 불빛이 대신한다 — 평온(고른 호박색) / 놀람(밝게 튀고 고개가 젖혀짐) / 지침(어두워지고 고개가 숙여짐)</figcaption></figure>
+    </div>
+    <dl>
+      <dt>표정</dt><dd>얼굴이 없다. <b>창 불빛의 밝기·색·기울기</b>가 전부. 불빛 속에 잠긴 흐릿한 그림자가 "안에 사람이 있다"의 유일한 단서다.</dd>
+      <dt>8역할 확장</dt><dd>실루엣과 등짐으로만 가른다. 헬멧 모양·자루 길이·들고 있는 물건. 얼굴이 없어 구분 단서가 셋뿐이라 8명이 되면 빠듯하다.</dd>
+      <dt>제작 비용</dt><dd><span class="cost">●●○○○</span> 싸다. 얼굴 애니메이션이 없고 불빛은 색 하나로 바꾼다. 감정 표현이 <b>런타임 변수</b>가 되는 유일한 안이다.</dd>
+      <dt>위험</dt><dd>정이 붙지 않을 수 있다. "지켜 주고 싶은가"에 가장 불리한 안이자, 세계관에는 가장 정직한 안.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- C4 -->
+<section class="c">
+  <div class="art">
+    <span class="tag">C4</span>
+    <img class="full pix" src="art/chars/concepts/c4/full.png" alt="C4 픽셀 도트 전신">
+  </div>
+  <div>
+    <h2>픽셀 도트 <span>38×56 그리드 · 14색</span></h2>
+    <p class="one">게임 크기에서 1:1로 찍는다. 축소가 없으니 뭉개질 것도 없다.</p>
+    <div class="row pix">
+      <figure><img class="face" src="art/chars/concepts/c4/face.png" alt="C4 얼굴"><figcaption>얼굴 확대(1픽셀 = 1점)</figcaption></figure>
+      <figure><img src="art/chars/concepts/c4/t70.png" alt="70px"><figcaption>70px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c4/t110.png" alt="110px"><figcaption>110px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c4/sil70.png" alt="실루엣"><figcaption>70px 실루엣</figcaption></figure>
+    </div>
+    <dl>
+      <dt>표정</dt><dd>눈 2×2 · 눈썹 4×1 · 입 3×1. 점 몇 개로 바꾸므로 표정 교체가 사실상 공짜다.</dd>
+      <dt>8역할 확장</dt><dd>머리 부분 8종 + 몸통 색 8종의 조각 교체. 조합 폭발에 가장 강하다(각인 파츠도 점 몇 개).</dd>
+      <dt>제작 비용</dt><dd><span class="cost">●○○○○</span> 가장 싸다. 애니메이션도 프레임당 점 몇 개. 대신 <b>사람이 한 점씩 찍어야</b> 하므로 절차 생성이 잘 안 먹는다.</dd>
+      <dt>위험</dt><dd>평면 단면 거점의 큰 화면과 해상도가 싸운다. 배경도 전부 도트로 가야 하므로 <b>이 선택은 배경 담당까지 바꾼다</b>.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- C5 -->
+<section class="c">
+  <div class="art">
+    <span class="tag">C5</span>
+    <img class="full" src="art/chars/concepts/c5/full.png" alt="C5 종이 오림 전신">
+  </div>
+  <div>
+    <h2>종이 오림 <span>paper cutout · 관절 핀 인형</span></h2>
+    <p class="one">판지를 오려 겹치고 놋쇠 핀으로 이었다. 그림자극과 민속 공예의 결.</p>
+    <div class="row">
+      <figure><img class="face" src="art/chars/concepts/c5/face.png" alt="C5 얼굴"><figcaption>얼굴 확대</figcaption></figure>
+      <figure><img src="art/chars/concepts/c5/t70.png" alt="70px"><figcaption>70px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c5/t110.png" alt="110px"><figcaption>110px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c5/sil70.png" alt="실루엣"><figcaption>70px 실루엣</figcaption></figure>
+    </div>
+    <dl>
+      <dt>표정</dt><dd>얼굴 조각을 갈아 끼운다. 눈·눈썹·입이 <b>따로 오려 붙인 조각</b>이라 교체가 곧 표정이다.</dd>
+      <dt>8역할 확장</dt><dd>같은 몸판에 조각만 바꿔 붙인다. 부족 의상도 덧댄 조각 하나로 끝난다 — 8역할 확장이 개념적으로 가장 깔끔하다.</dd>
+      <dt>제작 비용</dt><dd><span class="cost">●●○○○</span> 싸다. 관절이 핀이라 애니메이션이 <b>조각 회전</b>으로 끝난다(2D 뼈대와 그대로 맞는다).</dd>
+      <dt>위험</dt><dd>납작해서 심해의 압력과 무게가 안 실린다. 귀여움보다 공예 쪽으로 기운다.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- C6 -->
+<section class="c">
+  <div class="art">
+    <span class="tag">C6</span>
+    <img class="full" src="art/chars/concepts/c6/full.png" alt="C6 펠트 인형 전신">
+  </div>
+  <div>
+    <h2>펠트 인형 <span>felted wool · 손으로 만든 물건</span></h2>
+    <p class="one">양모를 뭉쳐 바늘로 찔러 만든 인형. 따뜻함이 색이 아니라 재질에서 나온다.</p>
+    <div class="row">
+      <figure><img class="face" src="art/chars/concepts/c6/face.png" alt="C6 얼굴"><figcaption>얼굴 확대</figcaption></figure>
+      <figure><img src="art/chars/concepts/c6/t70.png" alt="70px"><figcaption>70px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c6/t110.png" alt="110px"><figcaption>110px</figcaption></figure>
+      <figure><img src="art/chars/concepts/c6/sil70.png" alt="실루엣"><figcaption>70px 실루엣</figcaption></figure>
+    </div>
+    <dl>
+      <dt>표정</dt><dd>실 눈(매듭)과 바느질 한 줄. 표정 폭은 좁지만 <b>가만히 있어도 보호 본능을 부른다</b>.</dd>
+      <dt>8역할 확장</dt><dd>펠트 조각을 덧대고 실 색을 바꾼다. 부족 표식이 곧 <b>바느질 무늬</b>가 된다(성경의 '몸의 상실'을 꿰맨 자국으로 번역할 수 있다).</dd>
+      <dt>제작 비용</dt><dd><span class="cost">●●●○○</span> 중간. 보풀과 실밥이 절차로 생성되지만 조각마다 다시 돌려야 한다. 애니메이션에서 보풀이 떨릴 위험.</dd>
+      <dt>위험</dt><dd>재질이 강해서 세계관이 "무서운 심해"가 아니라 "인형극"이 된다. 2막·3막의 공포와 충돌할 수 있다.</dd>
+    </dl>
+  </div>
+</section>
+
+<p class="warn">
+  제작 방식: 전부 Python + Pillow 절차 생성(<code>tools/gen_char_concepts.py</code>).
+  <b>생성 AI 이미지는 한 점도 쓰지 않았다</b>(교본 07 §3-4 일관성 함정 · §6 공개 부담).
+  기존 3D 렌더를 베이스로 쓰지 않은 것은 의도다 — 변형 a·b·c가 전부 같은 렌더 위에 후처리만 갈아 끼운 탓에
+  같은 오독(얼굴 최소·극단 대비)을 세 번 물려받았기 때문이다(<code>docs/refs/REF_ART_FLAT_FOLK.md</code> §0).
+  여섯은 완성품이 아니라 <b>방향 시안</b>이다. 고른 하나만 제대로 만든다.
+</p>
+
+</main>
+</body>
+</html>

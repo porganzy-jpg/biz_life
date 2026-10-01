@@ -336,135 +336,137 @@ def save(cid, name, img):
 # C1. 동화 삽화 — 4.5등신, 얼굴을 전부 그린다, 연필 결, 3단 음영
 # ══════════════════════════════════════════════════════════════════════
 def concept_c1():
-    W, H = 540, 780
+    W, H = 580, 780
     p = Pen(W, H, ss=3)
-    cx = 268.0
-    FEET = 744.0
+    cx = 290.0
 
-    # ── 등 공기통 ──
-    p.poly(spline(ell(cx + 108, 360, 44, 92)[::6]), fill=(80, 62, 40))
-    p.poly(spline(ell(cx + 104, 352, 34, 78)[::6]), fill=(104, 84, 52))
-    p.line(spline([(cx + 96, 288), (cx + 128, 252), (cx + 92, 214), (cx + 46, 206)],
+    # -- 등 공기통 --
+    p.poly(spline(ell(cx + 100, 356, 40, 88)[::6]), fill=(80, 62, 40))
+    p.poly(spline(ell(cx + 96, 348, 30, 74)[::6]), fill=(104, 84, 52))
+    p.line(spline([(cx + 88, 288), (cx + 122, 250), (cx + 86, 212), (cx + 40, 204)],
                   closed=False), fill=(64, 48, 32), width=12)
 
-    # ── 다리 · 무게추 부츠 (가운데 어두운 틈으로 갈라 놓는다) ──
+    # -- 다리 · 무게추 부츠 (사이를 벌려 실루엣에 구멍을 낸다) --
     for sgn in (-1, 1):
-        bx = cx + sgn * 50
+        bx = cx + sgn * 44
         col = SUIT if sgn < 0 else SUIT_SH
-        p.poly(spline([(bx - 38, 500), (bx + 38, 500), (bx + 42, 610), (bx + 36, 678),
-                       (bx - 36, 678), (bx - 42, 610)]), fill=col)
+        p.poly(spline([(bx - 28, 498), (bx + 28, 498), (bx + 32, 600), (bx + 28, 672),
+                       (bx - 28, 672), (bx - 32, 600)]), fill=col)
         if sgn < 0:
-            p.poly(spline([(bx - 36, 508), (bx - 4, 502), (bx - 8, 660), (bx - 34, 664)]),
+            p.poly(spline([(bx - 26, 506), (bx - 2, 502), (bx - 6, 656), (bx - 24, 660)]),
                    fill=SUIT_LT)
-        p.poly(spline([(bx - 52, 664), (bx + 52, 664), (bx + 58, 714), (bx + 48, 740),
-                       (bx - 48, 740), (bx - 58, 714)]), fill=(52, 40, 28))
-        p.poly([(bx - 54, 694), (bx + 54, 694), (bx + 55, 708), (bx - 55, 708)], fill=BRASS_SH)
-    p.poly([(cx - 12, 500), (cx + 12, 500), (cx + 10, 672), (cx - 10, 672)], fill=(44, 33, 22))
+        p.poly(spline([(bx - 40, 658), (bx + 40, 658), (bx + 46, 706), (bx + 38, 736),
+                       (bx - 38, 736), (bx - 46, 706)]), fill=(52, 40, 28))
+        p.poly([(bx - 42, 686), (bx + 42, 686), (bx + 43, 700), (bx - 43, 700)], fill=BRASS_SH)
+    # 두 다리 사이의 어두운 틈 — 70px 에서 다리가 한 기둥으로 뭉치는 것을 막는다
+    p.poly([(cx - 17, 500), (cx + 17, 500), (cx + 13, 668), (cx - 13, 668)], fill=(38, 28, 19))
 
-    # ── 몸통: 아래가 무거운 덩어리 (REF §1-6) ──
-    body = spline([(cx - 96, 306), (cx - 74, 258), (cx, 244), (cx + 74, 258), (cx + 96, 306),
-                   (cx + 110, 410), (cx + 104, 512), (cx, 532), (cx - 104, 512), (cx - 110, 410)])
+    # -- 몸통 --
+    body = spline([(cx - 84, 304), (cx - 66, 258), (cx, 244), (cx + 66, 258), (cx + 84, 304),
+                   (cx + 94, 406), (cx + 90, 506), (cx, 528), (cx - 90, 506), (cx - 94, 406)])
     p.poly(wobble(body, 1.6, 4), fill=SUIT)
-    p.poly(spline([(cx - 88, 302), (cx - 44, 256), (cx + 4, 250), (cx + 16, 320),
-                   (cx - 2, 430), (cx - 46, 500), (cx - 96, 470), (cx - 104, 360)]), fill=SUIT_LT)
-    p.poly(spline([(cx + 44, 268), (cx + 96, 306), (cx + 110, 410), (cx + 104, 512),
-                   (cx + 42, 522), (cx + 56, 400)]), fill=SUIT_SH)
+    p.poly(spline([(cx - 78, 300), (cx - 38, 254), (cx + 4, 250), (cx + 14, 320),
+                   (cx - 2, 430), (cx - 42, 498), (cx - 84, 470), (cx - 90, 358)]), fill=SUIT_LT)
+    p.poly(spline([(cx + 38, 266), (cx + 84, 304), (cx + 94, 406), (cx + 90, 506),
+                   (cx + 38, 516), (cx + 50, 398)]), fill=SUIT_SH)
     # 앞치마 — 올리브 캔버스. 갈색 일색을 끊는 색 하나
-    p.poly(wobble(spline([(cx - 66, 368), (cx + 66, 368), (cx + 78, 470), (cx + 62, 516),
-                          (cx - 62, 516), (cx - 78, 470)]), 1.6, 9), fill=MOSS)
-    p.poly(spline([(cx - 62, 372), (cx - 8, 370), (cx - 16, 512), (cx - 58, 512)]), fill=OLIVE)
-    for i, yy in enumerate((398, 438, 478)):
-        p.line(wobble([(cx - 72, yy), (cx, yy + 5), (cx + 74, yy - 2)], 1.2, 10 + i),
+    p.poly(wobble(spline([(cx - 58, 364), (cx + 58, 364), (cx + 68, 462), (cx + 54, 510),
+                          (cx - 54, 510), (cx - 68, 462)]), 1.6, 9), fill=MOSS)
+    p.poly(spline([(cx - 54, 368), (cx - 6, 366), (cx - 14, 506), (cx - 50, 506)]), fill=OLIVE)
+    for i, yy in enumerate((394, 432, 470)):
+        p.line(wobble([(cx - 62, yy), (cx, yy + 5), (cx + 64, yy - 2)], 1.2, 10 + i),
                fill=(58, 60, 34), width=3)
-    # 적갈 멜빵 — 왼어깨에서 오른허리로
-    p.poly(wobble([(cx - 70, 268), (cx - 36, 262), (cx + 62, 486), (cx + 30, 496)], 1.6, 13),
+    # 적갈 멜빵
+    p.poly(wobble([(cx - 62, 266), (cx - 30, 260), (cx + 54, 478), (cx + 24, 488)], 1.6, 13),
            fill=OXBLOOD)
-    # 누빔 주름
-    for i, yy in enumerate((318, 344)):
-        p.line(wobble([(cx - 96, yy), (cx, yy + 7), (cx + 98, yy - 2)], 1.2, 16 + i),
+    for i, yy in enumerate((316, 342)):
+        p.line(wobble([(cx - 84, yy), (cx, yy + 7), (cx + 86, yy - 2)], 1.2, 16 + i),
                fill=SUIT_SH, width=3)
 
-    # ── 왼 어깨 기운 자국(빗금) ──
+    # -- 왼 어깨 기운 자국(빗금) --
     for i in range(5):
-        x0 = cx - 92 + i * 12
-        p.line([(x0, 306 + i * 3), (x0 + 9, 334 + i * 3)], fill=(112, 44, 34), width=4)
+        x0 = cx - 80 + i * 11
+        p.line([(x0, 304 + i * 3), (x0 + 8, 330 + i * 3)], fill=(112, 44, 34), width=4)
 
-    # ── 팔 + 너무 큰 장갑 (안쪽에 어두운 선을 그어 몸통과 떼어 놓는다) ──
+    # -- 팔: 몸통 바깥으로. 왼팔은 내리고 오른팔은 갈고리를 들었다 --
+    p.poly(wobble(spline([(cx - 80, 286), (cx - 118, 314), (cx - 132, 396),
+                          (cx - 124, 452), (cx - 92, 450), (cx - 88, 380),
+                          (cx - 78, 320)]), 1.4, 21), fill=(142, 98, 50))
+    p.line(wobble([(cx - 82, 296), (cx - 90, 372), (cx - 96, 444)], 1.2, 24),
+           fill=(54, 38, 24), width=6)
+    p.poly([(cx - 130, 432), (cx - 92, 430), (cx - 90, 450), (cx - 128, 452)], fill=BONE)
+    p.poly(spline(wobble(ell(cx - 118, 478, 40, 38)[::6], 1.6, 26)), fill=CANVASC)
+    p.poly(spline(ell(cx - 124, 468, 25, 23)[::6]), fill=BONE)
+    p.poly(wobble(spline([(cx + 78, 286), (cx + 122, 300), (cx + 148, 364),
+                          (cx + 138, 400), (cx + 108, 386), (cx + 92, 336),
+                          (cx + 74, 314)]), 1.4, 22), fill=(142, 98, 50))
+    p.line(wobble([(cx + 80, 294), (cx + 104, 336), (cx + 128, 384)], 1.2, 25),
+           fill=(54, 38, 24), width=6)
+    p.poly([(cx + 112, 372), (cx + 142, 384), (cx + 134, 402), (cx + 106, 390)], fill=BONE)
+    p.poly(spline(wobble(ell(cx + 150, 400, 40, 38)[::6], 1.6, 27)), fill=CANVASC)
+    p.poly(spline(ell(cx + 144, 392, 25, 23)[::6]), fill=BONE)
+    p.line([(cx + 156, 416), (cx + 170, 320)], fill=BRASS_SH, width=9)
+    p.line(ell(cx + 160, 312, 17, 17, a0=2.2, a1=5.6)[::2], fill=BRASS, width=9)
+
+    # -- 벨트 + 랜턴 --
+    p.poly([(cx - 94, 470), (cx + 94, 470), (cx + 92, 500), (cx - 92, 500)], fill=(58, 44, 30))
+    p.poly([(cx - 22, 464), (cx + 18, 464), (cx + 18, 506), (cx - 22, 506)], fill=BRASS)
+    p.poly(spline(ell(cx - 84, 520, 25, 31)[::6]), fill=BRASS_SH)
+    p.poly(spline(ell(cx - 84, 520, 16, 21)[::6]), fill=LAMP)
+
+    # -- 목 실링: 솜 덩어리 4겹 --
+    for i, (ry, col) in enumerate(((30, (132, 92, 48)), (25, CANVASC), (21, SUIT_LT), (15, BONE))):
+        p.poly(spline(wobble(ell(cx, 260 - i * 12, 90 - i * 8, ry)[::5], 1.8, 30 + i)), fill=col)
+
+    # -- 머리 --
+    hx, hy = cx - 2, 164
+    p.poly(spline(ell(hx - 72, hy + 18, 12, 17)[::6]), fill=SKIN_SH)
+    p.poly(spline(ell(hx + 72, hy + 18, 12, 17)[::6]), fill=SKIN_SH)
+    p.poly(spline(wobble(ell(hx, hy, 72, 86)[::5], 2.0, 41)), fill=SKIN)
+    p.poly(spline(ell(hx + 30, hy + 12, 44, 72)[::6]), fill=SKIN_SH)
+    p.poly(spline(ell(hx - 24, hy - 16, 40, 46)[::6]), fill=SKIN_LT)
+    p.poly(spline([(hx - 70, hy - 20), (hx - 64, hy - 58), (hx - 12, hy - 74),
+                   (hx + 52, hy - 64), (hx + 70, hy - 24), (hx + 50, hy - 16),
+                   (hx + 24, hy - 44), (hx - 6, hy - 34), (hx - 34, hy - 46),
+                   (hx - 52, hy - 10)]), fill=(58, 42, 30))
+
+    # -- 얼굴을 전부 그린다 --
     for sgn in (-1, 1):
-        sx = cx + sgn * 92
-        arm = spline([(sx - sgn * 6, 292), (sx + sgn * 34, 320), (sx + sgn * 44, 394),
-                      (sx + sgn * 32, 454), (sx + sgn * 2, 452), (sx - sgn * 10, 380),
-                      (sx - sgn * 14, 320)])
-        p.poly(wobble(arm, 1.4, 20 + sgn), fill=SUIT_LT if sgn < 0 else (150, 104, 54))
-        p.line(wobble([(sx - sgn * 4, 300), (sx + sgn * 2, 372), (sx + sgn * 12, 446)], 1.2, 24),
-               fill=(70, 48, 30), width=4)
-        p.poly(spline(wobble(ell(sx + sgn * 34, 474, 42, 40)[::6], 1.6, 26 + sgn)), fill=CANVASC)
-        p.poly(spline(ell(sx + sgn * 40, 464, 26, 24)[::6]), fill=BONE)
-    # 오른손의 짧은 갈고리
-    p.line([(cx + 128, 456), (cx + 152, 386)], fill=BRASS_SH, width=9)
-    p.line(ell(cx + 144, 378, 17, 17, a0=2.2, a1=5.6)[::2], fill=BRASS, width=9)
-
-    # ── 벨트 + 랜턴 ──
-    p.poly([(cx - 108, 476), (cx + 108, 476), (cx + 106, 506), (cx - 106, 506)], fill=(58, 44, 30))
-    p.poly([(cx - 26, 470), (cx + 18, 470), (cx + 18, 512), (cx - 26, 512)], fill=BRASS)
-    p.poly(spline(ell(cx - 96, 524, 26, 32)[::6]), fill=BRASS_SH)
-    p.poly(spline(ell(cx - 96, 524, 17, 22)[::6]), fill=LAMP)
-
-    # ── 목 실링: 솜 덩어리 4겹 ──
-    for i, (ry, col) in enumerate(((32, (132, 92, 48)), (27, CANVASC), (22, SUIT_LT), (16, BONE))):
-        p.poly(spline(wobble(ell(cx, 262 - i * 13, 106 - i * 9, ry)[::5], 1.8, 30 + i)), fill=col)
-
-    # ── 머리 (달걀형. 귀는 작게) ──
-    hx, hy = cx - 2, 158
-    p.poly(spline(ell(hx - 74, hy + 18, 12, 17)[::6]), fill=SKIN_SH)
-    p.poly(spline(ell(hx + 74, hy + 18, 12, 17)[::6]), fill=SKIN_SH)
-    p.poly(spline(wobble(ell(hx, hy, 74, 88)[::5], 2.0, 41)), fill=SKIN)
-    p.poly(spline(ell(hx + 30, hy + 12, 46, 74)[::6]), fill=SKIN_SH)
-    p.poly(spline(ell(hx - 24, hy - 16, 42, 48)[::6]), fill=SKIN_LT)
-    # 머리카락 — 헬멧 밑으로 삐져나온 앞머리
-    p.poly(spline([(hx - 70, hy - 26), (hx - 62, hy - 66), (hx - 12, hy - 80),
-                   (hx + 52, hy - 70), (hx + 70, hy - 30), (hx + 52, hy - 22),
-                   (hx + 26, hy - 44), (hx - 6, hy - 26), (hx - 34, hy - 46),
-                   (hx - 52, hy - 16)]), fill=(58, 42, 30))
-
-    # ── 얼굴을 전부 그린다 (DECISIONS 2026-09-27) ──
-    for sgn in (-1, 1):
-        ex = hx + sgn * 30
-        p.poly(spline(ell(ex, hy + 14, 19, 21)[::6]), fill=CREAM)
-        p.poly(spline(ell(ex + sgn * 2, hy + 17, 12, 14)[::6]), fill=(42, 30, 22))
-        p.dot(ex - sgn * 3, hy + 10, 4.5, CREAM)
-        p.line([(ex - 19, hy - 18), (ex - 3, hy - 26), (ex + 17, hy - 20)] if sgn < 0
-               else [(ex - 17, hy - 20), (ex + 3, hy - 26), (ex + 19, hy - 18)],
-               fill=(64, 46, 32), width=6)
-    p.line([(hx - 3, hy + 30), (hx + 3, hy + 41), (hx - 6, hy + 43)], fill=SKIN_SH, width=4)
-    p.line(ell(hx, hy + 46, 19, 15, a0=0.35, a1=2.79)[::2], fill=(128, 60, 48), width=5)
-    p.poly(spline(ell(hx, hy + 53, 12, 6)[::6]), fill=(176, 90, 74))
+        ex = hx + sgn * 29
+        p.poly(spline(ell(ex, hy + 16, 19, 21)[::6]), fill=CREAM)
+        p.poly(spline(ell(ex + sgn * 2, hy + 19, 12, 14)[::6]), fill=(42, 30, 22))
+        p.dot(ex - sgn * 3, hy + 12, 4.5, CREAM)
+        p.line([(ex - 18, hy - 22), (ex - 2, hy - 30), (ex + 16, hy - 26)] if sgn < 0
+               else [(ex - 16, hy - 26), (ex + 2, hy - 30), (ex + 18, hy - 22)],
+               fill=(78, 56, 38), width=5)
+    p.line([(hx - 3, hy + 32), (hx + 3, hy + 43), (hx - 6, hy + 45)], fill=SKIN_SH, width=4)
+    p.line(ell(hx, hy + 48, 19, 15, a0=0.35, a1=2.79)[::2], fill=(128, 60, 48), width=5)
     for sgn in (-1, 1):
         lay = Pen(W, H, ss=3)
-        lay.poly(spline(ell(hx + sgn * 52, hy + 40, 23, 14)[::6]), fill=BLUSH + (135,))
+        lay.poly(spline(ell(hx + sgn * 50, hy + 42, 22, 14)[::6]), fill=BLUSH + (135,))
         p.img.alpha_composite(lay.img)
     rng = random.Random(9)
     for _ in range(11):
-        a = rng.uniform(0, math.tau); r = rng.uniform(18, 54)
-        p.dot(hx + math.cos(a) * r, hy + 32 + math.sin(a) * 8, 2.6, (188, 128, 90))
+        a = rng.uniform(0, math.tau); r = rng.uniform(18, 52)
+        p.dot(hx + math.cos(a) * r, hy + 34 + math.sin(a) * 8, 2.6, (188, 128, 90))
 
-    # ── 헬멧: 얼굴을 덮지 않고 정수리에 얹혀 있다 (REF §1-8 번역) ──
-    g = helmet_geo(hx + 6, hy - 82, 78)
+    # -- 헬멧: 얼굴을 덮지 않고 정수리에 얹혀 있다 --
+    g = helmet_geo(hx + 6, hy - 106, 66)
     p.poly(spline(wobble(g["rim"][::6], 1.4, 60)), fill=(128, 94, 28))
     p.poly(spline(wobble(g["shell"][::5], 1.6, 61)), fill=BRASS)
     p.poly(spline(g["crest"][::6]), fill=BRASS_LT)
     p.poly(spline(g["port_ring"][::6]), fill=BRASS_SH)
     p.poly(spline(g["port"][::6]), fill=TEAL)
-    p.poly(spline(ell(hx + 20, hy - 92, 12, 8)[::6]), fill=(118, 166, 164))
-    p.line(g["pipe"], fill=(128, 94, 28), width=15)
-    p.poly(spline(ell(*g["pipe"][-1], 12, 12)[::8]), fill=(70, 52, 34))
+    p.poly(spline(ell(hx + 18, hy - 114, 10, 7)[::6]), fill=(118, 166, 164))
+    p.line(g["pipe"], fill=(128, 94, 28), width=13)
+    p.poly(spline(ell(g["pipe"][-1][0], g["pipe"][-1][1], 11, 11)[::8]), fill=(70, 52, 34))
     for bx_, by_ in g["bolts"]:
-        p.dot(bx_, by_, 5, BRASS_LT)
+        p.dot(bx_, by_, 4.5, BRASS_LT)
 
     fig = p.resolve()
     ol = outline_alpha(fig, (48, 33, 22), 2, blur=1.2)
     out = Image.alpha_composite(ol, fig)
-    out = rim_and_core(out, (255, 224, 176), 0.42, 4, 0.62, 10, 2.4)   # 회화적 부피
+    out = rim_and_core(out, (255, 224, 176), 0.42, 4, 0.62, 10, 2.4)
     out = grain(out, 0.18, 2.0, 5)
     out = out.filter(ImageFilter.SMOOTH)
     glow = Image.new("RGBA", out.size, (0, 0, 0, 0))
@@ -474,335 +476,232 @@ def concept_c1():
     return out, (hx, hy, 148)
 
 
-def _concept_c1_old():
-    W, H = 520, 720
-    p = Pen(W, H, ss=3)
-    cx = 262.0
-    # --- 등 공기통 (인물 뒤) ---
-    p.poly(spline([(cx + 96, 268), (cx + 132, 300), (cx + 134, 392), (cx + 100, 424),
-                   (cx + 72, 392), (cx + 70, 300)]), fill=SUIT_SH)
-    p.poly(spline([(cx + 100, 272), (cx + 126, 300), (cx + 128, 388), (cx + 104, 414),
-                   (cx + 88, 386), (cx + 88, 300)]), fill=BROWN)
-    p.line([(cx + 96, 274), (cx + 76, 236), (cx + 40, 214)], fill=UMBER, width=9)
-
-    # --- 다리 / 무게추 부츠 ---
-    for sgn in (-1, 1):
-        bx = cx + sgn * 44
-        p.poly(spline([(bx - 34, 486), (bx + 34, 486), (bx + 38, 610), (bx + 30, 650),
-                       (bx - 30, 650), (bx - 38, 610)]), fill=SUIT)
-        p.poly(spline([(bx - 46, 640), (bx + 46, 640), (bx + 52, 676), (bx + 44, 692),
-                       (bx - 44, 692), (bx - 52, 676)]), fill=UMBER)
-        p.poly([(bx - 46, 660), (bx + 46, 660), (bx + 47, 670), (bx - 47, 670)], fill=BRASS_SH)
-
-    # --- 몸통: 아래가 넓은 덩어리 (REF §1-6) ---
-    body = spline([(cx - 96, 300), (cx - 78, 250), (cx, 236), (cx + 78, 250), (cx + 96, 300),
-                   (cx + 108, 400), (cx + 96, 486), (cx, 506), (cx - 96, 486), (cx - 108, 400)])
-    p.poly(wobble(body, 1.6, 4), fill=SUIT)
-    # 누빔 3단 음영 (밝은 면 / 중간 / 그림자)
-    p.poly(spline([(cx - 84, 296), (cx - 46, 250), (cx + 6, 244), (cx + 20, 300),
-                   (cx + 4, 420), (cx - 40, 470), (cx - 92, 440), (cx - 100, 350)]), fill=SUIT_LT)
-    p.poly(spline([(cx + 40, 270), (cx + 96, 300), (cx + 108, 400), (cx + 96, 486),
-                   (cx + 40, 496), (cx + 52, 390)]), fill=SUIT_SH)
-    for i, yy in enumerate((330, 372, 414, 456)):
-        p.line(wobble([(cx - 100 + i * 2, yy), (cx - 40, yy + 6), (cx + 40, yy + 4),
-                       (cx + 104 - i * 2, yy - 2)], 1.2, 10 + i), fill=SUIT_SH, width=3)
-
-    # --- 왼 어깨 기운 자국(빗금) ---
-    for i in range(5):
-        x0 = cx - 92 + i * 13
-        p.line([(x0, 300 + i * 3), (x0 + 9, 326 + i * 3)], fill=OXBLOOD, width=3)
-
-    # --- 팔 + 너무 큰 장갑 ---
-    for sgn in (-1, 1):
-        sx = cx + sgn * 96
-        arm = spline([(sx, 296), (sx + sgn * 34, 330), (sx + sgn * 40, 400),
-                      (sx + sgn * 26, 448), (sx - sgn * 4, 444), (sx - sgn * 14, 380),
-                      (sx - sgn * 16, 320)])
-        p.poly(wobble(arm, 1.4, 20 + sgn), fill=SUIT if sgn < 0 else SUIT_SH)
-        p.poly(spline(ell(sx + sgn * 30, 464, 40, 40)[::6]), fill=CANVASC)
-        p.poly(spline(ell(sx + sgn * 34, 456, 26, 26)[::6]), fill=SUIT_LT)
-    # 오른손의 짧은 갈고리
-    p.line([(cx + 126, 446), (cx + 146, 380)], fill=BRASS_SH, width=8)
-    p.line(ell(cx + 138, 372, 16, 16, a0=2.2, a1=5.6)[::2], fill=BRASS, width=8)
-
-    # --- 목 실링: 솜 덩어리 4겹 ---
-    for i, (ry, col) in enumerate(((30, SUIT_SH), (26, CANVASC), (22, SUIT_LT), (16, BONE))):
-        p.poly(spline(wobble(ell(cx, 254 - i * 12, 104 - i * 9, ry)[::5], 1.6, 30 + i)),
-               fill=col)
-
-    # --- 머리 ---
-    hx, hy = cx - 2, 150
-    head = spline(wobble(ell(hx, hy, 84, 92)[::5], 2.0, 41))
-    p.poly(head, fill=SKIN)
-    p.poly(spline(ell(hx + 34, hy + 10, 52, 78)[::6]), fill=SKIN_SH)   # 그림자쪽
-    p.poly(spline(ell(hx - 28, hy - 18, 46, 52)[::6]), fill=SKIN_LT)   # 밝은 면
-    # 귀
-    p.poly(spline(ell(hx - 84, hy + 12, 14, 20)[::6]), fill=SKIN_SH)
-    p.poly(spline(ell(hx + 84, hy + 12, 14, 20)[::6]), fill=SKIN_SH)
-    # 머리카락 (이마 앞머리 몇 갈래)
-    p.poly(spline([(hx - 76, hy - 40), (hx - 40, hy - 86), (hx + 24, hy - 92),
-                   (hx + 72, hy - 58), (hx + 60, hy - 30), (hx + 20, hy - 52),
-                   (hx - 16, hy - 34), (hx - 48, hy - 24)]), fill=UMBER)
-
-    # --- 얼굴을 전부 그린다 (DECISIONS 2026-09-27) ---
-    for sgn in (-1, 1):
-        ex = hx + sgn * 32
-        p.poly(spline(ell(ex, hy + 12, 20, 22)[::6]), fill=CREAM)        # 흰자
-        p.poly(spline(ell(ex + sgn * 2, hy + 15, 12, 14)[::6]), fill=(40, 30, 22))  # 동공
-        p.dot(ex - sgn * 3, hy + 8, 4.5, CREAM)                           # 하이라이트
-        p.line([(ex - 20, hy - 20), (ex - 4, hy - 28), (ex + 18, hy - 22)]
-               if sgn < 0 else
-               [(ex - 18, hy - 22), (ex + 4, hy - 28), (ex + 20, hy - 20)],
-               fill=UMBER, width=6)                                       # 눈썹
-    p.line([(hx - 4, hy + 30), (hx + 2, hy + 40), (hx - 6, hy + 42)], fill=SKIN_SH, width=4)  # 코
-    p.line(ell(hx, hy + 44, 20, 16, a0=0.35, a1=2.79)[::2], fill=(122, 58, 48), width=5)      # 입
-    p.poly(spline(ell(hx, hy + 52, 13, 6)[::6]), fill=(168, 84, 70))                          # 아랫입술 안쪽
-    for sgn in (-1, 1):                                                                       # 볼 홍조
-        lay = Pen(W, H, ss=3)
-        lay.poly(spline(ell(hx + sgn * 58, hy + 40, 24, 15)[::6]), fill=BLUSH + (140,))
-        p.img.alpha_composite(lay.img)
-    rng = random.Random(9)                                                                    # 주근깨
-    for _ in range(11):
-        a = rng.uniform(0, math.tau); r = rng.uniform(20, 62)
-        p.dot(hx + math.cos(a) * r, hy + 32 + math.sin(a) * 9, 2.6, (186, 126, 88))
-
-    # --- 헬멧: 얼굴을 덮지 않고 머리 위에 얹혀 있다 (REF §1-8 번역) ---
-    p.poly(spline(ell(hx + 4, hy - 74, 92, 62)[::5]), fill=BRASS_SH)
-    p.poly(spline(ell(hx + 2, hy - 82, 84, 56)[::5]), fill=BRASS)
-    p.poly(spline(ell(hx - 22, hy - 96, 44, 26)[::6]), fill=BRASS_LT)
-    p.poly(spline(ell(hx + 10, hy - 78, 34, 26)[::6]), fill=TEAL)            # 창(물색은 여기만)
-    p.poly(spline(ell(hx + 2, hy - 86, 18, 11)[::6]), fill=(96, 148, 148))
-    p.line([(hx - 86, hy - 66), (hx - 122, hy - 48), (hx - 130, hy - 30)], fill=BRASS_SH, width=13)  # 배기관(부리)
-    for i in range(8):                                                       # 놋쇠 리벳
-        a = math.pi + i * math.pi / 7
-        p.dot(hx + 4 + math.cos(a) * 88, hy - 74 + math.sin(a) * 58, 5, BRASS_LT)
-
-    # --- 허리 벨트 + 랜턴 ---
-    p.poly([(cx - 104, 452), (cx + 106, 452), (cx + 104, 480), (cx - 102, 480)], fill=UMBER)
-    p.poly([(cx - 40, 448), (cx + 4, 448), (cx + 4, 484), (cx - 40, 484)], fill=BRASS)
-    p.poly(spline(ell(cx - 84, 498, 24, 30)[::6]), fill=BRASS_SH)
-    p.poly(spline(ell(cx - 84, 498, 16, 21)[::6]), fill=LAMP)
-
-    fig = p.resolve()
-    # 외곽선: 검정이 아니라 따뜻한 갈색, 부드러운 가장자리 (REF §0 정정)
-    ol = outline_alpha(fig, (46, 32, 22), 2, blur=1.1)
-    out = Image.alpha_composite(ol, fig)
-    out = grain(out, 0.17, 2.2, 5)
-    out = out.filter(ImageFilter.SMOOTH)
-    # 황토 후광 — 인물이 따뜻한 빛에 잠긴다
-    glow = Image.new("RGBA", out.size, (0, 0, 0, 0))
-    ImageDraw.Draw(glow).ellipse([cx - 230, 20, cx + 230, 520], fill=(214, 148, 64, 58))
-    glow = glow.filter(ImageFilter.GaussianBlur(60))
-    out = Image.alpha_composite(glow, out)
-    return out, (cx - 2, 150, 150)
-
-
-# ══════════════════════════════════════════════════════════════════════
-# C2. 통통 치비 — 2.6등신, 굵고 부드러운 외곽선, 평면 채색 + 1단 음영
-# ══════════════════════════════════════════════════════════════════════
 def concept_c2():
-    W, H = 520, 700
+    """2.4등신. 평면 채색 + 굵은 외곽선. 질감 없음 — 이것이 C1/C6 과 갈리는 지점."""
+    W, H = 560, 700
     p = Pen(W, H, ss=3)
-    cx = 260.0
-    hy = 232.0; HR = 132.0      # 머리 반지름 — 2.6등신
+    cx = 280.0
+    hy = 236.0
+    HR = 142.0
 
-    # 공기통
-    p.poly(spline(ell(cx + 96, 470, 46, 64)[::6]), fill=SUIT_SH)
-    p.poly(spline(ell(cx + 96, 462, 36, 52)[::6]), fill=BROWN)
+    # 공기통 (어깨 위로 살짝)
+    p.poly(spline(ell(cx + 92, 452, 40, 56)[::6]), fill=MOSS)
 
-    # 다리 (짧고 뭉툭)
+    # 다리 — 짧고 뭉툭, 사이를 벌린다
     for sgn in (-1, 1):
-        bx = cx + sgn * 42
-        p.poly(spline(ell(bx, 586, 36, 52)[::6]), fill=SUIT)
-        p.poly(spline(ell(bx, 632, 46, 30)[::6]), fill=UMBER)
+        bx = cx + sgn * 46
+        p.poly(spline(ell(bx, 578, 34, 48)[::6]), fill=SUIT if sgn < 0 else SUIT_SH)
+        p.poly(spline(ell(bx, 626, 44, 28)[::6]), fill=(52, 40, 28))
+        p.poly([(bx - 42, 620), (bx + 42, 620), (bx + 42, 630), (bx - 42, 630)], fill=BRASS)
 
-    # 몸통 — 작고 둥글다
-    p.poly(spline([(cx - 86, 430), (cx - 72, 386), (cx, 372), (cx + 72, 386), (cx + 86, 430),
-                   (cx + 92, 520), (cx, 560), (cx - 92, 520)]), fill=SUIT)
-    p.poly(spline([(cx - 86, 470), (cx, 450), (cx + 90, 470), (cx + 92, 520),
-                   (cx, 560), (cx - 92, 520)]), fill=SUIT_SH)     # 음영 1단
+    # 몸통
+    p.poly(spline([(cx - 88, 428), (cx - 72, 386), (cx, 372), (cx + 72, 386), (cx + 88, 428),
+                   (cx + 94, 516), (cx, 556), (cx - 94, 516)]), fill=SUIT)
+    p.poly(spline([(cx - 88, 470), (cx, 452), (cx + 92, 470), (cx + 94, 516),
+                   (cx, 556), (cx - 94, 516)]), fill=SUIT_SH)
+    # 올리브 앞치마 조각 — 색 하나 더
+    p.poly(spline([(cx - 46, 430), (cx + 46, 430), (cx + 52, 520), (cx - 52, 520)]), fill=MOSS)
     # 어깨 기운 자국
     for i in range(4):
         x0 = cx - 78 + i * 12
-        p.line([(x0, 404 + i * 2), (x0 + 8, 424 + i * 2)], fill=OXBLOOD, width=4)
+        p.line([(x0, 402 + i * 2), (x0 + 8, 424 + i * 2)], fill=OXBLOOD, width=5)
     # 벨트 + 랜턴
-    p.poly([(cx - 90, 500), (cx + 92, 500), (cx + 90, 524), (cx - 88, 524)], fill=UMBER)
-    p.poly(spline(ell(cx - 72, 542, 20, 25)[::6]), fill=BRASS)
-    p.poly(spline(ell(cx - 72, 542, 12, 16)[::6]), fill=LAMP)
+    p.poly([(cx - 92, 496), (cx + 94, 496), (cx + 92, 524), (cx - 90, 524)], fill=(48, 36, 24))
+    p.poly(spline(ell(cx - 72, 542, 21, 26)[::6]), fill=BRASS)
+    p.poly(spline(ell(cx - 72, 542, 13, 17)[::6]), fill=LAMP)
 
-    # 팔 + 큰 벙어리 장갑
+    # 팔 + 큰 벙어리 장갑 — 몸통 바깥으로
     for sgn in (-1, 1):
-        sx = cx + sgn * 84
-        p.poly(spline(ell(sx + sgn * 14, 452, 28, 46, rot=sgn * 0.25)[::6]), fill=SUIT)
-        p.poly(spline(ell(sx + sgn * 26, 504, 36, 34)[::6]), fill=CANVASC)
+        sx = cx + sgn * 92
+        p.poly(spline(ell(sx + sgn * 12, 452, 27, 46, rot=sgn * 0.22)[::6]),
+               fill=SUIT_LT if sgn < 0 else (150, 104, 54))
+        p.poly(spline(ell(sx + sgn * 24, 504, 37, 35)[::6]), fill=CANVASC)
 
-    # 목 실링 (머리와 몸 사이 도넛)
-    p.poly(spline(ell(cx, 372, 84, 30)[::6]), fill=SUIT_LT)
-    p.poly(spline(ell(cx, 380, 78, 22)[::6]), fill=CANVASC)
+    # 목 실링
+    p.poly(spline(ell(cx, 374, 86, 30)[::6]), fill=SUIT_LT)
+    p.poly(spline(ell(cx, 382, 80, 22)[::6]), fill=CANVASC)
 
-    # 머리 — 아주 크고 둥글다
+    # 머리
     p.poly(spline(ell(cx, hy, HR, HR * 0.96)[::5]), fill=SKIN)
-    p.poly(spline(ell(cx, hy + 44, HR * 0.92, HR * 0.54)[::6]), fill=SKIN_SH)   # 턱 그림자 1단
-    p.poly(spline(ell(cx, hy - 10, HR * 0.94, HR * 0.78)[::6]), fill=SKIN)
+    p.poly(spline(ell(cx, hy + 50, HR * 0.93, HR * 0.52)[::6]), fill=SKIN_SH)
+    p.poly(spline(ell(cx, hy - 4, HR * 0.95, HR * 0.80)[::6]), fill=SKIN)
     # 앞머리
-    p.poly(spline([(cx - 124, hy - 34), (cx - 96, hy - 112), (cx - 10, hy - 134),
-                   (cx + 96, hy - 106), (cx + 122, hy - 30), (cx + 86, hy - 56),
-                   (cx + 34, hy - 84), (cx - 30, hy - 66), (cx - 82, hy - 44)]), fill=UMBER)
-
-    # 큰 눈 + 하이라이트 둘 (C2 원칙)
-    for sgn in (-1, 1):
-        ex = cx + sgn * 50
-        p.poly(spline(ell(ex, hy + 16, 30, 38)[::6]), fill=(32, 24, 18))
-        p.poly(spline(ell(ex, hy + 22, 22, 26)[::6]), fill=(76, 50, 34))
-        p.dot(ex - sgn * 9, hy + 2, 11, CREAM)
-        p.dot(ex + sgn * 11, hy + 30, 5, CREAM)
-        p.line([(ex - 26, hy - 34), (ex + 26, hy - 42)] if sgn < 0
-               else [(ex - 26, hy - 42), (ex + 26, hy - 34)], fill=UMBER, width=8)
-    # 작은 입 + 볼 홍조
-    p.line(ell(cx, hy + 66, 14, 11, a0=0.4, a1=2.74)[::2], fill=(122, 58, 48), width=6)
+    p.poly(spline([(cx - 134, hy - 34), (cx - 102, hy - 118), (cx - 10, hy - 144),
+                   (cx + 104, hy - 114), (cx + 132, hy - 30), (cx + 92, hy - 58),
+                   (cx + 36, hy - 88), (cx - 32, hy - 68), (cx - 88, hy - 44)]),
+           fill=(58, 42, 30))
+    # 볼 홍조 (눈보다 먼저 — 눈을 덮지 않게)
     for sgn in (-1, 1):
         lay = Pen(W, H, ss=3)
-        lay.poly(spline(ell(cx + sgn * 88, hy + 50, 26, 17)[::6]), fill=BLUSH + (150,))
+        lay.poly(spline(ell(cx + sgn * 94, hy + 58, 28, 18)[::6]), fill=BLUSH + (165,))
         p.img.alpha_composite(lay.img)
+    # 큰 눈 + 하이라이트 둘
+    for sgn in (-1, 1):
+        ex = cx + sgn * 52
+        p.poly(spline(ell(ex, hy + 18, 32, 40)[::6]), fill=(30, 22, 16))
+        p.poly(spline(ell(ex, hy + 26, 23, 27)[::6]), fill=(84, 54, 36))
+        p.dot(ex - sgn * 10, hy + 2, 12, CREAM)
+        p.dot(ex + sgn * 12, hy + 34, 5.5, CREAM)
+        p.line([(ex - 28, hy - 36), (ex + 28, hy - 44)] if sgn < 0
+               else [(ex - 28, hy - 44), (ex + 28, hy - 36)], fill=(58, 42, 30), width=9)
+    # 작은 입
+    p.line(ell(cx, hy + 72, 15, 12, a0=0.4, a1=2.74)[::2], fill=(124, 58, 46), width=7)
 
     # 헬멧 — 뒤로 젖혀 정수리에 얹음
-    p.poly(spline(ell(cx + 4, hy - 108, 112, 66)[::5]), fill=BRASS)
-    p.poly(spline(ell(cx - 24, hy - 124, 54, 28)[::6]), fill=BRASS_LT)
-    p.poly(spline(ell(cx + 22, hy - 104, 40, 30)[::6]), fill=TEAL)
-    p.line([(cx - 108, hy - 96), (cx - 150, hy - 74), (cx - 158, hy - 52)], fill=BRASS_SH, width=15)
-    for i in range(7):
-        a = math.pi + i * math.pi / 6
-        p.dot(cx + 4 + math.cos(a) * 112, hy - 108 + math.sin(a) * 66, 6, BRASS_SH)
+    g = helmet_geo(cx + 6, hy - 138, 96)
+    p.poly(spline(g["rim"][::6]), fill=(128, 94, 28))
+    p.poly(spline(g["shell"][::5]), fill=BRASS)
+    p.poly(spline(g["crest"][::6]), fill=BRASS_LT)
+    p.poly(spline(g["port_ring"][::6]), fill=BRASS_SH)
+    p.poly(spline(g["port"][::6]), fill=TEAL)
+    p.poly(spline(ell(cx + 22, hy - 150, 15, 10)[::6]), fill=(118, 166, 164))
+    p.line(g["pipe"], fill=(128, 94, 28), width=18)
+    p.poly(spline(ell(g["pipe"][-1][0], g["pipe"][-1][1], 15, 15)[::8]), fill=(70, 52, 34))
+    for bx_, by_ in g["bolts"]:
+        p.dot(bx_, by_, 6, BRASS_LT)
 
     fig = p.resolve()
-    ol = outline_alpha(fig, (36, 26, 18), 3, blur=0.5)      # 굵고 부드러운 외곽선
+    ol = outline_alpha(fig, (28, 20, 14), 4, blur=0.3)      # 굵고 또렷한 외곽선
     out = Image.alpha_composite(ol, fig)
-    return out, (cx, hy, 190)
+    return out, (cx, hy, 200)
 
 
 # ══════════════════════════════════════════════════════════════════════
 # C3. 잠수복이 캐릭터다 — 체형 없음, 헬멧 창 불빛이 표정
 # ══════════════════════════════════════════════════════════════════════
 def _c3_helmet(p, cx, cy, R, mood="calm"):
-    """헬멧 하나. mood 가 창 불빛의 밝기·색·기울기를 정한다."""
-    tilt = {"calm": 0.0, "alarm": -0.16, "tired": 0.20}[mood]
-    glow = {"calm": (232, 176, 92), "alarm": (255, 232, 186), "tired": (150, 98, 44)}[mood]
-    gr = {"calm": 0.64, "alarm": 0.86, "tired": 0.44}[mood]
-    c, s = math.cos(tilt), math.sin(tilt)
+    """헬멧 하나. mood 가 창 불빛의 밝기·색·기울기를 정한다 — 이것이 이 컨셉의 표정이다."""
+    tilt = {"calm": 0.0, "alarm": -0.20, "tired": 0.24}[mood]
+    glow = {"calm": (244, 188, 96), "alarm": (255, 246, 214), "tired": (176, 108, 44)}[mood]
+    core = {"calm": (255, 236, 190), "alarm": (255, 255, 250), "tired": (214, 150, 70)}[mood]
+    gr = {"calm": 0.94, "alarm": 1.00, "tired": 0.62}[mood]
+    c, s_ = math.cos(tilt), math.sin(tilt)
 
     def T(x, y):
-        return (cx + x * c - y * s, cy + x * s + y * c)
+        return (cx + x * c - y * s_, cy + x * s_ + y * c)
 
-    p.poly([T(*q) for q in [(-R * 0.86, R * 0.86), (R * 0.86, R * 0.86),
-                            (R * 1.02, R * 1.16), (-R * 1.02, R * 1.16)]], fill=BRASS_SH)
-    p.poly([T(x - cx, y - cy) for x, y in ell(cx, cy, R, R * 1.02)[::5]], fill=BRASS)
-    p.poly([T(x - cx, y - cy) for x, y in ell(cx - R * 0.34, cy - R * 0.40, R * 0.44, R * 0.34)[::6]],
-           fill=BRASS_LT)
-    # 창
-    pr = R * 0.56
-    p.poly([T(x - cx, y - cy) for x, y in ell(cx, cy + R * 0.06, pr + 9, pr + 9)[::5]], fill=BRASS_SH)
-    p.poly([T(x - cx, y - cy) for x, y in ell(cx, cy + R * 0.06, pr, pr)[::5]], fill=(38, 28, 20))
-    # 창 안의 따뜻한 불빛 (표정)
-    lay = Pen(p.w, p.h, ss=p.ss)
-    lay.poly([T(x - cx, y - cy) for x, y in ell(cx, cy + R * 0.10, pr * 0.92, pr * 0.92)[::5]],
-             fill=glow + (int(255 * gr),))
-    lay.poly([T(x - cx, y - cy) for x, y in ell(cx - pr * 0.3, cy - pr * 0.2, pr * 0.42, pr * 0.34)[::6]],
-             fill=(255, 240, 210, int(220 * gr)))
-    li = lay.resolve().filter(ImageFilter.GaussianBlur(3))
-    p.img.alpha_composite(li.resize(p.img.size, Image.LANCZOS))
-    # 창 유리의 반사 두 줄 (D4 유리는 두 번 보인다)
-    p.line([T(-pr * 0.66, -pr * 0.28), T(-pr * 0.16, -pr * 0.66)], fill=(224, 236, 236), width=R * 0.07)
-    p.line([T(-pr * 0.30, -pr * 0.02), T(-pr * 0.06, -pr * 0.30)], fill=(200, 218, 218), width=R * 0.045)
-    # 옆 작은 창 + 리벳 + 배기관(부리)
-    p.poly([T(x - cx, y - cy) for x, y in ell(cx - R * 0.80, cy + R * 0.10, R * 0.15, R * 0.18)[::6]],
-           fill=TEAL)
-    for i in range(12):
-        a = i * math.tau / 12
-        p.dot(*T(math.cos(a) * R * 0.92, math.sin(a) * R * 0.94), R * 0.055, BRASS_SH)
-    p.line([T(R * 0.70, R * 0.30), T(R * 1.30, R * 0.52), T(R * 1.48, R * 0.86)],
-           fill=BRASS_SH, width=R * 0.20)
-    p.poly([T(x - cx, y - cy) for x, y in ell(cx + R * 1.46, cy + R * 0.88, R * 0.16, R * 0.16)[::8]],
-           fill=UMBER)
+    def TT(pts):
+        return [T(x - cx, y - cy) for x, y in pts]
+
+    g = helmet_geo(cx, cy, R)
+    p.poly(TT(g["rim"]), fill=(112, 82, 24))
+    p.poly(TT(g["shell"]), fill=BRASS)
+    p.poly(TT(g["crest"]), fill=BRASS_LT)
+    p.poly(TT(ell(cx + R * 0.52, cy + R * 0.30, R * 0.42, R * 0.52)), fill=(146, 108, 34))
+    # 창 — 정면에 크게 (이 컨셉에서는 창이 얼굴이다)
+    pr = R * 0.52
+    p.poly(TT(ell(cx, cy + R * 0.04, pr + R * 0.10, pr + R * 0.10)), fill=(100, 72, 20))
+    p.poly(TT(ell(cx, cy + R * 0.04, pr, pr)), fill=(34, 26, 18))
+    p.poly(TT(ell(cx, cy + R * 0.06, pr * 0.94, pr * 0.94)), fill=glow + (int(252 * gr),))
+    p.poly(TT(ell(cx - pr * 0.22, cy - pr * 0.12, pr * 0.52, pr * 0.46)), fill=core + (int(250 * gr),))
+    # 불빛 속에 잠긴 사람의 흐릿한 그림자 — 안에 사람이 있다는 유일한 단서
+    p.poly(TT(ell(cx + pr * 0.18, cy + pr * 0.34, pr * 0.46, pr * 0.34)),
+           fill=(150, 96, 40, int(150 * gr)))
+    # 유리의 반사 두 줄 (D4)
+    p.line([T(-pr * 0.70, -pr * 0.30), T(-pr * 0.18, -pr * 0.70)],
+           fill=(236, 244, 240), width=R * 0.085)
+    p.line([T(-pr * 0.34, 0.0), T(-pr * 0.06, -pr * 0.32)], fill=(212, 226, 224), width=R * 0.05)
+    # 옆 작은 창 · 리벳 · 배기관(부리)
+    p.poly(TT(ell(cx - R * 0.86, cy + R * 0.06, R * 0.14, R * 0.17)), fill=TEAL)
+    for i in range(14):
+        ang = i * math.tau / 14
+        p.dot(*T(math.cos(ang) * R * 0.86, math.sin(ang) * R * 0.80), R * 0.055, (112, 82, 24))
+    p.line([T(R * 0.66, R * 0.36), T(R * 1.26, R * 0.58), T(R * 1.44, R * 0.92)],
+           fill=(112, 82, 24), width=R * 0.20)
+    p.poly(TT(ell(cx + R * 1.42, cy + R * 0.94, R * 0.16, R * 0.16)), fill=(56, 42, 28))
 
 
 def concept_c3():
-    W, H = 540, 720
+    """체형이 없다. 누빈 자루 하나 + 둥근 헬멧. 실루엣만으로 존재한다."""
+    W, H = 560, 740
     p = Pen(W, H, ss=3)
-    cx = 270.0
+    cx = 280.0
 
     # 등 공기통 + 호스
-    p.poly(spline(ell(cx + 104, 330, 46, 86)[::6]), fill=SUIT_SH)
-    p.line(spline([(cx + 96, 268), (cx + 130, 248), (cx + 112, 214), (cx + 78, 208)],
-                  closed=False), fill=UMBER, width=14)
+    p.poly(spline(ell(cx + 108, 340, 44, 88)[::6]), fill=(74, 58, 38))
+    p.line(spline([(cx + 100, 268), (cx + 136, 240), (cx + 116, 206), (cx + 82, 200)],
+                  closed=False), fill=(56, 42, 28), width=15)
 
-    # 한 덩어리 자루 — 어깨에서 밑단으로 넓어진다. 체형이 없다.
-    sack = spline([(cx - 92, 262), (cx - 66, 226), (cx + 66, 226), (cx + 92, 262),
-                   (cx + 124, 400), (cx + 152, 574), (cx + 146, 622),
-                   (cx - 146, 622), (cx - 152, 574), (cx - 124, 400)])
+    # 한 덩어리 자루 — 어깨에서 밑단으로 넓어진다
+    sack = spline([(cx - 88, 258), (cx - 62, 222), (cx + 62, 222), (cx + 88, 258),
+                   (cx + 122, 398), (cx + 150, 572), (cx + 144, 618),
+                   (cx - 144, 618), (cx - 150, 572), (cx - 122, 398)])
     p.poly(wobble(sack, 1.4, 7), fill=SUIT)
-    p.poly(spline([(cx + 30, 234), (cx + 92, 262), (cx + 124, 400), (cx + 152, 574),
-                   (cx + 146, 622), (cx + 44, 624), (cx + 60, 420)]), fill=SUIT_SH)
-    p.poly(spline([(cx - 84, 262), (cx - 40, 230), (cx - 10, 244), (cx - 22, 420),
-                   (cx - 58, 600), (cx - 118, 596), (cx - 116, 400)]), fill=SUIT_LT)
-    # 누빔 가로줄 — 자루를 옷으로 만든다
+    p.poly(spline([(cx + 28, 230), (cx + 88, 258), (cx + 122, 398), (cx + 150, 572),
+                   (cx + 144, 618), (cx + 42, 620), (cx + 58, 418)]), fill=SUIT_SH)
+    p.poly(spline([(cx - 80, 258), (cx - 38, 226), (cx - 8, 240), (cx - 20, 418),
+                   (cx - 56, 598), (cx - 116, 594), (cx - 114, 398)]), fill=SUIT_LT)
+    # 누빔 가로줄
     for i in range(9):
-        yy = 286 + i * 38
-        wdt = 96 + i * 7
+        yy = 282 + i * 38
+        wdt = 94 + i * 7
         p.line(wobble([(cx - wdt, yy), (cx, yy + 8), (cx + wdt, yy - 2)], 1.4, 40 + i),
-               fill=SUIT_SH, width=4)
-    # 밑단 + 무게추 부츠 (자루 아래로 조금만)
-    p.poly(spline([(cx - 150, 604), (cx + 150, 604), (cx + 146, 640), (cx - 146, 640)]), fill=UMBER)
+               fill=(96, 64, 30), width=4)
+    # 밑단 테 + 무게추 부츠
+    p.poly(spline([(cx - 148, 598), (cx + 148, 598), (cx + 144, 634), (cx - 144, 634)]),
+           fill=(54, 40, 26))
     for sgn in (-1, 1):
-        p.poly(spline(ell(cx + sgn * 66, 662, 58, 30)[::6]), fill=UMBER)
-        p.poly([(cx + sgn * 66 - 56, 656), (cx + sgn * 66 + 56, 656),
-                (cx + sgn * 66 + 54, 668), (cx + sgn * 66 - 54, 668)], fill=BRASS_SH)
+        p.poly(spline(ell(cx + sgn * 68, 660, 58, 32)[::6]), fill=(44, 33, 22))
+        p.poly([(cx + sgn * 68 - 56, 650), (cx + sgn * 68 + 56, 650),
+                (cx + sgn * 68 + 54, 664), (cx + sgn * 68 - 54, 664)], fill=BRASS)
 
     # 어깨 기운 자국
     for i in range(5):
-        x0 = cx - 104 + i * 13
-        p.line([(x0, 300 + i * 3), (x0 + 9, 328 + i * 3)], fill=OXBLOOD, width=4)
+        x0 = cx - 100 + i * 13
+        p.line([(x0, 292 + i * 3), (x0 + 9, 320 + i * 3)], fill=(120, 48, 36), width=5)
 
     # 팔 — 자루에서 자란 두 뭉치. 손은 큰 장갑 하나
     for sgn in (-1, 1):
-        p.poly(spline([(cx + sgn * 92, 268), (cx + sgn * 136, 306), (cx + sgn * 142, 396),
-                       (cx + sgn * 118, 444), (cx + sgn * 92, 420), (cx + sgn * 86, 330)]),
-               fill=SUIT if sgn < 0 else SUIT_SH)
-        p.poly(spline(ell(cx + sgn * 122, 462, 42, 40)[::6]), fill=CANVASC)
-    # 왼손의 그물 자루
-    p.poly(spline([(cx - 164, 470), (cx - 128, 476), (cx - 120, 552), (cx - 156, 572),
-                   (cx - 186, 540)]), fill=MOSS)
+        p.poly(spline([(cx + sgn * 88, 262), (cx + sgn * 134, 300), (cx + sgn * 142, 390),
+                       (cx + sgn * 118, 440), (cx + sgn * 90, 414), (cx + sgn * 84, 324)]),
+               fill=SUIT_LT if sgn < 0 else (146, 100, 50))
+        p.line([(cx + sgn * 92, 276), (cx + sgn * 98, 348), (cx + sgn * 104, 420)],
+               fill=(54, 38, 24), width=6)
+    # 왼손의 그물 자루 (장갑보다 뒤)
+    p.poly(spline([(cx - 172, 462), (cx - 132, 470), (cx - 124, 552), (cx - 162, 574),
+                   (cx - 194, 540)]), fill=MOSS)
     for i in range(4):
-        p.line([(cx - 182 + i * 16, 482), (cx - 172 + i * 16, 566)], fill=OLIVE, width=3)
+        p.line([(cx - 188 + i * 17, 476), (cx - 176 + i * 17, 566)], fill=OLIVE, width=3)
+    for sgn in (-1, 1):
+        p.poly(spline(ell(cx + sgn * 124, 458, 43, 41)[::6]), fill=CANVASC)
+        p.poly(spline(ell(cx + sgn * 130, 448, 27, 25)[::6]), fill=BONE)
 
     # 벨트 랜턴
-    p.poly(spline(ell(cx - 130, 392, 26, 32)[::6]), fill=BRASS_SH)
-    p.poly(spline(ell(cx - 130, 392, 17, 22)[::6]), fill=LAMP)
+    p.poly(spline(ell(cx - 128, 386, 27, 33)[::6]), fill=(112, 82, 24))
+    p.poly(spline(ell(cx - 128, 386, 18, 23)[::6]), fill=LAMP)
 
     # 헬멧
-    _c3_helmet(p, cx, 178, 104, "calm")
+    _c3_helmet(p, cx, 168, 106, "calm")
 
     fig = p.resolve()
-    ol = outline_alpha(fig, (30, 22, 15), 2, blur=0.6)
+    ol = outline_alpha(fig, (26, 19, 13), 3, blur=0.5)
     out = Image.alpha_composite(ol, fig)
-    out = grain(out, 0.10, 2.8, 12)
-    # 헬멧 불빛이 어깨에 떨어진다 (D3 빛은 전부 근거가 있다)
+    out = rim_and_core(out, (255, 222, 172), 0.30, 4, 0.66, 11, 2.6)
+    out = grain(out, 0.09, 2.8, 12)
+    # 헬멧 불빛이 어깨와 물에 번진다 (D3 빛은 전부 근거가 있다)
     sp = Image.new("RGBA", out.size, (0, 0, 0, 0))
-    ImageDraw.Draw(sp).ellipse([cx - 150, 190, cx + 150, 350], fill=(240, 180, 96, 46))
-    sp = sp.filter(ImageFilter.GaussianBlur(34))
+    dd = ImageDraw.Draw(sp)
+    dd.ellipse([cx - 170, 60, cx + 170, 400], fill=(248, 184, 92, 58))
+    dd.ellipse([cx - 92, 104, cx + 92, 246], fill=(255, 214, 138, 92))
+    sp = sp.filter(ImageFilter.GaussianBlur(30))
     out = Image.alpha_composite(out, sp)
-    return out, (cx, 178, 150)
+    return out, (cx, 168, 158)
 
 
 def c3_moods():
     """헬멧 세 표정 — 이 컨셉이 표정을 무엇으로 말하는지 보여주는 판."""
-    W, H = 512, 190
+    W, H = 540, 210
     img = room_bg(W, H, lamp_at=(W * 0.5, H * 0.4), lamp_r=W * 0.8)
-    labels = [("calm", "평온"), ("alarm", "놀람"), ("tired", "지침")]
-    for i, (m, _) in enumerate(labels):
+    for i, m in enumerate(("calm", "alarm", "tired")):
         p = Pen(W, H, ss=3)
-        _c3_helmet(p, 86 + i * 170, 92, 62, m)
+        _c3_helmet(p, 96 + i * 176, 100, 64, m)
         f = p.resolve()
-        img = Image.alpha_composite(img, Image.alpha_composite(outline_alpha(f, (30, 22, 15), 2), f))
+        img = Image.alpha_composite(img, Image.alpha_composite(outline_alpha(f, (26, 19, 13), 2), f))
+        sp = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        al = {"calm": 70, "alarm": 110, "tired": 34}[m]
+        ImageDraw.Draw(sp).ellipse([96 + i * 176 - 96, 4, 96 + i * 176 + 96, 196],
+                                   fill=(250, 196, 110, al))
+        img = Image.alpha_composite(img, sp.filter(ImageFilter.GaussianBlur(22)))
     return img
 
 
@@ -863,204 +762,221 @@ class PixGrid:
 
 
 def concept_c4():
-    g = PixGrid(40, 55)
-    cx = 20
-    # 공기통(뒤)
-    g.rect(cx + 8, 26, cx + 11, 38, "d")
-    g.rect(cx + 9, 27, cx + 10, 37, "s")
-    # 다리
-    for sgn in (-1, 1):
-        bx = cx + sgn * 5 - (1 if sgn < 0 else 0)
-        g.rect(bx - 2, 41, bx + 2, 48, "S")
-        g.rect(bx + (1 if sgn > 0 else -2), 41, bx + (2 if sgn > 0 else -1), 48, "s")
-        g.rect(bx - 4, 49, bx + 4, 52, "d")
-        g.rect(bx - 4, 50, bx + 4, 50, "b")
-    # 몸통
-    g.rect(cx - 8, 26, cx + 7, 43, "S")
-    g.rect(cx - 8, 26, cx - 2, 43, "L")      # 밝은 면(랜턴 쪽)
-    g.rect(cx + 4, 26, cx + 7, 43, "s")      # 그림자 면
-    for y in (30, 34, 38):                   # 누빔
-        g.rect(cx - 8, y, cx + 7, y, "s")
-    # 어깨 기운 자국(빗금) — 정찰병 표식
-    for i in range(3):
-        g.px(cx - 7 + i * 2, 28 + i, "o"); g.px(cx - 6 + i * 2, 29 + i, "o")
-    # 벨트 + 랜턴
-    g.rect(cx - 8, 40, cx + 7, 41, "d")
-    g.rect(cx - 11, 42, cx - 9, 45, "b")
-    g.rect(cx - 10, 43, cx - 10, 44, "l")
-    # 팔 + 큰 장갑
-    for sgn in (-1, 1):
-        ax = cx + (8 if sgn > 0 else -9)
-        g.rect(ax, 27, ax + (2 if sgn > 0 else 0) - (0 if sgn > 0 else -2), 37,
-               "s" if sgn > 0 else "S")
-        g.rect(ax - (0 if sgn > 0 else 1), 38, ax + (3 if sgn > 0 else 2) - (0 if sgn > 0 else 1), 41, "L")
-    # 목 실링 (3겹)
-    g.rect(cx - 9, 23, cx + 8, 25, "L")
-    g.rect(cx - 8, 22, cx + 7, 22, "S")
-    g.rect(cx - 9, 24, cx + 8, 24, "s")
+    """38x56 그리드에 직접 찍는다. 팔레트 14색. 게임 크기에서 1:1 로 쓰인다."""
+    g = PixGrid(38, 56)
+    cx = 19
+
     # 머리
-    g.ell(cx - 1, 15, 7, 8, "k")
-    g.rect(cx + 3, 9, cx + 5, 21, "K")       # 그림자 면
-    g.ell(cx - 3, 12, 4, 4, "k")
-    # 머리카락
-    g.rect(cx - 8, 7, cx + 6, 9, "d")
-    g.px(cx - 6, 10, "d"); g.px(cx - 2, 10, "d"); g.px(cx + 3, 10, "d")
-    # 얼굴 — 55px 에서도 읽히게 눈 2x2, 입 2x1, 눈썹 3x1
+    g.ell(cx - 1, 24, 8, 9, "k")
+    g.rect(cx + 4, 18, cx + 6, 31, "K")
+    # 머리카락 — 헬멧 밑으로 삐져나온 앞머리
+    g.rect(cx - 8, 16, cx + 6, 18, "d")
+    g.px(cx - 8, 19, "d"); g.px(cx - 7, 19, "d"); g.px(cx + 5, 19, "d"); g.px(cx + 6, 19, "d")
+    g.px(cx - 4, 19, "d"); g.px(cx + 1, 19, "d")
+    # 얼굴 — 이 크기에서 읽히는 최소 단위
     for sgn in (-1, 1):
-        ex = cx - 1 + sgn * 3
-        g.rect(ex - 1, 15, ex, 16, "#")
-        g.px(ex - 1, 15, "c")
-        g.rect(ex - 2, 13, ex + 1, 13, "d")     # 눈썹
-    g.rect(cx - 2, 19, cx, 19, "o")             # 입
-    g.px(cx - 6, 18, "o"); g.px(cx + 4, 18, "o")   # 볼 홍조
-    # 헬멧 — 정수리에 얹음
-    g.ell(cx, 4, 9, 5, "b")
-    g.ell(cx - 3, 2, 5, 2, "B")
-    g.ell(cx + 3, 4, 3, 2, "t")
-    g.rect(cx - 13, 5, cx - 9, 6, "b")          # 배기관
-    g.px(cx - 14, 6, "d")
-    for x in range(cx - 8, cx + 9, 4):
-        g.px(x, 8, "s")
+        ex = cx - 1 + sgn * 4
+        g.rect(ex - 1, 23, ex, 24, "#")
+        g.px(ex - 1, 23, "c")
+        g.rect(ex - 2, 21, ex + 1, 21, "d")
+    g.px(cx - 1, 26, "K")
+    g.rect(cx - 2, 28, cx, 28, "o")
+    g.px(cx - 7, 27, "o"); g.px(cx + 5, 27, "o")
+
+    # 헬멧 — 머리 위에 얹혀 있다. 머리를 그린 뒤에 얹어야 떠 보이지 않는다
+    g.ell(cx, 11, 7, 6, "b")
+    g.rect(cx - 7, 11, cx + 7, 16, "b")           # 돔 아랫부분(정수리에 닿는 면)
+    g.rect(cx - 7, 15, cx + 7, 16, "s")           # 아래 테
+    g.ell(cx - 3, 8, 3, 2, "B")                   # 정수리 하이라이트
+    g.ell(cx + 3, 11, 2, 2, "t")                  # 창
+    g.px(cx + 2, 10, "c")
+    g.rect(cx - 12, 13, cx - 7, 14, "b")          # 배기관(부리)
+    g.rect(cx - 14, 14, cx - 13, 15, "d")
+    for x in range(cx - 5, cx + 6, 4):
+        g.px(x, 14, "s")
+
+    # 목 실링 3겹
+    g.rect(cx - 9, 32, cx + 8, 32, "S")
+    g.rect(cx - 10, 33, cx + 9, 33, "L")
+    g.rect(cx - 9, 34, cx + 8, 34, "s")
+
+    # 공기통 (오른 어깨 뒤로 삐죽)
+    g.rect(cx + 9, 33, cx + 11, 40, "v")
+
+    # 몸통
+    g.rect(cx - 9, 35, cx + 8, 48, "S")
+    g.rect(cx - 9, 35, cx - 3, 48, "L")
+    g.rect(cx + 5, 35, cx + 8, 48, "s")
+    g.rect(cx - 5, 40, cx + 4, 47, "v")           # 올리브 앞치마
+    for y in (38, 43):
+        g.rect(cx - 9, y, cx + 8, y, "s")
+    # 어깨 기운 자국
+    for i in range(3):
+        g.px(cx - 8 + i * 2, 37 + i, "o"); g.px(cx - 7 + i * 2, 38 + i, "o")
+    # 벨트 + 랜턴
+    g.rect(cx - 9, 45, cx + 8, 46, "d")
+    g.rect(cx - 1, 45, cx + 1, 46, "b")
+    g.rect(cx - 12, 47, cx - 10, 50, "b")
+    g.rect(cx - 11, 48, cx - 11, 49, "l")
+
+    # 팔 + 큰 장갑
+    g.rect(cx - 12, 36, cx - 10, 43, "L")
+    g.rect(cx + 9, 36, cx + 11, 43, "s")
+    g.rect(cx - 13, 44, cx - 9, 47, "c")
+    g.rect(cx + 8, 44, cx + 12, 47, "c")
+
+    # 다리 (가운데를 비운다)
+    g.rect(cx - 7, 49, cx - 2, 52, "S")
+    g.rect(cx + 1, 49, cx + 6, 52, "s")
+    # 무게추 부츠
+    g.rect(cx - 9, 53, cx - 1, 55, "d")
+    g.rect(cx + 0, 53, cx + 8, 55, "d")
+    g.rect(cx - 9, 54, cx - 1, 54, "b")
+    g.rect(cx + 0, 54, cx + 8, 54, "b")
+
     g.outline("#")
     im = g.image()
-    # 여백 잘라내기
-    bb = im.getbbox()
-    return im.crop(bb), None
+    return im.crop(im.getbbox()), None
 
 
 # ══════════════════════════════════════════════════════════════════════
 # C5. 종이 오림 — 납작한 색 면 + 종이 결 + 얕은 그림자 + 놋쇠 핀
 # ══════════════════════════════════════════════════════════════════════
 def concept_c5():
-    W, H = 520, 720
-    cx = 260.0
-    layers = []   # (그릴 함수, z깊이) — 깊이마다 그림자 오프셋이 다르다
+    """판지를 오려 겹친다. 납작한 면 + 종이 결 + 얕은 그림자 + 놋쇠 핀."""
+    W, H = 540, 740
+    cx = 270.0
+    layers = []
 
     def L(fn, depth):
-        p = Pen(W, H, ss=3)
-        fn(p)
-        layers.append((p.resolve(), depth))
+        pp = Pen(W, H, ss=3)
+        fn(pp)
+        layers.append((pp.resolve(), depth))
 
-    # 뒤 → 앞 순서
+    # 공기통
     L(lambda p: [
-        p.poly(wobble([(cx + 70, 268), (cx + 132, 280), (cx + 138, 400), (cx + 74, 392)], 2.2, 1),
-               fill=SUIT_SH),
-        p.poly([(cx + 84, 288), (cx + 126, 296), (cx + 128, 318), (cx + 86, 310)], fill=BROWN),
+        p.poly(wobble([(cx + 66, 274), (cx + 128, 288), (cx + 134, 400), (cx + 70, 392)], 2.2, 1),
+               fill=MOSS),
+        p.poly([(cx + 80, 296), (cx + 122, 304), (cx + 124, 324), (cx + 82, 316)], fill=OLIVE),
     ], 1)
     # 다리
     L(lambda p: [
-        p.poly(wobble([(cx - 76, 470), (cx - 12, 470), (cx - 14, 640), (cx - 74, 640)], 2.0, 2),
+        p.poly(wobble([(cx - 72, 476), (cx - 16, 476), (cx - 18, 640), (cx - 70, 640)], 2.0, 2),
                fill=CANVASC),
-        p.poly(wobble([(cx + 12, 470), (cx + 76, 470), (cx + 78, 640), (cx + 16, 640)], 2.0, 3),
-               fill=SUIT),
+        p.poly(wobble([(cx + 16, 476), (cx + 72, 476), (cx + 74, 640), (cx + 20, 640)], 2.0, 3),
+               fill=SUIT_SH),
     ], 1)
     # 부츠
     L(lambda p: [
-        p.poly(wobble([(cx - 86, 632), (cx - 6, 632), (cx - 4, 684), (cx - 92, 684)], 2.0, 4),
-               fill=UMBER),
-        p.poly(wobble([(cx + 8, 632), (cx + 88, 632), (cx + 94, 684), (cx + 6, 684)], 2.0, 5),
-               fill=UMBER),
-        p.poly([(cx - 92, 662), (cx - 4, 662), (cx - 4, 672), (cx - 92, 672)], fill=BRASS),
-        p.poly([(cx + 6, 662), (cx + 94, 662), (cx + 94, 672), (cx + 6, 672)], fill=BRASS),
+        p.poly(wobble([(cx - 84, 630), (cx - 8, 630), (cx - 6, 686), (cx - 90, 686)], 2.0, 4),
+               fill=(52, 40, 28)),
+        p.poly(wobble([(cx + 10, 630), (cx + 86, 630), (cx + 92, 686), (cx + 8, 686)], 2.0, 5),
+               fill=(52, 40, 28)),
+        p.poly([(cx - 90, 660), (cx - 6, 660), (cx - 6, 672), (cx - 90, 672)], fill=BRASS),
+        p.poly([(cx + 8, 660), (cx + 92, 660), (cx + 92, 672), (cx + 8, 672)], fill=BRASS),
     ], 2)
-    # 몸통 (오린 사다리꼴 + 한쪽에 덧댄 조각)
+    # 몸통
     L(lambda p: [
-        p.poly(wobble([(cx - 84, 262), (cx + 84, 262), (cx + 106, 480), (cx - 106, 480)], 2.4, 6),
+        p.poly(wobble([(cx - 82, 266), (cx + 82, 266), (cx + 104, 486), (cx - 104, 486)], 2.4, 6),
                fill=SUIT),
-        p.poly(wobble([(cx - 84, 262), (cx - 16, 262), (cx - 30, 480), (cx - 106, 480)], 2.2, 7),
-               fill=CANVASC),
-        # 덧댄 기움 조각(정찰병 빗금)
-        p.poly(wobble([(cx - 78, 300), (cx - 24, 306), (cx - 30, 362), (cx - 82, 356)], 1.8, 8),
+        p.poly(wobble([(cx - 82, 266), (cx - 14, 266), (cx - 28, 486), (cx - 104, 486)], 2.2, 7),
+               fill=SUIT_LT),
+        p.poly(wobble([(cx - 54, 372), (cx + 54, 372), (cx + 62, 480), (cx - 62, 480)], 2.0, 70),
+               fill=MOSS),
+        p.poly(wobble([(cx - 76, 300), (cx - 22, 306), (cx - 28, 360), (cx - 80, 354)], 1.8, 8),
                fill=RUST),
-        *[p.line([(cx - 74 + i * 12, 306), (cx - 66 + i * 12, 358)], fill=OXBLOOD, width=4)
+        *[p.line([(cx - 72 + i * 12, 306), (cx - 64 + i * 12, 356)], fill=OXBLOOD, width=4)
           for i in range(5)],
     ], 3)
     # 벨트 + 랜턴
     L(lambda p: [
-        p.poly([(cx - 104, 440), (cx + 104, 440), (cx + 104, 470), (cx - 104, 470)], fill=UMBER),
-        p.poly([(cx - 22, 434), (cx + 18, 434), (cx + 18, 476), (cx - 22, 476)], fill=BRASS),
-        p.poly([(cx - 112, 476), (cx - 66, 476), (cx - 70, 528), (cx - 108, 528)], fill=BRASS_SH),
-        p.poly([(cx - 104, 486), (cx - 74, 486), (cx - 77, 518), (cx - 101, 518)], fill=LAMP),
+        p.poly([(cx - 102, 446), (cx + 102, 446), (cx + 102, 476), (cx - 102, 476)],
+               fill=(52, 40, 28)),
+        p.poly([(cx - 20, 440), (cx + 18, 440), (cx + 18, 482), (cx - 20, 482)], fill=BRASS),
+        p.poly([(cx - 112, 482), (cx - 66, 482), (cx - 70, 534), (cx - 108, 534)], fill=(112, 82, 24)),
+        p.poly([(cx - 104, 492), (cx - 74, 492), (cx - 77, 524), (cx - 101, 524)], fill=LAMP),
     ], 4)
-    # 팔 (핀으로 연결된 두 마디)
+    # 팔 (핀으로 연결된 세 마디) — 몸통 바깥으로
     for sgn in (-1, 1):
         L(lambda p, s=sgn: [
-            p.poly(wobble([(cx + s * 70, 268), (cx + s * 124, 282), (cx + s * 132, 372),
-                           (cx + s * 82, 366)], 2.0, 10 + s), fill=SUIT_SH if s > 0 else SUIT),
-            p.poly(wobble([(cx + s * 82, 358), (cx + s * 130, 364), (cx + s * 134, 442),
-                           (cx + s * 88, 440)], 2.0, 12 + s), fill=CANVASC),
-            p.poly(wobble([(cx + s * 78, 438), (cx + s * 142, 442), (cx + s * 138, 496),
-                           (cx + s * 80, 492)], 2.0, 14 + s), fill=BONE),
+            p.poly(wobble([(cx + s * 72, 272), (cx + s * 130, 288), (cx + s * 140, 374),
+                           (cx + s * 86, 366)], 2.0, 10 + s),
+                   fill=(150, 104, 54) if s > 0 else SUIT),
+            p.poly(wobble([(cx + s * 88, 360), (cx + s * 140, 368), (cx + s * 144, 446),
+                           (cx + s * 94, 442)], 2.0, 12 + s), fill=CANVASC),
+            p.poly(wobble([(cx + s * 86, 440), (cx + s * 150, 444), (cx + s * 146, 500),
+                           (cx + s * 88, 496)], 2.0, 14 + s), fill=BONE),
         ], 5)
     # 목 실링 (오려 겹친 띠 3장)
     L(lambda p: [
-        p.poly(wobble([(cx - 96, 238), (cx + 96, 238), (cx + 88, 268), (cx - 88, 268)], 2.2, 20),
+        p.poly(wobble([(cx - 94, 242), (cx + 94, 242), (cx + 86, 272), (cx - 86, 272)], 2.2, 20),
                fill=SUIT_LT),
-        p.poly(wobble([(cx - 86, 222), (cx + 86, 222), (cx + 82, 244), (cx - 82, 244)], 2.0, 21),
+        p.poly(wobble([(cx - 84, 226), (cx + 84, 226), (cx + 80, 248), (cx - 80, 248)], 2.0, 21),
                fill=CANVASC),
-        p.poly(wobble([(cx - 76, 208), (cx + 76, 208), (cx + 74, 226), (cx - 74, 226)], 1.8, 22),
+        p.poly(wobble([(cx - 74, 212), (cx + 74, 212), (cx + 72, 230), (cx - 72, 230)], 1.8, 22),
                fill=BONE),
     ], 6)
     # 머리
     L(lambda p: [
-        p.poly(wobble([(cx - 72, 96), (cx - 46, 62), (cx + 46, 62), (cx + 72, 96),
-                       (cx + 66, 186), (cx + 28, 212), (cx - 28, 212), (cx - 66, 186)], 2.4, 30),
-               fill=SKIN),
-        p.poly(wobble([(cx + 18, 66), (cx + 46, 62), (cx + 72, 96), (cx + 66, 186),
-                       (cx + 28, 212), (cx + 12, 200)], 2.0, 31), fill=SKIN_SH),
-        # 머리카락 조각
-        p.poly(wobble([(cx - 74, 92), (cx - 52, 54), (cx + 50, 54), (cx + 74, 92),
-                       (cx + 44, 80), (cx + 8, 96), (cx - 26, 78), (cx - 52, 96)], 2.2, 32),
-               fill=UMBER),
+        p.poly(wobble([(cx - 70, 104), (cx - 52, 62), (cx - 10, 50), (cx + 40, 56),
+                       (cx + 70, 96), (cx + 64, 182), (cx + 30, 214), (cx - 26, 214),
+                       (cx - 64, 184)], 2.4, 30), fill=SKIN),
+        p.poly(wobble([(cx + 20, 56), (cx + 40, 56), (cx + 70, 96), (cx + 64, 182),
+                       (cx + 30, 214), (cx + 14, 202)], 2.0, 31), fill=SKIN_SH),
+        p.poly(wobble([(cx - 72, 100), (cx - 54, 52), (cx + 44, 48), (cx + 72, 92),
+                       (cx + 44, 82), (cx + 6, 96), (cx - 26, 78), (cx - 50, 98)], 2.2, 32),
+               fill=(58, 42, 30)),
     ], 7)
-    # 얼굴 조각들 (따로 오려 붙인 것처럼)
+    # 얼굴 조각들 — 따로 오려 붙인 것처럼. 순한 인상으로
     L(lambda p: [
         *[q for sgn in (-1, 1) for q in (
-            p.poly(wobble(ell(cx + sgn * 28, 126, 19, 15)[::6], 1.4, 40 + sgn), fill=CREAM),
-            p.poly(wobble(ell(cx + sgn * 30, 128, 8, 9)[::6], 1.0, 42 + sgn), fill=(38, 28, 20)),
-            p.poly(wobble([(cx + sgn * 46, 100), (cx + sgn * 12, 94),
-                           (cx + sgn * 12, 102), (cx + sgn * 46, 108)], 1.2, 44 + sgn), fill=UMBER),
+            p.poly(wobble(ell(cx + sgn * 27, 130, 18, 16)[::6], 1.4, 40 + sgn), fill=CREAM),
+            p.poly(wobble(ell(cx + sgn * 28, 132, 11, 12)[::6], 1.0, 42 + sgn), fill=(44, 32, 24)),
+            p.dot(cx + sgn * 28 - sgn * 3, 127, 3.4, CREAM),
+            p.poly(wobble([(cx + sgn * 42, 111), (cx + sgn * 15, 106),
+                           (cx + sgn * 15, 111), (cx + sgn * 42, 116)], 1.2, 44 + sgn),
+                   fill=(78, 56, 38)),
         )],
-        p.poly(wobble([(cx - 18, 166), (cx + 18, 166), (cx + 14, 180), (cx - 14, 180)], 1.4, 46),
-               fill=OXBLOOD),
-        p.poly(wobble(ell(cx - 52, 156, 16, 9)[::6], 1.2, 47), fill=BLUSH),
-        p.poly(wobble(ell(cx + 52, 156, 16, 9)[::6], 1.2, 48), fill=BLUSH),
+        p.poly(wobble([(cx - 16, 172), (cx + 16, 172), (cx + 12, 180), (cx - 12, 180)], 1.4, 46),
+               fill=(132, 62, 50)),
+        p.poly(wobble(ell(cx - 50, 160, 15, 9)[::6], 1.2, 47), fill=BLUSH),
+        p.poly(wobble(ell(cx + 50, 160, 15, 9)[::6], 1.2, 48), fill=BLUSH),
     ], 8)
-    # 헬멧 (정수리에 얹은 조각)
+    # 헬멧 — 정수리에 얹은 오린 돔
     L(lambda p: [
-        p.poly(wobble([(cx - 84, 44), (cx - 58, 8), (cx + 58, 8), (cx + 84, 44),
-                       (cx + 78, 62), (cx - 78, 62)], 2.4, 50), fill=BRASS),
-        p.poly(wobble([(cx - 82, 40), (cx - 56, 10), (cx - 6, 8), (cx - 14, 44)], 1.8, 51),
-               fill=BRASS_LT),
-        p.poly(wobble(ell(cx + 26, 36, 22, 17)[::6], 1.4, 52), fill=TEAL),
-        p.poly(wobble([(cx - 84, 40), (cx - 132, 52), (cx - 136, 72), (cx - 82, 60)], 1.8, 53),
-               fill=BRASS_SH),
+        p.poly(wobble([(cx - 78, 52), (cx - 66, 20), (cx - 30, 2), (cx + 22, 2),
+                       (cx + 60, 20), (cx + 76, 52), (cx + 70, 68), (cx - 72, 68)], 2.4, 50),
+               fill=BRASS),
+        p.poly(wobble([(cx - 74, 48), (cx - 60, 18), (cx - 22, 4), (cx - 10, 40),
+                       (cx - 30, 56)], 1.8, 51), fill=BRASS_LT),
+        p.poly(wobble(ell(cx + 28, 38, 21, 19)[::6], 1.4, 52), fill=TEAL),
+        p.poly(wobble([(cx - 78, 44), (cx - 126, 56), (cx - 132, 76), (cx - 76, 62)], 1.8, 53),
+               fill=(128, 94, 28)),
     ], 9)
 
-    # 합성: 레이어마다 얕은 오프셋 그림자
     base = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     for lay, depth in layers:
         off = 3 + depth // 3
         sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        a = lay.split()[3].filter(ImageFilter.GaussianBlur(2.2))
-        sol = Image.new("RGBA", (W, H), (28, 18, 10, 0)); sol.putalpha(a.point(lambda v: int(v * 0.62)))
+        al = lay.split()[3].filter(ImageFilter.GaussianBlur(2.2))
+        sol = Image.new("RGBA", (W, H), (26, 16, 9, 0))
+        sol.putalpha(al.point(lambda v: int(v * 0.66)))
         sh.alpha_composite(sol, (off, off + 2))
         base = Image.alpha_composite(base, sh)
-        # 오린 가장자리의 밝은 종이 단면 (위·왼쪽)
-        edge = outline_alpha(lay, (246, 236, 214), 1)
-        edge_m = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        edge_m.alpha_composite(edge, (-1, -1))
-        base = Image.alpha_composite(base, edge_m)
+        edge = outline_alpha(lay, (248, 240, 220), 1)
+        em = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        em.alpha_composite(edge, (-1, -1))
+        base = Image.alpha_composite(base, em)
         base = Image.alpha_composite(base, lay)
     # 놋쇠 핀 (관절)
     pn = Pen(W, H, ss=3)
-    for (px_, py_) in ((cx - 76, 272), (cx + 76, 272), (cx - 86, 362), (cx + 86, 362),
-                       (cx - 44, 474), (cx + 46, 474), (cx - 84, 444), (cx + 84, 444)):
-        pn.dot(px_, py_, 9, BRASS_SH); pn.dot(px_, py_, 6, BRASS_LT); pn.dot(px_ + 1.5, py_ + 1.5, 2.5, BRASS_SH)
+    for (qx, qy) in ((cx - 76, 278), (cx + 76, 278), (cx - 92, 366), (cx + 92, 366),
+                     (cx - 44, 480), (cx + 46, 480), (cx - 90, 448), (cx + 90, 448)):
+        pn.dot(qx, qy, 9, (112, 82, 24)); pn.dot(qx, qy, 6, BRASS_LT)
+        pn.dot(qx + 1.5, qy + 1.5, 2.5, (112, 82, 24))
     base = Image.alpha_composite(base, pn.resolve())
-    # 종이 결
-    base = apply_mul(base, paper((W, H), 7, 0.16))
-    return base, (cx, 130, 130)
+    base = apply_mul(base, paper((W, H), 7, 0.17))
+    return base, (cx, 132, 132)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1096,95 +1012,109 @@ def _wool(pen_fn, W, H, seed, amount=3.0):
 
 
 def concept_c6():
-    W, H = 520, 700
-    cx = 260.0
-    parts = []   # (이미지, 보풀량)
+    """양모를 뭉쳐 만든 인형. 보풀 · 실밥 · 바느질 자국. 좌우가 조금씩 어긋난다(손으로 만든 것)."""
+    W, H = 540, 720
+    cx = 270.0
+    WOOL = (178, 132, 76); WOOL_L = (206, 166, 108); WOOL_D = (128, 92, 50)
+    parts = []
 
-    def part(fn, seed, amt=3.2):
-        parts.append(_wool(fn, W, H, seed, amt))
+    def part(fn, seed, amt=4.5):
+        pp = Pen(W, H, ss=3)
+        fn(pp)
+        parts.append(fuzz(pp.resolve(), amt, seed, 0.72))
 
     # 공기통
-    part(lambda p: p.poly(spline(ell(cx + 96, 350, 44, 82)[::6]), fill=MOSS), 1, 3.6)
-    # 다리
-    part(lambda p: [p.poly(spline(ell(cx - 44, 556, 40, 76)[::6]), fill=CANVASC),
-                    p.poly(spline(ell(cx + 44, 556, 40, 76)[::6]), fill=SUIT)], 2)
+    part(lambda p: p.poly(spline(ell(cx + 98, 356, 42, 80)[::6]), fill=MOSS), 1, 5.0)
+    # 다리 — 둘로 확실히 갈라 놓는다
+    part(lambda p: [p.poly(spline(ell(cx - 46, 566, 38, 74)[::6]), fill=WOOL_L),
+                    p.poly(spline(ell(cx + 48, 570, 38, 74)[::6]), fill=WOOL_D)], 2, 4.6)
     # 부츠
-    part(lambda p: [p.poly(spline(ell(cx - 48, 638, 52, 34)[::6]), fill=UMBER),
-                    p.poly(spline(ell(cx + 48, 638, 52, 34)[::6]), fill=UMBER)], 3, 2.6)
-    # 몸통 — 뭉친 양모 덩어리
+    part(lambda p: [p.poly(spline(ell(cx - 50, 648, 50, 32)[::6]), fill=(58, 44, 30)),
+                    p.poly(spline(ell(cx + 52, 652, 50, 32)[::6]), fill=(58, 44, 30))], 3, 3.4)
+    # 몸통 — 뭉친 양모 덩어리(살짝 기울어져 있다)
     part(lambda p: [
-        p.poly(spline([(cx - 96, 300), (cx - 74, 250), (cx, 236), (cx + 74, 250), (cx + 96, 300),
-                       (cx + 112, 410), (cx + 92, 510), (cx, 534), (cx - 92, 510), (cx - 112, 410)]),
-               fill=SUIT),
-        p.poly(spline([(cx - 88, 306), (cx - 40, 254), (cx + 4, 250), (cx + 10, 380),
-                       (cx - 20, 500), (cx - 88, 486), (cx - 104, 390)]), fill=SUIT_LT),
-    ], 4, 3.8)
+        p.poly(spline([(cx - 92, 302), (cx - 70, 252), (cx + 4, 238), (cx + 76, 254),
+                       (cx + 94, 304), (cx + 106, 410), (cx + 86, 508), (cx - 4, 530),
+                       (cx - 94, 506), (cx - 108, 408)]), fill=WOOL),
+        p.poly(spline([(cx - 84, 306), (cx - 38, 256), (cx + 6, 252), (cx + 12, 380),
+                       (cx - 18, 496), (cx - 84, 482), (cx - 100, 388)]), fill=WOOL_L),
+        p.poly(spline([(cx + 44, 262), (cx + 94, 304), (cx + 106, 410), (cx + 86, 508),
+                       (cx + 36, 516), (cx + 52, 396)]), fill=WOOL_D),
+        p.poly(spline([(cx - 52, 366), (cx + 52, 366), (cx + 62, 466), (cx - 60, 470)]),
+               fill=MOSS),
+    ], 4, 5.2)
     # 팔 + 벙어리장갑
     part(lambda p: [
-        *[q for s in (-1, 1) for q in (
-            p.poly(spline(ell(cx + s * 108, 370, 34, 78, rot=s * 0.14)[::6]),
-                   fill=SUIT_SH if s > 0 else SUIT),
-            p.poly(spline(ell(cx + s * 118, 452, 42, 40)[::6]), fill=CANVASC))],
-    ], 5)
-    # 목 실링 — 굵은 양모 도넛
-    part(lambda p: [p.poly(spline(ell(cx, 252, 108, 40)[::6]), fill=BONE),
-                    p.poly(spline(ell(cx, 244, 96, 30)[::6]), fill=CREAM)], 6, 4.2)
+        *[q for s_ in (-1, 1) for q in (
+            p.poly(spline(ell(cx + s_ * 108, 372, 33, 76, rot=s_ * 0.16)[::6]),
+                   fill=WOOL_D if s_ > 0 else WOOL_L),
+            p.poly(spline(ell(cx + s_ * 118, 452, 41, 39)[::6]), fill=CANVASC))],
+    ], 5, 4.8)
+    # 목 실링 — 굵은 양모 도넛(따뜻한 크림, 흰색이 아니다)
+    part(lambda p: [p.poly(spline(ell(cx, 252, 104, 38)[::6]), fill=(198, 168, 118)),
+                    p.poly(spline(ell(cx + 2, 244, 92, 28)[::6]), fill=BONE)], 6, 5.4)
     # 머리
     part(lambda p: [
-        p.poly(spline(ell(cx, 150, 98, 96)[::5]), fill=SKIN),
-        p.poly(spline(ell(cx - 30, 124, 52, 54)[::6]), fill=SKIN_LT),
-        p.poly(spline([(cx - 90, 108), (cx - 56, 56), (cx + 34, 48), (cx + 88, 92),
-                       (cx + 70, 112), (cx + 14, 88), (cx - 42, 104)]), fill=UMBER),
-    ], 7, 4.4)
-    # 헬멧
+        p.poly(spline(ell(cx, 152, 96, 94)[::5]), fill=SKIN),
+        p.poly(spline(ell(cx - 28, 126, 50, 52)[::6]), fill=SKIN_LT),
+        p.poly(spline(ell(cx + 40, 168, 50, 62)[::6]), fill=SKIN_SH),
+        p.poly(spline([(cx - 88, 110), (cx - 54, 58), (cx + 34, 50), (cx + 86, 94),
+                       (cx + 66, 114), (cx + 12, 90), (cx - 40, 106)]), fill=(64, 46, 32)),
+    ], 7, 5.6)
+    # 헬멧 — 펠트 돔
     part(lambda p: [
-        p.poly(spline(ell(cx + 4, 52, 100, 56)[::5]), fill=OCHRE),
-        p.poly(spline(ell(cx - 26, 36, 46, 24)[::6]), fill=AMBER),
-        p.poly(spline(ell(cx + 28, 52, 30, 22)[::6]), fill=TEAL),
-        p.poly(spline([(cx - 98, 56), (cx - 146, 72), (cx - 150, 96), (cx - 96, 78)]), fill=RUST),
-    ], 8, 3.4)
+        (lambda g: [
+            p.poly(spline(g["rim"][::6]), fill=(150, 112, 44)),
+            p.poly(spline(g["shell"][::5]), fill=OCHRE),
+            p.poly(spline(g["crest"][::6]), fill=AMBER),
+            p.poly(spline(g["port_ring"][::6]), fill=(150, 112, 44)),
+            p.poly(spline(g["port"][::6]), fill=TEAL),
+            p.line(g["pipe"], fill=RUST, width=16),
+        ])(helmet_geo(cx + 6, 58, 76)),
+    ], 8, 4.4)
 
     base = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     for im in parts:
         base = Image.alpha_composite(base, im)
 
-    # 위에 얹는 것들: 실 눈·바느질·볼·빗금 — 보풀 없이 또렷하게
+    # 실 눈 · 바느질 · 볼 — 보풀 없이 또렷하게 (실은 보풀지 않는다)
     p = Pen(W, H, ss=3)
-    # 볼
-    for s in (-1, 1):
-        p.poly(spline(ell(cx + s * 62, 176, 26, 17)[::6]), fill=(212, 140, 128))
-    # 실 눈 (매듭) + 눈썹 실 + 입 스티치
-    for s in (-1, 1):
-        ex = cx + s * 36
-        p.dot(ex, 148, 15, (34, 26, 20))
-        p.dot(ex - s * 4, 143, 4.5, CREAM)
-        _stitch(p, [(ex - 22, 112), (ex + 22, 106)] if s < 0 else [(ex - 22, 106), (ex + 22, 112)],
-                (46, 34, 24), n=3, w=5, ln=12)
-    _stitch(p, [(cx - 22, 196), (cx - 6, 206), (cx + 10, 206), (cx + 24, 194)],
-            (128, 62, 50), n=4, w=5, ln=10)
-    # 몸통 솔기 + 어깨 빗금
-    _stitch(p, [(cx - 96, 300), (cx - 100, 410), (cx - 88, 500)], (74, 56, 38), n=7, w=4, ln=10)
-    _stitch(p, [(cx + 96, 300), (cx + 108, 410), (cx + 90, 500)], (74, 56, 38), n=7, w=4, ln=10)
+    for s_ in (-1, 1):
+        p.poly(spline(ell(cx + s_ * 60, 180, 25, 16)[::6]), fill=(208, 134, 122))
+    for s_ in (-1, 1):
+        ex = cx + s_ * 35 + (2 if s_ > 0 else 0)
+        p.dot(ex, 150, 15, (32, 24, 18))
+        p.dot(ex - s_ * 4, 145, 4.5, CREAM)
+        _stitch(p, [(ex - 22, 114), (ex + 22, 108)] if s_ < 0 else [(ex - 22, 108), (ex + 22, 114)],
+                (52, 38, 26), n=3, w=5, ln=12)
+    _stitch(p, [(cx - 16, 204), (cx - 4, 213), (cx + 8, 213), (cx + 18, 202)],
+            (146, 72, 56), n=4, w=5, ln=9)
+    # 머리와 몸을 잇는 솔기
+    _stitch(p, [(cx - 82, 236), (cx, 226), (cx + 82, 238)], (120, 96, 62), n=7, w=4, ln=9)
+    # 몸통 솔기
+    _stitch(p, [(cx - 94, 300), (cx - 104, 410), (cx - 90, 500)], (96, 72, 46), n=7, w=4, ln=10)
+    _stitch(p, [(cx + 96, 302), (cx + 104, 410), (cx + 84, 502)], (96, 72, 46), n=7, w=4, ln=10)
+    _stitch(p, [(cx - 50, 366), (cx + 52, 366)], (150, 124, 82), n=7, w=3, ln=9)
+    # 어깨 기운 자국
     for i in range(4):
-        x0 = cx - 82 + i * 14
+        x0 = cx - 80 + i * 13
         p.line([(x0, 306 + i * 3), (x0 + 10, 336 + i * 3)], fill=OXBLOOD, width=5)
-    # 벨트 + 랜턴 (펠트 띠 + 단추)
-    p.poly([(cx - 104, 452), (cx + 104, 452), (cx + 102, 484), (cx - 102, 484)], fill=UMBER)
-    _stitch(p, [(cx - 100, 468), (cx + 100, 468)], (168, 140, 96), n=12, w=3, ln=9)
-    p.dot(cx - 4, 468, 15, BRASS); p.dot(cx - 8, 464, 3, UMBER); p.dot(cx, 472, 3, UMBER)
-    p.poly(spline(ell(cx - 86, 506, 25, 30)[::6]), fill=BRASS_SH)
-    p.poly(spline(ell(cx - 86, 506, 16, 20)[::6]), fill=LAMP)
+    # 벨트 + 단추 + 랜턴
+    p.poly([(cx - 100, 456), (cx + 98, 458), (cx + 96, 488), (cx - 98, 486)], fill=(58, 44, 30))
+    _stitch(p, [(cx - 96, 472), (cx + 94, 474)], (172, 144, 98), n=12, w=3, ln=9)
+    p.dot(cx - 2, 472, 15, BRASS); p.dot(cx - 6, 468, 3, (58, 44, 30)); p.dot(cx + 2, 476, 3, (58, 44, 30))
+    p.poly(spline(ell(cx - 84, 510, 24, 29)[::6]), fill=(112, 82, 24))
+    p.poly(spline(ell(cx - 84, 510, 15, 19)[::6]), fill=LAMP)
     # 헬멧 리벳 = 작은 단추
     for i in range(6):
-        a = math.pi + i * math.pi / 5
-        p.dot(cx + 4 + math.cos(a) * 100, 52 + math.sin(a) * 56, 7, BRASS)
+        ang = math.pi + i * math.pi / 5
+        p.dot(cx + 6 + math.cos(ang) * 68, 58 + math.sin(ang) * 60, 7, BRASS)
     base = Image.alpha_composite(base, p.resolve())
 
-    # 양모 질감: 미세 노이즈 + 아주 약한 부드러움
-    base = grain(base, 0.13, 1.1, 21)
-    base = base.filter(ImageFilter.GaussianBlur(0.35))
-    base = shade_lin(base, 1.05, 0.88)
-    return base, (cx, 150, 155)
+    base = grain(base, 0.15, 1.0, 21)
+    base = base.filter(ImageFilter.GaussianBlur(0.4))
+    base = shade_lin(base, 1.06, 0.86)
+    return base, (cx, 152, 158)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1208,7 +1138,7 @@ def run(cid):
         big = fig.resize((fig.size[0] * 11, fig.size[1] * 11), Image.NEAREST)
         save(cid, "full.png", card(big, 640, 820, 792))
         # 얼굴 = 머리 영역 1:1 확대
-        head = fig.crop((0, 0, fig.size[0], 24))
+        head = fig.crop((0, 2, fig.size[0], 33))
         hs = 512 // head.size[1] + 1
         hi = head.resize((head.size[0] * hs, head.size[1] * hs), Image.NEAREST)
         bg = room_bg(512, 512, lamp_at=(256, 200), lamp_r=460)

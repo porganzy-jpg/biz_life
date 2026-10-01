@@ -116,6 +116,56 @@
 </header>
 
 <main>
+  <h2 style="color:#ff9d5c;border-left-color:#ff6a2b">00. 괴기함 빼기 — c 대 d (스프린트 6-A)</h2>
+  <p class="note">
+    <b style="color:#ff9d5c">전제가 바뀌었다.</b> 화풍 레퍼런스 초판의 §1-7 「얼굴은 최소 · 코·입 없음」은
+    <b>오독</b>이었다(실제 원고 확인 후 <code>REF_ART_FLAT_FOLK.md §0</code>에서 정정). 원작은
+    <b>얼굴을 전부 그린다</b> — 눈동자·흰자·<b>눈썹</b>·상황에 따라 벌어지는 <b>입</b>·주근깨·볼 홍조.
+    감정을 얼굴이 직접 표현한다. 우리가 얼굴을 지운 것이 <b>괴기함의 단일 원인</b>이었다.
+    함께 정정된 것 둘 — 화면은 <b>중간 명도의 따뜻한 톤</b>이고(극단 대비가 아니다),
+    면은 <b>손으로 칠한 거친 결</b>이다(매끈한 벡터 면이 아니다).
+  </p>
+  <p class="note">
+    그래서 <b>d</b>는 ① 얼굴을 다 그리고 ② 입·눈썹을 <b>클립마다 바꾸고</b> ③ 피부를 따뜻한 살구·모래색
+    중간 명도로 내리고 ④ 음영을 <b>3단</b>으로 늘리고 ⑤ 가장자리를 부드럽게·결을 두 배로 하고
+    ⑥ 목 실링·어깨·자락에 <b>부피</b>를 주고 ⑦ 엉뚱함을 하나씩 넣고 ⑧ 3등신 고집을 버렸다
+    (머리 ×1.26 → ×1.12, 대신 다리를 짧게만 하지 않고 <b>통통하게</b>).
+    <b>a·b·c는 한 바이트도 건드리지 않았다.</b>
+  </p>
+  <div class="chk" id="warmchk"></div>
+
+  <h3 style="color:#ff9d5c">00-1. 얼굴 확대 — <span style="color:#DC7728">이번 합격 기준은 이것 하나다</span></h3>
+  <p class="note">
+    처음 보는 사람이 <b>"무섭다"가 아니라 "귀엽다·따뜻하다"</b>라고 해야 한다. 왼쪽이 c, 오른쪽이 d.
+  </p>
+  <div class="ba" id="facezoom"></div>
+
+  <h3 style="color:#ff9d5c">00-2. 여덟의 얼굴 (d)</h3>
+  <p class="note">전부 입이 있고, 눈썹이 있고, 볼에 홍조가 있다. 주근깨는 정찰병·농부·아이만.</p>
+  <div class="grid" id="faces8d"></div>
+
+  <h3 style="color:#ff9d5c">00-3. 표정이 바뀐다 — 서 있을 때 · 걸을 때 · 들 때</h3>
+  <p class="note">
+    입과 눈썹이 <b>클립마다 다른 것</b>으로 갈린다(REF §1-7 정정 「감정을 얼굴이 직접 표현한다」).
+    서 있을 땐 다문 미소, 걸을 땐 살짝 벌린 미소, 물건을 들 땐 힘주어 벌린 입 + 찡그린 눈썹.
+  </p>
+  <div class="grid" id="exprzoom"></div>
+
+  <h3 style="color:#ff9d5c">00-4. 전신 — c 대 d</h3>
+  <div class="ba" id="warmfull"></div>
+
+  <h3 style="color:#ff9d5c">00-5. 70px — <span style="color:#DC7728">여덟이 아직 갈리는가 · 어두운 방에서 안 묻히는가</span></h3>
+  <p class="note">위가 c, 아래가 d. 같은 배경 셋. 판독을 잃으면 따뜻해져도 실패다.</p>
+  <div id="w70"></div>
+
+  <h3 style="color:#ff9d5c">00-6. 팔레트 — 색상은 그대로, 그림자만 끌어올렸다</h3>
+  <p class="note">
+    §7-3-5 「캐릭터에는 극단적 명도 대비를 쓰지 않는다」. <b>색상(hue)은 한 계열도 바꾸지 않았고</b>
+    그림자 값만 올려 인물 안의 명도 폭을 줄였다. 위가 b/c의 값, 아래가 d의 값.
+    <b>살구·모래(skin)</b> 한 계열만 새로 추가했다.
+  </p>
+  <div class="pal" id="wpal"></div>
+
   <h2>0. 더 귀엽게 — 전 · 후 (스프린트 5-C)</h2>
   <p class="note">
     <b>화풍은 그대로다.</b> 팔레트 7계열·음영 2단·역할별 반복 무늬·손그림 선·종이 결은
@@ -261,7 +311,7 @@ function fileSprite(url, H) {           // 한 장짜리 PNG(셀 1개 분량)
 function anySprite(variant, role, H, opt) {
   // 문어는 시트가 아니라 낱장이고 A안(렌더 그대로) 판이 없다 → b 로 떨어뜨린다
   if (role === 'octopus') {
-    const v = (variant === 'c') ? 'c' : 'b';
+    const v = (variant === 'c' || variant === 'd') ? variant : 'b';
     return fileSprite(`/static/art/chars/front/${v}/octopus_idle.png`, H);
   }
   return sheetSprite(variant, role, (opt && opt.row) || 0, 0, H, opt);
@@ -293,6 +343,137 @@ fetch('/static/art/chars/front/front_meta.json').then(r => r.json()).then(m => {
   const ORDER = ["scout","cook","medic","engineer","farmer","scholar","trader","kid"].filter(r => m.roles[r]);
   const HEROES = (m.hero || ["scout","medic","kid","engineer"]).filter(r => m.roles[r])
                   .concat(m.roles.octopus ? ["octopus"] : []);
+
+  // ══ 00. 괴기함 빼기 (S6-A 변형 d) ══════════════════════════════
+  const LANDKEY = {b: 'land', c: 'land_c', d: 'land_d'};
+  // 요리사는 모자가 머리 메시 안에 있어 Head 뼈가 다른 역할보다 높게 잡힌다 → 얼굴 상자를 내린다
+  const FACE_DZ = {cook: -0.32};
+  function faceZoom(v, role, S, row, col) {
+    // 셀 안에서 머리만 잘라 크게 본다. 잘라 낼 자리는 렌더가 실측해 넘긴 land.head 로 정한다.
+    row = row || 0; col = col || 0;
+    const ld = (META.roles[role] || {})[LANDKEY[v]] || {};
+    const hz = ((ld.head != null) ? ld.head : 1.03) + (FACE_DZ[role] || 0);
+    const y0 = BASE - (hz + 0.54) * PPM, y1 = BASE - (hz - 0.12) * PPM;
+    const hh = y1 - y0, ww = hh * 1.06, k = S / hh;
+    const heroes = (META.hero || []);
+    const useHero = (row === 0 && col === 0 && heroes.indexOf(role) >= 0);
+    let url, bw, bh, ox = 0, oy = 0;
+    if (useHero) {
+      url = `/static/art/chars/front/${v}/${role}_hero.png`; bw = bh = CELL * k;
+    } else {
+      url = `/static/art/chars/front/${v}/${role}.png`;
+      bw = META.frames * CELL * k; bh = META.clips.length * CELL * k;
+      ox = col * CELL * k; oy = row * CELL * k;
+    }
+    const d = document.createElement('div');
+    d.className = 'sp';
+    d.style.width = (ww * k).toFixed(1) + 'px';
+    d.style.height = S.toFixed(1) + 'px';
+    d.style.backgroundImage = `url(${url})`;
+    d.style.backgroundSize = `${bw.toFixed(1)}px ${bh.toFixed(1)}px`;
+    d.style.backgroundPosition =
+      `${-(ox + (CELL / 2 - ww / 2) * k).toFixed(1)}px ${-(oy + y0 * k).toFixed(1)}px`;
+    d.style.borderRadius = '5px';
+    return d;
+  }
+
+  const WROLES = (m.warm_roles || []);
+  if (WROLES.length) {
+    const W = m.warm || {}, WF = m.warm_face || {};
+    document.getElementById('warmchk').innerHTML = [
+      ['얼굴 부품', '흰자·동공·눈썹·입·홍조(+주근깨)'],
+      ['입', '클립 3종마다 다른 것'],
+      ['피부', '뼈·크림 → 살구 ' + ((m.warm_palette || {}).skin || ['-'])[0]],
+      ['인물 명도 폭', 'c 0.85 → d 0.74 (하위 5% 0.067 → 0.169)'],
+      ['음영 단수', '2단 → 3단'],
+      ['선 색', (m.line_color || '') + ' → ' + (m.warm_line || '')],
+      ['머리 배율', '×1.26 → ×' + (W.head || '-')],
+      ['다리', '×' + (W.leg || '-') + ' · 굵기 ×' + (W.leg_xz || '-')],
+      ['장갑(엉뚱함)', '×' + (W.fist || '-')],
+      ['목 실링', '3겹 → 4겹, 더 두껍게'],
+      ['목 무늬', '지그재그 → 둥근 물결'],
+      ['연필 결', '×2 (0.055 → 0.105)']
+    ].map(x => `<div>${x[0]} <b>${x[1]}</b></div>`).join('');
+
+    // 00-1 얼굴 확대 c 대 d
+    const fz = document.getElementById('facezoom');
+    for (const r of ['scout', 'medic', 'engineer', 'kid'].filter(r => WROLES.includes(r))) {
+      const box = document.createElement('div'); box.className = 'bacard';
+      const pair = document.createElement('div'); pair.className = 'pair';
+      for (const [v, cls, lbl] of [['c', 'before', 'c — 입이 없다'], ['d', 'after', 'd — 얼굴이 있다']]) {
+        const half = document.createElement('div'); half.className = 'half';
+        half.style.height = '236px'; half.style.alignItems = 'center';
+        const t = document.createElement('div'); t.className = 'tag ' + cls; t.textContent = lbl;
+        half.appendChild(t); half.appendChild(faceZoom(v, r, 210));
+        pair.appendChild(half);
+      }
+      box.appendChild(pair);
+      const mt = document.createElement('div'); mt.className = 'meta';
+      const wq = (m.roles[r] || {}).whimsy || '';
+      mt.innerHTML = `<div class="nm">${ROLE_KO[r]}<span class="rl">${wq}</span></div>`;
+      box.appendChild(mt); fz.appendChild(box);
+    }
+
+    // 00-2 여덟의 얼굴
+    const f8 = document.getElementById('faces8d');
+    for (const r of WROLES.filter(r => r !== 'octopus'))
+      f8.appendChild(card(faceZoom('d', r, 150), ROLE_KO[r], '#1b1712'));
+
+    // 00-3 표정 3종
+    const ez = document.getElementById('exprzoom');
+    const EX = m.warm_expr || {Idle: 'Idle', Walk: 'Walk', PickUp: 'PickUp'};
+    for (const r of ['scout', 'kid', 'medic'].filter(r => WROLES.includes(r)))
+      (m.clips || []).forEach((c, i) => {
+        ez.appendChild(card(faceZoom('d', r, 150, i, 2),
+                            ROLE_KO[r] + ' · ' + (EX[c] || c), '#1b1712'));
+      });
+
+    // 00-4 전신 c 대 d
+    const wf = document.getElementById('warmfull');
+    for (const r of WROLES) {
+      const box = document.createElement('div'); box.className = 'bacard';
+      const pair = document.createElement('div'); pair.className = 'pair';
+      for (const [v, cls, lbl] of [['c', 'before', 'c'], ['d', 'after', 'd']]) {
+        const half = document.createElement('div'); half.className = 'half';
+        const t = document.createElement('div'); t.className = 'tag ' + cls; t.textContent = lbl;
+        const el = (r === 'octopus') ? fileSprite(heroUrl(v, r), 210) : anySprite(v, r, 210);
+        el.style.marginBottom = (-(CELL - BASE) * (210 / (1.6 * PPM)) + 6) + 'px';
+        half.appendChild(t); half.appendChild(el); pair.appendChild(half);
+      }
+      box.appendChild(pair);
+      const mt = document.createElement('div'); mt.className = 'meta';
+      mt.innerHTML = `<div class="nm">${ROLE_KO[r]}` +
+                     `<span class="rl">${(m.roles[r] || {}).whimsy || ''}</span></div>`;
+      box.appendChild(mt); wf.appendChild(box);
+    }
+
+    // 00-5 70px 3배경
+    const w70 = document.getElementById('w70');
+    for (const [bg, lbl] of [['var(--wall-quarters)', '밝은 뒷벽'],
+                             ['var(--floor-workshop)', '바닥'],
+                             ['var(--wall-dark)', '어두운 구석']]) {
+      for (const v of ['c', 'd']) band(w70, v, 70, bg, lbl + ' · ' + v, WROLES);
+    }
+
+    // 00-6 팔레트
+    const wp = document.getElementById('wpal');
+    const PKO = {cream: "크림 / 뼈", ochre: "황토", burnt: "번트오렌지", oxblood: "적갈",
+                 olive: "탁한 올리브", umber: "흙", charcoal: "숯검정", skin: "살구 / 모래 (신규)"};
+    for (const [k2, hl] of Object.entries(m.warm_palette || {})) {
+      const old = (m.palette || {})[k2];
+      const s2 = document.createElement('div'); s2.className = 'swatch';
+      s2.innerHTML =
+        (old ? `<div style="height:20px;background:${old[0]}"></div>` +
+               `<div style="height:14px;background:${old[1]}"></div>` : '') +
+        `<div class="hi" style="height:28px;background:${hl[0]}"></div>` +
+        `<div class="lo" style="background:${hl[1]}"></div>` +
+        `<div class="t"><b>${PKO[k2] || k2}</b><code>${hl[0]} / ${hl[1]}</code></div>`;
+      wp.appendChild(s2);
+    }
+  } else {
+    document.getElementById('warmchk').innerHTML =
+      '<div style="color:#ff8a6a">d 가 아직 없다 — <code>render_sprites.py -- warm</code> 후 <code>post --warm</code></div>';
+  }
 
   // ── 0. 전·후 (S5-C 비율 보정)
   const CUTE_OK = (m.cute_roles || []).length > 0;
