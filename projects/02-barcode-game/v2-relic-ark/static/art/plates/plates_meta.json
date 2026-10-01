@@ -2,25 +2,25 @@
  "_note": "S8-C 방 플레이트. 좌표 단위는 전부 캔버스 px(좌상단 0,0).",
  "_rule": "도트 캐릭터(P2 48px)를 ×3 으로 그리고, 발바닥을 floor_y 에 맞춘다. 플레이트를 확대/축소하지 말 것 — 정수 배율 체계가 깨진다.",
  "grid": {
-  "virtual_px_per_m": 28,
+  "src_px_per_m": 27.5,
   "char_scale": 3,
-  "px_per_m": 84,
+  "px_per_m": 82.5,
   "char_ref": {
-   "set": "p2",
-   "cell_px": [
-    32,
-    48
-   ],
-   "screen_px": [
-    96,
-    144
-   ],
-   "sprite_h_m": 1.714
+   "set": "static/art/chars/front/p2",
+   "src_cell": 64,
+   "room_cell": 192,
+   "room_baseline": 180,
+   "room_h_1m6": 132,
+   "note": "src/<role>.png 를 NEAREST ×3 으로 키우고 셀 안 baseline(180)을 floor_y 에 맞춘다"
   }
  },
  "canvas": [
   672,
   378
+ ],
+ "canvas_m": [
+  8.1455,
+  4.5818
  ],
  "room_inner_m": [
   6.0,
@@ -28,21 +28,21 @@
  ],
  "floor_y": 315,
  "inner_rect": [
-  84,
-  63,
-  588,
+  88,
+  68,
+  584,
   315
  ],
  "outer_rect": [
-  49,
-  28,
-  623,
+  54,
+  33,
+  618,
   350
  ],
  "water_margin_px": {
-  "left": 49,
-  "right": 49,
-  "top": 28,
+  "left": 54,
+  "right": 54,
+  "top": 33,
   "bottom": 28
  },
  "states": {
@@ -69,25 +69,25 @@
     "lit": "room_plate_quarters_lit.png"
    },
    "floor_y": 315,
-   "ceil_y": 63,
+   "ceil_y": 68,
    "stand_x": [
-    134,
-    538
+    138,
+    534
    ],
    "lamp": [
     336,
-    107
+    110
    ],
    "inner_rect": [
-    84,
-    63,
-    588,
+    88,
+    68,
+    584,
     315
    ],
    "outer_rect": [
-    49,
-    28,
-    623,
+    54,
+    33,
+    618,
     350
    ]
   },
@@ -101,25 +101,25 @@
     "lit": "room_plate_storage_lit.png"
    },
    "floor_y": 315,
-   "ceil_y": 63,
+   "ceil_y": 68,
    "stand_x": [
-    134,
-    538
+    138,
+    534
    ],
    "lamp": [
     336,
-    107
+    110
    ],
    "inner_rect": [
-    84,
-    63,
-    588,
+    88,
+    68,
+    584,
     315
    ],
    "outer_rect": [
-    49,
-    28,
-    623,
+    54,
+    33,
+    618,
     350
    ]
   },
@@ -133,25 +133,25 @@
     "lit": "room_plate_workshop_lit.png"
    },
    "floor_y": 315,
-   "ceil_y": 63,
+   "ceil_y": 68,
    "stand_x": [
-    134,
-    538
+    138,
+    534
    ],
    "lamp": [
     336,
-    107
+    110
    ],
    "inner_rect": [
-    84,
-    63,
-    588,
+    88,
+    68,
+    584,
     315
    ],
    "outer_rect": [
-    49,
-    28,
-    623,
+    54,
+    33,
+    618,
     350
    ]
   },
@@ -165,25 +165,25 @@
     "lit": "room_plate_infirmary_lit.png"
    },
    "floor_y": 315,
-   "ceil_y": 63,
+   "ceil_y": 68,
    "stand_x": [
-    134,
-    538
+    138,
+    534
    ],
    "lamp": [
     336,
-    107
+    110
    ],
    "inner_rect": [
-    84,
-    63,
-    588,
+    88,
+    68,
+    584,
     315
    ],
    "outer_rect": [
-    49,
-    28,
-    623,
+    54,
+    33,
+    618,
     350
    ]
   },
@@ -197,25 +197,25 @@
     "lit": "room_plate_power_lit.png"
    },
    "floor_y": 315,
-   "ceil_y": 63,
+   "ceil_y": 68,
    "stand_x": [
-    134,
-    538
+    138,
+    534
    ],
    "lamp": [
     336,
-    107
+    110
    ],
    "inner_rect": [
-    84,
-    63,
-    588,
+    88,
+    68,
+    584,
     315
    ],
    "outer_rect": [
-    49,
-    28,
-    623,
+    54,
+    33,
+    618,
     350
    ]
   },
@@ -229,25 +229,25 @@
     "lit": "room_plate_greenhouse_lit.png"
    },
    "floor_y": 315,
-   "ceil_y": 63,
+   "ceil_y": 68,
    "stand_x": [
-    134,
-    538
+    138,
+    534
    ],
    "lamp": [
     336,
-    107
+    110
    ],
    "inner_rect": [
-    84,
-    63,
-    588,
+    88,
+    68,
+    584,
     315
    ],
    "outer_rect": [
-    49,
-    28,
-    623,
+    54,
+    33,
+    618,
     350
    ]
   }
