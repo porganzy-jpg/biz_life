@@ -96,3 +96,9 @@ projects/02-barcode-game/v2-relic-ark/*.db
 projects/02-barcode-game/v2-relic-ark/*.log
 projects/02-barcode-game/v2-relic-ark/static/art/chars/legacy/
 .playwright-mcp/
+
+# 06-home-finder: 원본 실거래 캐시(약 54MB)와 페이지 빌드 산출물
+projects/06-home-finder/data/cache/
+projects/06-home-finder/reports/buy_plan/tiles/
+projects/06-home-finder/reports/buy_plan/leaflet.css
+projects/06-home-finder/reports/buy_plan/home.html

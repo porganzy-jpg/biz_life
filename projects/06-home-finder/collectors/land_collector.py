@@ -243,7 +243,10 @@ class LandCollector(BaseCollector):
                 query = f"{district} {dong}".strip()
                 r = requests.get(
                     KAKAO_GEOCODE_URL,
-                    headers={"Authorization": f"KakaoAK {self.kakao_key}"},
+                    # .env의 키는 JavaScript 키라 등록 도메인을 KA/Origin 헤더로 밝혀야 한다(없으면 401).
+                    headers={"Authorization": f"KakaoAK {self.kakao_key}",
+                             "KA": "sdk/1.0 os/javascript origin/http://localhost:8006",
+                             "Origin": "http://localhost:8006"},
                     params={"query": query, "size": 1},
                     timeout=8,
                 )

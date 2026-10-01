@@ -1,0 +1,470 @@
+<title>마지막 집 후보</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/*LEAFLET_CSS*/
+:root{
+  --bg:#F1F3EF; --surface:#FFFFFF; --sunk:#E8ECE7; --ink:#17201B; --muted:#5B6861; --line:#D6DDD7;
+  --t8:#1D7350; --t9:#B04E1C; --land:#6B4FA0; --dev:#B0185A; --sub:#2356A8; --warn:#9A5208; --ok:#1D7350; --no:#A23A2A;
+  --tile-filter:none;
+  --display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101613; --surface:#18201C; --sunk:#202A25; --ink:#E4EBE6; --muted:#97A59D; --line:#2C3832;
+    --t8:#47BD8A; --t9:#EE8A52; --land:#B193E6; --dev:#F27AA6; --sub:#7EA6F0; --warn:#E3A04A; --ok:#47BD8A; --no:#F07A66;
+    --tile-filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101613; --surface:#18201C; --sunk:#202A25; --ink:#E4EBE6; --muted:#97A59D; --line:#2C3832;
+  --t8:#47BD8A; --t9:#EE8A52; --land:#B193E6; --dev:#F27AA6; --sub:#7EA6F0; --warn:#E3A04A; --ok:#47BD8A; --no:#F07A66;
+  --tile-filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.6);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.55}
+a{color:var(--sub)}
+.wrap{padding-inline:16px;padding-block:20px 40px;max-width:1440px;margin:0 auto;display:grid;gap:16px}
+header{display:grid;gap:8px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:72ch}
+.facts{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:600}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:1000;background:var(--bg);display:flex;gap:4px;overflow-x:auto;padding-block:6px;border-bottom:1px solid var(--line)}
+nav.tabs button{font:inherit;font-weight:600;border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;display:flex;gap:6px;align-items:center}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+nav.tabs button:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--sub);outline-offset:2px}
+.dd{background:var(--dev)}
+.chip.dev{border-color:color-mix(in srgb,var(--dev) 60%,var(--line))}
+.chip.dev b{color:var(--dev)}
+.cert{font:600 11px var(--body);padding:2px 7px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;flex:none}
+.cert.c-high{border-color:var(--ok);color:var(--ok)}.cert.c-mid{border-color:var(--warn);color:var(--warn)}.cert.c-low{border-color:var(--no);color:var(--no)}
+.affected{display:flex;flex-wrap:wrap;gap:6px}
+.affected button{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:999px;padding:2px 9px;cursor:pointer}
+.strat{display:grid;gap:12px}
+.strat section{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:8px}
+.strat h2{margin:0;font-size:16px}
+.strat h3{margin:4px 0 0;font-size:14px}
+.strat p,.strat li{margin:0;max-width:70ch}
+.strat ul,.strat ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.strat .fit{font:600 11.5px var(--body);padding:2px 8px;border-radius:999px;border:1px solid var(--line);margin-left:6px;vertical-align:1px}
+.strat .fit.best{border-color:var(--ok);color:var(--ok)}.strat .fit.ok{border-color:var(--warn);color:var(--warn)}.strat .fit.no{border-color:var(--no);color:var(--no)}
+.deal{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.deal div{background:var(--sunk);border-radius:8px;padding:6px 10px;display:grid}
+.deal .k{font-size:11.5px;color:var(--muted)}
+.deal .v{font:500 16px var(--mono);font-variant-numeric:tabular-nums}
+.strat table td{white-space:normal}
+.strat .ok-t{color:var(--ok);font-weight:600}.strat .no-t{color:var(--no);font-weight:600}
+.role{font:700 12px var(--body);color:var(--muted);letter-spacing:.03em}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.d8{background:var(--t8)}.d9{background:var(--t9)}.dl{background:var(--land)}.ds{background:var(--sub)}.dr{background:var(--ink)}
+.count{font-family:var(--mono);font-size:11.5px;color:var(--muted);font-weight:500}
+main{display:grid;gap:16px;grid-template-columns:1fr}
+@media (min-width:1000px){ main{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start} #mapbox{position:sticky;top:calc(env(safe-area-inset-top,0px) + 56px)} }
+#mapbox{display:grid;gap:8px}
+#map{height:min(62vh,640px);min-height:320px;border-radius:12px;border:1px solid var(--line);background:var(--sunk)}
+@media (max-width:999px){ #map{height:46vh} }
+.leaflet-tile-pane{filter:var(--tile-filter)}
+.leaflet-container{font-family:var(--body);background:var(--sunk)}
+.leaflet-control-attribution{font-size:10px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.pin-label{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font:600 12px var(--body);white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.leaflet-tooltip.pin-label::before{display:none}
+#panel{display:grid;gap:12px;min-width:0}
+.toolbar[hidden]{display:none}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13px}
+.toolbar label{display:inline-flex;gap:6px;align-items:center;color:var(--muted)}
+select{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 8px}
+.intro{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:6px}
+.intro h2{margin:0;font-size:16px}
+.intro p{margin:0;color:var(--muted);max-width:70ch}
+.list{display:grid;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px;cursor:pointer;scroll-margin-top:72px}
+.card:hover{border-color:var(--muted)}
+.card.sel{box-shadow:0 0 0 2px var(--accent,var(--sub));border-color:transparent}
+.card-top{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.name{font-size:16px;font-weight:700;margin:0;line-height:1.3}
+.where{color:var(--muted);font-size:12.5px}
+.tier{font:600 11.5px var(--body);padding:3px 8px;border-radius:999px;white-space:nowrap;color:#fff;flex:none}
+.tier.t8{background:var(--t8)}.tier.t9{background:var(--t9)}.tier.tl{background:var(--land)}
+:root[data-theme="dark"] .tier{color:#0F1512}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tier{color:#0F1512}}
+.prices{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.price{background:var(--sunk);border-radius:8px;padding:8px 10px;display:grid;gap:2px}
+.price .k{font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+.price .v{font:500 18px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.price .s{font-size:12px;color:var(--muted)}
+.price.off{opacity:.55}
+.gap-up{color:var(--no)}.gap-down{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--ink);background:var(--surface);white-space:nowrap}
+.chip b{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums}
+.chip.good{border-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.chip.bad{border-color:color-mix(in srgb,var(--no) 55%,var(--line));color:var(--muted)}
+.chip.scale{border-color:var(--ink)}
+.note{font-size:12.5px;color:var(--muted);margin:0;overflow-wrap:anywhere}
+.links{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px}
+.why{margin:0;display:grid;gap:4px;padding-left:18px}
+.why li{max-width:70ch}
+.why .minus{color:var(--muted)}
+.giveup{font-size:12.5px;font-weight:600}
+.giveup.none{color:var(--ok)}.giveup.one{color:var(--warn)}
+.sec-title{font-size:13px;font-weight:700;color:var(--muted);margin:6px 0 0;letter-spacing:.04em}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;font-size:12.5px;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+footer{color:var(--muted);font-size:12px;display:grid;gap:4px;max-width:90ch}
+footer p{margin:0}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>마지막 집 후보</h1>
+    <p class="lede">재택근무 · 생애최초 · 현금 8억 기준으로 고른 수도권 아파트와 땅입니다. 호가는 2026년 10월 1일 네이버 부동산, 기준 시세는 최근 12개월 국토부 실거래입니다.</p>
+    <div class="facts">
+      <span>대출 가정 <b>생애최초 LTV 70%, 최대 6억</b></span>
+      <span>총비용 <b>매수가 + 취득세 + 중개·법무비</b></span>
+      <span>세 낀 집 <b>토허구역 실거주 유예(최장 2029.12) 적용</b></span>
+      <span>주변 세대수 <b>반경 500m, 100세대 이상 단지 합계</b></span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="보기">
+    <button role="tab" id="tab-strat" data-tab="strat"><span class="dot dr"></span>매수 전략<span class="count" id="n-strat"></span></button>
+    <button role="tab" id="tab-rec" data-tab="rec"><span class="dot dr"></span>추천<span class="count" id="n-rec"></span></button>
+    <button role="tab" id="tab-t8" data-tab="t8"><span class="dot d8"></span>8억 이하<span class="count" id="n-t8"></span></button>
+    <button role="tab" id="tab-t9" data-tab="t9"><span class="dot d9"></span>9억대 (8~10억)<span class="count" id="n-t9"></span></button>
+    <button role="tab" id="tab-sub" data-tab="sub"><span class="dot ds"></span>지하철 우선<span class="count" id="n-sub"></span></button>
+    <button role="tab" id="tab-land" data-tab="land"><span class="dot dl"></span>땅<span class="count" id="n-land"></span></button>
+    <button role="tab" id="tab-hj" data-tab="hj"><span class="dot dd"></span>개발 호재<span class="count" id="n-hj"></span></button>
+  </nav>
+
+  <main>
+    <section id="mapbox" aria-label="지도">
+      <div id="map"></div>
+      <div class="legend">
+        <span><span class="dot d8"></span>총 8억 이하</span>
+        <span><span class="dot d9"></span>총 8~10억</span>
+        <span><span class="dot dl"></span>땅(동 단위)</span>
+        <span>점 크기 = 주변 세대수</span>
+        <span><span class="dot dd"></span>호재 노선 (실선 확실 · 긴 점선 진행 중 · 짧은 점선 불확실)</span>
+      </div>
+    </section>
+    <section id="panel" aria-live="polite">
+      <div class="intro" id="intro"></div>
+      <div class="toolbar" id="toolbar">
+        <label for="sort">정렬
+          <select id="sort">
+            <option value="score">종합 점수</option>
+            <option value="price">가격 낮은 순</option>
+            <option value="subway">역에서 가까운 순</option>
+            <option value="hh">주변 세대수 많은 순</option>
+            <option value="univ">대학병원 가까운 순</option>
+            <option value="dev">호재 반영 점수</option>
+          </select>
+        </label>
+        <label for="f-scale"><input type="checkbox" id="f-scale"> 주변 2,500세대 이상만</label>
+        <label for="f-movein"><input type="checkbox" id="f-movein"> 바로 입주 가능한 매물만</label>
+        <label for="f-lines"><input type="checkbox" id="f-lines"> 호재 노선 겹쳐 보기</label>
+      </div>
+      <div class="list" id="list"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>호가는 매물 설명 기준이라 실제 협상가와 다를 수 있습니다. 세입자 여부·입주 시점은 설명 문구로 추정했으니 중개사에게 꼭 확인하세요.</p>
+    <p>땅은 지번이 공개되지 않은 실거래라 필지가 아닌 동 단위 시세입니다. 도심 대지에는 대개 낡은 집이 있어 철거비(2~3천만 원)가 더 듭니다. 단독·다가구 실거래는 국토부 API 미승인으로 빠져 있습니다.</p>
+    <p>규제·대출 기준은 2026년 10월 1일 기준입니다. 계약 전 은행과 구청에서 다시 확인하세요. 지도 © OpenStreetMap contributors</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const APTS = /*APTS*/;
+const LAND = /*LAND*/;
+const RECS = /*RECS*/;
+const STRAT = /*STRAT*/;
+const STRAT_HTML = /*STRAT_HTML*/;
+const LAND_HTML = /*LAND_HTML*/;
+const HOJAE = /*HOJAE*/;
+const TILES = /*TILES*/;
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
+const $ = s => document.querySelector(s);
+const eok = v => v == null ? "–" : v.toFixed(2) + "억";
+const dist = m => m == null ? "–" : (m < 1000 ? m + "m" : (m / 1000).toFixed(1) + "km");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const COND = [
+  ["대학병원 3km", a => (a.univ_m ?? 1e9) <= 3000],
+  ["공원 300m", a => (a.park_m ?? 1e9) <= 300],
+  ["창고형 마트 3km", a => (a.wh_m ?? 1e9) <= 3000],
+  ["2005년 이후 준공", a => (a.built || 0) >= 2005],
+  ["74㎡ 이상", a => a.area >= 74],
+  ["주변 2,500세대 이상", a => (a.hh500 || 0) >= 2500],
+];
+const misses = a => COND.filter(([, f]) => !f(a)).map(([k]) => k);
+
+function cashNeeded(price, total) {
+  const loan = Math.min(price * 0.7, 6);
+  return Math.max(0, total - loan);
+}
+function bestPrice(a) {
+  const ps = [];
+  if (a.movein != null) ps.push(a.movein_total);
+  if (a.tenant != null) ps.push(a.tenant_total);
+  return Math.min(...ps);
+}
+
+/* ── 지도 ── */
+const map = L.map("map", { zoomControl: true, minZoom: 9, maxZoom: 16, attributionControl: true })
+  .setView([37.55, 126.98], 10);
+map.attributionControl.setPrefix(false).addAttribution("© OpenStreetMap contributors");
+const Embedded = L.TileLayer.extend({
+  createTile(c, done) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = TILES[c.z + "/" + c.x + "/" + c.y] || BLANK;
+    setTimeout(() => done(null, img), 0);
+    return img;
+  }
+});
+new Embedded("", { minNativeZoom: 11, maxNativeZoom: 11, minZoom: 9, maxZoom: 16 }).addTo(map);
+new Embedded("", { minZoom: 12, maxNativeZoom: 12, maxZoom: 16 }).addTo(map);
+new Embedded("", { minZoom: 13, maxNativeZoom: 13, maxZoom: 16 }).addTo(map);
+const layer = L.layerGroup().addTo(map);
+const markers = new Map();
+
+function color(item) {
+  if (item.kind === "land") return css("--land");
+  return item.tier === "8억" ? css("--t8") : css("--t9");
+}
+function radius(item) {
+  if (item.kind === "land") return 7;
+  const h = item.hh500 || 0;
+  return h >= 5000 ? 10 : h >= 2500 ? 8 : 6;
+}
+
+/* ── 카드 ── */
+function hjChips(list) {
+  if (!list || !list.length) return "";
+  return `<div class="chips">${list.map(h => `<span class="chip dev">${esc(h.name)} ${esc(h.stop)} <b>${dist(h.d)}</b> · ${esc(h.year)} · 확실성 ${esc(h.cert)}${h.closer ? " · 역이 더 가까워짐" : ""}</span>`).join("")}</div>`;
+}
+function hjCard(h) {
+  const cc = h.cert === "높음" ? "c-high" : h.cert === "중간" ? "c-mid" : "c-low";
+  const aff = APTS.filter(a => (a.hj || []).some(x => x.id === h.id)).map(a => ({ key: "a" + a.cn, label: `${a.name} ${dist(a.hj.find(x => x.id === h.id).d)}` }))
+    .concat(LAND.filter(l => (l.hj || []).some(x => x.id === h.id)).map(l => ({ key: "l" + l.id, label: `땅 ${l.dong} ${dist(l.hj.find(x => x.id === h.id).d)}` })));
+  return `<article class="card" data-key="h${h.id}" style="--accent:var(--dev)">
+    <div class="card-top"><div><h3 class="name">${esc(h.name)}</h3>
+      <div class="where">${esc(h.hkind)} · ${esc(h.status)} · 목표 ${esc(h.year)}</div></div>
+      <span class="cert ${cc}">확실성 ${esc(h.cert)}</span></div>
+    <p class="note">${h.pts.map(p => esc(p.label)).join(" → ")}</p>
+    <p class="note">영향 반경 ${dist(h.radius)} 안의 후보 ${aff.length}곳${aff.length ? "" : " (지금 후보 중에는 없음)"}</p>
+    ${aff.length ? `<div class="affected">${aff.map(x => `<button type="button" data-goto="${x.key}">${esc(x.label)}</button>`).join("")}</div>` : ""}
+    <div class="links"><a href="${esc(h.src)}" target="_blank" rel="noopener">근거 기사</a></div>
+  </article>`;
+}
+function addMarker(it, pts) {
+  const key = it.kind === "land" ? "l" + it.id : "a" + it.cn;
+  if (markers.has(key)) return;
+  const mk = L.circleMarker([it.y, it.x], { radius: radius(it), color: css("--surface"), weight: 1.5, fillColor: color(it), fillOpacity: .92 })
+    .bindTooltip(it.kind === "land" ? `${it.dong} · 땅 ${eok(it.med_price)}` : `${it.name} · ${eok(it.movein ?? it.tenant)}`, { className: "pin-label", direction: "top", offset: [0, -6] })
+    .on("click", () => select(key, true));
+  mk.addTo(layer); markers.set(key, mk); pts.push([it.y, it.x]);
+}
+function drawHojae(withStops) {
+  const c = css("--dev");
+  for (const h of HOJAE) {
+    const dash = h.cert === "높음" ? null : h.cert === "중간" ? "9 6" : "2 6";
+    if (h.line && h.pts.length > 1) {
+      L.polyline(h.pts.map(p => [p.y, p.x]), { color: c, weight: 3, opacity: .75, dashArray: dash, interactive: true })
+        .bindTooltip(`${h.name} · ${h.year}`, { className: "pin-label", sticky: true }).addTo(layer);
+    }
+    if (withStops || !h.line) {
+      for (const p of h.pts) {
+        L.circleMarker([p.y, p.x], { radius: h.line ? 4 : 9, color: c, weight: 2, fillColor: css("--surface"), fillOpacity: h.line ? 1 : .35, dashArray: h.line ? null : dash })
+          .bindTooltip(`${h.name} · ${p.label} (${h.year})`, { className: "pin-label", direction: "top" }).addTo(layer);
+      }
+    }
+  }
+}
+function aptCard(a, extra = "") {
+  const gap = a.movein != null ? (a.movein / a.ref - 1) * 100 : (a.tenant / a.ref - 1) * 100;
+  const gapCls = gap > 1 ? "gap-up" : gap < -1 ? "gap-down" : "";
+  const tierCls = a.tier === "8억" ? "t8" : "t9";
+  const m = misses(a);
+  const chip = (ok, label, val) => `<span class="chip ${ok ? "good" : "bad"}">${label} <b>${val}</b></span>`;
+  const p = (k, v, tot, s, off) => `<div class="price${off ? " off" : ""}"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`;
+  const movein = a.movein != null
+    ? p("바로 입주", eok(a.movein), a.movein_total, `총 ${eok(a.movein_total)} · 최소 현금 ${eok(cashNeeded(a.movein, a.movein_total))}`)
+    : p("바로 입주", "매물 없음", null, "세입자 있는 집만 나와 있음", true);
+  const tenant = a.tenant != null
+    ? p("세 낀 집", eok(a.tenant), a.tenant_total, `총 ${eok(a.tenant_total)} · 입주는 계약 만기 후`)
+    : "";
+  return `<article class="card" id="c-${a.cn}" data-key="a${a.cn}" style="--accent:${a.tier === "8억" ? "var(--t8)" : "var(--t9)"}">
+    <div class="card-top">
+      <div><h3 class="name">${esc(a.name)}</h3>
+        <div class="where">${esc(a.region)} ${esc(a.dong)} · 전용 ${a.area}㎡ · ${a.built}년 · ${a.hh ? a.hh.toLocaleString() + "세대" : "세대수 미상"}</div></div>
+      <span class="tier ${tierCls}">${a.tier === "8억" ? "8억 이하" : "9억대"}</span>
+    </div>
+    <div class="prices">${movein}${tenant}
+      <div class="price"><span class="k">최근 실거래 3건</span><span class="v">${eok(a.ref)}</span><span class="s">${a.last.map(v => v.toFixed(2)).join(" · ")} · 호가 <span class="${gapCls}">${gap >= 0 ? "+" : ""}${gap.toFixed(1)}%</span></span></div>
+    </div>
+    <div class="chips">
+      ${chip((a.subway ?? 1e9) <= 500, "역", dist(a.subway))}
+      ${chip((a.univ_m ?? 1e9) <= 3000, "대학병원", dist(a.univ_m))}
+      ${chip((a.park_m ?? 1e9) <= 300, "공원", dist(a.park_m))}
+      ${chip((a.wh_m ?? 1e9) <= 3000, "창고형", dist(a.wh_m))}
+      <span class="chip scale">주변 500m <b>${(a.hh500 || 0).toLocaleString()}</b>세대 · ${esc(a.scale)}</span>
+      <span class="chip">서울시청 <b>${a.seoul_km}km</b></span>
+    </div>
+    <p class="note">${esc(a.station || "")}${a.univ ? " · " + esc(a.univ) : ""}${a.wh ? " · " + esc(a.wh) : ""}</p>
+    ${hjChips(a.hj)}
+    ${a.movein_note || a.note ? `<p class="note">매물 설명: “${esc(a.movein_note || a.note)}”</p>` : ""}
+    ${extra}
+    <div class="links">
+      <a href="https://fin.land.naver.com/complexes/${a.cn}?tab=article&tradeTypes=A1" target="_blank" rel="noopener">네이버 매물 보기</a>
+      <a href="https://map.kakao.com/link/map/${encodeURIComponent(a.name)},${a.y},${a.x}" target="_blank" rel="noopener">카카오맵에서 위치</a>
+    </div>
+  </article>`;
+}
+function landCard(l, extra = "") {
+  const tierCls = "tl";
+  const rows = l.trades.map(t => `<tr><td>${t.ym}</td><td class="num">${t.area_py}평</td><td class="num">${t.price.toFixed(2)}억</td><td class="num">${t.ppy.toLocaleString()}만</td><td>${esc(t.zone)}</td><td class="num">${t.total.toFixed(2)}억</td></tr>`).join("");
+  return `<article class="card" id="l-${l.id}" data-key="l${l.id}" style="--accent:var(--land)">
+    <div class="card-top">
+      <div><h3 class="name">${esc(l.region)} ${esc(l.dong)}</h3>
+        <div class="where">${esc(l.zone)} · 12개월 거래 ${l.n}건 · 보통 ${l.med_py}평 · 평당 ${l.med_ppy.toLocaleString()}만 원</div></div>
+      <span class="tier ${tierCls}">${l.tier === "8억" ? "총 8억 이하" : "총 8~10억"}</span>
+    </div>
+    <div class="prices">
+      <div class="price"><span class="k">땅값 중앙값</span><span class="v">${eok(l.med_price)}</span><span class="s">${l.med_py}평 기준</span></div>
+      <div class="price"><span class="k">땅 + 40평 신축 총비용</span><span class="v">${eok(l.min_total)}</span><span class="s">중앙값 ${eok(l.med_total)}</span></div>
+    </div>
+    <div class="chips">
+      <span class="chip ${l.subway && l.subway[1] <= 800 ? "good" : "bad"}">역 <b>${l.subway ? dist(l.subway[1]) : "–"}</b></span>
+      <span class="chip ${l.univ && l.univ[1] <= 3000 ? "good" : "bad"}">대학병원 <b>${l.univ ? dist(l.univ[1]) : "10km+"}</b></span>
+      <span class="chip">서울시청 <b>${l.seoul_km}km</b></span>
+    </div>
+    ${hjChips(l.hj)}
+    <p class="note">${l.subway ? esc(l.subway[0]) : ""}${l.univ ? " · " + esc(l.univ[0]) : ""}</p>
+    ${extra}
+    <div class="table-wrap"><table><thead><tr><th>계약</th><th class="num">면적</th><th class="num">땅값</th><th class="num">평당</th><th>용도</th><th class="num">총비용</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="links"><a href="https://map.kakao.com/link/map/${encodeURIComponent(l.dong)},${l.y},${l.x}" target="_blank" rel="noopener">카카오맵에서 위치</a></div>
+  </article>`;
+}
+
+/* ── 탭 ── */
+const INTRO = {
+  rec: ["추천", "조건별로 하나씩 고른 집과 땅입니다. 장점과 걸리는 점을 함께 적었습니다."],
+  t8: ["총 8억 이하", "매수가·취득세·중개비를 합쳐 8억 안에 드는 집입니다. 바로 입주 가격과 세 낀 집 가격을 따로 보여줍니다."],
+  t9: ["9억대 (총 8~10억)", "2억을 더 쓰면 서울 입지가 열립니다. 생애최초 대출 6억을 쓰면 현금은 3~4억이면 됩니다."],
+  sub: ["지하철 우선", "역 500m 이내를 지키면서 희망 조건(대학병원 3km · 공원 300m · 창고형 마트 3km · 2005년 이후 · 74㎡ 이상 · 주변 2,500세대) 중 하나만 포기한 집입니다. 아래에는 역 800m까지 넓힌 목록을 붙였습니다."],
+  strat: ["매수 전략", "지금 시장(금리 인상기 · 서울 공급 절벽 · 거주 중심 세제)에서 생애최초 · 현금 8억 · 재택이라는 조건에 맞춘 전략과, 단지별 매수 조건입니다. 목표가는 최근 실거래 3건과 호가 흐름으로 잡았습니다."],
+  hj: ["개발 호재", "후보 근처에서 공사 중이거나 계획된 철도·개발 사업입니다. 확실성은 공사 단계로 매겼습니다. 점수에는 사업 규모 × 확실성(높음 1.0 · 중간 0.6 · 낮음 0.25)을 더하고, 반경 끝으로 갈수록 절반까지 줄이며, 최대 +15점입니다. 이미 호가에 들어간 호재도 있으니 실거래 대비 호가 차이와 함께 보세요."],
+  land: ["땅 사서 짓기", "지목 '대'이고 시세의 40% 미만으로 팔린 이상 거래를 뺀 실거래입니다. 땅값 + 취득세 + 40평 신축(평당 900만 원, 관리·녹지지역은 토목비 5천만 원 추가)이 10억 안에 드는 동입니다. 지번이 가려진 실거래라 동 단위 시세입니다. 실제 필지를 찾는 방법은 바로 아래에 정리했습니다."],
+};
+let tab = "strat";
+let selected = null;
+
+function itemsFor(t) {
+  const fScale = $("#f-scale").checked, fMove = $("#f-movein").checked;
+  let A = APTS.filter(a => (!fScale || (a.hh500 || 0) >= 2500) && (!fMove || a.movein != null));
+  const sorters = {
+    score: (a, b) => b.score - a.score,
+    price: (a, b) => bestPrice(a) - bestPrice(b),
+    subway: (a, b) => (a.subway ?? 1e9) - (b.subway ?? 1e9),
+    hh: (a, b) => (b.hh500 || 0) - (a.hh500 || 0),
+    univ: (a, b) => (a.univ_m ?? 1e9) - (b.univ_m ?? 1e9),
+    dev: (a, b) => b.score_dev - a.score_dev,
+  };
+  const s = sorters[$("#sort").value];
+  if (t === "t8") return A.filter(a => a.tier === "8억").sort(s).map(a => ({ kind: "apt", ...a }));
+  if (t === "t9") return A.filter(a => a.tier === "10억").sort(s).map(a => ({ kind: "apt", ...a }));
+  if (t === "sub") return A.filter(a => (a.subway ?? 1e9) <= 800 && misses(a).length <= 1).sort((a, b) => ((a.subway > 500) - (b.subway > 500)) || s(a, b)).map(a => ({ kind: "apt", ...a }));
+  if (t === "strat") return STRAT.map(s => ({ kind: "apt", strat: s, ...APTS.find(a => a.cn === s.id) }));
+  if (t === "hj") return HOJAE.map(h => ({ ...h, kind: "hj", hkind: h.kind }));
+  if (t === "land") return LAND.slice().sort((a, b) => b.score - a.score).map(l => ({ kind: "land", ...l }));
+  return RECS.map(r => r.kind === "land" ? { kind: "land", rec: r, ...LAND.find(l => l.id === r.id) } : { kind: "apt", rec: r, ...APTS.find(a => a.cn === r.id) });
+}
+
+function render() {
+  const items = itemsFor(tab);
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  $("#toolbar").hidden = tab === "rec" || tab === "land" || tab === "hj" || tab === "strat";
+  const [h, p] = INTRO[tab];
+  $("#intro").innerHTML = `<h2>${h}</h2><p>${p}</p>`;
+  let html = tab === "strat" ? `<div class="strat">${STRAT_HTML}</div>` : tab === "land" ? `<div class="strat">${LAND_HTML}</div>` : "", lastGroup = null;
+  for (const it of items) {
+    if (tab === "rec" && it.rec.group !== lastGroup) { html += `<p class="sec-title">${esc(it.rec.group)}</p>`; lastGroup = it.rec.group; }
+    if (tab === "sub") {
+      const g = it.subway <= 500 ? "역 500m 이내" : "역 500~800m (조금 더 걸으면)";
+      if (g !== lastGroup) { html += `<p class="sec-title">${g}</p>`; lastGroup = g; }
+    }
+    let extra = "";
+    if (it.strat) {
+      const s = it.strat;
+      if (s.role !== lastGroup) { html += `<p class="sec-title">${esc(s.role)}</p>`; lastGroup = s.role; }
+      extra = `<div class="deal">
+        <div><span class="k">처음 부를 가격</span><span class="v">${eok(s.open)}</span></div>
+        <div><span class="k">목표가</span><span class="v">${s.lo.toFixed(2)}~${s.hi.toFixed(2)}억</span></div>
+        <div><span class="k">이 이상이면 보류</span><span class="v">${eok(s.walk)}</span></div>
+        <div><span class="k">자금 구성</span><span class="v" style="font-size:13px">${esc(s.fund)}</span></div>
+      </div>
+      <ul class="why">${s.why.map(x => `<li>${esc(x)}</li>`).join("")}${s.check.map(x => `<li class="minus">확인: ${esc(x)}</li>`).join("")}</ul>`;
+    }
+    if (it.rec) extra = `<ul class="why">${it.rec.pros.map(x => `<li>${esc(x)}</li>`).join("")}${it.rec.cons.map(x => `<li class="minus">걸리는 점: ${esc(x)}</li>`).join("")}</ul>`;
+    if (tab === "sub") { const m = misses(it); extra = `<p class="giveup ${m.length ? "one" : "none"}">${m.length ? "포기하는 조건: " + m[0] : "희망 조건을 모두 충족"}</p>`; }
+    html += it.kind === "hj" ? hjCard(it) : it.kind === "land" ? landCard(it, extra) : aptCard(it, extra);
+  }
+  $("#list").innerHTML = html || `<div class="intro"><p>조건에 맞는 집이 없습니다. 위의 체크를 풀어 보세요.</p></div>`;
+
+  layer.clearLayers(); markers.clear();
+  const pts = [];
+  if (tab === "hj" || $("#f-lines").checked) drawHojae(tab === "hj");
+  if (tab === "hj") {
+    APTS.filter(a => (a.hj || []).length).forEach(a => addMarker({ kind: "apt", ...a }, pts));
+    LAND.filter(l => (l.hj || []).length).forEach(l => addMarker({ kind: "land", ...l }, pts));
+  }
+  for (const it of items) {
+    if (it.kind === "hj") { it.pts.forEach(p => pts.push([p.y, p.x])); continue; }
+    addMarker(it, pts);
+  }
+  document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); select(b.dataset.goto, false); }));
+  document.querySelectorAll('.card[data-key^="h"]').forEach(c => c.addEventListener("click", e => {
+    if (e.target.closest("a,button")) return;
+    const h = HOJAE.find(x => "h" + x.id === c.dataset.key);
+    map.fitBounds(h.pts.map(p => [p.y, p.x]), { padding: [40, 40], maxZoom: 13 });
+  }));
+  document.querySelectorAll(".card").forEach(c => c.addEventListener("click", e => { if (e.target.closest("a")) return; select(c.dataset.key, false); }));
+  if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13 });
+  selected = null;
+  ["strat", "rec", "t8", "t9", "sub", "land", "hj"].forEach(t => { const n = t === tab ? items.length : itemsFor(t).length; $("#n-" + t).textContent = n; });
+  try { localStorage.setItem("hf-tab", tab); } catch (e) {}
+}
+
+function select(key, fromMap) {
+  document.querySelectorAll(".card.sel").forEach(c => c.classList.remove("sel"));
+  const card = document.querySelector(`.card[data-key="${key}"]`);
+  const mk = markers.get(key);
+  if (selected && markers.get(selected)) markers.get(selected).setStyle({ weight: 1.5, color: css("--surface") });
+  selected = key;
+  if (card) { card.classList.add("sel"); if (fromMap) card.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }); }
+  if (mk) { mk.setStyle({ weight: 3, color: css("--ink") }).bringToFront().openTooltip(); if (!fromMap) map.flyTo(mk.getLatLng(), Math.max(map.getZoom(), 14), { duration: .6 }); }
+}
+
+document.querySelectorAll("nav.tabs button").forEach(b => b.addEventListener("click", () => { tab = b.dataset.tab; render(); }));
+["#sort", "#f-scale", "#f-movein", "#f-lines"].forEach(s => $(s).addEventListener("change", render));
+try { const t = localStorage.getItem("hf-tab"); if (t && INTRO[t]) tab = t; } catch (e) {}
+render();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>
