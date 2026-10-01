@@ -114,6 +114,39 @@ ROLE_SIG = {   # ①머리 ②겉옷 ③손
     'kid':      ('작은 우비 후드', '노란 우비', '작은 등불'),
 }
 
+# ── 체형 (RESIDENT_STATS §6 — 스프린트 9-A) ──────────────────────────────
+#   §6-1 원칙을 코드로 박아 둔다:
+#     · 역할과 체형은 **완전히 독립**이다. 어느 역할에나 어느 체형이든 온다.
+#     · 체형을 색으로 표시하지 않는다. 팔레트는 한 벌뿐이고 분홍은 없다.
+#     · 잠수복 차림이므로 차이는 어깨 폭과 허리선에서 **1px 단위로만** 난다.
+#       키·발 기준선·머리 크기·얼굴 위치는 체형과 무관하게 같다(규약 불변).
+BODIES = {
+    'a': dict(ko='체형 A', shoulder=0.0, waist=0.0,
+              note='어깨가 넓고 허리선이 곧다 (S8에서 만든 것 그대로)'),
+    'b': dict(ko='체형 B', shoulder=-1.0, waist=1.2,
+              note='어깨가 1px 좁고 허리가 들어간다'),
+}
+BODY_IDS = ['a', 'b']
+
+# ── 머리 6종 · 얼굴 3종 (본체와 분리된 레이어) ──────────────────────────
+#   전부 **같은 정수리 띠**로 시작한다. 그래야 기본(short)으로 구워 낸 시트 위에
+#   어느 머리를 얹어도 기본 머리가 완전히 가려진다(§자동 검사에서 증명).
+HAIRS = [
+    ('short',  '짧은머리',    '정수리 띠만'),
+    ('tied',   '묶은머리',    '오른쪽 투구 테 아래 매듭 + 짧은 꽁지'),
+    ('long',   '긴머리',      '양쪽 어깨 앞으로 내린 두 갈래'),
+    ('braid',  '땋은머리',    '왼쪽 가슴 위로 내린 세 마디 땋음'),
+    ('curly',  '곱슬',        '정수리 띠가 울퉁불퉁 + 관자놀이 곱슬 두 점'),
+    ('scarf',  '민머리+두건', '정수리 띠 자리를 천이 대신하고 왼쪽에 매듭'),
+]
+FACES = [
+    ('f0', '얼굴 ①', '둥근 눈 · 곧은 눈썹 · 넓은 미소'),
+    ('f1', '얼굴 ②', '좁은 눈 · 올라간 눈썹 · 작은 입 · 주근깨'),
+    ('f2', '얼굴 ③', '넓게 벌어진 눈 · 안쪽이 내려온 눈썹'),
+]
+# 머리 레이어 위에 얹히도록 설계된 각인(= 머리와 픽셀이 겹치는 것이 정상)
+IMPRINT_ON_HAIR = {'water_memory'}
+
 # 틴트를 받으면 안 되는 색(스스로 빛나거나, 가독성 앵커)
 NO_TINT = {'flame', 'flameR', 'white', 'ink', 'line', 'line2', 'glass', 'glassD'}
 
@@ -167,9 +200,10 @@ def harmonize(strength=0.20, contrast=1.26):
         PAL[k] = tuple(clamp8(base[i] + (mixed[i] - base[i]) * contrast) for i in range(3))
 
 
-def room_light(spr, strength=1.0):
+def room_light(spr, strength=1.0, t=None):
     """2.5D 조건 ② — 방의 등불색을 받는다. 이것이 HD-2D의 생명."""
-    t = lamp_tint()
+    if t is None:
+        t = lamp_tint()
     spr = spr.convert('RGBA')
     w, h = spr.size
     px = spr.load()
@@ -203,9 +237,13 @@ def ground_shadow(base, pos, spr, k=1.0):
 class Cv:
     """원화 픽셀 캔버스. 칸 하나에 팔레트 키 문자열이 들어간다."""
 
-    def __init__(self, w=CELL, h=CELL):
+    def __init__(self, w=CELL, h=CELL, stencil=None):
         self.w, self.h = w, h
         self.g = [[None] * w for _ in range(h)]
+        # stencil = 「아래에 이미 깔린 판」. 레이어(머리·얼굴)가 only=('skin',) 같은
+        # 조건을 쓸 때 자기 칸이 비어 있으면 아래 판을 읽는다 → 본체에 직접 그린 것과
+        # 같은 픽셀이 나온다(= 레이어로 분리해도 결과가 변하지 않는다).
+        self.stencil = stencil
 
     def set(self, x, y, t):
         if t is None:
@@ -214,11 +252,38 @@ class Cv:
         if 0 <= x < self.w and 0 <= y < self.h:
             self.g[y][x] = t
 
+    def clear(self, x, y):
+        x = int(round(x)); y = int(round(y))
+        if 0 <= x < self.w and 0 <= y < self.h:
+            self.g[y][x] = None
+
     def get(self, x, y):
+        x = int(round(x)); y = int(round(y))
+        if 0 <= x < self.w and 0 <= y < self.h:
+            v = self.g[y][x]
+            if v is None and self.stencil is not None:
+                return self.stencil.get(x, y)
+            return v
+        return None
+
+    def own(self, x, y):
+        """스텐실을 보지 않고 자기 칸만."""
         x = int(round(x)); y = int(round(y))
         if 0 <= x < self.w and 0 <= y < self.h:
             return self.g[y][x]
         return None
+
+    def blit(self, other):
+        for y in range(self.h):
+            row = other.g[y]
+            for x in range(self.w):
+                if row[x] is not None:
+                    self.g[y][x] = row[x]
+        return self
+
+    def pixels(self):
+        return set((x, y) for y in range(self.h) for x in range(self.w)
+                   if self.g[y][x] is not None)
 
     def rect(self, x0, y0, x1, y1, t):
         for y in range(int(round(y0)), int(round(y1)) + 1):
@@ -405,8 +470,14 @@ def headwear(c, role, hx, hy, hr, back=False, layer='over'):
             c.ell(hx, top + .2, hr - 2, 3.2, rM)                        # 둥근 챙모자 머리통
             c.ell(hx - 1, top - 1.4, hr - 3.5, 1.6, rL)
         else:
-            c.rect(hx - hr - 3, top + 3, hx + hr + 3, top + 4, rD)      # 챙
-            c.rect(hx - hr - 3, top + 3, hx + hr + 3, top + 3, rM)
+            # S8 보고서가 지적한 「의무병과 교섭가의 실루엣이 가장 비슷하다」의 해결 —
+            # 챙 한쪽을 접어 올린다. 의무병의 뒤 꼬리는 **오른쪽**, 이 지느러미는 **왼쪽**이라
+            # 70px 검은 실루엣에서 뻗는 방향이 반대가 된다.
+            c.rect(hx - hr - 1, top + 3, hx + hr + 4, top + 4, rD)      # 오른쪽으로 더 긴 챙
+            c.rect(hx - hr - 1, top + 3, hx + hr + 4, top + 3, rM)
+            c.rect(hx - hr - 3, top - 3, hx - hr - 2, top + 4, rD)      # 접어 올린 왼쪽 챙
+            c.rect(hx - hr - 3, top - 3, hx - hr - 3, top + 3, rM)
+            c.set(hx - hr - 2, top - 4, rL)
     elif role == 'kid':
         if layer == 'under':
             c.ell(hx, hy - .6, hr + .8, hr + .4, rM)                    # 작은 우비 후드
@@ -508,28 +579,37 @@ def draw_legs(c, mode, cx, leg_y0, kid, f):
         boot(c, sx + dxf - 1, sx + lw + dxf - 1, FOOT - 4, FOOT)
 
 
-def build(role, clip='idle', f=0):
-    """한 프레임을 그린다. (캔버스, 각인 앵커)를 돌려준다."""
+def build_raw(role, clip='idle', f=0, body='a'):
+    """본체를 **두 장**으로 돌려준다 (스프린트 9-A에서 레이어로 쪼갰다).
+         base : 머리에 쓴 것(under) · 몸 · 얼굴 구멍의 맨살까지
+         ov   : 얼굴보다 **나중에** 와야 하는 것 (안경 · 목도리 · 챙 · 일하는 티)
+    머리카락과 얼굴은 여기서 그리지 않는다. 사이에 레이어로 끼운다:
+         base → 머리 레이어 → 얼굴 레이어 → ov → 외곽선
+    이 순서가 S8의 그리기 순서와 **한 칸도 다르지 않다**(기본 조합 short+f0 기준).
+    """
     c = Cv()
+    ov = Cv(stencil=c)
     kid = (role == 'kid')
     H = H_KID if kid else H_ADULT
     rM, rD, rL = 'r_' + role, 'rD_' + role, 'rL_' + role
     back = (clip == 'back_walk')
     P = POSE[clip]
+    B = BODIES[body]
 
     bob = {'walk': [0, -1, -1], 'back_walk': [0, -1, -1], 'idle': [0, 1],
            'sit': [0, 1], 'work': [0, -1, 0], 'carry': [0, 1],
            'hurt': [0, 1]}[clip][f]
     lean = 1 if clip == 'work' else (2 if clip == 'hurt' else 0)
 
-    # ── 기준 좌표 (원화) ──
+    # ── 기준 좌표 (원화) ── 체형이 바뀌어도 세로 좌표는 **전부 그대로**다.
+    #    키 44px(아이 33px)·발 기준선 59·머리 크기·얼굴 위치는 규약이라 불변.
     hr = 8.5 if not kid else 7.4
     head_top = FOOT - (H - 1) + P['drop'] + bob      # 맨머리 꼭대기
     hy = head_top + hr
     hx = 32 + lean
     neck_y = head_top + (17 if not kid else 15)
     torso_ry = P['tr'] if not kid else P['tr'] - 2.2
-    torso_rx = 8.6 if not kid else 6.9
+    torso_rx = (8.6 if not kid else 6.9) + B['shoulder'] * (0.7 if kid else 1.0)
     torso_cy = neck_y + (P['tdy'] if not kid else P['tdy'] - 3)
     belt_y = int(round(torso_cy + torso_ry * .45))
     leg_y0 = int(round(torso_cy + torso_ry - 1))
@@ -553,6 +633,22 @@ def build(role, clip='idle', f=0):
     c.ell_in(cx, torso_cy + torso_ry - 1, torso_rx, 3.2, rD, only=(rM, rL))
     c.rect(cx - torso_rx, neck_y + 1, cx - torso_rx + 1, torso_cy + 1, 'suitM')
     c.rect(cx + torso_rx - 1, neck_y + 1, cx + torso_rx, torso_cy + 1, 'suitD')
+
+    # ── 허리선 (체형 B) ── 겉옷을 좌우 1px씩만 깎는다. 과장 금지(§6-3).
+    if B['waist'] and P['legs'] not in ('sit', 'kneel'):
+        coat = (rM, rD, rL, 'suitM', 'suitD')
+        for yy in range(belt_y - 2, belt_y + 2):
+            dy = (yy - torso_cy) / max(torso_ry, .001)
+            if abs(dy) >= 1.0:
+                continue
+            rr = torso_rx * math.sqrt(1.0 - dy * dy)
+            cut = B['waist'] * (1.0 - abs(yy - belt_y + 0.5) / 2.6)
+            if cut <= 0:
+                continue
+            for xx in range(cx - 14, cx + 15):
+                if abs(xx - cx) > rr - cut and c.own(xx, yy) in coat:
+                    c.clear(xx, yy)
+
     if not back:
         c.rect(cx - 4, neck_y + 1, cx - 3, belt_y - 1, 'cream')
         c.rect(cx + 3, neck_y + 1, cx + 4, belt_y - 1, 'cream')
@@ -564,7 +660,7 @@ def build(role, clip='idle', f=0):
         c.rect(cx - 1, belt_y - 1, cx + 1, belt_y + 2, 'brassM')
         c.set(cx, belt_y, 'brassH')
 
-    # ── 뒷모습의 공기통 — 뒱에 메므로 앞으로 나온다 ──
+    # ── 뒷모습의 공기통 — 등에 메므로 앞으로 나온다 ──
     if back and not kid:
         tank(c, cx - 5, torso_cy - 1, torso_ry - .6)
         tank(c, cx + 5, torso_cy - 1, torso_ry - .6)
@@ -601,11 +697,19 @@ def build(role, clip='idle', f=0):
     else:
         sw = [0, 1, -1][f] if clip in ('walk', 'back_walk') else 0
         lift = [0, -4, -2][f] if clip == 'work' else 0
-        c.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y1 + sw, 'suitM')
-        c.rect(ax_l, arm_y0 + 1, ax_l + 1, arm_y1 + sw, 'suitL')
-        c.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y1 - sw + lift, 'suitD')
-        wl = (ax_l + 1, arm_y1 + sw + 2)
-        wr = (ax_r + 2, arm_y1 - sw + lift + 2)
+        # 허리선은 **팔이 만든다**. 몸통을 깎아도 팔이 그 자리를 덮어 버려서
+        # 바깥선이 바뀌지 않는다(S9에서 폭을 재 보고 알았다). 체형 B는 팔꿈치
+        # 아래를 1px 안으로 붙여 어깨→허리로 좁아지는 바깥선을 만든다.
+        tk = int(round(BODIES[body]['waist'] and 1 or 0))
+        mid = belt_y - 4
+        c.rect(ax_l, arm_y0 + 1, ax_l + 3, mid, 'suitM')
+        c.rect(ax_l + tk, mid, ax_l + 3 + tk, arm_y1 + sw, 'suitM')
+        c.rect(ax_l, arm_y0 + 1, ax_l + 1, mid, 'suitL')
+        c.rect(ax_l + tk, mid, ax_l + 1 + tk, arm_y1 + sw, 'suitL')
+        c.rect(ax_r, arm_y0 + 1, ax_r + 3, mid, 'suitD')
+        c.rect(ax_r - tk, mid, ax_r + 3 - tk, arm_y1 - sw + lift, 'suitD')
+        wl = (ax_l + 1 + tk, arm_y1 + sw + 2)
+        wr = (ax_r + 2 - tk, arm_y1 - sw + lift + 2)
         mitten(c, wl[0], wl[1]); mitten(c, wr[0], wr[1], 'creamD')
 
     # ── 허리 랜턴 (장갑과 겹치지 않게 허리띠 바로 아래 앞쪽) ──
@@ -646,13 +750,130 @@ def build(role, clip='idle', f=0):
     else:
         c.ell(hx, fy, fr, fr, 'skin')
         c.ell_in(hx + 1.6, fy + 1.6, fr - .6, fr - .6, 'skinD', only=('skin',))
-        c.ell_in(hx, fy - fr + 1.2, fr - .4, 2.1, 'hair', only=('skin', 'skinD'))
-        c.ell_in(hx - 1.8, fy - fr + .6, fr - 2.2, 1.4, 'hairD', only=('hair',))
-        # 얼굴 — 눈·눈썹·입을 전부 그린다 (DECISIONS 2026-09-27, C10)
-        ey = int(round(fy + .4))
+        # ↓ 머리카락과 얼굴은 레이어로 빠졌다 (hair_layer / face_layer)
+        if role == 'scholar':                            # 깨진 안경 (얼굴보다 위)
+            ov.rect(hx - 6, ey_of(fy) - 1, hx - 1, ey_of(fy) - 1, 'brassM')
+            ov.rect(hx + 1, ey_of(fy) - 1, hx + 6, ey_of(fy) - 1, 'brassM')
+            ov.set(hx - 6, ey_of(fy), 'brassM'); ov.set(hx + 6, ey_of(fy), 'brassM')
+            ov.set(hx - 3, ey_of(fy) + 1, 'brassH')
+        if role == 'trader':                             # 목도리
+            ov.rect(hx - hr + 1, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
+            ov.rect(hx + hr - 3, hy + hr + 1, hx + hr - 1, hy + hr + 4, rM)
+
+    headwear(ov, role, hx, hy, hr, back, 'over')
+
+    if clip == 'work' and f == 1 and not back:           # 일하는 티 (C7)
+        ov.set(wr[0] + 4, wr[1] - 8, 'cream')
+        ov.set(wr[0] + 5, wr[1] - 10, 'creamD')
+
+    aL = {
+        'role': role, 'body': body, 'kid': kid, 'clip': clip, 'f': f,
+        'hx': hx, 'hy': hy, 'hr': hr, 'fy': fy, 'fr': fr,
+        'cx': cx, 'neck_y': neck_y, 'torso_rx': torso_rx, 'belt_y': belt_y,
+        'ax_l': int(ax_l), 'ax_r': int(ax_r),
+        'sad': (clip == 'hurt'),
+        'head_top': (int(hx), int(head_top)),
+        'forehead': (int(hx), int(round(fy - fr + 1.2))),
+        'temple_l': (int(round(hx - fr - .4)), int(round(fy - 1))),
+        'temple_r': (int(round(hx + fr - .6)), int(round(fy - 1))),
+        # 「지킨 자」 흉터 — S9에서 1px 아래·안쪽으로 내렸다. 광대 높이(홍조 줄)에
+        # 있으면 얼굴 레이어 3종과 픽셀을 다툰다(자동 검사에서 잡혔다).
+        'cheek_r': (int(round(hx + fr - 2.2)), int(round(fy + 3))),
+        'neck_l': (int(round(cx - torso_rx + 2)), int(neck_y - 2)),
+        'collar_r': (int(round(cx + torso_rx - 4)), int(neck_y + 1)),
+        'chest': (int(cx), int(neck_y + 3)),
+        'arm_l': (int(ax_l), int(neck_y + 5)),
+        'wrist_r': (int(wr[0]), int(wr[1] - 2)),
+        'mitten_l': (int(wl[0]), int(wl[1])),
+        'belt_c': (int(cx + (4 if not kid else 0)), int(belt_y + 1)),
+        'face_shown': (not back),
+    }
+    return c, ov, aL
+
+
+def ey_of(fy):
+    """눈 윗줄 — 얼굴 레이어와 안경이 같은 수를 써야 하므로 함수 하나로 묶었다."""
+    return int(round(fy + .4))
+
+
+# ── 머리 레이어 6종 (본체와 분리 — 어느 체형·어느 역할에도 얹힌다) ──────
+def hair_layer(hid, a, base):
+    """머리카락 한 벌을 투명 레이어로. 6종 전부 **같은 정수리 띠**로 시작하므로
+    기본(short)으로 구워 낸 시트 위에 얹으면 기본 머리가 완전히 덮인다."""
+    c = Cv(stencil=base)
+    hx, hy, hr = a['hx'], a['hy'], a['hr']
+    fy, fr = a['fy'], a['fr']
+    cx, neck_y, trx = a['cx'], a['neck_y'], a['torso_rx']
+    face = a['face_shown']
+    cr = 'cream' if hid == 'scarf' else 'hair'
+    crD = 'creamD' if hid == 'scarf' else 'hairD'
+
+    # ① 정수리 띠 — 여섯 종 공통. S8이 본체에 직접 그리던 두 줄과 같은 식이다.
+    if face:
+        c.ell_in(hx, fy - fr + 1.2, fr - .4, 2.1, cr, only=('skin', 'skinD'))
+        c.ell_in(hx - 1.8, fy - fr + .6, fr - 2.2, 1.4, crD, only=(cr,))
+        if hid == 'curly':                                  # 울퉁불퉁한 윗선
+            for dx in (-4, -1, 2, 5):
+                c.ell_in(hx + dx, fy - fr + 2.6, 1.3, 1.3, cr, only=('skin', 'skinD'))
+            c.set(hx - 5, fy - fr + 3, crD); c.set(hx + 4, fy - fr + 3, crD)
+    elif hid == 'scarf':                                    # 뒷모습도 천으로 덮는다
+        c.ell_in(hx, fy - 1.0, fr + .6, fr - 1.0, cr, only=('hair', 'hairD', 'suitH'))
+        c.ell_in(hx - 1.6, fy - 2.4, fr - 1.0, 1.6, crD, only=(cr,))
+
+    # ② 갈래 — **투구 테 아래**에서만 나온다.
+    #    투구 위(= 역할이 사는 자리)는 절대 건드리지 않는다. 그래서 머리가 바뀌어도
+    #    「머리에 쓴 것」으로 역할을 읽는 규칙(C1)이 흐려지지 않는다.
+    rim = int(round(hy + hr))          # 투구 아랫단 = 목 실링 바로 위
+    # 몸 위로 내려오는 갈래는 **어두운 쪽을 속심**으로 쓴다. 겉옷 색이 역할마다
+    # 다르므로(올리브·크림·숯·황토…) 밝은 머리색이면 어떤 겉옷에서는 묻힌다.
+    core, hi = (cr, crD) if hid == 'scarf' else (crD, cr)
+    if hid == 'tied':
+        c.ell(hx + hr - 1, rim - 2, 2.4, 2.2, core)         # 오른쪽 매듭
+        c.ell_in(hx + hr - 2, rim - 3, 1.6, 1.3, hi, only=(core,))
+        c.rect(hx + hr, rim, hx + hr + 1, rim + 3, core)    # 짧은 꽁지
+        c.set(hx + hr + 1, rim + 4, hi)
+    elif hid == 'long':
+        for sx in (a['ax_l'] + 5, a['ax_r'] - 3):
+            c.rect(sx, neck_y + 3, sx + 1, neck_y + 7, core)  # 어깨 앞으로 내린 두 갈래
+            c.rect(sx, neck_y + 3, sx, neck_y + 6, hi)
+            c.set(sx + 1, neck_y + 7, core)
+    elif hid == 'braid':
+        # 팔 **안쪽**에 둔다. 어깨 바깥에 두면 체형 B의 팔이 덮어 사라진다(눈으로 보고 고쳤다).
+        bx = a['ax_l'] + 5
+        for k in range(3):                                  # 왼쪽 어깨 위 세 마디 땋음
+            yy = neck_y + 1 + k * 2
+            c.rect(bx, yy, bx + 1, yy + 1, core)
+            c.set(bx + (k % 2), yy, hi)
+        c.set(bx, neck_y + 7, core)                         # 끝은 carry 상자 윗단(+8) 위에서 멈춘다
+    elif hid == 'curly':
+        for sx in (hx - fr + 2.0, hx + fr - 2.0):           # 이마 양끝 곱슬 두 점
+            c.ell_in(sx, fy - fr + 3.4, 1.5, 1.4, cr, only=('skin', 'skinD'))
+            c.set(sx, fy - fr + 4, crD)
+    elif hid == 'scarf':
+        # 왼쪽으로 비껴 내려 묶은 두건 — 베일 각인(머리 왼쪽 바깥)과 자리를 다투지
+        # 않도록 **얼굴 구멍 안쪽**에만 머문다.
+        for yy in range(int(round(fy - fr + 3)), int(round(fy - fr + 6))):
+            for xx in range(int(round(hx - fr)), int(round(hx - fr + 4))):
+                if c.get(xx, yy) in ('skin', 'skinD'):
+                    c.set(xx, yy, cr if (xx + yy) % 3 else crD)
+    return c
+
+
+# ── 얼굴 레이어 3종 (성별과 무관하다. 누구에게나 아무거나 붙는다) ────────
+def face_layer(fid, a, base, hair=None):
+    """눈·눈썹·입·홍조. 본체와 분리되어 있어 머리 6종과 자유 조합된다."""
+    c = Cv(stencil=base)
+    if hair is not None:                 # 홍조 판정이 머리카락 아래를 보면 안 된다
+        st = Cv(stencil=base); st.blit(hair); c.stencil = st
+    if not a['face_shown']:
+        return c
+    hx, fy, fr = a['hx'], a['fy'], a['fr']
+    sad = a['sad']
+    ey = ey_of(fy)
+
+    if fid == 'f0':                      # S8의 얼굴 그대로 (기본값)
         ew = 3
         exl = int(round(hx - 4.5)); exr = int(round(hx + 1.5))
-        sad = (clip == 'hurt')
         brow(c, exl, ey - 3 + (1 if sad else 0), ew, 'l')
         brow(c, exr, ey - 3 + (1 if sad else 0), ew, 'r')
         eye(c, exl, ey, ew, 2 if sad else 3)
@@ -661,39 +882,60 @@ def build(role, clip='idle', f=0):
         smile(c, hx, ey + 4, 2, sad=sad)
         blush(c, int(hx - 6), int(hx - 5), ey + 2)
         blush(c, int(hx + 5), int(hx + 6), ey + 2)
-        if role == 'scholar':                            # 깨진 안경
-            c.rect(hx - 6, ey - 1, hx - 1, ey - 1, 'brassM')
-            c.rect(hx + 1, ey - 1, hx + 6, ey - 1, 'brassM')
-            c.set(hx - 6, ey, 'brassM'); c.set(hx + 6, ey, 'brassM')
-            c.set(hx - 3, ey + 1, 'brassH')
-        if role == 'trader':                             # 목도리
-            c.rect(hx - hr + 1, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
-            c.rect(hx + hr - 3, hy + hr + 1, hx + hr - 1, hy + hr + 4, rM)
+    elif fid == 'f1':                    # 좁고 긴 눈 · 바깥이 올라간 눈썹 · 작은 입
+        exl = int(round(hx - 4)); exr = int(round(hx + 2))
+        for i in range(3):               # 바깥이 올라간 눈썹
+            c.set(exl - 1 + i, ey - 3 + (1 if sad else 0) + (1 if i == 2 else 0), 'ink')
+            c.set(exr + i, ey - 3 + (1 if sad else 0) + (1 if i == 0 else 0), 'ink')
+        eye(c, exl, ey, 2, 2 if sad else 3)
+        eye(c, exr + 1, ey, 2, 2 if sad else 3)
+        c.set(hx, ey + 3, 'skinD')
+        smile(c, hx, ey + 4, 1, sad=sad)
+        for fx, fyy in ((-3, 2), (-1, 3), (3, 2)):          # 주근깨
+            if c.get(hx + fx, ey + fyy) in ('skin', 'skinD'):
+                c.set(hx + fx, ey + fyy, 'skinD')
+        blush(c, int(hx - 6), int(hx - 5), ey + 2)
+        blush(c, int(hx + 5), int(hx + 6), ey + 2)
+    else:                                # f2 — 넓게 벌어진 눈 · 안쪽이 내려온 눈썹
+        ew = 3
+        # 아이는 얼굴이 작다. 고정 간격으로 벌리면 관자놀이 각인과 부딪친다
+        # (자동 검사에서 잡혔다) → 얼굴 반지름에 비례해 벌린다.
+        exl = int(round(hx - (fr - 0.3))); exr = int(round(hx + (fr - 3.3)))
+        for i in range(ew):
+            c.set(exl + i, ey - 3 + (1 if sad else 0) + (1 if i == 0 else 0), 'ink')
+            c.set(exr + i, ey - 3 + (1 if sad else 0) + (1 if i == ew - 1 else 0), 'ink')
+        eye(c, exl, ey, ew, 2 if sad else 3)
+        eye(c, exr, ey, ew, 2 if sad else 3)
+        c.set(hx, ey + 3, 'skinD')
+        smile(c, hx, ey + 4, 1, sad=sad)             # 작고 넓게 번지는 입
+        c.set(hx - 2, ey + 3 + (1 if sad else 0), 'ink')
+        c.set(hx + 2, ey + 3 + (1 if sad else 0), 'ink')
+        blush(c, int(hx - 5), int(hx - 5), ey + 3)
+        blush(c, int(hx + 5), int(hx + 5), ey + 3)
+    return c
 
-    headwear(c, role, hx, hy, hr, back, 'over')
 
-    if clip == 'work' and f == 1 and not back:           # 일하는 티 (C7)
-        c.set(wr[0] + 4, wr[1] - 8, 'cream')
-        c.set(wr[0] + 5, wr[1] - 10, 'creamD')
+# ── 조립 ─────────────────────────────────────────────────────────────────
+_RAW = {}
 
+
+def raw_of(role, clip, f, body):
+    k = (role, clip, f, body)
+    if k not in _RAW:
+        _RAW[k] = build_raw(role, clip, f, body)
+    return _RAW[k]
+
+
+def build(role, clip='idle', f=0, body='a', hair='short', face='f0'):
+    """한 프레임을 조립한다. (캔버스, 앵커)를 돌려준다.
+    기본 인자(body='a', hair='short', face='f0')는 **S8 결과와 픽셀이 같다**."""
+    base, ov, a = raw_of(role, clip, f, body)
+    hl = hair_layer(hair, a, base)
+    fl = face_layer(face, a, base, hl)
+    c = Cv()
+    c.blit(base).blit(hl).blit(fl).blit(ov)
     c.outline('line')
-
-    aL = {
-        'head_top': (int(hx), int(head_top)),
-        'forehead': (int(hx), int(round(fy - fr + 1.2))),
-        'temple_l': (int(round(hx - fr - .4)), int(round(fy - 1))),
-        'temple_r': (int(round(hx + fr - .6)), int(round(fy - 1))),
-        'cheek_r': (int(round(hx + fr - 1.6)), int(round(fy + 2))),
-        'neck_l': (int(round(cx - torso_rx + 2)), int(neck_y - 2)),
-        'collar_r': (int(round(cx + torso_rx - 4)), int(neck_y + 1)),
-        'chest': (int(cx), int(neck_y + 3)),
-        'arm_l': (int(ax_l), int(neck_y + 5)),
-        'wrist_r': (int(wr[0]), int(wr[1] - 2)),
-        'mitten_l': (int(wl[0]), int(wl[1])),
-        'belt_c': (int(cx + (4 if not kid else 0)), int(belt_y + 1)),
-        'hr': hr, 'face_shown': (not back),
-    }
-    return c, aL
+    return c, a
 
 
 # ── 각인 12종 (C4 — 부위를 나눠 3개 동시에도 안 겹친다) ────────────────
@@ -755,11 +997,13 @@ def imprint_layer(iid, a):
         x, y = a['mitten_l']
         c.set(x - 1, y - 1, 'glass'); c.set(x, y - 2, 'glass'); c.set(x - 2, y, 'glassD')
     elif iid == 'depth_mark':
+        # S9: 꼬리를 **바깥쪽**으로 돌렸다. 안쪽으로 뻗으면 아이의 작은 얼굴에서
+        # 얼굴 레이어(눈)와 픽셀을 다툰다(자동 검사에서 잡혔다).
         x, y = a['temple_l']
-        c.rect(x, y, x, y + 1, 'impPlum'); c.set(x + 1, y + 2, 'impPlum')
+        c.rect(x, y, x, y + 2, 'impPlum')
     elif iid == 'knock_heard':
         x, y = a['temple_r']
-        c.rect(x, y, x, y + 1, 'brass'); c.set(x - 1, y + 2, 'white')
+        c.rect(x, y, x, y + 1, 'brass'); c.set(x + 1, y + 2, 'white')
     return c
 
 
@@ -900,75 +1144,200 @@ def trim_sprite(c):
     return im.crop((bb[0], bb[1], bb[2] + 1, bb[3] + 1)), bb
 
 
+# ── 체형·머리·얼굴 조합 유틸 (스프린트 9-A) ─────────────────────────────
+SHAPES = [('a', 'scout', 'a'), ('b', 'scout', 'b'),
+          ('kid', 'kid', 'a'), ('kid_b', 'kid', 'b')]
+SHAPE_KO = {'a': '어른 체형 A', 'b': '어른 체형 B',
+            'kid': '아이 체형 A', 'kid_b': '아이 체형 B'}
+IMP_SUB = {'a': ('imprints',), 'b': ('imprints', 'b'),
+           'kid': ('imprints', 'kid'), 'kid_b': ('imprints', 'kid_b')}
+
+
+def shape_of(role, body):
+    return (('kid_b' if body == 'b' else 'kid') if role == 'kid'
+            else ('b' if body == 'b' else 'a'))
+
+
+def sheet_name(role, body):
+    """체형 A는 **S8 경로 그대로**(개발이 이미 붙이고 있다). B만 접미사 _b."""
+    return role if body == 'a' else role + '_b'
+
+
+def pick_look(role, body, salt=0):
+    """머리·얼굴을 역할과 **무관하게** 고른다. 결정적(같은 입력 → 같은 사람, D6).
+    게임에서는 role 대신 uid+주민 id 를 넣는다(RESIDENT_STATS §3 생성 규칙과 같은 꼴)."""
+    h = 2166136261
+    for ch in (role + '|' + body + '|' + str(salt)):
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return HAIRS[h % len(HAIRS)][0], FACES[(h >> 11) % len(FACES)][0]
+
+
+_IMG = {}
+
+
+def img_of(role, clip, f, body, hair, face):
+    k = (role, clip, f, body, hair, face)
+    if k not in _IMG:
+        _IMG[k] = build(role, clip, f, body, hair, face)[0]
+    return _IMG[k]
+
+
+def diff_img(d, v):
+    """기본 시트(d)와 변형(v)의 차이만 남긴 투명 패치.
+    클라이언트가 기본 시트 위에 그대로 알파 합성하면 변형이 된다 — 아래에서 전수 검사한다."""
+    out = Image.new('RGBA', d.size, (0, 0, 0, 0))
+    dp, vp, op = d.load(), v.load(), out.load()
+    for y in range(d.height):
+        for x in range(d.width):
+            if dp[x, y] != vp[x, y]:
+                op[x, y] = vp[x, y]
+    return out
+
+
+def apply_patch(d, p):
+    o = d.copy()
+    o.alpha_composite(p)
+    return o
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for sub in ('src', 'masks', 'imprints', 'check'):
+    for sub in ('src', 'masks', 'imprints', 'check', 'hair', 'faces'):
         os.makedirs(os.path.join(OUT, sub), exist_ok=True)
     harmonize()
     f12, f14, f16 = font(12), font(15), font(18)
 
-    meta_roles = {}
-    standing = {}        # 70px 비교용 (idle f0)
-    sheets1 = {}
+    meta_roles = {'a': {}, 'b': {}}
+    standing = {}        # (role, body) → idle f0 (기본 조합)
+    looked = {}          # (role, body) → idle f0 (조합을 입힌 것)
+    LOOK = {}
 
-    for role in ROLES:
-        cells, mcells = {}, {}
-        for clip, n in CLIPS:
-            for i in range(n):
-                c, a = build(role, clip, i)
-                cells[(clip, i)] = c.img()
-                mcells[(clip, i)] = c.mask()
-                if clip == 'idle' and i == 0:
-                    anchors0 = a
-                    base_cv = c
-        s1 = sheet_of(cells, 1)
-        s4 = sheet_of(cells, SHEET_K)
-        s1.save(os.path.join(OUT, 'src', role + '.png'))
-        s4.save(os.path.join(OUT, role + '.png'))
-        mask_sheet_of(mcells, 1).save(os.path.join(OUT, 'masks', role + '.png'))
-        sheets1[role] = s1
+    # ── 1. 16종 시트 (8역할 × 체형 2) ──────────────────────────────────
+    for body in BODY_IDS:
+        for role in ROLES:
+            cells, mcells = {}, {}
+            for clip, n in CLIPS:
+                for i in range(n):
+                    c, a = build(role, clip, i, body)
+                    cells[(clip, i)] = c.img()
+                    mcells[(clip, i)] = c.mask()
+                    if clip == 'idle' and i == 0:
+                        anchors0, base_cv = a, c
+            nm = sheet_name(role, body)
+            sheet_of(cells, 1).save(os.path.join(OUT, 'src', nm + '.png'))
+            sheet_of(cells, SHEET_K).save(os.path.join(OUT, nm + '.png'))
+            mask_sheet_of(mcells, 1).save(os.path.join(OUT, 'masks', nm + '.png'))
 
-        # 실측 검증 — 맨머리 꼭대기와 발바닥
-        H = H_KID if role == 'kid' else H_ADULT
-        head_top = anchors0['head_top'][1]
-        px_h = FOOT - head_top + 1
-        bb = base_cv.bbox()
-        meta_roles[role] = {
-            'ko': ROLE_KO[role],
-            'sig_head': ROLE_SIG[role][0], 'sig_coat': ROLE_SIG[role][1], 'sig_hand': ROLE_SIG[role][2],
-            'color': '#%02X%02X%02X' % ROLE_COLS[role][0],
-            'bare_head_px': px_h, 'bare_head_m': round(px_h / PPM, 4),
-            'head_top_y': head_top, 'foot_y': FOOT,
-            'with_hat_top_y': bb[1], 'with_hat_px': FOOT - bb[1] + 1,
-        }
-        standing[role] = cells[('idle', 0)]
-        print('[ok] %-9s 맨머리 %2dpx = %.3fm  (모자 포함 %2dpx)'
-              % (role, px_h, px_h / PPM, FOOT - bb[1] + 1))
+            head_top = anchors0['head_top'][1]
+            px_h = FOOT - head_top + 1
+            bb = base_cv.bbox()
+            meta_roles[body][role] = {
+                'ko': ROLE_KO[role],
+                'sig_head': ROLE_SIG[role][0], 'sig_coat': ROLE_SIG[role][1],
+                'sig_hand': ROLE_SIG[role][2],
+                'color': '#%02X%02X%02X' % ROLE_COLS[role][0],
+                'bare_head_px': px_h, 'bare_head_m': round(px_h / PPM, 4),
+                'head_top_y': head_top, 'foot_y': FOOT,
+                'with_hat_top_y': bb[1], 'with_hat_px': FOOT - bb[1] + 1,
+                'shoulder_w_px': int(round(anchors0['torso_rx'] * 2)),
+                'sheet': nm + '.png',
+            }
+            standing[(role, body)] = cells[('idle', 0)]
+            hair, face = pick_look(role, body)
+            LOOK[(role, body)] = (hair, face)
+            looked[(role, body)] = build(role, 'idle', 0, body, hair, face)[0].img()
+            print('[ok] %-9s %s  맨머리 %2dpx = %.3fm  어깨 %2dpx  (%s/%s)'
+                  % (role, body, px_h, px_h / PPM,
+                     meta_roles[body][role]['shoulder_w_px'], hair, face))
 
-    # ── 각인 레이어 ──
-    #   앵커는 역할이 아니라 **자세와 체격**에 달려 있다. 어른 여덟은 체격이 같으므로 한 벌,
-    #   아이는 체격이 달라 따로 한 벌(imprints/kid/).
-    os.makedirs(os.path.join(OUT, 'imprints', 'kid'), exist_ok=True)
-    for who, sub in (('scout', ''), ('kid', 'kid')):
+    # ── 2. 머리 6종 · 얼굴 3종 패치 (역할 × 체형마다 한 벌) ─────────────
+    npatch, bad = 0, 0
+    for body in BODY_IDS:
+        for role in ROLES:
+            dcells = {}
+            for clip, n in CLIPS:
+                for i in range(n):
+                    dcells[(clip, i)] = img_of(role, clip, i, body, 'short', 'f0').img()
+            dsheet = sheet_of(dcells, 1)
+            for kind, items, dflt in (('hair', HAIRS, 'short'), ('faces', FACES, 'f0')):
+                d0 = os.path.join(OUT, kind, '%s_%s' % (role, body))
+                os.makedirs(d0, exist_ok=True)
+                for vid, ko, note in items:
+                    pcells, vcells = {}, {}
+                    for clip, n in CLIPS:
+                        for i in range(n):
+                            v = img_of(role, clip, i, body,
+                                       vid if kind == 'hair' else 'short',
+                                       vid if kind == 'faces' else 'f0').img()
+                            vcells[(clip, i)] = v
+                            pcells[(clip, i)] = diff_img(dcells[(clip, i)], v)
+                    psheet = sheet_of(pcells, 1)
+                    psheet.save(os.path.join(d0, vid + '.png'))
+                    npatch += 1
+                    # 전수 검사: 기본 시트 + 패치 == 변형 시트 (한 픽셀도 틀리면 안 된다)
+                    if list(apply_patch(dsheet, psheet).getdata()) != \
+                       list(sheet_of(vcells, 1).getdata()):
+                        bad += 1
+                        print('   [!!] 패치 복원 실패: %s %s %s' % (role, body, vid))
+    print('[검사] 머리·얼굴 패치 %d장, 기본시트+패치==변형시트 불일치 %d건' % (npatch, bad))
+
+    # ── 3. 각인 레이어 — 네 체형(어른 A·B, 아이 A·B)마다 한 벌 ──────────
+    for sid, arole, abody in SHAPES:
+        d0 = os.path.join(OUT, *IMP_SUB[sid])
+        os.makedirs(d0, exist_ok=True)
         for iid, ko, part, col in IMPRINTS:
             cells = {}
             for clip, n in CLIPS:
                 for i in range(n):
-                    _c, a = build(who, clip, i)
+                    _b, _o, a = raw_of(arole, clip, i, abody)
                     cells[(clip, i)] = imprint_layer(iid, a).img()
-            d0 = os.path.join(OUT, 'imprints', sub) if sub else os.path.join(OUT, 'imprints')
             sheet_of(cells, 1).save(os.path.join(d0, iid + '.png'))
             sheet_of(cells, SHEET_K).save(os.path.join(d0, iid + '_x4.png'))
-    print('[ok] 각인 %d종 × 2벌(어른·아이)' % len(IMPRINTS))
+    print('[ok] 각인 %d종 × 4벌(어른 A·B, 아이 A·B)' % len(IMPRINTS))
 
-    # ── 문어 ──
-    oc = Cv(CELL * 4, CELL)
-    for i in range(3):
-        o = build_octopus('idle', i).img()
-        oc_im = o
-        if i == 0:
-            octo_idle = o
-        oc.g = oc.g  # noop
+    # ── 4. 자동 검사 — 각인 × 각인 / × 얼굴 / × 머리 ────────────────────
+    #     S8은 각인끼리만 봤다. S9에서 머리·얼굴 레이어까지 넓혔다(지시).
+    total_clash = 0
+    for sid, arole, abody in SHAPES:
+        base, _ov, a0 = raw_of(arole, 'idle', 0, abody)
+        imp = {iid: imprint_layer(iid, a0).pixels() for iid, _k, _p, _c in IMPRINTS}
+        hrs = {hid: hair_layer(hid, a0, base).pixels() for hid, _k, _n in HAIRS}
+        fcs = {fid: face_layer(fid, a0, base, hair_layer('short', a0, base)).pixels()
+               for fid, _k, _n in FACES}
+        c_ii = c_if = c_ih = 0
+        det = []
+        ids = [t[0] for t in IMPRINTS]
+        for i in range(len(ids)):
+            for j in range(i + 1, len(ids)):
+                n = len(imp[ids[i]] & imp[ids[j]])
+                if n:
+                    c_ii += n; det.append('각인%s×각인%s' % (ids[i], ids[j]))
+        for iid in ids:
+            for fid in fcs:
+                n = len(imp[iid] & fcs[fid])
+                if n:
+                    c_if += n; det.append('각인%s×얼굴%s' % (iid, fid))
+            if iid in IMPRINT_ON_HAIR:
+                continue
+            for hid in hrs:
+                n = len(imp[iid] & hrs[hid])
+                if n:
+                    c_ih += n; det.append('각인%s×머리%s' % (iid, hid))
+        # 기본 머리(short)가 다른 다섯에 **완전히 덮이는가** — 패치 방식의 전제
+        uncovered = [hid for hid in hrs if hid != 'short' and (hrs['short'] - hrs[hid])]
+        total_clash += c_ii + c_if + c_ih + len(uncovered)
+        print('[검사] %-6s 각인×각인 %d · 각인×얼굴 %d · 각인×머리 %d · 기본머리 미덮임 %s %s'
+              % (sid, c_ii, c_if, c_ih, uncovered or '없음', det[:3]))
+    print('[검사] 레이어 충돌 합계: %d건' % total_clash)
+    # 머리 위에 얹히도록 **설계된** 각인은 머리 안에 들어 있는지 거꾸로 검사한다
+    for sid, arole, abody in SHAPES:
+        base, _o, a0 = raw_of(arole, 'idle', 0, abody)
+        for iid in sorted(IMPRINT_ON_HAIR):
+            p = imprint_layer(iid, a0).pixels()
+            inside = all(len(p & hair_layer(h, a0, base).pixels()) > 0 for h, _k, _n in HAIRS)
+            print('[검사] %-6s %s 는 머리 6종 모두에 얹히는가: %s' % (sid, iid, inside))
+
+    # ── 5. 문어 ──
     oct_sheet = Image.new('RGBA', (CELL * 4, CELL), (0, 0, 0, 0))
     for i in range(3):
         oct_sheet.paste(build_octopus('idle', i).img(), (CELL * i, 0))
@@ -977,15 +1346,14 @@ def main():
     up(oct_sheet, SHEET_K).save(os.path.join(OUT, 'octopus.png'))
     print('[ok] 문어 idle 3 + wrap 1')
 
-    # ── 검증 1: 70px 8역할 한 줄 (밝은 벽 / 어두운 방) ──
+    # ── 검증 1: 70px 8역할 한 줄 (밝은 벽 / 어두운 방) — 체형 A 기준, S8과 같은 컷 ──
     for name, light in (('check/row70_light.png', True), ('check/row70_dark.png', False)):
         W, Hh = 980, 220
         im = room_bg(W, Hh, 0.80, light)
         d = ImageDraw.Draw(im)
         step = W // 8
         for i, role in enumerate(ROLES):
-            sp = standing[role]
-            bb = Image.fromarray(__import__('numpy').array(sp)) if False else None
+            sp = standing[(role, 'a')]
             s = to_h(sp.crop(sp.getbbox()), 70)
             xc = step * i + step // 2
             im.paste(s, (xc - s.width // 2, int(Hh * 0.80) - s.height), s)
@@ -1001,7 +1369,7 @@ def main():
     d = ImageDraw.Draw(im)
     step = W // 8
     for i, role in enumerate(ROLES):
-        sp = standing[role].crop(standing[role].getbbox())
+        sp = standing[(role, 'a')].crop(standing[(role, 'a')].getbbox())
         s = to_h(sp, 70)
         sil = Image.new('RGBA', s.size, (0, 0, 0, 0))
         px, qx = s.load(), sil.load()
@@ -1015,14 +1383,162 @@ def main():
     d.text((8, 6), '검은 실루엣 70px — 머리에 쓴 것과 손에 든 것만으로 갈리는가', font=f16, fill=(40, 28, 18))
     im.save(os.path.join(OUT, 'check', 'silhouette70.png'))
 
-    # ── 검증 2: 실제 렌더 방 합성 (×3) ──
-    #   사람 없는 플레이트가 아직 없다. 넓은 칸을 잘라 주민을 피해 세우고,
-    #   동시에 옛 화풍 주민과 **키가 같은지**를 눈으로 확인하는 컷으로 쓴다.
+    # ── 검증 7 (S9): 70px × 16명 — 8역할 × 체형 2 ───────────────────────
+    order = [(r, b) for r in ROLES for b in BODY_IDS]
+    for name, light, sil_mode in (('check/row70_16_light.png', True, False),
+                                  ('check/row70_16_dark.png', False, False),
+                                  ('check/silhouette70_16.png', True, True)):
+        W, Hh = 1600, 250
+        im = room_bg(W, Hh, 0.66, light)
+        d = ImageDraw.Draw(im)
+        step = W // 16
+        for i, (role, body) in enumerate(order):
+            sp = looked[(role, body)]
+            s = to_h(sp.crop(sp.getbbox()), 70)
+            if sil_mode:
+                sl = Image.new('RGBA', s.size, (0, 0, 0, 0))
+                px, qx = s.load(), sl.load()
+                for y in range(s.height):
+                    for x in range(s.width):
+                        if px[x, y][3] > 0:
+                            qx[x, y] = (22, 14, 10, 255)
+                s = sl
+            xc = step * i + step // 2
+            im.paste(s, (xc - s.width // 2, int(Hh * 0.66) - s.height), s)
+            col = (40, 28, 18) if light else (226, 198, 150)
+            d.text((step * i + 4, int(Hh * 0.66) + 6), ROLE_KO[role], font=f14, fill=col)
+            d.text((step * i + 4, int(Hh * 0.66) + 24), BODIES[body]['ko'], font=f12, fill=col)
+            hair, face = LOOK[(role, body)]
+            d.text((step * i + 4, int(Hh * 0.66) + 42), hair + ' / ' + face, font=f12,
+                   fill=(110, 84, 58) if light else (160, 132, 100))
+        ttl = ('검은 실루엣 70px × 16명 — 체형이 바뀌어도 역할은 **투구 위**로 갈린다' if sil_mode
+               else '70px × 16명 (8역할 × 체형 2) — %s' % ('밝은 벽' if light else '어두운 방'))
+        d.text((8, 6), ttl, font=f16, fill=(40, 28, 18) if light else (236, 206, 150))
+        im.save(os.path.join(OUT, name))
+
+    # ── 검증 8 (S9): 체형 A/B 나란히 + 겹쳐 보기 ────────────────────────
+    W, Hh = 1180, 440
+    im = room_bg(W, Hh, 0.99, False)
+    d = ImageDraw.Draw(im)
+    for i, role in enumerate(['scout', 'engineer', 'kid']):
+        x0 = 24 + i * 390
+        cells = {}
+        for j, body in enumerate(BODY_IDS):
+            c, a = build(role, 'idle', 0, body)
+            cells[body] = c
+            fig = up(c.img(), 4)
+            im.paste(fig, (x0 + j * 112 - 36, 66 - 4 * 8), fig)
+            d.text((x0 + j * 112, 46), BODIES[body]['ko'], font=f14, fill=(236, 206, 150))
+            d.text((x0 + j * 112 - 6, 342), '어깨 %dpx' % int(round(a['torso_rx'] * 2)),
+                   font=f12, fill=(196, 168, 128))
+        # 겹쳐 보기 — 같은 셀이라 좌표가 그대로 맞는다
+        ov = Image.new('RGBA', (CELL, CELL), (0, 0, 0, 0))
+        op = ov.load()
+        A, Bc = cells['a'], cells['b']
+        for y in range(CELL):
+            for x in range(CELL):
+                av, bv = A.g[y][x] is not None, Bc.g[y][x] is not None
+                if av and bv:
+                    op[x, y] = (96, 76, 56, 255)
+                elif av:
+                    op[x, y] = (214, 96, 72, 255)       # A만 있는 칸 = A가 넓다
+                elif bv:
+                    op[x, y] = (118, 186, 196, 255)     # B만 있는 칸
+        z = up(ov, 4)
+        im.paste(z, (x0 + 232 - 36, 66 - 4 * 8), z)
+        d.text((x0 + 232, 46), '겹쳐 보기', font=f14, fill=(236, 206, 150))
+        d.text((x0, 364), ROLE_KO[role], font=f16, fill=(240, 212, 150))
+    d.text((8, 6), '체형 A / B — 어깨 1px, 팔꿈치 아래가 1px 더 안으로(허리선). '
+                   '색·키·머리 크기·얼굴 자리는 전부 같다 (×4 확대)',
+           font=f16, fill=(236, 206, 150))
+    d.text((8, 26), '성별을 색으로 표시하지 않는다(분홍 없음). 역할과 체형은 독립이다 — '
+                    '어느 역할에나 어느 체형이든 온다.', font=f14, fill=(198, 170, 130))
+    d.text((8, Hh - 38), '겹쳐 보기: 붉은 칸 = 체형 A에만 있는 픽셀(어깨·팔꿈치 아래), '
+                         '푸른 칸 = 체형 B에만 있는 픽셀. 차이는 좌우 1~2px뿐이다.',
+           font=f12, fill=(188, 160, 124))
+    d.text((8, Hh - 20), '※ 몸통만 깎으면 팔이 그 자리를 덮어 바깥선이 안 바뀐다. 그래서 '
+                         '팔꿈치 아래를 1px 당겼다 — 어깨에서 허리로 좁아지는 선이 생긴다.',
+           font=f12, fill=(170, 144, 110))
+    im.save(os.path.join(OUT, 'check', 'bodyAB.png'))
+
+    # ── 검증 9 (S9): 머리 6종 × 얼굴 3종 ────────────────────────────────
+    W, Hh = 1180, 716
+    im = room_bg(W, Hh, 0.99, False)
+    d = ImageDraw.Draw(im)
+    demo = 'engineer'
+    for i, (hid, ko, note) in enumerate(HAIRS):
+        x0 = 20 + (i % 3) * 390
+        y0 = 58 + (i // 3) * 206
+        for j, body in enumerate(BODY_IDS):
+            c, a = build(demo, 'idle', 0, body, hid, 'f0')
+            cut = c.img().crop((int(a['hx'] - 14), int(a['head_top'][1] - 4),
+                                int(a['hx'] + 15), int(a['neck_y'] + 12)))
+            z = up(cut, 5)
+            im.paste(z, (x0 + j * 150, y0 + 22), z)
+
+        d.text((x0, y0), '%s  (%s)' % (ko, hid), font=f14, fill=(240, 212, 150))
+        d.text((x0, y0 + 46 + 145), note, font=f12, fill=(192, 164, 126))
+    # 얼굴 3종 — 얼굴 구멍만 ×8
+    y0 = 58 + 2 * 206
+    d.text((20, y0), '얼굴 3종 (×8, 얼굴 구멍만) — 눈 크기·눈썹 각도·입·주근깨만 다르다',
+           font=f14, fill=(240, 212, 150))
+    for j, (fid, fko, fnote) in enumerate(FACES):
+        c, a = build(demo, 'idle', 0, 'a', 'short', fid)
+        hx, fy, fr = a['hx'], a['fy'], a['fr']
+        cut = c.img().crop((int(hx - fr - 1), int(fy - fr - 1), int(hx + fr + 2), int(fy + fr + 2)))
+        z = up(cut, 8)
+        im.paste(z, (24 + j * 260, y0 + 24), z)
+        d.text((24 + j * 260, y0 + 28 + z.height), '%s  %s' % (fko, fid), font=f14,
+               fill=(232, 202, 150))
+        d.text((24 + j * 260, y0 + 46 + z.height), fnote, font=f12, fill=(188, 160, 124))
+    d.text((8, 6), '머리 6종 × 얼굴 3종 — 본체와 분리된 레이어. 역할·체형과 무관하게 조합된다 '
+                   '(칸마다 왼쪽 = 체형 A · 오른쪽 = 체형 B)', font=f16, fill=(236, 206, 150))
+    d.text((8, 24), '머리 갈래는 「투구 테 아래」에서만 나온다 — 투구 위는 역할이 사는 자리라 건드리지 않는다.',
+           font=f12, fill=(188, 160, 124))
+    im.save(os.path.join(OUT, 'check', 'hair6_face3.png'))
+
+    # ── 검증 10 (S9): 한 방주에 같이 사는 열여섯 ────────────────────────
+    plate = scene_crop()
+    tileW = plate.width
+    cols = 1600 // tileW + 2
+    bgw = tileW * cols
+    bg = Image.new('RGB', (bgw, plate.height))
+    for i in range(cols):
+        bg.paste(plate if i % 2 == 0 else plate.transpose(Image.FLIP_LEFT_RIGHT),
+                 (i * tileW, 0))
+    bg = bg.crop((0, 0, 1600, plate.height)).convert('RGBA')
+    crew = Image.new('RGBA', (1600, plate.height + 40), (14, 10, 8, 255))
+    crew.alpha_composite(bg, (0, 0))
+    floor = SCENE_FLOOR
+    for i, (role, body) in enumerate(order):
+        hair, face = LOOK[(role, body)]
+        clip, fi = [('idle', 0), ('walk', 1), ('work', 0), ('carry', 0),
+                    ('idle', 1), ('sit', 0)][i % 6]
+        c, _a = build(role, clip, fi, body, hair, face)
+        bb = c.bbox()
+        spr = room_light(up(c.img().crop((bb[0], bb[1], bb[2] + 1, bb[3] + 1)), 2))
+        px0 = 14 + i * 99 - spr.width // 2 + 30
+        py0 = floor - (FOOT - bb[1] + 1) * 2 + (0 if i % 2 == 0 else 6)
+        crew = ground_shadow(crew, (px0, py0), spr)
+        crew.alpha_composite(spr, (px0, py0))
+    d = ImageDraw.Draw(crew)
+    d.rectangle([0, 0, 1599, 24], fill=(16, 11, 9))
+    d.text((8, 4), '한 방주에 같이 사는 열여섯 — 8역할 × 체형 2, 머리·얼굴은 역할과 무관하게 섞었다 (×2, 방 빛 적용)',
+           font=f16, fill=(236, 206, 150))
+    for i, (role, body) in enumerate(order):
+        d.text((14 + i * 99 + 10, crew.height - 34), ROLE_KO[role], font=f12, fill=(206, 178, 138))
+        d.text((14 + i * 99 + 10, crew.height - 18), body.upper() + ' ' + LOOK[(role, body)][0],
+               font=f12, fill=(150, 124, 96))
+    crew.convert('RGB').save(os.path.join(OUT, 'check', 'crew16.png'))
+
+    # ── 검증 2: 실제 렌더 방 합성 (×3) — 체형 A·B를 섞는다 ──────────────
     wide = Image.open(SCENE_SRC).convert('RGB').crop((1000, 320, 1480, 600)).convert('RGBA')
     comp = wide.copy()
-    picks = [('scout', 170, 'idle', 0), ('cook', 240, 'work', 1), ('kid', 305, 'idle', 0)]
-    for role, px_x, clip, fi in picks:
-        c, _a = build(role, clip, fi)
+    picks = [('scout', 'a', 150, 'idle', 0), ('medic', 'b', 222, 'work', 1),
+             ('trader', 'a', 296, 'idle', 0), ('kid', 'b', 360, 'idle', 0)]
+    for role, body, px_x, clip, fi in picks:
+        hair, face = LOOK[(role, body)]
+        c, _a = build(role, clip, fi, body, hair, face)
         bb = c.bbox()
         spr = room_light(up(c.img().crop((bb[0], bb[1], bb[2] + 1, bb[3] + 1)), ROOM_K))
         px0 = px_x - spr.width // 2
@@ -1031,7 +1547,6 @@ def main():
         comp.alpha_composite(spr, (px0, py0))
     big = up(comp.convert('RGB'), 2)
     d = ImageDraw.Draw(big)
-    # 실측 눈금 — 바닥선에서 1.6m(=132px ×3) 와 1.2m 를 그어 넣는다
     fl = (578 - 320) * 2
     for m, lab in ((1.6, '1.6m = 132px'), (1.2, '1.2m = 99px')):
         yy = fl - int(m * PPM * ROOM_K) * 2
@@ -1039,33 +1554,17 @@ def main():
         d.text((28, yy - 16), lab, font=f12, fill=(255, 212, 130))
     d.line([24, fl, big.width - 24, fl], fill=(255, 196, 96))
     d.rectangle([2, 2, big.width - 3, 26], fill=(16, 11, 9))
-    d.text((8, 5), '실제 렌더 방 × P2 도트 — 정수 배율 ×3 · 맨머리 1.6m = 132px', font=f16,
-           fill=(236, 206, 150))
+    d.text((8, 5), '실제 렌더 방 × P2 도트 — 정수 배율 ×3 · 체형 A/B 섞음 · 맨머리 1.6m = 132px',
+           font=f16, fill=(236, 206, 150))
     d.text((8, big.height - 24), '※ 좌우 끝의 인물은 배경 렌더에 이미 그려진 옛 화풍 주민이다'
            ' (사람 없는 플레이트를 배경 담당에게 요청해 둠). 키 비교용으로 남겼다.',
            font=f12, fill=(200, 168, 128))
     big.save(os.path.join(OUT, 'check', 'room_composite.png'))
     scene_crop().save(os.path.join(OUT, 'room_plate.png'))
 
-    # ── 각인 겹침 객관 검사 — 12종 레이어가 한 픽셀도 공유하지 않는가 ──
-    for who in ('scout', 'kid'):
-        _c0, a0 = build(who, 'idle', 0)
-        occupied, clash = {}, []
-        for iid, ko, part, col in IMPRINTS:
-            lay = imprint_layer(iid, a0)
-            for y in range(CELL):
-                for x in range(CELL):
-                    if lay.g[y][x] is None:
-                        continue
-                    if (x, y) in occupied:
-                        clash.append((iid, occupied[(x, y)], x, y))
-                    occupied[(x, y)] = iid
-        print('[검사] %-5s 각인 12종 픽셀 충돌: %d건 %s' % (who, len(clash), clash[:4]))
-    _c0, a0 = build('scout', 'idle', 0)
-
-    def zoom_panel(role, ids, k_fig=4, k_zoom=9):
+    def zoom_panel(role, ids, k_fig=4, k_zoom=9, body='a'):
         """본체 + 각인 위치 상자 + 확대 조각."""
-        c, a = build(role, 'idle', 0)
+        c, a = build(role, 'idle', 0, body)
         base = c.img()
         boxes = []
         for iid in ids:
@@ -1099,10 +1598,11 @@ def main():
     im = room_bg(W, Hh, 0.99, False)
     d = ImageDraw.Draw(im)
     for i, (role, ids) in enumerate(sets):
-        fig, zooms = zoom_panel(role, ids, 4, 5)
+        fig, zooms = zoom_panel(role, ids, 4, 5, 'b' if i % 2 else 'a')
         x0 = i * PW + 10
         im.paste(fig, (x0, 36), fig)
-        d.text((x0, 36 + fig.height + 4), ROLE_KO[role], font=f14, fill=(236, 206, 150))
+        d.text((x0, 36 + fig.height + 4), ROLE_KO[role] + (' · 체형 B' if i % 2 else ' · 체형 A'),
+               font=f14, fill=(236, 206, 150))
         zx = x0 + fig.width + 8
         for j, (iid, z) in enumerate(zooms):
             zy = 40 + j * 92
@@ -1111,7 +1611,7 @@ def main():
             pt = [t[2] for t in IMPRINTS if t[0] == iid][0]
             d.text((zx, zy + z.height + 2), nm, font=f12, fill=(242, 214, 152))
             d.text((zx, zy + z.height + 18), pt, font=f12, fill=(184, 156, 120))
-    d.text((8, 6), '각인 3개 동시 착용 — 노란 상자가 각인 자리. 12종 전체가 한 픽셀도 겹치지 않는다(자동 검사 0건)',
+    d.text((8, 6), '각인 3개 동시 착용 — 12종이 서로·머리·얼굴과 한 픽셀도 겹치지 않는다(자동 검사)',
            font=f16, fill=(236, 206, 150))
     im.save(os.path.join(OUT, 'check', 'imprint3.png'))
 
@@ -1133,7 +1633,7 @@ def main():
            font=f16, fill=(236, 206, 150))
     im.save(os.path.join(OUT, 'check', 'imprints12.png'))
 
-    # ── 검증 4: 자세 여섯 + 뒷모습 ──
+    # ── 검증 4: 자세 여섯 + 뒷모습 (체형 B로 — 허리선이 자세마다 깨지지 않는지) ──
     rowspec = [[('idle', 2, '느린 호흡'), ('walk', 3, '걷기'), ('work', 3, '일하기'),
                 ('carry', 2, '물건 들기')],
                [('sit', 2, '앉기'), ('hurt', 2, '부상·주저앉음'), ('back_walk', 3, '뒷모습 걷기')]]
@@ -1146,7 +1646,7 @@ def main():
         for clip, n, ko in row:
             x_start = x
             for i in range(n):
-                c, _ = build('scout', clip, i)
+                c, _ = build('scout', clip, i, 'b', 'braid', 'f1')
                 bb = c.bbox()
                 s2 = up(c.img().crop((bb[0], bb[1], bb[2] + 1, bb[3] + 1)), 3)
                 im.paste(s2, (x, base_y - (FOOT - bb[1] + 1) * 3), s2)
@@ -1155,7 +1655,7 @@ def main():
             d.text((x_start, base_y + 6), '%s (%d)' % (ko, n), font=f14, fill=(230, 200, 150))
             d.text((x_start, base_y + 24), clip, font=f12, fill=(170, 144, 110))
             x += 26
-    d.text((8, 6), '자세 — 발 기준선(가로 선)은 전부 같다. 앉기·주저앉음은 다리를 몸통 앞으로 그린다',
+    d.text((8, 6), '자세 7종 — 체형 B · 땋은머리 · 얼굴 ②. 발 기준선(가로 선)은 전부 같다',
            font=f16, fill=(236, 206, 150))
     im.save(os.path.join(OUT, 'check', 'poses.png'))
 
@@ -1174,12 +1674,14 @@ def main():
     im.save(os.path.join(OUT, 'check', 'walk_all.png'))
 
     # 걷기 시트(방 빛) — 비교 페이지가 CSS steps(3)로 돌린다
-    for role in ROLES:
-        lit = Image.new('RGBA', (CELL * ROOM_K * 3, CELL * ROOM_K), (0, 0, 0, 0))
-        for i in range(3):
-            c, _ = build(role, 'walk', i)
-            lit.paste(room_light(up(c.img(), ROOM_K)), (CELL * ROOM_K * i, 0))
-        lit.save(os.path.join(OUT, 'check', 'walklit_%s.png' % role))
+    for body in BODY_IDS:
+        for role in ROLES:
+            hair, face = LOOK[(role, body)]
+            lit = Image.new('RGBA', (CELL * ROOM_K * 3, CELL * ROOM_K), (0, 0, 0, 0))
+            for i in range(3):
+                c, _ = build(role, 'walk', i, body, hair, face)
+                lit.paste(room_light(up(c.img(), ROOM_K)), (CELL * ROOM_K * i, 0))
+            lit.save(os.path.join(OUT, 'check', 'walklit_%s.png' % sheet_name(role, body)))
 
     # ── 검증 6: 문어 ──
     W, Hh = 620, 240
@@ -1195,6 +1697,64 @@ def main():
     d.text((8, 6), '문어 — 식구다. 말하지 않는다 (DECISIONS 2026-09-27)', font=f16, fill=(236, 206, 150))
     im.save(os.path.join(OUT, 'check', 'octopus.png'))
 
+    # ── 검증 11 (S9): 배경이 낸 **사람 없는 플레이트** 위 진짜 합성 ───────
+    #   S8 미완 ①(사람 없는 플레이트가 없다)이 배경 S8-C 에서 해결됐다.
+    #   plates_meta.json 의 floor_y·char_scale 을 그대로 읽어 발바닥을 맞춘다.
+    PLDIR = os.path.join(ROOT, 'static', 'art', 'plates')
+    pmeta = None
+    try:
+        pmeta = json.load(io.open(os.path.join(PLDIR, 'plates_meta.json'), encoding='utf-8'))
+    except Exception as e:
+        print('[!] plates_meta.json 못 읽음:', e)
+    if pmeta:
+        flY = pmeta['floor_y']
+        kk = pmeta['grid']['char_scale']
+        rooms = [('quarters', '거주', [('kid', 'a', 'idle', 0), ('cook', 'b', 'sit', 0),
+                                      ('scout', 'a', 'idle', 1)]),
+                 ('workshop', '공방', [('engineer', 'a', 'work', 1), ('engineer', 'b', 'work', 0),
+                                      ('trader', 'a', 'carry', 0)]),
+                 ('infirmary', '의무실', [('medic', 'b', 'work', 1), ('scholar', 'a', 'hurt', 0),
+                                        ('farmer', 'b', 'idle', 0)]),
+                 ('greenhouse', '온실', [('farmer', 'a', 'work', 1), ('kid', 'b', 'walk', 1),
+                                       ('medic', 'a', 'idle', 0)])]
+        cw, ch = pmeta['canvas']
+        sheetimg = Image.new('RGBA', (cw * 2, ch * 2 + 64), (14, 10, 8, 255))
+        for ri, (rid, rko, people) in enumerate(rooms):
+            fp = os.path.join(PLDIR, 'room_plate_%s_lit.png' % rid)
+            if not os.path.exists(fp):
+                continue
+            pl = Image.open(fp).convert('RGBA')
+            rinfo = [r for r in pmeta['rooms'] if r.get('id') == rid]
+            lamp = (rinfo[0].get('lamp') if rinfo else None) or [cw // 2, 110]
+            sx0, sx1 = (rinfo[0].get('stand_x') if rinfo else None) or [138, 534]
+            box = pl.convert('RGB').crop((max(0, lamp[0] - 60), lamp[1] + 20,
+                                          min(cw, lamp[0] + 60), lamp[1] + 90))
+            cc = box.resize((1, 1), Image.BOX).getpixel((0, 0))
+            mm = max(1.0, sum(cc) / 3.0)
+            tint = tuple(ci / mm for ci in cc)
+            step = (sx1 - sx0) // (len(people) + 1)
+            for pi, (role, body, clip, fi) in enumerate(people):
+                hair, face = LOOK[(role, body)]
+                c, _a = build(role, clip, fi, body, hair, face)
+                bb = c.bbox()
+                spr = room_light(up(c.img().crop((bb[0], bb[1], bb[2] + 1, bb[3] + 1)), kk),
+                                 1.0, tint)
+                px0 = sx0 + step * (pi + 1) - spr.width // 2
+                py0 = flY - (FOOT - bb[1] + 1) * kk
+                pl = ground_shadow(pl, (px0, py0), spr)
+                pl.alpha_composite(spr, (px0, py0))
+            dd = ImageDraw.Draw(pl)
+            dd.text((12, 10), '%s (%s_lit) · 발바닥 = floor_y %d · ×%d = 82.5px/m'
+                    % (rko, rid, flY, kk), font=f14, fill=(244, 216, 160))
+            sheetimg.alpha_composite(pl, ((ri % 2) * cw, 56 + (ri // 2) * ch))
+        dd = ImageDraw.Draw(sheetimg)
+        dd.text((10, 8), '배경이 낸 사람 없는 방 플레이트 위 — plates_meta.json 의 floor_y·char_scale 을 '
+                         '그대로 읽어 붙였다 (좌표 보정 0)', font=f16, fill=(236, 206, 150))
+        dd.text((10, 32), '등불색 틴트는 각 플레이트의 등불 아래를 직접 샘플링했다. '
+                          '앉기·일하기·부상·들기·걷기를 섞었다.', font=f14, fill=(188, 160, 124))
+        sheetimg.convert('RGB').save(os.path.join(OUT, 'check', 'plate_rooms.png'))
+        print('[ok] check/plate_rooms.png — 사람 없는 플레이트 4칸 합성')
+
     # ── 메타 ──
     meta = {
         '_comment': 'P2 48px 생활형 도트 — 확정 화풍. 정수 배율 + image-rendering:pixelated 필수.',
@@ -1209,13 +1769,35 @@ def main():
         'frames': {c: n for c, n in CLIPS},
         'rows': {c: i for i, (c, _) in enumerate(CLIPS)},
         'anim_seconds': CLIP_SEC,
-        'sheet': 'static/art/chars/front/p2/<role>.png  (x4, 셀 256, 발 기준선 240)',
-        'source': 'static/art/chars/front/p2/src/<role>.png  (x1, 셀 64, 발 기준선 60)',
-        'tint_mask': 'static/art/chars/front/p2/masks/<role>.png  (x1, L8)',
-        'imprint_layer': 'static/art/chars/front/p2/imprints/<id>.png (어른 8역할 공용, x1) · imprints/kid/<id>.png (아이 전용). 같은 셀·같은 자리에 알파 합성. 기본은 전부 꺼짐',
+        'sheet': 'static/art/chars/front/p2/<role>.png  (체형 A, x4, 셀 256, 발 기준선 240)',
+        'sheet_b': 'static/art/chars/front/p2/<role>_b.png  (체형 B, 같은 규약)',
+        'source': 'static/art/chars/front/p2/src/<role>[_b].png  (x1, 셀 64, 발 기준선 60)',
+        'tint_mask': 'static/art/chars/front/p2/masks/<role>[_b].png  (x1, L8)',
+        'imprint_layer': 'static/art/chars/front/p2/imprints/<id>.png (어른 체형 A) · '
+                         'imprints/b/ (어른 체형 B) · imprints/kid/ (아이 A) · imprints/kid_b/ (아이 B). '
+                         '같은 셀·같은 자리에 알파 합성. 기본은 전부 꺼짐',
         'octopus': 'static/art/chars/front/p2/octopus.png  (x4, 4칸: idle f0~2 + wrap)',
-        'roles': meta_roles,
-        'imprints': [{'id': i, 'ko': k, 'part': p, 'color': c} for i, k, p, c in IMPRINTS],
+        'bodies': {bid: {'ko': BODIES[bid]['ko'], 'note': BODIES[bid]['note'],
+                         'sheet_suffix': ('' if bid == 'a' else '_b')} for bid in BODY_IDS},
+        'body_rule': '역할과 체형은 독립이다(어느 역할에나 어느 체형이든). 체형을 색으로 '
+                     '표시하지 않는다. 키·발 기준선·머리 크기·얼굴 자리는 체형과 무관하게 같다.',
+        'hair': [{'id': i, 'ko': k, 'note': n,
+                  'layer': 'hair/<role>_<body>/%s.png' % i} for i, k, n in HAIRS],
+        'faces': [{'id': i, 'ko': k, 'note': n,
+                   'layer': 'faces/<role>_<body>/%s.png' % i} for i, k, n in FACES],
+        'layer_rule': '머리·얼굴 레이어는 **기본 시트(short + f0)와의 차이만 담은 투명 패치**다. '
+                      'src/<role>[_b].png 위에 같은 자리로 알파 합성하면 그 조합이 된다(생성기가 전수 검증). '
+                      'x1만 낸다 — x4가 필요하면 NEAREST로 정수 확대한다. '
+                      '머리는 투구 테 아래에서만 바뀌므로 「머리에 쓴 것 = 역할」 규칙을 흐리지 않는다.',
+        'variation_recipe': '머리·얼굴·체형은 역할과 무관하게 뽑는다. 시드는 uid + 주민 id '
+                            '(같은 입력이면 같은 사람 — D6). 생성기의 pick_look()이 같은 꼴의 FNV 해시를 쓴다.',
+        'roles': meta_roles['a'],
+        'roles_b': meta_roles['b'],
+        'imprints': [{'id': i, 'ko': k, 'part': p, 'color': c,
+                      'on_hair': (i in IMPRINT_ON_HAIR)} for i, k, p, c in IMPRINTS],
+        'layer_checks': '생성기가 매 실행마다: ①각인×각인 ②각인×얼굴 3종 ③각인×머리 6종 '
+                        '(머리 위에 얹히도록 설계된 water_memory 제외) ④기본머리 덮임 '
+                        '⑤기본시트+패치==변형시트 를 전수 검사한다.',
         'rules_2_5d': {
             '1_integer_scale': '정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지',
             '2_lamp_tint': 'masks/<role>.png 가 흰 곳만 방 등불색을 곱한다. 0인 곳(눈·외곽선·랜턴 불꽃·유리)은 건드리지 않는다. 권장식: rgb *= (1 + 0.30*(tint-1)) * (1.13 - 0.32*(y/h))',
