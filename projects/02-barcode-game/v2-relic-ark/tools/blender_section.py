@@ -526,7 +526,9 @@ def motif_slash(rid, x0, x1, z, m, unit=0.44):
 
 MOTIF = {"lounge": motif_arch, "quarters": motif_zigzag, "greenhouse": motif_chevron,
          "workshop": motif_teeth, "storage": motif_dots, "library": motif_hatch,
-         "bath": motif_wave, "airlock": motif_diamond}
+         "bath": motif_wave, "airlock": motif_diamond,
+         # S8-C 플레이트에서 새로 생긴 두 방(COMBAT_AND_DEFENSE 5-1)
+         "infirmary": motif_arch, "power": motif_slash}
 
 
 # ══════════════════════════════════════════════════════════════
@@ -722,18 +724,20 @@ def room_halo(x0, x1, z0, z1):
         DOME.mesh_of_quads("PRV_halo", [q], M[mkey]).name = "PRV_halo"
 
 
-def room_shell(x0, x1, z0, hue, rid):
+# S8-C: dim<1 은 등불이 꺼진 방(플레이트의 "빈 방"). 색상은 그대로 두고 밝기만 내린다 —
+#       꺼졌어도 그 방이 무슨 방인지는 색으로 읽혀야 한다(B1).
+def room_shell(x0, x1, z0, hue, rid, dim=1.0):
     """절두각뿔 상자. 채색은 기본색 / 그림자색 딱 2단(§1-3). 방 안에 그라데이션 없음."""
     if COZY:
         # 정정 ①: 빛이 방 전체를 데운다. 그림자는 검정이 아니라 따뜻한 갈색.
         # 안팎 대비는 명도 극단이 아니라 **색온도**로 만든다 — 물은 그대로 차갑다.
-        base = hx(hue, 1.00)
-        floor_c = warm_shade(hue, 0.82, 0.26)      # 바닥은 빛이 고이는 곳이라 제일 밝은 그림자
-        side_c = warm_shade(hue, 0.66, 0.40)
-        ceil_c = warm_shade(hue, 0.54, 0.50)
+        base = hx(hue, 1.00 * dim)
+        floor_c = warm_shade(hue, 0.82 * dim, 0.26)      # 바닥은 빛이 고이는 곳이라 제일 밝은 그림자
+        side_c = warm_shade(hue, 0.66 * dim, 0.40)
+        ceil_c = warm_shade(hue, 0.54 * dim, 0.50)
     else:
-        base = hx(hue, 0.88)                  # 기본색 — 등불보다 항상 어둡게 눌러 둔다(F7)
-        floor_c = side_c = ceil_c = hx(hue, 0.46)
+        base = hx(hue, 0.88 * dim)                  # 기본색 — 등불보다 항상 어둡게 눌러 둔다(F7)
+        floor_c = side_c = ceil_c = hx(hue, 0.46 * dim)
     shade = side_c
     backm = flat_mat("back_" + rid, base)
     floorm = flat_mat("floor_" + rid, floor_c)
@@ -780,7 +784,7 @@ def _is_dark(hexc):
     return (0.299 * r + 0.587 * g + 0.114 * b) < 128
 
 
-def room_lamp(x, z0, hue, rid):
+def room_lamp(x, z0, hue, rid, spread=1.0):
     """F7. 방마다 등불 하나(B1). 화면에서 가장 밝은 것은 언제나 이것이다.
     광원 오브젝트는 쓰지 않는다(평면 2단 고정) — 밝은 알과 바닥의 빛 웅덩이로 그린다."""
     top = z0 + RH
@@ -808,22 +812,26 @@ def room_lamp(x, z0, hue, rid):
     yb = DEPTH - 0.055
     # 알파 0.2 로 30% 밝은 색을 얹으면 화면은 6% 밖에 안 밝아진다(3차 렌더가 그랬다).
     # 빛으로 읽히려면 색도 알파도 과감해야 한다.
+    # spread<1 : 좁은 방(S8-C 플레이트 6m)에서 번짐이 방 밖 물로 새지 않게 가둔다.
+    #            4차 전체 렌더에서 똑같은 일이 있었다 — 밖이 밝아지면 안팎 대비가 깨진다.
     for k, (wt, wb, f, a) in enumerate(((0.62, 3.35, 1.55, 0.34), (0.44, 2.05, 1.95, 0.42))):
+        wt, wb = wt * spread, wb * spread
         q = [Vector((x - wt, yb - k * 0.008, zb - 0.10)), Vector((x + wt, yb - k * 0.008, zb - 0.10)),
              Vector((x + wb, yb - k * 0.008, z0 + 0.03)), Vector((x - wb, yb - k * 0.008, z0 + 0.03))]
         DOME.mesh_of_quads("PRV_cone%d_%s" % (k, rid), [q],
                            flat_mat("conem%d_%s" % (k, rid), hxcap(hue, f, 0.86), alpha=a)).name = \
             "PRV_cone%d_%s" % (k, rid)
-    soft_blob(rid + "_wall", x, zb - 0.85, 3.6, 2.1, hxcap(hue, 1.95, 0.90), alpha=0.46,
+    soft_blob(rid + "_wall", x, zb - 0.85, 3.6 * spread, 2.1, hxcap(hue, 1.95, 0.90), alpha=0.46,
               y=DEPTH - 0.075)
     # ── 등불 둘레의 공기 번짐 ───────────────────────────────
-    soft_blob(rid + "_lampwide", x, zb - 0.95, 2.9, 1.80, "#FFC57E", alpha=0.36, y=0.62)
-    soft_blob(rid + "_lamp", x, zb - 0.10, 1.55, 1.25, "#FFE2B2", alpha=0.56, y=0.54)
+    soft_blob(rid + "_lampwide", x, zb - 0.95, 2.9 * spread, 1.80, "#FFC57E", alpha=0.36, y=0.62)
+    soft_blob(rid + "_lamp", x, zb - 0.10, 1.55 * spread, 1.25, "#FFE2B2", alpha=0.56, y=0.54)
     soft_blob(rid + "_core", x, zb, 0.60, 0.56, "#FFF6E4", alpha=0.85, y=0.52)
     o = iso.sphere("lb_" + rid, (x, 0.44, zb), 0.15, M["bulb"], 12, 7)
     o.name = "PRV_bulb_" + rid
     # ── 바닥에 고이는 빛 웅덩이 (보이는 만큼만) ─────────────
     for k, (pw, f, a) in enumerate(((2.45, 1.50, 0.55), (1.45, 1.85, 0.48))):
+        pw *= spread
         zz = z0 + 0.010 + k * 0.004
         qp = [Vector((x - pw, DEPTH - 0.50, zz)), Vector((x + pw, DEPTH - 0.50, zz)),
               Vector((x + pw * 0.60, 0.10, zz)), Vector((x - pw * 0.60, 0.10, zz))]
@@ -840,6 +848,8 @@ def disc(name, x, z, r, m, y=0.45, verts=14):
 
 
 def people(xs, z0, kinds, ys=None):
+    if NO_PEOPLE:                        # S8-C (1)
+        return
     for i, (x, k) in enumerate(zip(xs, kinds)):
         y = (ys[i] if ys else 0.55 + (i % 3) * 0.32)
         DOME.resident(k, x, y, z0, rot_z=math.radians(180 + (-22 if i % 2 else 20)), h=1.70)
@@ -853,6 +863,16 @@ def people(xs, z0, kinds, ys=None):
 CHAR_VAR = os.environ.get("RELIC_CHAR_VAR", "c")
 CHAR_ROOT = os.path.join(ROOT, "static", "art", "chars", "front")
 CHAR_FALLBACK = ("c", "b", "a")
+
+# ============================================================
+# S8-C (1)  사람 없는 플레이트
+#   2026-10-01 결정: 2.5D — 배경은 3D 렌더, 캐릭터는 P2 48px 도트.
+#   그래서 배경 렌더에는 이제 사람을 넣지 않는다. 사람은 개발이 도트로 얹는다.
+#   RELIC_CHAR_VAR=none  ->  char()/people() 이 아무것도 만들지 않는다.
+#   빠지는 것은 사람뿐이다. 방석/요/덮은 담요/신발 같은 생활 흔적은 그대로 둔다
+#   (B4 "오늘 밤 누가 여기서 잔다"는 사람이 없어도 성립해야 한다).
+# ============================================================
+NO_PEOPLE = CHAR_VAR.strip().lower() in ("none", "no", "off", "0", "")
 
 
 def char_meta():
@@ -916,6 +936,8 @@ def sprite_mat(name, img, frame, row, tint):
 def char(role, x, zfeet, y=0.62, pose="stand", frame=0, tint=(1.0, 0.94, 0.82),
          flip=False, sc=1.0, tilt=0.0):
     """pose: stand(서서) / work(일하는) / walk / sit(앉은) / lean(기댄) / lie(누운)"""
+    if NO_PEOPLE:                     # S8-C (1)
+        return None
     img = char_image(role)
     if img is None:
         return None
@@ -1120,12 +1142,12 @@ SHELF_ROWS = [
 ]
 
 
-def shelf_props(x0, x1, z0, rid):
+def shelf_props(x0, x1, z0, rid, rows=None, z_first=0.30, step=0.74):
     """창고 뒷벽의 선반 세 단. 여기가 바코드와 거점이 만나는 자리다."""
     meta = props_meta().get("props", {})
     bx0, bx1 = x0 + INSET_X + 0.30, x1 - INSET_X - 0.30
-    for lv, row in enumerate(SHELF_ROWS):
-        zb = z0 + 0.30 + lv * 0.74
+    for lv, row in enumerate(rows or SHELF_ROWS):
+        zb = z0 + z_first + lv * step
         iso.cube("pshelf_%s_%d" % (rid, lv), ((bx0 + bx1) / 2, DEPTH - 0.26, zb - 0.055),
                  (bx1 - bx0 + 0.24, 0.40, 0.11), M["wood"])
         x = bx0 + 0.06
@@ -1415,7 +1437,9 @@ def build_base():
     dig_face(-8.5, -(SPINE + GAP), L[4])
     spine(DOME_C.z - 1.0, L[4] - 1.6)
     glass_dome(z_lounge)
-    if COZY:
+    if NO_PEOPLE:
+        pass                               # 척추를 오르내리던 사람도 뺀다
+    elif COZY:
         char("trader", 0.0, L[3] + 0.05, y=0.60, pose="walk", frame=2, sc=0.98)
     else:
         DOME.resident("trader", 0.0, 0.7, L[3] + 0.05, rot_z=math.radians(180), h=1.68)
@@ -1562,9 +1586,13 @@ NOLINE_EXTRA = ("PRV_backdrop", "PRV_haze", "PRV_snow", "PRV_jelly", "PRV_jhalo"
                 "PRV_warm_", "PRV_sp_", "PRV_cone")
 
 
-def handdrawn_lines():
+def handdrawn_lines(line=1.9):
     """F6. 손으로 그은 선 — 두께 변화(NOISE) + 흔들림(PERLIN_2D, SINUS). 매끈한 벡터 선 금지."""
     sc = bpy.context.scene
+    if line <= 0:                     # S8-C 생물 실루엣: 검은 테두리를 두르면 스티커가 된다
+        sc.render.use_freestyle = False
+        sc.view_layers[0].use_freestyle = False
+        return
     sc.render.use_freestyle = True
     sc.render.line_thickness = 1.0
     vl = sc.view_layers[0]; vl.use_freestyle = True
@@ -1579,7 +1607,7 @@ def handdrawn_lines():
         ls.linestyle = bpy.data.linestyles.new("relic_ls")
     st = ls.linestyle
     st.color = srgb_hexcol(PAL["char"])
-    st.thickness = 1.9
+    st.thickness = line
     try:
         st.caps = 'ROUND'
     except Exception:
@@ -1712,7 +1740,8 @@ def paper_and_vignette(grain=0.11, vig=0.10):
         print("COMP SKIPPED", e, flush=True)
 
 
-def render(path, ortho, target, res=(1600, 900), grain=0.11, vig=0.10):
+def render(path, ortho, target, res=(1600, 900), grain=0.11, vig=0.10,
+           alpha=False, line=1.9):
     sc = bpy.context.scene
     loc = Vector((target[0], -70.0, target[2]))
     bpy.ops.object.camera_add(location=loc)
@@ -1722,13 +1751,14 @@ def render(path, ortho, target, res=(1600, 900), grain=0.11, vig=0.10):
     sc.camera = cam
     sc.render.engine = 'BLENDER_EEVEE'
     sc.render.resolution_x, sc.render.resolution_y = res
-    sc.render.film_transparent = False
-    sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGB'
+    sc.render.film_transparent = bool(alpha)
+    sc.render.image_settings.file_format = 'PNG'
+    sc.render.image_settings.color_mode = 'RGBA' if alpha else 'RGB'
     try:
         sc.eevee.taa_render_samples = 24
     except Exception:
         pass
-    handdrawn_lines()
+    handdrawn_lines(line)
     sc.view_settings.view_transform = 'Standard'      # F8
     sc.view_settings.exposure = 0.0
     try:
@@ -1806,6 +1836,658 @@ def shot_before_hero():
 
 
 # ══════════════════════════════════════════════════════════════
+# S8-C ①  사람 없는 온기판 — 캐릭터 담당의 합성 판정용
+#   같은 카메라, 같은 값. 바뀐 것은 사람이 없다는 것뿐이다.
+# ══════════════════════════════════════════════════════════════
+def shot_warm_noppl():
+    build(extras=True)
+    render(os.path.join(OUT_RAW, "section_warm_noppl.png"), ortho=62.0, target=(0.4, 0, 6.6),
+           grain=0.19, vig=0.10)
+
+
+def shot_roomzoom_noppl():
+    build(extras=True)
+    render(os.path.join(OUT_RAW, "section_room_zoom_noppl.png"), grain=0.17, vig=0.07, **ZOOM2)
+
+
+# ══════════════════════════════════════════════════════════════
+# S8-C ②  방 종류별 플레이트 — 2.5D 정수 배율 체계
+#
+#   2026-10-01 결정: 캐릭터는 P2 「48px 생활형 도트」, 화면 배율 ×3 = 144px.
+#   그래서 배경도 **같은 격자**를 써야 한다. 안 그러면 캐릭터만 계단이 지고
+#   방은 매끈해서 '붙여 놓은 스티커'가 된다(결정 로그 "2.5D 성립 조건 ①").
+#
+#     1 m = 28 가상px = 84 화면px      (28 × 3 = 84)
+#     방 안쪽 3.0 m = 84 가상px = 252 화면px
+#     캔버스 8.0 × 4.5 m = 672 × 378 화면px
+#     **바닥선 = 캔버스 위에서 315px.** 이 숫자 하나가 도트 캐릭터의 접지선이다.
+#
+#   플레이트는 불투명하다. 방 둘레 약 1 m 는 '어두운 물 여백'(F7)이 구워져 있고,
+#   생물 실루엣은 그 바깥 물에 따로 얹는다(S8-C ③) — 그래서 겹칠 일이 없다.
+# ══════════════════════════════════════════════════════════════
+#  격자는 캐릭터가 정한다 — static/art/chars/front/p2/meta.json 이 정본:
+#    src_ppm 27.5 (×1 원화의 미터당 px) · room_scale 3 · room_cell 192 · room_baseline 180
+#    → 방 안에서 쓰는 배율은 ×3 이고 **82.5 px/m** 이다. 1.6m 키 = 132px.
+#  (84 px/m 로 잡았다가 1.8% 어긋났다. 캐릭터 쪽 숫자를 그대로 가져오는 것이 규약이다.)
+CHAR_SRC_PPM = 27.5                              # 캐릭터 ×1 원화의 미터당 px
+PLATE_SCALE = 3                                  # 방 안에서 쓰는 정수 배율(room_scale)
+PLATE_PPM = CHAR_SRC_PPM * PLATE_SCALE           # 82.5 화면 px / m
+PLATE_RES = (672, 378)                           # 캔버스는 px 가 먼저다(미터는 여기서 나온다)
+PLATE_FLOOR_Y = 315                              # 바닥선 — 도트 캐릭터의 접지선
+PLATE_W_M = PLATE_RES[0] / PLATE_PPM             # 8.145 m
+PLATE_H_M = PLATE_RES[1] / PLATE_PPM             # 4.582 m
+PLATE_ROOM_W = 6.0                               # 방 안쪽 폭 (495px)
+PLATE_HEAD = (PLATE_RES[1] - PLATE_FLOOR_Y) / PLATE_PPM
+PLATE_STAND_MARGIN = 0.60                        # 옆벽에서 사람이 설 수 없는 띠(m)
+PLATE_DIM = 0.46                                 # '빈 방'(등불 꺼짐) 밝기 배수
+OUT_PLATE = os.path.join(ROOT, "art_raw", "plates")
+OUT_THREAT = os.path.join(ROOT, "art_raw", "threats")
+
+
+def _m2px_x(xm):
+    return int(round(PLATE_RES[0] / 2.0 + xm * PLATE_PPM))
+
+
+def _m2px_y(zm, z0=0.0):
+    """방 바닥 z0 기준의 월드 z → 캔버스 위에서의 px."""
+    return int(round(PLATE_FLOOR_Y - (zm - z0) * PLATE_PPM))
+
+
+# ── 플레이트용 채움 ───────────────────────────────────────────
+#  **정면 직교 + 깊이 1.7m** 에서는 바닥에 놓인 것이 거의 안 보인다(S6 §8-3).
+#  그래서 플레이트의 가구는 **서 있어야** 한다 — 2층 침대·선반·걸이·벽 장비.
+#  1차 플레이트가 "텅 빈 노란 벽"으로 나온 원인이 이것이었다.
+# ─────────────────────────────────────────────────────────────
+def _bunk(x, z0, w=1.62, tag=""):
+    """2층 침대 한 벌. 정면에서 가장 잘 읽히는 '사람이 사는 증거'(B4)."""
+    for sx in (x - w / 2, x + w / 2):
+        iso.cube("bkpost" + tag, (sx, 1.05, z0 + 1.25), (0.10, 0.74, 2.50), M["frame"])
+    for k, zz in enumerate((0.52, 1.72)):
+        iso.cube("bkframe" + tag, (x, 1.05, z0 + zz), (w, 0.80, 0.10), M["wood_dk"])
+        iso.cube("bkmat" + tag, (x, 1.02, z0 + zz + 0.13), (w - 0.14, 0.72, 0.17),
+                 M["fabric"] if k else M["fabric2"])
+        iso.cube("bkblank" + tag, (x + 0.16, 0.92, z0 + zz + 0.25), (w - 0.52, 0.66, 0.12),
+                 M["tarp"] if k else M["fabric"], rot=(0, 0.03, 0))
+        iso.cube("bkpil" + tag, (x - w / 2 + 0.30, 1.00, z0 + zz + 0.26), (0.36, 0.52, 0.14),
+                 M["pillow"])
+    for k in range(4):                               # 사다리
+        iso.cube("bkldr" + tag, (x + w / 2 + 0.12, 0.62, z0 + 0.35 + k * 0.42),
+                 (0.34, 0.06, 0.06), M["frame_lt"])
+
+
+def _wall_rack(x0, x1, z0, levels, mats, tag, zb=0.90, step=0.62, depth=0.30):
+    """뒷벽 선반 — 세로를 채우는 가장 싼 방법. 격자는 '사람이 만든 것'이라 격자가 맞다(B5)."""
+    rnd = random.Random(hash(tag) % 9991)
+    for lv in range(levels):
+        z = z0 + zb + lv * step
+        iso.cube("wr_%s_%d" % (tag, lv), ((x0 + x1) / 2, DEPTH - depth, z - 0.05),
+                 (x1 - x0, depth + 0.08, 0.08), M["wood"])
+        n = int((x1 - x0) / 0.34)
+        for k in range(n):
+            if rnd.random() < 0.22:
+                continue
+            h = 0.18 + rnd.random() * 0.22
+            iso.cube("wri_%s_%d_%d" % (tag, lv, k),
+                     (x0 + 0.17 + k * 0.34, DEPTH - depth, z + h / 2),
+                     (0.22, depth * 0.7, h), M[mats[(k + lv) % len(mats)]])
+
+
+def plate_fill_quarters(x0, x1, z0):
+    _bunk(-2.00, z0, 1.72, "a")
+    _bunk(-0.18, z0, 1.72, "b")
+    at(z0, iso.shelf_unit, 2.30, 1.15)
+    iso.cube("qtable", (1.20, 0.80, z0 + 0.62), (1.05, 0.72, 0.08), M["wood"])
+    for sx in (0.75, 1.65):
+        iso.cube("qleg", (sx, 0.80, z0 + 0.31), (0.08, 0.66, 0.62), M["wood_dk"])
+    iso.cube("qstool", (1.20, 0.34, z0 + 0.21), (0.44, 0.44, 0.42), M["wood_dk"])
+    at(z0, iso.laundry, (-2.80, 0.30), (0.40, 0.30), 2.62)
+    at(z0, iso.plant, 2.68, 0.44, 0.52)
+    at(z0, iso.jug, 0.62, 0.42, 0.3)
+    iso.prop("k:chest", 2.05, 0.52, z0, h=0.52, rot_z=0.2)
+
+
+def plate_fill_storage(x0, x1, z0):
+    # 뒷벽 네 단 전부가 E1 선반 — 창고는 '차오르는 것'이 보여야 한다(P1 비축)
+    shelf_props(x0, x1, z0, "storage",
+                rows=SHELF_ROWS + [SHELF_ROWS[0]], z_first=0.52, step=0.64)
+    at(z0, iso.shelf_unit, -2.35, 0.95)
+    for k, hgt in enumerate((0.66, 0.66, 0.60)):
+        iso.prop("k:box-large", 2.20, 0.58, z0 + k * 0.52, h=hgt, rot_z=0.1 * k)
+    at(z0, iso.can_pile, -1.05, 0.42, 3, 1)
+    at(z0, iso.can_pile, 0.35, 0.42, 2, 4)
+    iso.prop("k:barrel", 1.35, 0.46, z0, h=0.85)
+    at(z0, iso.jug, -1.75, 0.38, 0.2)
+
+
+def plate_fill_workshop(x0, x1, z0):
+    iso.prop("k:workbench", -1.55, 1.25, z0, h=1.05)
+    iso.prop("k:workbench-anvil", 1.30, 1.20, z0, h=1.00)
+    iso.prop("k:barrel", 2.55, 0.52, z0, h=0.85)
+    at(z0, iso.can_pile, -0.45, 0.42, 3, 5)
+    # 공구 벽 — 대응 도구 일곱이 나오는 자리(COMBAT §6.5). 걸린 것과 빈 고리가 섞인다
+    iso.cube("wpeg", (0.0, DEPTH - 0.17, z0 + 2.10), (4.6, 0.10, 1.40), M["wood_dk"])
+    rnd = random.Random(417)
+    for k in range(13):
+        hxp = -2.10 + k * 0.35
+        iso.cube("whookbar", (hxp, DEPTH - 0.21, z0 + 2.72), (0.07, 0.05, 0.14), M["frame_lt"])
+        if rnd.random() < 0.26:
+            continue
+        h = 0.34 + rnd.random() * 0.40
+        iso.cube("wtool", (hxp, DEPTH - 0.21, z0 + 2.62 - h / 2), (0.10, 0.06, h),
+                 M["metal"] if k % 2 else M["copper"])
+    iso.cube("wbench", (0.0, 0.85, z0 + 0.92), (3.1, 0.76, 0.09), M["wood"])
+    for sx in (-1.40, 1.40):
+        iso.cube("wbleg", (sx, 0.85, z0 + 0.45), (0.10, 0.70, 0.90), M["wood_dk"])
+    iso.cube("wvise", (-1.10, 0.70, z0 + 1.06), (0.26, 0.26, 0.20), M["metal"])
+
+
+def plate_fill_infirmary(x0, x1, z0):
+    """의무실 — 부상자가 돌아오는 방(COMBAT §5-1). 다리 달린 간이 침상이라 정면에서 읽힌다."""
+    for k, bx in enumerate((-1.90, 0.30)):
+        iso.cube("ibed", (bx, 1.05, z0 + 0.58), (1.78, 0.90, 0.14), M["wood_dk"])
+        for sx in (bx - 0.80, bx + 0.80):
+            iso.cube("ibleg", (sx, 1.05, z0 + 0.26), (0.09, 0.80, 0.52), M["frame_lt"])
+        iso.cube("isheet", (bx, 1.02, z0 + 0.71), (1.70, 0.84, 0.14), M["pillow"])
+        iso.cube("ipillow", (bx - 0.62, 1.00, z0 + 0.84), (0.42, 0.56, 0.14), M["fabric2"])
+        if k == 0:                                   # 한 침상만 쓰던 흔적 — 담요가 젖혀져 있다
+            iso.cube("iblank", (bx + 0.32, 0.98, z0 + 0.84), (0.92, 0.76, 0.14),
+                     M["fabric"], rot=(0, 0.04, 0))
+        iso.cube("ihead", (bx - 0.92, 1.05, z0 + 0.86), (0.08, 0.84, 0.72), M["frame"])
+    _wall_rack(1.20, 2.80, z0, 3, ("paper", "red", "pillow", "yellow"), "ivial",
+               zb=1.30, step=0.58, depth=0.26)       # 약병 장
+    iso.cyl("ibasin", (-2.45, 0.52, z0 + 0.70), 0.32, 0.22, M["metal"], verts=14)
+    iso.cube("ibstand", (-2.45, 0.52, z0 + 0.30), (0.56, 0.52, 0.60), M["wood_dk"])
+    iso.cube("irail", (-2.00, 0.26, z0 + 2.62), (2.0, 0.07, 0.07), M["frame_lt"])
+    hanging_cloth(-2.80, -1.20, z0 + 2.58, "infscreen", 3, 1.30, y=0.24)    # 가림막
+
+
+def plate_fill_power(x0, x1, z0):
+    """발전실 — 조명·소리 차단·격벽이 전부 여기서 나온다(COMBAT §5-1).
+    소리가 나는 방이라 문지기 습격 때 가장 먼저 내려야 하는 곳이다."""
+    iso.cube("pbase", (-1.45, 1.00, z0 + 0.20), (2.3, 1.2, 0.40), M["frame"])
+    iso.cyl("pdrum", (-1.45, 1.00, z0 + 1.08), 0.78, 2.00, M["hull_dk"],
+            rot=(0, math.radians(90), 0), verts=18)
+    iso.cyl("pdrumr", (-1.45, 0.42, z0 + 1.08), 0.56, 0.10, M["rust"],
+            rot=(math.radians(90), 0, 0), verts=16)
+    iso.cyl("pstack", (-0.30, 1.00, z0 + 2.30), 0.16, 1.5, M["rust"], verts=12)
+    iso.cyl("pstackc", (-0.30, 1.00, z0 + 3.00), 0.23, 0.14, M["frame_lt"], verts=12)
+    for k in range(2):
+        iso.cyl("ppipe", (0.22 + k * 0.30, DEPTH - 0.28, z0 + 1.70), 0.065, 2.8,
+                M["rust"], verts=10)
+    iso.cube("ppanel", (1.85, DEPTH - 0.20, z0 + 2.12), (1.9, 0.12, 1.10), M["frame_lt"])
+    for k in range(6):                               # 계기 — 등불보다 어둡게(F7)
+        iso.cyl("pdial", (1.18 + (k % 3) * 0.60, DEPTH - 0.28, z0 + 2.40 - (k // 3) * 0.50),
+                0.11, 0.06, M["copper"] if k % 2 else M["rust"],
+                rot=(math.radians(90), 0, 0), verts=12)
+    for lv in range(2):                              # 축전지 선반 두 단
+        z = z0 + 0.22 + lv * 0.78
+        iso.cube("pbshelf", (1.85, 0.62, z - 0.06), (2.1, 0.66, 0.10), M["frame"])
+        for k in range(4):
+            iso.cube("pbatt", (1.05 + k * 0.52, 0.62, z + 0.30), (0.42, 0.52, 0.60),
+                     M["wood_dk"] if (k + lv) % 2 else M["frame_lt"])
+            iso.cube("pbcap", (1.05 + k * 0.52, 0.62, z + 0.62), (0.42, 0.52, 0.06), M["copper"])
+    iso.prop("k:barrel", -2.60, 0.50, z0, h=0.85)
+    for k, cx in enumerate((-2.20, 2.80)):           # 늘어진 케이블
+        DOME.strut("pcable", Vector((cx, 0.22, z0 + RH - 0.10)),
+                   Vector((cx + (0.40 if k else -0.30), 0.22, z0 + 1.40)), 0.055, M["frame"], 5)
+
+
+def plate_fill_greenhouse(x0, x1, z0):
+    """온실 — 물속이라 **초록은 전부 사람이 기른 것**이다(B2). 세로로 쌓아 초록을 키운다."""
+    rnd = random.Random(77)
+    for lv in range(3):                              # 뒷벽 재배 선반 세 단
+        z = z0 + 0.78 + lv * 0.74
+        iso.cube("gshelf", (0.0, DEPTH - 0.36, z - 0.06), (5.0, 0.56, 0.10), M["wood_dk"])
+        iso.cube("gtray", (0.0, DEPTH - 0.36, z + 0.08), (4.8, 0.48, 0.16), M["earth2"])
+        for k in range(7):
+            at(z + 0.14, iso.plant, -2.10 + k * 0.70 + rnd.uniform(-0.09, 0.09),
+               DEPTH - 0.36, rnd.uniform(0.30, 0.46), False)
+    for k in range(2):                               # 앞쪽 바닥 재배단
+        iso.cube("gbed", (-1.35 + k * 2.70, 0.95, z0 + 0.30), (1.70, 1.05, 0.60), M["wood_dk"])
+        iso.cube("gsoil", (-1.35 + k * 2.70, 0.95, z0 + 0.63), (1.56, 0.95, 0.06), M["earth2"])
+        for j in range(4):
+            at(z0 + 0.66, iso.plant, -1.95 + k * 2.70 + j * 0.40,
+               0.95 + rnd.uniform(-0.2, 0.2), rnd.uniform(0.34, 0.54), False)
+    at(z0, iso.jug, 0.05, 0.42, -0.3)
+    iso.prop("k:bucket", 2.55, 0.44, z0, h=0.34, rot_z=0.4)
+
+
+PLATE_FILL = {"quarters": plate_fill_quarters, "storage": plate_fill_storage,
+              "workshop": plate_fill_workshop, "greenhouse": plate_fill_greenhouse,
+              "infirmary": plate_fill_infirmary, "power": plate_fill_power}
+
+# (id, 한국어 이름, 고유색, 전투에서의 역할 — COMBAT_AND_DEFENSE §5-1)
+PLATE_ROOMS = [
+    ("quarters",   "거주",   PAL["ochre"],   "사람이 쉬는 곳. 정원이 가장 많다"),
+    ("storage",    "창고",   PAL["ochre_d"], "유물 적재량. E1 선반이 여기"),
+    ("workshop",   "공방",   PAL["burnt"],   "대응 도구 일곱을 만든다"),
+    ("infirmary",  "의무실", PAL["cream"],   "부상자 복귀 속도"),
+    ("power",      "발전실", PAL["oxblood"], "조명·소리 차단·격벽의 전제"),
+    ("greenhouse", "온실",   PAL["olive"],   "식량과 산소. 사기와 체력"),
+]
+
+
+def plate_cozy(rid, x0, x1, z0):
+    """생활 흔적 — 6 m 방에 맞춘 압축판. 사람은 없고 **사람의 자국만** 있다(B4)."""
+    if rid == "quarters":
+        folded_stack(2.62, 0.52, z0, rid, 3, 0.52)
+        wall_notes(0.95, z0 + 2.12, rid, 5, 11)
+        floor_shoes(-1.15, 0.38, z0, rid)
+        floor_shoes(0.52, 0.34, z0, rid + "b")
+        cup_on(1.15, 0.72, z0 + 0.66, rid, 2)
+        deco_rail(-1.05, z0 + 2.86, rid, filled=1, slots=3)
+        warm_rug(-1.10, z0, 2.9, rid)
+    elif rid == "storage":
+        wall_notes(-2.65, z0 + 1.95, rid, 4, 61)
+        folded_stack(-2.60, 0.46, z0, rid, 3, 0.50)
+        floor_shoes(0.95, 0.34, z0, rid)
+        cup_on(-0.10, 0.40, z0 + 0.02, rid, 1)
+        leaning_thing(-2.86, z0, rid, "plank", 0.16, 1.5, 0.30)
+        deco_rail(-2.10, z0 + 2.80, rid, filled=1, slots=2)
+    elif rid == "workshop":
+        wall_notes(-2.55, z0 + 1.45, rid, 5, 41)
+        leaning_thing(-2.80, z0, rid, "plank", 0.19, 2.0, 0.34)
+        leaning_thing(-2.46, z0, rid + "b", "pole", 0.15, 1.6, 0.26)
+        folded_stack(2.40, 0.44, z0, rid, 2, 0.42)
+        cup_on(-0.70, 0.52, z0 + 0.97, rid)
+        pot_steam(0.85, 0.48, z0 + 0.97, rid, 0.22)
+        floor_shoes(-1.60, 0.34, z0, rid)
+        deco_rail(2.45, z0 + 2.70, rid, filled=1, slots=2)
+    elif rid == "greenhouse":
+        wall_notes(2.60, z0 + 2.86, rid, 4, 23)
+        leaning_thing(2.74, z0, rid, "pole", 0.22, 1.7, 0.34)
+        floor_shoes(-2.55, 0.34, z0, rid)
+        folded_stack(-2.62, 0.46, z0, rid, 2, 0.44)
+        cup_on(0.75, 0.42, z0 + 0.02, rid, 1)
+        deco_rail(-2.30, z0 + 2.80, rid, filled=1, slots=2)
+    elif rid == "infirmary":
+        wall_notes(-0.70, z0 + 2.20, rid, 4, 131)
+        folded_stack(2.55, 0.46, z0, rid, 3, 0.46)                        # 개어 둔 붕대
+        floor_shoes(-0.95, 0.34, z0, rid)
+        cup_on(-2.45, 0.52, z0 + 0.92, rid, 2)
+        pot_steam(1.95, 0.48, z0 + 0.02, rid, 0.24)                       # 끓이는 물
+        at(z0, iso.plant, 2.74, 0.42, 0.44)
+        deco_rail(0.40, z0 + 2.80, rid, filled=1, slots=2)
+        warm_rug(-0.80, z0, 2.4, rid, d=0.95)
+    elif rid == "power":
+        wall_notes(-0.60, z0 + 2.62, rid, 4, 157)
+        floor_shoes(-0.35, 0.34, z0, rid)
+        folded_stack(-2.62, 0.44, z0, rid, 2, 0.42)                       # 기름 닦는 걸레
+        cup_on(0.55, 0.40, z0 + 0.04, rid, 1)
+        leaning_thing(2.84, z0, rid, "pole", 0.17, 1.6, 0.28)
+        pot_steam(-2.60, 0.50, z0 + 0.88, rid, 0.20)
+        deco_rail(-1.90, z0 + 2.80, rid, filled=1, slots=2)
+
+
+def plate_lamp_off(x, z0, rid):
+    """꺼진 등불. 금속만 남고 빛이 없다 — '아직 아무도 살지 않는 방'."""
+    top = z0 + RH
+    iso.cyl("lw_" + rid, (x, 0.55, top - 0.18), 0.02, 0.36, M["frame"],
+            rot=(math.radians(90), 0, 0))
+    iso.cyl("ls_" + rid, (x, 0.55, top - 0.44), 0.22, 0.18, M["frame"])
+    iso.sphere("lboff_" + rid, (x, 0.44, top - 0.52), 0.15, M["frame_lt"], 12, 7)
+
+
+def plate_mask(x0, x1, z0):
+    """방 바깥 여백을 **어두운 물 한 색으로 못 박는다**(F7의 어두운 여백).
+
+    타일이라 여백이 매번 같아야 하고, 김·널어 둔 천 같은 것이 옆칸으로 삐져나오면
+    붙여 놓았을 때 이음매가 지저분해진다. 2차 플레이트에서 발전실의 김이
+    방 밖 물로 번져 나갔다 — 그 한 장 때문에 이 판을 넣었다."""
+    m = flat_mat("PlateMargin", "#01060A")
+    lx, rx = x0 - HULL, x1 + HULL
+    bz, tz = z0 - HULL, z0 + RH + HULL
+    far = 9.0
+    y = -3.0                                     # 카메라(y=-70) 쪽 — 방 안의 모든 번짐보다 앞
+    bands = [(-far, lx, -far, far), (rx, far, -far, far),
+             (lx, rx, tz, far), (lx, rx, -far, bz)]
+    for i, (a, b, c, d) in enumerate(bands):
+        q = [Vector((a, y, c)), Vector((b, y, c)), Vector((b, y, d)), Vector((a, y, d))]
+        DOME.mesh_of_quads("PRV_halo_mask%d" % i, [q], m).name = "PRV_halo_mask%d" % i
+
+
+def build_plate(rid, hue, lit=True):
+    materials()
+    section_world()
+    x0, x1, z0 = -PLATE_ROOM_W / 2, PLATE_ROOM_W / 2, 0.0
+    # 플레이트는 방 하나를 꽉 채워 보여 준다 — 전체 렌더에서는 작게 지나가던
+    # 흰 천·종이가 여기서는 등불을 이긴다(F7). 전체 렌더는 손대지 않고 여기서만 한 단 누른다.
+    M["pillow"] = flat_mat("PlatePillow", PAL["bone"])
+    M["paper"] = flat_mat("PlatePaper", mixhex(PAL["bone"], PAL["cream"], 0.35))
+    room_shell(x0, x1, z0, hue, rid, dim=1.0 if lit else PLATE_DIM)
+    if lit:
+        room_lamp(0.0, z0, hue, rid, spread=0.70)
+        PLATE_FILL[rid](x0, x1, z0)
+        plate_cozy(rid, x0, x1, z0)
+        warm_room(x0, x1, z0, hue, rid)
+    else:
+        plate_lamp_off(0.0, z0, rid)
+    plate_mask(x0, x1, z0)
+    flatten_materials()
+    drop_lights()
+    noline_setup()
+
+
+def shot_plates():
+    """방 여섯 × 두 상태 = 열두 장. 메타 JSON 한 개."""
+    os.makedirs(OUT_PLATE, exist_ok=True)
+    z0 = 0.0
+    inner = [_m2px_x(-PLATE_ROOM_W / 2), _m2px_y(z0 + RH, z0),
+             _m2px_x(PLATE_ROOM_W / 2), _m2px_y(z0, z0)]
+    outer = [_m2px_x(-PLATE_ROOM_W / 2 - HULL), _m2px_y(z0 + RH + HULL, z0),
+             _m2px_x(PLATE_ROOM_W / 2 + HULL), _m2px_y(z0 - HULL, z0)]
+    rooms = []
+    for rid, name, hue, note in PLATE_ROOMS:
+        files = {}
+        for state, lit in (("dark", False), ("lit", True)):
+            build_plate(rid, hue, lit=lit)
+            fn = "room_plate_%s_%s.png" % (rid, state)
+            render(os.path.join(OUT_PLATE, fn), ortho=PLATE_W_M,
+                   target=(0.0, 0, z0 + PLATE_H_M / 2 - PLATE_HEAD),
+                   res=PLATE_RES, grain=0.16, vig=0.0, line=1.5)
+            files[state] = fn
+        rooms.append({
+            "id": rid, "name": name, "hue": hue, "note": note,
+            "files": files,
+            "floor_y": _m2px_y(z0, z0),
+            "ceil_y": _m2px_y(z0 + RH, z0),
+            "stand_x": [_m2px_x(-PLATE_ROOM_W / 2 + PLATE_STAND_MARGIN),
+                        _m2px_x(PLATE_ROOM_W / 2 - PLATE_STAND_MARGIN)],
+            "lamp": [_m2px_x(0.0), _m2px_y(z0 + RH - 0.52, z0)],
+            "inner_rect": inner, "outer_rect": outer,
+        })
+    meta = {
+        "_note": "S8-C 방 플레이트. 좌표 단위는 전부 캔버스 px(좌상단 0,0).",
+        "_rule": ("도트 캐릭터(P2 48px)를 ×3 으로 그리고, 발바닥을 floor_y 에 맞춘다. "
+                  "플레이트를 확대/축소하지 말 것 — 정수 배율 체계가 깨진다."),
+        "grid": {"src_px_per_m": CHAR_SRC_PPM, "char_scale": PLATE_SCALE,
+                 "px_per_m": PLATE_PPM,
+                 "char_ref": {"set": "static/art/chars/front/p2", "src_cell": 64,
+                              "room_cell": 192, "room_baseline": 180, "room_h_1m6": 132,
+                              "note": "src/<role>.png 를 NEAREST ×3 으로 키우고 "
+                                      "셀 안 baseline(180)을 floor_y 에 맞춘다"}},
+        "canvas": list(PLATE_RES),
+        "canvas_m": [round(PLATE_W_M, 4), round(PLATE_H_M, 4)],
+        "room_inner_m": [PLATE_ROOM_W, RH],
+        "floor_y": _m2px_y(z0, z0),
+        "inner_rect": inner, "outer_rect": outer,
+        "water_margin_px": {"left": outer[0], "right": PLATE_RES[0] - outer[2],
+                            "top": outer[1], "bottom": PLATE_RES[1] - outer[3]},
+        "states": {"dark": "막 지은 빈 방 — 등불 꺼짐, 소품 없음",
+                   "lit": "등불 켜짐 + 생활 흔적. 사람은 없다(도트로 얹는다)"},
+        "overlays": {"_dir": "같은 캔버스 672×378 RGBA. tools/gen_damage.py 가 만든다",
+                     "crack": ["damage_crack1.png", "damage_crack2.png", "damage_crack3.png"],
+                     "flood": "room_flood.png"},
+        "rooms": rooms,
+    }
+    with open(os.path.join(OUT_PLATE, "plates_meta.json"), "w", encoding="utf-8") as f:
+        json.dump(meta, f, ensure_ascii=False, indent=1)
+    print("PLATE META", os.path.join(OUT_PLATE, "plates_meta.json"), flush=True)
+
+
+# ══════════════════════════════════════════════════════════════
+# S8-C ③  바깥에서 오는 것들 — 전투 예고 2단계
+#   WORLD_BIBLE_DEEP §3 + COMBAT_AND_DEFENSE §4.
+#   규칙 셋:
+#     ⓐ **악당이 아니다.** 이빨·발톱·붉은 눈을 그리지 않는다. 덩어리와 윤곽뿐.
+#     ⓑ **물색으로 그린다.** 물보다 조금 어두운 같은 색. 그래서 '우주'가 아니라 물속이다.
+#     ⓒ 멀리(far)는 물에 거의 녹아 있고, 가까이(near)는 거의 검다.
+#        같은 생물의 두 장은 **접근 = 짙어짐**으로 읽혀야 한다.
+#   캔버스 12 × 6 m = 1008 × 504 px, 같은 84px/m 격자. 투명 PNG, 외곽선 없음.
+#   오른쪽(+x)이 거점 쪽이다 — 생물은 오른쪽을 향해 다가온다.
+# ══════════════════════════════════════════════════════════════
+THREAT_W_M, THREAT_H_M = 12.0, 6.0
+THREAT_RES = (int(THREAT_W_M * PLATE_PPM), int(THREAT_H_M * PLATE_PPM))   # 1008 × 504
+
+TH_FAR = ("#06151D", 0.34)
+TH_NEAR = ("#02080C", 0.86)
+TH_RIM = "#1E4C5C"          # 물빛이 스치는 가장자리. 유일한 밝은 값이고 아주 약하다
+
+
+def _th_col(near):
+    return TH_NEAR if near else TH_FAR
+
+
+def th_blob(name, cx, cz, rx, rz, near, k=1.0, y=0.0):
+    c, a = _th_col(near)
+    return soft_blob("th_" + name, cx, cz, rx, rz, c, alpha=min(0.95, a * k), y=y)
+
+
+def th_rim(name, cx, cz, rx, rz, near, k=1.0, y=-0.2):
+    return soft_blob("thr_" + name, cx, cz, rx, rz, TH_RIM,
+                     alpha=(0.16 if near else 0.07) * k, y=y)
+
+
+def th_mat(near, k=1.0, name="th"):
+    c, a = _th_col(near)
+    return flat_mat("thm_%s_%d" % (name, int(k * 1000)), c, alpha=min(0.95, a * k))
+
+
+def th_poly(name, pts, mat, y=0.0):
+    """닫힌 폴리곤 하나. 중심에서 부채꼴로 쪼갠다 — 실루엣의 **단단한 속**이다.
+    soft_blob 만으로는 연기가 된다(1차 렌더가 그랬다). 속은 도형, 가장자리는 번짐."""
+    cx = sum(p[0] for p in pts) / len(pts)
+    cz = sum(p[1] for p in pts) / len(pts)
+    quads = []
+    for a, b in zip(pts, list(pts[1:]) + [pts[0]]):
+        quads.append([Vector((cx, y, cz)), Vector((a[0], y, a[1])),
+                      Vector((b[0], y, b[1])), Vector((b[0], y, b[1]))])
+    o = DOME.mesh_of_quads("PRV_th_" + name, quads, mat)
+    o.name = "PRV_th_" + name
+    return o
+
+
+def th_strip(name, pts, mat, y=0.0):
+    """(x, z, 반폭) 중심선 → 굵기가 변하는 띠. 목·몸통용.
+
+    **마디마다 법선을 평균 낸다(마이터 조인).** 구간별 법선을 그대로 쓰면 휜 자리에서
+    이웃 사각형의 변이 어긋나 틈이 생기고, 반투명이라 그 틈으로 물이 비쳐
+    등에 흰 줄이 죽 그어진다(3차 렌더가 그랬다 — 문지기가 빗금 친 고래였다)."""
+    nrm = []
+    for i in range(len(pts)):
+        acc = [0.0, 0.0]
+        for a, b in ((i - 1, i), (i, i + 1)):
+            if a < 0 or b >= len(pts):
+                continue
+            dx, dz = pts[b][0] - pts[a][0], pts[b][1] - pts[a][1]
+            ln = math.hypot(dx, dz) or 1.0
+            acc[0] += -dz / ln
+            acc[1] += dx / ln
+        ln = math.hypot(*acc) or 1.0
+        nrm.append((acc[0] / ln, acc[1] / ln))
+    quads = []
+    for i in range(len(pts) - 1):
+        (x0, z0, w0), (x1, z1, w1) = pts[i], pts[i + 1]
+        (a0, b0), (a1, b1) = nrm[i], nrm[i + 1]
+        quads.append([Vector((x0 + a0 * w0, y, z0 + b0 * w0)),
+                      Vector((x1 + a1 * w1, y, z1 + b1 * w1)),
+                      Vector((x1 - a1 * w1, y, z1 - b1 * w1)),
+                      Vector((x0 - a0 * w0, y, z0 - b0 * w0))])
+    o = DOME.mesh_of_quads("PRV_th_" + name, quads, mat)
+    o.name = "PRV_th_" + name
+    return o
+
+
+# 물고기 한 마리의 윤곽(단위 길이 1). 꼬리가 갈라져 있어서 작아도 물고기로 읽힌다.
+FISH = [(1.00, 0.00), (0.46, 0.30), (-0.30, 0.28), (-0.70, 0.52), (-0.58, 0.00),
+        (-0.70, -0.52), (-0.30, -0.28), (0.46, -0.30)]
+# 손톱 하나 — 작은 쉼표. 몸 하나에 갈고리 하나.
+CLAW = [(1.00, 0.00), (0.10, 0.26), (-0.85, 0.20), (-1.00, -0.02), (-0.10, -0.22)]
+
+
+def th_shape(name, outline, x, z, s, mat, ang=0.0, sy=1.0):
+    ca, sa = math.cos(ang), math.sin(ang)
+    pts = [(x + (px * s) * ca - (pz * s * sy) * sa, z + (px * s) * sa + (pz * s * sy) * ca)
+           for px, pz in outline]
+    return th_poly(name, pts, mat)
+
+
+def threat_swarm(near):
+    """작은 떼 — 수십 마리가 **한 덩어리로** 움직인다(COMBAT §4). 막는 법: 사람 수.
+    판독 단서: 중간 크기의 개체가 여럿, 덩어리의 윤곽이 렌즈 모양."""
+    rnd = random.Random(21)
+    cx = 2.3 if near else -0.4
+    rx, rz = (3.1, 1.45) if near else (3.9, 1.15)
+    th_blob("swarm_cloud", cx, 0.2, rx * 1.25, rz * 1.9, near, k=0.42)
+    th_rim("swarm_rim", cx, 0.2, rx * 1.45, rz * 2.2, near, k=0.9)
+    mat = th_mat(near, 1.0 if near else 0.86, "swarm")
+    n = 74 if near else 46
+    for i in range(n):
+        a = rnd.uniform(0, 6.2832)
+        r = rnd.random() ** 0.55
+        x = cx + math.cos(a) * rx * r
+        z = 0.2 + math.sin(a) * rz * r
+        sz = (0.40 if near else 0.25) * rnd.uniform(0.75, 1.30)
+        th_shape("sw%d" % i, FISH, x, z, sz, mat, ang=math.radians(rnd.uniform(-18, 18)))
+    if near:                                     # 유리에 먼저 닿은 몇 마리 — 가장 크게
+        for i, (x, z, sz) in enumerate(((5.35, 0.95, 0.60), (5.55, -0.35, 0.56),
+                                        (5.15, -1.25, 0.52), (5.70, 0.30, 0.50))):
+            th_shape("swn%d" % i, FISH, x, z, sz, mat, ang=math.radians(rnd.uniform(-10, 10)))
+
+
+def threat_longneck(near):
+    """긴목 — **목이 먼저 온다.** 몸은 아직 어둠 속이다(§3-1).
+    불빛에 끌려 유리에 얼굴을 붙인다. 막는 법: 불을 끈다.
+    판독 단서: 화면을 가로지르는 **한 줄기 곡선**과 그 끝의 작은 머리."""
+    if near:
+        p0, p1, p2 = (-7.0, -3.0), (-0.8, -1.8), (4.5, 1.05)
+        wb, wt = 0.78, 0.46
+    else:
+        p0, p1, p2 = (-7.0, -1.6), (-3.0, 2.0), (1.4, 0.45)
+        wb, wt = 0.40, 0.20
+    pts = []
+    for k in range(37):
+        t = k / 36.0
+        x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0]
+        z = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1]
+        # 굵기에 아주 느린 흔들림 — 띠(리본)로 읽히지 않게 한다
+        w = (wb + (wt - wb) * t ** 0.7) * (1.0 + 0.16 * math.sin(t * 7.0 + 0.6))
+        pts.append((x, z, w))
+    mat = th_mat(near, 1.0, "ln")
+    th_strip("lnneck", pts, mat)
+    hxx, hzz, hr = pts[-1]
+    ang = math.atan2(pts[-1][1] - pts[-4][1], pts[-1][0] - pts[-4][0])
+    # 머리 — 아래턱이 길고 뒤통수가 둥근 물뱀 머리. 사각 조각을 따로 붙이지 않는다
+    head = [(2.35, -0.10), (1.80, 0.34), (0.70, 0.78), (-0.35, 0.80), (-1.05, 0.30),
+            (-1.05, -0.40), (-0.20, -0.74), (1.10, -0.64), (2.05, -0.44)]
+    th_shape("lnhead", head, hxx + hr * 0.9 * math.cos(ang), hzz + hr * 0.9 * math.sin(ang),
+             hr * 1.45, mat, ang=ang)
+    # 어둠 속의 몸 — 목보다 훨씬 흐리다. "몸은 아직 안 보인다"
+    th_blob("lnbody", p0[0] + 0.6, p0[1] + 0.3, 3.2 if near else 2.4,
+            1.9 if near else 1.4, near, k=0.60)
+    th_rim("lnrim", hxx + hr * 1.0, hzz + hr * 0.4, hr * 3.4, hr * 2.4, near, k=0.55)
+    if near:                                     # 눈 — 밝지 않다. 물빛이 한 점 스칠 뿐
+        soft_blob("th_lneye", hxx + hr * 1.55, hzz + hr * 1.05, 0.15, 0.13, TH_RIM,
+                  alpha=0.30, y=-0.4)
+
+
+def threat_gatekeeper(near):
+    """문지기 — 화면을 가로지르는 그림자. 크기는 **양쪽 화면 밖으로 이어져야** 전해진다(§3-2).
+    소리에 온다. 물이 조용해지면 온 것이다. 막는 법: 소리를 죽인다.
+
+    3차 렌더에서 아래를 잘라 덩어리로 놓았더니 **산등성이**로 읽혔다(바다에 섬은 없다).
+    그래서 위아래가 다 휜 긴 방추형으로 바꿨다 — 끝이 양쪽 화면 밖이라 길이를 알 수 없다.
+    판독 단서: 화면을 가로지르는 **한 몸**, 지느러미 둘, 둘레에 다른 것이 하나도 없다."""
+    n = 44
+    if near:
+        zc, hmax, hend, mat = -0.55, 2.45, 1.05, th_mat(True, 0.98, "gk")
+        fin_s, hz_r = 1.35, 3.0
+    else:
+        zc, hmax, hend, mat = -1.70, 1.25, 0.50, th_mat(False, 1.45, "gk")
+        fin_s, hz_r = 0.85, 1.9
+    pts = []
+    for k in range(n):
+        t = k / (n - 1.0)
+        x = -8.4 + 16.8 * t
+        z = zc + 0.55 * math.sin(math.pi * t) + 0.18 * math.sin(t * 2.2)
+        hw = hend + (hmax - hend) * math.sin(math.pi * (0.06 + 0.88 * t)) ** 0.55
+        pts.append((x, z, hw))
+    th_strip("gkbody", pts, mat)
+    # 등지느러미 — 뒤로 휜다. 삼각 피라미드는 기하 도형으로 보인다(2차 렌더가 그랬다)
+    fin = [(0.00, 1.00), (-0.26, 0.66), (-0.40, 0.26), (-0.42, -0.05),
+           (0.52, -0.08), (0.74, 0.10), (0.46, 0.44), (0.20, 0.78)]
+    fx, fz, fw = pts[13]
+    th_shape("gkfin", fin, fx, fz + fw * 0.88, fin_s, mat, ang=0.10)
+    # 가슴지느러미 — 몸 아래로 한 장. 이것이 '바위'와 '생물'을 가른다
+    pec = [(0.0, 0.2), (1.25, -0.35), (1.6, -0.95), (0.5, -0.78), (-0.5, -0.25)]
+    px_, pz_, pw_ = pts[27]
+    th_shape("gkpec", pec, px_, pz_ - pw_ * 0.80, fin_s * 1.15, mat, ang=-0.12)
+    th_blob("gkhaze", 0.0, zc, 7.8, hz_r, near, k=0.38)
+    th_rim("gkrim", 0.0, zc + hmax * 0.55, 7.4, 0.9, near, k=0.55)
+
+
+def threat_clawswarm(near):
+    """손톱 무리 — 느리고 작고 수백. 바닥 쪽에서 올라온다(§3-3).
+    막는 법: 밖에 나간 사람을 즉시 들인다.
+    판독 단서: **점의 밀도**다. 개체는 끝내 안 보이고 알갱이 띠로만 읽힌다."""
+    rnd = random.Random(404)
+    mat = th_mat(near, 1.0 if near else 1.95, "claw")
+    n = 760 if near else 520
+    for i in range(n):
+        if near:
+            x = rnd.uniform(-5.8, 5.9)
+            z = rnd.gauss(-1.45, 1.05)
+            sz = rnd.uniform(0.045, 0.085)
+        else:
+            x = rnd.uniform(-5.9, 3.8)
+            z = rnd.gauss(-2.00, 0.80)
+            sz = rnd.uniform(0.038, 0.068)
+        if z < -2.9 or z > 1.6:
+            continue
+        th_shape("cl%d" % i, CLAW, x, z, sz, mat,
+                 ang=math.radians(rnd.uniform(-35, 35)), sy=1.35)
+    th_blob("claw_haze", 0.8 if near else -1.0, -1.7 if near else -2.1,
+            6.0, 1.7 if near else 1.1, near, k=0.34)
+    th_rim("claw_rim", 0.6, -1.6, 6.4, 1.6, near, k=0.5)
+
+
+THREATS = [
+    ("swarm", "작은 떼", threat_swarm, "사람 수로 막는다. 누구든 여럿"),
+    ("longneck", "긴목", threat_longneck, "불을 끈다(차광 덧문·유인 등불)"),
+    ("gatekeeper", "문지기", threat_gatekeeper, "소리를 죽인다(소리 가리개·전원 차단)"),
+    ("clawswarm", "손톱 무리", threat_clawswarm, "밖에 나간 사람을 즉시 들인다(귀환 신호기)"),
+]
+
+
+def build_threat(fn, near):
+    materials()
+    section_world()
+    fn(near)
+    flatten_materials()
+    drop_lights()
+    noline_setup()
+
+
+def shot_threats():
+    os.makedirs(OUT_THREAT, exist_ok=True)
+    out = []
+    for tid, name, fn, counter in THREATS:
+        files = {}
+        for stage, near in (("far", False), ("near", True)):
+            build_threat(fn, near)
+            f = "threat_%s_%s.png" % (tid, stage)
+            render(os.path.join(OUT_THREAT, f), ortho=THREAT_W_M, target=(0.0, 0, 0.0),
+                   res=THREAT_RES, grain=0.13, vig=0.0, alpha=True, line=0.0)
+            files[stage] = f
+        out.append({"id": tid, "name": name, "counter": counter, "files": files})
+    meta = {
+        "_note": "S8-C 바깥에서 오는 것들. 전투 예고 2단계(COMBAT_AND_DEFENSE §3-2).",
+        "_rule": ("물 위에 그대로 얹는 RGBA. 플레이트와 같은 84px/m 격자다. "
+                  "오른쪽(+x)이 거점 쪽 — 거점이 왼쪽이면 좌우 반전해서 쓴다."),
+        "canvas": list(THREAT_RES), "px_per_m": PLATE_PPM,
+        "stages": {"far": "멀리 있는 흐릿한 그림자 — 어느 방이 위험한지 아직 모른다",
+                   "near": "창에 가까이 온 상태 — 대상 방이 정해졌다"},
+        "approach": "right",
+        "threats": out,
+    }
+    with open(os.path.join(OUT_THREAT, "threats_meta.json"), "w", encoding="utf-8") as f:
+        json.dump(meta, f, ensure_ascii=False, indent=1)
+    print("THREAT META", os.path.join(OUT_THREAT, "threats_meta.json"), flush=True)
+
+
+
+
+# ══════════════════════════════════════════════════════════════
 # 팔레트 띠 — 색과 문양을 한 장으로 (작업 기준표)
 # ══════════════════════════════════════════════════════════════
 def shot_palette():
@@ -1865,7 +2547,10 @@ def _water_strip():
 if __name__ == "__main__":
     jobs = {"hero": shot_hero, "zoom": shot_zoom, "palette": shot_palette,
             "warm": shot_warm, "roomzoom": shot_roomzoom,
-            "before": shot_before, "beforehero": shot_before_hero}
+            "before": shot_before, "beforehero": shot_before_hero,
+            # S8-C
+            "warmnoppl": shot_warm_noppl, "roomzoomnoppl": shot_roomzoom_noppl,
+            "plates": shot_plates, "threats": shot_threats}
     for k in (["hero", "zoom", "palette"] if MODE == "all" else [MODE]):
         jobs[k]()
     print("ALL DONE", flush=True)

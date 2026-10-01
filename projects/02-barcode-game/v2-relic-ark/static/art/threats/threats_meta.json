@@ -1,0 +1,52 @@
+{
+ "_note": "S8-C 바깥에서 오는 것들. 전투 예고 2단계(COMBAT_AND_DEFENSE §3-2).",
+ "_rule": "물 위에 그대로 얹는 RGBA. 플레이트와 같은 84px/m 격자다. 오른쪽(+x)이 거점 쪽 — 거점이 왼쪽이면 좌우 반전해서 쓴다.",
+ "canvas": [
+  1008,
+  504
+ ],
+ "px_per_m": 84,
+ "stages": {
+  "far": "멀리 있는 흐릿한 그림자 — 어느 방이 위험한지 아직 모른다",
+  "near": "창에 가까이 온 상태 — 대상 방이 정해졌다"
+ },
+ "approach": "right",
+ "threats": [
+  {
+   "id": "swarm",
+   "name": "작은 떼",
+   "counter": "사람 수로 막는다. 누구든 여럿",
+   "files": {
+    "far": "threat_swarm_far.png",
+    "near": "threat_swarm_near.png"
+   }
+  },
+  {
+   "id": "longneck",
+   "name": "긴목",
+   "counter": "불을 끈다(차광 덧문·유인 등불)",
+   "files": {
+    "far": "threat_longneck_far.png",
+    "near": "threat_longneck_near.png"
+   }
+  },
+  {
+   "id": "gatekeeper",
+   "name": "문지기",
+   "counter": "소리를 죽인다(소리 가리개·전원 차단)",
+   "files": {
+    "far": "threat_gatekeeper_far.png",
+    "near": "threat_gatekeeper_near.png"
+   }
+  },
+  {
+   "id": "clawswarm",
+   "name": "손톱 무리",
+   "counter": "밖에 나간 사람을 즉시 들인다(귀환 신호기)",
+   "files": {
+    "far": "threat_clawswarm_far.png",
+    "near": "threat_clawswarm_near.png"
+   }
+  }
+ ]
+}

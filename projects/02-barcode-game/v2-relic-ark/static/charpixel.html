@@ -53,13 +53,109 @@
   .wide img{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
   .cap{color:var(--dim);font-size:13px;margin:8px 0 0}
   .px1{image-rendering:pixelated}
+
+  /* ───── §확장 (P2 확정 전체 세트) ───── */
+  .sec{margin:34px 0 0;padding:22px 0 0;border-top:2px solid var(--line)}
+  .sec h1{font-size:23px}
+  .badge{display:inline-block;background:var(--accent);color:#17100c;font-size:12px;
+         border-radius:5px;padding:2px 8px;margin-left:8px;vertical-align:3px}
+  .stage2{position:relative;width:216px;height:270px;margin:0 auto;
+          background-image:url('art/chars/front/p2/room_plate.png');
+          background-size:216px 270px;image-rendering:pixelated}
+  .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px}
+  .rcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+         overflow:hidden;padding-bottom:10px}
+  .rcard h3{font-size:16px;margin:10px 14px 2px}
+  .sig{margin:0 14px;font-size:12.5px;color:var(--dim)}
+  .sig b{color:var(--ink);font-weight:600}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;
+          border:1px solid #0003;vertical-align:-1px;margin-right:5px}
+  table.conv{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0 0}
+  table.conv th,table.conv td{border:1px solid var(--line);padding:5px 9px;text-align:left}
+  table.conv th{background:#241a13;color:var(--accent);font-weight:600}
+  .dead{opacity:.45}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>도트 캐릭터 샘플 여섯 — 같은 인물(정찰병)</h1>
-  <p class="sub">2026-10-01 · 전부 손으로 찍은 도트(생성 AI 없음) · 배경은 실제 렌더
-     <code>art/deep/section_room_zoom.png</code> · 전부 정수 배율 최근접 확대</p>
+
+<!-- ══════════════ §확장 — P2 확정 전체 세트 (스프린트 8-A) ══════════════ -->
+<section id="ext">
+  <h1>§확장 — P2 전체 등장인물<span class="badge">확정</span></h1>
+  <p class="sub">2026-10-01 · 사용자가 <b>P2(48px 생활형)</b>를 골랐다. 나머지 다섯 방향과
+     이전 계열(a·b·c·c1~c6)은 폐기. 8역할 · 자세 7종 · 각인 12종 · 문어 · 뒷모습을
+     <code>static/art/chars/front/p2/</code> 에 넣었다. 전부 손으로 찍은 도트(생성 AI 없음).</p>
+
+  <div class="rules">
+    <b>규약</b> — 원화 <b>1m = 27.5px</b>. 맨머리 <b>1.6m = 44 원화px</b>, 아이 1.2m = 33px.
+    원화 셀 64×64, 발 기준선 60.
+    <table class="conv">
+      <tr><th>쓰임</th><th>배율</th><th>셀</th><th>발 기준선</th><th>미터당</th><th>1.6m</th></tr>
+      <tr><td>front 시트(출하 기본)</td><td>×4</td><td>256</td><td>240</td><td>110px</td><td>176px</td></tr>
+      <tr><td>단면 렌더 방 안</td><td>×3</td><td>192</td><td>180</td><td>82.5px</td><td>132px</td></tr>
+      <tr><td>원화(소스)</td><td>×1</td><td>64</td><td>60</td><td>27.5px</td><td>44px</td></tr>
+    </table>
+    <p class="cap">두 배율이 모두 정수다. S7에서 지적한 <b>방향 간 키 ±12% 오차가 여기서 사라졌다</b>
+       — 여덟 역할 전부 맨머리 44px(아이 33px)로 <b>정확히</b> 일치한다.
+       <b>소수 배율로 늘리면 2.5D가 무너진다.</b> <code>image-rendering: pixelated</code> 필수.</p>
+  </div>
+
+  <h2>1. 8역할 — 머리에 쓴 것 · 겉옷 색 · 손에 든 것</h2>
+  <p class="cap">카드 안은 실제 렌더 방 위 ×3 실제 크기. 「걷기 ▶」를 누르면 그 자리에서 걷는다.</p>
+  <div class="rgrid" id="rgrid" style="margin-top:12px"></div>
+
+  <div class="wide">
+    <h2>2. 70px 판독 — 합격 기준 ①②</h2>
+    <img src="art/chars/front/p2/check/row70_light.png" alt="70px 밝은 벽" class="px1">
+    <img src="art/chars/front/p2/check/row70_dark.png" alt="70px 어두운 방" class="px1" style="margin-top:8px">
+    <img src="art/chars/front/p2/check/silhouette70.png" alt="70px 검은 실루엣" class="px1" style="margin-top:8px">
+    <p class="cap">밝은 벽 / 어두운 방 / 검은 실루엣. 갈라 주는 것은 ①머리에 쓴 것(뾰족 후드·키 큰 모자·
+       머릿수건·넓은 고글·넓은 챙·납작 모자·둥근 챙·작은 후드) ②겉옷 색 ③손에 든 것 셋이다.</p>
+  </div>
+
+  <div class="wide">
+    <h2>3. 자세 — idle·walk·work·sit·carry·hurt·뒷모습</h2>
+    <img src="art/chars/front/p2/check/poses.png" alt="자세 7종" class="px1">
+    <p class="cap"><b>sit 은 정식 자세다</b> — 더 이상 Idle 을 방석 뒤로 내려 속이지 않는다.
+       앉기·주저앉음은 다리를 몸통 <b>앞</b>으로 그린다. 발 기준선은 전부 같다.</p>
+  </div>
+
+  <div class="wide">
+    <h2>4. 걷기 — 8역할 × 3프레임</h2>
+    <img src="art/chars/front/p2/check/walk_all.png" alt="걷기 시트" class="px1">
+  </div>
+
+  <div class="wide">
+    <h2>5. 각인 12종 — 부위를 나눠 겹치지 않게</h2>
+    <img src="art/chars/front/p2/check/imprints12.png" alt="각인 12종" class="px1">
+    <img src="art/chars/front/p2/check/imprint3.png" alt="각인 3개 동시" class="px1" style="margin-top:8px">
+    <p class="cap">48px에서 각인은 2~5px이라 <b>색으로 구분</b>한다. 12종의 자리를 머리(앞머리·좌우 관자놀이·
+       광대·왼쪽 베일) · 목(좌 목덜미 / 우 옷깃) · 가슴 · 왼 위팔 · 오른 손목 · 왼 장갑 끝 · 허리띠로 나눴다.
+       <b>생성기가 12종 레이어의 픽셀 충돌을 자동 검사한다 — 현재 0건.</b>
+       본체와 같은 셀·같은 자리에 알파 합성만 하면 된다(<code>imprints/&lt;id&gt;.png</code>).</p>
+  </div>
+
+  <div class="wide">
+    <h2>6. 실제 렌더 방 합성 — 2.5D 다섯 조건</h2>
+    <img src="art/chars/front/p2/check/room_composite.png" alt="방 합성" class="px1">
+    <p class="cap">정수 배율 ×3 · 방 등불색 틴트 · 발밑 접지 그림자 · 배경에서 뽑은 팔레트(20% 당기고 대비 1.26배
+       재확장) · 벽 가까이. 노란 눈금이 1.6m(132px)와 1.2m(99px)다.
+       <b>좌우 끝의 인물은 배경 렌더에 이미 그려진 옛 화풍 주민</b>이다(사람 없는 플레이트를 배경 담당에게 요청해 둠).
+       키 비교용으로 일부러 남겼다.</p>
+  </div>
+
+  <div class="wide">
+    <h2>7. 문어 — 식구다</h2>
+    <img src="art/chars/front/p2/check/octopus.png" alt="문어" class="px1">
+    <p class="cap">idle 3프레임 + 손목 감기(J7). 눈이 사람보다 밝다(신뢰의 역전을 색으로).
+       <b>어떤 매체에서도 발화하지 않는다</b>(DECISIONS 2026-09-27).</p>
+  </div>
+</section>
+
+<section class="sec dead">
+  <h1>도트 캐릭터 샘플 여섯 — 같은 인물(정찰병) <span class="badge" style="background:#5a4636;color:#e8d2a8">보관</span></h1>
+  <p class="sub">2026-10-01 · 선정 근거 기록용. <b>P2 외 다섯은 폐기됐다.</b> 전부 손으로 찍은 도트(생성 AI 없음) ·
+     배경은 실제 렌더 <code>art/deep/section_room_zoom.png</code></p>
 
   <div class="rules">
     <b>2.5D 전제</b> — 배경은 3D 렌더, 캐릭터는 도트.
@@ -88,8 +184,54 @@
     <p class="cap">이 한 장만 비정수 배율(정확히 70·110px)이다. 작게 줄였을 때 무엇으로 보이는지 보기 위한 시험이고,
        실제 출하는 위의 정수 배율을 쓴다.</p>
   </div>
+</section>
 </div>
 
+<script>
+/* ───────── §확장 — P2 8역할 ───────── */
+const P2_PLATE_FLOOR = 248, P2_PLATE_CX = 108, P2_CELL = 64, P2_BASE = 60, P2_K = 3;
+const P2_ROLES = [
+ ['scout','정찰병','#606E48','뾰족 꼭지가 달린 올리브 후드','올리브 조끼','짧은 망원경'],
+ ['cook','요리사','#CE7A38','키 큰 천 모자','번트오렌지 앞치마','국자'],
+ ['medic','의무병','#E4D8BC','머릿수건 + 뒤 꼬리 + 이마 십자','크림 가운 + 적갈 완장','약 가방'],
+ ['engineer','기술자','#585248','이마 위로 올린 용접 고글(물빛 렌즈)','숯회색 작업복','렌치'],
+ ['farmer','농부','#988042','가장 넓은 밀짚 챙','황토 작업복','물뿌리개'],
+ ['scholar','학자','#80667C','각진 납작 모자 + 깨진 안경','자줏빛 긴 외투','책'],
+ ['trader','교섭가','#A05842','둥근 챙모자 + 목도리','적갈 코트','손저울'],
+ ['kid','아이','#E2B74C','작은 우비 후드','노란 우비 (키 1.2m)','작은 등불'],
+];
+const rg = document.getElementById('rgrid');
+P2_ROLES.forEach(([k,ko,col,head,coat,hand])=>{
+  const cell = P2_CELL*P2_K, sw = cell, sh = cell;
+  const left = Math.round(P2_PLATE_CX - sw/2);
+  const top  = P2_PLATE_FLOOR - P2_BASE*P2_K;
+  const el = document.createElement('div');
+  el.className = 'rcard';
+  el.innerHTML = `
+   <div class="stage2">
+     <div class="shadow" style="left:${P2_PLATE_CX-34}px;top:${P2_PLATE_FLOOR-5}px;
+          width:68px;height:10px"></div>
+     <div class="walker" id="p2_${k}"
+          style="left:${left}px;top:${top}px;width:${sw}px;height:${sh}px;
+                 background-image:url('art/chars/front/p2/check/walklit_${k}.png');
+                 background-size:${sw*3}px ${sh}px"></div>
+   </div>
+   <h3><span class="swatch" style="background:${col}"></span>${ko}</h3>
+   <div class="sig"><b>머리</b> ${head}<br><b>겉옷</b> ${coat}<br><b>손</b> ${hand}</div>
+   <div class="bar" style="padding:8px 14px 0">
+     <button data-p2="${k}">걷기 ▶</button>
+     <span class="meta" style="padding:0">×3 실제 크기</span>
+   </div>`;
+  rg.appendChild(el);
+});
+document.querySelectorAll('button[data-p2]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const el = document.getElementById('p2_'+b.dataset.p2);
+    const on = el.classList.toggle('run');
+    b.textContent = on ? '정지 ■' : '걷기 ▶';
+  });
+});
+</script>
 <script>
 const DIRS = [
  {k:'p1', t:'P1 · 32px 초간결', tag:'가장 또렷한 끝',

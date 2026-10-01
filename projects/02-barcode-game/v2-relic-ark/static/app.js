@@ -136,7 +136,10 @@
     if (ark) renderScene();
   }).catch(() => { });
   const GRID = [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [0, 2], [1, 2], [2, 2]];   // slot-2 → (i,j)
-  const isoTile = (id) => `/static/art/iso/${id}.png`;
+  // 공방 타일이 아직 없다(배경 담당에게 요청함 — docs/TASKS.md). 없는 타일은 비슷한 방의 것을 빌린다.
+  // 1막 본 화면(/base)은 아이소 타일을 쓰지 않으므로 여기만의 임시 처리다.
+  const ISO_TILE_ALIAS = { workshop: 'pantry' };
+  const isoTile = (id) => `/static/art/iso/${ISO_TILE_ALIAS[id] || id}.png`;
   window.ISO = ISO; window.GRID = GRID;
 
   // 격자 좌표 → 월드 픽셀 (칸 중심). stage: {ox, oy}

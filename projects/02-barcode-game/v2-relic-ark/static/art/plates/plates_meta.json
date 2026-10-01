@@ -1,0 +1,255 @@
+{
+ "_note": "S8-C 방 플레이트. 좌표 단위는 전부 캔버스 px(좌상단 0,0).",
+ "_rule": "도트 캐릭터(P2 48px)를 ×3 으로 그리고, 발바닥을 floor_y 에 맞춘다. 플레이트를 확대/축소하지 말 것 — 정수 배율 체계가 깨진다.",
+ "grid": {
+  "virtual_px_per_m": 28,
+  "char_scale": 3,
+  "px_per_m": 84,
+  "char_ref": {
+   "set": "p2",
+   "cell_px": [
+    32,
+    48
+   ],
+   "screen_px": [
+    96,
+    144
+   ],
+   "sprite_h_m": 1.714
+  }
+ },
+ "canvas": [
+  672,
+  378
+ ],
+ "room_inner_m": [
+  6.0,
+  3.0
+ ],
+ "floor_y": 315,
+ "inner_rect": [
+  84,
+  63,
+  588,
+  315
+ ],
+ "outer_rect": [
+  49,
+  28,
+  623,
+  350
+ ],
+ "water_margin_px": {
+  "left": 49,
+  "right": 49,
+  "top": 28,
+  "bottom": 28
+ },
+ "states": {
+  "dark": "막 지은 빈 방 — 등불 꺼짐, 소품 없음",
+  "lit": "등불 켜짐 + 생활 흔적. 사람은 없다(도트로 얹는다)"
+ },
+ "overlays": {
+  "_dir": "같은 캔버스 672×378 RGBA. tools/gen_damage.py 가 만든다",
+  "crack": [
+   "damage_crack1.png",
+   "damage_crack2.png",
+   "damage_crack3.png"
+  ],
+  "flood": "room_flood.png"
+ },
+ "rooms": [
+  {
+   "id": "quarters",
+   "name": "거주",
+   "hue": "#C68F3E",
+   "note": "사람이 쉬는 곳. 정원이 가장 많다",
+   "files": {
+    "dark": "room_plate_quarters_dark.png",
+    "lit": "room_plate_quarters_lit.png"
+   },
+   "floor_y": 315,
+   "ceil_y": 63,
+   "stand_x": [
+    134,
+    538
+   ],
+   "lamp": [
+    336,
+    107
+   ],
+   "inner_rect": [
+    84,
+    63,
+    588,
+    315
+   ],
+   "outer_rect": [
+    49,
+    28,
+    623,
+    350
+   ]
+  },
+  {
+   "id": "storage",
+   "name": "창고",
+   "hue": "#8A6531",
+   "note": "유물 적재량. E1 선반이 여기",
+   "files": {
+    "dark": "room_plate_storage_dark.png",
+    "lit": "room_plate_storage_lit.png"
+   },
+   "floor_y": 315,
+   "ceil_y": 63,
+   "stand_x": [
+    134,
+    538
+   ],
+   "lamp": [
+    336,
+    107
+   ],
+   "inner_rect": [
+    84,
+    63,
+    588,
+    315
+   ],
+   "outer_rect": [
+    49,
+    28,
+    623,
+    350
+   ]
+  },
+  {
+   "id": "workshop",
+   "name": "공방",
+   "hue": "#B85A24",
+   "note": "대응 도구 일곱을 만든다",
+   "files": {
+    "dark": "room_plate_workshop_dark.png",
+    "lit": "room_plate_workshop_lit.png"
+   },
+   "floor_y": 315,
+   "ceil_y": 63,
+   "stand_x": [
+    134,
+    538
+   ],
+   "lamp": [
+    336,
+    107
+   ],
+   "inner_rect": [
+    84,
+    63,
+    588,
+    315
+   ],
+   "outer_rect": [
+    49,
+    28,
+    623,
+    350
+   ]
+  },
+  {
+   "id": "infirmary",
+   "name": "의무실",
+   "hue": "#E6D8B4",
+   "note": "부상자 복귀 속도",
+   "files": {
+    "dark": "room_plate_infirmary_dark.png",
+    "lit": "room_plate_infirmary_lit.png"
+   },
+   "floor_y": 315,
+   "ceil_y": 63,
+   "stand_x": [
+    134,
+    538
+   ],
+   "lamp": [
+    336,
+    107
+   ],
+   "inner_rect": [
+    84,
+    63,
+    588,
+    315
+   ],
+   "outer_rect": [
+    49,
+    28,
+    623,
+    350
+   ]
+  },
+  {
+   "id": "power",
+   "name": "발전실",
+   "hue": "#6E2A22",
+   "note": "조명·소리 차단·격벽의 전제",
+   "files": {
+    "dark": "room_plate_power_dark.png",
+    "lit": "room_plate_power_lit.png"
+   },
+   "floor_y": 315,
+   "ceil_y": 63,
+   "stand_x": [
+    134,
+    538
+   ],
+   "lamp": [
+    336,
+    107
+   ],
+   "inner_rect": [
+    84,
+    63,
+    588,
+    315
+   ],
+   "outer_rect": [
+    49,
+    28,
+    623,
+    350
+   ]
+  },
+  {
+   "id": "greenhouse",
+   "name": "온실",
+   "hue": "#6F7A3C",
+   "note": "식량과 산소. 사기와 체력",
+   "files": {
+    "dark": "room_plate_greenhouse_dark.png",
+    "lit": "room_plate_greenhouse_lit.png"
+   },
+   "floor_y": 315,
+   "ceil_y": 63,
+   "stand_x": [
+    134,
+    538
+   ],
+   "lamp": [
+    336,
+    107
+   ],
+   "inner_rect": [
+    84,
+    63,
+    588,
+    315
+   ],
+   "outer_rect": [
+    49,
+    28,
+    623,
+    350
+   ]
+  }
+ ]
+}

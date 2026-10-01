@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>깊은 등불 — 제목·로고 시안 (S8)</title>
+<style>
+  :root{
+    --bg:#070c0f; --panel:#101a1f; --panel2:#0b1317; --line:#1e3340;
+    --ink:#e8d2a8; --dim:#8fa8ae; --accent:#d19a40; --cold:#5d9aa2; --warn:#b8604a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+       line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto;padding:30px 16px 90px}
+  h1{font-size:28px;margin:0 0 6px;letter-spacing:-.6px}
+  h2{font-size:21px;margin:46px 0 4px;padding-top:18px;border-top:1px solid var(--line)}
+  h3{font-size:17px;margin:0 0 2px}
+  .sub{color:var(--dim);font-size:14px;margin:0 0 10px}
+  .note{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+        padding:14px 18px;margin:18px 0 26px;font-size:14px}
+  .note b{color:var(--accent)}
+  .note ol,.note ul{margin:8px 0 0;padding-left:20px}
+  img{display:block;max-width:100%}
+  .hero{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0 0 14px;
+        background:#000}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;
+        padding:18px;margin:0 0 30px}
+  .head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+  .tag{display:inline-block;font-size:12px;color:#0d1a1c;background:var(--cold);
+       border-radius:5px;padding:1px 8px}
+  .tag.star{background:var(--accent);color:#17100c}
+  .why{color:var(--dim);font-size:13.5px;margin:0 0 14px}
+  .variants{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  .v{background:#000;border:1px solid var(--line);border-radius:10px;padding:8px}
+  .v figcaption{color:var(--dim);font-size:11.5px;text-align:center;margin-top:6px}
+  .v img{border-radius:4px}
+  .px64{image-rendering:pixelated}
+  .real{display:flex;gap:10px;align-items:flex-end;background:#000;
+        border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  .real img{image-rendering:auto}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin:10px 0 0}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel);color:var(--accent);font-weight:600}
+  td.ok{color:#8fd0a0}  td.mid{color:#d9c06a}  td.no{color:#d08a7a}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(560px,1fr));gap:18px}
+  .bwrow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .foot{color:var(--dim);font-size:12.5px;margin-top:40px;border-top:1px solid var(--line);
+        padding-top:14px}
+  code{background:#0a1418;border:1px solid var(--line);border-radius:4px;padding:1px 5px;
+       font-size:12.5px;color:var(--cold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>깊은 등불 / Deep Lamp — 로고 시안</h1>
+  <p class="sub">S8 브랜드 · 2026-10-01 · 전부 Pillow로 직접 그렸다(생성 AI 이미지 없음) ·
+     생성기 <code>tools/gen_logo.py</code></p>
+
+  <div class="note">
+    <b>보는 법.</b> 큰 그림으로 고르지 말 것. <b>64px 칸을 먼저 보고</b>, 거기서 무엇인지
+    읽히지 않으면 탈락이다. 그다음 흑백을 본다.
+    <ol>
+      <li>어두운 배경이 기본이다. 이 로고들은 검은 물 위에 놓인다.</li>
+      <li>정사각(아이콘)은 <b>L1~L3은 글자가 없다</b>. 한글 네 글자를 64px에 넣으면 글자당 10px이
+          되어 반드시 뭉갠다. 언어판 구분은 가로형이 한다. L4는 글자가 곧 마크라 한/영이 다르다.</li>
+      <li>팔레트는 <code>REF_ART_FLAT_FOLK.md</code> §5. 청록~남색은 물에만 썼다.</li>
+    </ol>
+  </div>
+
+  <!-- ================= 1단계 ================= -->
+  <h2>1단계 — 로고 컨셉 넷 × 제목 T1 「깊은 등불」</h2>
+  <p class="sub">주력. 넷을 같은 조건으로 비교한다.</p>
+
+  <!-- L1 -->
+  <div class="card">
+    <div class="head"><h3>L1 · 성문이 수심선이 된다</h3><span class="tag star">★ 추천</span></div>
+    <p class="why">바코드가 위에서는 칼같이 서 있다가, 아래로 내려가며 벌어지고 흐려져 수심의
+       지층이 된다. 맨 아래 막대들 사이에 아주 작은 등불 하나. 게임의 두 축(현실의 바코드 /
+       깊은 바다)이 설명 없이 한 그림에 묶인다.</p>
+    <div class="hero"><img src="art/brand/L1_T1_ko_wide.png" alt="L1 깊은 등불 가로형"></div>
+    <div class="hero"><img src="art/brand/L1_T1_en_wide.png" alt="L1 Deep Lamp wide"></div>
+    <div class="variants">
+      <figure class="v"><img src="art/brand/L1_T1_ko_sq.png" width="256" alt="">
+        <figcaption>정사각 512 (아이콘)</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L1_T1_ko_sq64.png" width="64" alt="">
+        <figcaption>64px 실제 크기</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L1_T1_ko_sq64_zoom.png" width="200" alt="">
+        <figcaption>64px 확대(픽셀 그대로)</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L1_T1_ko_sq64_bw_zoom.png" width="200" alt="">
+        <figcaption>64px 흑백</figcaption></figure>
+      <figure class="v"><img src="art/brand/L1_T1_ko_sq_bw.png" width="200" alt="">
+        <figcaption>흑백 512</figcaption></figure>
+    </div>
+    <div style="margin-top:14px" class="hero">
+      <img src="art/brand/L1_T1_ko_wide_bw.png" alt="L1 가로형 흑백"></div>
+  </div>
+
+  <!-- L2 -->
+  <div class="card">
+    <div class="head"><h3>L2 · 등불이 곧 돔</h3><span class="tag">아이콘 최강</span></div>
+    <p class="why">등불의 유리가 그대로 유리돔이고, 그 안에 방 세 칸과 사람. 방마다 색이 다르다
+       (호박·탁한 올리브·적동 — 게임의 D1 규칙 그대로). 바깥은 검정.</p>
+    <div class="hero"><img src="art/brand/L2_T1_ko_wide.png" alt="L2 가로형"></div>
+    <div class="hero"><img src="art/brand/L2_T1_en_wide.png" alt="L2 wide en"></div>
+    <div class="variants">
+      <figure class="v"><img src="art/brand/L2_T1_ko_sq.png" width="256" alt="">
+        <figcaption>정사각 512</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L2_T1_ko_sq64.png" width="64" alt="">
+        <figcaption>64px 실제 크기</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L2_T1_ko_sq64_zoom.png" width="200" alt="">
+        <figcaption>64px 확대</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L2_T1_ko_sq64_bw_zoom.png" width="200" alt="">
+        <figcaption>64px 흑백</figcaption></figure>
+      <figure class="v"><img src="art/brand/L2_T1_ko_sq_bw.png" width="200" alt="">
+        <figcaption>흑백 512</figcaption></figure>
+    </div>
+    <div style="margin-top:14px" class="hero">
+      <img src="art/brand/L2_T1_ko_wide_bw.png" alt="L2 가로형 흑백"></div>
+  </div>
+
+  <!-- L3 -->
+  <div class="card">
+    <div class="head"><h3>L3 · 아래로 뻗는 척추</h3></div>
+    <p class="why">위에 돔, 아래로 가늘어지는 기둥, 층마다 방과 불빛. 맨 아래는 검정에 삼켜진다.
+       게임 화면(<code>section_warm.png</code>)의 실루엣을 그대로 가져왔다. 성장 방향이 아래라는
+       구조를 그림이 말한다.</p>
+    <div class="hero"><img src="art/brand/L3_T1_ko_wide.png" alt="L3 가로형"></div>
+    <div class="hero"><img src="art/brand/L3_T1_en_wide.png" alt="L3 wide en"></div>
+    <div class="variants">
+      <figure class="v"><img src="art/brand/L3_T1_ko_sq.png" width="256" alt="">
+        <figcaption>정사각 512</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L3_T1_ko_sq64.png" width="64" alt="">
+        <figcaption>64px 실제 크기</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L3_T1_ko_sq64_zoom.png" width="200" alt="">
+        <figcaption>64px 확대</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L3_T1_ko_sq64_bw_zoom.png" width="200" alt="">
+        <figcaption>64px 흑백</figcaption></figure>
+      <figure class="v"><img src="art/brand/L3_T1_ko_sq_bw.png" width="200" alt="">
+        <figcaption>흑백 512</figcaption></figure>
+    </div>
+    <div style="margin-top:14px" class="hero">
+      <img src="art/brand/L3_T1_ko_wide_bw.png" alt="L3 가로형 흑백"></div>
+  </div>
+
+  <!-- L4 -->
+  <div class="card">
+    <div class="head"><h3>L4 · 물에 잠긴 글자</h3><span class="tag">가장 싸고 범용</span></div>
+    <p class="why">제목 글자의 아랫부분이 물에 잠겨 굴절로 흔들린다. 잠긴 부분은 청록, 나온
+       부분은 크림·황토. 그림 없이 글자만으로 성립한다.</p>
+    <div class="hero"><img src="art/brand/L4_T1_ko_wide.png" alt="L4 가로형"></div>
+    <div class="hero"><img src="art/brand/L4_T1_en_wide.png" alt="L4 wide en"></div>
+    <div class="variants">
+      <figure class="v"><img src="art/brand/L4_T1_ko_sq.png" width="256" alt="">
+        <figcaption>정사각 512 (한글)</figcaption></figure>
+      <figure class="v"><img src="art/brand/L4_T1_en_sq.png" width="256" alt="">
+        <figcaption>정사각 512 (영문)</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L4_T1_ko_sq64_zoom.png" width="200" alt="">
+        <figcaption>64px 확대 (한글)</figcaption></figure>
+      <figure class="v"><img class="px64" src="art/brand/L4_T1_en_sq64_zoom.png" width="200" alt="">
+        <figcaption>64px 확대 (영문)</figcaption></figure>
+      <figure class="v"><img src="art/brand/L4_T1_ko_sq_bw.png" width="200" alt="">
+        <figcaption>흑백 512</figcaption></figure>
+    </div>
+    <div style="margin-top:14px" class="hero">
+      <img src="art/brand/L4_T1_ko_wide_bw.png" alt="L4 가로형 흑백"></div>
+  </div>
+
+  <!-- ================= 64px 한자리 비교 ================= -->
+  <h2>64px — 한자리에서</h2>
+  <p class="sub">통과 조건 1번. 작은 쪽이 실제 크기, 큰 쪽이 같은 이미지를 픽셀 그대로 확대한 것.</p>
+  <div class="real">
+    <figure class="v"><img class="px64" src="art/brand/L1_T1_ko_sq64.png" width="64" alt="">
+      <figcaption>L1</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L2_T1_ko_sq64.png" width="64" alt="">
+      <figcaption>L2</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L3_T1_ko_sq64.png" width="64" alt="">
+      <figcaption>L3</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L4_T1_ko_sq64.png" width="64" alt="">
+      <figcaption>L4 한글</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L4_T1_en_sq64.png" width="64" alt="">
+      <figcaption>L4 영문</figcaption></figure>
+  </div>
+  <div class="variants" style="margin-top:14px">
+    <figure class="v"><img class="px64" src="art/brand/L1_T1_ko_sq64_zoom.png" width="190" alt="">
+      <figcaption>L1</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L2_T1_ko_sq64_zoom.png" width="190" alt="">
+      <figcaption>L2</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L3_T1_ko_sq64_zoom.png" width="190" alt="">
+      <figcaption>L3</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L4_T1_ko_sq64_zoom.png" width="190" alt="">
+      <figcaption>L4 한글</figcaption></figure>
+    <figure class="v"><img class="px64" src="art/brand/L4_T1_en_sq64_zoom.png" width="190" alt="">
+      <figcaption>L4 영문</figcaption></figure>
+  </div>
+
+  <!-- ================= 게임 화면 대조 ================= -->
+  <h2>게임 화면과 같은 세계인가</h2>
+  <p class="sub">통과 조건 3번. 실제 1막 화면 <code>art/deep/section_warm.png</code> 위에 얹었다.</p>
+  <div class="grid2">
+    <div class="hero"><img src="art/brand/check_title_L1_T1_ko.png" alt="L1 타이틀 화면"></div>
+    <div class="hero"><img src="art/brand/check_title_L2_T1_ko.png" alt="L2 타이틀 화면"></div>
+    <div class="hero"><img src="art/brand/check_title_L3_T1_ko.png" alt="L3 타이틀 화면"></div>
+    <div class="hero"><img src="art/brand/check_title_L4_T1_ko.png" alt="L4 타이틀 화면"></div>
+  </div>
+
+  <!-- ================= 통과 조건 대조표 ================= -->
+  <h2>통과 조건 대조표</h2>
+  <table>
+    <tr><th>조건</th><th>L1 성문→수심선</th><th>L2 등불=돔</th><th>L3 척추</th><th>L4 잠긴 글자</th></tr>
+    <tr><td>① 64px에서 읽힌다</td>
+      <td class="ok">통과 — 바코드 블록과 등불 점이 남는다</td>
+      <td class="ok">통과 (최강) — 등불로 즉시 읽힌다</td>
+      <td class="mid">조건부 — "빛나는 구조물"로는 읽히나 무엇인지는 흐리다</td>
+      <td class="no">한글 탈락 / 영문만 조건부</td></tr>
+    <tr><td>② 흑백에서 형체가 남는다</td>
+      <td class="ok">통과 — 바코드가 오히려 더 또렷하다</td>
+      <td class="ok">통과 — 원형 실루엣</td>
+      <td class="ok">통과 — 탑 실루엣</td>
+      <td class="mid">조건부 — 잠긴 쪽이 중간 회색으로 뭉친다</td></tr>
+    <tr><td>③ 가로형·정사각 둘 다</td>
+      <td class="ok">통과</td><td class="ok">통과</td><td class="ok">통과</td>
+      <td class="mid">가로형은 강하고 정사각은 약하다</td></tr>
+    <tr><td>④ 어두운 배경이 기본</td>
+      <td class="ok">통과 — 배경이 곧 작품</td><td class="ok">통과</td><td class="ok">통과</td>
+      <td class="ok">통과</td></tr>
+    <tr><td>⑤ 한글·영문 두 벌</td>
+      <td class="ok">통과 — 마크는 언어 중립</td>
+      <td class="ok">통과 — 마크는 언어 중립</td>
+      <td class="ok">통과 — 마크는 언어 중립</td>
+      <td class="mid">통과하되 두 벌을 따로 관리해야 한다</td></tr>
+    <tr><td>게임 훅(바코드)을 말하나</td>
+      <td class="ok">직접 말한다</td><td class="no">말하지 않는다</td>
+      <td class="no">말하지 않는다</td><td class="no">말하지 않는다</td></tr>
+    <tr><td>"아래로 자란다"를 말하나</td>
+      <td class="ok">말한다</td><td class="no">말하지 않는다</td>
+      <td class="ok">가장 직접적으로 말한다</td><td class="mid">은유로만</td></tr>
+    <tr><td>따뜻함(들어가 앉고 싶다)</td>
+      <td class="mid">등불 하나로만 — 차갑고 쓸쓸하다</td>
+      <td class="ok">가장 따뜻하다</td><td class="ok">따뜻하다</td>
+      <td class="no">거의 없다</td></tr>
+  </table>
+
+  <!-- ================= 2단계 ================= -->
+  <h2>2단계 — L1에 제목 다섯을 갈아 끼우면</h2>
+  <p class="sub">마크를 고정하고 제목만 바꿨다. 같은 그림인데 게임이 달라 보인다.</p>
+  <div class="hero"><img src="art/brand/L1_T1_ko_wide.png" alt="T1"></div>
+  <p class="why">T1 「깊은 등불」 — 따뜻하고 조용하다. 그림과 제목이 같은 말을 한다(등불).
+     네 글자라 로고로 가장 다루기 쉽다.</p>
+  <div class="hero"><img src="art/brand/L1_T2_ko_wide.png" alt="T2"></div>
+  <p class="why">T2 「바다가 보관한 것」 — 서사가 가장 두껍다. 길어서 가로형에서만 산다.
+     부제로 쓸 때 가장 좋다.</p>
+  <div class="hero"><img src="art/brand/L1_T3_ko_wide.png" alt="T3"></div>
+  <p class="why">T3 「내려가는 집」 — 구조를 말한다. 마크의 하강과 제목이 겹쳐 메시지가 가장
+     또렷해진다. 다만 따뜻함은 '집'이라는 단어 하나에 기댄다.</p>
+  <div class="hero"><img src="art/brand/L1_T4_ko_wide.png" alt="T4"></div>
+  <p class="why">T4 「성문 아래」 — <b>마크와 가장 잘 맞는다.</b> 그림의 바코드가 '성문'을 바로
+     설명해 주어, T4의 약점(뜻이 안 열린다)을 마크가 메운다. 대신 처음 보는 사람에게는 여전히
+     수수께끼다.</p>
+  <div class="hero"><img src="art/brand/L1_T5_ko_wide.png" alt="T5"></div>
+  <p class="why">T5 「무광층」 — 가장 차갑고 가장 장르적이다. 세 글자라 로고로는 가장 단단하지만
+     "들어가 앉고 싶은" 느낌이 사라진다.</p>
+
+  <h2>영문판</h2>
+  <div class="hero"><img src="art/brand/L1_T1_en_wide.png" alt="Deep Lamp"></div>
+  <div class="hero"><img src="art/brand/L1_T3_en_wide.png" alt="The House Below"></div>
+  <div class="hero"><img src="art/brand/L1_T4_en_wide.png" alt="Beneath the Seals"></div>
+  <div class="hero"><img src="art/brand/L1_T5_en_wide.png" alt="Aphotic"></div>
+
+  <div class="note" style="margin-top:36px">
+    <b>추천.</b> <b>L1 「깊은 등불 / Deep Lamp」</b>를 주 로고로, <b>L2를 앱 아이콘</b>으로
+    나눠 쓴다. L1은 이 게임이 무엇인지 설명 없이 말하는 유일한 안이고, L2는 64px에서 가장
+    강하다. 둘은 같은 팔레트·같은 등불을 공유하므로 한 가족으로 읽힌다.
+    근거와 반론은 <code>docs/reports/brand_S8.md</code>.
+  </div>
+
+  <p class="foot">
+    폰트: <b>Noto Sans KR</b> (SIL Open Font License 1.1) — 상업 이용·수정·재배포 가능.
+    한글과 라틴을 한 가족으로 써서 두 언어판이 형제로 보인다. 그 밖의 형태(바코드·등불·돔·사람·
+    수면)는 전부 도형으로 직접 그렸다. 생성 AI 이미지는 쓰지 않았다.<br>
+    재생성: <code>python tools/gen_logo.py</code>
+  </p>
+</div>
+</body>
+</html>

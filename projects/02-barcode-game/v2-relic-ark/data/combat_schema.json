@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "배치 방어 — 생물·대응 도구 계약 (COMBAT_AND_DEFENSE.md)",
+  "_정본": "지금 값의 정본은 engine/combat.py 의 CREATURES·TOOLS 표다. 이 스키마는 시나리오가 data/creatures_deep.json · data/tools.json 으로 **문장(sound/silhouette/contact/how/does)** 을 내놓을 때의 계약이다. 같은 id 가 파일에 있으면 파일의 문장이 코드 초안을 이긴다(DEEP_IMPRINTS·roles_evolved 와 같은 규약). 수치(need·power·cost·gate)는 밸런스라 개발이 들고, 시나리오가 바꾸고 싶으면 docs/TASKS.md '요청함'으로 남긴다.",
+  "_금지": "실제 종교·경전·인물·지명 이름 금지(00_COMMON §5). 생물은 돔 사람들이 부르는 이름만 쓴다. 문어는 어떤 매체에서도 발화하지 않는다(DECISIONS 2026-09-27) — 문어 문장에 따옴표·의성어·생각자막을 넣지 않는다.",
+  "type": "object",
+  "properties": {
+    "creatures": {
+      "type": "array",
+      "description": "바깥에서 오는 것들. 종마다 막는 방법이 다르다(§4).",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "how", "sound", "silhouette", "contact"],
+        "properties": {
+          "id": {"enum": ["swarm", "longneck", "warden", "claws", "octopus"],
+                 "description": "작은 떼 / 긴목 / 문지기 / 손톱 무리 / 동거 문어"},
+          "name": {"type": "string", "description": "화면에 보이는 이름. 학명·종명 금지"},
+          "zone": {"type": "string", "enum": ["광층", "박광층", "무광층", "무광층 경계", "해구", "돔 안팎"]},
+          "threat": {"type": "boolean", "description": "false 면 판정이 없다(문어). 기본 true"},
+          "how": {"type": "string", "description": "막는 법 한 줄. 플레이어가 읽는 유일한 설명"},
+          "sound": {"type": "string", "description": "예고 1단계. 어느 방인지 **아직 모른다**"},
+          "silhouette": {"type": "string", "description": "예고 2단계. 특정 방 쪽으로 다가온다"},
+          "contact": {"type": "string", "description": "예고 3단계. 접촉 직전의 한 줄"},
+          "lines": {
+            "type": "object",
+            "description": "결과별 문장. 없으면 engine/combat.outcome_line 의 초안을 쓴다",
+            "properties": {
+              "held": {"type": "string"}, "scarred": {"type": "string"}, "breached": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "description": "대응 도구 일곱(§6.5). **무기가 아니다** — 등불·그물·봉합 패치·소리 가리개. 이름을 무기로 부르지 않는다(DECISIONS 2026-10-01).",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "does"],
+        "properties": {
+          "id": {"enum": ["patch", "shutter", "lure_lamp", "hush", "beacon", "long_net", "brace"]},
+          "name": {"type": "string"},
+          "kind": {"enum": ["consumable", "install", "durable", "permanent"],
+                   "description": "소모 / 설치 / 내구 / 영구. 설치·내구·영구는 방에 붙는다"},
+          "does": {"type": "string", "description": "하는 일 한 줄"},
+          "flavor": {"type": "string", "description": "공방에서 만들 때 한 줄(선택). 유물이 무엇이었는지 기억하는 문장"}
+        }
+      }
+    }
+  },
+  "_판정공식": {
+    "설명": "난수가 한 톨도 없다(02_DEV D6). 같은 배치 = 같은 결과.",
+    "score": "방 1.0 + Σ사람(성함 1.0 / 부상 0.5) + Σ역할태그일치 1.5 + Σ각인일치 1.5 + Σ설치도구세기 + Σ소모품세기 + 관문통과 3.0",
+    "need": "생물 기본값(3.0~4.0) + severity(0~2, uid|day|raid|sev 시드)",
+    "관문": {
+      "swarm": "people — 그 방 사람 수 ≥ 2 + severity",
+      "longneck": "lights_off — 그 방의 불이 꺼져 있다(차광 덧문도 같은 효과)",
+      "warden": "quiet — 전원이 내려가 있고 모두 한 방에(소리 가리개 방이면 전원 무관)",
+      "claws": "all_inside — 밖에 있는 사람이 0명",
+      "octopus": "none — 관문도 판정도 없다"
+    },
+    "등급": "관문통과 & score≥need → held / 관문통과 & need-2≤score<need → scarred / 관문실패 & score≥need-2 → scarred / 그 밖 → breached(방 상실)"
+  },
+  "_방정원": {"pantry": 4, "well": 2, "infirmary": 3, "library": 2, "workshop": 4, "_default": 3,
+              "설명": "방 크기별 2~4명(§9). 넘으면 배치가 거부된다. 배치되지 않은 사람은 홀에 모인다"}
+}

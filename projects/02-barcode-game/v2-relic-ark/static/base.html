@@ -19,7 +19,22 @@
     <div class="res" id="resbar"></div>
   </header>
 
-  <!-- 좌하단: 공기·깊이 (숫자가 아니라 줄어드는 띠) -->
+  <!-- 우상단: 습격. 소리 → 실루엣 → 접촉. 시계는 없다(COMBAT_AND_DEFENSE §6-2·§9) -->
+  <aside class="raidbar" id="raidbar" hidden>
+    <div class="rtop">
+      <span class="rstage" id="rstage">소리</span>
+      <span class="rwho" id="rwho">—</span>
+    </div>
+    <ol class="rsteps" id="rsteps"><li>소리</li><li>실루엣</li><li>접촉</li></ol>
+    <p class="rtext" id="rtext"></p>
+    <div class="rhow" id="rhow"></div>
+    <div class="rgate" id="rgate"></div>
+    <div class="rwould" id="rwould"></div>
+    <button class="radv" id="radv">듣는다</button>
+    <p class="rhint" id="rhint"></p>
+  </aside>
+
+  <!-- 좌하단: 공기·깊이 (숫자가 아니라 줄어드는 띠) + 전원 -->
   <div class="hud hud-bl gauges">
     <div class="g" id="gAir">
       <span class="gk">공기</span>
@@ -30,6 +45,11 @@
       <div class="band down" id="bandDepth"></div>
       <span class="gz" id="zoneline">무광층</span>
     </div>
+    <div class="g gbtns">
+      <button id="pwr" class="sw" title="돔 전원">전원 켜짐</button>
+      <button id="wbtn" class="sw" title="공방">공방</button>
+      <button id="recallbtn" class="sw warn" title="밖에 있는 사람을 들인다" hidden>들이다</button>
+    </div>
   </div>
 
   <!-- 우하단: 카메라 -->
@@ -39,11 +59,14 @@
     <button id="zfit" title="맞춤">⌖</button>
   </div>
 
-  <!-- 상세 / 증축 패널 -->
+  <!-- 상세 / 증축 / 공방 패널 -->
   <aside class="panel" id="panel" hidden>
     <button class="close" id="panelClose" aria-label="닫기">×</button>
     <div class="panel-body" id="panelBody"></div>
   </aside>
+
+  <!-- 집은 사람 (탭-탭 배치의 손) -->
+  <div class="carry" id="carry" hidden></div>
 
   <div class="toast" id="toast"></div>
 </div>

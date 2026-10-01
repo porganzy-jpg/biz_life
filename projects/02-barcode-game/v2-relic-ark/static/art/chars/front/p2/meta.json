@@ -1,0 +1,245 @@
+{
+ "_comment": "P2 48px 생활형 도트 — 확정 화풍. 정수 배율 + image-rendering:pixelated 필수.",
+ "style": "p2",
+ "authored": "hand-plotted pixels, no generative AI",
+ "src_cell": 64,
+ "src_baseline": 60,
+ "src_ppm": 27.5,
+ "sheet_scale": 4,
+ "cell": 256,
+ "baseline": 240,
+ "ppm": 110.0,
+ "room_scale": 3,
+ "room_cell": 192,
+ "room_baseline": 180,
+ "room_h_1m6": 132,
+ "cols": 3,
+ "clips": [
+  "idle",
+  "walk",
+  "work",
+  "sit",
+  "carry",
+  "hurt",
+  "back_walk"
+ ],
+ "frames": {
+  "idle": 2,
+  "walk": 3,
+  "work": 3,
+  "sit": 2,
+  "carry": 2,
+  "hurt": 2,
+  "back_walk": 3
+ },
+ "rows": {
+  "idle": 0,
+  "walk": 1,
+  "work": 2,
+  "sit": 3,
+  "carry": 4,
+  "hurt": 5,
+  "back_walk": 6
+ },
+ "anim_seconds": {
+  "idle": 2.8,
+  "walk": 0.8,
+  "work": 1.4,
+  "sit": 3.2,
+  "carry": 1.0,
+  "hurt": 2.0,
+  "back_walk": 0.8
+ },
+ "sheet": "static/art/chars/front/p2/<role>.png  (x4, 셀 256, 발 기준선 240)",
+ "source": "static/art/chars/front/p2/src/<role>.png  (x1, 셀 64, 발 기준선 60)",
+ "tint_mask": "static/art/chars/front/p2/masks/<role>.png  (x1, L8)",
+ "imprint_layer": "static/art/chars/front/p2/imprints/<id>.png (어른 8역할 공용, x1) · imprints/kid/<id>.png (아이 전용). 같은 셀·같은 자리에 알파 합성. 기본은 전부 꺼짐",
+ "octopus": "static/art/chars/front/p2/octopus.png  (x4, 4칸: idle f0~2 + wrap)",
+ "roles": {
+  "scout": {
+   "ko": "정찰병",
+   "sig_head": "뾰족 꼭지가 달린 올리브 후드 + 뒤 꼬리",
+   "sig_coat": "올리브 조끼",
+   "sig_hand": "짧은 망원경",
+   "color": "#606E48",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 11,
+   "with_hat_px": 49
+  },
+  "cook": {
+   "ko": "요리사",
+   "sig_head": "키 큰 천 모자",
+   "sig_coat": "번트오렌지 앞치마",
+   "sig_hand": "국자",
+   "color": "#CE7A38",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 9,
+   "with_hat_px": 51
+  },
+  "medic": {
+   "ko": "의무병",
+   "sig_head": "머릿수건 + 뒤 꼬리",
+   "sig_coat": "크림 가운 + 적갈 완장",
+   "sig_hand": "약 가방",
+   "color": "#E4D8BC",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 15,
+   "with_hat_px": 45
+  },
+  "engineer": {
+   "ko": "기술자",
+   "sig_head": "이마 위로 올린 넓은 용접 고글(물빛 렌즈)",
+   "sig_coat": "숯회색 작업복",
+   "sig_hand": "렌치",
+   "color": "#585248",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 13,
+   "with_hat_px": 47
+  },
+  "farmer": {
+   "ko": "농부",
+   "sig_head": "넓은 밀짚 챙",
+   "sig_coat": "황토 작업복",
+   "sig_hand": "물뿌리개",
+   "color": "#988042",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 14,
+   "with_hat_px": 46
+  },
+  "scholar": {
+   "ko": "학자",
+   "sig_head": "각진 납작 모자 + 깨진 안경",
+   "sig_coat": "자줏빛 긴 외투",
+   "sig_hand": "책",
+   "color": "#80667C",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 13,
+   "with_hat_px": 47
+  },
+  "trader": {
+   "ko": "교섭가",
+   "sig_head": "둥근 챙모자 + 목도리",
+   "sig_coat": "적갈 코트",
+   "sig_hand": "손저울",
+   "color": "#A05842",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 12,
+   "with_hat_px": 48
+  },
+  "kid": {
+   "ko": "아이",
+   "sig_head": "작은 우비 후드",
+   "sig_coat": "노란 우비",
+   "sig_hand": "작은 등불",
+   "color": "#E2B74C",
+   "bare_head_px": 33,
+   "bare_head_m": 1.2,
+   "head_top_y": 27,
+   "foot_y": 59,
+   "with_hat_top_y": 24,
+   "with_hat_px": 36
+  }
+ },
+ "imprints": [
+  {
+   "id": "spore_mark",
+   "ko": "포자의 표식",
+   "part": "목덜미 왼쪽",
+   "color": "녹색"
+  },
+  {
+   "id": "empty_stomach",
+   "ko": "빈 위장",
+   "part": "허리띠 오른쪽 매듭",
+   "color": "올리브·놋쇠"
+  },
+  {
+   "id": "warden",
+   "ko": "지킨 자",
+   "part": "오른 광대",
+   "color": "적갈"
+  },
+  {
+   "id": "sun_memory",
+   "ko": "햇빛의 기억",
+   "part": "머리 뒤로 늘어진 베일",
+   "color": "바랜 크림"
+  },
+  {
+   "id": "empty_seat",
+   "ko": "빈 자리",
+   "part": "왼 위팔",
+   "color": "숯검정"
+  },
+  {
+   "id": "footprint",
+   "ko": "발자국",
+   "part": "가슴 중앙 목걸이",
+   "color": "흰 이빨"
+  },
+  {
+   "id": "debt_paid",
+   "ko": "갚은 자",
+   "part": "오른 손목",
+   "color": "놋쇠"
+  },
+  {
+   "id": "water_memory",
+   "ko": "물의 기억",
+   "part": "이마 앞머리",
+   "color": "젖은 머리 + 반짝임"
+  },
+  {
+   "id": "saved_breath",
+   "ko": "아낀 숨",
+   "part": "오른 옷깃 호스 고리",
+   "color": "구릿빛"
+  },
+  {
+   "id": "crack_seen",
+   "ko": "금을 본 자",
+   "part": "왼 장갑 끝",
+   "color": "유리빛"
+  },
+  {
+   "id": "depth_mark",
+   "ko": "깊이의 자국",
+   "part": "왼 관자놀이",
+   "color": "자줏빛"
+  },
+  {
+   "id": "knock_heard",
+   "ko": "두드림을 들은 자",
+   "part": "오른 관자놀이 울림쇠",
+   "color": "놋쇠 + 흰 점"
+  }
+ ],
+ "rules_2_5d": {
+  "1_integer_scale": "정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지",
+  "2_lamp_tint": "masks/<role>.png 가 흰 곳만 방 등불색을 곱한다. 0인 곳(눈·외곽선·랜턴 불꽃·유리)은 건드리지 않는다. 권장식: rgb *= (1 + 0.30*(tint-1)) * (1.13 - 0.32*(y/h))",
+  "3_contact_shadow": "발 기준선에 폭 = 스프라이트 70%, 높이 = 7.5%의 흐린 타원 (알파 165)",
+  "4_palette": "배경 렌더 16색에서 명도가 가까운 색으로 20% 당기고, 방 평균색 기준 대비를 1.26배 재확장 (이 파일 harmonize()에 구현)",
+  "5_depth": "방 깊이 1.7m — 벽 가까이 세우고 앞뒤로 겹치는 소품을 두지 않는다"
+ }
+}
