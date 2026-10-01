@@ -253,6 +253,32 @@ class BrokerClient:
             return self._live_buy(symbol, name, qty, price, retry=0)
 
         # 시뮬레이션 모드: 실제 시세 기반으로 가상 매매
+        price_info = self.fetch_price(symbol)
+        if not price_info:
+            return None
+
+        buy_price = price if price > 0 else price_info["price"]
+        total_cost = buy_price * qty
+        fee = int(total_cost * 0.00015)  # 수수료 0.015%
+
+        if self._sim_balance < total_cost + fee:
+            logger.warning(f"잔고 부족: {self._sim_balance:,} < {total_cost + fee:,}")
+            return None
+
+        self._sim_balance -= (total_cost + fee)
+        if symbol in self._sim_positions:
+            pos = self._sim_positions[symbol]
+            old_total = pos["qty"] * pos["avg_price"]
+            pos["qty"] += qty
+            pos["avg_price"] = int((old_total + total_cost) / pos["qty"])
+        else:
+            self._sim_positions[symbol] = {
+                "qty": qty, "avg_price": buy_price, "name": name
+            }
+
+        logger.info(f"[SIM] 매수: {name}({symbol}) {qty}주 @ {buy_price:,}원")
+        return {"symbol": symbol, "qty": qty, "price": buy_price, "action": "BUY"}
+
     MAX_BUY_RETRY = 1  # 미체결 시 최대 재시도 횟수
 
     def _live_buy(self, symbol: str, name: str, qty: int,
@@ -456,31 +482,6 @@ class BrokerClient:
             logger.error(f"[LIVE] 매도 실패 [{symbol}]: {e}")
             return None
 
-        price_info = self.fetch_price(symbol)
-        if not price_info:
-            return None
-
-        buy_price = price if price > 0 else price_info["price"]
-        total_cost = buy_price * qty
-        fee = int(total_cost * 0.00015)  # 수수료 0.015%
-
-        if self._sim_balance < total_cost + fee:
-            logger.warning(f"잔고 부족: {self._sim_balance:,} < {total_cost + fee:,}")
-            return None
-
-        self._sim_balance -= (total_cost + fee)
-        if symbol in self._sim_positions:
-            pos = self._sim_positions[symbol]
-            old_total = pos["qty"] * pos["avg_price"]
-            pos["qty"] += qty
-            pos["avg_price"] = int((old_total + total_cost) / pos["qty"])
-        else:
-            self._sim_positions[symbol] = {
-                "qty": qty, "avg_price": buy_price, "name": name
-            }
-
-        logger.info(f"[SIM] 매수: {name}({symbol}) {qty}주 @ {buy_price:,}원")
-        return {"symbol": symbol, "qty": qty, "price": buy_price, "action": "BUY"}
 
     def sell(self, symbol: str, qty: int, price: int = 0) -> Optional[dict]:
         """매도 주문. live_trading=True일 때만 실제 주문, 아니면 시뮬레이션."""

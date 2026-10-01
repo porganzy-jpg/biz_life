@@ -76,6 +76,12 @@ STOCK_TRADING_CONFIG = {
     "min_confidence": 0.15,  # v3.1: 0.3→0.15 (서브스코어 범위 확대 반영)
 }
 
+# === v4.0 지수 코어 설정 (index_core_trader.py) ===
+INDEX_CORE_CONFIG = {
+    "capital": int(os.getenv("INDEX_CORE_CAPITAL", str(INITIAL_CAPITAL))),  # 페이퍼 장부 초기 자본
+    "fee_rate": 0.00015,  # 증권사 수수료 (ETF는 증권거래세 면제)
+}
+
 # === 서킷브레이커 설정 ===
 CIRCUIT_BREAKER_CONFIG = {
     "max_daily_loss_pct": -3.0,

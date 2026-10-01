@@ -20,6 +20,11 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 logger = logging.getLogger(__name__)
 
+# v4.0: 외국인·기관 수급 점수 사용 여부.
+# 크롤러는 2026-10 이전 항상 빈 결과였으므로 실제 운영은 OBV 폴백이었음.
+# 2024-04~2026-10 검증에서 수급 따라사기는 효과 없음(기관 매수는 오히려 음수) → 기존 동작 유지.
+USE_INSTITUTIONAL_FLOW = False
+
 
 def _compute_rsi_wilder(series: pd.Series, period: int = 14) -> pd.Series:
     """Wilder EMA 기반 정확한 RSI (C5: 0나누기 방어 포함)"""
@@ -257,9 +262,11 @@ class StockSelectorEnsemble:
 
         vol_score = 50
 
-        # 기관/외국인 실제 수급 데이터 시도
+        # 기관/외국인 실제 수급 데이터 시도 (USE_INSTITUTIONAL_FLOW=False면 OBV 폴백만 사용)
         inst_used = False
         try:
+            if not USE_INSTITUTIONAL_FLOW:
+                raise RuntimeError("수급 점수 비활성")
             from institutional_crawler import InstitutionalCrawler
             _inst_crawler = getattr(self, '_inst_crawler', None)
             if _inst_crawler is None:

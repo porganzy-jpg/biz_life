@@ -1,7 +1,7 @@
 """
 StockBot 기관/외국인 수급 크롤러 v3.7
 
-네이버 금융에서 외국인/기관 순매수 데이터 크롤링.
+네이버 증권(모바일 JSON API)에서 외국인/기관 순매수 데이터 조회.
 news/crawler.py 패턴 재사용 (세션, 캐시, 폴백).
 """
 import logging
@@ -61,12 +61,13 @@ class InstitutionalCrawler:
         """
         네이버 금융 외국인/기관 순매수 데이터 크롤링.
 
-        URL: https://finance.naver.com/item/frgn.naver?code={code}
-        20일 데이터 (2페이지 크롤링)
+        v4.0: 기존 finance.naver.com/item/frgn.naver 표가 사라져(2026-10 확인) 항상 빈 결과였음
+              → 네이버 모바일 JSON API로 교체. 반환 형식은 동일.
+        URL: https://m.stock.naver.com/api/stock/{code}/trend?pageSize={일수}
 
         Args:
             symbol: 종목코드 (예: "005930")
-            pages: 크롤링 페이지 수 (기본 2 → 약 20일)
+            pages: 하위 호환용. 페이지당 10일로 환산 (기본 2 → 20일)
 
         Returns:
             [{date, inst_net, frgn_net, frgn_holding_pct}, ...]
@@ -81,63 +82,26 @@ class InstitutionalCrawler:
             logger.debug("requests 미설치, 수급 데이터 사용 불가")
             return []
 
-        try:
-            from bs4 import BeautifulSoup
-        except ImportError:
-            logger.debug("beautifulsoup4 미설치, 수급 데이터 사용 불가")
-            return []
+        def to_int(text) -> int:
+            text = str(text).replace(",", "").replace("+", "")
+            return int(text) if text and text != "-" else 0
 
         all_rows = []
-        for page in range(1, pages + 1):
-            try:
-                self._rate_limit()
-                url = (
-                    f"https://finance.naver.com/item/frgn.naver"
-                    f"?code={symbol}&page={page}"
-                )
-                resp = session.get(url, timeout=10)
-                resp.encoding = "euc-kr"
-                soup = BeautifulSoup(resp.text, "html.parser")
-
-                # 테이블 파싱
-                table = soup.select_one("table.type2")
-                if not table:
-                    continue
-
-                rows = table.select("tr")
-                for row in rows:
-                    cols = row.select("td")
-                    if len(cols) < 9:
-                        continue
-
-                    try:
-                        date_text = cols[0].get_text(strip=True)
-                        if not date_text or len(date_text) < 8:
-                            continue
-
-                        # 기관 순매수 (6번째 열)
-                        inst_text = cols[5].get_text(strip=True).replace(",", "").replace("+", "")
-                        # 외국인 순매수 (8번째 열)
-                        frgn_text = cols[7].get_text(strip=True).replace(",", "").replace("+", "")
-                        # 외국인 보유율 (9번째 열)
-                        holding_text = cols[8].get_text(strip=True).replace("%", "")
-
-                        inst_net = int(inst_text) if inst_text and inst_text != "-" else 0
-                        frgn_net = int(frgn_text) if frgn_text and frgn_text != "-" else 0
-                        frgn_holding = float(holding_text) if holding_text else 0
-
-                        all_rows.append({
-                            "date": date_text,
-                            "inst_net": inst_net,
-                            "frgn_net": frgn_net,
-                            "frgn_holding_pct": frgn_holding,
-                        })
-                    except (ValueError, IndexError):
-                        continue
-
-            except Exception as e:
-                logger.warning(f"수급 크롤링 실패 [{symbol}] page={page}: {e}")
-                break
+        try:
+            self._rate_limit()
+            url = f"https://m.stock.naver.com/api/stock/{symbol}/trend?pageSize={pages * 10}"
+            resp = session.get(url, timeout=10)
+            resp.raise_for_status()
+            for item in resp.json():
+                bizdate = item["bizdate"]  # "20261001"
+                all_rows.append({
+                    "date": f"{bizdate[:4]}.{bizdate[4:6]}.{bizdate[6:]}",
+                    "inst_net": to_int(item.get("organPureBuyQuant")),
+                    "frgn_net": to_int(item.get("foreignerPureBuyQuant")),
+                    "frgn_holding_pct": float(str(item.get("foreignerHoldRatio") or "0").replace("%", "")),
+                })
+        except Exception as e:
+            logger.warning(f"수급 조회 실패 [{symbol}]: {e}")
 
         if all_rows:
             self._set_cache(symbol, all_rows)

@@ -169,15 +169,17 @@ from risk_manager import StockRiskManager
 
 rm = StockRiskManager()
 
-# 최대 포지션 수 초과
+# 최대 포지션 수 초과 (v3.8.1에서 소자본 max_positions 4→6, 하드코딩 대신 설정값 사용)
+from config import STOCK_TRADING_CONFIG
+_max_pos = STOCK_TRADING_CONFIG["max_positions"]
 size = rm.calculate_position_size(
     total_assets=2_000_000, confidence=0.5,
-    current_positions=4,  # max_positions=4일 때
+    current_positions=_max_pos,
     current_price=70000, atr=2000
 )
 test("최대 포지션 수 도달 시 0 반환",
      size == 0,
-     f"4포지션 시 투자금액: {size}")
+     f"{_max_pos}포지션 시 투자금액: {size}")
 
 # ATR=0 폴백
 size2 = rm.calculate_position_size(

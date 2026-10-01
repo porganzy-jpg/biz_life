@@ -68,7 +68,8 @@ class DataProvider:
         if cached and (now - cached["ts"]) < self._ttl:
             return {"price": cached["price"], "volume": cached["volume"]}
 
-        df = self.fetch_ohlcv(symbol, days=10)
+        # 지표용 fetch_ohlcv는 확정 봉만 쓰므로, 현재가는 당일 봉을 포함해 별도 조회
+        df = self._download_yfinance(symbol, days=10, include_today=True)
         if df is None or df.empty:
             if cached:
                 return {"price": cached["price"], "volume": cached["volume"]}
@@ -141,7 +142,8 @@ class DataProvider:
         return on_tick
 
     @staticmethod
-    def _download_yfinance(code: str, days: int = 250) -> Optional[pd.DataFrame]:
+    def _download_yfinance(code: str, days: int = 250,
+                           include_today: bool = False) -> Optional[pd.DataFrame]:
         """
         yfinance로 코스피 종목 데이터 다운로드.
         weekly_simulation.py의 검증된 로직 재사용.
@@ -153,7 +155,9 @@ class DataProvider:
             return None
 
         ticker = f"{code}.KS"
-        end = datetime.now()
+        # yfinance end는 미포함: 기본은 오늘 제외(확정 봉만, 지표 계산용),
+        # include_today=True면 +1일로 당일(장중이면 미완성) 봉까지 포함 (현재가 조회용)
+        end = datetime.now() + timedelta(days=1 if include_today else 0)
         start = end - timedelta(days=int(days * 1.6))  # 주말/공휴일 감안
 
         try:

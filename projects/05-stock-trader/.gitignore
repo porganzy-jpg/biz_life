@@ -27,3 +27,6 @@ logs/
 
 # Token cache
 token.dat
+
+# v4.0 지수 코어 페이퍼 장부
+trading-bot/index_core_state.json

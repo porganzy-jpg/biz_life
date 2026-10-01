@@ -12,7 +12,8 @@ cd /d "%~dp0trading-bot"
 :loop
 echo [%date% %time%] StockBot 시작...
 set PYTHONUNBUFFERED=1
-echo CONFIRM | python -u trader.py >> "..\logs\trader_v37.log" 2>&1
+REM v4.0: 'echo CONFIRM |' 자동 입력 제거 - 실전 모드는 콘솔에서 직접 CONFIRM해야 시작 (없으면 페이퍼로 전환)
+python -u trader.py < nul >> "..\logs\trader_v37.log" 2>&1
 echo [%date% %time%] StockBot 종료 (코드: %errorlevel%). 10초 후 재시작...
 timeout /t 10 /nobreak >nul
 goto loop
