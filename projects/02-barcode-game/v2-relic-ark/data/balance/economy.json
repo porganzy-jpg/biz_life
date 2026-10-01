@@ -1,0 +1,189 @@
+{
+  "_doc": "경제 — 생산·소비·스캔 산출·건설/레벨업 비용. 기획·밸런스 소유.",
+  "_pair": ["docs/BALANCE.md §4", "docs/ROOMS_AND_ITEMS.md", "tools/sim_economy.py"],
+  "_version": "2026-10-01",
+
+  "_headline": "**방은 사람을 먹이고, 스캔은 방을 짓는다.** 식량·물은 방이 자급하고, 건설 재료(부품·직물·기록·약재·교역품·고철)는 거의 전부 스캔에서만 온다. 그래서 하루 못 켠 사람은 굶지 않고 다만 그날 자라지 않는다 — 이것이 압박 없이 접속 동기를 만드는 자리다(B4).",
+
+  "time_model": {
+    "_rule": "게임 하루 = **실제 24시간**. 밤은 플레이어의 실제 시계(21~05시). 접속 시간이 아니라 달력으로 흐른다.",
+    "_source": "PM 확정 2026-10-01. server.py day_of() = (now - created)//86400, is_night() 실시계.",
+    "_consequence": "목표 곡선의 '1일/1주/2주/1개월'은 전부 **달력 기준**이다. 하루에 세 번 접속해도 하루는 하루다. 따라서 밸런스의 단위는 '플레이 시간당'이 아니라 '하루당'이고, 하루당 상한은 스캔 20회가 유일하게 강제한다.",
+    "offline_production": {
+      "tick_sec": 28800,
+      "max_offline_ticks": 3,
+      "_cap_days": 1.0,
+      "_source": "server.py:354-356 PRODUCTION_TICK_SEC=8h, MAX_OFFLINE_TICKS=3",
+      "_rule": "오프라인 생산은 **최대 24시간치까지만** 쌓인다. 사흘 비우고 돌아와도 하루치만 받는다.",
+      "_basis": "상한이 없으면 '오래 안 켤수록 이득'이 되어 매일 켜는 동기가 거꾸로 선다. 상한이 24시간인 이유는 **하루에 한 번 켜면 손해가 0**이기 때문 — 이것이 우리가 원하는 리듬(3일 리텐션)과 정확히 같다. 현행 구현값을 그대로 승인한다."
+    },
+    "skipped_day": {
+      "production": "오프라인 생산 24시간치까지 수령. 그 이상은 소멸.",
+      "consumption": "건너뛴 날에도 소비는 발생한다. 생산과 같은 기간만큼만 정산되므로 **순수지는 0 또는 소폭 플러스** — 비워도 재고가 줄지 않는다.",
+      "scan": "스캔 상한은 이월되지 않는다. 안 찍은 20회는 사라진다. 이것이 유일한 기회비용이고, 그래서 **스캔이 주 수입**이라는 구조가 유지된다.",
+      "raid": "건너뛴 날의 습격은 **쌓이지 않는다. 지나간다.** 돌아왔을 때 '없는 동안 무슨 일이 있었다'는 흔적(금 간 유리)만 남고 판정은 하지 않는다.",
+      "_basis": "B4. 접속하지 않은 날의 습격을 판정하면 플레이어가 없는 사이 방을 잃는다 — 아늑한 생존물에서 가장 해서는 안 되는 일이다. 벌이 아니라 **못 본 이야기**로 처리한다."
+    }
+  },
+
+  "resource_keys": {
+    "_current": ["food", "water", "med", "power", "parts", "morale", "cloth", "trade", "knowledge", "scrap", "chem"],
+    "_source": "server.py:482-483 new_state()",
+    "_mapping_to_doc": {
+      "food": "마른 양식", "water": "맑은 물", "med": "약재", "parts": "부품",
+      "knowledge": "기록 + 청사진 조각(현재 합쳐져 있다)", "cloth": "직물", "trade": "교역품",
+      "scrap": "잔해(미확인 유물 분해)", "chem": "화학(의약·음료 부산물)", "power": "전력 — 아래 power 블록 참조", "morale": "사기 — 재료가 아니다"
+    },
+    "_request": "⚠ ROOMS_AND_ITEMS §1 은 재료 8종이 스캔 카테고리 8종과 1:1 이라고 했지만, 코드에서는 문구(stationery)와 서적(book)이 **둘 다 knowledge** 로 들어간다. 1:1 을 지키려면 `blueprint` 키 신설이 필요하다 → docs/TASKS.md 요청함. **그때까지 이 파일의 모든 비용은 knowledge 기준이다**(B7)."
+  },
+
+  "power": {
+    "_rule": "⚠ 설계 변경 제안: **전력은 저장되지 않는다.** 재고가 아니라 **일일 공급량과 점유량**이다.",
+    "_basis": "지금 power 는 전자 스캔으로 쌓이기만 하고 쓰는 곳이 유인 등불 하나뿐이라 사실상 죽은 자원이다. 공급/점유로 바꾸면 ①발전실 레벨업이 '숫자 +1.8배'가 아니라 '방 몇 개를 더 켤 수 있는가'가 되고 ②불을 끄는 선택(긴목 관문)이 경제와 직접 연결되고 ③방 12칸을 다 켤 수 없다는 제약이 '어디를 밝힐까'라는 아늑한 고민을 만든다. ROOMS_AND_ITEMS 의 '방마다 고유 색·가장 밝은 것은 등불'과 정서가 같다.",
+    "supply_by_generator_level": {"0": 2, "1": 4, "2": 7, "3": 10,
+      "_basis": "레벨 배수는 문서값(Lv2 ×1.8)을 반올림해 따랐다. 발전실이 없어도 2 — 돔 자체의 비상 전원이라 처음 두 방은 켜진다."},
+    "draw": {"room_light": 1, "bulkhead": 2, "hush_standing": 1, "lure_lamp_standing": 2,
+      "_comment": "격벽은 습격 중에만 점유한다"},
+    "_tension": "방 12칸 × 조명 1 = 12 > 발전실 Lv3 공급 10. **끝까지 다 켤 수 없다.** 이것은 결함이 아니라 설계다.",
+    "unlit_room": {"production_mul": 0.5, "morale_per_resident": -0.3, "longneck_gate": "자동 통과",
+      "_basis": "생산 0 이 아니라 절반인 이유: 0 이면 불 끄기가 곧 방 포기라 선택이 아니라 처벌이 된다(B4). 절반이면 '긴목이 자주 오는 층은 어둡게 두고 살자'가 실제로 쓸 만한 전략이 된다 — 두 번째 정답(B3). 대신 사기 −0.3/주민 이 있어 전체 소등은 대가가 크다."
+    }
+  },
+
+  "scan": {
+    "daily_cap": 20,
+    "_cap_source": "server.py:353 DAILY_SCAN_CAP = 20 (현행 유지)",
+    "rarity": {
+      "_thresholds": {"legendary": 990, "epic": 950, "rare": 850, "uncommon": 600},
+      "_distribution": {"common": 0.60, "uncommon": 0.25, "rare": 0.10, "epic": 0.04, "legendary": 0.01},
+      "multiplier": {"common": 1.0, "uncommon": 1.3, "rare": 1.7, "epic": 2.2, "legendary": 3.0},
+      "_expected_mult": 1.213,
+      "_basis": "현행 구현값(relic_generator.py:38-46)을 그대로 승인한다. 기대 배수 1.213 = 0.6×1.0+0.25×1.3+0.10×1.7+0.04×2.2+0.01×3.0. 희귀도의 값어치는 **수치보다 연출**(E7 첫 만남·E2 가문 도감)에 두는 것이 맞다 — 전설이 흔함의 3배면 충분하고, 10배면 플레이어가 흔한 바코드를 찍지 않게 된다(B5 스캔 다양성)."
+    },
+    "category_base_yield": {
+      "_source": "relic_generator.py:60-70 CATEGORY_PROFILE (현행 유지)",
+      "food": {"food": 3, "morale": 1}, "drink": {"water": 3, "chem": 1},
+      "medical": {"med": 2, "chem": 2}, "electronics": {"power": 2, "parts": 2},
+      "stationery": {"knowledge": 1, "morale": 2}, "book": {"knowledge": 4},
+      "apparel": {"cloth": 3}, "tobacco": {"trade": 4}, "unknown": {"scrap": 2},
+      "_bonus_extra": "+1 을 9개 키 중 시드로 하나 골라 더한다(relic_generator.py:277)"
+    },
+    "assumed_category_mix": {
+      "food": 0.35, "drink": 0.20, "tobacco": 0.10, "unknown": 0.10,
+      "medical": 0.05, "electronics": 0.05, "stationery": 0.05, "book": 0.05, "apparel": 0.05,
+      "_status": "⚠ 임시값(B7) — 이 파일에서 **가장 근거가 약한 숫자**이고, 경제 전체가 여기에 걸려 있다.",
+      "_basis": "편의점·집 안에서 손에 닿는 바코드의 현실 분포 추정. 식품·음료가 압도적이고 의류·전자는 바코드를 찍을 일이 드물다.",
+      "_what_settles_it": "실사용자 10명 × 3일의 실제 스캔 로그에서 카테고리 분포를 센다. `scans` 테이블에 카테고리가 이미 남으므로 추가 계측 없이 바로 뽑을 수 있다. **이 분포가 바뀌면 아래 비용표 전체를 다시 돌려야 한다.**",
+      "_consequence_now": "부품(전자 5%)과 직물(의류 5%)이 구조적 병목이다. 방 레벨업이 거의 전부 부품을 요구하므로, 진행 속도는 사실상 '전자 제품 바코드를 몇 개 찍었나'로 정해진다. 아래 octopus_gift 와 salvage 가 이 병목의 완화 장치다."
+    },
+    "rescan_decay": {"values": [1.0, 0.5, 0.1, 0.0], "window_days": 7,
+      "_source": "relic_generator.py:85-92 + server.py:1253-1254 (현행 유지)",
+      "_basis": "같은 물건을 반복해 찍는 것을 막는다. 4번째부터 0 이라 '집에 있는 바코드 하나로 무한 파밍'이 닫힌다. 7일 창이라 일주일 뒤에는 되살아난다 — 영구 차단이 아니라서 집에만 있는 사람도 막히지 않는다."
+    },
+    "daily_fatigue": {
+      "tiers": [{"upto": 6, "mul": 1.0}, {"upto": 12, "mul": 0.7}, {"upto": 20, "mul": 0.4}],
+      "_status": "⚠ 신규 제안(현재 구현 없음)",
+      "_basis": "지금은 20회가 전부 같은 값이라 하루 수입이 스캔 횟수에 **선형**이다. 그래서 열심히 찍는 사람과 띄엄띄엄 하는 사람의 격차가 6.7배까지 벌어지고(20÷3), 열심인 사람은 2일차에 모든 비용을 넘겨 곡선이 무너진다. 체감 곡선을 넣으면 유효 스캔이 20회→13.4, 8회→7.4, 3회→3.0 이 되어 격차가 4.5배로 줄고, 열심인 사람도 '하루에 끝내기'는 못 한다.",
+      "_why_6": "첫 구간 경계 6 은 지표 H1(하루 유효 스캔 6회 이상)과 같은 수다. **목표 지점까지는 깎지 않는다** — 체감 곡선은 벌이 아니라 상한이어야 한다(B4).",
+      "_player_facing": "숫자로 보여 주지 않는다. '오늘 해독할 수 있는 성문이 흐려진다' 같은 문장과 스캔 버튼의 빛이 약해지는 것으로만(D2)."
+    },
+    "diversity_bonus": {
+      "formula": "× (1 + 0.08 × (오늘 찍은 서로 다른 카테고리 수 − 1))", "cap": 1.4,
+      "_status": "⚠ 신규 제안(현재 구현 없음)",
+      "_basis": "B5·지표 H2(카테고리 4종 이상)를 시스템이 직접 민다. 지금 다양성 동기는 스팟 해금 하나뿐이고 그것은 한 번 열면 끝이라 **반복 동기가 없다**(진단 G3). 4종에서 ×1.24, 6종에서 ×1.4. 한 종류만 찍는 사람 대비 24~40% 차이는 '찾아서 찍을 만하되 안 해도 괜찮은' 폭이다."
+    }
+  },
+
+  "consumption": {
+    "_status": "⚠ 신규 제안 — **현재 게임에 소비가 전혀 없다**(검증: tick_production 은 더하기만 한다. 음수 흐름은 사건 카드뿐). 소비가 없으면 곡선 자체가 성립하지 않는다.",
+    "food_per_resident_day": 0.6,
+    "water_per_resident_day": 0.6,
+    "_basis": "주민 5명 기준 하루 식량 3·물 3. 온실 Lv1(식량 3)과 정수실 Lv1(물 3)이 각각 한 명 배치로 정확히 이를 감당한다 — **기본 방 둘이 기본 인원을 먹인다**가 설계 기준점이다. 1.0 으로 올리면 5명부터 적자가 나 스캔이 '성장'이 아니라 '연명'이 되고, 그 순간 이 게임은 압박 게임이 된다(B4).",
+    "starvation": {
+      "death": false, "room_loss": false, "morale_per_day": -1.0,
+      "_rule": "식량이나 물이 0 이어도 **아무도 죽지 않고 아무것도 잃지 않는다.** 사기만 하루 −1 씩 내려간다.",
+      "_basis": "B4 그 자체. 부족함은 선택의 이유지 처벌이 아니다(M10). 사기가 바닥이면 생산이 느려지는 정도로만 되돌아온다."
+    },
+    "morale": {
+      "drift_per_day": -0.5, "min": 0, "max_base": 10,
+      "low_morale_production_mul": {"_at_or_below_2": 0.7},
+      "_basis": "거주실 Lv1(+1)·아이(+1)만 있어도 유지되는 완만한 하강. 사기가 할 일을 만들되 쫓지는 않게."
+    }
+  },
+
+  "rooms": {
+    "_level_rule": "레벨 1~3. 레벨업 = 재료 + 조건(돈으로 못 사는 것). ROOMS_AND_ITEMS §2 구조를 따르고 **수치만 이 파일이 정본**이다.",
+    "_production_scaling": "실생산 = base[레벨] × (0.6 + 0.4 × 배치인원), 배치 0명이면 0. 정원에서 자른다.",
+    "_scaling_basis": "1명 ×1.0, 2명 ×1.4, 3명 ×1.8, 4명 ×2.2. 한 명을 빼 가면 생산이 눈에 띄게 줄되 반 토막은 아니다 — 습격 때 사람을 옮기는 대가가 **느껴지되 감당 가능**해야 한다(B3: 집중 배치에 값을 매기는 장치). 0명 = 0 이 '전원을 한 방에 모으는' 문지기 대응을 가장 비싼 올바른 행동으로 만든다.",
+    "_cap_source": "engine/combat.py:166 ROOM_CAP (기본 3)",
+    "list": {
+      "hall":       {"ko": "홀", "cap": 6, "produces": {}, "build": {"scrap": 4, "parts": 2},
+                     "lv2": {"cost": {"parts": 6, "knowledge": 2}, "opens": "습격 중 재배치 1회"},
+                     "lv3": {"cost": {"parts": 14, "knowledge": 5}, "cond": "해구 문턱 도달", "opens": "동시 2명 재배치"}},
+      "quarters":   {"ko": "거주실", "cap": 4, "produces": {"morale": 1}, "build": {"cloth": 3, "food": 2},
+                     "lv2": {"cost": {"cloth": 6, "food": 4}, "opens": "정원 6, 각인 아침 연출", "cap_after": 6, "produces_after": {"morale": 2}},
+                     "lv3": {"cost": {"cloth": 14, "med": 4}, "cond": "각인 3개 보유자 1명", "opens": "정원 8, 꿈 대사", "cap_after": 8, "produces_after": {"morale": 3}}},
+      "storage":    {"ko": "창고", "cap": 4, "produces": {}, "shelves": 6, "build": {"scrap": 3, "parts": 1},
+                     "lv2": {"cost": {"parts": 5, "cloth": 3}, "opens": "선반 12, 자동 정렬", "shelves_after": 12},
+                     "lv3": {"cost": {"parts": 12, "knowledge": 4}, "opens": "선반 20, 가문별 진열", "shelves_after": 20}},
+      "well":       {"ko": "정수실", "cap": 2, "produces": {"water": 3}, "build": {"water": 4, "parts": 2},
+                     "lv2": {"cost": {"parts": 6, "water": 4}, "opens": "역삼투", "produces_after": {"water": 4.8}},
+                     "lv3": {"cost": {"parts": 15, "med": 5}, "opens": "잉여 물 → 교역품", "produces_after": {"water": 6}}},
+      "greenhouse": {"ko": "온실", "cap": 3, "produces": {"food": 3}, "build": {"food": 6, "cloth": 3},
+                     "lv2": {"cost": {"food": 6, "cloth": 4}, "opens": "산소 생산", "produces_after": {"food": 4.5}},
+                     "lv3": {"cost": {"food": 14, "med": 6}, "cond": "스팟 「위를 보는 숲」 발견", "opens": "식량 2배", "produces_after": {"food": 7}}},
+      "generator":  {"ko": "발전실", "cap": 3, "produces": {"power_supply": 4}, "build": {"parts": 6, "knowledge": 2},
+                     "lv2": {"cost": {"parts": 8, "knowledge": 3}, "opens": "방별 조명 제어", "produces_after": {"power_supply": 7}},
+                     "lv3": {"cost": {"parts": 18, "knowledge": 5}, "cond": "열수구 정원 발견", "opens": "열수구 연결", "produces_after": {"power_supply": 10}}},
+      "infirmary":  {"ko": "의무실", "cap": 3, "produces": {"heal": 1}, "build": {"med": 4, "cloth": 3},
+                     "lv2": {"cost": {"med": 6, "cloth": 4}, "opens": "부상자 경작업", "produces_after": {"heal": 2}},
+                     "lv3": {"cost": {"med": 16, "knowledge": 6}, "cond": "「숨의 손」 각인 보유자", "opens": "중상 치료", "produces_after": {"heal": 3}}},
+      "airlock":    {"ko": "에어락", "cap": 2, "produces": {}, "build": {"parts": 6, "cloth": 4},
+                     "lv2": {"cost": {"parts": 6, "cloth": 5}, "opens": "2인 동시 출입"},
+                     "lv3": {"cost": {"parts": 14, "knowledge": 6}, "opens": "긴급 귀환"}},
+      "workshop":   {"ko": "공방", "cap": 4, "produces": {"craft_slots": 1}, "build": {"parts": 5, "scrap": 4, "knowledge": 2}, "cond": "기술자 1명",
+                     "lv2": {"cost": {"parts": 6, "knowledge": 3}, "opens": "제작 2건 동시", "produces_after": {"craft_slots": 2}},
+                     "lv3": {"cost": {"parts": 16, "knowledge": 6}, "opens": "3단계 장비 제작", "produces_after": {"craft_slots": 3}}},
+      "decoder":    {"ko": "해독실", "cap": 2, "produces": {"knowledge": 1}, "build": {"knowledge": 6, "parts": 3}, "cond": "학자 1명",
+                     "lv2": {"cost": {"knowledge": 6, "parts": 3}, "opens": "가문 추정", "produces_after": {"knowledge": 2}},
+                     "lv3": {"cost": {"knowledge": 14, "parts": 8}, "opens": "미등록 가문 해독", "produces_after": {"knowledge": 3}}},
+      "lounge":     {"ko": "전망 라운지", "cap": 4, "produces": {"morale": 2}, "build": {"cloth": 10, "trade": 3}, "cond": "거주실 Lv2",
+                     "_basis": "생산 0 인 방(DECISIONS 2026-10-01). 사기만 올린다. 비용을 교역품(담배·주류 10%)으로 둔 것은 **다른 방과 재료가 겹치지 않게** 하기 위해서다 — 부품을 아껴 쓰는 사람도 이 방은 지을 수 있다"},
+      "bath":       {"ko": "물 끓이는 방", "cap": 3, "produces": {"morale": 2, "heal": 0.5}, "build": {"water": 8, "parts": 4}, "cond": "발전실 Lv2",
+                     "_basis": "생산 0 인 방 둘째. 200년 만의 더운물"}
+    },
+    "_cost_philosophy": "건설비는 싸고(3~10), 레벨업은 비싸다(Lv2 8~11, Lv3 20~24). **넓히는 것은 쉽고 깊게 하는 것은 어렵다** — 목표 곡선이 '1개월에 12칸이지만 Lv3 은 하나'이기 때문이다. 12칸을 먼저 깔아 두고 어디를 올릴지 고르는 것이 1개월차의 결정이 된다.",
+    "_bottleneck_note": "Lv2·Lv3 비용의 과반이 parts 다. 이것은 의도다 — 전자 카테고리를 찍게 만드는 유일하게 강한 동기이고(B5), ROOMS_AND_ITEMS 원문 수치가 이미 그 모양이었다. 다만 전자 바코드가 현실에서 드물어 체감 병목이 되므로 salvage·octopus_gift 로 완화한다."
+  },
+
+  "salvage": {
+    "_status": "⚠ 신규 제안",
+    "_rule": "창고의 유물을 분해하면 재료가 된다. 희귀도별 산출: 흔함 1 / 쓸만함 2 / 귀함 3 / 진귀함 5 / 전설 8. **분해할 재료 종류를 플레이어가 고른다.**",
+    "_basis": "병목 완화 장치이면서 '전시품이냐 자재냐'(ROOMS_AND_ITEMS §3-1)라는 선택을 실제로 만든다. 고를 수 있게 한 것이 핵심 — 부품이 없어서 막힌 사람이 **라면 상자를 뜯어 부품으로 쓸** 수 있어야 한다. 대가는 그 유물이 선반에서 사라지는 것(E1 의 정서적 비용)이라 공짜가 아니다.",
+    "_limit": "하루 3개까지. 무제한이면 수집(E1·E2)이 무의미해진다."
+  },
+
+  "octopus_gift": {
+    "_rule": "하루 1회. 60% 확률로 **플레이어가 가장 적게 가진 재료**를 1~2 개, 40% 확률로 전날 찍은 카테고리의 재료를 1~2 개.",
+    "_basis": "E3 는 '전날 찍은 카테고리에 영향을 받는다'고만 했다. 여기에 **부족분 보정**을 섞는다. 이유 둘: ①B4 의 바닥 — 띄엄띄엄 하는 사람에게 비례적으로 훨씬 크게 작용하는 유일한 수입원이라 격차를 좁힌다(시뮬레이션상 4.5배 → 2.6배). ②선물이지 보상이 아니라서 압박을 만들지 않는다. 문어는 조건 없이 매일 온다.",
+    "_scale_check": "하루 평균 ≈0.9 재료. 열심히 찍는 사람 수입의 2%, 띄엄띄엄 하는 사람 수입의 18%. 바닥을 받치되 스캔을 대체하지 않는다 — PM 요구 ①에 대한 답.",
+    "_no_pressure": "문어는 **놓쳐도 사라지지 않는다.** 안 켠 날의 선물은 다음 접속 때 합쳐서 온다(최대 3개까지 누적)."
+  },
+
+  "expedition": {
+    "_status": "⚠ 미구현. 시뮬레이션에서 기본 OFF.",
+    "_note": "원정이 붙으면 재료 수입의 세 번째 길이 열리고(COMBAT_AND_DEFENSE §5-3), 손톱 무리의 관문이 비로소 의미를 갖는다. 그때 이 파일의 scan 비중과 threats.json 의 claws 가중치를 함께 다시 돌려야 한다.",
+    "_provisional_design": "1회 원정 ≈ 재료 6~10, 공기 게이지가 행동 횟수 제한(D4). 하루 1회. 이 값은 아직 근거 없음."
+  },
+
+  "target_curve": {
+    "_source": "ROOMS_AND_ITEMS §4",
+    "_calibrated_to": "보통 플레이어(하루 8회 스캔). 열심(20회)은 앞서고 띄엄(3회)은 뒤따르되, 두 배 반 안쪽이어야 한다(B4).",
+    "checkpoints": [
+      {"day": 1,  "rooms": 3,  "residents": 3},
+      {"day": 7,  "rooms": 6,  "residents": 5,  "note": "공방 포함"},
+      {"day": 14, "rooms": 9,  "residents": 7,  "lv2": 2},
+      {"day": 30, "rooms": 12, "residents": 10, "lv3": 1}
+    ]
+  }
+}

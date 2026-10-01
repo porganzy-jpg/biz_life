@@ -51,7 +51,8 @@
     farmer: '#8a7a4a', scholar: '#c6a23a', trader: '#a2603a', kid: '#e6d7b0',
   };
   const RES_KO = { food: '식량', water: '물', med: '의약', power: '전력', parts: '부품', morale: '사기',
-                   cloth: '직물', trade: '교역', knowledge: '지식', scrap: '잔해', chem: '화학' };
+                   cloth: '직물', trade: '교역', knowledge: '지식', scrap: '잔해', chem: '화학',
+                   counter_card: '대항 카드', blueprint_progress: '청사진' };
   const CORE_RES = ['food', 'water', 'parts', 'morale'];
   const KIND_KO = { consumable: '소모', install: '설치', durable: '내구', permanent: '영구' };
   const STAGE_LABEL = { sound: '소리', silhouette: '실루엣', contact: '접촉', done: '지나갔다' };
@@ -587,18 +588,23 @@
   function drawSilhouette(t, dt) {
     const raid = cb && cb.raid;
     if (!raid || raid.stage !== 'silhouette' || raid.target_slot == null) { approach = 0; return; }
-    approach = Math.min(1, approach + dt / 34000);    // 약 34초에 걸쳐 천천히. 놀래키지 않는다(§6-2)
+    approach = Math.min(1, approach + dt / 22000);    // 약 22초에 걸쳐 천천히. 놀래키지 않는다(§6-2)
+                                                      // 다 와도 창 앞에서 **멈춰 선다** — 접촉은 플레이어가 누를 때만
     const r = rectOf(raid.target_slot);
     const fromLeft = sideOf(raid.target_slot) === 0;
     const tx = fromLeft ? r.x - 26 : r.x + r.w + 26;
-    const ox = fromLeft ? tx - 560 : tx + 560;
+    const ox = fromLeft ? tx - 430 : tx + 430;
     const wx = ox + (tx - ox) * (1 - Math.pow(1 - approach, 2));
     const wy = r.y + r.h * 0.45 + Math.sin(t / 1400) * 9;
     const px = sx(wx), py = sy(wy), k = cam.z;
     const alpha = 0.30 + 0.45 * approach;
     ctx.save();
-    ctx.fillStyle = 'rgba(2,10,14,' + alpha.toFixed(3) + ')';
-    ctx.strokeStyle = 'rgba(2,10,14,' + alpha.toFixed(3) + ')';
+    // 검은 물에 검은 그림자는 안 보인다 — 몸은 더 어둡게, 가장자리는 물빛으로 한 겹.
+    // (REF_CROSS_SECTION §3: 바깥의 것은 윤곽으로 먼저 온다)
+    ctx.fillStyle = 'rgba(1,7,11,' + Math.min(0.92, alpha + 0.25).toFixed(3) + ')';
+    ctx.strokeStyle = 'rgba(1,7,11,' + Math.min(0.92, alpha + 0.25).toFixed(3) + ')';
+    ctx.shadowColor = 'rgba(132,198,204,' + (0.18 + 0.30 * approach).toFixed(3) + ')';
+    ctx.shadowBlur = 10 * cam.z;
     const c = raid.creature.id;
     if (c === 'longneck') {
       ctx.lineWidth = 15 * k; ctx.lineCap = 'round';
@@ -698,13 +704,72 @@
     const c = (catalog[id] && catalog[id].cost) || {}, have = ark.resources || {};
     return Object.entries(c).filter(([k, v]) => (have[k] || 0) < v).map(([k, v]) => (RES_KO[k] || k) + ' ' + ((have[k] || 0)) + '/' + v);
   }
+  // 그 방에서 빛나는 스탯. 노려지는 방에서는 언제나 「담」이다(RESIDENT_STATS §5)
+  const ROOM_STAT = { workshop: 'hand', library: 'eye', infirmary: 'breath', well: 'hand', pantry: 'hand' };
+  function goodStats(slot) {
+    const room = (ark.rooms || []).find(r => r.slot === slot);
+    const out = [];
+    if (room && ROOM_STAT[room.id]) out.push(ROOM_STAT[room.id]);
+    if (raidTargetSlot() === slot) out.push('nerve');
+    return out;
+  }
+  function statRows(p, slot) {
+    const meta = (ark.stats_meta || {}), keys = meta.keys || ['hand', 'eye', 'breath', 'nerve'];
+    const ko = meta.ko || { hand: '손', eye: '눈', breath: '숨', nerve: '담' };
+    const st = p.stats || {};
+    if (!keys.some(k => st[k])) return '';
+    const good = goodStats(slot);
+    const q = p.quirk || {};
+    return '<div class="stats">' + keys.map(k => {
+      const v = Math.max(0, Math.min(10, st[k] || 0));
+      return '<div class="srow' + (good.indexOf(k) >= 0 ? ' good' : '') + '">' +
+        '<span class="sk">' + esc(ko[k] || k) + '</span>' +
+        '<span class="sd"><b>' + '\u25cf'.repeat(v) + '</b>' + '\u00b7'.repeat(10 - v) + '</span></div>';
+    }).join('') +
+      (q.ko ? '<em class="quirk' + (q.sign < 0 ? ' minus' : '') + '">' + esc(q.ko) + '</em>' : '') +
+      '</div>';
+  }
+  // 사람을 들고 있을 때의 **갈 곳 목록**. 폰에서는 패널이 아래 절반을 덮으므로 캔버스를 못 누른다 —
+  // 목록이 있으면 손가락 하나로 끝난다(02_DEV §5-4 "폰 가로 720px에서 손가락으로 조작 가능한가").
+  function destList() {
+    if (!carry) return '';
+    const byslot = peopleBySlot();
+    const rows = (ark.rooms || []).filter(r => !r.flooded).sort((a, b) => a.slot - b.slot).map(r => {
+      const n = (byslot[r.slot] || []).length, cap = capOf(r.slot);
+      const here = cb.stations[carry.id] === r.slot;
+      const full = n >= cap && !here;
+      const tgt = raidTargetSlot() === r.slot;
+      return '<button class="bopt' + (full ? ' lack' : '') + '" data-dest="' + r.slot + '"' +
+        (full || here ? ' disabled' : '') + '><b>' + esc((catalog[r.id] || {}).name || r.id) +
+        (tgt ? ' · 노려지는 방' : '') + '</b><small>' + n + '/' + cap + '명' +
+        (here ? ' · 지금 여기' : (full ? ' · 꽉 찼다' : '')) + '</small></button>';
+    });
+    rows.push('<button class="bopt" data-dest="hall"' +
+      (cb.stations[carry.id] === undefined ? ' disabled' : '') +
+      '><b>홀</b><small>돔 상부 · 아무 방도 지키지 않는다</small></button>');
+    return '<h3>' + esc(carry.name) + ' 을(를) 어디로</h3><div class="blist">' + rows.join('') + '</div>';
+  }
+  function bindDest(body) {
+    body.querySelectorAll('.bopt[data-dest]').forEach(b => b.addEventListener('click', () =>
+      place(carry.id, b.dataset.dest === 'hall' ? null : parseInt(b.dataset.dest, 10))));
+  }
+
   function personRow(p, slot) {
     return '<div class="who' + (carry && carry.id === p.id ? ' pick' : '') + '" data-pid="' + esc(p.id) + '">' +
       '<i style="background:' + (ROLE_COLOR[p.role] || '#d8c9a3') + '"></i>' +
       '<b>' + esc(p.name) + '</b><em>' + esc(p.role_ko || p.role) +
       (p.imprints && p.imprints.length ? ' · 刻 ' + p.imprints.length : '') + '</em>' +
       (p.injured ? '<em class="hurt">부상</em>' : '') +
-      '<span class="mv">' + (carry && carry.id === p.id ? '놓기 취소' : '옮기기') + '</span></div>';
+      '<span class="mv">' + (carry && carry.id === p.id ? '놓기 취소' : '옮기기') + '</span></div>' +
+      statRows(p, slot);
+  }
+
+  // 패널이 습격 막대 아래에서 열리게 한다(데스크톱). 둘이 겹치면 둘 다 안 읽힌다
+  function placePanel() {
+    const bar = $('#raidbar'), pan = $('#panel');
+    const below = view.w > 560 && !bar.hidden;
+    pan.style.top = below ? (bar.offsetHeight + 24) + 'px' : '';
+    pan.style.maxHeight = below ? (view.h - bar.offsetHeight - 48) + 'px' : '';
   }
 
   function openPanel(slot) {
@@ -720,7 +785,7 @@
         '그래도 지워지지 않고 남아 있다.</p>' +
         (room.flooded_day ? '<h3>잃은 날</h3><div class="kv"><span>' + esc(room.flooded_day) + '일째</span>' +
           (room.flooded_by ? '<span>' + esc(creatureName(room.flooded_by)) + '</span>' : '') + '</div>' : '');
-      $('#panel').hidden = false; return;
+      $('#panel').hidden = false; placePanel(); return;
     }
     if (room) {
       const spec = catalog[room.id] || {};
@@ -734,8 +799,7 @@
         (spec.desc ? '<p class="desc">' + esc(spec.desc) + '</p>' : '') +
         '<div class="rowbtns">' +
         '<button id="lgt" class="' + (lit ? 'on' : '') + '">' + (lit ? '불 켜짐 — 끄기' : '불 꺼짐 — 켜기') + '</button>' +
-        (carry ? '<button id="drop">여기로 ' + esc(carry.name) + ' 옮기기</button>' : '') +
-        '</div>' +
+        '</div>' + destList() +
         '<h3>하루 생산</h3><div class="kv">' +
         (Object.entries(spec.produces || {}).map(([k, v]) =>
           '<span>' + esc(RES_KO[k] || k) + ' +' + esc(v) + '</span>').join('') || '<span>—</span>') +
@@ -749,14 +813,13 @@
           : '<div class="who"><em>아무도 없다 — 빈 방은 막지 못한다</em></div>');
       const lb = body.querySelector('#lgt');
       if (lb) lb.addEventListener('click', () => setLight(slot, !lit));
-      const db = body.querySelector('#drop');
-      if (db) db.addEventListener('click', () => place(carry.id, slot));
+      bindDest(body);
       bindPeople(body);
     } else {
       if (f < DOME_FLOOR) {
         body.innerHTML = '<h2>돔 상부 · 홀</h2><p class="sub">깊이 0m 위 · 유리 천장</p>' +
           '<p class="desc">여기엔 더 놓을 자리가 없다. 방주는 아래로 자란다.<br>배치되지 않은 사람은 이 홀에 모인다.</p>';
-        $('#panel').hidden = false; return;
+        $('#panel').hidden = false; placePanel(); return;
       }
       const ids = Object.keys(catalog);
       body.innerHTML =
@@ -776,7 +839,7 @@
         b.addEventListener('click', () => build(b.dataset.room, slot));
       });
     }
-    $('#panel').hidden = false;
+    $('#panel').hidden = false; placePanel();
   }
 
   function bindPeople(body) {
@@ -799,12 +862,11 @@
     body.innerHTML = '<h2>홀<span class="cap">' + list.length + '명</span></h2>' +
       '<p class="sub">돔 상부 · 배치되지 않은 사람</p>' +
       '<p class="desc">여기 있는 사람은 아무 방도 지키지 않는다. 습격이 오기 전에 자리를 정한다.</p>' +
-      (carry ? '<div class="rowbtns"><button id="drophall">' + esc(carry.name) + ' 홀로 되돌리기</button></div>' : '') +
+      destList() +
       (list.length ? list.map(p => personRow(p, null)).join('') : '<div class="who"><em>모두 자리에 있다</em></div>');
-    const d = body.querySelector('#drophall');
-    if (d) d.addEventListener('click', () => place(carry.id, null));
+    bindDest(body);
     bindPeople(body);
-    $('#panel').hidden = false;
+    $('#panel').hidden = false; placePanel();
   }
 
   function openWorkshop() {
@@ -815,6 +877,8 @@
     body.innerHTML = '<h2>공방</h2>' +
       '<p class="sub">대응 도구 일곱 · 재료는 전부 유물</p>' +
       (w.has_workshop ? '' : '<p class="desc">아직 공방이 없다. 빈 자리에 공방을 지어야 만들 수 있다.</p>') +
+      ((w.tools[0] && w.tools[0].hands) ? '<p class="eye-early">' + esc(w.tools[0].hands.ko) + '</p>'
+        : (w.has_workshop ? '<p class="desc">공방에 아무도 없다. 도구는 손이 만든다 — 사람을 공방에 두면 재료가 달라진다.</p>' : '')) +
       w.tools.map(t => {
         const cost = Object.entries(t.cost).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).join(' · ');
         const lack = Object.keys(t.lacking || {}).length;
@@ -836,7 +900,7 @@
       b.addEventListener('click', () => craft(b.dataset.craft)));
     body.querySelectorAll('select[data-inst]').forEach(s =>
       s.addEventListener('change', () => { if (s.value !== '') install(s.dataset.inst, parseInt(s.value, 10)); }));
-    $('#panel').hidden = false;
+    $('#panel').hidden = false; placePanel();
   }
 
   function closePanel() { sel = null; $('#panel').hidden = true; }
@@ -931,7 +995,7 @@
             '<span>' + esc(RES_KO[k] || k) + ' ' + (v > 0 ? '+' : '') + v + '</span>').join('') + '</div>' : '') +
       (imp ? '<h3>겪은 사람</h3>' + imp : '') +
       ((r.next_raid_hint && r.next_raid_hint.ko) ? '<h3>문어</h3><p class="desc">' + esc(r.next_raid_hint.ko) + '</p>' : '');
-    $('#panel').hidden = false;
+    $('#panel').hidden = false; placePanel();
   }
 
   // ── 습격 막대 ─────────────────────────────────────────────
@@ -954,8 +1018,13 @@
       : raid.stage === 'silhouette' ? raid.creature.silhouette
       : (raid.line || raid.creature.contact);
     $('#rhow').textContent = raid.creature.threat ? '막는 법 — ' + raid.creature.how : '위협이 아니다. 식구다.';
+    let eyeEl = $('#reye');
+    if (!eyeEl) { eyeEl = document.createElement('p'); eyeEl.id = 'reye'; eyeEl.className = 'eye-early';
+                  $('#rhow').after(eyeEl); }
+    eyeEl.hidden = !raid.eye_early;
+    if (raid.eye_early) eyeEl.textContent = raid.eye_early.ko;
     const g = $('#rgate'), wd = $('#rwould');
-    if (raid.ready && raid.creature.threat) {
+    if (raid.ready && raid.creature.threat && raid.stage !== 'done') {
       g.hidden = false; wd.hidden = false;
       g.classList.toggle('ok', !!raid.ready.gate.ok);
       g.innerHTML = '<b>' + (raid.ready.gate.ok ? '준비됐다' : '아직이다') + '</b>' + esc(raid.ready.gate.ko);
@@ -1090,18 +1159,20 @@
     }
     if (d.moved > 6) return;                   // 카메라를 끌었을 뿐이다
 
-    if (d.person) {                            // 탭 1: 사람을 집는다
-      if (carry && carry.id === d.person.id) { setCarry(null); toast('놓았다'); return; }
+    const s = slotAt(px, py);
+    if (carry) {
+      // **들고 있을 때는 '놓기'가 먼저다.** 사람이 있는 방을 탭했다고 그 방 사람을 새로 집으면
+      // 영원히 못 옮긴다(폰에서 실제로 걸린 결함).
+      if (d.person && d.person.id === carry.id) { setCarry(null); closePanel(); toast('놓았다'); return; }
+      if (s != null) { place(carry.id, s); return; }
+      if (hitAt(px, py, 'hall')) { place(carry.id, null); return; }
+      setCarry(null); toast('그만두었다'); return;
+    }
+    if (d.person) {                            // 탭 1: 사람을 집는다 — 그 사람의 카드도 함께 연다
       setCarry({ id: d.person.id, name: d.person.name, role: d.person.role });
       toast(d.person.name + ' — 옮길 방을 탭하세요');
+      if (d.person.from == null) openHallPanel(); else openPanel(d.person.from);
       return;
-    }
-    const s = slotAt(px, py);
-    if (carry) {                               // 탭 2: 놓는다
-      const hall = hitAt(px, py, 'hall');
-      if (s != null) { place(carry.id, s); return; }
-      if (hall) { place(carry.id, null); return; }
-      setCarry(null); toast('그만두었다'); return;
     }
     if (s != null) { openPanel(s); return; }
     if (hitAt(px, py, 'hall')) { openHallPanel(); return; }

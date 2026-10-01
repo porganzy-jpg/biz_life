@@ -550,5 +550,236 @@
     },
     "timer_sec": 3,
     "note": "질문(S3): 가져온 것을 버릴 것인가. 정원사의 질문('무엇을 쥐고 있는가')이 물속에서 농담이 아닌 이유를 규칙으로 보여 준다. 손톱 무리는 대형 생물이 아니라 flag 없음 — 「두드림을 들은 자」는 긴목·문지기 카드에서만 붙는다."
+  },
+  {
+    "id": "deep_seam_swarm",
+    "name": "이끼인 줄 안다",
+    "faction": "mutant",
+    "severity": 1,
+    "acts": [
+      1
+    ],
+    "text": "이음매 쪽에서 물이 잘게 끓는다. 돔을 노리는 것이 아니라 돔에 낀 이끼를 먹는 것인데, 저것들은 이끼와 이음매를 구분하지 못한다. 손이 여럿이면 막는다. 오늘 밤 어느 방을 비울 것인가?",
+    "counter_tags": [
+      "방어",
+      "부품"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "parts": -2,
+      "morale": -1
+    },
+    "on_counter": {
+      "morale": 1,
+      "scrap": 1
+    },
+    "timer_sec": 3,
+    "note": "생물 swarm. 막는 법 people(사람 수). 질문(S3): 손은 하나뿐인데 방은 여럿이다. 가장 가벼운 습격이라 배치 조작을 배우는 자리 — 첫 습격 후보."
+  },
+  {
+    "id": "deep_mirror_eye",
+    "name": "창에 둘이 섰다",
+    "faction": "mutant",
+    "severity": 2,
+    "acts": [
+      1
+    ],
+    "text": "납작하고 넓은 것이 창과 나란히 서서 제 모습에 몸을 붙였다. 눈 옆의 은빛 판에 비친 것을 짝으로 아는 것이라, 불을 끄면 비침이 사라지고 사라진 짝을 찾으러 유리를 민다. 긴목에게 통한 수가 여기서는 가장 나쁜 수다. 끄지 않고 켤 수 있겠는가?",
+    "counter_tags": [
+      "조명",
+      "전력"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "parts": -2,
+      "morale": -2,
+      "injured": 1
+    },
+    "on_counter": {
+      "morale": 2,
+      "flag": "beast_left"
+    },
+    "timer_sec": 3,
+    "note": "생물 mirror_eye. 막는 법 light_elsewhere(반대쪽에 더 밝은 불). 질문(S3): 배운 수를 버릴 수 있는가. 대가는 바깥에 우리 자리를 하나 더 켜 두는 것. flag beast_left → 「두드림을 들은 자」."
+  },
+  {
+    "id": "deep_straight_aim",
+    "name": "멈춰 있는 그림자",
+    "faction": "mutant",
+    "severity": 2,
+    "acts": [
+      1
+    ],
+    "text": "가늘고 긴 선 하나가 창 쪽을 향해 멈춰 있다. 굽히지 못하는 것이라 겨눈 다음에만 오고, 흐린 물에서는 겨누지 못한다. 침전물을 풀면 저쪽도 우리도 눈이 먼다. 오늘 물을 버릴 것인가?",
+    "counter_tags": [
+      "물",
+      "방어"
+    ],
+    "counter_room": "well",
+    "on_fail": {
+      "injured": 1,
+      "parts": -2,
+      "morale": -1
+    },
+    "on_counter": {
+      "water": -2,
+      "morale": 1,
+      "knowledge": 1
+    },
+    "timer_sec": 3,
+    "note": "생물 straight_one. 막는 법 cloud_water(물을 흐리게). 질문(S3): 보는 것을 포기할 수 있는가. 대항에 성공해도 물이 준다 — 교본 S3 '성공에도 대가'. counter_room=well(정수실)은 침전물을 돌릴 수 있기 때문."
+  },
+  {
+    "id": "deep_lid_settles",
+    "name": "창 하나가 꺼졌다",
+    "faction": "mutant",
+    "severity": 2,
+    "acts": [
+      1
+    ],
+    "text": "창 하나가 통째로 어두워졌고 가장자리가 보이지 않는다. 평평하고 단단하고 죽은 것 위에 앉아 쉬려는 것이라, 아직 아무 일도 일어나지 않았다. 움직이는 것 위에는 앉지 않는다. 늘 옳았던 수가 오늘도 옳겠는가?",
+    "counter_tags": [
+      "야행",
+      "방어"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "parts": -3,
+      "morale": -2
+    },
+    "on_counter": {
+      "morale": 2,
+      "flag": "beast_left"
+    },
+    "timer_sec": 3,
+    "note": "생물 lid. 막는 법 stand_still(배치를 바꾸지 않는다). 질문(S3): 이 게임의 주된 동사인 '사람을 옮긴다'가 여기서만 틀린 수다. 한 차례를 통째로 쓰는 대가."
+  },
+  {
+    "id": "deep_needle_passes",
+    "name": "해마다 오는 길",
+    "faction": "mutant",
+    "severity": 3,
+    "acts": [
+      1
+    ],
+    "text": "낮고 긴 마찰음이 위에서 아래로 지나간다. 눈금 무리의 일지에 날짜가 이백 년치 적혀 있는 길이고, 길을 바꾼 것은 저쪽이 아니다. 그물과 계류줄을 걷으면 그냥 지나가고, 걷은 밤에 그쪽 벽은 맨몸이다. 비켜 줄 것인가 버틸 것인가?",
+    "counter_tags": [
+      "청사진",
+      "방어"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "parts": -4,
+      "injured": 1,
+      "morale": -2
+    },
+    "on_counter": {
+      "morale": 2,
+      "scrap": 2,
+      "flag": "beast_left"
+    },
+    "timer_sec": 3,
+    "note": "생물 needle. 막는 법 make_way(길을 비킨다). 질문(S3): 지켜 온 것을 스스로 걷을 수 있는가. severity 3 이라 1~3일차 억제에 걸린다(의도). 깊이 120m 이후."
+  },
+  {
+    "id": "deep_big_maw",
+    "name": "아래가 비었다",
+    "faction": "mutant",
+    "severity": 3,
+    "acts": [
+      1
+    ],
+    "text": "온실 창에 입을 댔고 안쪽의 잎이 창 쪽으로 쏠린다. 해구의 가라앉은 큰 것을 다 먹고 올라온 것이라, 아래에 먹을 것이 떨어졌다는 뜻이다. 수확분을 내주면 물고 내려가고, 내준 해에는 다음 해에 더 일찍 올라온다. 올해를 살 것인가 내년을 살 것인가?",
+    "counter_tags": [
+      "온실",
+      "보존"
+    ],
+    "counter_room": "pantry",
+    "on_fail": {
+      "food": -4,
+      "morale": -3,
+      "injured": 1
+    },
+    "on_counter": {
+      "food": -2,
+      "morale": 1,
+      "flag": "beast_left"
+    },
+    "timer_sec": 3,
+    "note": "생물 big_maw. 막는 법 feed(먹이를 내준다). 질문(S3): 성공해도 식량이 준다. 세계관 훅 — 해구가 비어 간다는 신호를 설명 없이 먹이로 전한다(S1)."
+  },
+  {
+    "id": "deep_followed_home",
+    "name": "숫자를 맞추러",
+    "faction": "mutant",
+    "severity": 3,
+    "acts": [
+      1
+    ],
+    "text": "창고 쪽 유리가 한 번 울고, 한참 뒤 아래에서 같은 소리가 답했다. 보이는 것은 손 하나 크기의 빛 둘뿐이고 그 사이 거리를 짐작한 사람은 말을 못 한다. 해구에서 올린 것 중 가장 깊은 데서 온 하나를 돌려보내면 소리가 멎는다. 그 칸을 비워 둘 수 있겠는가?",
+    "counter_tags": [
+      "보존",
+      "지식"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "parts": -3,
+      "morale": -3,
+      "injured": 1
+    },
+    "on_counter": {
+      "scrap": -2,
+      "knowledge": 1,
+      "morale": 1,
+      "flag": "beast_left"
+    },
+    "timer_sec": 3,
+    "note": "생물 follower. 막는 법 return_it(가져온 것을 돌려보낸다). 질문(S3): 수집이 이 게임의 원형인데 수집품을 내놓으라고 한다. 깊이 180m — 해구 문턱에서만 나온다. 해구 금기('세기 전에 들이지 말 것')를 규칙으로 보여 준다."
+  },
+  {
+    "id": "deep_upper_child",
+    "name": "박자가 안 맞는 두드림",
+    "faction": "mutant",
+    "severity": 1,
+    "acts": [
+      1
+    ],
+    "text": "두드리는 소리가 긴목의 것보다 빠르고 고르지 않다. 겁먹은 쪽이 저쪽이다. 윗층 등을 아래에서 위로 차례로 켜면 그 길을 따라 올라가고, 위로 비춘 빛은 위에서도 보인다. 아이를 올려보낼 것인가 우리를 숨길 것인가?",
+    "counter_tags": [
+      "조명",
+      "전력"
+    ],
+    "counter_room": null,
+    "on_fail": {
+      "morale": -2
+    },
+    "on_counter": {
+      "morale": 3,
+      "knowledge": 1
+    },
+    "timer_sec": 3,
+    "note": "생물 upper_child. 막는 법 guide_up(위로 빛의 길). 질문(S3): 1막에서 유일하게 막는 것이 아니라 보내 주는 습격. 성공 보상이 사기뿐이고 대가는 다음 습격의 세기 +1 — 수치는 개발에 요청함. 박광층 금기('위로 빛을 비추지 말 것')를 어기는 유일한 정답."
+  },
+  {
+    "id": "deep_shade_passes",
+    "name": "천장이 어두워진다",
+    "faction": "world",
+    "severity": 0,
+    "acts": [
+      1
+    ],
+    "positive": true,
+    "text": "천장 물이 천천히 어두워졌다. 광층에 사는 것이라 우리는 평생 그 몸을 못 보고, 보는 것은 그늘뿐이다. 지나가는 동안 작은 것들이 전부 숨어서 돔이 가장 조용해진다. 올려다볼 것인가, 올려다보지 말라고 배웠는가?",
+    "counter_tags": [
+      "사기",
+      "탐사"
+    ],
+    "counter_room": null,
+    "on_fail": {},
+    "on_counter": {
+      "morale": 2
+    },
+    "timer_sec": 5,
+    "note": "생물 shade. 위협 아님 — 쉼표 카드다. 질문(S3): 광층 금기('천장을 오래 보지 말 것')를 설명 없이 묻는다. positive:true 라 각인이 붙지 않는다(의도). 습격 사이에 조용한 밤을 만들어 다음 위기를 살린다(P3)."
   }
 ]

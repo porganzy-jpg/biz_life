@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "engine"))
 from relic_generator import RelicGenerator, Category, rescan_multiplier  # noqa: E402
 from storyteller import ArkState, pick_event, resolve, load_events, acts_of, events_for_act  # noqa: E402
+import combat  # noqa: E402  — 배치 방어 전투(COMBAT_AND_DEFENSE.md). 순수 함수 모듈
 
 DB = ROOT / "relic_ark.db"
 # ★ 개발 전용 훅 스위치. RELIC_DEV=1 일 때만 ?debug_* 질의가 살아난다(02_DEV §4-4 "배포 전 제거 목록").
@@ -35,6 +36,19 @@ DB = ROOT / "relic_ark.db"
 DEV_MODE = os.environ.get("RELIC_DEV") == "1"
 ROOMS = json.loads((ROOT / "data" / "rooms.json").read_text(encoding="utf-8"))
 ROOMS.pop("_comment", None)
+# 공방 — 대응 도구 일곱이 나오는 방(COMBAT_AND_DEFENSE §5-1·§6.5). `data/rooms.json` 은 시나리오 소유라
+# 고치지 않고 **런타임에 덧붙인다**. 같은 id 가 파일에 생기면 파일이 이긴다(DEEP_IMPRINTS 와 같은 규약).
+WORKSHOP_ROOM = {
+    "workshop": {
+        "name": "공방", "light": "#F2A93B", "tier": 2,
+        "cost": {"parts": 4, "scrap": 4},
+        "produces": {"parts": 1},
+        "counters": ["breach"],
+        "desc": "남이 버린 것을 다시 쓸 것으로 바꾸는 방. 막고 가리고 꿰매는 물건이 여기서 나온다.",
+    },
+}
+for _rid, _spec in WORKSHOP_ROOM.items():
+    ROOMS.setdefault(_rid, _spec)
 EVENTS = {e["id"]: e for e in load_events()}
 # 막(acts) — DECISIONS 2026-09-23. 1 심해 / 2 터널 / 3 지상. 방주 상태의 act 가 오늘의 사건 풀을 고른다.
 ACTS = (1, 2, 3)
@@ -152,6 +166,30 @@ for _row in (_LINES.get("lines") or []):
     _imp = IMPRINTS.get(_row.get("imprint_id")) if isinstance(_row, dict) else None
     if _imp and isinstance(_row.get("line"), str):
         _imp["visual"]["line"] = _row["line"]
+# 생물·도구의 **문장**은 시나리오가 가진다(data/combat_schema.json 의 계약). 파일이 오면 코드 초안을 덮어쓴다.
+# 수치(need·power·cost·gate)는 밸런스라 개발이 들고 있고 파일이 바꾸지 못한다 — DECISIONS 2026-09-20 과 같은 분담.
+_CRE_TEXT = ("name", "zone", "how", "sound", "silhouette", "contact")
+# 명단의 정본은 `data/creatures.json` 하나다(시나리오 2026-10-01 요청). 옛 이름도 받아 준다.
+_CRE_FILES = ("creatures.json", "creatures_deep.json")
+_CRE_SEEN: set = set()
+for _f in _CRE_FILES:
+    for _row in ((_load_json(_f) or {}).get("creatures") or []):
+        if not isinstance(_row, dict) or _row.get("id") in _CRE_SEEN:
+            continue
+        _c = combat.CREATURES.get(_row.get("id"))
+        if not _c:
+            # 아직 전투 규칙이 없는 생물(거울눈·곧은치 등)은 조용히 건너뛴다.
+            # 관문·수치가 정해지면 engine/combat.py 에 한 줄 넣는 것만으로 붙는다.
+            continue
+        _CRE_SEEN.add(_row["id"])
+        _c.update({k: _row[k] for k in _CRE_TEXT if isinstance(_row.get(k), str)})
+        if isinstance(_row.get("lines"), dict):
+            _c["lines"] = {k: v for k, v in _row["lines"].items() if isinstance(v, str)}
+for _row in ((_load_json("tools.json") or {}).get("tools") or []):
+    _t = combat.TOOLS.get(_row.get("id")) if isinstance(_row, dict) else None
+    if _t:
+        _t.update({k: _row[k] for k in ("name", "does", "flavor") if isinstance(_row.get(k), str)})
+
 TRUST_ON_COUNTER = 10        # 함께 위기를 넘겼을 때만 오른다
 TRUST_ON_FAIL = -5           # 작은 일로도 급락한다
 TRUST_MAX = 100
@@ -357,7 +395,78 @@ def log(uid: str, kind: str, payload: dict | None = None):
                     (uid, kind, json.dumps(payload or {}, ensure_ascii=False), time.time()))
 
 
-def make_resident(role: str, rng: random.Random, taken: set) -> dict:
+# ─────────────────────────────────────────────────────────────
+# 주민 스탯 넷 (docs/RESIDENT_STATS.md)
+#   손 만들고 · 눈 찾고 · 숨 버티고 · 담 맞선다. 게임 안의 동사 하나씩이다.
+#   **스탯은 시작의 차이고, 각인은 얻어 낸 변화다**(§3-3). 스탯은 거의 변하지 않는다 —
+#   사람이 바뀌는 일은 계단식 성장(각인)이 맡는다.
+#   시드는 `uid|resident_id|stats`. 같은 방주의 같은 사람은 언제 읽어도 같은 사람이다(D6).
+# ─────────────────────────────────────────────────────────────
+RES_KO_SRV = {"food": "식량", "water": "물", "med": "의약", "power": "전력", "parts": "부품",
+              "morale": "사기", "cloth": "직물", "trade": "교역", "knowledge": "지식",
+              "scrap": "잔해", "chem": "화학"}
+STAT_KEYS = ("hand", "eye", "breath", "nerve")
+STAT_KO = {"hand": "손", "eye": "눈", "breath": "숨", "nerve": "담"}
+STAT_USE = {"hand": "제작·수리", "eye": "탐사·예고", "breath": "버팀·회복", "nerve": "방어 판정"}
+STAT_BASE = {                      # §3-1 역할 기본값: 둘이 높고 하나가 낮다
+    "scout":    {"hand": 4, "eye": 7, "breath": 7, "nerve": 5},
+    "cook":     {"hand": 7, "eye": 4, "breath": 5, "nerve": 5},
+    "medic":    {"hand": 7, "eye": 6, "breath": 4, "nerve": 5},
+    "engineer": {"hand": 8, "eye": 5, "breath": 5, "nerve": 4},
+    "farmer":   {"hand": 6, "eye": 5, "breath": 7, "nerve": 4},
+    "scholar":  {"hand": 5, "eye": 8, "breath": 4, "nerve": 4},
+    "trader":   {"hand": 4, "eye": 6, "breath": 5, "nerve": 7},
+    "kid":      {"hand": 3, "eye": 6, "breath": 4, "nerve": 3},
+}
+STAT_BASE_DEFAULT = {"hand": 5, "eye": 5, "breath": 5, "nerve": 5}
+# §3-2 특이점 — 사람을 기억하게 만드는 한 줄. **마이너스를 반드시 섞는다**(약점이 없으면 배치에 고민이 없다)
+QUIRK_KO = {
+    ("hand", 1): "손이 유난히 좋다", ("hand", -1): "손이 서툴다",
+    ("eye", 1): "눈이 밝다",       ("eye", -1): "밤눈이 어둡다",
+    ("breath", 1): "숨이 길다",     ("breath", -1): "숨이 짧다",
+    ("nerve", 1): "겁이 없다",      ("nerve", -1): "큰 것 앞에서는 못 선다",
+}
+QUIRK_BONUS = 2
+
+
+def roll_stats(uid: str, rid: str, role: str) -> tuple[dict, dict]:
+    """역할 기본값 + 무작위(−2~+2) + 특이점(한 스탯에 ±2). 범위 1~10."""
+    rng = random.Random(f"{uid}|{rid}|stats")
+    base = STAT_BASE.get(role, STAT_BASE_DEFAULT)
+    stats = {k: base[k] + rng.randint(-2, 2) for k in STAT_KEYS}
+    qk = rng.choice(list(STAT_KEYS))
+    qs = 1 if rng.random() < 0.5 else -1          # 절반은 약점이다
+    stats[qk] += QUIRK_BONUS * qs
+    stats = {k: max(1, min(10, v)) for k, v in stats.items()}
+    quirk = {"stat": qk, "stat_ko": STAT_KO[qk], "sign": qs, "ko": QUIRK_KO[(qk, qs)]}
+    return stats, quirk
+
+
+def ensure_stats(uid: str, r: dict) -> bool:
+    """스탯이 없는 (구버전) 주민에게 같은 규칙으로 채운다. 기존 저장은 깨지지 않는다."""
+    ok = isinstance(r.get("stats"), dict) and all(k in r["stats"] for k in STAT_KEYS)
+    if ok and isinstance(r.get("quirk"), dict):
+        return False
+    stats, quirk = roll_stats(uid, r.get("id") or r.get("name") or "?", r.get("role") or "")
+    r["stats"] = stats; r["quirk"] = quirk
+    return True
+
+
+def best_stat(people: list, key: str) -> tuple[int, dict | None]:
+    """그 무리에서 가장 좋은 값과 그 사람. 없으면 (0, None)."""
+    best, who = 0, None
+    for p in people:
+        v = int((p.get("stats") or {}).get(key, 0))
+        if v > best:
+            best, who = v, p
+    return best, who
+
+
+EYE_EARLY = 8        # 「눈」이 이만큼이면 예고를 한 단계 먼저 읽는다(§4) — 소리 단계에서 이미 어느 창인지 안다
+HAND_GOOD, HAND_POOR = 8, 3    # 제작: 손이 좋으면 재료 하나를 아끼고, 서툴면 하나 더 든다
+
+
+def make_resident(role: str, rng: random.Random, taken: set, uid: str = "") -> dict:
     name = next((n for n in rng.sample(NAMES, len(NAMES)) if n not in taken), f"주민{len(taken) + 1}")
     taken.add(name)
     trait = rng.choice(list(TRAITS.keys())) if rng.random() < 0.7 else None
@@ -366,14 +475,17 @@ def make_resident(role: str, rng: random.Random, taken: set) -> dict:
             "trait": trait, "injured": False, "joined": time.time(),
             "imprints": [],     # 받은 각인 id (최대 3)
             "crises": [],       # 겪어 본 위기 종류. 여기 있는 종류는 다시 겪어도 사람을 바꾸지 않는다
-            "trust": {}}        # 다른 주민 id -> 0~100. 시작은 0 (사람 간 신뢰의 역전)
+            "trust": {},        # 다른 주민 id -> 0~100. 시작은 0 (사람 간 신뢰의 역전)
+            "stats": {}, "quirk": {}}   # ensure_stats 가 uid 를 알고 채운다(시드가 uid 를 쓴다)
 
 
-def new_state() -> dict:
+def new_state(uid: str = "") -> dict:
     now = time.time()
     rng = random.Random(now)
     taken: set = set()
-    residents = [make_resident(role, rng, taken) for role in ("cook", "engineer", "scout")]   # 시작 3인: 먹이고, 고치고, 살핀다
+    residents = [make_resident(role, rng, taken, uid) for role in ("cook", "engineer", "scout")]   # 시작 3인: 먹이고, 고치고, 살핀다
+    for _r in residents:
+        ensure_stats(uid, _r)
     return {
         "residents_list": residents,
         "created": now, "last_tick": now,
@@ -393,6 +505,16 @@ def new_state() -> dict:
         "rumors_seen": [],      # 이미 해금한 힐링 스팟 단서 id
         "morning_pending": [],  # 각인 받은 '다음 날 아침'에 한 번 보여 줄 연출 문장
         "greeted": False,       # 첫 화면에서 리더의 첫 말(game_start)을 들었는가
+        # ── 배치 방어(COMBAT_AND_DEFENSE.md) ──────────────────────────
+        "stations": {},         # resident_id -> slot. 없는 사람은 홀에 모인다
+        "lights": {},           # str(slot) -> bool. 없으면 켜져 있다(기본 True)
+        "power_on": True,       # 전원. 내리면 조용해지지만 모든 방이 어두워진다
+        "tools": {},            # tool_id -> 보유 수(아직 설치하지 않은 것)
+        "room_tools": {},       # str(slot) -> [{"id":..., "uses":n}]  설치된 것
+        "outside": [],          # 지금 밖에 나가 있는 주민 id
+        "raid": None,           # 오늘의 습격(없으면 None)
+        "raid_log": [],         # 지나간 습격들. 흔적은 지워지지 않는다
+        "next_raid_hint": None, # 문어가 미리 알려 준 다음 습격
     }
 
 
@@ -403,16 +525,16 @@ def load_state(uid: str) -> dict:
         st = json.loads(row["state"])
         if "residents_list" not in st:            # 구버전 방주 마이그레이션
             rng = random.Random(st.get("created", 0)); taken: set = set()
-            st["residents_list"] = [make_resident(role, rng, taken) for role in ("cook", "engineer", "scout")][: max(1, st.get("residents", 3))]
+            st["residents_list"] = [make_resident(role, rng, taken, uid) for role in ("cook", "engineer", "scout")][: max(1, st.get("residents", 3))]
             for r in st["residents_list"][: st.get("injured", 0)]:
                 r["injured"] = True
             save_state(uid, st)
-        changed = migrate_residents(st)           # 각인·신뢰 필드가 없는 구버전 주민 보강
+        changed = migrate_residents(st, uid)      # 각인·신뢰·스탯이 없는 구버전 주민 보강
         changed = migrate_state(st) or changed    # 소문·사건 이력 필드 보강
         if changed:
             save_state(uid, st)
         return st
-    st = new_state()
+    st = new_state(uid)
     save_state(uid, st)
     log(uid, "ark_created")
     return st
@@ -424,8 +546,9 @@ def save_state(uid: str, st: dict):
                     (uid, json.dumps(st, ensure_ascii=False)))
 
 
-def migrate_residents(st: dict) -> bool:
-    """구버전 방주의 주민에 각인·신뢰 필드를 채운다. 변경이 있으면 True."""
+def migrate_residents(st: dict, uid: str = "") -> bool:
+    """구버전 방주의 주민에 각인·신뢰·**스탯** 필드를 채운다. 변경이 있으면 True.
+    스탯 시드는 `uid|id|stats` 라 구버전 주민도 **언제 읽어도 같은 사람**이 된다(D6)."""
     changed = False
     res = st.get("residents_list", [])
     ids = {r.get("id") for r in res}
@@ -435,6 +558,7 @@ def migrate_residents(st: dict) -> bool:
         for key, default in (("imprints", []), ("crises", []), ("trust", {})):
             if not isinstance(r.get(key), type(default)):
                 r[key] = type(default)(); changed = True
+        changed = ensure_stats(uid, r) or changed
         drop = [k for k in r["trust"] if k not in ids or k == r["id"]]
         for k in drop:
             r["trust"].pop(k); changed = True
@@ -452,6 +576,20 @@ def migrate_state(st: dict) -> bool:
     te = st.get("today_event")
     if te and te.get("event_id") and te["event_id"] not in st["seen_events"]:
         st["seen_events"].append(te["event_id"]); changed = True     # 이미 겪은 오늘의 사건은 겪은 것으로
+    # 배치 방어(S8). 구버전 방주는 "아무도 배치되지 않았고 불은 켜져 있고 습격은 없었다"로 시작한다
+    for key, default in (("stations", {}), ("lights", {}), ("tools", {}), ("room_tools", {}),
+                         ("outside", []), ("raid_log", [])):
+        if not isinstance(st.get(key), type(default)):
+            st[key] = type(default)(); changed = True
+    if not isinstance(st.get("power_on"), bool):
+        st["power_on"] = True; changed = True
+    for key in ("raid", "next_raid_hint"):
+        if key not in st:
+            st[key] = None; changed = True
+    ids = {r.get("id") for r in st.get("residents_list", [])}
+    for gone in [k for k in st["stations"] if k not in ids]:
+        st["stations"].pop(gone); changed = True                     # 떠난 사람의 자리는 비운다
+    st["outside"] = [i for i in st["outside"] if i in ids]
     return changed
 
 
@@ -584,7 +722,7 @@ def grant_imprints(st: dict, ev: dict | None, flags: list[str], targets: list[di
 
 
 def event_participants(roster: list[dict], ev: dict, seed: str, how: str, used_card: dict | None,
-                       hero: dict | None, pre_injured: set) -> list[dict]:
+                       hero: dict | None, pre_injured: set, station_rooms: dict | None = None) -> list[dict]:
     """이 사건에 **나선** 주민 1~2명. 나머지는 방주 안에 있었으므로 각인을 받지 않는다.
     (docs/GROWTH_AND_MYTH.md §1 "겪어본 적 없는 위험을 넘긴 자만 변한다" — 겪은 사람이 누구인지부터 정한다)
 
@@ -613,7 +751,10 @@ def event_participants(roster: list[dict], ev: dict, seed: str, how: str, used_c
     ranked: list[dict] = []
     if hero:
         ranked.append(hero)
-    ranked += [r for r in pool if room and r.get("station") == room]
+    # ② 사건의 counter_room 에 **배치**된 주민. 2026-10-01(S8) 배치 시스템이 생기면서 이 줄이 실제로 산다.
+    #    자리는 slot 으로 저장되므로 slot -> 방 id 로 풀어서 비교한다(station_room_ids).
+    sr = station_rooms or {}
+    ranked += [r for r in pool if room and sr.get(r["id"]) == room]
     ranked += by_tags(tags)
     if how == "card" and used_card:
         ranked += by_tags(set(used_card.get("tags", [])))
@@ -707,9 +848,11 @@ def tick_production(st: dict) -> dict:
     produced: dict = {}
     if ticks <= 0:
         return produced
-    room_ids = [r["id"] for r in st["rooms"]]
+    # 물 찬 방은 생산하지 않는다. 인접 보너스도 주지 않는다 — 그 방은 더 이상 방이 아니다
+    live = [r for r in st["rooms"] if not r.get("flooded")]
+    room_ids = [r["id"] for r in live]
     eff = role_effects(st)
-    for r in st["rooms"]:
+    for r in live:
         spec = ROOMS[r["id"]]
         bonus = eff["room_bonus"].get(r["id"], {})
         for k, v in spec["produces"].items():
@@ -724,7 +867,9 @@ def tick_production(st: dict) -> dict:
                     produced[k] = produced.get(k, 0) + v * ticks
     # 부상 회복: 틱마다 1명 (의무병 있으면 2명)
     heal = eff["heal_rate"] * ticks
-    for res in st.get("residents_list", []):
+    # 숨이 긴 사람이 먼저 일어난다(RESIDENT_STATS §4 "부상 회복 = 숨 + 의무실 등급")
+    for res in sorted(st.get("residents_list", []),
+                      key=lambda r: -int((r.get("stats") or {}).get("breath", 5))):
         if res.get("injured") and heal > 0:
             res["injured"] = False; heal -= 1
     st["injured"] = sum(1 for x in st.get("residents_list", []) if x.get("injured"))
@@ -777,6 +922,283 @@ def gauges_of(st: dict) -> dict:
     }
 
 
+# ─────────────────────────────────────────────────────────────
+# 배치 방어 (COMBAT_AND_DEFENSE.md) — 서버 쪽 배선
+# 판정 공식과 생물·도구 표는 engine/combat.py 에 있다. 여기서는 **상태를 읽어 ctx 를 만들고**
+# 돌아온 판정을 상태에 쓰기만 한다. 난수는 전부 `uid|day|raid|목적` 시드다(02_DEV D6).
+# ─────────────────────────────────────────────────────────────
+def live_rooms(st: dict) -> list[dict]:
+    """아직 방인 것들. 물 찬 방은 빠진다."""
+    return [r for r in st.get("rooms", []) if not r.get("flooded")]
+
+
+def room_at(st: dict, slot) -> dict | None:
+    try:
+        slot = int(slot)
+    except (TypeError, ValueError):
+        return None
+    return next((r for r in st.get("rooms", []) if r.get("slot") == slot), None)
+
+
+def station_slot(st: dict, rid: str):
+    v = (st.get("stations") or {}).get(rid)
+    return int(v) if isinstance(v, (int, float)) else None
+
+
+def stations_map(st: dict) -> dict:
+    """slot -> 거기 배치된 주민들. 밖에 나간 사람은 방에 없다."""
+    out: dict = {}
+    outside = set(st.get("outside") or [])
+    for r in st.get("residents_list", []):
+        s = station_slot(st, r.get("id"))
+        if s is None or r["id"] in outside:
+            continue
+        out.setdefault(s, []).append(r)
+    return out
+
+
+def hall_of(st: dict) -> list[dict]:
+    """배치되지 않은 사람은 홀에 모인다(돔 상부의 공용 공간)."""
+    outside = set(st.get("outside") or [])
+    return [r for r in st.get("residents_list", [])
+            if station_slot(st, r.get("id")) is None and r["id"] not in outside]
+
+
+def installed_at(st: dict, slot) -> list:
+    rows = (st.get("room_tools") or {}).get(str(int(slot))) or []
+    return [t["id"] for t in rows if isinstance(t, dict) and t.get("id") in combat.TOOLS]
+
+
+def light_on(st: dict, slot) -> bool:
+    """방의 불. 전원이 내려가 있으면 전부 꺼져 있고, 차광 덧문이 있으면 역시 어둡다."""
+    if not st.get("power_on", True):
+        return False
+    if any(combat.TOOLS.get(t, {}).get("forces_dark") for t in installed_at(st, slot)):
+        return False
+    v = (st.get("lights") or {}).get(str(int(slot)))
+    return True if v is None else bool(v)
+
+
+def set_station(st: dict, rid: str, slot) -> None:
+    stations = st.setdefault("stations", {})
+    if slot is None:
+        stations.pop(rid, None)
+    else:
+        stations[rid] = int(slot)
+
+
+def station_room_ids(st: dict) -> dict:
+    """resident_id -> 그 사람이 서 있는 방의 id. 사건 참여자 규칙 ②(배치된 사람 1순위)가 이걸 쓴다."""
+    out = {}
+    for rid, slot in (st.get("stations") or {}).items():
+        r = room_at(st, slot)
+        if r and not r.get("flooded"):
+            out[rid] = r["id"]
+    return out
+
+
+def gathered_one_room(st: dict):
+    """모두 한 방에 모였는가. 밖에 한 사람이라도 있거나 홀에 남아 있으면 아니다."""
+    if st.get("outside"):
+        return False, None
+    if hall_of(st):
+        return False, None
+    slots = {station_slot(st, r["id"]) for r in st.get("residents_list", [])}
+    if len(slots) == 1 and None not in slots:
+        s = slots.pop()
+        return (room_at(st, s) is not None), s
+    return False, None
+
+
+def raid_ctx(st: dict, raid: dict, consumables: list | None = None) -> dict:
+    """판정에 들어가는 '그 순간의 사실들'. 화면이 보여 주는 것과 한 글자도 달라서는 안 된다(D2)."""
+    slot = raid.get("target_slot")
+    r = room_at(st, slot)
+    people = [{"id": p["id"], "name": p["name"], "injured": bool(p.get("injured")),
+               "counter_tags": list(ROLES.get(p["role"], {}).get("counter_tags", [])),
+               "nerve": int((p.get("stats") or {}).get("nerve", 5)),
+               "imprints": list(p.get("imprints") or [])}
+              for p in stations_map(st).get(int(slot), [])] if slot is not None else []
+    gathered, gslot = gathered_one_room(st)
+    inst = installed_at(st, slot) if slot is not None else []
+    return {
+        "room_id": (r or {}).get("id") if r and not r.get("flooded") else None,
+        "room_name": (ROOMS.get((r or {}).get("id"), {}).get("name") if r else None) or "빈 자리",
+        "people": people,
+        "light_on": light_on(st, slot) if slot is not None else True,
+        "forced_dark": any(combat.TOOLS.get(t, {}).get("forces_dark") for t in inst),
+        "power_on": bool(st.get("power_on", True)),
+        "gathered_one_room": gathered,
+        "hushed": bool(gathered and gslot is not None and any(
+            combat.TOOLS.get(t, {}).get("silences") for t in installed_at(st, gslot))),
+        "outside": list(st.get("outside") or []),
+        "installed": inst,
+        "consumables": list(consumables or []),
+        # 도구가 대신 드는 손. 작은 떼의 관문(사람 수)에만 쓰인다
+        "hands": sum(int((combat.TOOLS.get(t) or {}).get("hands", 0))
+                     for t in list(inst) + list(consumables or [])),
+        "severity": int(raid.get("severity", 0)),
+    }
+
+
+def send_outside(st: dict, uid: str, day: int) -> list:
+    """손톱 무리가 오는 날, 하필 밖에 나가 있던 사람. 홀에 있던 사람부터(일하러 나간 것이다).
+    원정 시스템이 생기면 이 함수만 '진짜 나가 있는 사람'으로 바뀐다 — 호출부는 그대로다."""
+    pool = [r["id"] for r in hall_of(st)] or [r["id"] for r in st.get("residents_list", [])]
+    if not pool:
+        return []
+    n = 1 if len(pool) < 3 else 2
+    rng = combat.raid_rng(uid, day, "outside")
+    return sorted(rng.sample(sorted(pool), min(n, len(pool))))
+
+
+def archive_raid(st: dict, raid: dict) -> None:
+    rows = st.setdefault("raid_log", [])
+    rows.append({k: raid.get(k) for k in
+                 ("id", "day", "creature", "target_slot", "severity", "result", "line", "score", "need")})
+    del rows[:-60]
+
+
+def ensure_raid(st: dict, uid: str, force: str | None = None, reset: bool = False) -> dict | None:
+    """오늘의 습격. **하루 1회 이하**(§6-1) — 이미 오늘 것이 있으면 새로 뽑지 않는다."""
+    day = day_of(st)
+    cur = st.get("raid")
+    if cur and cur.get("day") == day and not (reset or force):
+        return None if cur.get("none") else cur
+    st["outside"] = []                   # 어제 밖에 있던 사람은 밤새 들어왔다. 밖은 하루를 넘기지 않는다
+    cre = combat.pick_creature(uid, day, force=force)
+    if not cre:
+        st["raid"] = {"day": day, "none": True}
+        return None
+    slot = combat.pick_target(uid, day, cre, live_rooms(st), st.get("room_tools") or {})
+    if slot is None:
+        # 갈 방이 없다(전부 침수거나 전부 유인 등불). 긴목은 다른 불빛을 따라 간다
+        st["raid"] = {"day": day, "none": True, "diverted": cre["id"]}
+        return None
+    raid = {
+        "id": f"raid-{day}-{cre['id']}", "day": day, "creature": cre["id"],
+        "target_slot": int(slot), "severity": combat.severity(uid, day),
+        "stage": "sound", "started": time.time(), "resolved": False, "result": None,
+        "outside_sent": [],
+    }
+    if cre["gate"] == "all_inside":
+        raid["outside_sent"] = send_outside(st, uid, day)
+        st["outside"] = list(raid["outside_sent"])      # 그 사람들은 지금 밖에 있다
+    st["raid"] = raid
+    return raid
+
+
+def raid_public(st: dict, raid: dict | None) -> dict | None:
+    """화면이 읽는 습격. **정보를 숨기지 않는다**(02_DEV §3 Slay the Spire) —
+    지금 배치로 막을 수 있는지(`ready.gate`)를 접촉 전에 그대로 보여 준다. 그래야 계획이 가능하다."""
+    if not raid or raid.get("none"):
+        return None
+    cre = combat.CREATURES.get(raid.get("creature"))
+    if not cre:
+        return None
+    ctx = raid_ctx(st, raid)
+    preview = combat.evaluate(cre, ctx)
+    r = room_at(st, raid["target_slot"])
+    room_name = (ROOMS.get((r or {}).get("id"), {}) or {}).get("name") if r else "빈 자리"
+    # 「눈」이 밝은 사람이 안에 있으면 **소리만 듣고도 어느 창인지 안다**(RESIDENT_STATS §4).
+    # 예고가 한 단계 앞당겨지는 것이지 접촉이 빨라지는 것이 아니다 — 아늑함은 그대로다.
+    inside = [p for p in st.get("residents_list", []) if p["id"] not in (st.get("outside") or [])]
+    eye, eye_who = best_stat(inside, "eye")
+    early = bool(eye >= EYE_EARLY and eye_who)
+    quiet = raid["stage"] == "sound" and not early    # 보통은 소리 단계에서 어느 방인지 모른다(§3-1·3-2)
+    return {
+        "id": raid["id"], "day": raid["day"], "stage": raid["stage"],
+        "stage_ko": combat.STAGE_KO.get(raid["stage"], raid["stage"]),
+        "stage_no": list(combat.STAGES).index(raid["stage"]) if raid["stage"] in combat.STAGES else 0,
+        "creature": {"id": cre["id"], "name": cre["name"], "zone": cre["zone"], "threat": cre["threat"],
+                     "how": cre["how"], "sound": cre["sound"], "silhouette": cre["silhouette"],
+                     "contact": cre["contact"], "audio": cre.get("audio", {})},
+        "target_slot": None if quiet else raid["target_slot"],
+        "target_room": None if quiet else room_name,
+        "severity": raid["severity"], "resolved": bool(raid.get("resolved")),
+        "result": raid.get("result"), "result_ko": combat.RESULT_KO.get(raid.get("result") or ""),
+        "line": raid.get("line"),
+        "outside": list(st.get("outside") or []),
+        # 접촉 전 미리보기(실루엣 단계부터). 숫자보다 "무엇이 모자란지"를 먼저 말한다
+        "eye_early": ({"name": eye_who["name"], "eye": eye,
+                       "ko": eye_who["name"] + "의 눈이 밝다 — 소리만 듣고 어느 창인지 안다."} if early else None),
+        "ready": None if quiet else {
+            "gate": preview["gate"], "score": preview["score"], "need": preview["need"],
+            "would": preview["result"], "would_ko": combat.RESULT_KO[preview["result"]],
+            "parts": preview["parts"],
+        },
+    }
+
+
+def workshop_hands(st: dict):
+    """공방에 **서 있는 사람** 중 가장 좋은 손. 아무도 없으면 (0, None) — 도구는 손이 만든다."""
+    slots = [r["slot"] for r in live_rooms(st) if r["id"] == "workshop"]
+    smap = stations_map(st)
+    who = []
+    for sl in slots:
+        who += smap.get(int(sl), [])
+    return best_stat(who, "hand")
+
+
+def craft_cost(st: dict, tool_id: str):
+    """제작 재료. **손**이 좋으면 하나를 아끼고 서툴면 하나가 더 든다(RESIDENT_STATS §4).
+    난수가 아니라 사람이 바꾸는 값이다 — 같은 사람이 만들면 늘 같은 값(D6)."""
+    cost = dict(combat.TOOLS[tool_id]["cost"])
+    hand, who = workshop_hands(st)
+    note = None
+    if who:
+        big = max(cost, key=lambda k: cost[k])
+        ko = RES_KO_SRV.get(big, big)
+        if hand >= HAND_GOOD:
+            cost[big] = max(1, cost[big] - 1)
+            note = {"name": who["name"], "hand": hand, "ko": who["name"] + "의 손이 " + ko + " 하나를 아꼈다"}
+        elif hand <= HAND_POOR:
+            cost[big] = cost[big] + 1
+            note = {"name": who["name"], "hand": hand, "ko": who["name"] + "의 손이 서툴러 " + ko + " 하나가 더 든다"}
+        else:
+            note = {"name": who["name"], "hand": hand, "ko": who["name"] + "이(가) 공방에 있다"}
+    return cost, note
+
+
+def tool_public(st: dict) -> dict:
+    """공방·도구 상태. 제작 가능 여부와 **손 보정까지** 서버가 판단해 내려 준다(화면은 계산하지 않는다)."""
+    have = st.get("resources", {})
+    has_workshop = any(r["id"] == "workshop" for r in live_rooms(st))
+    hand, who = workshop_hands(st)
+    rows = []
+    for tid, t in combat.TOOLS.items():
+        cost, note = craft_cost(st, tid)
+        lack = {k: v - have.get(k, 0) for k, v in cost.items() if have.get(k, 0) < v}
+        rows.append({"id": tid, "name": t["name"], "kind": t["kind"], "does": t["does"],
+                     "against": [combat.CREATURES[c]["name"] for c in t["against"]],
+                     "cost": cost, "base_cost": t["cost"], "lacking": lack, "hands": note,
+                     "can_craft": bool(has_workshop and not lack),
+                     "owned": int((st.get("tools") or {}).get(tid, 0))})
+    return {"has_workshop": has_workshop, "tools": rows,
+            "hand": {"value": hand, "name": who["name"] if who else None},
+            "installed": {k: v for k, v in (st.get("room_tools") or {}).items() if v}}
+
+
+def combat_public(st: dict) -> dict:
+    caps = {}
+    for r in st.get("rooms", []):
+        caps[str(r["slot"])] = 0 if r.get("flooded") else combat.room_cap(r["id"])
+    return {
+        "stations": {k: int(v) for k, v in (st.get("stations") or {}).items()},
+        "hall": [r["id"] for r in hall_of(st)],
+        "outside": list(st.get("outside") or []),
+        "caps": caps,
+        "lights": {str(r["slot"]): light_on(st, r["slot"]) for r in st.get("rooms", [])},
+        "power_on": bool(st.get("power_on", True)),
+        "raid": raid_public(st, st.get("raid")),
+        "raid_log": list(st.get("raid_log") or [])[-8:],
+        "next_raid_hint": st.get("next_raid_hint"),
+        "workshop": tool_public(st),
+        "creatures": {c["id"]: {"name": c["name"], "how": c["how"], "threat": c["threat"]}
+                      for c in combat.CREATURES.values()},
+    }
+
+
 def public_state(st: dict, uid: str) -> dict:
     with db() as con:
         today = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND day=?", (uid, day_of(st))).fetchone()["c"]
@@ -795,6 +1217,11 @@ def public_state(st: dict, uid: str) -> dict:
                                        "pending": bool(i.get("_pending_text"))}
                              for i in IMPRINT_LIST},
         "trust": {r["id"]: {"avg": trust_avg(r), "to": r.get("trust", {})} for r in st.get("residents_list", [])},
+        # 배치 방어(COMBAT_AND_DEFENSE.md). 배치·조명·전원·습격·공방이 전부 여기 한 덩이로 온다
+        "combat": combat_public(st),
+        "room_caps": {rid: combat.room_cap(rid) for rid in ROOMS},
+        # 스탯 사전. 화면은 숫자를 크게 쓰지 않고 점 네 줄로 그린다(RESIDENT_STATS §5)
+        "stats_meta": {"keys": list(STAT_KEYS), "ko": STAT_KO, "use": STAT_USE, "max": 10},
     }
 
 
@@ -942,6 +1369,293 @@ def build(inp: BuildIn):
     return public_state(st, inp.uid)
 
 
+# ─────────────────────────────────────────────────────────────
+# 배치 방어 API — 사람을 옮겨 습격을 막는 한 바퀴
+#   배치  POST /api/ark/station     사람을 방에 둔다(또는 홀로 되돌린다)
+#   조명  POST /api/ark/light       그 방의 불을 끈다/켠다      ← 긴목
+#   전원  POST /api/ark/power       전원을 내린다/올린다        ← 문지기
+#   귀환  POST /api/ark/recall      밖에 있는 사람을 들인다     ← 손톱 무리
+#   제작  POST /api/ark/craft       공방에서 대응 도구를 만든다
+#   설치  POST /api/ark/install     설치형 도구를 방에 붙인다
+#   습격  GET  /api/raid/today      오늘 오는 것(소리→실루엣→접촉)
+#         POST /api/raid/advance    한 단계 넘긴다. 접촉에서 판정이 난다
+# ─────────────────────────────────────────────────────────────
+class StationIn(BaseModel):
+    uid: str
+    resident_id: str
+    slot: int | None = None       # None = 홀로 되돌린다
+
+
+@app.post("/api/ark/station")
+def station(inp: StationIn):
+    st = load_state(inp.uid)
+    tick_production(st)
+    res = next((r for r in st.get("residents_list", []) if r["id"] == inp.resident_id), None)
+    if not res:
+        raise HTTPException(400, "없는 사람입니다")
+    if inp.resident_id in (st.get("outside") or []):
+        raise HTTPException(400, f"{res['name']}{combat.josa(res['name'], ('은', '는'))} 아직 밖에 있습니다")
+    if inp.slot is not None:
+        room = room_at(st, inp.slot)
+        if not room:
+            raise HTTPException(400, "그 자리에는 방이 없습니다")
+        if room.get("flooded"):
+            raise HTTPException(400, "물이 찬 방입니다. 격벽은 다시 열리지 않습니다")
+        cap = combat.room_cap(room["id"])
+        here = [p for p in stations_map(st).get(int(inp.slot), []) if p["id"] != inp.resident_id]
+        if len(here) >= cap:
+            raise HTTPException(400, f"{ROOMS[room['id']]['name']}{combat.josa(ROOMS[room['id']]['name'], ('은', '는'))} {cap}명까지입니다")
+    set_station(st, inp.resident_id, inp.slot)
+    save_state(inp.uid, st)
+    log(inp.uid, "station", {"resident": inp.resident_id, "slot": inp.slot})
+    return public_state(st, inp.uid)
+
+
+class LightIn(BaseModel):
+    uid: str
+    slot: int
+    on: bool
+
+
+@app.post("/api/ark/light")
+def set_light(inp: LightIn):
+    """불을 끄면 긴목이 떠나고, 우리도 그 방을 못 본다(§4 — 끄면 우리도 못 본다)."""
+    st = load_state(inp.uid)
+    if not room_at(st, inp.slot):
+        raise HTTPException(400, "그 자리에는 방이 없습니다")
+    st.setdefault("lights", {})[str(int(inp.slot))] = bool(inp.on)
+    save_state(inp.uid, st)
+    log(inp.uid, "light", {"slot": inp.slot, "on": inp.on})
+    return public_state(st, inp.uid)
+
+
+class PowerIn(BaseModel):
+    uid: str
+    on: bool
+
+
+@app.post("/api/ark/power")
+def set_power(inp: PowerIn):
+    """전원을 내리면 돔 전체가 조용해지고 전부 어두워진다. 문지기를 보내는 유일한 방법."""
+    st = load_state(inp.uid)
+    st["power_on"] = bool(inp.on)
+    save_state(inp.uid, st)
+    log(inp.uid, "power", {"on": inp.on})
+    return public_state(st, inp.uid)
+
+
+class UidIn(BaseModel):
+    uid: str
+
+
+@app.post("/api/ark/recall")
+def recall(inp: UidIn):
+    """밖에 있는 사람을 들인다. 에어락은 한 번에 한 사람이지만, 급할 때는 한 번에 센다."""
+    st = load_state(inp.uid)
+    had = list(st.get("outside") or [])
+    st["outside"] = []
+    save_state(inp.uid, st)
+    log(inp.uid, "recall", {"count": len(had)})
+    return {"recalled": had, "state": public_state(st, inp.uid)}
+
+
+class CraftIn(BaseModel):
+    uid: str
+    tool_id: str
+
+
+@app.post("/api/ark/craft")
+def craft(inp: CraftIn):
+    """공방에서 대응 도구를 만든다. 재료는 전부 유물 — 멸망한 문명의 쓰레기다(§5-3)."""
+    st = load_state(inp.uid)
+    tick_production(st)
+    tool = combat.TOOLS.get(inp.tool_id)
+    if not tool:
+        raise HTTPException(400, "없는 도구입니다")
+    if not any(r["id"] == "workshop" for r in live_rooms(st)):
+        raise HTTPException(400, "공방이 없습니다. 먼저 공방을 지으세요")
+    cost, hands = craft_cost(st, inp.tool_id)
+    lack = {k: v - st["resources"].get(k, 0) for k, v in cost.items() if st["resources"].get(k, 0) < v}
+    if lack:
+        raise HTTPException(400, f"재료가 부족합니다: {lack}")
+    for k, v in cost.items():
+        st["resources"][k] -= v
+    st.setdefault("tools", {})[inp.tool_id] = int(st.get("tools", {}).get(inp.tool_id, 0)) + 1
+    save_state(inp.uid, st)
+    log(inp.uid, "craft", {"tool": inp.tool_id, "hands": (hands or {}).get("hand")})
+    return {"made": {"id": inp.tool_id, "name": tool["name"], "kind": tool["kind"]},
+            "hands": hands, "cost": cost,
+            "state": public_state(st, inp.uid)}
+
+
+class InstallIn(BaseModel):
+    uid: str
+    tool_id: str
+    slot: int
+
+
+@app.post("/api/ark/install")
+def install(inp: InstallIn):
+    """설치·내구·영구 도구를 방에 붙인다. 소모품은 접촉 순간에 쓰는 것이라 설치하지 않는다."""
+    st = load_state(inp.uid)
+    tool = combat.TOOLS.get(inp.tool_id)
+    if not tool:
+        raise HTTPException(400, "없는 도구입니다")
+    if tool["kind"] not in combat.INSTALLED_KINDS:
+        raise HTTPException(400, f"{tool['name']}{combat.josa(tool['name'], ('은', '는'))} 설치하는 물건이 아닙니다")
+    if int(st.get("tools", {}).get(inp.tool_id, 0)) <= 0:
+        raise HTTPException(400, f"{tool['name']}{combat.josa(tool['name'])} 없습니다")
+    room = room_at(st, inp.slot)
+    if not room or room.get("flooded"):
+        raise HTTPException(400, "그 자리에는 붙일 방이 없습니다")
+    rows = st.setdefault("room_tools", {}).setdefault(str(int(inp.slot)), [])
+    if any(t.get("id") == inp.tool_id for t in rows):
+        raise HTTPException(400, f"{ROOMS[room['id']]['name']}에 이미 붙어 있습니다")
+    st["tools"][inp.tool_id] -= 1
+    rows.append({"id": inp.tool_id, "uses": tool.get("uses")})
+    save_state(inp.uid, st)
+    log(inp.uid, "install", {"tool": inp.tool_id, "slot": inp.slot})
+    return public_state(st, inp.uid)
+
+
+def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
+    """접촉. **방어 판정 공식은 engine/combat.evaluate 하나뿐이고 난수가 없다**(D6).
+    같은 배치 = 같은 결과, 다른 배치 = 다른 결과. 이것이 이 시스템의 합격 기준이다."""
+    cre = combat.CREATURES[raid["creature"]]
+    day = raid["day"]
+    owned = st.setdefault("tools", {})
+    use = [t for t in (consumables or []) if combat.TOOLS.get(t, {}).get("kind") in combat.CARRY_KINDS
+           and int(owned.get(t, 0)) > 0]
+    # ① 소모품의 '쓰는 즉시' 효과를 **판정 전에** 적용한다. 귀환 신호기는 부르는 물건이지 점수가 아니다
+    for t in use:
+        if combat.TOOLS[t].get("recalls") and st.get("outside"):
+            st["outside"] = []
+    ctx = raid_ctx(st, raid, use)
+    ev = combat.evaluate(cre, ctx)
+    result = ev["result"]
+    for t in use:                                   # ② 쓴 것은 없어진다
+        owned[t] = max(0, int(owned.get(t, 0)) - 1)
+    # ③ 내구 도구(긴 장대 그물)는 이번 접촉에 기여했으면 한 번 닳는다
+    rows = (st.get("room_tools") or {}).get(str(raid["target_slot"])) or []
+    worn = []
+    for row in list(rows):
+        spec = combat.TOOLS.get(row.get("id")) or {}
+        if spec.get("kind") == "durable" and combat.tool_power(row["id"], cre["id"]) > 0:
+            row["uses"] = int(row.get("uses") or 1) - 1
+            if row["uses"] <= 0:
+                rows.remove(row); worn.append(spec["name"])
+
+    room = room_at(st, raid["target_slot"])
+    room_name = ctx["room_name"]
+    line = combat.outcome_line(cre, result, room_name)
+    gained = combat.reward_for(result, raid["severity"])
+    for k, v in gained.items():
+        st["resources"][k] = max(0, st["resources"].get(k, 0) + v)
+
+    flags, hurt, lost_room = [], None, None
+    if result == combat.HELD:
+        flags = list(cre.get("hold_flags") or [])
+    elif result == combat.SCARRED and room:
+        room["cracked"] = True
+        if any(combat.TOOLS[t].get("heals_crack") for t in use):   # 봉합 패치로 그 자리에서 꿰맨다
+            room["cracked"] = False
+            line += " 봉합 패치가 그 자리를 덮었다."
+    elif result == combat.BREACHED and room:
+        # 격벽이 닫힌다. 그 방은 **사라지지 않고 물이 찬 채로 영구히 남는다**(§3-6 흔적)
+        room["flooded"] = True
+        room["cracked"] = False
+        room["flooded_day"] = day
+        room["flooded_by"] = cre["id"]
+        lost_room = ROOMS.get(room["id"], {}).get("name", room["id"])
+        for p in list(stations_map(st).get(int(raid["target_slot"]), [])):
+            set_station(st, p["id"], None)          # 살아 나온 사람은 홀로 모인다
+        (st.get("lights") or {}).pop(str(raid["target_slot"]), None)
+        (st.get("room_tools") or {}).pop(str(raid["target_slot"]), None)   # 붙어 있던 것도 함께 잠긴다
+        flags = list(cre.get("breach_flags") or [])
+        pool = [p for p in st.get("residents_list", []) if not p.get("injured")]
+        if pool:
+            pool.sort(key=lambda p: 0 if p["role"] == "kid" else 1)
+            pool[0]["injured"] = True; hurt = pool[0]["name"]
+            st["injured"] = sum(1 for x in st.get("residents_list", []) if x.get("injured"))
+
+    # ④ 각인: 그 방에서 **겪은 사람**만 변한다(GROWTH_AND_MYTH §1). 배치가 곧 참여자다
+    here = [p for p in stations_map(st).get(int(raid["target_slot"]), [])][:MAX_PARTICIPANTS] \
+        or hall_of(st)[:1]
+    new_imprints = grant_imprints(st, None, flags, here) if flags else []
+
+    hint = None
+    if not cre["threat"]:
+        # 문어는 위협이 아니라 **다음을 미리 알린다**(§4). 말은 하지 않는다 — 알리는 것은 행동이다
+        nxt = combat.pick_creature(uid, day + 1)
+        hint = {"day": day + 1, "creature": nxt["id"] if nxt else None,
+                "name": nxt["name"] if nxt else None,
+                "how": nxt["how"] if nxt else None,
+                "ko": (f"문어가 창 쪽에 붙어 떨어지지 않는다. 내일 {nxt['name']}{combat.josa(nxt['name'])} 온다."
+                       if nxt else "문어가 창 쪽을 보다가 자리로 돌아간다. 내일은 조용하다.")}
+        st["next_raid_hint"] = hint
+    elif st.get("next_raid_hint", {}) and (st.get("next_raid_hint") or {}).get("day") == day:
+        st["next_raid_hint"] = None                 # 예고한 날이 지나갔다
+
+    bump_trust(st, TRUST_ON_COUNTER if result in (combat.HELD, combat.PASSED) else TRUST_ON_FAIL)
+    raid.update({"stage": "done", "resolved": True, "result": result, "line": line,
+                 "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
+                 "gate_ok": ev["gate"]["ok"], "used": use, "ended": time.time()})
+    archive_raid(st, raid)
+    log(uid, "raid_resolved", {"raid": raid["id"], "creature": cre["id"], "result": result,
+                               "slot": raid["target_slot"], "score": ev["score"], "need": ev["need"],
+                               "gate": ev["gate"]["ok"], "used": use})
+    return {"result": result, "result_ko": combat.RESULT_KO[result], "line": line,
+            "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
+            "gate": ev["gate"], "parts": ev["parts"], "used": use, "worn_out": worn,
+            "gained": gained, "injured": hurt, "lost_room": lost_room,
+            "new_imprints": new_imprints, "next_raid_hint": hint,
+            "voice": voice_for("event_counter" if result in (combat.HELD, combat.PASSED) else "event_fail",
+                               f"{uid}|{day}|raid", act=int(st.get("act") or 1))}
+
+
+@app.get("/api/raid/today")
+def raid_today(uid: str,
+               debug_raid: str | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 습격을 이 생물로 강제한다(swarm/longneck/warden/claws/octopus). RELIC_DEV=1 에서만."),
+               debug_reset: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 습격을 처음 단계로 되돌린다. 같은 습격을 다른 배치로 다시 돌려 보기 위한 훅. RELIC_DEV=1 에서만.")):
+    st = load_state(uid)
+    tick_production(st)
+    if (debug_raid or debug_reset) and not DEV_MODE:
+        raise HTTPException(404, "없는 질의입니다")       # 존재를 알리지 않는다(DECISIONS 2026-09-23)
+    if debug_raid and debug_raid not in combat.CREATURES:
+        raise HTTPException(400, f"없는 생물입니다: {debug_raid}")
+    ensure_raid(st, uid, force=debug_raid, reset=bool(debug_reset))
+    save_state(uid, st)
+    out = combat_public(st)
+    return {"raid": out["raid"], "day": day_of(st), "outside": out["outside"],
+            "next_raid_hint": out["next_raid_hint"], "state": public_state(st, uid)}
+
+
+class RaidStepIn(BaseModel):
+    uid: str
+    use: list[str] | None = None          # 접촉 순간에 쓸 소모품
+
+
+@app.post("/api/raid/advance")
+def raid_advance(inp: RaidStepIn):
+    """한 단계 넘긴다. **시계는 없다**(§6-2·§9 준비 단계 권장안) — 플레이어가 누를 때만 다가온다.
+    실루엣 단계에서 배치를 얼마든지 바꿔도 되고, 바꾸는 동안 아무 일도 일어나지 않는다."""
+    st = load_state(inp.uid)
+    raid = st.get("raid")
+    if not raid or raid.get("none") or raid.get("day") != day_of(st):
+        raise HTTPException(400, "오늘 오는 것이 없습니다")
+    if raid.get("resolved"):
+        raise HTTPException(400, "오늘의 습격은 이미 지나갔습니다")
+    if raid["stage"] == "sound":
+        raid["stage"] = "silhouette"
+        save_state(inp.uid, st)
+        return {"stage": "silhouette", "raid": raid_public(st, raid), "state": public_state(st, inp.uid)}
+    out = resolve_raid(st, inp.uid, raid, inp.use or [])
+    save_state(inp.uid, st)
+    out["raid"] = raid_public(st, raid)
+    out["state"] = public_state(st, inp.uid)
+    return out
+
+
 ONCE_PREFIXES = ("tribe_",)      # 한 방주에서 한 번만 나오는 카드 (부족 첫 접촉)
 
 
@@ -985,7 +1699,7 @@ def event_today(uid: str, debug_force_event: str | None = Query(None, descriptio
         save_state(uid, st)
         log(uid, "event_shown", {"event": ev["id"], "day": day})
     ev = EVENTS[te["event_id"]]
-    room_ids = [r["id"] for r in st["rooms"]]
+    room_ids = [r["id"] for r in st["rooms"] if not r.get("flooded")]   # 잃은 방은 사건도 못 막는다
     matching = [c["id"] for c in st["hand"] if set(c.get("tags", [])) & set(ev["counter_tags"])]
     return {"event": ev, "state": te, "matching_card_ids": matching,
             "act": int(st.get("act") or 1), "event_acts": acts_of(ev),
@@ -1004,7 +1718,7 @@ def event_resolve(inp: ResolveIn):
     if not te or te["resolved"]:
         raise HTTPException(400, "처리할 사건이 없습니다")
     ev = EVENTS[te["event_id"]]
-    room_ids = [r["id"] for r in st["rooms"]]
+    room_ids = [r["id"] for r in st["rooms"] if not r.get("flooded")]   # 잃은 방은 사건도 못 막는다
     countered = False
     how = "none"
     used = None
@@ -1040,7 +1754,8 @@ def event_resolve(inp: ResolveIn):
         taken = {r["name"] for r in st.get("residents_list", [])}
         have = {r["role"] for r in st.get("residents_list", [])}
         pool = [r for r in ROLE_IDS if r not in have] or ROLE_IDS
-        newcomer = make_resident(rng.choice(pool), rng, taken)
+        newcomer = make_resident(rng.choice(pool), rng, taken, inp.uid)
+        ensure_stats(inp.uid, newcomer)
         st.setdefault("residents_list", []).append(newcomer); applied["newcomer"] = newcomer
     st["residents"] = len(st.get("residents_list", [])) or ark.residents
     st["injured"] = sum(1 for x in st.get("residents_list", []) if x.get("injured"))
@@ -1056,7 +1771,7 @@ def event_resolve(inp: ResolveIn):
     if applied.get("spot_clue"):
         ev_flags.append("healing_spot_found")     # 힐링 스팟 단서를 얻은 날 → 「물의 기억」
     seed = f"{inp.uid}|{te['day']}"
-    participants = event_participants(roster, ev, seed, how, used, hero, pre_injured)
+    participants = event_participants(roster, ev, seed, how, used, hero, pre_injured, station_room_ids(st))
     new_imprints = grant_imprints(st, ev, ev_flags, participants)
     if applied.get("injured"):
         # 상실: 곁의 누군가가 다치는 것을 처음 본 사람에게 「빈 자리」 — 목격자는 한 명

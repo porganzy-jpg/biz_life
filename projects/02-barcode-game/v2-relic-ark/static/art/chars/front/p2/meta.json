@@ -50,11 +50,85 @@
   "hurt": 2.0,
   "back_walk": 0.8
  },
- "sheet": "static/art/chars/front/p2/<role>.png  (x4, 셀 256, 발 기준선 240)",
- "source": "static/art/chars/front/p2/src/<role>.png  (x1, 셀 64, 발 기준선 60)",
- "tint_mask": "static/art/chars/front/p2/masks/<role>.png  (x1, L8)",
- "imprint_layer": "static/art/chars/front/p2/imprints/<id>.png (어른 8역할 공용, x1) · imprints/kid/<id>.png (아이 전용). 같은 셀·같은 자리에 알파 합성. 기본은 전부 꺼짐",
+ "sheet": "static/art/chars/front/p2/<role>.png  (체형 A, x4, 셀 256, 발 기준선 240)",
+ "sheet_b": "static/art/chars/front/p2/<role>_b.png  (체형 B, 같은 규약)",
+ "source": "static/art/chars/front/p2/src/<role>[_b].png  (x1, 셀 64, 발 기준선 60)",
+ "tint_mask": "static/art/chars/front/p2/masks/<role>[_b].png  (x1, L8)",
+ "imprint_layer": "static/art/chars/front/p2/imprints/<id>.png (어른 체형 A) · imprints/b/ (어른 체형 B) · imprints/kid/ (아이 A) · imprints/kid_b/ (아이 B). 같은 셀·같은 자리에 알파 합성. 기본은 전부 꺼짐",
  "octopus": "static/art/chars/front/p2/octopus.png  (x4, 4칸: idle f0~2 + wrap)",
+ "bodies": {
+  "a": {
+   "ko": "체형 A",
+   "note": "어깨가 넓고 허리선이 곧다 (S8에서 만든 것 그대로)",
+   "sheet_suffix": ""
+  },
+  "b": {
+   "ko": "체형 B",
+   "note": "어깨가 1px 좁고 허리가 들어간다",
+   "sheet_suffix": "_b"
+  }
+ },
+ "body_rule": "역할과 체형은 독립이다(어느 역할에나 어느 체형이든). 체형을 색으로 표시하지 않는다. 키·발 기준선·머리 크기·얼굴 자리는 체형과 무관하게 같다.",
+ "hair": [
+  {
+   "id": "short",
+   "ko": "짧은머리",
+   "note": "정수리 띠만",
+   "layer": "hair/<role>_<body>/short.png"
+  },
+  {
+   "id": "tied",
+   "ko": "묶은머리",
+   "note": "오른쪽 투구 테 아래 매듭 + 짧은 꽁지",
+   "layer": "hair/<role>_<body>/tied.png"
+  },
+  {
+   "id": "long",
+   "ko": "긴머리",
+   "note": "양쪽 어깨 앞으로 내린 두 갈래",
+   "layer": "hair/<role>_<body>/long.png"
+  },
+  {
+   "id": "braid",
+   "ko": "땋은머리",
+   "note": "왼쪽 어깨 바깥으로 내린 세 마디 땋음",
+   "layer": "hair/<role>_<body>/braid.png"
+  },
+  {
+   "id": "curly",
+   "ko": "곱슬",
+   "note": "정수리 띠가 울퉁불퉁 + 관자놀이 곱슬 두 점",
+   "layer": "hair/<role>_<body>/curly.png"
+  },
+  {
+   "id": "scarf",
+   "ko": "민머리+두건",
+   "note": "정수리 띠 자리를 천이 대신하고 왼쪽에 매듭",
+   "layer": "hair/<role>_<body>/scarf.png"
+  }
+ ],
+ "faces": [
+  {
+   "id": "f0",
+   "ko": "얼굴 ①",
+   "note": "둥근 눈 · 곧은 눈썹 · 넓은 미소",
+   "layer": "faces/<role>_<body>/f0.png"
+  },
+  {
+   "id": "f1",
+   "ko": "얼굴 ②",
+   "note": "좁은 눈 · 올라간 눈썹 · 작은 입 · 주근깨",
+   "layer": "faces/<role>_<body>/f1.png"
+  },
+  {
+   "id": "f2",
+   "ko": "얼굴 ③",
+   "note": "넓게 벌어진 눈 · 안쪽이 내려온 눈썹",
+   "layer": "faces/<role>_<body>/f2.png"
+  }
+ ],
+ "layer_rule": "머리·얼굴 레이어는 **기본 시트(short + f0)와의 차이만 담은 투명 패치**다. src/<role>[_b].png 위에 같은 자리로 알파 합성하면 그 조합이 된다(생성기가 전수 검증). x1만 낸다 — x4가 필요하면 NEAREST로 정수 확대한다. 머리는 투구 테 아래에서만 바뀌므로 「머리에 쓴 것 = 역할」 규칙을 흐리지 않는다.",
+ "variation_recipe": "머리·얼굴·체형은 역할과 무관하게 뽑는다. 시드는 uid + 주민 id (같은 입력이면 같은 사람 — D6). 생성기의 pick_look()이 같은 꼴의 FNV 해시를 쓴다.",
  "roles": {
   "scout": {
    "ko": "정찰병",
@@ -67,7 +141,9 @@
    "head_top_y": 16,
    "foot_y": 59,
    "with_hat_top_y": 11,
-   "with_hat_px": 49
+   "with_hat_px": 49,
+   "shoulder_w_px": 17,
+   "sheet": "scout.png"
   },
   "cook": {
    "ko": "요리사",
@@ -80,7 +156,9 @@
    "head_top_y": 16,
    "foot_y": 59,
    "with_hat_top_y": 9,
-   "with_hat_px": 51
+   "with_hat_px": 51,
+   "shoulder_w_px": 17,
+   "sheet": "cook.png"
   },
   "medic": {
    "ko": "의무병",
@@ -93,7 +171,9 @@
    "head_top_y": 16,
    "foot_y": 59,
    "with_hat_top_y": 15,
-   "with_hat_px": 45
+   "with_hat_px": 45,
+   "shoulder_w_px": 17,
+   "sheet": "medic.png"
   },
   "engineer": {
    "ko": "기술자",
@@ -106,7 +186,9 @@
    "head_top_y": 16,
    "foot_y": 59,
    "with_hat_top_y": 13,
-   "with_hat_px": 47
+   "with_hat_px": 47,
+   "shoulder_w_px": 17,
+   "sheet": "engineer.png"
   },
   "farmer": {
    "ko": "농부",
@@ -119,7 +201,9 @@
    "head_top_y": 16,
    "foot_y": 59,
    "with_hat_top_y": 14,
-   "with_hat_px": 46
+   "with_hat_px": 46,
+   "shoulder_w_px": 17,
+   "sheet": "farmer.png"
   },
   "scholar": {
    "ko": "학자",
@@ -132,7 +216,9 @@
    "head_top_y": 16,
    "foot_y": 59,
    "with_hat_top_y": 13,
-   "with_hat_px": 47
+   "with_hat_px": 47,
+   "shoulder_w_px": 17,
+   "sheet": "scholar.png"
   },
   "trader": {
    "ko": "교섭가",
@@ -144,8 +230,10 @@
    "bare_head_m": 1.6,
    "head_top_y": 16,
    "foot_y": 59,
-   "with_hat_top_y": 12,
-   "with_hat_px": 48
+   "with_hat_top_y": 11,
+   "with_hat_px": 49,
+   "shoulder_w_px": 17,
+   "sheet": "trader.png"
   },
   "kid": {
    "ko": "아이",
@@ -158,7 +246,131 @@
    "head_top_y": 27,
    "foot_y": 59,
    "with_hat_top_y": 24,
-   "with_hat_px": 36
+   "with_hat_px": 36,
+   "shoulder_w_px": 14,
+   "sheet": "kid.png"
+  }
+ },
+ "roles_b": {
+  "scout": {
+   "ko": "정찰병",
+   "sig_head": "뾰족 꼭지가 달린 올리브 후드 + 뒤 꼬리",
+   "sig_coat": "올리브 조끼",
+   "sig_hand": "짧은 망원경",
+   "color": "#606E48",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 11,
+   "with_hat_px": 49,
+   "shoulder_w_px": 15,
+   "sheet": "scout_b.png"
+  },
+  "cook": {
+   "ko": "요리사",
+   "sig_head": "키 큰 천 모자",
+   "sig_coat": "번트오렌지 앞치마",
+   "sig_hand": "국자",
+   "color": "#CE7A38",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 9,
+   "with_hat_px": 51,
+   "shoulder_w_px": 15,
+   "sheet": "cook_b.png"
+  },
+  "medic": {
+   "ko": "의무병",
+   "sig_head": "머릿수건 + 뒤 꼬리",
+   "sig_coat": "크림 가운 + 적갈 완장",
+   "sig_hand": "약 가방",
+   "color": "#E4D8BC",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 15,
+   "with_hat_px": 45,
+   "shoulder_w_px": 15,
+   "sheet": "medic_b.png"
+  },
+  "engineer": {
+   "ko": "기술자",
+   "sig_head": "이마 위로 올린 넓은 용접 고글(물빛 렌즈)",
+   "sig_coat": "숯회색 작업복",
+   "sig_hand": "렌치",
+   "color": "#585248",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 13,
+   "with_hat_px": 47,
+   "shoulder_w_px": 15,
+   "sheet": "engineer_b.png"
+  },
+  "farmer": {
+   "ko": "농부",
+   "sig_head": "넓은 밀짚 챙",
+   "sig_coat": "황토 작업복",
+   "sig_hand": "물뿌리개",
+   "color": "#988042",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 14,
+   "with_hat_px": 46,
+   "shoulder_w_px": 15,
+   "sheet": "farmer_b.png"
+  },
+  "scholar": {
+   "ko": "학자",
+   "sig_head": "각진 납작 모자 + 깨진 안경",
+   "sig_coat": "자줏빛 긴 외투",
+   "sig_hand": "책",
+   "color": "#80667C",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 13,
+   "with_hat_px": 47,
+   "shoulder_w_px": 15,
+   "sheet": "scholar_b.png"
+  },
+  "trader": {
+   "ko": "교섭가",
+   "sig_head": "둥근 챙모자 + 목도리",
+   "sig_coat": "적갈 코트",
+   "sig_hand": "손저울",
+   "color": "#A05842",
+   "bare_head_px": 44,
+   "bare_head_m": 1.6,
+   "head_top_y": 16,
+   "foot_y": 59,
+   "with_hat_top_y": 11,
+   "with_hat_px": 49,
+   "shoulder_w_px": 15,
+   "sheet": "trader_b.png"
+  },
+  "kid": {
+   "ko": "아이",
+   "sig_head": "작은 우비 후드",
+   "sig_coat": "노란 우비",
+   "sig_hand": "작은 등불",
+   "color": "#E2B74C",
+   "bare_head_px": 33,
+   "bare_head_m": 1.2,
+   "head_top_y": 27,
+   "foot_y": 59,
+   "with_hat_top_y": 24,
+   "with_hat_px": 36,
+   "shoulder_w_px": 12,
+   "sheet": "kid_b.png"
   }
  },
  "imprints": [
@@ -166,75 +378,88 @@
    "id": "spore_mark",
    "ko": "포자의 표식",
    "part": "목덜미 왼쪽",
-   "color": "녹색"
+   "color": "녹색",
+   "on_hair": false
   },
   {
    "id": "empty_stomach",
    "ko": "빈 위장",
    "part": "허리띠 오른쪽 매듭",
-   "color": "올리브·놋쇠"
+   "color": "올리브·놋쇠",
+   "on_hair": false
   },
   {
    "id": "warden",
    "ko": "지킨 자",
    "part": "오른 광대",
-   "color": "적갈"
+   "color": "적갈",
+   "on_hair": false
   },
   {
    "id": "sun_memory",
    "ko": "햇빛의 기억",
    "part": "머리 뒤로 늘어진 베일",
-   "color": "바랜 크림"
+   "color": "바랜 크림",
+   "on_hair": false
   },
   {
    "id": "empty_seat",
    "ko": "빈 자리",
    "part": "왼 위팔",
-   "color": "숯검정"
+   "color": "숯검정",
+   "on_hair": false
   },
   {
    "id": "footprint",
    "ko": "발자국",
    "part": "가슴 중앙 목걸이",
-   "color": "흰 이빨"
+   "color": "흰 이빨",
+   "on_hair": false
   },
   {
    "id": "debt_paid",
    "ko": "갚은 자",
    "part": "오른 손목",
-   "color": "놋쇠"
+   "color": "놋쇠",
+   "on_hair": false
   },
   {
    "id": "water_memory",
    "ko": "물의 기억",
    "part": "이마 앞머리",
-   "color": "젖은 머리 + 반짝임"
+   "color": "젖은 머리 + 반짝임",
+   "on_hair": true
   },
   {
    "id": "saved_breath",
    "ko": "아낀 숨",
    "part": "오른 옷깃 호스 고리",
-   "color": "구릿빛"
+   "color": "구릿빛",
+   "on_hair": false
   },
   {
    "id": "crack_seen",
    "ko": "금을 본 자",
    "part": "왼 장갑 끝",
-   "color": "유리빛"
+   "color": "유리빛",
+   "on_hair": false
   },
   {
    "id": "depth_mark",
    "ko": "깊이의 자국",
    "part": "왼 관자놀이",
-   "color": "자줏빛"
+   "color": "자줏빛",
+   "on_hair": false
   },
   {
    "id": "knock_heard",
    "ko": "두드림을 들은 자",
    "part": "오른 관자놀이 울림쇠",
-   "color": "놋쇠 + 흰 점"
+   "color": "놋쇠 + 흰 점",
+   "on_hair": false
   }
  ],
+ "layer_checks": "생성기가 매 실행마다: ①각인×각인 ②각인×얼굴 3종 ③각인×머리 6종 (머리 위에 얹히도록 설계된 water_memory 제외) ④기본머리 덮임 ⑤기본시트+패치==변형시트 를 전수 검사한다.",
  "rules_2_5d": {
   "1_integer_scale": "정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지",
   "2_lamp_tint": "masks/<role>.png 가 흰 곳만 방 등불색을 곱한다. 0인 곳(눈·외곽선·랜턴 불꽃·유리)은 건드리지 않는다. 권장식: rgb *= (1 + 0.30*(tint-1)) * (1.13 - 0.32*(y/h))",

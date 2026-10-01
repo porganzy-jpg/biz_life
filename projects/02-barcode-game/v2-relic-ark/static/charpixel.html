@@ -79,6 +79,100 @@
 <body>
 <div class="wrap">
 
+<!-- ══════════════ §체형 — 체형 2종 · 머리 6종 · 얼굴 3종 (스프린트 9-A) ══════════════ -->
+<section id="body">
+  <h1>§체형 — 같은 역할, 다른 사람<span class="badge">신규</span></h1>
+  <p class="sub">2026-10-01 · 사용자 지시 <b>“여성 캐릭터도 좀 있어야 할 것 같다”</b>에 대한 답이다
+     (<code>docs/RESIDENT_STATS.md</code> §6이 사양서).
+     <b>체형 2종 × 머리 6종 × 얼굴 3종</b>을 넣어 <b>8역할 × 체형 2 = 16종 시트</b>를 낸다.
+     규약(셀·발 기준선·ppm·자세 7종·3열 7행)은 <b>한 자리도 바꾸지 않았다</b>.</p>
+
+  <div class="rules">
+    <b>원칙 넷 — 어기면 실패다</b>
+    <ol style="margin:8px 0 0 18px;padding:0;line-height:1.75">
+      <li><b>역할과 성별은 무관하다.</b> 어느 역할에나 어느 체형이든 온다.
+          머리·얼굴·체형은 역할을 보지 않고 <b>uid + 주민 id</b>로 뽑는다(같은 입력이면 같은 사람).</li>
+      <li><b>성별을 색으로 표시하지 않는다. 분홍 없다.</b> 팔레트는 S8의 흙색 한 벌 그대로다.</li>
+      <li>잠수복 차림이므로 차이는 <b>어깨 1px · 팔꿈치 아래 1px · 머리 · 얼굴</b>뿐이다.
+          키·발 기준선·머리 크기·얼굴 자리는 체형과 무관하게 같다.</li>
+      <li>머리 갈래는 <b>투구 테 아래</b>에서만 나온다 — 투구 위(= 역할이 사는 자리)는 건드리지 않는다.
+          그래서 체형이 바뀌어도 역할은 여전히 <b>머리에 쓴 것</b>으로 갈린다.</li>
+    </ol>
+    <table class="conv">
+      <tr><th>무엇</th><th>경로</th><th>비고</th></tr>
+      <tr><td>체형 A 시트(S8 그대로)</td><td><code>front/p2/&lt;role&gt;.png</code> · <code>src/</code> · <code>masks/</code></td>
+          <td>개발이 이미 붙이고 있는 경로. <b>건드리지 않았다</b></td></tr>
+      <tr><td>체형 B 시트(신규)</td><td><code>front/p2/&lt;role&gt;_b.png</code> · <code>src/&lt;role&gt;_b.png</code> · <code>masks/&lt;role&gt;_b.png</code></td>
+          <td>접미사 <code>_b</code> 하나만 붙으면 된다</td></tr>
+      <tr><td>머리 6종</td><td><code>front/p2/hair/&lt;role&gt;_&lt;body&gt;/&lt;id&gt;.png</code></td>
+          <td>x1 투명 패치. 기본 시트 위에 알파 합성</td></tr>
+      <tr><td>얼굴 3종</td><td><code>front/p2/faces/&lt;role&gt;_&lt;body&gt;/&lt;id&gt;.png</code></td>
+          <td>같음. 기본은 <code>short</code> + <code>f0</code>가 구워져 있다</td></tr>
+      <tr><td>각인 12종</td><td><code>imprints/</code>(A) · <code>imprints/b/</code> · <code>imprints/kid/</code> · <code>imprints/kid_b/</code></td>
+          <td>체형마다 앵커가 달라 네 벌</td></tr>
+    </table>
+    <p class="cap"><b>레이어는 “차이만 담은 패치”다.</b> 기본 시트 + 패치 = 그 조합의 시트가
+       <b>한 픽셀도 틀리지 않게</b> 되도록 생성기가 144장 전수 검사한다(현재 불일치 0건).
+       x4가 필요하면 NEAREST로 정수 확대하면 된다.</p>
+  </div>
+
+  <h2>1. 열여섯 — 한 방주에 같이 사는 사람들</h2>
+  <div class="wide">
+    <img src="art/chars/front/p2/check/crew16.png" alt="16명 한 화면" class="px1">
+    <p class="cap">8역할 × 체형 2. 머리·얼굴은 역할과 무관하게 섞었고, 자세도 섞었다(서기·걷기·일하기·들기·앉기).
+       실제 렌더 방 위 ×2, 방 등불색 틴트와 접지 그림자 적용.</p>
+  </div>
+
+  <div class="wide">
+    <h2>1-b. 배경이 낸 사람 없는 방 플레이트 위 — 진짜 합성</h2>
+    <img src="art/chars/front/p2/check/plate_rooms.png" alt="방 플레이트 합성" class="px1">
+    <p class="cap">S8에서 「사람 없는 플레이트가 없다」고 적었던 미완이 배경 S8-C에서 풀렸다.
+       <code>static/art/plates/plates_meta.json</code>의 <code>floor_y</code>(315)와
+       <code>char_scale</code>(×3)을 <b>그대로 읽어</b> 발바닥을 맞췄다 — 좌표 보정 0.
+       등불색 틴트는 각 플레이트의 등불 아래를 직접 샘플링한다.</p>
+  </div>
+
+  <h2>2. 체형 A / B — 무엇이 얼마나 다른가</h2>
+  <div class="wide">
+    <img src="art/chars/front/p2/check/bodyAB.png" alt="체형 A/B 비교" class="px1">
+    <p class="cap">몸통만 깎으면 <b>팔이 그 자리를 덮어 바깥선이 안 바뀐다</b>(폭을 재 보고 알았다).
+       그래서 체형 B는 어깨를 1px 좁히고 <b>팔꿈치 아래를 1px 안으로</b> 붙인다 —
+       어깨에서 허리로 좁아지는 선이 그때 생긴다. 겹쳐 보기의 붉은 칸이 체형 A에만 있는 픽셀이다.</p>
+  </div>
+
+  <h2>3. 머리 6종 × 얼굴 3종 — 본체와 분리된 레이어</h2>
+  <div class="wide">
+    <img src="art/chars/front/p2/check/hair6_face3.png" alt="머리 6종 얼굴 3종" class="px1">
+    <p class="cap">짧은머리 · 묶은머리 · 긴머리 · 땋은머리 · 곱슬 · 민머리+두건.
+       여섯 전부 <b>같은 정수리 띠</b>로 시작하므로 기본(short)으로 구워 낸 시트 위에 어느 머리를 얹어도
+       기본 머리가 완전히 덮인다(생성기가 증명한다).
+       얼굴은 눈 크기·간격, 눈썹 각도, 입, 주근깨만 다르다.</p>
+  </div>
+
+  <h2>4. 70px 판독 — 16명이 갈리는가, 역할이 흐려지지 않는가</h2>
+  <div class="wide">
+    <img src="art/chars/front/p2/check/row70_16_dark.png" alt="70px 16명 어두운 방" class="px1">
+    <img src="art/chars/front/p2/check/row70_16_light.png" alt="70px 16명 밝은 벽" class="px1" style="margin-top:8px">
+    <img src="art/chars/front/p2/check/silhouette70_16.png" alt="70px 16명 실루엣" class="px1" style="margin-top:8px">
+    <p class="cap">실루엣에서 <b>갈라 주는 것은 여전히 머리에 쓴 것</b>이다 — 체형은 바깥선을 1~2px만 움직인다.
+       사람의 차이(체형·머리·얼굴)는 실제 게임 크기(×3 = 132px)에서 읽히고, 70px은 역할이 버티는지 보는 시험이다.
+       <b>교섭가의 챙 한쪽을 접어 올려</b> S8에서 가장 비슷하던 의무병과 갈라 놓았다(뻗는 방향이 좌/우로 반대).</p>
+  </div>
+
+  <h2>5. 16종 걷기 — 실제 크기(×3)</h2>
+  <p class="cap">카드 안은 실제 렌더 방 위 ×3 실제 크기. 「걷기 ▶」로 그 자리에서 걷는다.</p>
+  <div class="rgrid" id="bgrid" style="margin-top:12px"></div>
+
+  <div class="wide">
+    <h2>6. 각인·자세와의 접속</h2>
+    <p class="cap">각인 12종은 체형마다 앵커가 달라 네 벌을 냈다.
+       <b>생성기가 매 실행마다 ①각인×각인 ②각인×얼굴 3종 ③각인×머리 6종 ④기본머리 덮임
+       ⑤기본시트+패치==변형시트 를 전수 검사한다 — 현재 전부 0건.</b>
+       「물의 기억」만 <b>머리 위에 얹히도록 설계된</b> 각인이라 예외이고,
+       대신 “머리 6종 모두에 실제로 얹히는가”를 거꾸로 검사한다.</p>
+  </div>
+</section>
+
 <!-- ══════════════ §확장 — P2 확정 전체 세트 (스프린트 8-A) ══════════════ -->
 <section id="ext">
   <h1>§확장 — P2 전체 등장인물<span class="badge">확정</span></h1>
@@ -223,6 +317,42 @@ P2_ROLES.forEach(([k,ko,col,head,coat,hand])=>{
      <span class="meta" style="padding:0">×3 실제 크기</span>
    </div>`;
   rg.appendChild(el);
+});
+/* ───────── §체형 — 16종(8역할 × 체형 2) ───────── */
+const BG = document.getElementById('bgrid');
+const BODY_KO = {a:'체형 A', b:'체형 B'};
+if (BG) P2_ROLES.forEach(([k,ko,col,head,coat,hand])=>{
+  ['a','b'].forEach(bd=>{
+    const name = (bd==='a') ? k : k+'_b';
+    const cell = P2_CELL*P2_K, sw = cell, sh = cell;
+    const left = Math.round(P2_PLATE_CX - sw/2);
+    const top  = P2_PLATE_FLOOR - P2_BASE*P2_K;
+    const el = document.createElement('div');
+    el.className = 'rcard';
+    el.innerHTML = `
+     <div class="stage2">
+       <div class="shadow" style="left:${P2_PLATE_CX-34}px;top:${P2_PLATE_FLOOR-5}px;
+            width:68px;height:10px"></div>
+       <div class="walker" id="bb_${name}"
+            style="left:${left}px;top:${top}px;width:${sw}px;height:${sh}px;
+                   background-image:url('art/chars/front/p2/check/walklit_${name}.png');
+                   background-size:${sw*3}px ${sh}px"></div>
+     </div>
+     <h3><span class="swatch" style="background:${col}"></span>${ko} · ${BODY_KO[bd]}</h3>
+     <div class="sig"><b>머리에 쓴 것</b> ${head}<br><b>시트</b> <code>${name}.png</code></div>
+     <div class="bar" style="padding:8px 14px 0">
+       <button data-bb="${name}">걷기 ▶</button>
+       <span class="meta" style="padding:0">×3 실제 크기</span>
+     </div>`;
+    BG.appendChild(el);
+  });
+});
+document.querySelectorAll('button[data-bb]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const el = document.getElementById('bb_'+b.dataset.bb);
+    const on = el.classList.toggle('run');
+    b.textContent = on ? '정지 ■' : '걷기 ▶';
+  });
 });
 document.querySelectorAll('button[data-p2]').forEach(b=>{
   b.addEventListener('click',()=>{
