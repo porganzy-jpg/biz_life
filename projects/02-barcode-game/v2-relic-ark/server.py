@@ -1031,15 +1031,14 @@ def tick_production(st: dict) -> dict:
     heal_extra = 0.0
     for r in live:
         spec = ROOMS.get(r["id"]) or {"name": r["id"], "produces": {}}
-        bonus = eff["room_bonus"].get(r["id"], {})
-        mul = 1.0
+        light = 1.0
         if not light_on(st, r["slot"]):
-            mul = 0.5
+            light = 0.5
             dark_rooms.append(spec["name"])
-        # S13 배치 = 생산(stakes staffing) × 금(stakes crack). 서 있는 사람 수는 **정산 순간**의 배치이고,
-        # 접촉이 있었던 틱 하나만은 접촉 순간 배치(staff_snapshot)로 센다 — 틱 평균 배율로 합친다
-        cur_m = room_mult(st, r)[0]
-        mul *= ((room_mult(st, r, snap["counts"])[0] + cur_m * (ticks - 1)) / ticks) if snap else cur_m
+        # S13 배치 = 생산(staffing) × 금(crack). S14 × 능력치(stat_production), 역할 보정은 그 방에 선 사람 것만.
+        # 서 있는 사람은 **정산 순간**의 배치이고, 접촉이 있었던 틱 하나만은 접촉 순간 배치(스냅숏의 id)로 센다
+        segs = [(w, m * light, bn) for w, m, bn in room_segments(st, r, snap, ticks, eff)]
+        mul = sum(w * m for w, m, _ in segs) / ticks if ticks else 0.0
         for k, v in room_produces(r).items():
             if k == "heal" and isinstance(v, (int, float)):
                 heal_extra += v * mul          # 의무실·물 끓이는 방 = 회복 속도(재고가 아니다)
@@ -1059,7 +1058,7 @@ def tick_production(st: dict) -> dict:
                         produced[k] = produced.get(k, 0) + made
                 continue
             if isinstance(v, (int, float)):
-                amt = int(round((v + bonus.get(k, 0)) * ticks * mul))
+                amt = int(round(sum(w * (v + bn.get(k, 0)) * m for w, m, bn in segs)))
                 if not amt:
                     continue
                 st["resources"][k] = st["resources"].get(k, 0) + amt
@@ -1597,7 +1596,12 @@ def public_state(st: dict, uid: str) -> dict:
         "combat": combat_public(st),
         "room_caps": {rid: combat.room_cap(rid) for rid in ROOMS},
         # 스탯 사전. 화면은 숫자를 크게 쓰지 않고 점 네 줄로 그린다(RESIDENT_STATS §5)
-        "stats_meta": {"keys": list(STAT_KEYS), "ko": STAT_KO, "use": STAT_USE, "max": 10},
+        "stats_meta": {"keys": list(STAT_KEYS), "ko": STAT_KO, "use": STAT_USE, "max": 10,
+                       # S14 정본 방→능력치 표(stakes stat_production.room_stat). 화면 ROOM_STAT 사본을 대신한다
+                       "room_stat": {rid: room_stat_of(rid) for rid in ROOMS if room_stat_of(rid)},
+                       "stat_production": stat_production_params()},
+        # S14 드래그 미리보기 — 서버가 미리 계산한다(화면은 게임 숫자를 계산하지 않는다, D2)
+        "move_preview": move_preview(st),
         # ── S13 이해관계·수집 (docs/API_S13.md) ─────────────────────
         "production": production_public(st),
         # 물 찬 칸(사용자 결정 2026-10-03): 다시 지을 수 있다. was_* 는 잃기 전 방(화면이 같은 방을 먼저 권할 수 있게)
@@ -1735,11 +1739,20 @@ _STAKES_SAFE = {
     "crack": {"prod_mult": 0.7, "room_base_penalty": -0.5, "repair_cost": {"cloth": 1, "med": 1}, "stacks": False},
     "lid": {"reveal_target": True, "reveal_from_stage": "silhouette"},
     "night_judge": {"hour": 21, "worst_result": "scarred", "reward_mult": 1.0},
-    "polish": {"scans_per_level": [2, 3], "value_mult": [1.0, 1.25, 1.5], "max_level": 3, "per_barcode_per_day": 1},
+    "polish": {"scans_per_level": [3, 5], "value_mult": [1.0, 1.25, 1.5], "max_level": 3, "per_barcode_per_day": 1},
     "variant": {"rate": 0.03125, "seed_rule": "barcode+isoweek"},
     "family_sets": {"pieces_required": 3, "reward": {"lore_piece": 1, "decor": 1, "morale": 2}},
     "category_lock": True,
     "spot_unlock": {"count_distinct_barcodes": True},
+    # S14 능력치 생산. 정본은 stakes.json stat_production(기획). 이 값은 파일·키가 없을 때만 쓴다(TODO 지울 것)
+    "stat_production": {
+        "room_stat": {"workshop": "hand", "generator": "hand", "storage": "hand", "pantry": "hand", "infirmary": "hand",
+                      "well": "breath", "greenhouse": "breath", "airlock": "breath", "quarters": "breath", "bath": "breath",
+                      "decoder": "eye", "library": "eye", "lounge": "eye", "hall": "eye"},
+        "center": 5, "per_point": 0.05, "min_mult": 0.85, "max_mult": 1.2,
+        "aggregate": "mean", "best_plus_others": 0.5,
+        "role_bonus_in_room_only": True, "injured_counts": False,
+    },
 }
 _STAKES_CACHE: dict = {"mtime": "unset", "data": {}}
 
@@ -1757,7 +1770,9 @@ def stakes() -> dict:
             try:
                 data = json.loads(p.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as e:
-                print(f"[stakes] stakes.json 을 읽지 못했다 → 안전값으로 돈다: {e}")
+                # 기획이 쓰는 도중이면 잠깐 깨져 있을 수 있다 → 마지막으로 읽힌 값을 지킨다(없을 때만 안전값)
+                data = _STAKES_CACHE.get("data") or {}
+                print(f"[stakes] stakes.json 을 읽지 못했다 → {'직전 값' if data else '안전값'}으로 돈다: {e}")
         else:
             print("[stakes] data/balance/stakes.json 없음 → 안전값(TODO 기획)")
         _STAKES_CACHE.update({"mtime": mtime, "data": data})
@@ -1840,8 +1855,21 @@ def staff_mult(n: int) -> float:
     return float(arr[max(0, min(int(n), len(arr) - 1))])
 
 
+def staff_people(st: dict, slot) -> list[dict]:
+    """그 방에 서 있는 사람(밖에 나간 사람 제외). stakes stat_production.injured_counts 가 거짓이면 부상자는 빠진다
+    — 머릿수(staff_mult)에서도 능력치에서도 역할 보정에서도. 전투 판정의 사람 목록과는 별개다."""
+    ppl = list(stations_map(st).get(int(slot), []))
+    if not stk("stat_production.injured_counts"):
+        ppl = [p for p in ppl if not p.get("injured")]
+    return ppl
+
+
 def staff_counts(st: dict) -> dict:
     return {str(k): len(v) for k, v in stations_map(st).items()}
+
+
+def staff_ids(st: dict) -> dict:
+    return {str(k): [p["id"] for p in v] for k, v in stations_map(st).items()}
 
 
 def staff_snapshot_active(st: dict) -> dict | None:
@@ -1854,20 +1882,192 @@ def staff_snapshot_active(st: dict) -> dict | None:
 
 
 def take_staff_snapshot(st: dict) -> None:
+    """S14: 머릿수만이 아니라 **누가** 서 있었는지(id)를 남긴다 — 능력치·역할 보정도 같은 순간 배치로 센다."""
     if stk("staffing.measure") == "contact_snapshot":
         lt = float(st.get("last_tick") or time.time())
         start = lt + int(max(0.0, time.time() - lt) // PRODUCTION_TICK_SEC) * PRODUCTION_TICK_SEC   # 지금이 든 틱
-        st["staff_snapshot"] = {"tick_start": start, "counts": staff_counts(st), "at": time.time()}
+        st["staff_snapshot"] = {"tick_start": start, "counts": staff_counts(st), "ids": staff_ids(st),
+                                "at": time.time()}
 
 
-def room_mult(st: dict, room: dict, counts: dict | None = None) -> tuple[float, dict]:
-    """그 방 생산 배율 = 일손 배율 × 금 배율. 화면 미리보기와 정산이 같은 함수를 쓴다(D2).
-    counts 를 주면 그 배치(접촉 순간 스냅숏)로 센다."""
-    n = (int(counts.get(str(room["slot"]), 0)) if counts is not None
-         else len(stations_map(st).get(int(room["slot"]), [])))
+def snapshot_people(st: dict, snap: dict | None, slot) -> list[dict] | None:
+    """스냅숏의 그 방 사람들(스탯·부상은 지금 값). 옛 스냅숏(counts 만)이거나 스냅숏이 없으면 None."""
+    if not snap or not isinstance(snap.get("ids"), dict):
+        return None
+    ids = snap["ids"].get(str(int(slot))) or []
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    ppl = [by[i] for i in ids if i in by]
+    if not stk("stat_production.injured_counts"):
+        ppl = [p for p in ppl if not p.get("injured")]
+    return ppl
+
+
+# ── S14 능력치 생산 (stakes.json stat_production) ─────────────────
+#   stat_mult = clamp(1 + per_point × A, min_mult, max_mult), d_i = (그 사람의 방 능력치) − center
+#     aggregate "mean"       : A = 평균(d_i)
+#     aggregate "sum_excess" : A = 합(d_i)
+#     aggregate "best_plus"  : A = 최대(d_i) + best_plus_others × 합(나머지 사람의 max(0, d_i))
+#   사람이 없으면 1.0(빈 방 값은 staff_mult[0] 이 이미 낸다).
+def stat_production_params() -> dict:
+    sp = stk("stat_production") or {}
+    d = _STAKES_SAFE["stat_production"]
+    return {k: (sp.get(k) if sp.get(k) is not None else d.get(k))
+            for k in ("center", "per_point", "min_mult", "max_mult", "aggregate", "best_plus_others",
+                      "role_bonus_in_room_only", "injured_counts")}
+
+
+def room_stat_of(rid: str) -> str | None:
+    v = (stk("stat_production.room_stat") or {}).get(rid)
+    return v if v in STAT_KEYS else None
+
+
+def stat_factor(people: list[dict], stat: str | None) -> tuple[float, list[dict]]:
+    if not people or not stat:
+        return 1.0, [{"id": p["id"], "name": p.get("name"), "stat": stat, "value": None, "d": 0, "v": 0.0}
+                     for p in people]
+    g = stat_production_params()
+    center, pp = float(g["center"]), float(g["per_point"])
+    lo, hi = float(g["min_mult"]), float(g["max_mult"])
+    agg = str(g["aggregate"] or "mean")
+    ds = [(p, int((p.get("stats") or {}).get(stat, center)) - center) for p in people]
+    contrib: dict = {}
+    if agg == "sum_excess":
+        for p, d in ds:
+            contrib[p["id"]] = pp * d
+    elif agg == "best_plus":
+        best = max(ds, key=lambda x: x[1])[0]["id"]
+        ow = float(g["best_plus_others"] if g["best_plus_others"] is not None else 0.5)
+        for p, d in ds:
+            contrib[p["id"]] = pp * d if p["id"] == best else pp * ow * max(0.0, d)
+    else:                                              # mean
+        for p, d in ds:
+            contrib[p["id"]] = pp * d / len(ds)
+    f = max(lo, min(hi, 1.0 + sum(contrib.values())))
+    per = [{"id": p["id"], "name": p.get("name"), "stat": stat,
+            "value": int((p.get("stats") or {}).get(stat, center)), "d": d, "v": round(contrib[p["id"]], 4)}
+           for p, d in ds]
+    return round(f, 4), per
+
+
+def resident_room_bonus(r: dict) -> dict:
+    """그 사람이 가진 방 보정(역할 effects.room_bonus + 각인 effect/cost 의 room_bonus). 부상자는 없다(role_effects 와 같다)."""
+    out: dict = {}
+    if r.get("injured"):
+        return out
+    srcs = [((ROLES.get(r.get("role")) or {}).get("effects") or {}).get("room_bonus") or {}]
+    for imp_id in r.get("imprints") or []:
+        imp = IMPRINTS.get(imp_id) or {}
+        for src in (imp.get("effect") or {}, (imp.get("cost") or {}).get("effect") or {}):
+            if isinstance(src.get("room_bonus"), dict):
+                srcs.append(src["room_bonus"])
+    for rb in srcs:
+        for room, bonus in rb.items():
+            if isinstance(bonus, dict):
+                for k, v in bonus.items():
+                    if isinstance(v, (int, float)):
+                        out.setdefault(room, {})[k] = out.get(room, {}).get(k, 0) + v
+    return out
+
+
+def room_bonus_for(st: dict, room: dict, people: list[dict] | None = None, eff: dict | None = None) -> dict:
+    """그 방의 역할 보정. stakes stat_production.role_bonus_in_room_only 면 **그 방에 서 있는 사람의 것만**."""
+    if not stat_production_params()["role_bonus_in_room_only"]:
+        return dict(((eff or role_effects(st))["room_bonus"]).get(room["id"], {}))
+    ppl = staff_people(st, room["slot"]) if people is None else people
+    out: dict = {}
+    for p in ppl:
+        for k, v in (resident_room_bonus(p).get(room["id"]) or {}).items():
+            out[k] = out.get(k, 0) + v
+    return out
+
+
+def room_mult(st: dict, room: dict, counts: dict | None = None, people: list[dict] | None = None) -> tuple[float, dict]:
+    """그 방 생산 배율 = 일손 배율 × 능력치 배율 × 금 배율(불은 정산이 따로 곱한다). 미리보기와 정산이 같은 함수(D2).
+    people 을 주면 그 사람들로(접촉 순간 스냅숏). counts 만 주면 옛 스냅숏 — 능력치 1.0."""
+    if people is None and counts is not None:
+        n, sf, per = int(counts.get(str(room["slot"]), 0)), 1.0, []
+    else:
+        ppl = staff_people(st, room["slot"]) if people is None else people
+        n = len(ppl)
+        sf, per = stat_factor(ppl, room_stat_of(room["id"]))
     sm = staff_mult(n)
     cm = float(stk("crack.prod_mult")) if room.get("cracked") else 1.0
-    return sm * cm, {"staff": n, "staff_mult": sm, "cracked": bool(room.get("cracked")), "crack_mult": cm}
+    return sm * sf * cm, {"staff": n, "staff_mult": sm, "stat": room_stat_of(room["id"]), "stat_mult": sf,
+                          "per_person": per, "cracked": bool(room.get("cracked")), "crack_mult": cm}
+
+
+def room_segments(st: dict, room: dict, snap: dict | None, ticks: int, eff: dict | None = None) -> list:
+    """정산 구간 [(틱 수, 배율(불 제외), 역할 보정)]. 접촉한 틱 하나는 스냅숏 사람으로, 나머지는 지금 배치로."""
+    cur_m = room_mult(st, room)[0]
+    cur_b = room_bonus_for(st, room, eff=eff)
+    if not snap or ticks <= 0:
+        return [(ticks, cur_m, cur_b)]
+    sp = snapshot_people(st, snap, room["slot"])
+    snap_m = room_mult(st, room, counts=snap.get("counts") or {}, people=sp)[0]
+    snap_b = room_bonus_for(st, room, people=sp, eff=eff) if sp is not None else cur_b
+    segs = [(1, snap_m, snap_b)]
+    if ticks > 1:
+        segs.append((ticks - 1, cur_m, cur_b))
+    return segs
+
+
+def room_output(st: dict, room: dict, people: list[dict]) -> float:
+    """그 방의 한 틱 산출(쌓이는 자원 합 + heal·blueprint 같은 수치형 생산). 미리보기 비교용 한 숫자."""
+    m = room_mult(st, room, people=people)[0] * (1.0 if light_on(st, room["slot"]) else 0.5)
+    bn = room_bonus_for(st, room, people=people)
+    tot = 0.0
+    for k, v in room_produces(room).items():
+        if isinstance(v, (int, float)) and k not in ("power_supply", "craft_slots"):
+            tot += (v + bn.get(k, 0)) * m
+    return tot
+
+
+def move_preview(st: dict) -> dict:
+    """S14 드래그 미리보기(PM 결정: 서버가 미리 계산한다). resident_id -> slot(또는 "hall") ->
+    {room_delta_pct: 옮겨 간 방 산출 변화 %, from_delta_pct: 떠난 방 산출 변화 %}.
+    지금 배치 기준(접촉 스냅숏이 걸린 틱이라도 '다음 틱부터'의 값). 생산하는 방만 숫자가 있고, 아니면 null.
+    정원이 찬 방은 can:false. 밖에 나간 사람은 빠진다."""
+    outside = set(st.get("outside") or [])
+    rooms = [r for r in live_rooms(st)]
+    prod = {r["slot"]: bool(room_produces(r)) for r in rooms}
+    base_ppl = {r["slot"]: staff_people(st, r["slot"]) for r in rooms}
+    all_here = {r["slot"]: list(stations_map(st).get(int(r["slot"]), [])) for r in rooms}
+    base_out = {r["slot"]: room_output(st, r, base_ppl[r["slot"]]) for r in rooms if prod[r["slot"]]}
+    inj_ok = bool(stat_production_params()["injured_counts"])
+
+    def pct(new, old):
+        if old <= 0:
+            return None if new <= 0 else 100.0
+        return round((new - old) / old * 100.0, 1)
+
+    out: dict = {}
+    for p in st.get("residents_list") or []:
+        if p["id"] in outside:
+            continue
+        cur = station_slot(st, p["id"])
+        counts = (not p.get("injured")) or inj_ok          # 이 사람이 생산에 세지는가
+        row: dict = {}
+        from_room = next((r for r in rooms if r["slot"] == cur), None) if cur is not None else None
+        from_delta = None
+        if from_room is not None and prod[cur]:
+            left = [x for x in base_ppl[cur] if x["id"] != p["id"]]
+            from_delta = pct(room_output(st, from_room, left), base_out[cur]) if counts else 0.0
+        for r in rooms + [None]:
+            slot = r["slot"] if r else None
+            key = "hall" if slot is None else str(slot)
+            if slot == cur:
+                continue
+            cell = {"from_delta_pct": from_delta, "room_delta_pct": None, "can": True}
+            if r is not None:
+                cap = room_cap_of(r)
+                if len([x for x in all_here[slot] if x["id"] != p["id"]]) >= cap:
+                    cell["can"] = False
+                if prod[slot]:
+                    newp = base_ppl[slot] + ([p] if counts else [])
+                    cell["room_delta_pct"] = pct(room_output(st, r, newp), base_out[slot])
+            row[key] = cell
+        out[p["id"]] = row
+    return out
 
 
 def production_public(st: dict) -> dict:
@@ -1876,12 +2076,16 @@ def production_public(st: dict) -> dict:
         if not room_produces(r):
             continue                                  # 생산하는 방만(stakes staffing.applies_to)
         snap = staff_snapshot_active(st)
-        m, info = room_mult(st, r, snap["counts"] if snap else None)
+        sp = snapshot_people(st, snap, r["slot"]) if snap else None
+        m, info = room_mult(st, r, (snap.get("counts") or {}) if snap else None, people=sp)
         name = (ROOMS.get(r["id"]) or {}).get("name", r["id"])
-        info.update({"room_id": r["id"], "mult": round(m, 3), "snapshot": bool(snap)})
+        info.update({"room_id": r["id"], "mult": round(m, 3), "snapshot": bool(snap),
+                     "role_bonus": room_bonus_for(st, r, people=sp)})
         if snap:
             # 이번 틱은 접촉 순간 배치로 이미 정해졌다. 다음 틱부터는 지금 배치(now_mult)
-            info["now_mult"] = round(room_mult(st, r)[0], 3)
+            nm, ninfo = room_mult(st, r)
+            info["now_mult"] = round(nm, 3)
+            info["now_stat_mult"] = ninfo["stat_mult"]
         if info["staff"] == 0:
             info["label"] = moment("staffing.label")
             info["ko"] = moment("staffing.reduced", room=name)

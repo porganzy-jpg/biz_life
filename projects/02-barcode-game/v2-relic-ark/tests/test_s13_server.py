@@ -219,8 +219,15 @@ def t_staffing_and_crack():
         S.tick_production(s2)
         return {k: s2["resources"][k] - res0.get(k, 0) for k in s2["resources"] if s2["resources"][k] != res0.get(k, 0)}
 
-    bonus = S.role_effects(st)["room_bonus"].get("pantry", {})      # 역할 보정(요리사)도 같은 배율을 받는다
-    base = {k: v + bonus.get(k, 0) for k, v in S.room_produces(S.room_at(st, 2)).items() if isinstance(v, (int, float))}
+    base = {k: v for k, v in S.room_produces(S.room_at(st, 2)).items() if isinstance(v, (int, float))}
+    room = S.room_at(st, 2)
+
+    def expect(st_, k_):
+        # S14 이후: 머릿수 × 능력치(stat_production) × 그 방 사람의 역할 보정 — 정산이 미리보기 함수와 같은지 본다
+        ppl = S.staff_people(st_, 2)
+        m = S.room_mult(st_, room, people=ppl)[0]
+        bn = S.room_bonus_for(st_, room, people=ppl)
+        return int(round((base[k_] + bn.get(k_, 0)) * S.MAX_OFFLINE_TICKS * m))
     p0 = run(st)
     rid = st["residents_list"][0]["id"]
     st["stations"] = {rid: 2}
@@ -229,20 +236,26 @@ def t_staffing_and_crack():
     p3 = run(st)
     print("     base", base, "| 0명", p0, "| 1명", p1, "| 3명", p3)
     k = next(iter(base))
-    exp = lambda n: int(round(base[k] * S.MAX_OFFLINE_TICKS * sm[min(n, len(sm) - 1)]))
+    e = {}
+    for n_, ids in ((0, {}), (1, {rid: 2}), (3, {r["id"]: 2 for r in st["residents_list"]})):
+        st["stations"] = ids
+        e[n_] = expect(st, k)
+    exp = lambda n: e[n]
     ok(p0.get(k, 0) == exp(0) and p1.get(k, 0) == exp(1) and p3.get(k, 0) == exp(3),
        f"식량창고 {k}: 0명 {p0.get(k, 0)} / 1명 {p1.get(k, 0)} / 3명 {p3.get(k, 0)} = staff_mult {sm[0]}/{sm[1]}/{sm[3]}")
     st["stations"] = {rid: 2}
     st["rooms"][0]["cracked"] = True
     pc = run(st)
-    ok(pc.get(k, 0) == int(round(base[k] * S.MAX_OFFLINE_TICKS * sm[1] * cm)), f"금 간 방 {k}: {pc.get(k, 0)} (×{cm})")
+    ok(pc.get(k, 0) == expect(st, k), f"금 간 방 {k}: {pc.get(k, 0)} (×{cm})")
     # API 로: 배치하면 미리보기 배율이 바뀐다
     S.save_state(uid, S.load_state(uid))
     a = ark(uid)
     ok(a["production"]["2"]["staff"] == 0 and a["production"]["2"]["mult"] == sm[0] and a["production"]["2"]["label"],
        f"/api/ark production: 0명 mult={a['production']['2']['mult']} label={a['production']['2']['label']}")
     r = C.post("/api/ark/station", json={"uid": uid, "resident_id": rid, "slot": 2}).json()
-    ok(r["production"]["2"]["mult"] == sm[1] and "label" not in r["production"]["2"], f"배치 1명 → mult={r['production']['2']['mult']}")
+    p2 = r["production"]["2"]
+    ok(p2["staff_mult"] == sm[1] and p2["mult"] == round(sm[1] * p2["stat_mult"], 3) and "label" not in p2,
+       f"배치 1명 → staff_mult={p2['staff_mult']} × stat_mult={p2['stat_mult']} = {p2['mult']}")
 
 
 def t_repair():
@@ -498,7 +511,7 @@ def t_player_loop():
         rr = C.post("/api/ark/repair", json={"uid": uid, "slot": slot})
         ok(rr.status_code == 200, "⑥ 수리")
         prod = rr.json()["state"]["production"]
-    rid = st["residents_list"][0]["id"]
+    rid = next(r["id"] for r in st["residents_list"] if not r.get("injured"))   # 부상자는 생산에 안 셀 수 있다(S14)
     s2 = C.post("/api/ark/station", json={"uid": uid, "resident_id": rid, "slot": 3}).json()["production"]
     nm = lambda p_: p_.get("now_mult", p_["mult"])          # 접촉한 틱은 스냅숏, 다음 틱부터 지금 배치
     ok(nm(s2["3"]) > nm(prod["3"]), f"⑦ 온실에 1명 → 다음 틱 배율 {nm(prod['3'])} → {nm(s2['3'])}")
@@ -530,7 +543,7 @@ def t_contact_snapshot():
     a = ark(uid)
     other = "2" if str(tgt) == "3" else "3"
     p_t, p_o = a["production"][str(tgt)], a["production"][other]
-    ok(p_t["snapshot"] and p_t["staff"] == 3 and p_t["mult"] == sm[3], f"접촉한 틱: 대상 방 {tgt} = 3명 배율 {p_t['mult']} (지금 배치 {p_t.get('now_mult')})")
+    ok(p_t["snapshot"] and p_t["staff"] == 3 and p_t["staff_mult"] == sm[3], f"접촉한 틱: 대상 방 {tgt} = 3명 배율 {p_t['mult']} (지금 배치 {p_t.get('now_mult')})")
     ok(p_o["staff"] == 0 and p_o["mult"] == sm[0], f"접촉한 틱: 비운 방 {other} = 0명 {p_o['mult']} — 되돌려도 이번 틱 비용이 남는다")
     # 정산: 그 틱이 지나면 스냅숏으로 한 틱, 나머지는 지금 배치
     st = S.load_state(uid)

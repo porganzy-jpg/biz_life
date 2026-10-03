@@ -160,3 +160,56 @@
 
 ## 13. 저장 이전
 구버전 방주는 처음 읽을 때 자동 보강된다: 선반 물건에 `barcode`(card_id 앞부분)·`polish: 1` 을 채우고, **같은 바코드가 두 칸 이상이면 첫 칸만 남긴다**(옛 중복 칸 버그). `barcodes`(카테고리 고정)는 `scans` 표에서 첫 카테고리로 채운다. 이미 `cracked: true` 인 방은 이제 실제로 금 간 상태로 돈다.
+
+---
+
+# §S14 — 능력치가 생산을 바꾼다 (S14-A, 2026-10-03)
+
+수치 정본: `data/balance/stakes.json` 의 `stat_production`(기획). 화면은 **게임 숫자를 계산하지 않는다**(D2, PM 결정) — 드래그 미리보기도 서버가 미리 계산해 `move_preview` 로 내려 준다.
+
+## S14-1. 생산식 (서버 정산 = 미리보기 = 같은 함수)
+```
+방 산출(한 틱) = Σ_k (기본 생산[레벨][k] + 그 방에 선 사람들의 역할 보정[k])
+               × staff_mult[n] × stat_mult × (금 갔으면 crack.prod_mult) × (불 꺼짐 0.5)
+n        = 그 방에 서 있는 사람 수(밖에 나간 사람 제외; injured_counts=false 면 부상자도 제외)
+stat_mult = clamp(1 + per_point × A, min_mult, max_mult),  d_i = 그 사람의 room_stat[방] 값 − center
+   aggregate "mean": A = 평균(d_i) / "sum_excess": A = 합(d_i) / "best_plus": A = 최대 d + best_plus_others × 나머지 양수 d 합
+   사람이 없으면 1.0 (빈 방 값은 staff_mult[0])
+```
+- **역할 보정은 그 방에 선 사람 것만**(`role_bonus_in_room_only`). 예: 요리사의 식량창고 food +1 은 요리사가 식량창고에 서 있을 때만. 각인의 방 보정도 같은 규칙이다. 다른 역할 효과(건설 할인·회복 등)는 예전 그대로 어디서든.
+- 부상자(`injured_counts=false`)는 머릿수·능력치·역할 보정 어디에도 세지 않는다.
+- 담(nerve)은 생산에 쓰지 않는다(전투 전용).
+- **접촉 스냅숏**(`staffing.measure=contact_snapshot`): 접촉 순간 **누가** 서 있었는지(id)를 남긴다 — 그 틱은 머릿수·능력치·역할 보정 모두 그 사람들로 센다.
+
+## S14-2. `GET /api/ark` 추가 필드
+```json
+"stats_meta": {
+  "keys": ["hand","eye","breath","nerve"], "ko": {...}, "use": {...}, "max": 10,
+  "room_stat": {"pantry": "hand", "greenhouse": "breath", "library": "eye", "hall": "eye", "...": "..."},
+  "stat_production": {"center": 5, "per_point": 0.05, "min_mult": 0.88, "max_mult": 1.18, "aggregate": "mean",
+                      "best_plus_others": 0.5, "role_bonus_in_room_only": true, "injured_counts": false}
+},
+"production": {"3": {"room_id": "greenhouse", "staff": 1, "staff_mult": 1.0,
+                     "stat": "breath", "stat_mult": 0.88,
+                     "per_person": [{"id": "engineer-1", "name": "다올", "stat": "breath", "value": 2, "d": -3, "v": -0.15}],
+                     "role_bonus": {}, "cracked": false, "crack_mult": 1.0, "mult": 0.88, "snapshot": false}},
+"move_preview": {
+  "engineer-1": {
+    "2":    {"room_delta_pct": 136.0, "from_delta_pct": -43.2, "can": true},
+    "4":    {"room_delta_pct": null,  "from_delta_pct": -43.2, "can": true},
+    "hall": {"room_delta_pct": null,  "from_delta_pct": -43.2, "can": true}
+  }
+}
+```
+- `stats_meta.room_stat` 이 **정본**이다 — `static/base.js ROOM_STAT` 사본은 이걸로 바꿔 달라(기획이 의무실 hand·정수실 breath·홀 eye 로 바꿨다).
+- `production[slot].per_person[].v` = 그 사람이 `1 + …` 안에 더한 몫(클램프 전). `stat_mult` 는 클램프 뒤 값. 스냅숏 틱이면 `now_mult`·`now_stat_mult` 가 다음 틱 값.
+- **`move_preview[resident_id][slot | "hall"]`** — 그 사람이 거기로 옮기면:
+  - `room_delta_pct`: 옮겨 간 방의 한 틱 산출 변화 %. 쌓이는 산출이 없는 방(공방·발전실·에어락·창고·홀)은 `null`. 빈 산출에서 생기면 100.0.
+  - `from_delta_pct`: 떠나는 방의 산출 변화 %(홀에서 떠나거나 생산 없는 방이면 `null`).
+  - `can`: 정원이 차서 못 들어가면 `false`.
+  - JSON 키에 null 을 쓸 수 없어 **홀(문간·포드 포함) = `"hall"`** 이다(`POST /api/ark/station` 의 `slot: null` 과 같은 곳). 지금 서 있는 칸은 빠진다. 밖에 나간 사람은 없다.
+  - 값은 **다음 틱부터** 기준(접촉 스냅숏이 걸린 틱이라도). 배치·스탯·부상·금·불이 바뀔 때마다 `/api/ark` 와 모든 `public_state` 응답(station 등)에 새로 계산돼 온다.
+
+## S14-3. 이번에 안 한 것(후속)
+- 공방 「제작 시간 ÷ stat_mult」: 제작에 시간이 없다(즉시). 손 보정은 이미 재료 ±1(`craft_cost`)로 있다.
+- 발전실 「공급 × stat_mult」: `power_supply` 를 쓰는 전력 예산 시스템이 아직 없다. 생기면 같은 `room_mult` 를 곱하면 된다.
