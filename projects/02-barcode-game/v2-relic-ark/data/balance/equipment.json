@@ -61,11 +61,12 @@
       "ko": "등",
       "tiers": [
         {"t": 1, "id": "none",         "ko": "없음",            "mods": {}, "cost": {}, "workshop_lv": 0},
-        {"t": 2, "id": "small_tank",   "ko": "작은 공기통",      "mods": {"expedition_actions": 2},
-         "cost": {"parts": 3, "cloth": 1}, "workshop_lv": 2},
-        {"t": 3, "id": "big_tank",     "ko": "큰 공기통",        "mods": {"expedition_actions": 5, "breath": -1},
+        {"t": 2, "id": "small_tank",   "ko": "작은 공기통",      "mods": {"expedition_actions": 1},
+         "cost": {"parts": 3, "cloth": 1}, "workshop_lv": 2,
+         "_basis": "2026-10-03 +2 → +1. 원정 설계(expedition.json)에서 공기통 크기가 짧게 2·반나절 4·긴 원정 6 으로 정해졌다. +2 면 짧은 원정이 두 배가 된다. +1 은 '한 번 더 줍는다'"},
+        {"t": 3, "id": "big_tank",     "ko": "큰 공기통",        "mods": {"expedition_actions": 3, "breath": -1},
          "cost": {"parts": 5, "knowledge": 1, "cloth": 2}, "workshop_lv": 3,
-         "_basis": "원문 표의 대가를 그대로 승인. 숨 −1 은 공기 소모율이 나빠진다는 뜻이라 **+5 행동이 실제로는 +3.5 쯤**으로 체감된다"}
+         "_basis": "2026-10-03 +5 → +3. 긴 원정(6)에 +5 면 거의 두 배라 원정 수입이 스캔을 넘보게 된다(sim_expedition). 숨 −1 은 숨 보너스 floor((숨−5)/2) 를 홀수 숨에서 한 칸 깎는다 — 그래서 +3 이 실제로는 +2~3 으로 체감된다. 대가 규칙은 그대로 지킨다"}
       ]
     }
   },
