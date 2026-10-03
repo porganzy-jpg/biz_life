@@ -59,6 +59,16 @@ ABYSS = dict(x=TOWER_X1 + 40, y=380, w=W - (TOWER_X1 + 40), h=H - 380)
 LURE = dict(x=4820, y=1520)                                  # 유인 등불(철골 끝에 매달림)
 GIRDER = [(TOWER_X1 - 40, 1120), (4280, 860), (4820, 900)]
 
+# S12-F 입구(에어락 포드) — 돔 오른쪽 끝에 덧붙인 가압 포드. 서버 칸이 아니라 홀의 일부다.
+# 철골 뿌리(3480,1120)는 포드 뒤로 숨고, 포드 오른벽(y≈945)에서 심연으로 뻗어 나간다(포드에 박힌 크레인 팔).
+POD = dict(x0=3372, x1=4020, y0=820, floor_y=ROOF_Y, y1=ROOF_Y + 26, wall=24)
+POD_IN = dict(x=POD["x0"] + POD["wall"], y=POD["y0"] + 32, w=(POD["x1"] - POD["wall"]) - (POD["x0"] + POD["wall"]),
+              h=ROOF_Y - (POD["y0"] + 32))                     # 대기 공간 안쪽 = (3396, 852, 600, 308)
+INNER_DOOR = dict(x=POD["x0"] + POD["wall"] // 2, y0=1004, y1=ROOF_Y)   # 홀 ↔ 포드 문(돔 유리 밑단)
+HATCH = dict(x=POD["x1"] - POD["wall"] // 2, y0=1004, y1=ROOF_Y)        # 바깥 해치(오른벽)
+PLATFORM = dict(x0=POD["x1"], x1=4210, y=ROOF_Y)               # 해치 밖 격자 발판
+LADDER = dict(x=4160, y0=ROOF_Y + 14, y1=1480)                 # 발판에서 물속으로 내려가는 사다리
+
 
 def build():
     cells = []
@@ -115,6 +125,30 @@ def build():
         "dome_glass": DOME_GLASS,
         "abyss": dict(ABYSS, note="열린 심연. 위협은 오른쪽 끝(x=W)에서 들어와 탑 오른 외벽(x=tower.x1) 쪽으로 다가온다"),
         "lure_lamp": dict(LURE, girder=[list(p) for p in GIRDER]),
+        "entrance": {
+            "_note": "S12-F 입구 = 에어락 포드. 서버 칸이 아니다(홀의 일부). 바깥 사람이 들어오고, 탐사대가 나가고 돌아오고, 배치 안 된 주민이 여기서 기다리며 소소한 일을 한다",
+            "pod": POD,
+            "waiting_area": dict(POD_IN, floor_y=ROOF_Y),
+            "spots": [
+                {"id": "e0", "x": 3436, "floor_y": ROOF_Y, "pose": "lean_wall", "face": 1, "note": "안쪽 문 옆 벽 쪽지 앞"},
+                {"id": "e1", "x": 3524, "floor_y": ROOF_Y, "pose": "sit_bench", "face": 1, "seat_y": 1118},
+                {"id": "e2", "x": 3616, "floor_y": ROOF_Y, "pose": "sit_bench", "face": -1, "seat_y": 1118},
+                {"id": "e3", "x": 3708, "floor_y": ROOF_Y, "pose": "window", "face": 1, "note": "둥근 창(3708, 960)으로 바깥을 본다(등을 보여도 된다)"},
+                {"id": "e4", "x": 3800, "floor_y": ROOF_Y, "pose": "gear_rack", "face": 1, "note": "오른쪽 장비 걸이(3830~3930)의 잠수복 손질"},
+                {"id": "e5", "x": 3952, "floor_y": ROOF_Y, "pose": "lean_wall", "face": 1, "note": "해치 옆 공기통 앞 — 탐사대를 기다린다"},
+            ],
+            "inner_door": INNER_DOOR,
+            "hatch": HATCH,
+            "platform": PLATFORM,
+            "ladder": LADDER,
+            "swim_out": [[HATCH["x"], ROOF_Y], [4110, ROOF_Y], [LADDER["x"], 1200], [LADDER["x"], 1460], [4300, 1600], [4700, 1780], [5300, 1900], [5650, 1950]],
+            "swim_back": [[5650, 1300], [5200, 1260], [4600, 1250], [4300, 1320], [LADDER["x"], 1420], [LADDER["x"], 1200], [4110, ROOF_Y], [HATCH["x"], ROOF_Y]],
+            "arrival": [[5650, 1380], [4900, 1400], [4450, 1330], [LADDER["x"], 1400], [LADDER["x"], 1200], [4110, ROOF_Y], [HATCH["x"], ROOF_Y], [3800, ROOF_Y]],
+            "path_note": "x 가 POD x1(4020)보다 크면 물속 = 헤엄(잠수복). 사다리 구간(x=4160, y 1200~1460)은 오르내림. 해치 통과 때 해치 열림 → 물방울 스프라이트",
+            "hall_link": {"floor_y": ROOF_Y, "nodes": [[2665, ROOF_Y], [3130, ROOF_Y], [INNER_DOOR["x"], ROOF_Y], [3436, ROOF_Y]],
+                          "elevator_stops": [{"shaft": "A", "x": 1919, "door_y": ROOF_Y}, {"shaft": "B", "x": 2665, "door_y": ROOF_Y}],
+                          "note": "홀 발선(1160) 그대로 걸어서 이어진다. 승강로 B 홀 정류장에서 안쪽 문까지 727px(8.8 m). A 에서는 1473px"},
+        },
         "cliff": {"top_y": CLIFF_TOP_Y, "bottom_y": CLIFF_BOTTOM_Y, "x1_at_tower": TOWER_X0,
                   "note": "절벽 꼭대기 턱은 왼쪽 위에 보인다. 절벽은 해구 문턱 바로 아래에서 끝나고 탑만 더 내려간다"},
         "depth": {"depth_per_floor_m": DEPTH_PER_FLOOR, "px_per_depth_m": round(M2PX, 4),

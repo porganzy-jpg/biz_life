@@ -22,7 +22,7 @@ ART = os.path.join(ROOT, "static", "art")
 os.makedirs(RAW, exist_ok=True); os.makedirs(DST, exist_ok=True)
 
 W, H, PPM = LY.W, LY.H, LY.PPM
-PASSES = ["cliff", "tower", "glass", "shaft", "car", "front"]
+PASSES = ["cliff", "tower", "glass", "shaft", "car", "front", "ent_back", "hatch_closed", "hatch_open"]
 CAR_RECT = (200, 3000, 338, 3190)             # 승강기 칸을 렌더하는 빈 자리(세계 px). 렌더 뒤 잘라 낸다
 SHAFT_SPR_PAD = 10
 
@@ -381,6 +381,107 @@ def _blender():
     for i, (x, y) in enumerate([(0, H - 120), (5380, H - 140)]):
         poly(f"frock{i}", ellipse(x + 110, y + 160, 260, 170, 20, 0, math.pi), 0.25, mat("frock", ["#06090A", "#0C1012"], [0, 0.7]), j=12, seed=1100 + i, step=30)
 
+    # ─────────────── S12-F 입구(에어락 포드) ───────────────
+    cur["pass"] = "ent_back"
+    PO, PI, ID, HT, PF, LD = LY.POD, LY.POD_IN, LY.INNER_DOOR, LY.HATCH, LY.PLATFORM, LY.LADDER
+    hull = mat("hull", ["#3A2A20", "#56382A", "#6E4A34", "#86603F"], [0, 0.3, 0.62, 0.88], noise=0.04)
+    x0p, x1p, y0p, y1p = PO["x0"], PO["x1"], PO["y0"], PO["y1"]
+    rad = 70
+    outer = [(x0p, y1p), (x0p, y0p)]
+    outer += [(x1p - rad + rad * math.sin(a * math.pi / 16), y0p + rad - rad * math.cos(a * math.pi / 16)) for a in range(9)]
+    outer += [(x1p, y1p - 30), (x1p - 30, y1p)]
+    poly("pod_hull", outer, 0.42, hull, j=2, seed=301, step=24)
+    for k in range(9):                                            # 리벳 띠
+        rx = x0p + 40 + k * 52
+        poly(f"rivet{k}", ellipse(rx, y0p + 14, 4, 4, 8), 0.41, mat("rivet", ["#A08060"]), line=False)
+    inner_m = mat("podin", ["#2A1E16", "#36281C", "#423020"], [0, 0.5, 0.85], noise=0.05)
+    poly("pod_in", rect(PI["x"], PI["y"], PI["x"] + PI["w"], LY.ROOF_Y), 0.40, inner_m, line=False)
+    for k in range(4):                                            # 벽 판 이음매
+        xx = PI["x"] + 92 + k * 92
+        ribbon(f"seam{k}", [(xx, PI["y"]), (xx, LY.ROOF_Y)], 4, 0.395, mat("seam", ["#1E150F"]), line=False)
+    # 안쪽 문(홀 쪽)·해치 자리(바깥 쪽): 벽 띠에 낸 구멍
+    poly("idoor_gap", rect(x0p - 2, ID["y0"], PI["x"] + 2, ID["y1"]), 0.39, mat("gap", ["#2E2218", "#3A2A1E"], [0, 0.6]), line=False)
+    ribbon("idoor_frame", [(x0p - 4, ID["y1"]), (x0p - 4, ID["y0"] - 8), (PI["x"] + 4, ID["y0"] - 8), (PI["x"] + 4, ID["y1"])], 10, 0.385, iron)
+    poly("hatch_gap", rect(PI["x"] + PI["w"] - 2, HT["y0"], x1p + 2, HT["y1"]), 0.39, mat("hgap", ["#0A2028", "#0E2A32"], [0, 0.6]), line=False)
+    ribbon("hatch_frame", [(PI["x"] + PI["w"] - 4, HT["y1"]), (PI["x"] + PI["w"] - 4, HT["y0"] - 10), (x1p + 6, HT["y0"] - 10), (x1p + 6, HT["y1"])], 12, 0.385, iron)
+    # 바닥(격자판) — 홀 지붕 윗면과 같은 높이
+    poly("pod_floor", rect(x0p - 30, LY.ROOF_Y, x1p, y1p), 0.38, mat("pfloor", ["#3A3228", "#56483A"], [0, 0.5]))
+    for k in range(10):
+        xx = x0p + 20 + k * 48
+        ribbon(f"grate{k}", [(xx, LY.ROOF_Y + 3), (xx + 20, LY.ROOF_Y + 3)], 3, 0.375, mat("grate", ["#1C1610"]), line=False)
+    # 둥근 창(바깥 바다가 비친다) — 'window' 자리
+    poly("port_rim", ellipse(3708, 960, 38, 38, 20), 0.39, mat("brass", ["#7A5A30", "#A07A40"], [0, 0.6]))
+    poly("port_glass", ellipse(3708, 960, 28, 28, 20), 0.385, mat("pglass", ["#174450", "#24606A"], [0, 0.6]), line=False)
+    ribbon("port_glint", [(3696, 947), (3712, 939)], 4, 0.38, mat("glint", ["#8AC4C4"]), line=False)
+    # 벽 쪽지(B4) · 안쪽 문 옆
+    for k, (nx, ny, rot) in enumerate([(3436, 950, 0.1), (3468, 968, -0.08), (3446, 992, 0.05)]):
+        c, sn = math.cos(rot), math.sin(rot)
+        pts = [(nx + px * c - py * sn, ny + px * sn + py * c) for px, py in [(-12, -14), (12, -14), (12, 14), (-12, 14)]]
+        poly(f"note{k}", pts, 0.38, mat("paper", ["#C9B896"]), line=False)
+    # 등불 하나(B1)
+    ribbon("plamp_w", [(3650, PI["y"]), (3650, 900)], 4, 0.385, mat("wire", []), line=False)
+    poly("plamp_hood", [(3628, 906), (3672, 906), (3660, 894), (3640, 894)], 0.38, mat("hood", []))
+    poly("plamp", ellipse(3650, 914, 14, 10, 12), 0.375, mat("lampw", []))
+    # 긴 의자 + 그 밑 상자
+    wood = mat("bench", ["#5A3E26", "#7A5434"], [0, 0.55])
+    poly("bench_seat", rect(3480, 1112, 3660, 1124), 0.37, wood)
+    poly("bench_back", rect(3480, 1060, 3490, 1112), 0.372, wood)
+    for xx in (3486, 3652):
+        ribbon(f"bench_leg{xx}", [(xx, 1124), (xx, LY.ROOF_Y)], 8, 0.371, wood)
+    crate = mat("crate", ["#6A4A2A", "#86603A"], [0, 0.6])
+    poly("crate_a", rect(3556, 1128, 3616, LY.ROOF_Y), 0.373, crate)
+    ribbon("crate_a_x", [(3556, 1128), (3616, LY.ROOF_Y)], 4, 0.372, mat("crx", ["#4A3220"]), line=False)
+    # 창 아래 상자 + 화분(초록 — B2)
+    poly("crate_b", rect(3742, 1104, 3786, LY.ROOF_Y), 0.373, crate)
+    poly("pot", rect(3750, 1084, 3778, 1104), 0.372, mat("pot", ["#8A4A2A"]))
+    for k in range(3):
+        kelp(f"potplant{k}", 3756 + k * 9, 1086, 34 + k * 8, 0.371, km, 1200 + k, lean=0.2 * (k - 1), w=8)
+    # 장비 걸이: 잠수복 둘 + 공기통 둘
+    ribbon("rack_bar", [(3830, 934), (3934, 934)], 8, 0.38, iron)
+    for xx in (3830, 3934):
+        ribbon(f"rack_post{xx}", [(xx, 930), (xx, LY.ROOF_Y)], 8, 0.381, iron)
+    suit = mat("suit", ["#4A4A2A", "#5E5E34", "#727040"], [0, 0.5, 0.85])
+    brass = mat("brass", [])
+    for k, sx_ in enumerate((3856, 3908)):
+        ribbon(f"suit_hook{k}", [(sx_, 934), (sx_, 950)], 3, 0.378, mat("wire", []), line=False)
+        poly(f"helmet{k}", ellipse(sx_, 972, 22, 22, 18), 0.376, brass)
+        poly(f"visor{k}", ellipse(sx_ + 4, 974, 11, 10, 14), 0.374, mat("visor", ["#0E2A30"]), line=False)
+        poly(f"suit{k}", [(sx_ - 20, 994), (sx_ + 20, 994), (sx_ + 24, 1060), (sx_ + 14, 1100), (sx_ - 14, 1100), (sx_ - 24, 1060)],
+             0.377, suit, j=2, seed=1300 + k, step=14)
+    tank = mat("tank2", ["#5A2E22", "#7A4030", "#94523A"], [0, 0.5, 0.85])
+    for k, tx in enumerate((3958, 3982)):
+        poly(f"airtank{k}", rect(tx - 11, 1090, tx + 11, LY.ROOF_Y - 2), 0.369, tank)
+        poly(f"airtank_v{k}", rect(tx - 4, 1080, tx + 4, 1090), 0.368, brass)
+    # 철골이 포드 오른벽을 뚫고 나가는 자리의 조임 고리
+    poly("girder_collar", rect(x1p - 10, 912, x1p + 22, 976), 0.36, iron, j=2, seed=1400)
+    # 바깥 발판 + 난간 + 사다리 + 받침 기둥(외벽에서)
+    poly("platform", rect(PF["x0"], PF["y"], PF["x1"], PF["y"] + 14), 0.4, mat("pfloor", []))
+    for xx in (PF["x0"] + 40, PF["x1"] - 10):
+        ribbon(f"rail_post{xx}", [(xx, PF["y"]), (xx, PF["y"] - 70)], 6, 0.405, iron)
+    ribbon("rail_top", [(PF["x0"] + 40, PF["y"] - 70), (PF["x1"] - 10, PF["y"] - 70)], 6, 0.405, iron)
+    for xx in (LD["x"] - 18, LD["x"] + 18):
+        ribbon(f"lad_side{xx}", [(xx, LD["y0"]), (xx, LD["y1"])], 6, 0.4, iron)
+    yy = LD["y0"] + 20
+    while yy < LD["y1"]:
+        ribbon(f"lad_rung{yy}", [(LD["x"] - 18, yy), (LD["x"] + 18, yy)], 4, 0.401, iron, line=False); yy += 30
+    for a, b in [((LY.TOWER_X1, 1330), (3760, y1p)), ((LY.TOWER_X1, 1520), (3990, y1p)), ((LY.TOWER_X1, 1330), (3990, y1p))]:
+        ribbon(f"strut{a[1]}{b[0]}", [a, b], 14, 0.43, gm)
+    for i, (x, h) in enumerate([(3470, 120), (3880, 170)]):     # 포드 밑 해초(B9)
+        kelp(f"podkelp{i}", x, y1p, h, 0.41, km, 1500 + i, w=12, up=False)
+
+    # 해치 두 상태(같은 자리, 같은 잘라 내기)
+    cur["pass"] = "hatch_closed"
+    door_m = mat("hdoor", ["#56382A", "#704A34", "#8A6040"], [0, 0.5, 0.85])
+    hx0, hx1 = PI["x"] + PI["w"] - 2, x1p + 2
+    poly("hd_c", rect(hx0, HT["y0"], hx1, HT["y1"]), 0.37, door_m)
+    poly("hd_c_wheel", ellipse((hx0 + hx1) / 2, (HT["y0"] + HT["y1"]) / 2, 11, 11, 12), 0.36, brass)
+    poly("hd_c_lamp", ellipse(x1p + 18, HT["y0"] - 26, 7, 7, 10), 0.36, mat("lampw", []))
+    cur["pass"] = "hatch_open"
+    poly("hd_o", [(hx1 - 2, HT["y1"] - 14), (hx1 + 152, HT["y1"] - 4), (hx1 + 152, HT["y1"] + 8), (hx1 - 2, HT["y1"])], 0.37, door_m)
+    poly("hd_o_wheel", ellipse(hx1 + 76, HT["y1"] - 14, 9, 6, 12), 0.36, brass)
+    ribbon("hd_o_chain", [(hx1 + 6, HT["y0"] - 4), (hx1 + 150, HT["y1"] - 8)], 3, 0.365, mat("cable2", []), line=False)
+    poly("hd_o_lamp", ellipse(x1p + 18, HT["y0"] - 26, 7, 7, 10), 0.36, mat("lamp_g", ["#B8D890"]))
+
     # ── 손그림 선 ──
     sc.render.use_freestyle = True; sc.render.line_thickness = 1.0
     vl = sc.view_layers[0]; vl.use_freestyle = True
@@ -608,6 +709,41 @@ def _post():
                 dict(id="cell_flood", file="cell_flood.png", w=CW, h=CH, water_top_in_cell=[118, 128],
                      note="물 찬 칸: 플레이트(어두운 판 권장) 위에. 물 빼는 중이면 아래쪽 일부만 그린다(수면을 y 로 내리며 clip). 테 부분은 물빛으로 식힌다")]
 
+
+    # ── 6.5 S12-F 입구(에어락 포드) ──
+    ent = darken_by_depth(load("ent_back"), strength=0.6)
+    ea = np.asarray(ent).astype(np.float32); hh, ww = ea.shape[:2]
+    gy, gx = np.mgrid[0:hh, 0:ww]
+    inside = (gx > LY.POD_IN["x"]) & (gx < LY.POD_IN["x"] + LY.POD_IN["w"]) & (gy > LY.POD_IN["y"]) & (gy < LY.ROOF_Y + 4)
+    gl = np.exp(-(((gx - 3650) / 330.0) ** 2 + ((gy - 960) / 220.0) ** 2)) * inside      # 포드 등불 온기(방 안 등불보다 약하게)
+    for c, v in enumerate((255, 176, 92)):
+        ea[..., c] = ea[..., c] + (v - ea[..., c]) * gl * 0.32
+    ent = Image.fromarray(np.clip(ea, 0, 255).astype("uint8"), "RGBA")
+    einfo = crop_save(ent, "entrance.png"); einfo.update(id="entrance", scale=1, z=26,
+        note="에어락 포드(대기 공간·장비 걸이·긴 의자·등·둥근 창·바깥 발판·사다리·받침). 탑 껍데기 위, 사람 아래")
+    hc, ho = load("hatch_closed"), load("hatch_open")
+    bb1 = hc.getchannel("A").getbbox(); bb2 = ho.getchannel("A").getbbox()
+    hb = (min(bb1[0], bb2[0]) - 2, min(bb1[1], bb2[1]) - 2, max(bb1[2], bb2[2]) + 2, max(bb1[3], bb2[3]) + 2)
+    hc.crop(hb).save(os.path.join(DST, "hatch_closed.png"), optimize=True)
+    ho.crop(hb).save(os.path.join(DST, "hatch_open.png"), optimize=True)
+    hatch_info = dict(id="hatch", files={"closed": "hatch_closed.png", "open": "hatch_open.png"}, x=hb[0], y=hb[1],
+                      w=hb[2] - hb[0], h=hb[3] - hb[1], z=27,
+                      note="같은 자리(x,y)에 둘 중 하나. 사람이 해치를 지날 때 open 으로 바꾸고 물방울을 띄운다. 닫힘 = 따뜻한 등, 열림 = 옅은 초록 등")
+    # 물방울 기둥(3프레임, 해치 앞에서 위로)
+    BW, BH, NF = 90, 300, 3
+    bub = Image.new("RGBA", (BW * NF, BH), (0, 0, 0, 0)); db = ImageDraw.Draw(bub); rb = random.Random(77)
+    seeds = [(rb.uniform(20, 70), rb.uniform(0, BH), rb.uniform(3, 9)) for _ in range(26)]
+    for f in range(NF):
+        for (bx, by, br) in seeds:
+            y = (by - f * BH / NF) % BH; x = bx + math.sin(y * 0.05 + br) * 8
+            a = int(200 * min(1, y / 60) * min(1, (BH - y) / 40 + 0.2))
+            db.ellipse([f * BW + x - br, y - br, f * BW + x + br, y + br], outline=(170, 225, 225, a), width=2)
+            db.ellipse([f * BW + x - br * 0.4 - 1, y - br * 0.5 - 1, f * BW + x - br * 0.4 + 1, y - br * 0.5 + 1], fill=(220, 245, 240, a))
+    bub.save(os.path.join(DST, "bubbles.png"), optimize=True)
+    bubbles_info = dict(id="bubbles", file="bubbles.png", frame_w=BW, frame_h=BH, frames=NF, fps=6,
+                        anchor=[BW // 2, BH], place=[LY.HATCH["x"] + 30, LY.ROOF_Y - 20],
+                        note="anchor(아래 가운데)를 place 에. 해치가 열릴 때 1.5~2초 돌리고 끈다. 사다리 아래(4010,1460)에서 헤엄쳐 나갈 때도 쓸 수 있다")
+
     # ── 7. 생물 아틀라스 ──
     sprites = {}
 
@@ -753,14 +889,15 @@ def _post():
                      note="생물은 정지 그림이 아니라 개발이 띄운다. z: 탑 껍데기(20)보다 작으면 탑 뒤, 크면 앞. 위협 실루엣(threats/)은 따로")
 
     # ── 8. layout.json 갱신 ──
-    layers_all = [layers[0], info, tinfo, sinfo, finfo]
+    layers_all = [layers[0], info, tinfo, sinfo, einfo, finfo]
     lay_path = LY.OUT
     J = json.load(open(lay_path, encoding="utf-8"))
     J["layers"] = {"_note": "x,y = 세계 px 좌상단. scale 2 는 ×2 매끈 확대. draw_order 순서대로 그린다",
-                   "draw_order": ["back", "creatures(z<20)", "tower_shell", "elevator_shaft(A,B)", "cliff",
+                   "draw_order": ["back", "creatures(z<20)", "tower_shell", "elevator_shaft(A,B)", "entrance", "hatch", "cliff",
                                   "plates(cells, rock_cells)", "overlays(cell_plan/cell_flood)", "elevator_car", "residents",
-                                  "creatures(z>20)", "front"],
-                   "files": layers_all, "car": car_info, "overlays": overlays, "creatures": creatures}
+                                  "bubbles", "creatures(z>20)", "front"],
+                   "files": layers_all, "car": car_info, "overlays": overlays, "creatures": creatures,
+                   "hatch": hatch_info, "bubbles": bubbles_info}
     json.dump(J, open(lay_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print("layers written")
     tot = 0
@@ -805,6 +942,8 @@ def _preview():
     sh = files["elevator_shaft"]; shi = img(sh["file"])
     for p in sh["place"]:
         canvas.alpha_composite(shi, (p["x"], p["y"]))
+    put("entrance")
+    hz = Ls["hatch"]; canvas.alpha_composite(img(hz["files"]["open"]), (hz["x"], hz["y"]))
     put("cliff")
     # 칸: 예시 상태
     PL = os.path.join(ART, "plates"); src = tuple(J["plates"]["src_rect"])
@@ -862,8 +1001,13 @@ def _preview():
     rc = J["rock_cells"][1]
     person("farmer", "work", rc["stand_x"][0], rc["floor_y"]); person("kid", "idle", rc["stand_x"][1], rc["floor_y"], 1)
     hall = J["dome"]
-    for i, (role, pose) in enumerate([("farmer", "idle"), ("scholar", "sit"), ("kid", "idle"), ("cook", "idle"), ("trader", "idle")]):
-        person(role, pose, hall["x"] + 420 + i * 230, hall["floor_y"], i % 2)
+    for i, (role, pose) in enumerate([("farmer", "idle"), ("cook", "walk")]):
+        person(role, pose, hall["x"] + 900 + i * 600, hall["floor_y"], i % 2)
+    E = J["entrance"]; sp = {s_["id"]: s_ for s_ in E["spots"]}
+    for sid, role, pose in [("e1", "scholar", "sit"), ("e2", "kid", "sit"), ("e3", "trader", "idle"), ("e4", "scout", "work"), ("e5", "engineer", "idle")]:
+        person(role, pose, sp[sid]["x"], sp[sid]["floor_y"], 1 if sid in ("e2", "e4") else 0)
+    bz = Ls["bubbles"]; bi = img(bz["file"]).crop((bz["frame_w"], 0, 2 * bz["frame_w"], bz["frame_h"]))
+    canvas.alpha_composite(bi, (bz["place"][0] - bz["anchor"][0], bz["place"][1] - bz["anchor"][1]))
     sA = J["shafts"][0]; person("medic", "idle", sA["x_center"], J["tower"]["storeys"][1]["floor_y"])
     put_creatures(20, 100)
     put("front")
@@ -880,6 +1024,8 @@ def _preview():
         cr = canvas.crop(box)
         cr.resize((844, 390), Image.LANCZOS).save(os.path.join(DST, "preview_phone.png"), optimize=True)
         cr.resize((844 * 2, 390 * 2), Image.LANCZOS).save(os.path.join(RAW, "preview_phone2x.png"))
+    E = J["entrance"]["pod"]
+    canvas.crop((E["x0"] - 500, E["y0"] - 160, E["x0"] + 1300, E["y1"] + 420)).save(os.path.join(DST, "preview_entrance.png"), optimize=True)
     print("preview done")
 
 
