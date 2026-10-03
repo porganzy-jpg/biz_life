@@ -300,7 +300,7 @@ HALL_KO = "홀"           # 배치되지 않은 사람이 모이는 곳 = 돔 �
 
 # 결과 등급. 실패가 즉사가 아니다(§6-3) — 최악이 방 하나이고 그조차 화면에 남아 이야기가 된다.
 HELD, SCARRED, BREACHED, PASSED = "held", "scarred", "breached", "passed"
-RESULT_KO = {HELD: "막았다", SCARRED: "유리에 금이 갔다", BREACHED: "방을 잃었다", PASSED: "지나갔다"}
+RESULT_KO = {HELD: "막았습니다", SCARRED: "유리에 금이 갔습니다", BREACHED: "방을 잃었습니다", PASSED: "지나갔습니다"}
 
 
 def room_cap(room_id: str) -> int:
@@ -597,51 +597,51 @@ def gate_state(creature: dict, ctx: dict) -> dict:
         hands = int(ctx.get("hands", 0))
         n = len(ctx.get("people", []))
         have = n + hands
-        extra = f" + 도구 {hands}" if hands else ""
-        return done(g, have >= need, f"그 방에 {need}명 이상 (지금 {n}명{extra})", have, need)
+        extra = f", 도구 {hands}개" if hands else ""
+        return done(g, have >= need, f"그 방에 {need}분 이상 모여 주세요. 지금은 {n}분{extra}입니다.", have, need)
     if g == "lights_off":
         ok = (not ctx.get("light_on", True)) or ctx.get("forced_dark", False)
-        return done(g, ok, "그 방의 불을 끈다" + ("" if ok else " — 지금 켜져 있다"), 0 if ok else 1, 0)
+        return done(g, ok, "그 방 불을 꺼 주세요." + ("" if ok else " 지금은 켜져 있습니다."), 0 if ok else 1, 0)
     if g == "quiet":
         gathered = ctx.get("gathered_one_room", False)
         quiet = (not ctx.get("power_on", True)) or ctx.get("hushed", False)
         ok = gathered and quiet
-        return done(g, ok, "전원을 내리고 모두 한 방에" +
-                    ("" if ok else f" — {'모이지 않았다' if not gathered else '소리가 남아 있다'}"),
+        return done(g, ok, "전원을 내리시고, 모두 한 방에 모여 주세요." +
+                    ("" if ok else f" {'아직 다 모이지 않으셨습니다.' if not gathered else '아직 소리가 남아 있습니다.'}"),
                     int(gathered) + int(quiet), 2)
     if g == "all_inside":
         out = len(ctx.get("outside", []))
-        return done(g, out == 0, "밖에 있는 사람을 들인다" + ("" if out == 0 else f" — 아직 {out}명 밖에 있다"), out, 0)
+        return done(g, out == 0, "밖에 계신 분을 들여 주세요." + ("" if out == 0 else f" 아직 {out}분이 밖에 계십니다."), out, 0)
     if g == "light_elsewhere":
         # **긴목의 정답이 여기서는 최악수다.** 불을 끄면 통과할 수 없다.
         lit = bool(ctx.get("light_on", True)) and not ctx.get("forced_dark", False)
         lure = bool(ctx.get("lure_elsewhere")) or ("light_elsewhere" in acts)
         ok = lit and lure
         why = ("" if ok else
-               (" — 이 방의 불이 꺼져 있다. 끄면 비침이 사라진다" if not lit
-                else " — 아직 반대쪽에 더 밝은 곳이 없다"))
-        return done(g, ok, "반대쪽에 더 밝은 불을 켠다(이 방은 켜 둔 채)" + why, int(lit) + int(lure), 2)
+               (" 지금 이 방 불이 꺼져 있습니다. 끄시면 비침이 사라집니다." if not lit
+                else " 아직 다른 쪽에 더 밝은 곳이 없습니다."))
+        return done(g, ok, "이 방 불은 켜 두시고, 다른 방에 더 밝은 불을 켜 주세요." + why, int(lit) + int(lure), 2)
     if g == "cloud_water":
         ok = "cloud_water" in acts
-        return done(g, ok, "물을 흐린다" + ("" if ok else " — 아직 창 앞이 맑다"))
+        return done(g, ok, "창 앞 물을 흐려 주세요." + ("" if ok else " 아직 창 앞이 맑습니다."))
     if g == "stand_still":
         # **이 게임의 주된 동사가 최악수다.** 습격이 시작된 뒤로 사람을 한 번도 안 옮겼어야 한다.
         moves = int(ctx.get("moves", 0))
         return done(g, moves == 0,
-                    "아무도 움직이지 않는다" + ("" if moves == 0 else f" — 이미 {moves}번 옮겼다"), moves, 0)
+                    "아무도 움직이지 말아 주세요." + ("" if moves == 0 else f" 벌써 {moves}번 옮기셨습니다."), moves, 0)
     if g == "make_way":
         ok = "make_way" in acts
-        return done(g, ok, "길을 비킨다" + ("" if ok else " — 아직 걸릴 것이 남아 있다"))
+        return done(g, ok, "길을 비켜 주세요." + ("" if ok else " 아직 걸릴 것이 남아 있습니다."))
     if g == "feed":
         ok = "feed" in acts
-        return done(g, ok, "먹이를 내준다" + ("" if ok else " — 아직 아무것도 내보내지 않았다"))
+        return done(g, ok, "먹이를 내어 주세요." + ("" if ok else " 아직 아무것도 내보내지 않았습니다."))
     if g == "return_it":
         ok = "return_it" in acts
-        return done(g, ok, "가져온 것을 돌려보낸다" + ("" if ok else " — 아직 창고에 있다"))
+        return done(g, ok, "가져온 것을 돌려보내 주세요." + ("" if ok else " 아직 창고에 있습니다."))
     if g == "guide_up":
         ok = "guide_up" in acts
-        return done(g, ok, "위로 빛의 길을 낸다" + ("" if ok else " — 아직 위쪽이 어둡다"))
-    return done("none", True, "막을 것이 없다")
+        return done(g, ok, "위쪽으로 빛의 길을 내 주세요." + ("" if ok else " 아직 위쪽이 어둡습니다."))
+    return done("none", True, "막을 것이 없습니다.")
 
 
 def tool_power(tool_id: str, creature_id: str) -> float:
@@ -718,7 +718,7 @@ def evaluate(creature: dict, ctx: dict) -> dict:
         # 문지기는 **소리를 듣고 오는** 생물이다. 들키지 않았으면 맞설 일 자체가 없다 — 못 찾고 지나간다.
         # 그래서 점수 판정을 하지 않는다. 노리는 방이 소리 단계에서 숨겨져 있어도 "전부 숨죽인다"가
         # 정답으로 성립한다(PM 결정 2026-10-03). 관문을 놓치면 아래의 점수 판정으로 간다.
-        return {"result": PASSED, "result_ko": "들키지 않았다", "score": round(score, 2),
+        return {"result": PASSED, "result_ko": "들키지 않았습니다", "score": round(score, 2),
                 "need": need_for(creature, grade, int(ctx.get("severity", 0))), "margin": 0.0,
                 "gate": gate, "parts": parts, "used": used, "grade": grade, "shielded": None,
                 "unheard": True}

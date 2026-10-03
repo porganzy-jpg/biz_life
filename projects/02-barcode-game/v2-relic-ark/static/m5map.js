@@ -80,7 +80,7 @@
       plate: L.plates || {},
       tower: L.tower, storeys: L.tower.storeys, cells: tower, rock,
       shafts, car, overlays, creatures: LY.creatures || null,
-      entrance: L.entrance || null, hatch: LY.hatch || null, bubbles: LY.bubbles || null,   // S12-B4 입구 포드
+      entrance: podSpots(L.entrance), hatch: LY.hatch || null, bubbles: LY.bubbles || null,   // S12-B4 입구 포드
       dome: L.dome, glass: L.dome_glass, abyss: L.abyss, lure: L.lure_lamp, cliff: L.cliff,
       depth: { y0: y0m, pxPerM: pxd, trenchY: dep.trench_y != null ? dep.trench_y : y0m + 180 * pxd,
                darkY: dep.dark_full_y || (y0m + 300 * pxd) },
@@ -94,6 +94,16 @@
         return s.floor_y;
       },
     };
+  }
+
+  // S12-B5 포드 자리: 도트는 정수 배율이라 기본 줌(0.505)에서 사람이 세계보다 약 1.3배 크게 그려진다.
+  // 원래 여섯 자리(간격 88~92 px)에서는 다섯 명이 한 덩어리로 겹쳤다 → 둘째 의자(e2)를 빼고 다섯 자리를
+  // 첫 자리~끝 자리 사이에 고르게 편다(간격 약 129 px). 자세 힌트(벽·의자·창·장비 걸이·해치 옆)는 그대로다.
+  function podSpots(E) {
+    if (!E || !Array.isArray(E.spots) || E.spots.length < 6) return E || null;
+    const keep = E.spots.filter(sp => sp.id !== 'e2');
+    const x0 = keep[0].x, x1 = keep[keep.length - 1].x, step = (x1 - x0) / (keep.length - 1);
+    return Object.assign({}, E, { spots_raw: E.spots, spots: keep.map((sp, i) => Object.assign({}, sp, { x: Math.round(x0 + step * i) })) });
   }
 
   // 서버 slot → 맵 칸 (dome_floor·floor_slots 는 서버가 내려준 값)
