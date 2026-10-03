@@ -128,6 +128,8 @@
     b:  { path: (r) => '/static/art/chars/front/b/' + r + '.png', cell: 256, baseline: 240, cols: 5, idle: 0, frames: 5, ppm: 110, pixel: false },
     a:  { path: (r) => '/static/art/chars/front/a/' + r + '.png', cell: 256, baseline: 240, cols: 5, idle: 0, frames: 5, ppm: 110, pixel: false },
   };
+  const SIDE_STRIDE_ADULT = 16, SIDE_LOOP_ADULT = 0.8, SRC_PPM = 27.5;
+  const WALK_MPS = SIDE_STRIDE_ADULT / SIDE_LOOP_ADULT / SRC_PPM;
   const TARGET_PPM = 82.5;        // 세계 1 m = 82.5 px (cam.z = 1 이면 도트 ×3 — 플레이트와 같은 자, S12-B)
 
   const sprites = {};
@@ -212,7 +214,7 @@
   const MOVE_ADAPTER = {
     graph() {
       const L = MAP(), last = L.storeys.length - 1, cap = (L.car && (L.car.cap || L.car.cap_hint)) || 2;
-      return { walkSpeed: 1.3, shafts: L.shafts.map(s => ({ id: s.id, x: s.cx / PX_PER_M, floors: [HALL_FLOOR, last],
+      return { walkSpeed: WALK_MPS, shafts: L.shafts.map(s => ({ id: s.id, x: s.cx / PX_PER_M, floors: [HALL_FLOOR, last],
                cap, secPerFloor: 0.9, door: 0.5, home: 0,
                doorGap: (s.w / 2) / PX_PER_M + 0.3 })) };            // 승강로 바로 바깥에 줄을 선다
     },
@@ -845,30 +847,44 @@
   // ── 자세(클립). 정본은 front/p2/meta.json 의 rows·frames·anim_seconds(DECISIONS 2026-10-01 자세 정본) ──
   // 캐릭터 담당이 elevator_wait·elevator_ride·work_<방> 행을 만들고 있다. meta 에 생기고 **시트에도 그 행이
   // 실제로 있으면** 자동으로 쓰고, 없으면 사슬을 따라 내려가 idle 로 그린다. 코드 수정 없이 켜진다.
-  let CLIPS = { rows: { idle: 0 }, frames: { idle: 2 }, anim_seconds: { idle: 1.24 } };
+  let CLIPS = { rows: { idle: 0 }, frames: { idle: 2 }, anim_seconds: { idle: 1.24 }, room_work: {}, stride: {} };
   fetch('/static/art/chars/front/p2/meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
-    if (j && j.rows) CLIPS = { rows: j.rows, frames: j.frames || {}, anim_seconds: j.anim_seconds || {} };
+    if (!j || !j.rows) return;
+    const stride = {};                                  // S12-C: 옆걸음 보폭(원본 px / 한 바퀴) — 발이 미끄러지지 않게
+    Object.entries(j.s12_rows || {}).forEach(([k, v]) => { if (v && v.stride_src_px_per_loop) stride[k] = v.stride_src_px_per_loop; });
+    CLIPS = { rows: j.rows, frames: j.frames || {}, anim_seconds: j.anim_seconds || {}, room_work: j.room_work || {}, stride };
   }).catch(() => {});
+  // 바닥 걷기 속도 = 보폭 × 배율 / 초(meta side_speed). 어른 walk_side 16 원본px / 0.8 s = 20 원본px/s
+  // = 20 / 27.5 m/s ≈ 0.73 m/s(×3 화면에서 60 px/s). 이동 시간표(movement.js)는 이 속도로 짠다.
+  // 아이는 보폭 12 라 같은 속도에서 한 바퀴를 0.6 s 로 줄여 돌린다(발이 바닥에 붙는다)
+  // (SIDE_STRIDE_ADULT·WALK_MPS 는 이동 어댑터가 먼저 쓰므로 파일 위쪽 TARGET_PPM 옆에 있다)
+  // S12-B3: 바닥 걷기 = walk_side(오른쪽이 원본, 왼쪽은 반전) · 들고 걷기 = carry_side · 방 밖 일 = work_34 ·
+  // 홀에서 가끔 idle_glance. 정면 walk·work·carry 는 사슬 끝에 남는다(시트가 옛것이면 그쪽으로 내려간다)
   const POSE_CHAIN = {
-    walk: ['walk'], elevator_wait: ['elevator_wait'], elevator_ride: ['elevator_ride', 'elevator_wait'],
-    hurt: ['hurt'], rest: [], idle: [],
+    walk: ['walk_side', 'walk'], carry: ['carry_side', 'carry_34', 'walk_side', 'walk'],
+    elevator_wait: ['elevator_wait'], elevator_ride: ['elevator_ride', 'elevator_wait'],
+    glance: ['idle_glance'], hurt: ['hurt'], rest: [], idle: [],
   };
+  const SIDE_CLIPS = { walk_side: 1, carry_side: 1 };
   function clipFor(s, pose, roomId) {
-    const cand = (pose === 'work' ? ['work_' + roomId, 'work'] : (POSE_CHAIN[pose] || [])).concat('idle');
+    const rw = CLIPS.room_work[roomId];
+    const cand = (pose === 'work' ? [rw, 'work_' + roomId, 'work_34', 'work'].filter(Boolean) : (POSE_CHAIN[pose] || [])).concat('idle');
     for (const c of cand) {
       const row = CLIPS.rows[c];
       if (row == null) continue;
       if ((row + 1) * s.spec.cell > s.img.naturalHeight) continue;      // meta 는 새것, 시트는 아직 옛것
       const fr = Math.max(1, Math.min(s.spec.cols, CLIPS.frames[c] || 1));
-      return { name: c, row, frames: fr, ms: ((CLIPS.anim_seconds[c] || 1) * 1000) / fr };
+      return { name: c, row, frames: fr, ms: ((CLIPS.anim_seconds[c] || 1) * 1000) / fr, side: !!SIDE_CLIPS[c] };
     }
     return { name: 'idle', row: 0, frames: 2, ms: 620 };
   }
-  const usedClips = {};                               // 검수용: 지금까지 실제로 그린 클립 이름
+  const usedClips = {}, flipLog = {};                 // 검수용: 그린 클립·반전해 그린 클립                               // 검수용: 지금까지 실제로 그린 클립 이름
 
-  function drawPerson(p, px, floorY, t, i, scale, lit, pose, roomId) {
+  // opts: {face: -1 왼쪽 / 1 오른쪽(옆걸음), mirror: true(작업 행 셀 반전), frame: 고정 프레임, glance: 홀에서 둘러보기}
+  function drawPerson(p, px, floorY, t, i, scale, lit, pose, roomId, opts) {
+    opts = opts || {};
     const k = (scale == null ? 1 : scale);
-    const moving = pose === 'walk' || pose === 'elevator_ride';
+    const moving = pose === 'walk' || pose === 'carry' || pose === 'elevator_ride';
     const bob = moving ? 0 : Math.sin(t / 700 + i * 1.7) * 0.8 * cam.z;
     const s = sprite(p.role);
     if (s) {
@@ -879,8 +895,15 @@
       const z = sp.pixel ? (want >= 0.75 ? Math.max(1, Math.round(want)) : want) : want;
       const cw = sp.cell * z, base = sp.baseline * z;
       const clip = sp.pixel ? clipFor(s, pose || 'idle', roomId) : { name: 'idle', row: sp.idle, frames: sp.frames, ms: 170 };
+      // 옆걸음: 아이는 보폭이 작아 같은 속도에서 더 빨리 돈다(발 미끄럼 0)
+      if (clip.side && p.role === 'kid') {
+        const st = CLIPS.stride[clip.name] || {}, ad = st.adult || SIDE_STRIDE_ADULT, kd = st.kid || 12;
+        clip.ms *= kd / ad;
+      }
       usedClips[clip.name] = (usedClips[clip.name] || 0) + 1;
-      const frame = Math.floor(t / clip.ms + i) % clip.frames;
+      const frame = opts.frame != null ? Math.min(clip.frames - 1, opts.frame) : Math.floor(t / clip.ms + i) % clip.frames;
+      // 반전: 옆걸음은 왼쪽으로 갈 때, 작업 행은 설비가 오른쪽에 와야 할 때. 축 = 셀 가운데, 발 기준선 그대로
+      const flip = (clip.side && opts.face < 0) || (!clip.side && opts.mirror && /^work_|^carry_34$/.test(clip.name));
       try {
         const sheet = sp.pixel ? tintedSheet(s, p.role, lit === false ? TINT_DARK : TINT_LIT) : s.img;
         const sm = ctx.imageSmoothingEnabled;
@@ -889,8 +912,16 @@
         ctx.fillStyle = 'rgba(12,10,8,0.42)';
         ctx.beginPath(); ctx.ellipse(px, floorY, cw * 0.22, cw * 0.055, 0, 0, 6.2832); ctx.fill();
         const cell = sp.pixel ? clip.row * sp.cols + frame : sp.idle * sp.cols + frame;
-        ctx.drawImage(sheet, (cell % sp.cols) * sp.cell, Math.floor(cell / sp.cols) * sp.cell, sp.cell, sp.cell,
-                      px - cw / 2, floorY - base + bob, cw, cw);
+        if (flip) {
+          ctx.save(); ctx.translate(px, 0); ctx.scale(-1, 1);
+          ctx.drawImage(sheet, (cell % sp.cols) * sp.cell, Math.floor(cell / sp.cols) * sp.cell, sp.cell, sp.cell,
+                        -cw / 2, floorY - base + bob, cw, cw);
+          ctx.restore();
+          flipLog[clip.name] = (flipLog[clip.name] || 0) + 1;
+        } else {
+          ctx.drawImage(sheet, (cell % sp.cols) * sp.cell, Math.floor(cell / sp.cols) * sp.cell, sp.cell, sp.cell,
+                        px - cw / 2, floorY - base + bob, cw, cw);
+        }
         ctx.imageSmoothingEnabled = sm;
         if (p.injured) { ctx.fillStyle = 'rgba(140,59,46,0.5)'; ctx.fillRect(px - 13 * cam.z, floorY - 101 * cam.z, 26 * cam.z, 9 * cam.z); }
         return { w: cw * 0.42, h: base * 0.78 };
@@ -907,17 +938,19 @@
 
   // 방 안의 삶: 그 방의 일을 하다가 10~20초에 한 번 쉬거나 몇 걸음 옮긴다(movement.js roomLife).
   // 막 도착한 사람은 1.2초에 걸쳐 제 자리로 걸어 들어간다 — 도착 순간 순간이동하지 않게
+  const CARRY_ROOMS = { storage: 1, pantry: 1, workshop: 1 };
   function lifeAt(p, slot, t, step) {
     const now = t / 1000, room = (ark.rooms || []).find(r => r.slot === slot);
     let L = window.ArkMove ? ArkMove.roomLife(p.id, now) : { pose: 'work', dx: 0 };
     const since = now - traffic.arrivedAt(p.id);
     const ramp = since < 0 ? 0 : Math.min(1, since / 1.2);
     const spread = Math.min(step * 0.3, 48 * cam.z);
-    let pose = L.pose;
-    if (ramp < 1 && Math.abs(L.dx) * spread > 2) pose = 'walk';
+    let pose = L.pose, face = L.facing || 0;
+    if (ramp < 1 && Math.abs(L.dx) * spread > 2) { pose = 'walk'; face = L.dx > 0 ? -1 : 1; }   // 제자리로 걸어 들어온다
+    if (pose === 'walk' && room && CARRY_ROOMS[room.id]) pose = 'carry';     // 창고·식량창고·공방에서는 상자를 안고 옮긴다
     if (!lightOf(slot)) pose = 'idle';                         // 불 꺼진 방에서는 손을 놓고 기다린다
     if (p.injured) pose = 'hurt';
-    return { pose, off: L.dx * spread * ramp, room: room ? room.id : '' };
+    return { pose, off: L.dx * spread * ramp, room: room ? room.id : '', face };
   }
   function lifeOffsetM(id, slot, i, n, t) {                    // 이동 출발점에 같은 오프셋을 쓴다(세계 m)
     const r = rectOf(slot); if (!r) return 0;
@@ -935,7 +968,9 @@
       if (movingNow[p.id]) return;                           // 아직 오는 중 — 이동 층에서 그린다
       const life = lifeAt(p, slot, t, step);
       const px = sx(standX(r, i, people.length)) + life.off;
-      const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot), life.pose, life.room);
+      // 작업 행(7~16)은 설비가 왼쪽인 것이 원본. 방의 오른쪽 절반에 선 사람은 셀째 반전 — 설비가 가까운 벽 쪽에 온다
+      const mirror = people.length > 1 && (i + 0.5) / people.length > 0.5;
+      const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot), life.pose, life.room, { face: life.face, mirror });
       if (carry && carry.id === p.id) {                      // 집어 든 표시
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
         ctx.strokeRect(px - box.w / 2 - 3, floorY - box.h - 6, box.w + 6, box.h + 10);
@@ -974,7 +1009,8 @@
       if (dragging && dragging.id === p.id) return;
       if (movingNow[p.id]) return;
       const px = x + step * (i + 1);
-      const box = drawPerson(p, px, floorY, t, i, 1, !!(cb && cb.power_on), 'idle');
+      const box = drawPerson(p, px, floorY, t, i, 1, !!(cb && cb.power_on), glanceAt(p.id, t) ? 'glance' : 'idle', null,
+                             { frame: glanceFrame(p.id, t) });
       if (carry && carry.id === p.id) {
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
         ctx.strokeRect(px - box.w / 2 - 3, floorY - box.h - 6, box.w + 6, box.h + 10);
@@ -985,6 +1021,15 @@
     hits.push({ kind: 'hall', x, y, w, h: hh });
   }
 
+  // 둘러보기: 사람마다 주기 8~20 s(id 해시), 한 번에 idle_glance 한 바퀴(2.4 s)
+  function hashId(id) { let h = 2166136261; for (let k = 0; k < id.length; k++) { h ^= id.charCodeAt(k); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function glancePhase(id, t) {
+    const h = hashId(id), period = 8000 + (h % 12000), dur = ((CLIPS.anim_seconds.idle_glance || 2.4) * 1000);
+    const ph = (t + (h >> 8) % period) % period;
+    return ph < dur ? ph / dur : -1;
+  }
+  const glanceAt = (id, t) => CLIPS.rows.idle_glance != null && glancePhase(id, t) >= 0;
+  function glanceFrame(id, t) { const k = glancePhase(id, t); return k < 0 ? null : Math.min(2, Math.floor(k * 3)); }
   function drawOutside(t) {
     // 밖에 나가 있는 사람(탑 오른 외벽 바깥, 심연 쪽). 손톱 무리의 날에만 보이고, 들이면 사라진다
     const ids = (cb && cb.outside) || [];
@@ -1036,6 +1081,7 @@
       ctx.fillStyle = '#f0b055'; ctx.beginPath(); ctx.arc(x0 + cw / 2, y0 + 12 * cam.z, Math.max(1.5, 5 * cam.z), 0, 6.2832); ctx.fill();
     });
   }
+  const moverState = {};
   function drawMovers(t) {
     const now = t / 1000, ids = Object.keys(movingNow);
     if (!ids.length) return;
@@ -1044,8 +1090,13 @@
       const p = byId[id], m = traffic.at(id, now);
       if (!p || !m || (dragging && dragging.id === id)) return;
       const w = MOVE_ADAPTER.toWorld(m.floor, m.x);
-      const k = 1;
-      drawPerson(p, sx(w.x), sy(w.y), t, i, k, !!(cb && cb.power_on), m.pose);
+      const st = moverState[id] || (moverState[id] = { face: 1, pose: null, since: t });
+      if (m.facing) st.face = m.facing;
+      if (m.pose !== st.pose) { st.prev = st.pose; st.pose = m.pose; st.since = t; }
+      let pose = m.pose, opt = { face: st.face };
+      // 옆걸음 → 엘리베이터 앞 정면: 갑자기 돌지 않게 고개 돌린 한 장(idle_glance f1)을 0.2 초 끼운다
+      if (pose === 'elevator_wait' && st.prev === 'walk' && t - st.since < 200 && CLIPS.rows.idle_glance != null) { pose = 'glance'; opt.frame = 1; }
+      drawPerson(p, sx(w.x), sy(w.y), t, i, 1, !!(cb && cb.power_on), pose, null, opt);
     });
   }
   // 드래그 중: 손끝 아래 방에서 빛나는 능력치를 숫자로 띄운다(배치할 때 강조 — RESIDENT_STATS §5, 숫자로 2026-10-03)
@@ -2661,6 +2712,7 @@
       return traffic.moving(t).map(id => Object.assign({ id }, traffic.at(id, t))); },
     car: () => traffic.cars().map(id => ({ id, floor: traffic.car(id, performance.now() / 1000) })),
     clips: () => Object.assign({}, usedClips),
+    flips: () => Object.assign({}, flipLog),           // ★ S12-B3 검수용: 반전해 그린 클립 수
     moveLog: () => moveLog.slice(),                    // 엘리베이터 배차 기록(시각은 performance.now 초)
   };
 
