@@ -1008,6 +1008,7 @@
     });
   }
 
+  const KO_N = (n) => (['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'][n] || String(n));
   const labelFont = (base) => Math.max(10.5, Math.min(15, base * cam.z * 2.2));
   function drawHall(t) {
     // 홀: 배치되지 않은 사람이 모이는 돔 안. 여기도 **빈 방이 아니다**
@@ -1030,7 +1031,7 @@
     if (cam.z > 0.12) {
       ctx.font = labelFont(10.5) + 'px "Noto Sans KR",sans-serif';
       ctx.fillStyle = 'rgba(230,215,176,0.62)';
-      ctx.fillText('홀 · 배치 안 된 사람 ' + list.length, x + 8, y + 16);
+      if (list.length) ctx.fillText('홀에 ' + KO_N(list.length) + ' 분 계십니다', x + 8, y + 16);   // 0 명이면 쓰지 않는다
     }
     const floorY = sy(MAP().dome.floor_y), step = w / (list.length + 1);
     list.forEach((p, i) => {
@@ -2170,6 +2171,14 @@
           ((it.polish | 0) > 1 ? ' · ' + esc(it.polish_label || POLISH_KO[it.polish] || '') : '') + (it.variant === 'sea' ? ' · 바다 무늬' : '') + '</span>').join('')
         : '<span>비어 있습니다. 찍은 물건이 여기 놓입니다</span>') + '</div>';
   }
+  // 같은 날 다시 찍으면 서버 polish.ko 가 비어 온다 → ui_moments 의 shelf.rescan(최대면 rescan_max) 문장으로
+  function rescanLine(pol, it) {
+    if (pol && pol.ko) return plain(pol.ko);
+    const item = (it && (it.name || propSpec(it.prop_id).name)) || '';
+    const T = K.ext.T;
+    const key = pol && pol.max && pol.level >= pol.max ? 'shelf.rescan_max' : 'shelf.rescan';
+    return T ? T(key, { item }, '') : '';
+  }
   function focusShelf(slot, pol) {
     const rs = shelfRoomSlot();
     if (rs == null) { toast('물건을 둘 창고가 없습니다'); return; }
@@ -2179,7 +2188,7 @@
     const it = shelf.find(x => (x.slot | 0) === slot);
     const room = (ark.rooms || []).find(r => r.slot === rs);
     const nm = (room && (catalog[room.id] || {}).name) || '창고';
-    if (pol) { toast(plain(pol.ko || '닦였습니다.')); return; }
+    if (pol) { toast(rescanLine(pol, it)); return; }
     toast((it ? '\'' + (it.name || propSpec(it.prop_id).name) + '\', ' : '') + nm + ' 선반에 두었습니다.');
   }
 
@@ -2355,7 +2364,7 @@
     // S13: 이미 선반에 있는 바코드면 새 칸을 먹지 않고 「닦였습니다」(polish). 서버가 준 문장이 이긴다
     const pol = r.polish || null, again = pol && r.shelf_new === false;
     const shelfNote = again
-      ? '<span class="where polished">' + esc(plain(pol.ko || '')) + (pol.label ? ' <b class="plv lv' + esc(pol.level) + '">' + esc(pol.label) + '</b>' : '') + '</span>'
+      ? '<span class="where polished">' + esc(rescanLine(pol, item)) + (pol.label ? ' <b class="plv lv' + esc(pol.level) + '">' + esc(pol.label) + '</b>' : '') + '</span>'
       : (slot != null
         ? '<span class="where">' + esc((item && item.name) || sp.name || '물건') + ', 선반 ' + (slot + 1) + '번째 칸에 두겠습니다</span>'
         : (has ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : ''));
@@ -2670,7 +2679,7 @@
     if (!k) return null;
     const pm = (ark.production || {})[String(room.slot)];
     const mult = pm && typeof pm.mult === 'number' ? pm.mult : 1;
-    const n = Math.round(pr[k] * mult * 10) / 10;
+    const n = Math.max(1, Math.round(pr[k] * mult));           // 방울은 정수로(1.4 같은 소수는 읽기 어렵다)
     return { res: k, n, mult, label: pm && pm.label };
   }
   function drawBubbles(t) {

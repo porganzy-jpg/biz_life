@@ -340,8 +340,17 @@
     C.log.push('day_end ' + lines.length);
   }
   const deb = $('#dayendbtn'); if (deb) deb.addEventListener('click', () => openDayEnd(false));
-  function nightCheck(st) {
-    if (st.is_night && store.get('dayend_day', null) !== st.day) setTimeout(() => openDayEnd(true), 4000);
+  // 밤에 처음 열면 한 번. 단, 첫 세션·1일째에는 열지 않는다(새 사람의 첫 화면이 마감 패널이면 안 된다).
+  // 2일째부터, 또는 마감에 실제로 적을 것이 있을 때만 연다
+  const sessionStart = !store.get('seen_before', false);
+  store.set('seen_before', true);
+  async function nightCheck(st) {
+    if (!st.is_night || store.get('dayend_day', null) === st.day) return;
+    if (sessionStart || (st.day || 1) < 2) return;
+    let d;
+    try { d = await K.api('/api/day_end?uid=' + encodeURIComponent(K.uid)); } catch (e) { return; }
+    if (!(d.lines || []).length) return;                      // 적을 것이 없으면 조용히
+    setTimeout(() => openDayEnd(true), 4000);
   }
   // 이뤄진 바람(한 번만 온다)
   function wishNews(st) { (st.wishes_new || []).forEach(w => announce(K.plain(w.line || ''))); if ((st.wishes_new || []).length) loadWishes(true); }
