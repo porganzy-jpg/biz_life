@@ -14,17 +14,29 @@
   <!-- 화면 가운데는 언제나 거점이다. UI 는 가장자리에만 (REF_CROSS_SECTION §1-9) -->
   <canvas id="cv" aria-label="방주 단면"></canvas>
 
-  <!-- 좌상단: 날·막·자원 -->
-  <header class="hud hud-tl">
-    <div class="row1"><span class="day" id="dayline">Day —</span><span class="act" id="actline">1막</span></div>
-    <div class="res" id="resbar"></div>
+  <!-- S12-B2 UI 단순화(docs/UI_SIMPLE.md): 고정 UI 는 위 한 줄 + 오른쪽 아래 버튼 둘(찍기·≡)뿐.
+       나머지는 ≡ 메뉴·탭 카드 안에 숨는다(지우지 않는다). -->
+  <header class="topbar" id="topbar">
+    <div class="tres" id="resbar"></div>
+    <div class="tday"><span class="day" id="dayline">Day —</span><span class="act" id="actline">1막</span></div>
+    <!-- 습격 띠: 생물 그림자 + 한 줄 + 노려지는 방. 누르면 작은 카드(#raidbar)가 펼쳐진다 -->
+    <button class="rstrip" id="rstrip" hidden aria-expanded="false">
+      <i class="rsil" id="rsil"></i><span class="rsline" id="rsline">—</span><b class="rsmore">▸</b>
+    </button>
+    <!-- 공기·깊이: 작은 아이콘 하나. 누르면 띠가 펼쳐진다 -->
+    <button class="gaugebtn" id="gaugebtn" title="공기 · 깊이" aria-expanded="false"><span class="gmini" id="gmini"></span></button>
   </header>
+  <div class="gaugepop" id="gaugepop" hidden>
+    <div class="g" id="gAir"><span class="gk">공기</span><div class="band" id="bandAir"></div></div>
+    <div class="g" id="gDepth"><span class="gk">깊이</span><div class="band down" id="bandDepth"></div><span class="gz" id="zoneline">무광층</span></div>
+  </div>
 
-  <!-- 우상단: 습격. 소리 → 실루엣 → 접촉. 시계는 없다(COMBAT_AND_DEFENSE §6-2·§9) -->
+  <!-- 습격 카드: 띠를 누르면 위 가운데에 펼쳐진다. 소리 → 실루엣 → 접촉. 시계는 없다(COMBAT_AND_DEFENSE §6-2·§9) -->
   <aside class="raidbar" id="raidbar" hidden>
     <div class="rtop">
       <span class="rstage" id="rstage">소리</span>
       <span class="rwho" id="rwho">—</span>
+      <button class="rclose" id="rclose" aria-label="접기">×</button>
     </div>
     <ol class="rsteps" id="rsteps"><li>소리</li><li>실루엣</li><li>접촉</li></ol>
     <p class="rtext" id="rtext"></p>
@@ -39,18 +51,16 @@
     <p class="rhint" id="rhint"></p>
   </aside>
 
-  <!-- 좌하단: 공기·깊이 (숫자가 아니라 줄어드는 띠) + 전원 -->
-  <div class="hud hud-bl gauges">
-    <div class="g" id="gAir">
-      <span class="gk">공기</span>
-      <div class="band" id="bandAir"></div>
-    </div>
-    <div class="g" id="gDepth">
-      <span class="gk">깊이</span>
-      <div class="band down" id="bandDepth"></div>
-      <span class="gz" id="zoneline">무광층</span>
-    </div>
-    <div class="g gbtns">
+  <!-- 오른쪽 아래 둘: 찍기(이 게임의 훅 — J5·E1) · ≡ 메뉴 -->
+  <div class="brbtns">
+    <button class="scanbtn" id="scanbtn" title="바코드를 찍는다">찍기</button>
+    <button class="menubtn" id="menubtn" title="메뉴" aria-expanded="false">≡</button>
+  </div>
+  <!-- ≡ 메뉴: 창고(자원 전부)·전원·공방·들이다·열쇠 -->
+  <div class="menu" id="menu" hidden>
+    <h3>창고</h3>
+    <div class="mres" id="mres"></div>
+    <div class="mbtns">
       <button id="pwr" class="sw" title="돔 전원">전원 켜짐</button>
       <button id="wbtn" class="sw" title="공방">공방</button>
       <button id="recallbtn" class="sw warn" title="밖에 있는 사람을 들인다" hidden>들이다</button>
@@ -58,15 +68,17 @@
     </div>
   </div>
 
-  <!-- 아래 가운데: 찍기. 이 게임의 훅 — 현실의 물건이 방주로 들어오는 문(J5·E1) -->
-  <button class="scanbtn" id="scanbtn" title="바코드를 찍는다">찍기</button>
-
-  <!-- 우하단: 카메라 -->
-  <div class="hud hud-br zoomctl">
+  <!-- 줌: PC 에서만(폰은 핀치) -->
+  <div class="zoomctl" id="zoomctl">
     <button id="zin" title="확대">+</button>
     <button id="zout" title="축소">−</button>
     <button id="zfit" title="맞춤">⌖</button>
   </div>
+
+  <!-- 방을 누르면 그 방 위에 뜨는 작은 카드 -->
+  <div class="roomcard" id="roomcard" hidden></div>
+  <!-- 생산 방울이 HUD 로 날아가는 아이콘 -->
+  <div class="flyers" id="flyers"></div>
 
   <!-- 상세 / 증축 / 공방 패널 -->
   <aside class="panel" id="panel" hidden>

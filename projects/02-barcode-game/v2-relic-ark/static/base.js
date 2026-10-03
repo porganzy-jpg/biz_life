@@ -251,7 +251,7 @@
       return { top, bottom: view.w <= 560 ? 104 : 72, left: 0, right: 0 };
     }
     const phone = view.h <= 500;
-    return { top: phone ? 34 : 64, bottom: phone ? 52 : 70, left: 0, right: 0 };
+    return { top: phone ? 40 : 46, bottom: 0, left: 0, right: 0 };     // S12-B2: 고정 UI 는 위 한 줄뿐
   }
   const ZMIN_ABS = 0.12, ZMAX = 2.4;
   function zMin() {                                  // 세계 밖이 보이지 않을 만큼만 물러난다
@@ -288,7 +288,7 @@
     raidPanned = raid.id + ':' + raid.stage;
     const L = MAP(), bar = $('#raidbar');
     // 습격 막대가 덮지 않는 폭 안에 [노려지는 방 … 외벽 밖 600 px] 이 들어오게. 안 들어갈 때만 그만큼 물러난다
-    const barW = (!bar.hidden && !isPortrait()) ? bar.offsetWidth + 24 : 0;
+    const barW = 0;                                   // S12-B2: 습격은 위 가운데 띠 — 옆을 덮지 않는다
     const avail = Math.max(200, view.w - barW), span = (L.tower.x1 + 600) - (r.x - 60);
     const z = Math.max(zMin(), Math.min(cam.z, avail / span));
     const x = (r.x - 60) + (view.w / 2) / z;
@@ -661,28 +661,27 @@
   function drawSealed(c, t) {
     const x = sx(c.x), y = sy(c.y), w = c.w * cam.z, h = c.h * cam.z;
     if (x > view.w + 40 || x + w < -40 || y > view.h + 40 || y + h < -40) return;
+    // S12-B2(사용자 결정): 서버는 한 층 2칸 그대로. 이 칸들은 2막 뒤에 열린다 — 「곧 되찾을 칸」처럼 보이면 안 된다.
+    // 점선 없이, 더 어둡게, 글자도 낮게
     if (c.kind === 'rock') {
       if (!layerReady('mid')) { ctx.fillStyle = '#1a130c'; ctx.fillRect(x, y, w, h); }
-      ctx.strokeStyle = 'rgba(90,67,32,0.55)'; ctx.lineWidth = Math.max(1, 4 * cam.z); ctx.setLineDash([10 * cam.z, 8 * cam.z]);
-      ctx.strokeRect(x, y, w, h); ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(6,4,2,0.45)'; ctx.fillRect(x, y, w, h);
     } else {
       const fl = overlayImg('cell_flood');
       if (fl) { ctx.fillStyle = 'rgba(3,14,19,0.45)'; ctx.fillRect(x, y, w, h); ctx.drawImage(fl, x, y, w, h); }
-      else {
-        if (!drawPlate('room_flood.png', x, y, w, h, 0.9)) { ctx.fillStyle = '#082028'; ctx.fillRect(x, y, w, h); }
-        ctx.fillStyle = 'rgba(3,14,19,0.55)'; ctx.fillRect(x, y, w, h);
-      }
-      ctx.strokeStyle = 'rgba(20,17,12,0.9)'; ctx.lineWidth = Math.max(1.5, 5 * cam.z); ctx.strokeRect(x, y, w, h);
+      else if (!drawPlate('room_flood.png', x, y, w, h, 0.9)) { ctx.fillStyle = '#082028'; ctx.fillRect(x, y, w, h); }
+      ctx.fillStyle = 'rgba(1,6,9,0.62)'; ctx.fillRect(x, y, w, h);     // 지을 수 있는 칸보다 확실히 가라앉게
     }
     if (cam.z > 0.3) {
       ctx.font = (11 * Math.min(1.6, cam.z * 2)) + 'px "Noto Sans KR",sans-serif';
-      ctx.fillStyle = c.kind === 'rock' ? 'rgba(170,140,100,0.55)' : 'rgba(140,190,195,0.5)';
+      ctx.fillStyle = c.kind === 'rock' ? 'rgba(170,140,100,0.38)' : 'rgba(140,190,195,0.34)';
       ctx.textBaseline = 'middle';
-      ctx.fillText(c.kind === 'rock' ? '바위 — 아직 파지 못했다' : '물이 찬 칸 — 아직 되찾지 못했다', x + 14 * cam.z, y + 24 * cam.z);
+      ctx.fillText(SEALED_KO[c.kind === 'rock' ? 'rock' : 'tower'], x + 14 * cam.z, y + 24 * cam.z);
       ctx.textBaseline = 'alphabetic';
     }
     hits.push({ kind: 'sealed', cell: c, x, y, w, h });
   }
+  const SEALED_KO = { tower: '물이 너무 깊게 찼다 — 아직 손댈 수 없다', rock: '아직 파지 못한 바위' };
   function drawSealedAll(t) {
     const L = MAP(), used = {};
     for (let s = 0; s < slots; s++) { const c = cellOf(s); if (c) used[c.id] = true; }
@@ -779,7 +778,10 @@
     // 두꺼운 검은 테두리: 방을 각각 "불 켜진 상자"로 읽히게 한다(§1-3)
     let edge = '#14110c', ew = 6;
     if (sel && sel.slot === slot) { edge = '#f0b055'; ew = 9; }
-    if (target === slot) { edge = '#b03a24'; ew = 9; }                    // 노려지는 방
+    if (target === slot && cb.raid && cb.raid.stage !== 'done' && !cb.raid.resolved) {   // 노려지는 방 — 천천히 깜빡(UI_SIMPLE §4)
+      const a = 0.55 + 0.45 * Math.sin(t / 420);
+      edge = 'rgba(176,58,36,' + a.toFixed(3) + ')'; ew = 9 + 5 * a;
+    }
     if (picked) {                                                         // 놓을 수 있는 자리
       const full = (people || []).length >= capOf(slot);
       edge = full ? '#6b3b33' : '#8fbf7a'; ew = 9;
@@ -789,6 +791,7 @@
     ctx.strokeRect(ix, iy, iw, ih);
 
     drawShelf(slot, ix, iy, iw, ih, lit);
+    drawRoomAnim(slot, ix, iy, iw, ih, t);
     drawInstalled(slot, ix, iy, iw, ih);
     drawPeople(people, r, t, slot);
 
@@ -1227,6 +1230,7 @@
     const byslot = {}; (ark.rooms || []).forEach(r => { byslot[r.slot] = r; });
     const people = peopleBySlot();
     for (let s = 0; s < slots; s++) drawRoom(s, byslot[s], people[s], t);
+    drawBubbles(t);
     drawOverRoom(t);
     drawCars(t);                                      //   승강기 칸 — 사람은 그 위에
     drawHall(t);
@@ -1236,10 +1240,12 @@
     drawDeepDark();
     drawMotes(t);
     drawFront(t);                                     // 겹 5 — 앞(시차 1.12)
+    if (carry || dragging) drawCarryNumbers();        // 끄는 동안 방마다 그 사람의 숫자 하나
     if (dragging) {                                   // 손끝에 매달린 사람
       drawPerson(dragging, pointer.x, pointer.y + 48 * cam.z, t, 0, 1, true, 'idle');
-      drawDropStat();
     }
+    drawWords(t);
+    placeCard();
     drawZones();
   }
   document.addEventListener('visibilitychange', () => {
@@ -1350,13 +1356,11 @@
   // 패널이 습격 막대 아래에서 열리게 한다(데스크톱). 둘이 겹치면 둘 다 안 읽힌다
   function placePanel() {
     const bar = $('#raidbar'), pan = $('#panel');
-    const desk = view.w > 560 && view.h > 500, raid = !bar.hidden;
-    // 가로 데스크톱: 습격 막대 아래 자리가 좁으면(< 380 px) 패널은 왼쪽으로 — 둘 다 읽혀야 한다
-    const below = desk && raid && (view.h - bar.offsetHeight - 48) >= 380;
-    const left = desk && raid && !below;
-    pan.classList.toggle('left', left);
-    pan.style.top = below ? (bar.offsetHeight + 24) + 'px' : '';
-    pan.style.maxHeight = below ? (view.h - bar.offsetHeight - 48) + 'px' : '';
+    // S12-B2: 패널(「자세히」)은 위 한 줄 아래에서 연다. 습격 카드가 열려 있으면 접는다
+    pan.classList.remove('left');
+    const desk = view.w > 560 && view.h > 500;
+    pan.style.top = desk ? '56px' : ''; pan.style.maxHeight = desk ? (view.h - 140) + 'px' : '';
+    if (raidOpen) { raidOpen = false; renderRaid(); }
   }
 
   function openPanel(slot) {
@@ -1524,7 +1528,7 @@
       apply(st); setCarry(null);
       toast(raidLive('lid') ? '옮겼다 — 덮개가 움직임을 느꼈다'
                             : (slot == null ? '홀로 되돌렸다' : '자리를 옮겼다'));
-      if (slot != null) openPanel(slot); else openHallPanel();
+      if (!$('#panel').hidden) { if (slot != null) openPanel(slot); else openHallPanel(); }
       refreshRaid();
     } catch (e) { toast(e.message || '옮기지 못했다'); setCarry(null); }
   }
@@ -1576,18 +1580,6 @@
     try { localStorage.setItem('ark_reclaim_' + uid, JSON.stringify(used.concat(pick.id))); } catch (e) { /* 이 기계에 못 적어도 줄은 보인다 */ }
     return pick.line;
   }
-  // 서버 칸이 없는 맵 칸을 눌렀을 때 — 지금은 되찾을 수 없다고 정직하게. 180 m 아래는 시나리오의 below_limit
-  function openSealed(c) {
-    sel = null;
-    const deep = (c.depth_m || 0) >= TRENCH_M;
-    const bl = towerLore && towerLore.below_limit && towerLore.below_limit.line;
-    const body = $('#panelBody');
-    body.innerHTML = c.kind === 'rock'
-      ? '<h2>벽 쪽 바위</h2><p class="sub">깊이 ' + esc(c.depth_m) + 'm</p><p class="desc">아직 파지 못했다. 굴 끝에 손전등을 비추면 바위 결만 돌아온다.</p>'
-      : '<h2>' + (deep ? '검게 잠긴 칸' : '물이 찬 칸') + '</h2><p class="sub">깊이 ' + esc(c.depth_m) + 'm' + (deep ? ' · ' + esc(zoneAt(DOME_FLOOR + c.depth_m / DEPTH_PER_FLOOR)) : '') + '</p>' +
-        '<p class="desc">' + esc(deep && bl ? bl : '격벽이 아직 열리지 않는다. 지금은 물을 뺄 수 없는 칸이다.') + '</p>';
-    $('#panel').hidden = false; placePanel();
-  }
   async function build(roomId, slot) {
     try {
       const st = await api('/api/ark/build', { room_id: roomId, slot });
@@ -1595,8 +1587,9 @@
       // M5: 짓는 것이 아니라 물을 빼고 되찾는다(라벨만 — API 는 /api/ark/build 그대로). 되찾은 칸의 한 줄은 시나리오 data/tower_lore.json
       const line = reclaimLine(slot);
       toast(((catalog[roomId] || {}).name || roomId) + ' — 물을 뺐다' + (line ? '. ' + line : ''));
-      openPanel(slot);
-      if (line) { const d = $('#panelBody .desc'); if (d) d.insertAdjacentHTML('beforebegin', '<p class="reclaim">' + esc(line) + '</p>'); }
+      closePanel(); animStart(slot, 'reclaim'); play('sfx_water_splash.ogg', 0.4);
+      setTimeout(() => { play('sfx_lantern_on.ogg', 0.4); openCard({ slot });
+        if (line) { const h = $('#roomcard h4'); if (h) h.insertAdjacentHTML('afterend', '<p class="rcline reclaim">' + esc(line) + '</p>'); placeCard(); } }, 1150);
     } catch (e) { toast(e.message || '물을 빼지 못했다'); }
   }
 
@@ -1608,8 +1601,12 @@
       if (r.result) {
         play((cb.raid && cb.raid.creature.audio && cb.raid.creature.audio.contact) || 'sfx_water_splash.ogg', 0.6);
         if (r.result === 'breached') play('sfx_room_flood.ogg', 0.75);
+        const tgt = raidTargetSlot();
+        const wd = RESULT_WORD[r.result] || [r.result_ko || '', '#e6d7b0'];
+        floatWord(tgt, wd[0], wd[1]);
+        lastOutcome = Object.assign({ raidId: cb.raid && cb.raid.id }, r);
+        raidOpen = false;
         toast(r.line);
-        showOutcome(r);
       }
       renderRaid();
     } catch (e) { toast(e.message || '실패'); }
@@ -1640,14 +1637,15 @@
   function renderRaid() {
     const bar = $('#raidbar'), raid = cb && cb.raid;
     if (!raid) {
-      bar.hidden = true; document.body.classList.remove('raid-on');
+      bar.hidden = true; document.body.classList.remove('raid-on'); renderStrip(null);
       $('#rflip').hidden = true; $('#ract').hidden = true;
       if (view.w <= 560 && lastBarH) { cam.y += (lastBarH / 2) / cam.z; lastBarH = 0; }
       const hint = cb && cb.next_raid_hint;
       if (hint && hint.ko) { /* 문어의 예고는 토스트로 한 번만 */ }
       return;
     }
-    bar.hidden = false; document.body.classList.add('raid-on');
+    renderStrip(raid);
+    bar.hidden = !raidOpen; document.body.classList.add('raid-on');
     bar.classList.toggle('calm', !raid.creature.threat);
     $('#rstage').textContent = STAGE_LABEL[raid.stage] || raid.stage;
     $('#rwho').textContent = raid.creature.name + (raid.target_room ? ' → ' + raid.target_room : '');
@@ -1744,10 +1742,7 @@
     if (typeof st.dome_floor === 'number') DOME_FLOOR = st.dome_floor;
     $('#dayline').textContent = 'Day ' + st.day;
     $('#actline').textContent = (st.act || 1) + '막 · ' + (st.act_ko || '');
-    const res = st.resources || {};
-    $('#resbar').innerHTML = Object.keys(res)
-      .filter(k => CORE_RES.indexOf(k) >= 0 || res[k] > 0)
-      .map(k => '<span>' + esc(RES_KO[k] || k) + '<b>' + esc(res[k]) + '</b></span>').join('');
+    renderTop(st);                                   // S12-B2: 위 한 줄(핵심 넷) + ≡ 메뉴 창고(나머지)
     const g = st.gauges || {};
     if (g.air) $('#bandAir').style.setProperty('--v', Math.round(g.air.value * 100) + '%');
     if (g.depth) {
@@ -2186,7 +2181,7 @@
         const u = st.upgraded || {};
         toast((u.name || '') + ' Lv' + (u.level || '') + (u.opens ? ' — ' + plain(u.opens) : ''));
         play('sfx_tool_install.ogg', 0.5);
-        if (k === 'hall') openHallPanel(); else openPanel(parseInt(k, 10));
+        if (k === 'hall') openHallPanel(); else { animStart(parseInt(k, 10), 'level'); openPanel(parseInt(k, 10)); }
       } catch (e) { toast(e.message || '올리지 못했다'); }
     }));
   }
@@ -2239,6 +2234,260 @@
     $('#keygo').addEventListener('click', go);
     $('#keyin').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
   }
+
+  // ══════════════════════════════════════════════════════════════
+  //  S12-B2 — UI 단순화(docs/UI_SIMPLE.md). 고정 UI 는 위 한 줄 + 찍기·≡ 둘.
+  //  방 카드 · 생산 방울 · 끌 때 방마다 숫자 하나 · 습격 띠 · 작은 애니메이션(방울·되찾기·레벨업·결과 글자).
+  //  기존 패널(openPanel 등)은 지우지 않고 카드의 「자세히」 뒤로 숨겼다.
+  // ══════════════════════════════════════════════════════════════
+  const CHIP = { power: '전', food: '식', water: '물', parts: '부' };
+  const TOP_RES = ['power', 'food', 'water', 'parts'];
+  function renderTop(st) {
+    const res = st.resources || {};
+    $('#resbar').innerHTML = TOP_RES.map(k =>
+      '<span class="rchip ' + k + '" data-res="' + k + '" title="' + esc(RES_KO[k] || k) + '"><i>' + CHIP[k] + '</i>' + esc(res[k] || 0) + '</span>').join('');
+    // 나머지는 ≡ 메뉴의 「창고」에 — 0 인 것도 보인다(보이지 않는 자원 때문에 막히지 않게, S9-C 지적)
+    $('#mres').innerHTML = Object.keys(res).filter(k => TOP_RES.indexOf(k) < 0)
+      .map(k => '<span>' + esc(RES_KO[k] || k) + '<b>' + esc(res[k]) + '</b></span>').join('');
+    const g = st.gauges || {};
+    const gm = $('#gmini');
+    if (g.air) gm.style.setProperty('--a', Math.round(g.air.value * 100) + '%');
+    if (g.depth) gm.style.setProperty('--d', Math.round(Math.max(0.06, g.depth.value) * 100) + '%');
+  }
+
+  // ── 팝오버 셋(≡ 메뉴 · 공기/깊이 · 습격 카드)은 하나만 열린다 ──
+  let raidOpen = false;
+  function closePops(except) {
+    if (except !== 'menu') { $('#menu').hidden = true; $('#menubtn').setAttribute('aria-expanded', 'false'); }
+    if (except !== 'gauge') { $('#gaugepop').hidden = true; $('#gaugebtn').setAttribute('aria-expanded', 'false'); }
+    if (except !== 'raid' && raidOpen) { raidOpen = false; renderRaid(); }
+  }
+  $('#menubtn').addEventListener('click', () => {
+    const open = $('#menu').hidden; closePops('menu'); closeCard();
+    $('#menu').hidden = !open; $('#menubtn').setAttribute('aria-expanded', String(open));
+  });
+  $('#gaugebtn').addEventListener('click', () => {
+    const open = $('#gaugepop').hidden; closePops('gauge');
+    $('#gaugepop').hidden = !open; $('#gaugebtn').setAttribute('aria-expanded', String(open));
+  });
+  ['#pwr', '#wbtn', '#recallbtn', '#keybtn'].forEach(id => $(id).addEventListener('click', () => {
+    if (id !== '#pwr') { $('#menu').hidden = true; $('#menubtn').setAttribute('aria-expanded', 'false'); }
+  }));
+
+  // ── 습격 띠(위 가운데) ── 생물 그림자 + 한 줄 + 노려지는 방. 누르면 작은 카드(#raidbar)
+  let lastOutcome = null;
+  function renderStrip(raid) {
+    const sp = $('#rstrip');
+    if (!raid) { sp.hidden = true; return; }
+    sp.hidden = false;
+    const done = raid.stage === 'done' || raid.resolved;
+    sp.classList.toggle('calm', !raid.creature.threat);
+    sp.classList.toggle('done', !!done);
+    const meta = threatMeta[raid.creature.id];
+    $('#rsil').style.backgroundImage = meta ? 'url(/static/art/threats/' + meta.files.far + ')' : '';
+    const stage = STAGE_LABEL[raid.stage] || raid.stage;
+    const res = (done && lastOutcome && lastOutcome.raidId === raid.id) ? ' · ' + lastOutcome.result_ko : '';
+    $('#rsline').textContent = raid.creature.name + (raid.target_room ? ' → ' + raid.target_room : '') + ' · ' + (res ? res.slice(3) : stage);
+    sp.setAttribute('aria-expanded', String(raidOpen));
+  }
+  $('#rstrip').addEventListener('click', () => {
+    const raid = cb && cb.raid;
+    if (raid && (raid.stage === 'done' || raid.resolved) && lastOutcome) { closePops(); showOutcome(lastOutcome); return; }
+    const open = !raidOpen; closePops('raid'); closeCard();
+    raidOpen = open; renderRaid();
+  });
+  $('#rclose').addEventListener('click', () => { raidOpen = false; renderRaid(); });
+  $('#rtext').addEventListener('click', () => $('#rtext').classList.toggle('open'));   // 이야기 문장은 눌러서 다 읽는다
+
+  // ── 방 위 작은 카드 ── 이름·레벨·사람 수·유리한 능력치 한 글자 + 버튼 둘 이하 + 「자세히」
+  let card = null;                                     // {slot} | {hall:true} | {sealed:cell}
+  function closeCard() { card = null; $('#roomcard').hidden = true; }
+  function cardAnchor() {                              // 세계 좌표 → 화면(위 가운데)
+    if (!card) return null;
+    if (card.hall) { const h = hallRect(); return { x: h.x + h.w / 2, y: h.y + 40, bottom: h.y + h.h }; }
+    const c = card.sealed || (rectOf(card.slot) || {}).cell;
+    return c ? { x: c.x + c.w / 2, y: c.y + 12, bottom: c.y + c.h } : null;
+  }
+  function placeCard() {
+    const el = $('#roomcard'); if (el.hidden || !card) return;
+    const a = cardAnchor(); if (!a) return;
+    let x = sx(a.x), y = sy(a.y);
+    const below = y - el.offsetHeight < 52;          // 위 한 줄에 걸리면 방 아래로
+    if (below) y = Math.min(view.h - el.offsetHeight - 70, sy(a.bottom) - 8);
+    el.classList.toggle('below', below);
+    x = Math.max(el.offsetWidth / 2 + 8, Math.min(view.w - el.offsetWidth / 2 - 8, x));
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+  }
+  function openCard(c) {
+    closePops();
+    card = c;
+    const el = $('#roomcard');
+    let h = '';
+    if (c.hall) {
+      const n = (ark.residents_list || []).filter(r => cb.stations[r.id] === undefined && cb.outside.indexOf(r.id) < 0).length;
+      h = '<h4>홀<small>Lv' + esc(ark.hall_level || 1) + '</small></h4><div class="rcmeta">배치 안 된 사람 ' + n + '명</div>' +
+          '<div class="rcbtns"><button data-c="more">자세히</button></div>';
+    } else if (c.sealed) {
+      const deep = (c.sealed.depth_m || 0) >= TRENCH_M && c.sealed.kind !== 'rock';
+      const bl = towerLore && towerLore.below_limit && towerLore.below_limit.line;
+      h = '<h4>' + (c.sealed.kind === 'rock' ? '벽 쪽 바위' : (deep ? '검게 잠긴 칸' : '물이 찬 칸')) + '<small>깊이 ' + esc(c.sealed.depth_m) + 'm</small></h4>' +
+          '<p class="rcline">' + esc(deep && bl ? bl : SEALED_KO[c.sealed.kind === 'rock' ? 'rock' : 'tower']) + '</p>';
+    } else {
+      const slot = c.slot, room = (ark.rooms || []).find(r => r.slot === slot);
+      const depth = (floorOf(slot) - DOME_FLOOR) * DEPTH_PER_FLOOR;
+      if (!room) {
+        h = '<h4>물이 찬 칸<small>깊이 ' + depth + 'm</small></h4><p class="rcline">물을 빼면 칸을 되찾는다.</p>' +
+            '<div class="rcbtns"><button class="on" data-c="build">물을 뺀다</button></div>';
+      } else if (room.flooded) {
+        h = '<h4>' + esc((catalog[room.id] || {}).name || room.id) + '<small>물이 찼다</small></h4>' +
+            '<p class="rcline">격벽은 다시 열리지 않는다.</p><div class="rcbtns"><button data-c="more">자세히</button></div>';
+      } else {
+        const spec = catalog[room.id] || {}, n = (peopleBySlot()[slot] || []).length, cap = capOf(slot), lit = lightOf(slot);
+        const ko = (ark.stats_meta || {}).ko || STAT_KO_DEF, st = goodStats(slot);
+        const worst = lit && raidLive('mirror_eye') && (raidTargetSlot() == null || raidTargetSlot() === slot);
+        h = '<h4>' + esc(spec.name || room.id) + '<small>Lv' + esc(room.level || 1) + '</small></h4>' +
+            '<div class="rcmeta"><span>' + n + '/' + cap + '명</span>' +
+            st.map(k => '<span class="rcstat" title="이 방에 유리한 능력치">' + esc(ko[k] || k) + '</span>').join('') + '</div>' +
+            '<div class="rcbtns"><button data-c="light" class="' + (lit ? 'on' : '') + (worst ? ' worst' : '') + '">' +
+            (lit ? (worst ? '끄면 최악수' : '불 끄기') : '불 켜기') + '</button><button data-c="more">자세히</button></div>';
+      }
+    }
+    el.innerHTML = h; el.hidden = false;
+    el.querySelectorAll('button[data-c]').forEach(b => b.addEventListener('click', () => {
+      const k = b.dataset.c;
+      if (k === 'more') { const cc = card; closeCard(); if (cc.hall) openHallPanel(); else openPanel(cc.slot); }
+      else if (k === 'build') { const sl = card.slot; closeCard(); openPanel(sl); }
+      else if (k === 'light') { const sl = card.slot; setLight(sl, !lightOf(sl)).then(() => { if (card && card.slot === sl) openCard({ slot: sl }); }); }
+    }));
+    placeCard();
+  }
+
+  // ── 끄는 동안: 방마다 그 사람의 유리한 숫자 하나만(목록 UI 가 아니다) ──
+  function drawCarryNumbers() {
+    const who = dragging || (carry && (ark.residents_list || []).find(r => r.id === carry.id));
+    if (!who || !who.stats) return;
+    (ark.rooms || []).forEach(room => {
+      if (room.flooded) return;
+      const r = rectOf(room.slot); if (!r) return;
+      const ks = goodStats(room.slot); if (!ks.length) return;
+      const v = Math.max(...ks.map(k => who.stats[k] || 0));
+      const x = sx(r.x + r.w / 2), y = sy(r.y) + 6;
+      if (x < -40 || x > view.w + 40 || y < -40 || y > view.h + 40) return;
+      const full = (peopleBySlot()[room.slot] || []).length >= capOf(room.slot) && cb.stations[who.id] !== room.slot;
+      ctx.beginPath(); ctx.arc(x, y + 16, 17, 0, 6.2832);
+      ctx.fillStyle = full ? 'rgba(60,30,26,0.92)' : 'rgba(20,17,12,0.92)'; ctx.fill();
+      ctx.strokeStyle = full ? '#6b3b33' : '#f0b055'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = full ? '#9a7a72' : '#f0b055'; ctx.font = 'bold 17px "Noto Sans KR",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(v), x, y + 17);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    });
+  }
+
+  // ── 생산 방울 ── 서버는 생산을 시간에 맞춰 이미 더한다(tick_production, 8시간마다). 새 API 를 만들지 않았다:
+  // 방울은 그 방이 한 번에 내는 양(+N)을 보여 주는 **눈에 보이는 수확 신호**다. 누르면 HUD 로 날아가고 숫자 칩이 한 번 튄다.
+  // 다시 뜨는 간격은 화면 연출(45초) — 서버 값은 바뀌지 않는다.
+  const BUBBLE_GAP_MS = 45000;
+  const bubbleAt = {};                                 // slot → 다시 뜨는 시각(performance.now)
+  function bubbleOf(room) {
+    const spec = catalog[room.id] || {}, pr = spec.produces || {};
+    const k = Object.keys(pr).find(x => CHIP[x]) || Object.keys(pr)[0];
+    return k ? { res: k, n: pr[k] } : null;
+  }
+  function drawBubbles(t) {
+    if (!cb || !cb.power_on) return;
+    (ark.rooms || []).forEach((room, i) => {
+      if (room.flooded || !lightOf(room.slot)) return;
+      const b = bubbleOf(room); if (!b) return;
+      if (bubbleAt[room.slot] == null) bubbleAt[room.slot] = t + 1200 + i * 700;
+      if (t < bubbleAt[room.slot]) return;
+      const r = rectOf(room.slot); if (!r) return;
+      const since = t - bubbleAt[room.slot], pop = Math.min(1, since / 260);
+      const k = pop < 1 ? 1 + 0.35 * Math.sin(pop * Math.PI) : 1;               // 톡 튀어 오른다
+      const x = sx(r.x + r.w - 70), y = sy(r.y) - 14 + Math.sin(t / 650 + i) * 3 - (1 - pop) * 10;
+      if (x < -30 || x > view.w + 30 || y < -30 || y > view.h + 30) return;
+      const R = 19 * k;
+      ctx.beginPath(); ctx.arc(x, y, R, 0, 6.2832);
+      ctx.fillStyle = 'rgba(250,230,200,0.95)'; ctx.fill();
+      ctx.strokeStyle = '#14110c'; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 5, y + R - 2); ctx.lineTo(x, y + R + 7); ctx.lineTo(x + 5, y + R - 2); ctx.fillStyle = 'rgba(250,230,200,0.95)'; ctx.fill();
+      ctx.fillStyle = '#1a150e'; ctx.font = 'bold 12px "Noto Sans KR",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText((CHIP[b.res] || (RES_KO[b.res] || b.res).slice(0, 1)) + '+' + b.n, x, y + 1);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      hits.push({ kind: 'bubble', slot: room.slot, res: b.res, n: b.n, x: x - R - 4, y: y - R - 4, w: 2 * R + 8, h: 2 * R + 14 });
+    });
+  }
+  function collectBubble(h) {
+    bubbleAt[h.slot] = performance.now() + BUBBLE_GAP_MS;
+    play('sfx_card_place.ogg', 0.35);
+    const chip = $('#resbar [data-res="' + h.res + '"]');
+    const fly = document.createElement('div');
+    fly.className = 'flyer'; fly.textContent = '+' + h.n;
+    fly.style.background = chip ? getComputedStyle(chip.querySelector('i')).backgroundColor : '#f0b055';
+    fly.style.left = (h.x + h.w / 2) + 'px'; fly.style.top = (h.y + h.h / 2) + 'px';
+    $('#flyers').appendChild(fly);
+    const dst = chip ? chip.getBoundingClientRect() : { left: view.w / 2, top: 10, width: 0, height: 0 };
+    const cvr = cv.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      fly.style.transform = 'translate(' + (dst.left - cvr.left + dst.width / 2 - (h.x + h.w / 2)) + 'px,' + (dst.top - cvr.top + dst.height / 2 - (h.y + h.h / 2)) + 'px) scale(.7)';
+      fly.style.opacity = '0.2';
+    });
+    setTimeout(() => { fly.remove(); if (chip) { chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); } }, 660);
+    const room = (ark.rooms || []).find(r => r.slot === h.slot);
+    toast(((room && (catalog[room.id] || {}).name) || '') + ' — ' + (RES_KO[h.res] || h.res) + ' +' + h.n + ' (8시간마다 창고로 들어온다)');
+  }
+
+  // ── 작은 애니메이션: 되찾기(먼지 → 수면이 내려감 → 불이 켜짐, 약 1.1초) · 레벨업(번쩍 + 반짝) · 결과 글자 ──
+  const anims = {};                                    // slot → {kind, t0}
+  const words = [];                                    // {slot, text, color, t0}
+  function animStart(slot, kind) { anims[slot] = { kind, t0: performance.now() }; }
+  function drawRoomAnim(slot, ix, iy, iw, ih, t) {
+    const a = anims[slot]; if (!a) return;
+    const k = (t - a.t0) / (a.kind === 'reclaim' ? 1100 : 700);
+    if (k >= 1 || k < 0) { delete anims[slot]; return; }
+    ctx.save(); ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
+    if (a.kind === 'reclaim') {
+      const dark = Math.max(0, 1 - k / 0.75);           // 불은 끝에 켜진다
+      ctx.fillStyle = 'rgba(2,8,12,' + (0.7 * dark).toFixed(3) + ')'; ctx.fillRect(ix, iy, iw, ih);
+      const water = Math.min(1, k / 0.7);                // 수면이 위에서 아래로 내려간다
+      const fl = overlayImg('cell_flood'), top = iy + ih * water;
+      if (water < 1) {
+        if (fl) { ctx.save(); ctx.beginPath(); ctx.rect(ix, top, iw, iy + ih - top); ctx.clip(); ctx.drawImage(fl, ix, iy, iw, ih); ctx.restore(); }
+        else { ctx.fillStyle = 'rgba(8,40,52,0.85)'; ctx.fillRect(ix, top, iw, iy + ih - top); }
+        ctx.fillStyle = 'rgba(160,220,225,0.7)'; ctx.fillRect(ix, top - 2, iw, 3);
+      }
+      ctx.fillStyle = 'rgba(200,180,140,' + (0.5 * (1 - k)).toFixed(3) + ')';    // 먼지
+      for (let i = 0; i < 24; i++) {
+        const px = ix + ((i * 97) % 100) / 100 * iw, py = iy + ih * (0.9 - k * 0.6) - ((i * 37) % 40) * cam.z;
+        ctx.beginPath(); ctx.arc(px + Math.sin(i + k * 6) * 8 * cam.z, py, Math.max(1, (3 + i % 4) * cam.z), 0, 6.2832); ctx.fill();
+      }
+      if (k > 0.75) { ctx.fillStyle = 'rgba(250,230,200,' + (0.5 * (1 - (k - 0.75) / 0.25)).toFixed(3) + ')'; ctx.fillRect(ix, iy, iw, ih); }
+    } else {                                           // 레벨업
+      ctx.fillStyle = 'rgba(255,240,210,' + (0.6 * (1 - k)).toFixed(3) + ')'; ctx.fillRect(ix, iy, iw, ih);
+      ctx.fillStyle = '#ffe9b0';
+      for (let i = 0; i < 10; i++) {
+        const ang = i * 0.63, rr = (20 + k * 120) * cam.z;
+        const px = ix + iw / 2 + Math.cos(ang) * rr * 2, py = iy + ih / 2 + Math.sin(ang) * rr;
+        ctx.beginPath(); ctx.arc(px, py, Math.max(1.5, 5 * cam.z * (1 - k)), 0, 6.2832); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  function floatWord(slot, text, color) { words.push({ slot, text, color, t0: performance.now() }); }
+  function drawWords(t) {
+    for (let i = words.length - 1; i >= 0; i--) {
+      const w = words[i], k = (t - w.t0) / 2600;
+      if (k >= 1) { words.splice(i, 1); continue; }
+      const r = w.slot != null ? rectOf(w.slot) : null;
+      const x = r ? sx(r.x + r.w / 2) : view.w / 2, y = (r ? sy(r.y + r.h / 2) : view.h / 2) - k * 40;
+      const a = k < 0.15 ? k / 0.15 : (k > 0.7 ? (1 - k) / 0.3 : 1), s = k < 0.15 ? 0.6 + 0.4 * (k / 0.15) : 1;
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(s, s);
+      ctx.font = 'bold 40px "Noto Sans KR",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(10,8,6,0.9)'; ctx.strokeText(w.text, 0, 0);
+      ctx.fillStyle = w.color; ctx.fillText(w.text, 0, 0);
+      ctx.restore();
+    }
+  }
+  const RESULT_WORD = { held: ['막았다', '#8fbf7a'], scarred: ['금이 갔다', '#f0b055'], breached: ['잃었다', '#e07a62'], passed: ['지나갔다', '#cfe6e4'] };
 
   // ── 입력: 드래그(데스크톱) · 탭-탭(폰). 둘 다 같은 길로 간다 ──
   const hitAt = (px, py, kind) => {
@@ -2329,17 +2578,19 @@
     }
     if (d.person) {                            // 탭 1: 사람을 집는다 — 그 사람의 카드도 함께 연다
       setCarry({ id: d.person.id, name: d.person.name, role: d.person.role });
+      closeCard(); closePops();
       toast(d.person.name + ' — 옮길 방을 탭하세요');
-      if (d.person.from == null) openHallPanel(); else openPanel(d.person.from);
       return;
     }
+    const bb = hitAt(px, py, 'bubble');
+    if (bb) { collectBubble(bb); return; }
     const sh = hitAt(px, py, 'shelf');
-    if (sh) { toast(shelfLine(sh.item)); openPanel(s != null ? s : shelfRoomSlot()); return; }
-    if (s != null) { openPanel(s); return; }
-    if (hitAt(px, py, 'hall')) { openHallPanel(); return; }
+    if (sh) { toast(shelfLine(sh.item)); closePanel(); openCard({ slot: s != null ? s : shelfRoomSlot() }); return; }
+    if (s != null) { closePanel(); openCard({ slot: s }); return; }
+    if (hitAt(px, py, 'hall')) { closePanel(); openCard({ hall: true }); return; }
     const sc = hitAt(px, py, 'sealed');
-    if (sc) { openSealed(sc.cell); return; }
-    closePanel();
+    if (sc) { closePanel(); openCard({ sealed: sc.cell }); return; }
+    closePanel(); closeCard(); closePops();
   });
   cv.addEventListener('pointercancel', (e) => { touches.delete(e.pointerId); pinch = null; drag = null; dragging = null; cv.classList.remove('dragging'); });
   cv.addEventListener('wheel', (e) => {
@@ -2393,7 +2644,8 @@
                   slots: Array.from({ length: slots }, (_, i) => { const c = cellOf(i); return c ? { slot: i, cell: c.id, storey: c.storey, col: c.col } : null; }).filter(Boolean),
                   trenchY: zoneY(TRENCH_M), layoutTrenchY: MAP().depth.trenchY }),
     cam: () => Object.assign({}, cam, { zmin: zMin() }),
-    sil: () => silDbg,                                 // ★ 검수용: 지금 다가오는 실루엣의 세계 x
+    sil: () => silDbg,
+    bubbles: () => hits.filter(h => h.kind === 'bubble').map(h => ({ slot: h.slot, res: h.res, n: h.n, cx: h.x + h.w / 2, cy: h.y + h.h / 2 })),   // ★ 검수용                                 // ★ 검수용: 지금 다가오는 실루엣의 세계 x
     fps: () => { const a = fpsLog.slice(-120); const m = a.reduce((x, y) => x + y, 0) / Math.max(1, a.length); const b = workLog.slice(-120), wm = b.reduce((x, y) => x + y, 0) / Math.max(1, b.length);
       return { avgMs: +m.toFixed(2), fps: +(1000 / m).toFixed(1), worstMs: Math.max(...a), drawMs: +wm.toFixed(2), drawWorstMs: +Math.max(...b).toFixed(2) }; },
     zoomBy: (k) => zoomAt(view.w / 2, view.h / 2, k), panTo: (x, y) => { cam.x = x; cam.y = y; clampCam(); },
