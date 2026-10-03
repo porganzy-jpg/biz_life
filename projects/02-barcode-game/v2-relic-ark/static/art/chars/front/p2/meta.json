@@ -21,7 +21,21 @@
   "sit",
   "carry",
   "hurt",
-  "back_walk"
+  "back_walk",
+  "work_quarters",
+  "work_storage",
+  "work_well",
+  "work_greenhouse",
+  "work_generator",
+  "work_infirmary",
+  "work_workshop",
+  "work_decoder",
+  "work_pantry",
+  "work_airlock",
+  "rest_lounge",
+  "elevator_wait",
+  "elevator_turn",
+  "elevator_ride"
  ],
  "frames": {
   "idle": 2,
@@ -30,7 +44,21 @@
   "sit": 2,
   "carry": 2,
   "hurt": 2,
-  "back_walk": 3
+  "back_walk": 3,
+  "work_quarters": 3,
+  "work_storage": 3,
+  "work_well": 3,
+  "work_greenhouse": 3,
+  "work_generator": 3,
+  "work_infirmary": 3,
+  "work_workshop": 3,
+  "work_decoder": 3,
+  "work_pantry": 3,
+  "work_airlock": 3,
+  "rest_lounge": 2,
+  "elevator_wait": 2,
+  "elevator_turn": 1,
+  "elevator_ride": 2
  },
  "rows": {
   "idle": 0,
@@ -39,7 +67,21 @@
   "sit": 3,
   "carry": 4,
   "hurt": 5,
-  "back_walk": 6
+  "back_walk": 6,
+  "work_quarters": 7,
+  "work_storage": 8,
+  "work_well": 9,
+  "work_greenhouse": 10,
+  "work_generator": 11,
+  "work_infirmary": 12,
+  "work_workshop": 13,
+  "work_decoder": 14,
+  "work_pantry": 15,
+  "work_airlock": 16,
+  "rest_lounge": 17,
+  "elevator_wait": 18,
+  "elevator_turn": 19,
+  "elevator_ride": 20
  },
  "anim_seconds": {
   "idle": 2.8,
@@ -48,7 +90,21 @@
   "sit": 3.2,
   "carry": 1.0,
   "hurt": 2.0,
-  "back_walk": 0.8
+  "back_walk": 0.8,
+  "work_quarters": 1.8,
+  "work_storage": 1.6,
+  "work_well": 1.5,
+  "work_greenhouse": 2.0,
+  "work_generator": 1.4,
+  "work_infirmary": 1.6,
+  "work_workshop": 0.9,
+  "work_decoder": 2.2,
+  "work_pantry": 1.5,
+  "work_airlock": 1.2,
+  "rest_lounge": 3.2,
+  "elevator_wait": 1.6,
+  "elevator_turn": 0.25,
+  "elevator_ride": 2.4
  },
  "sheet": "static/art/chars/front/p2/<role>.png  (체형 A, x4, 셀 256, 발 기준선 240)",
  "sheet_b": "static/art/chars/front/p2/<role>_b.png  (체형 B, 같은 규약)",
@@ -460,6 +516,434 @@
   }
  ],
  "layer_checks": "생성기가 매 실행마다: ①각인×각인 ②각인×얼굴 3종 ③각인×머리 6종 (머리 위에 얹히도록 설계된 water_memory 제외) ④기본머리 덮임 ⑤기본시트+패치==변형시트 를 전수 검사한다.",
+ "s11_rows": {
+  "work_quarters": {
+   "row": 7,
+   "frames": 3,
+   "room": "거주실",
+   "what": "담요를 편다 → 반으로 접는다 → 작게 개어 든다",
+   "hands": "두 손 · 도구는 허리에",
+   "seconds": 1.8
+  },
+  "work_storage": {
+   "row": 8,
+   "frames": 3,
+   "room": "창고",
+   "what": "바닥의 상자를 든다 → 가슴 높이 → 왼쪽 선반에 밀어 올린다",
+   "hands": "두 손 · 도구는 허리에",
+   "seconds": 1.6
+  },
+  "work_well": {
+   "row": 9,
+   "frames": 3,
+   "room": "정수실",
+   "what": "배관의 붉은 밸브 바퀴를 돌린다 · 꼭지에서 물방울이 양동이로",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 1.5
+  },
+  "work_greenhouse": {
+   "row": 10,
+   "frames": 3,
+   "room": "온실",
+   "what": "화분의 시든 잎을 따서 떨군다",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 2.0
+  },
+  "work_generator": {
+   "row": 11,
+   "frames": 3,
+   "room": "발전실",
+   "what": "계기함의 레버를 당긴다 → 바늘이 돌고 등이 켜진다",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 1.4
+  },
+  "work_infirmary": {
+   "row": 12,
+   "frames": 3,
+   "room": "의무실",
+   "what": "십자 상자에서 흰 붕대를 감아 올린다(감을수록 두루마리가 굵어진다)",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 1.6
+  },
+  "work_workshop": {
+   "row": 13,
+   "frames": 3,
+   "room": "공방",
+   "what": "모루 위 달군 쇠를 망치로 친다 · 칠 때 불똥",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 0.9
+  },
+  "work_decoder": {
+   "row": 14,
+   "frames": 3,
+   "room": "해독실·서고",
+   "what": "독서대의 큰 책장을 넘긴다 · 촛불",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 2.2
+  },
+  "work_pantry": {
+   "row": 15,
+   "frames": 3,
+   "room": "식량창고",
+   "what": "화로 위 냄비를 젓는다 · 김이 오른다",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 1.5
+  },
+  "work_airlock": {
+   "row": 16,
+   "frames": 3,
+   "room": "에어락",
+   "what": "세워 둔 예비 공기통의 압력계를 두드린다",
+   "hands": "왼손 · 오른손 도구",
+   "seconds": 1.2
+  },
+  "rest_lounge": {
+   "row": 17,
+   "frames": 2,
+   "room": "전망 라운지",
+   "what": "등을 돌리고 유리에 손을 대고 바깥을 본다(생산 0인 방 — 쉼)",
+   "hands": "뒷모습",
+   "seconds": 3.2
+  },
+  "elevator_wait": {
+   "row": 18,
+   "frames": 2,
+   "room": "엘리베이터",
+   "what": "문 앞에서 기다린다 — 머리가 좌우로 1px 흔들린다",
+   "hands": "정면",
+   "seconds": 1.6
+  },
+  "elevator_turn": {
+   "row": 19,
+   "frames": 1,
+   "room": "엘리베이터",
+   "what": "칸에 들어서며 몸을 돌리는 한 프레임(얼굴 반쪽)",
+   "hands": "돌아섬",
+   "seconds": 0.25
+  },
+  "elevator_ride": {
+   "row": 20,
+   "frames": 2,
+   "room": "엘리베이터",
+   "what": "칸 안에 두 손을 모으고 정면으로 선다 — 거의 정지",
+   "hands": "정면",
+   "seconds": 2.4
+  }
+ },
+ "room_work": {
+  "hall": "idle",
+  "quarters": "work_quarters",
+  "storage": "work_storage",
+  "well": "work_well",
+  "greenhouse": "work_greenhouse",
+  "generator": "work_generator",
+  "infirmary": "work_infirmary",
+  "airlock": "work_airlock",
+  "workshop": "work_workshop",
+  "decoder": "work_decoder",
+  "library": "work_decoder",
+  "pantry": "work_pantry",
+  "lounge": "rest_lounge",
+  "bath": "sit"
+ },
+ "room_work_rule": "방에 배치된 사람은 room_work[방 id] 행을 돈다. 플레이트 파일명 power = 방 id generator. 설비(밸브·레버·모루·독서대·화로·공기통·화분·선반·십자 상자)는 **사람 셀 안에 같이 찍혀 있다** — 그래서 방 플레이트의 어느 stand_x 에 세워도 동작이 방을 말한다. 설비는 몸 왼쪽(셀 x 0~20)에 있으므로 좌우 반전해 써도 된다(외곽선·틴트 규칙 동일). bath(물 끓이는 방)는 sit, hall 은 idle.",
+ "elevator": {
+  "sequence": [
+   "elevator_wait",
+   "back_walk(칸으로 들어감)",
+   "elevator_turn",
+   "elevator_ride",
+   "walk(내림)"
+  ],
+  "note": "ride 는 거의 정지 — 내려가는 느낌은 칸 전체를 세로로 움직여 낸다. turn 은 1프레임(0.25초)만 보여 준다. 얼굴 패치·얼굴 각인은 turn 에서 꺼진다(뒷모습과 같은 규칙)"
+ },
+ "imprint_hide_rule": "몸 앞에 든 물건(담요·상자·붕대)이 각인 부위를 가리는 프레임에서는 그 각인을 그리지 않는다 — 각인 시트(imprints/*.png)의 그 칸이 이미 비어 있으므로 클라이언트는 아무 것도 할 필요가 없다.",
+ "layer_checks_s11": "생성기가 새 14행 × 4체형 × 전 프레임에서 ①각인×각인 ②각인×얼굴 ③각인×머리 ④각인×설비·든 물건 ⑤얼굴×설비·든 물건 ⑥머리×옆 설비 를 전수 검사한다.",
+ "s11_check_result": {
+  "s11_clash": 0,
+  "old_rows_clash_ref": 0,
+  "old_rows_fix": "2026-10-03 PM 결정: 기존 7행 충돌 39건(S8·S9 전 프레임) 수리. 각인 레이어만 프레임별로 잘라 냈다 — 머리 6종·얼굴 3종 아래로 숨고, 각인끼리는 뒤의 것이 비킨다(IMPRINT_FRONT). 한 점만 남으면 그 프레임에서 끈다. 본체·머리·얼굴 픽셀과 S11 행은 불변",
+  "hidden": {
+   "a/elevator_ride/f0": [
+    "empty_stomach"
+   ],
+   "a/elevator_ride/f1": [
+    "empty_stomach"
+   ],
+   "a/rest_lounge/f0": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "a/rest_lounge/f1": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "a/work_quarters/f0": [
+    "empty_seat",
+    "empty_stomach",
+    "footprint"
+   ],
+   "a/work_quarters/f1": [
+    "empty_stomach"
+   ],
+   "a/work_quarters/f2": [
+    "empty_stomach"
+   ],
+   "a/work_storage/f0": [
+    "debt_paid"
+   ],
+   "a/work_storage/f1": [
+    "debt_paid",
+    "sun_memory"
+   ],
+   "b/elevator_ride/f0": [
+    "empty_stomach"
+   ],
+   "b/elevator_ride/f1": [
+    "empty_stomach"
+   ],
+   "b/rest_lounge/f0": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "b/rest_lounge/f1": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "b/work_quarters/f0": [
+    "empty_seat",
+    "empty_stomach",
+    "footprint"
+   ],
+   "b/work_quarters/f1": [
+    "empty_stomach"
+   ],
+   "b/work_quarters/f2": [
+    "empty_stomach"
+   ],
+   "b/work_storage/f0": [
+    "debt_paid"
+   ],
+   "b/work_storage/f1": [
+    "debt_paid",
+    "sun_memory"
+   ],
+   "kid/rest_lounge/f0": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "kid/rest_lounge/f1": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "kid/work_greenhouse/f1": [
+    "sun_memory"
+   ],
+   "kid/work_quarters/f0": [
+    "empty_seat",
+    "empty_stomach"
+   ],
+   "kid/work_quarters/f1": [
+    "empty_stomach"
+   ],
+   "kid/work_quarters/f2": [
+    "empty_stomach"
+   ],
+   "kid/work_storage/f0": [
+    "debt_paid",
+    "empty_stomach"
+   ],
+   "kid/work_storage/f1": [
+    "debt_paid",
+    "sun_memory"
+   ],
+   "kid_b/rest_lounge/f0": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "kid_b/rest_lounge/f1": [
+    "depth_mark",
+    "knock_heard"
+   ],
+   "kid_b/work_greenhouse/f1": [
+    "sun_memory"
+   ],
+   "kid_b/work_quarters/f0": [
+    "empty_seat",
+    "empty_stomach"
+   ],
+   "kid_b/work_quarters/f1": [
+    "empty_stomach"
+   ],
+   "kid_b/work_quarters/f2": [
+    "empty_stomach"
+   ],
+   "kid_b/work_storage/f0": [
+    "debt_paid",
+    "empty_stomach"
+   ],
+   "kid_b/work_storage/f1": [
+    "debt_paid",
+    "sun_memory"
+   ]
+  }
+ },
+ "s11_lit_strips": {
+  "quarters": [
+   {
+    "file": "check/worklit_quarters_kid_b.png",
+    "role": "kid",
+    "body": "b",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_quarters_trader.png",
+    "role": "trader",
+    "body": "a",
+    "frames": 3
+   }
+  ],
+  "storage": [
+   {
+    "file": "check/worklit_storage_scout.png",
+    "role": "scout",
+    "body": "a",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_storage_cook_b.png",
+    "role": "cook",
+    "body": "b",
+    "frames": 3
+   }
+  ],
+  "well": [
+   {
+    "file": "check/worklit_well_engineer_b.png",
+    "role": "engineer",
+    "body": "b",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_well_farmer.png",
+    "role": "farmer",
+    "body": "a",
+    "frames": 3
+   }
+  ],
+  "greenhouse": [
+   {
+    "file": "check/worklit_greenhouse_farmer_b.png",
+    "role": "farmer",
+    "body": "b",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_greenhouse_medic.png",
+    "role": "medic",
+    "body": "a",
+    "frames": 3
+   }
+  ],
+  "generator": [
+   {
+    "file": "check/worklit_generator_engineer.png",
+    "role": "engineer",
+    "body": "a",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_generator_scout_b.png",
+    "role": "scout",
+    "body": "b",
+    "frames": 3
+   }
+  ],
+  "infirmary": [
+   {
+    "file": "check/worklit_infirmary_medic_b.png",
+    "role": "medic",
+    "body": "b",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_infirmary_kid.png",
+    "role": "kid",
+    "body": "a",
+    "frames": 3
+   }
+  ],
+  "workshop": [
+   {
+    "file": "check/worklit_workshop_engineer.png",
+    "role": "engineer",
+    "body": "a",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_workshop_trader_b.png",
+    "role": "trader",
+    "body": "b",
+    "frames": 3
+   }
+  ],
+  "decoder": [
+   {
+    "file": "check/worklit_decoder_scholar.png",
+    "role": "scholar",
+    "body": "a",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_decoder_kid_b.png",
+    "role": "kid",
+    "body": "b",
+    "frames": 3
+   }
+  ],
+  "pantry": [
+   {
+    "file": "check/worklit_pantry_cook.png",
+    "role": "cook",
+    "body": "a",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_pantry_farmer_b.png",
+    "role": "farmer",
+    "body": "b",
+    "frames": 3
+   }
+  ],
+  "airlock": [
+   {
+    "file": "check/worklit_airlock_scout.png",
+    "role": "scout",
+    "body": "a",
+    "frames": 3
+   },
+   {
+    "file": "check/worklit_airlock_engineer_b.png",
+    "role": "engineer",
+    "body": "b",
+    "frames": 3
+   }
+  ],
+  "lounge": [
+   {
+    "file": "check/worklit_lounge_scholar_b.png",
+    "role": "scholar",
+    "body": "b",
+    "frames": 2
+   },
+   {
+    "file": "check/worklit_lounge_kid.png",
+    "role": "kid",
+    "body": "a",
+    "frames": 2
+   }
+  ]
+ },
  "rules_2_5d": {
   "1_integer_scale": "정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지",
   "2_lamp_tint": "masks/<role>.png 가 흰 곳만 방 등불색을 곱한다. 0인 곳(눈·외곽선·랜턴 불꽃·유리)은 건드리지 않는다. 권장식: rgb *= (1 + 0.30*(tint-1)) * (1.13 - 0.32*(y/h))",

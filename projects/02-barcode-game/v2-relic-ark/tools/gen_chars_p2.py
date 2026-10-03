@@ -39,6 +39,50 @@ CLIP_SEC = {'idle': 2.8, 'walk': 0.8, 'work': 1.4, 'sit': 3.2,
             'carry': 1.0, 'hurt': 2.0, 'back_walk': 0.8}
 MAXF = 3
 
+# ── S11: 방별 작업 · 엘리베이터 — **행을 뒤에 더하기만** 한다 ───────────────
+#   기존 7행(0~6)은 한 픽셀도 바뀌지 않는다(출하물 해시 대조로 증명).
+#   열 수(3)도 그대로 — 그래서 작업 동작은 전부 3프레임 이하다.
+#   「동작이 방을 말한다」: 왼손이 방의 일을 하고(방 설비는 같은 셀에 함께 찍힌다),
+#   오른손의 도구는 그대로 역할을 말한다. 두 손이 다 필요한 일(담요·상자)은 도구를 허리에 건다.
+S11_CLIPS = [('work_quarters', 3), ('work_storage', 3), ('work_well', 3),
+             ('work_greenhouse', 3), ('work_generator', 3), ('work_infirmary', 3),
+             ('work_workshop', 3), ('work_decoder', 3), ('work_pantry', 3),
+             ('work_airlock', 3), ('rest_lounge', 2),
+             ('elevator_wait', 2), ('elevator_turn', 1), ('elevator_ride', 2)]
+S11_IDS = [c for c, _n in S11_CLIPS]
+CLIPS = CLIPS + S11_CLIPS
+CLIP_SEC.update({'work_quarters': 1.8, 'work_storage': 1.6, 'work_well': 1.5,
+                 'work_greenhouse': 2.0, 'work_generator': 1.4, 'work_infirmary': 1.6,
+                 'work_workshop': 0.9, 'work_decoder': 2.2, 'work_pantry': 1.5,
+                 'work_airlock': 1.2, 'rest_lounge': 3.2,
+                 'elevator_wait': 1.6, 'elevator_turn': 0.25, 'elevator_ride': 2.4})
+S11_KO = {
+    'work_quarters':   ('거주실', '담요를 편다 → 반으로 접는다 → 작게 개어 든다', '두 손 · 도구는 허리에'),
+    'work_storage':    ('창고', '바닥의 상자를 든다 → 가슴 높이 → 왼쪽 선반에 밀어 올린다', '두 손 · 도구는 허리에'),
+    'work_well':       ('정수실', '배관의 붉은 밸브 바퀴를 돌린다 · 꼭지에서 물방울이 양동이로', '왼손 · 오른손 도구'),
+    'work_greenhouse': ('온실', '화분의 시든 잎을 따서 떨군다', '왼손 · 오른손 도구'),
+    'work_generator':  ('발전실', '계기함의 레버를 당긴다 → 바늘이 돌고 등이 켜진다', '왼손 · 오른손 도구'),
+    'work_infirmary':  ('의무실', '십자 상자에서 흰 붕대를 감아 올린다(감을수록 두루마리가 굵어진다)', '왼손 · 오른손 도구'),
+    'work_workshop':   ('공방', '모루 위 달군 쇠를 망치로 친다 · 칠 때 불똥', '왼손 · 오른손 도구'),
+    'work_decoder':    ('해독실·서고', '독서대의 큰 책장을 넘긴다 · 촛불', '왼손 · 오른손 도구'),
+    'work_pantry':     ('식량창고', '화로 위 냄비를 젓는다 · 김이 오른다', '왼손 · 오른손 도구'),
+    'work_airlock':    ('에어락', '세워 둔 예비 공기통의 압력계를 두드린다', '왼손 · 오른손 도구'),
+    'rest_lounge':     ('전망 라운지', '등을 돌리고 유리에 손을 대고 바깥을 본다(생산 0인 방 — 쉼)', '뒷모습'),
+    'elevator_wait':   ('엘리베이터', '문 앞에서 기다린다 — 머리가 좌우로 1px 흔들린다', '정면'),
+    'elevator_turn':   ('엘리베이터', '칸에 들어서며 몸을 돌리는 한 프레임(얼굴 반쪽)', '돌아섬'),
+    'elevator_ride':   ('엘리베이터', '칸 안에 두 손을 모으고 정면으로 선다 — 거의 정지', '정면'),
+}
+# 방 id → 그 방에서 쓰는 행. id 는 server.py ROOM_TEXT_DEFAULT · economy.json 기준
+# (플레이트 파일명의 power = generator).
+ROOM_WORK = {
+    'hall': 'idle', 'quarters': 'work_quarters', 'storage': 'work_storage',
+    'well': 'work_well', 'greenhouse': 'work_greenhouse', 'generator': 'work_generator',
+    'infirmary': 'work_infirmary', 'airlock': 'work_airlock', 'workshop': 'work_workshop',
+    'decoder': 'work_decoder', 'library': 'work_decoder', 'pantry': 'work_pantry',
+    'lounge': 'rest_lounge', 'bath': 'sit',
+}
+BACK_CLIPS = ('back_walk', 'rest_lounge')
+
 # ── 팔레트 ───────────────────────────────────────────────────────────────
 # 흙 계열 따뜻한 색이 바탕. 차가운 색은 유리·물에만(고글 렌즈, 각인 '금을 본 자').
 PAL = {
@@ -545,6 +589,19 @@ POSE = {
     'hurt':      dict(drop=12, tr=5.9, tdy=7, legs='kneel', front=True),
     'back_walk': dict(drop=0,  tr=7.2, tdy=9, legs='walk',  front=False),
 }
+for _c in S11_IDS:      # S11 — 전부 선 자세. 몸통·다리 규약은 idle 과 같다
+    POSE[_c] = dict(drop=0, tr=7.2, tdy=9, legs='stand', front=False)
+S11_BOB = {'work_quarters': [0, -1, 0], 'work_storage': [1, 0, -1], 'work_well': [0, 1, 0],
+           'work_greenhouse': [1, 1, 1], 'work_generator': [0, 0, 1], 'work_infirmary': [1, 1, 0],
+           'work_workshop': [-1, 0, 1], 'work_decoder': [1, 1, 1], 'work_pantry': [0, 1, 0],
+           'work_airlock': [0, 1, 0], 'rest_lounge': [0, 1],
+           'elevator_wait': [0, 0], 'elevator_turn': [0], 'elevator_ride': [0, 1]}
+S11_LEAN = {'work_quarters': [0, 0, 0], 'work_storage': [0, -1, -1], 'work_well': [-1, -1, 0],
+            'work_greenhouse': [-1, -1, -1], 'work_generator': [-1, 0, 0],
+            'work_infirmary': [-1, -1, 0], 'work_workshop': [-1, -1, -1],
+            'work_decoder': [-1, -1, -1], 'work_pantry': [-1, -1, -1], 'work_airlock': [-1, -1, -1],
+            'rest_lounge': [0, 0], 'elevator_wait': [-1, 0], 'elevator_turn': [0],
+            'elevator_ride': [0, 0]}
 
 
 def draw_legs(c, mode, cx, leg_y0, kid, f):
@@ -579,6 +636,395 @@ def draw_legs(c, mode, cx, leg_y0, kid, f):
         boot(c, sx + dxf - 1, sx + lw + dxf - 1, FOOT - 4, FOOT)
 
 
+# ── S11: 방별 작업 · 엘리베이터 ─────────────────────────────────────────
+def seg(c, p0, p1, t, w=3):
+    """굵기 w 의 곧은 획(정사각 붓)."""
+    x0, y0 = p0
+    x1, y1 = p1
+    n = int(math.ceil(max(abs(x1 - x0), abs(y1 - y0)))) or 1
+    for k in range(n + 1):
+        x = x0 + (x1 - x0) * k / n
+        y = y0 + (y1 - y0) * k / n
+        xi = int(round(x - (w - 1) / 2.0))
+        yi = int(round(y - (w - 1) / 2.0))
+        c.rect(xi, yi, xi + w - 1, yi + w - 1, t)
+
+
+def ring(c, cx, cy, r, w, t):
+    for y in range(int(math.floor(cy - r)), int(math.ceil(cy + r)) + 1):
+        for x in range(int(math.floor(cx - r)), int(math.ceil(cx + r)) + 1):
+            d = math.hypot(x - cx, y - cy)
+            if r - w <= d <= r:
+                c.set(x, y, t)
+
+
+def elbow_of(sh, hand, a, b, out):
+    """두 마디 팔의 팔꿈치. 닿지 않으면 곧게 편다. 팔꿈치는 아래·바깥으로 꺾인다."""
+    dx, dy = hand[0] - sh[0], hand[1] - sh[1]
+    d = math.hypot(dx, dy)
+    if d >= a + b - 0.2 or d < 0.5:
+        return ((sh[0] + hand[0]) / 2.0, (sh[1] + hand[1]) / 2.0)
+    x = (d * d + a * a - b * b) / (2 * d)
+    h = math.sqrt(max(0.0, a * a - x * x))
+    ux, uy = dx / d, dy / d
+    px_, py_ = sh[0] + ux * x, sh[1] + uy * x
+    e1 = (px_ - uy * h, py_ + ux * h)
+    e2 = (px_ + uy * h, py_ - ux * h)
+    sc = lambda e: e[1] + 0.3 * out * e[0]
+    return e1 if sc(e1) >= sc(e2) else e2
+
+
+def arm_to(c, sh, hand, R, side):
+    t = 'suitM' if side == 'l' else 'suitD'
+    a = b = R * 0.56 + 0.3
+    e = elbow_of(sh, hand, a, b, -1 if side == 'l' else 1)
+    seg(c, sh, e, t, 3)
+    seg(c, e, hand, t, 3)
+    if side == 'l':
+        seg(c, (sh[0] - 1, sh[1]), (e[0] - 1, e[1]), 'suitL', 1)
+    return e
+
+
+def quilt(c, x0, y0, x1, y1, folded=False):
+    """거주실 담요 — 적갈·크림 체크. 흙색 팔레트 안에서 가장 '이불'로 읽히는 무늬."""
+    x0, y0, x1, y1 = int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1))
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            if folded:
+                t = 'ox' if ((y - y0) % 3 == 1) else 'cream'
+            else:
+                t = 'ox' if (((x - x0) // 2 + (y - y0) // 2) % 2) else 'creamD'
+            c.set(x, y, t)
+    c.rect(x0, y0, x1, y0, 'cream')
+    if not folded:
+        c.rect(x0, y0, x0, y1, 'cream'); c.rect(x1, y0, x1, y1, 'cream')
+        c.rect(x0, y1, x1, y1, 'cream')
+    else:
+        c.rect(x0, y1, x1, y1, 'creamD')
+
+
+def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
+    """S11 행의 팔·방 설비·손에 든 물건. 왼손이 방의 일을 하고 오른손 도구가 역할을 말한다.
+    설비(fx)는 몸 옆·뒤 → 본판(c), 몸 앞에 든 물건(hh)은 머리카락보다 위 → ov.
+    돌려주는 것: (왼손, 오른손) 장갑 중심."""
+    kid, role = g['kid'], g['role']
+    cx, neck_y, torso_cy, belt_y = g['cx'], g['neck_y'], g['torso_cy'], g['belt_y']
+    ax_l, ax_r, arm_y0, arm_y1, tk = g['ax_l'], g['ax_r'], g['arm_y0'], g['arm_y1'], g['tk']
+    SL = (ax_l + 1.5, arm_y0 + 2.0)
+    SR = (ax_r + 1.5, arm_y0 + 2.0)
+    R = float(arm_y1 - arm_y0)           # 어른 13 · 아이 8 — 팔 길이
+    s = R / 13.0
+    z = 0.75 if kid else 1.0             # 설비 크기
+    F = FOOT
+    fx, hh = Cv(), Cv()
+
+    def P(dx, dy):
+        return (SL[0] + dx * s, SL[1] + dy * s)
+
+    def ir(v):
+        return int(round(v))
+
+    lhand = rhand = None
+    hip = False             # 두 손을 쓰는 일 — 도구는 허리에 건다
+    prop_front = False      # 도구를 몸 앞에서 두 손으로 든다(엘리베이터 안)
+    no_prop = False
+
+    if clip == 'work_well':
+        W = P(-14, 6)
+        rw = 4.5 * z
+        px0 = ir(W[0])
+        top = ir(W[1] - rw - 5 * z)
+        fx.rect(px0 - 1, top, px0 + 1, F, 'tank'); fx.rect(px0 - 1, top, px0 - 1, F, 'tankL')
+        pe = max(1, px0 - ir(6 * z))
+        fx.rect(pe, top - 1, px0 + 1, top + 1, 'tank'); fx.rect(pe, top - 1, px0, top - 1, 'tankL')
+        fx.rect(pe - 1, top - 2, pe, top + 2, 'brassD')              # 벽으로 들어가는 이음쇠
+        fx.rect(px0 - 2, F - 1, px0 + 2, F, 'brassD')
+        ys = ir(F - 9 * z)
+        fx.rect(px0 - 4, ys, px0 - 2, ys + 1, 'tankL'); fx.set(px0 - 4, ys + 2, 'tankL')
+        bx0, bx1 = px0 - 8, px0 - 2
+        fx.rect(bx0, F - 4, bx1, F, 'suitM'); fx.rect(bx0, F - 4, bx1, F - 4, 'suitL')
+        fx.rect(bx0 + 1, F - 3, bx1 - 1, F - 3, 'glass'); fx.rect(bx0, F - 1, bx1, F - 1, 'brassD')
+        dxp = px0 - 4
+        if f == 0:
+            fx.set(dxp, ys + 3, 'glass')
+        elif f == 1:
+            fx.set(dxp, ys + 4, 'glass'); fx.set(dxp, ys + 5, 'glassD')
+        else:
+            fx.set(dxp - 1, F - 5, 'white'); fx.set(dxp + 1, F - 5, 'white'); fx.set(dxp, F - 6, 'glass')
+        ring(fx, W[0], W[1], rw, 1.7, 'ox')
+        for k in range(3):
+            ang = math.radians(f * 40 + k * 120)
+            seg(fx, W, (W[0] + (rw - 1) * math.cos(ang), W[1] + (rw - 1) * math.sin(ang)), 'brassM', 1)
+        fx.set(W[0], W[1], 'brass')
+        a = math.radians([-60, -15, 30][f])
+        lhand = (W[0] + rw * math.cos(a), W[1] + rw * math.sin(a))
+
+    elif clip == 'work_generator':
+        x0 = max(1, ir(P(-19, 0)[0])); x1 = ir(P(-7, 0)[0]); top = ir(F - 13 * z)
+        fx.rect(x0, top, x1, F, 'tank'); fx.rect(x0, top, x1, top, 'tankL'); fx.rect(x0, top, x0, F, 'tankL')
+        fx.rect(x0, F - 1, x1, F, 'suitD')
+        fx.set(x0 + 1, F - 3, 'brassM'); fx.set(x1 - 1, F - 3, 'brassM')
+        gc = (x0 + 3.5 * z + .5, top + 4.5 * z)
+        fx.ell(gc[0], gc[1], 2.3 * z, 2.3 * z, 'cream')
+        na = math.radians([-150, -90, -30][f])
+        seg(fx, gc, (gc[0] + 2.2 * z * math.cos(na), gc[1] + 2.2 * z * math.sin(na)), 'ox', 1)
+        lx, ly = x1 - 2, ir(top + 3 + 5 * z)
+        if f == 2:                                             # 전기가 들어왔다
+            fx.rect(lx - 1, ly, lx, ly + 1, 'flame'); fx.set(lx, ly, 'white')
+        else:
+            fx.rect(lx - 1, ly, lx, ly + 1, 'olivD')
+        piv = (x1 - 2 * z, top)
+        fx.rect(ir(piv[0]) - 1, top - 1, ir(piv[0]) + 1, top, 'brassD')
+        la = math.radians([-125, -95, -65][f])
+        end = (piv[0] + 10 * z * math.cos(la), piv[1] + 10 * z * math.sin(la))
+        seg(fx, piv, end, 'brassM', 1)
+        fx.ell(end[0], end[1], 1.4, 1.4, 'ox')
+        lhand = end
+
+    elif clip == 'work_workshop':
+        yt = belt_y + 1
+        a0 = max(3, ir(P(-17, 0)[0])); a1 = ir(P(-6, 0)[0])
+        fx.rect(a0, yt, a1, yt + 1, 'tankL'); fx.rect(a0, yt + 1, a1, yt + 1, 'tank')
+        fx.rect(a0 - 2, yt, a0 - 1, yt, 'tankL'); fx.set(a0 - 3, yt, 'tank')
+        mid = (a0 + a1) // 2
+        fx.rect(mid - 2, yt + 2, mid + 2, yt + 3, 'tank'); fx.rect(mid - 3, yt + 4, mid + 3, yt + 4, 'tank')
+        fx.rect(mid - 4, yt + 5, mid + 4, F, 'suitM'); fx.rect(mid - 4, yt + 5, mid - 3, F, 'suitL')
+        fx.rect(mid - 4, F, mid + 4, F, 'suitD'); fx.rect(mid - 3, yt + 8, mid + 3, yt + 8, 'suitD')
+        hp = mid + 1
+        fx.rect(hp - 2, yt - 1, hp + 2, yt - 1, 'flameR'); fx.set(hp, yt - 1, 'flame')
+        if f == 0:
+            lhand, d = P(-5, -11), (-0.45, -0.9)
+        elif f == 1:
+            lhand, d = P(-9, -2), (-1.0, 0.15)
+        else:
+            lhand = (hp + 3, yt - 4)
+            d = (hp - lhand[0], yt - 2 - lhand[1])
+        n = math.hypot(*d); d = (d[0] / n, d[1] / n)
+        L = 4.5 * z
+        seg(hh, lhand, (lhand[0] + d[0] * L, lhand[1] + d[1] * L), 'suitL', 1)
+        hc = (lhand[0] + d[0] * (L + 1), lhand[1] + d[1] * (L + 1))
+        pp = (-d[1], d[0])
+        for tt in (-2, -1, 0, 1, 2):
+            for kk in (0, 1):
+                hh.set(hc[0] + pp[0] * tt + d[0] * kk, hc[1] + pp[1] * tt + d[1] * kk,
+                       'tankL' if kk == 0 else 'tank')
+        if f == 2:                                             # 칠 때 불똥
+            for ox_, oy_, t in ((-3, -2, 'flame'), (3, -3, 'flame'), (-4, 0, 'brassH'),
+                                (4, -1, 'brassH'), (-1, -4, 'flame'), (2, -5, 'white')):
+                hh.set(hp + ox_, yt - 2 + oy_, t)
+
+    elif clip == 'work_storage':
+        hip = True
+        shy = ir(SL[1] - 8 * s); sx1 = ir(P(-5, 0)[0])
+        sx0 = max(1, sx1 - ir(16 * z))
+        fx.rect(sx0, shy, sx1, shy, 'suitL'); fx.rect(sx0, shy + 1, sx1, shy + 1, 'suitM')
+        fx.rect(sx1 - 2, shy + 2, sx1 - 1, shy + 4, 'suitD'); fx.rect(sx0 + 1, shy + 2, sx0 + 2, shy + 4, 'suitD')
+        fx.rect(sx0 + 1, shy - 3, sx0 + 3, shy - 1, 'brassM'); fx.set(sx0 + 1, shy - 3, 'brassH')   # 선반의 단지
+        bw, bh = ir(10 * z), ir(7 * z)
+        if f == 0:
+            bx0, by0 = cx - 2 - bw // 2, belt_y + 2
+        elif f == 1:
+            bc = P(-4, 0)
+            bx0, by0 = ir(bc[0] - bw / 2.0), ir(bc[1] - bh / 2.0)
+        else:
+            bx0, by0 = sx1 - 1 - bw, shy - bh
+        bx1, by1 = bx0 + bw, by0 + bh - 1
+        tgt = fx if f == 2 else hh                              # 선반 위에 놓이면 설비가 된다
+        tgt.rect(bx0, by0, bx1, by1, 'suitL'); tgt.rect(bx0, by0, bx1, by0, 'suitH')
+        tgt.rect(bx0, by0, bx0, by1, 'suitH'); tgt.rect(bx0, by1, bx1, by1, 'suitD')
+        wave(tgt, bx0 + 1, bx1 - 1, by0 + 2, 'cream')
+        if f == 2:
+            lhand = (bx1 + 1, by0 + bh // 2)
+        else:
+            lhand = (bx0, by0 + bh // 2 + 1)
+            rhand = (bx1, by0 + bh // 2 + 1)
+
+    elif clip == 'work_quarters':
+        hip = True
+        ky = [5, 4, 3][f] if kid else 0                      # 아이는 어깨 = 머리 갈래 자리라 손을 내린다
+        if f == 0:
+            sp = 11 if kid else 13 * s
+            lhand = (cx - sp, torso_cy - 4 + ky); rhand = (cx + sp, torso_cy - 4 + ky)
+            quilt(hh, lhand[0], lhand[1] - 1, rhand[0], F - 6 * z)
+        elif f == 1:
+            lhand = (cx - 9 * s, torso_cy - 2 + ky); rhand = (cx + 9 * s, torso_cy - 2 + ky)
+            yb = (torso_cy - 3 + F - 6 * z) / 2.0 + 1
+            quilt(hh, lhand[0], lhand[1] - 1, rhand[0], yb)
+            hh.rect(ir(lhand[0]), ir(lhand[1]) - 1, ir(rhand[0]), ir(lhand[1]) - 1, 'creamD')
+        else:
+            lhand = (cx - 6 * s, torso_cy + 1 + ky); rhand = (cx + 6 * s, torso_cy + 1 + ky)
+            quilt(hh, lhand[0], lhand[1] - 1, rhand[0], lhand[1] + 4 * z, folded=True)
+
+    elif clip == 'work_infirmary':
+        bx0 = max(1, ir(P(-17, 0)[0])); bx1 = ir(P(-7, 0)[0]); by0 = ir(F - 6 * z)
+        fx.rect(bx0, by0, bx1, F, 'cream'); fx.rect(bx1, by0, bx1, F, 'creamD')
+        fx.rect(bx0, F, bx1, F, 'creamD')
+        mx, my = (bx0 + bx1) // 2, (by0 + F) // 2 + 1
+        fx.rect(mx - 2, my, mx + 2, my, 'ox'); fx.rect(mx, my - 2, mx, my + 2, 'ox')
+        lhand = [P(-6, 2), P(-8, -1), P(-5, -3)][f]
+        r = [2.2, 2.6, 3.0][f] * z                             # 감을수록 굵어지는 두루마리
+        rc = (lhand[0] - 2.2 * z, lhand[1] - 1.0)
+        A = (rc[0] - .5, rc[1] + r)
+        sag = [3.0, 4.0, 2.5][f] * z
+        n = 14
+        pts = [(A[0] + (mx - A[0]) * t / n - sag * math.sin(math.pi * t / n),
+                A[1] + (by0 - A[1]) * t / n) for t in range(n + 1)]
+        for i in range(n):                                    # 늘어진 천 띠 — 막대가 아니라 처진 곡선
+            seg(hh, pts[i], pts[i + 1], 'white', 2)
+        for i in range(n):
+            seg(hh, (pts[i][0] - 1, pts[i][1]), (pts[i + 1][0] - 1, pts[i + 1][1]), 'cream', 1)
+        hh.ell(rc[0], rc[1], r, r, 'white')
+        hh.ell_in(rc[0] + .6, rc[1] + .6, r - .8, r - .8, 'cream', only=('white',))
+        hh.set(rc[0], rc[1], 'creamD'); hh.set(rc[0] + 1, rc[1], 'creamD')
+
+    elif clip == 'work_greenhouse':
+        p0 = max(2, ir(P(-18, 0)[0])); p1 = ir(P(-8, 0)[0]); yp = ir(F - 7 * z)
+        for y in range(yp, F + 1):
+            ins = (y - yp) // 3
+            fx.rect(p0 + ins, y, p1 - ins, y, 'ox')
+        fx.rect(p0 - 1, yp, p1 + 1, yp + 1, 'suitL'); fx.rect(p0, yp - 1, p1, yp - 1, 'suitD')
+        pm = (p0 + p1) / 2.0
+        ptop = SL[1] - 8 * s
+        fx.rect(ir(pm), ir(ptop + 2), ir(pm), yp - 1, 'olivD')
+        for dx, dy, rx, ry, t in ((0, 1, 2.4, 2.4, 'impGrn'), (-4, 3, 3.2, 2.2, 'impGrn'),
+                                  (4, 4, 3.2, 2.2, 'oliv'), (-3, 8, 3.0, 2.0, 'oliv'),
+                                  (3, 10, 3.0, 2.0, 'impGrn'), (-4, 13, 3.0, 2.0, 'impGrn'),
+                                  (4, 15, 2.6, 1.8, 'oliv')):
+            fx.ell(pm + dx * z, ptop + dy * z, rx * z, ry * z, t)
+        dead = 'brassM'                                            # 시든 잎 하나
+        if f == 0:
+            lhand = (pm + 7 * z, ptop + 6 * z)
+            fx.ell(lhand[0] - 1.5, lhand[1] + 1, 1.8, 1.2, dead)
+        elif f == 1:
+            lhand = P(-4, 1)
+            hh.ell(lhand[0] - 2, lhand[1] - 1.5, 1.8, 1.2, dead)
+        else:
+            lhand = (pm + 6 * z, ptop + 9 * z)
+            fx.ell(pm + 5 * z, yp - 3, 1.6, 1.0, dead)
+
+    elif clip == 'work_decoder':
+        lx0 = max(2, ir(P(-16, 0)[0])); lx1 = ir(P(-3, 0)[0]); yt = belt_y - 3
+        mid = (lx0 + lx1) // 2
+        fx.rect(mid - 1, yt + 2, mid + 1, F, 'suitD'); fx.rect(mid - 1, yt + 2, mid - 1, F, 'suitM')
+        fx.rect(mid - 4, F - 1, mid + 4, F, 'suitD')
+        fx.rect(lx0, yt + 1, lx1, yt + 2, 'suitM'); fx.rect(lx0, yt + 1, lx1, yt + 1, 'suitL')
+        fx.rect(lx0 + 1, yt - 2, mid - 1, yt, 'cream'); fx.rect(mid + 1, yt - 2, lx1 - 1, yt, 'cream')
+        fx.rect(lx0 + 1, yt - 2, mid - 1, yt - 2, 'white'); fx.rect(mid + 1, yt - 2, lx1 - 1, yt - 2, 'white')
+        fx.rect(mid, yt - 3, mid, yt, 'creamD')
+        for xx in range(lx0 + 2, lx1 - 1, 2):                      # 글줄
+            if xx != mid:
+                fx.set(xx, yt - 1, 'creamD')
+        fx.rect(lx0, yt - 4, lx0, yt, 'cream'); fx.set(lx0, yt - 5, 'flame'); fx.set(lx0, yt - 6, 'flameR')
+        if f == 0:
+            lhand = (lx1 - 2, yt - 3)
+        elif f == 1:
+            ph = ir(9 * z)
+            hh.rect(mid, yt - ph, mid + 1, yt - 2, 'white'); hh.rect(mid + 1, yt - ph, mid + 1, yt - 2, 'cream')
+            lhand = (mid + 1, yt - ph)
+        else:
+            hh.rect(lx0 + 2, yt - 4, mid - 1, yt - 3, 'white'); hh.rect(lx0 + 2, yt - 3, mid - 1, yt - 3, 'cream')
+            lhand = (lx0 + 3, yt - 4)
+
+    elif clip == 'work_pantry':
+        sx0 = ir(P(-15, 0)[0]); sx1 = ir(P(-4, 0)[0]); st = ir(F - 5 * z)
+        fx.rect(sx0, st, sx1, F, 'tank'); fx.rect(sx0, st, sx1, st, 'tankL')
+        fx.rect(sx0 + 2, F - 3, sx1 - 2, F - 2, 'flameR')
+        for k in range(sx0 + 2 + (f % 2), sx1 - 1, 2):
+            fx.set(k, F - 3, 'flame')
+        py0 = ir(st - 6 * z)
+        fx.rect(sx0 + 1, py0, sx1 - 1, st - 1, 'tank'); fx.rect(sx0 + 1, py0, sx0 + 2, st - 1, 'tankL')
+        fx.rect(sx0, py0, sx1, py0, 'tankL'); fx.set(sx0 - 1, py0 + 1, 'tank'); fx.set(sx1 + 1, py0 + 1, 'tank')
+        mid = (sx0 + sx1) // 2
+        for bx_, hgt in ((sx0 + 2, 4), (mid, 6), (sx1 - 2, 3)):     # 김
+            for k in range(hgt):
+                xx = bx_ + (1 if ((k + f + bx_) % 3 == 0) else (-1 if ((k + f + bx_) % 3 == 1) else 0))
+                fx.ell(xx, py0 - 2 - k * 2, 1.0, 0.8, 'white' if k < 2 else 'cream')
+        lhand = [(sx1 - 1, py0 - 4), (mid, py0 - 5), (sx0 + 3, py0 - 4)][f]
+        sp_end = (lhand[0] + [-1, 0, 1][f], py0 + 1)
+        seg(hh, lhand, sp_end, 'suitL', 1)
+
+    elif clip == 'work_airlock':
+        tx0 = max(2, ir(P(-16, 0)[0])); tx1 = tx0 + ir(6 * z); top = ir(F - 17 * z)
+        mid = (tx0 + tx1) // 2
+        fx.rect(tx0, top + 2, tx1, F, 'tank'); fx.rect(tx0 + 1, top + 2, tx0 + 1, F, 'tankL')
+        fx.rect(tx0 + 1, top + 1, tx1 - 1, top + 1, 'tank'); fx.rect(tx0 + 2, top, tx1 - 2, top, 'tankL')
+        fx.rect(mid - 1, top - 2, mid + 1, top - 1, 'brassD')
+        fx.rect(tx0, top + 6, tx1, top + 6, 'brassM'); fx.rect(tx0, F - 4, tx1, F - 4, 'brassM')
+        hx0 = max(1, tx0 - ir(4 * z))                                    # 호스 — 바닥에 사려 둔다
+        seg(fx, (mid - 1, top - 2), (tx0 - 1, top - 4), 'suitD', 2)
+        seg(fx, (tx0 - 1, top - 4), (hx0, top + 4), 'suitD', 2)
+        seg(fx, (hx0, top + 4), (hx0, F - 2), 'suitD', 2)
+        fx.ell(hx0 + 1, F - 1, 2.6 * z, 1.2, 'suitD')
+        gc = (tx1 + 2.5 * z, top - 1)
+        fx.rect(mid + 2, top - 1, tx1, top - 1, 'brassD')
+        fx.ell(gc[0], gc[1], 2.3 * z, 2.3 * z, 'cream')
+        na = math.radians([-130, -50, -100][f])
+        seg(fx, gc, (gc[0] + 2.0 * z * math.cos(na), gc[1] + 2.0 * z * math.sin(na)), 'ox', 1)
+        lhand = [(gc[0] + 1, gc[1] - 4.5 * z), (gc[0] + 1, gc[1] - 2.2 * z),
+                 (gc[0] + 3, gc[1] - 5.5 * z)][f]
+        if f == 1:                                              # 톡 — 두드림
+            hh.set(gc[0] - 3, gc[1] - 3, 'white'); hh.set(gc[0] + 4, gc[1] - 3, 'white')
+
+    elif clip == 'rest_lounge':
+        no_prop = True
+        lhand = P(-5, -10)                                      # 유리에 댄 손
+
+    elif clip == 'elevator_ride':
+        prop_front = True
+        lhand = (cx - 3, belt_y + 4 + (0 if not kid else 1))
+        rhand = (cx + 3, belt_y + 4 + (0 if not kid else 1))
+    # elevator_wait · elevator_turn — 두 팔 내림, 오른손 도구 (idle 과 같은 팔)
+
+    # ── 조립 ──
+    c.blit(fx)
+    if lhand is not None:            # 장갑 중심은 정수 — 각인(손등 금)이 장갑 안에 떨어지게
+        lhand = (ir(lhand[0]), ir(lhand[1]))
+    if rhand is not None:
+        rhand = (ir(rhand[0]), ir(rhand[1]))
+    am = Cv()                        # 팔만 따로 — 머리 뒤 베일 각인을 가리는 판정에 쓴다
+    mid_ = belt_y - 4
+    am.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y0 + 3, 'suitM')      # 어깨 뿌리
+    am.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y0 + 3, 'suitD')
+    if lhand is not None:
+        e = arm_to(am, SL, lhand, R, 'l')
+        wl = (lhand[0], lhand[1])
+    else:
+        am.rect(ax_l, arm_y0 + 1, ax_l + 3, mid_, 'suitM'); am.rect(ax_l + tk, mid_, ax_l + 3 + tk, arm_y1, 'suitM')
+        am.rect(ax_l, arm_y0 + 1, ax_l + 1, mid_, 'suitL'); am.rect(ax_l + tk, mid_, ax_l + 1 + tk, arm_y1, 'suitL')
+        wl = (ax_l + 1 + tk, arm_y1 + 2)
+        e = (SL[0], SL[1] + R * 0.55)
+    if rhand is not None:
+        arm_to(am, SR, rhand, R, 'r')
+        wr = (rhand[0], rhand[1])
+    else:
+        am.rect(ax_r, arm_y0 + 1, ax_r + 3, mid_, 'suitD'); am.rect(ax_r - tk, mid_, ax_r + 3 - tk, arm_y1, 'suitD')
+        wr = (ax_r + 2 - tk, arm_y1 + 2)
+    c.blit(am)
+    anc['_arm'] = am
+    anc['_fx'] = fx
+    if prop_front:
+        hand_prop(hh, role, wr[0], wr[1])
+    ov.blit(hh)
+    mitten(mitc, wl[0], wl[1])
+    if rhand is not None:
+        mitten(mitc, wr[0], wr[1], 'creamD')
+    else:
+        mitten(c, wr[0], wr[1], 'creamD')
+        if not g['back'] and not hip and not no_prop:
+            hand_prop(c, role, wr[0], wr[1])
+    if hip and not g['back']:
+        hand_prop(c, role, ax_r - 1, belt_y + 3)
+    ov.blit(mitc)
+    objc.blit(fx); objc.blit(hh)
+    anc['_front'] = hh
+    anc['mitten_l'] = (int(wl[0]), int(wl[1]))
+    anc['wrist_r'] = (int(wr[0]), int(wr[1] - 2))
+    if lhand is not None:            # 팔이 내려가 있으면 기존 앵커(ax_l, neck_y+5) 그대로
+        anc['arm_l'] = (int(round(SL[0] - 1.5 + (e[0] - SL[0]) * 0.35)),
+                        int(round(SL[1] + 2.0 + (e[1] - SL[1] - 2.0) * 0.35)))
+    return wl, wr
+
+
 def build_raw(role, clip='idle', f=0, body='a'):
     """본체를 **두 장**으로 돌려준다 (스프린트 9-A에서 레이어로 쪼갰다).
          base : 머리에 쓴 것(under) · 몸 · 얼굴 구멍의 맨살까지
@@ -592,14 +1038,21 @@ def build_raw(role, clip='idle', f=0, body='a'):
     kid = (role == 'kid')
     H = H_KID if kid else H_ADULT
     rM, rD, rL = 'r_' + role, 'rD_' + role, 'rL_' + role
-    back = (clip == 'back_walk')
+    back = (clip in BACK_CLIPS)
+    turn = (clip == 'elevator_turn')
+    s11 = clip in S11_IDS
     P = POSE[clip]
     B = BODIES[body]
 
-    bob = {'walk': [0, -1, -1], 'back_walk': [0, -1, -1], 'idle': [0, 1],
-           'sit': [0, 1], 'work': [0, -1, 0], 'carry': [0, 1],
-           'hurt': [0, 1]}[clip][f]
-    lean = 1 if clip == 'work' else (2 if clip == 'hurt' else 0)
+    if s11:
+        bob, lean = S11_BOB[clip][f], S11_LEAN[clip][f]
+    else:
+        bob = {'walk': [0, -1, -1], 'back_walk': [0, -1, -1], 'idle': [0, 1],
+               'sit': [0, 1], 'work': [0, -1, 0], 'carry': [0, 1],
+               'hurt': [0, 1]}[clip][f]
+        lean = 1 if clip == 'work' else (2 if clip == 'hurt' else 0)
+    s11_anc, s11_hide = {}, set()
+    s11_obj, s11_mit = Cv(), Cv()
 
     # ── 기준 좌표 (원화) ── 체형이 바뀌어도 세로 좌표는 **전부 그대로**다.
     #    키 44px(아이 33px)·발 기준선 59·머리 크기·얼굴 위치는 규약이라 불변.
@@ -694,6 +1147,12 @@ def build_raw(role, clip='idle', f=0, body='a'):
         c.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y1, 'suitD')
         wl, wr = (ax_l + 1, arm_y1 + 2), (ax_r + 2, arm_y1 + 2)
         mitten(c, wl[0], wl[1]); mitten(c, wr[0], wr[1], 'creamD')
+    elif s11:
+        g = dict(role=role, kid=kid, cx=cx, neck_y=neck_y, torso_cy=torso_cy,
+                 torso_ry=torso_ry, torso_rx=torso_rx, belt_y=belt_y, head_top=head_top,
+                 ax_l=ax_l, ax_r=ax_r, arm_y0=arm_y0, arm_y1=arm_y1,
+                 tk=int(round(BODIES[body]['waist'] and 1 or 0)), back=back)
+        wl, wr = s11_pose(c, ov, clip, f, g, s11_obj, s11_mit, s11_anc, s11_hide)
     else:
         sw = [0, 1, -1][f] if clip in ('walk', 'back_walk') else 0
         lift = [0, -4, -2][f] if clip == 'work' else 0
@@ -747,6 +1206,27 @@ def build_raw(role, clip='idle', f=0, body='a'):
         c.ell_in(hx - 1.6, fy - 1.8, fr - 1.0, fr - 1.4, 'suitH', only=('hair',))
         c.rect(int(hx), int(fy - fr), int(hx), int(fy + fr - 3), 'hairD')   # 가르마
         c.rect(int(hx - 3), int(fy + fr - 2), int(hx + 3), int(fy + fr), 'hairD')  # 목덜미
+    elif turn:
+        # S11 엘리베이터에 들어서며 몸을 돌리는 한 프레임 — 얼굴 구멍의 왼쪽은 뒷머리,
+        # 오른쪽 절반에만 맨살과 눈 하나. 얼굴 레이어(3종)는 이 프레임에 얹지 않는다.
+        c.ell(hx, fy, fr, fr, 'hair')
+        c.ell_in(hx - 1.6, fy - 1.8, fr - 1.0, fr - 1.4, 'suitH', only=('hair',))
+        c.ell_in(hx + 2.4, fy + .6, fr - 1.9, fr - .4, 'skin', only=('hair', 'suitH'))
+        c.ell_in(hx + 3.4, fy + 2.0, fr - 2.8, fr - 1.6, 'skinD', only=('skin',))
+        ey = ey_of(fy)
+        c.rect(int(round(hx + 2)), int(round(fy - fr + 1)), int(round(hx + fr - 1)),
+               int(round(fy - fr + 2)), 'hair')                     # 앞머리 띠(돌아선 쪽)
+        eye(c, int(round(hx + 2)), ey, 2, 3)
+        c.set(int(round(hx + 2)), ey - 2, 'ink')                    # 눈썹 한 획
+        c.set(int(round(hx + 3)), ey - 3, 'ink')
+        c.set(int(round(hx + 4)), ey + 4, 'ink')                    # 입 한 점
+        blush(c, int(round(hx + 5)), int(round(hx + 5)), ey + 2)
+        if role == 'scholar':
+            ov.rect(int(round(hx + 1)), ey - 1, int(round(hx + 5)), ey - 1, 'brassM')
+            ov.set(int(round(hx + 5)), ey, 'brassM')
+        if role == 'trader':
+            ov.rect(hx - hr + 1, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
+            ov.rect(hx + hr - 3, hy + hr + 1, hx + hr - 1, hy + hr + 4, rM)
     else:
         c.ell(hx, fy, fr, fr, 'skin')
         c.ell_in(hx + 1.6, fy + 1.6, fr - .6, fr - .6, 'skinD', only=('skin',))
@@ -788,6 +1268,31 @@ def build_raw(role, clip='idle', f=0, body='a'):
         'belt_c': (int(cx + (4 if not kid else 0)), int(belt_y + 1)),
         'face_shown': (not back),
     }
+    if s11:
+        front = s11_anc.pop('_front')
+        armc = s11_anc.pop('_arm')
+        fxc = s11_anc.pop('_fx')
+        # 각인은 몸에 붙은 것이다 — 몸 옆·뒤 설비 위 허공에 그려질 수 없다 → 보이는 설비 픽셀에서 잘라 낸다.
+        fixvis = set(p_ for p_ in fxc.pixels() if c.own(*p_) == fxc.own(*p_) and ov.own(*p_) is None)
+        armvis = set(p_ for p_ in armc.pixels() if c.own(*p_) == armc.own(*p_) and ov.own(*p_) is None)
+        aL['clip_px'] = fixvis
+        # 「햇빛의 기억」 베일은 머리 **뒤**로 늘어진다 — 일하는 팔·장갑 뒤로 숨는다.
+        aL['behind_px'] = armvis | s11_mit.pixels() | fixvis
+        aL.update(s11_anc)
+        aL['face_shown'] = not (back or turn)
+        # 몸 **앞에** 든 물건(담요·상자·붕대…)이 가린 부위의 각인은 그 프레임에서 끈다.
+        # 옆·뒤의 설비(fixture)와 겹치는 각인은 끄지 않는다 — 그건 설계 오류로 검사에서 잡는다.
+        fp = front.pixels() - s11_mit.pixels()
+        aL['front_px'] = fp
+        if back:                     # 관자놀이 각인은 얼굴 쪽 — 등 돌린 프레임에서는 안 보인다
+            s11_hide.update({'knock_heard', 'depth_mark'})
+        aL['hide'] = set()
+        for _iid, _k, _p, _c in IMPRINTS:
+            if imprint_layer(_iid, aL).pixels() & fp:
+                s11_hide.add(_iid)
+        aL['hide'] = set(s11_hide)
+        aL['obj_cv'] = s11_obj          # 방 설비·손에 든 물건(장갑 제외) — 검사용
+        aL['mit_px'] = s11_mit.pixels()
     return c, ov, aL
 
 
@@ -957,8 +1462,59 @@ IMPRINTS = [
 
 def imprint_layer(iid, a):
     """각인 하나를 투명 레이어로. 본체와 같은 64×64 셀, 같은 자리에 겹치면 된다."""
+    c = _imprint_raw(iid, a)
+    cut = set()
+    if 'clip_px' in a:                       # S11 행만 — 기존 7행은 이 키가 없어 그대로
+        cut |= a['clip_px']
+    if iid == 'sun_memory' and 'behind_px' in a:
+        cut |= a['behind_px']
+    if a.get('clip') not in S11_IDS:          # PM 2026-10-03: 기존 7행 충돌 39건 수리
+        cut |= _old_row_cut(iid, a)
+    for (x, y) in cut:
+        if c.own(x, y) is not None:
+            c.clear(x, y)
+    return c
+
+
+# 앞에 있는 것이 이긴다(높을수록 앞). 겹친 칸은 뒤에 있는 각인에서 잘라 낸다.
+#  손목·장갑(손이 앞) > 목덜미 > … > 팔띠 > 허리 매듭 > 머리 뒤 베일(맨 뒤)
+IMPRINT_FRONT = {'crack_seen': 9, 'debt_paid': 8, 'spore_mark': 7, 'footprint': 6,
+                 'saved_breath': 6, 'warden': 6, 'water_memory': 6, 'depth_mark': 6,
+                 'knock_heard': 5, 'empty_seat': 3, 'empty_stomach': 2, 'sun_memory': 1}
+_OLDCUT = {}
+
+
+def _old_row_cut(iid, a):
+    """기존 7행 전용. 각인은 머리카락(6종 어느 것이든)·얼굴 레이어 **아래**로 숨고,
+    다른 각인과 겹치면 뒤에 있는 쪽이 비킨다. 본체·머리·얼굴 픽셀은 건드리지 않는다.
+    충돌이 없는 프레임(idle f0 포함)은 잘라 낼 것이 없어 결과가 같다."""
+    key = (a['role'], a['clip'], a['f'], a['body'], iid)
+    if key in _OLDCUT:
+        return _OLDCUT[key]
+    base, _o, a0 = raw_of(a['role'], a['clip'], a['f'], a['body'])
+    mine = _imprint_raw(iid, a0).pixels()
+    cut = set()
+    if mine:
+        if iid not in IMPRINT_ON_HAIR:
+            for hid, _k, _n in HAIRS:
+                cut |= mine & hair_layer(hid, a0, base).pixels()
+        hs = hair_layer('short', a0, base)
+        for fid, _k, _n in FACES:
+            cut |= mine & face_layer(fid, a0, base, hs).pixels()
+        for oid, _k, _p, _c in IMPRINTS:
+            if oid != iid and IMPRINT_FRONT.get(oid, 5) > IMPRINT_FRONT.get(iid, 5):
+                cut |= mine & _imprint_raw(oid, a0).pixels()
+        if cut and len(mine - cut) <= 1:      # 한 점만 남으면 그 프레임에서 통째로 끈다(S11 규칙)
+            cut = set(mine)
+    _OLDCUT[key] = cut
+    return cut
+
+
+def _imprint_raw(iid, a):
     c = Cv()
     face = a['face_shown']
+    if iid in a.get('hide', ()):      # S11: 그 프레임에 물건에 가려진 부위
+        return c
     if iid == 'spore_mark':
         x, y = a['neck_l']
         c.rect(x, y, x + 1, y, 'impGrn'); c.set(x + 1, y + 1, 'impGrn')
@@ -1755,6 +2311,206 @@ def main():
         sheetimg.convert('RGB').save(os.path.join(OUT, 'check', 'plate_rooms.png'))
         print('[ok] check/plate_rooms.png — 사람 없는 플레이트 4칸 합성')
 
+
+    # ── S11 검사 — 자세 전 행 × 전 프레임으로 넓혔다 ──────────────────────
+    #   ①각인×각인 ②각인×얼굴 3종 ③각인×머리 6종(water_memory 제외) — 기존 검사와 같은 식
+    #   ④각인×방 설비/든 물건(보이는 픽셀) ⑤얼굴×설비/물건 ⑥머리×옆 설비
+    #   기존 7행은 **참고로만** 센다(손대지 않기로 했으므로). 새 14행은 전부 0이어야 한다.
+    s11_tot, old_tot, s11_hidden = 0, 0, {}
+    for sid, arole, abody in SHAPES:
+        for clip, n in CLIPS:
+            for i in range(n):
+                base, _ov, a0 = raw_of(arole, clip, i, abody)
+                imp = {iid: imprint_layer(iid, a0).pixels() for iid, _k, _p, _c in IMPRINTS}
+                hrs = {hid: hair_layer(hid, a0, base).pixels() for hid, _k, _n in HAIRS}
+                hs = hair_layer('short', a0, base)
+                fcs = {fid: face_layer(fid, a0, base, hs).pixels() for fid, _k, _n in FACES}
+                ids = [t[0] for t in IMPRINTS]
+                cnt, det = 0, []
+                for x in range(len(ids)):
+                    for y in range(x + 1, len(ids)):
+                        if imp[ids[x]] & imp[ids[y]]:
+                            cnt += 1; det.append('%s×%s' % (ids[x], ids[y]))
+                for iid in ids:
+                    for fid in fcs:
+                        if imp[iid] & fcs[fid]:
+                            cnt += 1; det.append('%s×얼굴%s' % (iid, fid))
+                    if iid not in IMPRINT_ON_HAIR:
+                        for hid in hrs:
+                            if imp[iid] & hrs[hid]:
+                                cnt += 1; det.append('%s×머리%s' % (iid, hid))
+                if clip in S11_IDS:
+                    comp, _ = build(arole, clip, i, abody)
+                    oc = a0['obj_cv']
+                    vis = set(p_ for p_ in oc.pixels() if comp.own(*p_) == oc.own(*p_)) - a0['mit_px']
+                    fixv = vis - a0['front_px']
+                    for iid in ids:
+                        if imp[iid] & vis:
+                            cnt += 1; det.append('%s×설비' % iid)
+                    for fid in fcs:
+                        if fcs[fid] & vis:
+                            cnt += 1; det.append('얼굴%s×물건' % fid)
+                    for hid in hrs:
+                        if hrs[hid] & fixv:
+                            cnt += 1; det.append('머리%s×설비' % hid)
+                    for h_ in sorted(a0['hide']):
+                        s11_hidden.setdefault((sid, clip, i), []).append(h_)
+                    s11_tot += cnt
+                    if cnt:
+                        print('   [!!] %s %s f%d: %s' % (sid, clip, i, det[:4]))
+                else:
+                    old_tot += cnt
+    print('[검사 S11] 새 14행 × 4체형 레이어 충돌: %d건 (기존 7행 참고: %d건)' % (s11_tot, old_tot))
+    print('[검사 S11] 몸 앞 물건에 가려 그 프레임에서 꺼지는 각인: %d프레임' % len(s11_hidden))
+    S11_CHECK = {'s11_clash': s11_tot, 'old_rows_clash_ref': old_tot,
+                 'old_rows_fix': '2026-10-03 PM 결정: 기존 7행 충돌 39건(S8·S9 전 프레임) 수리. 각인 레이어만 프레임별로 '
+                                 '잘라 냈다 — 머리 6종·얼굴 3종 아래로 숨고, 각인끼리는 뒤의 것이 비킨다(IMPRINT_FRONT). '
+                                 '한 점만 남으면 그 프레임에서 끈다. 본체·머리·얼굴 픽셀과 S11 행은 불변',
+                 'hidden': {'%s/%s/f%d' % k: v for k, v in sorted(s11_hidden.items())}}
+
+    # ── S11 검증 그림 ──────────────────────────────────────────────────
+    PLDIR11 = os.path.join(ROOT, 'static', 'art', 'plates')
+    try:
+        pm11 = json.load(io.open(os.path.join(PLDIR11, 'plates_meta.json'), encoding='utf-8'))
+    except Exception:
+        pm11 = None
+    PLATE_OF = {'generator': 'power'}
+
+    def plate_and_tint(rid):
+        pid = PLATE_OF.get(rid, rid)
+        fp_ = os.path.join(PLDIR11, 'room_plate_%s_lit.png' % pid)
+        if not (pm11 and os.path.exists(fp_)):
+            return None, lamp_tint(), pid
+        pl_ = Image.open(fp_).convert('RGBA')
+        info = [r for r in pm11['rooms'] if r.get('id') == pid]
+        lamp = (info[0].get('lamp') if info else None) or [pm11['canvas'][0] // 2, 110]
+        box = pl_.convert('RGB').crop((max(0, lamp[0] - 60), lamp[1] + 20,
+                                       min(pm11['canvas'][0], lamp[0] + 60), lamp[1] + 90))
+        cc = box.resize((1, 1), Image.BOX).getpixel((0, 0))
+        mm = max(1.0, sum(cc) / 3.0)
+        return pl_, tuple(ci / mm for ci in cc), pid
+
+    WORK_CAST = {   # 방마다 두 사람 — 같은 동작, 다른 도구(= 다른 역할)
+        'quarters': [('kid', 'b'), ('trader', 'a')], 'storage': [('scout', 'a'), ('cook', 'b')],
+        'well': [('engineer', 'b'), ('farmer', 'a')], 'greenhouse': [('farmer', 'b'), ('medic', 'a')],
+        'generator': [('engineer', 'a'), ('scout', 'b')], 'infirmary': [('medic', 'b'), ('kid', 'a')],
+        'workshop': [('engineer', 'a'), ('trader', 'b')], 'decoder': [('scholar', 'a'), ('kid', 'b')],
+        'pantry': [('cook', 'a'), ('farmer', 'b')], 'airlock': [('scout', 'a'), ('engineer', 'b')],
+        'lounge': [('scholar', 'b'), ('kid', 'a')],
+    }
+    ROOM_KO11 = {'quarters': '거주실', 'storage': '창고', 'well': '정수실', 'greenhouse': '온실',
+                 'generator': '발전실', 'infirmary': '의무실', 'workshop': '공방',
+                 'decoder': '해독실·서고', 'pantry': '식량창고', 'airlock': '에어락', 'lounge': '전망 라운지'}
+    flY = pm11['floor_y'] if pm11 else 315
+    kk = pm11['grid']['char_scale'] if pm11 else ROOM_K
+    cw, ch = (pm11['canvas'] if pm11 else (672, 378))
+    sx0_, sx1_ = 138, 534
+    lit_index = {}
+    panels = []
+    for rid, cast in WORK_CAST.items():
+        clip = ROOM_WORK[rid]
+        nfr = dict(CLIPS)[clip]
+        pl, tint, pid = plate_and_tint(rid)
+        if pl is None:
+            bgp = room_bg(cw, ch, flY / float(ch), True).convert('RGBA')
+        else:
+            bgp = pl.copy()
+        # 방 빛 받은 셀 띠(×3, 프레임 가로) — 비교 페이지가 CSS steps 로 돌린다
+        for role, body in cast:
+            hair, face = LOOK[(role, body)]
+            strip = Image.new('RGBA', (CELL * kk * nfr, CELL * kk), (0, 0, 0, 0))
+            for i in range(nfr):
+                cc_, _ = build(role, clip, i, body, hair, face)
+                strip.paste(room_light(up(cc_.img(), kk), 1.0, tint), (CELL * kk * i, 0))
+            nm = 'worklit_%s_%s.png' % (rid, sheet_name(role, body))
+            strip.save(os.path.join(OUT, 'check', nm))
+            lit_index.setdefault(rid, []).append({'file': 'check/' + nm, 'role': role, 'body': body,
+                                                  'frames': nfr})
+        # 정지 합성 — 셀 단위로 붙인다(셀 발 기준선 60 × kk = floor_y)
+        step = (sx1_ - sx0_) // (len(cast) + 1)
+        for pi, (role, body) in enumerate(cast):
+            hair, face = LOOK[(role, body)]
+            fi = min(1, nfr - 1) if pi == 0 else 0
+            cc_, _ = build(role, clip, fi, body, hair, face)
+            spr = room_light(up(cc_.img(), kk), 1.0, tint)
+            px0 = int(sx0_ + (sx1_ - sx0_) * (0.28 if pi == 0 else 0.80)) - CELL * kk // 2
+            py0 = flY - BASE_Y * kk
+            bb = cc_.bbox()
+            sh_ = up(cc_.img().crop((bb[0], bb[1], bb[2] + 1, bb[3] + 1)), kk)
+            bgp = ground_shadow(bgp, (px0 + bb[0] * kk, py0 + bb[1] * kk), sh_)
+            bgp.alpha_composite(spr, (px0, py0))
+        dd = ImageDraw.Draw(bgp)
+        dd.rectangle([0, 0, cw, 30], fill=(16, 11, 9, 230))
+        dd.text((10, 6), '%s — %s%s' % (ROOM_KO11[rid], clip,
+                                        '' if pl is not None else '  (플레이트 없음: 임시 바탕)'),
+                font=f14, fill=(244, 216, 160))
+        panels.append(bgp)
+    colsN = 3
+    rowsN = (len(panels) + colsN - 1) // colsN
+    big = Image.new('RGBA', (cw * colsN, ch * rowsN + 44), (14, 10, 8, 255))
+    for i, pn in enumerate(panels):
+        big.alpha_composite(pn, ((i % colsN) * cw, 44 + (i // colsN) * ch))
+    dd = ImageDraw.Draw(big)
+    dd.text((10, 10), '방별 작업 동작 × 방 플레이트 — plates_meta 의 floor_y·char_scale(×%d) 그대로, '
+                      '셀 발 기준선 60 = floor_y %d. 왼쪽 사람은 f1, 오른쪽은 f0' % (kk, flY),
+            font=f16, fill=(236, 206, 150))
+    big.convert('RGB').save(os.path.join(OUT, 'check', 'work_rooms.png'))
+
+    # 70px 판독 — 행 = 방, 열 = 8역할(f1). "모자 포함 키 49px → 70px" 배율(기존 70px 컷과 같은 크기)
+    rows70 = [c for c in S11_IDS if c.startswith('work_')] + ['rest_lounge']
+    W70 = 140 + 8 * 104
+    H70 = 34 + len(rows70) * 104
+    im = room_bg(W70, H70, 0.99, True)
+    d = ImageDraw.Draw(im)
+    sc70 = 70.0 / 49.0
+    for r, clip in enumerate(rows70):
+        y0 = 34 + r * 104
+        rid = [k for k, v in ROOM_WORK.items() if v == clip][0]
+        d.text((8, y0 + 40), ROOM_KO11.get(rid, rid), font=f14, fill=(40, 28, 18))
+        d.text((8, y0 + 60), clip, font=f12, fill=(96, 72, 50))
+        for j, role in enumerate(ROLES):
+            nfr = dict(CLIPS)[clip]
+            cc_, _ = build(role, clip, min(1, nfr - 1), 'a')
+            one = cc_.img()
+            z70 = one.resize((int(round(CELL * sc70)), int(round(CELL * sc70))), Image.NEAREST)
+            im.paste(z70, (140 + j * 104 + 52 - z70.width // 2, y0 + 100 - int(BASE_Y * sc70)), z70)
+    for j, role in enumerate(ROLES):
+        d.text((140 + j * 104 + 30, 8), ROLE_KO[role], font=f14, fill=(40, 28, 18))
+    im.save(os.path.join(OUT, 'check', 'work70.png'))
+
+    # 엘리베이터 — 기다림(2) → (뒷걸음: 기존 행) → 돌아섬(1) → 탐(2)
+    seq = [('elevator_wait', 0), ('elevator_wait', 1), ('back_walk', 1), ('elevator_turn', 0),
+           ('elevator_ride', 0), ('elevator_ride', 1)]
+    labels = ['기다림 f0', '기다림 f1', '들어감(back_walk)', '돌아섬', '탐 f0', '탐 f1']
+    castE = [('scout', 'a'), ('medic', 'b'), ('kid', 'a'), ('trader', 'b')]
+    WE, HE = 40 + len(seq) * 170, 50 + len(castE) * 210
+    im = room_bg(WE, HE, 0.99, False)
+    d = ImageDraw.Draw(im)
+    for r, (role, body) in enumerate(castE):
+        hair, face = LOOK[(role, body)]
+        y0 = 50 + r * 210
+        for j, (clip, fi) in enumerate(seq):
+            cc_, _ = build(role, clip, fi, body, hair, face)
+            spr = room_light(up(cc_.img(), 3))
+            x0 = 20 + j * 170
+            if clip == 'elevator_ride':          # 칸 자리(개발이 칸 전체를 움직인다)
+                d.rectangle([x0 + 22, y0 + 4, x0 + 170, y0 + 192], outline=(150, 112, 62), width=3)
+            im.paste(spr, (x0, y0 + 186 - BASE_Y * 3), spr)
+            if r == 0:
+                d.text((x0 + 20, 26), labels[j], font=f14, fill=(236, 206, 150))
+    d.text((8, 4), '엘리베이터 자세 — 내려가는 느낌은 칸 전체를 움직여 낸다(개발). 사람은 거의 정지',
+           font=f16, fill=(236, 206, 150))
+    im.save(os.path.join(OUT, 'check', 'elevator.png'))
+    for role, body in castE:
+        hair, face = LOOK[(role, body)]
+        strip = Image.new('RGBA', (CELL * 3 * 5, CELL * 3), (0, 0, 0, 0))
+        for j, (clip, fi) in enumerate([('elevator_wait', 0), ('elevator_wait', 1), ('elevator_turn', 0),
+                                        ('elevator_ride', 0), ('elevator_ride', 1)]):
+            cc_, _ = build(role, clip, fi, body, hair, face)
+            strip.paste(room_light(up(cc_.img(), 3)), (CELL * 3 * j, 0))
+        strip.save(os.path.join(OUT, 'check', 'elevlit_%s.png' % sheet_name(role, body)))
+    print('[ok] S11 check/work_rooms.png · work70.png · elevator.png · worklit_* · elevlit_*')
+
     # ── 메타 ──
     meta = {
         '_comment': 'P2 48px 생활형 도트 — 확정 화풍. 정수 배율 + image-rendering:pixelated 필수.',
@@ -1798,6 +2554,25 @@ def main():
         'layer_checks': '생성기가 매 실행마다: ①각인×각인 ②각인×얼굴 3종 ③각인×머리 6종 '
                         '(머리 위에 얹히도록 설계된 water_memory 제외) ④기본머리 덮임 '
                         '⑤기본시트+패치==변형시트 를 전수 검사한다.',
+        # ── S11 (스프린트 11-B) — 아래 키는 전부 **새로 더한 것**이다. 위의 값은 그대로 ──
+        's11_rows': {c: {'row': i, 'frames': n, 'room': S11_KO[c][0], 'what': S11_KO[c][1],
+                         'hands': S11_KO[c][2], 'seconds': CLIP_SEC[c]}
+                     for i, (c, n) in enumerate(CLIPS) if c in S11_IDS},
+        'room_work': ROOM_WORK,
+        'room_work_rule': '방에 배치된 사람은 room_work[방 id] 행을 돈다. 플레이트 파일명 power = 방 id generator. '
+                          '설비(밸브·레버·모루·독서대·화로·공기통·화분·선반·십자 상자)는 **사람 셀 안에 같이 찍혀 있다** — '
+                          '그래서 방 플레이트의 어느 stand_x 에 세워도 동작이 방을 말한다. 설비는 몸 왼쪽(셀 x 0~20)에 있으므로 '
+                          '좌우 반전해 써도 된다(외곽선·틴트 규칙 동일). bath(물 끓이는 방)는 sit, hall 은 idle.',
+        'elevator': {'sequence': ['elevator_wait', 'back_walk(칸으로 들어감)', 'elevator_turn', 'elevator_ride',
+                                  'walk(내림)'],
+                     'note': 'ride 는 거의 정지 — 내려가는 느낌은 칸 전체를 세로로 움직여 낸다. '
+                             'turn 은 1프레임(0.25초)만 보여 준다. 얼굴 패치·얼굴 각인은 turn 에서 꺼진다(뒷모습과 같은 규칙)'},
+        'imprint_hide_rule': '몸 앞에 든 물건(담요·상자·붕대)이 각인 부위를 가리는 프레임에서는 그 각인을 그리지 않는다 — '
+                             '각인 시트(imprints/*.png)의 그 칸이 이미 비어 있으므로 클라이언트는 아무 것도 할 필요가 없다.',
+        'layer_checks_s11': '생성기가 새 14행 × 4체형 × 전 프레임에서 ①각인×각인 ②각인×얼굴 ③각인×머리 '
+                            '④각인×설비·든 물건 ⑤얼굴×설비·든 물건 ⑥머리×옆 설비 를 전수 검사한다.',
+        's11_check_result': S11_CHECK,
+        's11_lit_strips': lit_index,
         'rules_2_5d': {
             '1_integer_scale': '정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지',
             '2_lamp_tint': 'masks/<role>.png 가 흰 곳만 방 등불색을 곱한다. 0인 곳(눈·외곽선·랜턴 불꽃·유리)은 건드리지 않는다. 권장식: rgb *= (1 + 0.30*(tint-1)) * (1.13 - 0.32*(y/h))',

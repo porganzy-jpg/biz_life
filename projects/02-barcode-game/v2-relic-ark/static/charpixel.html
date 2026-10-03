@@ -20,6 +20,7 @@
   .rules{background:var(--panel);border:1px solid var(--line);border-radius:10px;
          padding:14px 18px;margin:0 0 26px;font-size:14px}
   .rules b{color:var(--accent)}
+  .rules{overflow-x:auto}
   .rules ol{margin:8px 0 0;padding-left:20px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
@@ -78,6 +79,122 @@
 </head>
 <body>
 <div class="wrap">
+
+<!-- ══════════════ §작업 — 방별 작업 동작 · 엘리베이터 (스프린트 11-B) ══════════════ -->
+<style>
+  .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(460px,100%),1fr));gap:16px;margin-top:12px}
+  .wcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;padding-bottom:10px;min-width:0}
+  @media (max-width:520px){ .wgrid{grid-template-columns:minmax(0,1fr) !important} }
+  .wcard h3{font-size:16px;margin:10px 14px 2px}
+  .wscroll{overflow-x:auto}
+  .wstage{position:relative;width:460px;height:378px;margin:0 auto;image-rendering:pixelated;
+          background-color:#2a1d15;background-repeat:no-repeat}
+  .wstage.noplate{background:radial-gradient(ellipse at 50% 30%,#b08a60 0%,#6d5039 55%,#3a281d 100%)}
+  .wstage.noplate::after{content:"";position:absolute;left:0;right:0;top:315px;bottom:0;background:#8e6c46;
+          border-top:1px solid #604630}
+  .wsp{position:absolute;width:192px;height:192px;image-rendering:pixelated;background-repeat:no-repeat;z-index:2}
+  .wsh{position:absolute;border-radius:50%;background:rgba(8,5,3,.55);filter:blur(4px);z-index:1}
+  .paused .wsp,.paused .ecar{animation-play-state:paused !important}
+  @keyframes wk1{to{background-position-x:-192px}}
+  @keyframes wk2{to{background-position-x:-384px}}
+  @keyframes wk3{to{background-position-x:-576px}}
+  @keyframes wk5{to{background-position-x:-960px}}
+  .eshaft{position:relative;width:200px;height:420px;margin:0 auto;background:
+          repeating-linear-gradient(0deg,#3a281d 0 2px,transparent 2px 140px),#1c130e;
+          border-left:4px solid #5a4230;border-right:4px solid #5a4230;overflow:hidden}
+  .ecar{position:absolute;left:8px;width:176px;height:200px;border:3px solid #96703e;
+        background:rgba(60,42,28,.6);animation:edown 6s ease-in-out infinite}
+  @keyframes edown{0%,15%{top:8px}55%,70%{top:212px}100%{top:8px}}
+</style>
+<section id="work">
+  <h1>§작업 — 방에서 일하는 사람 · 엘리베이터<span class="badge">신규 S11</span></h1>
+  <p class="sub">2026-10-03 · 사용자 지시 <b>“방에서 일을 하고 있는 애니메이션도 필요하지 않을까”</b>
+     · <b>“각 방에 엘리베이터를 타고 내려가는 걸로”</b>.
+     역할 여덟이 똑같이 하던 <code>work</code> 한 줄 대신, <b>방마다 다른 일</b>을 시트에 <b>행으로 더했다</b>(7행 → 21행).
+     기존 7행은 한 픽셀도 바뀌지 않았다(출하물 해시 대조).</p>
+  <div class="rules">
+    <b>원칙 셋</b>
+    <ol style="margin:8px 0 0 18px;padding:0;line-height:1.75">
+      <li><b>동작이 방을 말한다.</b> 왼손이 그 방의 일을 하고, 그 방의 설비(밸브·레버·모루·독서대·화로·공기통·화분·선반·십자 상자)는
+          <b>사람 셀 안에 같이 찍혀 있다</b> — 플레이트 어디에 세워도 무슨 방인지 보인다.</li>
+      <li><b>도구가 역할을 말한다.</b> 같은 방에서는 누구나 같은 동작을 하지만 오른손에 든 것(망원경·국자·약 가방·렌치…)은 그대로다.
+          두 손이 필요한 일(담요·상자)은 도구를 허리에 건다.</li>
+      <li><b>규약 그대로.</b> 셀 64 · 발 기준선 60 · ppm 27.5 · 3열 · 정수 배율. 각인·머리·얼굴 레이어 충돌은 새 14행 × 4체형 × 전 프레임에서 0건.</li>
+    </ol>
+    <table class="conv" id="worktable">
+      <tr><th>행</th><th>방 id</th><th>무엇을 하나</th><th>프레임 · 초</th></tr>
+    </table>
+  </div>
+  <div class="bar" style="padding:12px 0 0"><button id="wtoggle">전부 정지 ■</button>
+    <span class="meta" style="padding:0">카드 안 = 배경이 낸 방 플레이트(plates_meta 의 floor_y 315, ×3) 위 실제 크기</span></div>
+  <div class="wgrid" id="wgrid"></div>
+
+  <h2 style="margin-top:28px">엘리베이터 — 기다림 → 돌아섬 → 탐</h2>
+  <p class="cap">사람은 거의 움직이지 않는다. <b>내려가는 느낌은 칸 전체를 움직여 낸다</b>(개발). 아래 왼쪽 넷은 기다림 2 → 돌아섬 1 → 탐 2 를 순서대로 돈다.
+     오른쪽은 칸에 <code>elevator_ride</code> 를 넣고 칸만 움직인 예시다.</p>
+  <div class="wgrid" style="grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr))" id="egrid"></div>
+  <p class="cap">관련 그림: <a href="art/chars/front/p2/check/work_rooms.png" style="color:var(--accent)">방 플레이트 합성</a> ·
+     <a href="art/chars/front/p2/check/work70.png" style="color:var(--accent)">70px 판독(방 11 × 8역할)</a> ·
+     <a href="art/chars/front/p2/check/elevator.png" style="color:var(--accent)">엘리베이터 자세</a></p>
+</section>
+<script>
+(function(){
+  const ROOM_KO = {quarters:'거주실',storage:'창고',well:'정수실',greenhouse:'온실',generator:'발전실',
+    infirmary:'의무실',workshop:'공방',decoder:'해독실·서고',pantry:'식량창고',airlock:'에어락',lounge:'전망 라운지'};
+  const PLATE = {quarters:'quarters',storage:'storage',greenhouse:'greenhouse',generator:'power',
+    infirmary:'infirmary',workshop:'workshop'};
+  const ROLE_KO = {scout:'정찰병',cook:'요리사',medic:'의무병',engineer:'기술자',farmer:'농부',scholar:'학자',trader:'교섭가',kid:'아이'};
+  const FLOOR = 315, K = 3, BASE = 60, CROP = 106;          // 플레이트 x 106~566 만 보인다
+  const root = 'art/chars/front/p2/';
+  fetch(root + 'meta.json').then(r => r.json()).then(meta => {
+    const tb = document.getElementById('worktable');
+    Object.entries(meta.s11_rows).forEach(([clip, r]) => {
+      const rid = Object.keys(meta.room_work).filter(k => meta.room_work[k] === clip).join(' · ') || '—';
+      tb.insertAdjacentHTML('beforeend', `<tr><td>${r.row} <code>${clip}</code></td><td>${rid}</td><td>${r.what}</td><td>${r.frames} · ${r.seconds}s</td></tr>`);
+    });
+    const g = document.getElementById('wgrid');
+    Object.entries(meta.s11_lit_strips).forEach(([rid, ppl]) => {
+      const clip = meta.room_work[rid], row = meta.s11_rows[clip];
+      const plate = PLATE[rid];
+      const bg = plate ? `background-image:url('art/plates/room_plate_${plate}_lit.png');background-position:-${CROP}px 0` : '';
+      let inner = '';
+      ppl.forEach((p, i) => {
+        const cxp = Math.round(138 + (534 - 138) * (i === 0 ? 0.28 : 0.80)) - CROP;
+        const left = cxp - 96, top = FLOOR - BASE * K;
+        const n = p.frames, dur = row.seconds;
+        inner += `<div class="wsh" style="left:${cxp - 30}px;top:${FLOOR - 5}px;width:60px;height:10px"></div>
+          <div class="wsp" style="left:${left}px;top:${top}px;background-image:url('${root}${p.file}');
+             background-size:${192 * n}px 192px;animation:wk${n} ${dur}s steps(${n}) infinite;
+             animation-delay:-${(i * 0.37).toFixed(2)}s" title="${ROLE_KO[p.role]} · 체형 ${p.body.toUpperCase()}"></div>`;
+      });
+      const who = ppl.map(p => ROLE_KO[p.role]).join(' · ');
+      g.insertAdjacentHTML('beforeend', `<div class="wcard"><div class="wscroll">
+          <div class="wstage ${plate ? '' : 'noplate'}" style="${bg}">${inner}</div></div>
+          <h3>${ROOM_KO[rid]} <code style="font-size:12px;color:var(--dim)">${clip}</code></h3>
+          <div class="sig">${row.what}<br><b>사람</b> ${who} — 같은 동작, 다른 도구${plate ? '' : '<br><b>※</b> 이 방은 아직 플레이트가 없어 임시 바탕'}</div></div>`);
+    });
+    // 엘리베이터
+    const eg = document.getElementById('egrid');
+    [['scout','a'],['medic','b'],['kid','a'],['trader','b']].forEach(([r, b], i) => {
+      const nm = b === 'a' ? r : r + '_b';
+      eg.insertAdjacentHTML('beforeend', `<div class="wcard"><div class="wstage noplate" style="width:240px;height:378px">
+        <div class="wsh" style="left:90px;top:${FLOOR - 5}px;width:60px;height:10px"></div>
+        <div class="wsp" style="left:24px;top:${FLOOR - BASE * K}px;background-image:url('${root}check/elevlit_${nm}.png');
+          background-size:960px 192px;animation:wk5 3.2s steps(5) infinite;animation-delay:-${i * 0.6}s"></div></div>
+        <h3>${ROLE_KO[r]} · 체형 ${b.toUpperCase()}</h3><div class="sig">기다림 · 기다림 · 돌아섬 · 탐 · 탐</div></div>`);
+    });
+    eg.insertAdjacentHTML('beforeend', `<div class="wcard"><div class="eshaft">
+        <div class="ecar"><div class="wsp" style="left:-8px;top:2px;background-image:url('${root}check/elevlit_medic_b.png');
+          background-size:960px 192px;background-position:-576px 0"></div></div></div>
+        <h3>칸이 내려간다</h3><div class="sig">사람 = <code>elevator_ride</code> 정지 · 칸 = 세로 이동(개발 몫)</div></div>`);
+  }).catch(e => { document.getElementById('wgrid').textContent = 'meta.json 을 읽지 못했다: ' + e; });
+  const tg = document.getElementById('wtoggle');
+  tg.addEventListener('click', () => {
+    const on = document.getElementById('work').classList.toggle('paused');
+    tg.textContent = on ? '전부 재생 ▶' : '전부 정지 ■';
+  });
+})();
+</script>
 
 <!-- ══════════════ §체형 — 체형 2종 · 머리 6종 · 얼굴 3종 (스프린트 9-A) ══════════════ -->
 <section id="body">
