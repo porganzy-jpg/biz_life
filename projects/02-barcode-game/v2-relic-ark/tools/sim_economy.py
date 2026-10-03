@@ -38,6 +38,8 @@ ECON = load("economy")
 THREAT = load("threats")
 DEFENSE = load("defense")
 EQUIP = load("equipment")
+STAKES = load("stakes")
+STAFF_MULT = STAKES["staffing"]["staff_mult"]   # 2026-10-03: 0.6+0.4n 대체(stakes.json)
 
 MATERIAL_KEYS = ["food", "water", "med", "parts", "cloth", "trade", "knowledge", "scrap", "chem"]
 BUILD_KEYS = ["parts", "cloth", "knowledge", "med", "trade", "scrap"]   # 방을 짓고 올리는 데 쓰는 것
@@ -185,7 +187,7 @@ class Ark:
             if lv >= 2:
                 base = self.spec[r].get(f"lv{lv}", {}).get("produces_after", base)
             n = assign[r]
-            scale = 0.6 + 0.4 * n
+            scale = STAFF_MULT[min(n, len(STAFF_MULT) - 1)]
             for k, v in base.items():
                 if k in MATERIAL_KEYS:
                     out[k] = out.get(k, 0.0) + v * scale
@@ -597,19 +599,23 @@ def economy_tables(days: int):
     return runs
 
 
-def curve_check(runs: dict, days: int):
+def curve_check(runs: dict, days: int, seeds: int = 30):
     print("\n" + "=" * 100)
-    print("표 E2. 목표 곡선 대조 (ROOMS_AND_ITEMS §4) — 보통 플레이어 기준으로 맞췄다")
+    print(f"표 E2. 목표 곡선 대조 (ROOMS_AND_ITEMS §4) — 씨앗 {seeds}개 평균. 보통 플레이어 기준 ±1")
+    print("  (2026-10-03: 씨앗 하나로 판정하던 것을 고쳤다. 씨앗 7 하나는 보통 플레이어 7일 방 5 였지만 평균은 8.2 였다)")
     print("=" * 100)
-    print(f"{'시점':<8}{'목표 방':<10}{'열심':<10}{'보통':<10}{'띄엄띄엄':<10}{'판정':<12}")
+    print(f"{'시점':<8}{'목표 방':<10}{'열심':<10}{'보통':<10}{'띄엄띄엄':<10}{'보통 Lv2':<10}{'판정':<12}")
+    hist = {name: [run_economy(n, days, seed=s, pool_size=pool)["hist"] for s in range(seeds)]
+            for name, n, pool in PROFILES}
     for cp in ECON["target_curve"]["checkpoints"]:
         d = cp["day"]
         if d > days:
             continue
-        got = {name: runs[name]["hist"][d - 1]["rooms"] for name, _, _ in PROFILES}
+        got = {name: sum(h[d - 1]["rooms"] for h in hs) / seeds for name, hs in hist.items()}
+        lv2 = sum(h[d - 1]["lv2"] for h in hist["보통 8회/일"]) / seeds
         normal = got["보통 8회/일"]
         ok = "맞음" if abs(normal - cp["rooms"]) <= 1 else ("빠름" if normal > cp["rooms"] else "느림")
-        print(f"{d}일{'':<5}{cp['rooms']:<10}{got['열심 20회/일']:<10}{normal:<10}{got['띄엄띄엄 3회/일']:<10}{ok:<12}")
+        print(f"{d}일{'':<5}{cp['rooms']:<10}{got['열심 20회/일']:<10.1f}{normal:<10.1f}{got['띄엄띄엄 3회/일']:<10.1f}{lv2:<10.1f}{ok:<12}")
 
 
 def income_share(runs: dict, days: int):

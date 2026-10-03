@@ -184,3 +184,16 @@ PM 확정(2026-10-01). 접속 시간이 아니라 달력으로 흐른다.
 | 관문 성공률 가정 | 60→92% (등급별) | 실플레이에서 불 끄기·전원 내리기를 실제로 몇 % 해내는지 |
 | 원정 산출 | 1회 6~10 재료 | 미구현. 붙으면 스캔 비중과 claws 가중치를 함께 다시 돌린다 |
 | 바코드 풀 크기 | 열심 160 / 보통 90 / 띄엄 55 | 재스캔 감쇠의 체감을 좌우한다. `scans` 테이블의 고유 바코드 수로 측정 |
+
+---
+
+## 8. 2026-10-03 갱신 — 이해관계·원정·곡선 재조정
+
+| 무엇 | 어디 | 요점 |
+|---|---|---|
+| 이해관계·수집 보강 | `data/balance/stakes.json` | 배치 = 생산(빈 방 0.5 / 1명 1.0 / 2명 1.35 / 3명 1.6 / 4명+ 1.8), '금' = 생산 ×0.7 + 수리 직물1·약재1, 덮개 대상 공개, 21시 판정(최악 '금'), 닦기·물빛 변형·가문 세트 3·카테고리 고정·스팟은 서로 다른 바코드만 |
+| 원정·문간 | `data/balance/expedition.json`, `docs/EXPEDITION.md` | 공기 8/일, 상자 = 재스캔이 열쇠, 손님은 문간으로 |
+| 곡선 재조정 | `economy.json` rooms | 건설비(첫 세 칸 제외)·Lv2 비용 ×1.5. **판정은 이제 씨앗 30개 평균**(10-01 판정은 씨앗 하나였다). 보통 플레이어 3.0 / 6.5 / 9.3 / 11.4 (1·7·14·30일) |
+| 생산 배율 | `economy.json _production_scaling` | 0.6+0.4n(0명=0) → stakes.json staff_mult |
+
+검증: `python tools/sim_economy.py` · `python tools/sim_expedition.py` · `python tools/sim_stakes.py`. 보고: `docs/reports/design_expedition_20261003.md`, `docs/reports/design_stakes_20261003.md`.
