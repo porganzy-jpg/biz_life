@@ -610,3 +610,9 @@ body{
 .rc-front.sea{background:linear-gradient(115deg,#e6d7b0 0 40%,#cfe7e2 50%,#e6d7b0 60% 100%); background-size:300% 100%; animation:seaSheen 3.2s linear infinite}
 @keyframes seaSheen{from{background-position:100% 0}to{background-position:-200% 0}}
 .wish.done{border-style:solid; border-color:#4b6b3e} .wish small{color:var(--dim)} .wish em{font-style:normal; color:#b9ae94}
+/* S14 능력치 → 생산 */
+.rccontrib{display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 6px}
+.rccontrib span{font-size:11.5px; padding:1px 6px; border-radius:3px; background:#151a17; border:1px solid #2a2419; color:var(--ink)}
+.rccontrib .pos{border-color:#4b6b3e; color:#c8f0b0} .rccontrib .neg{border-color:#6b3b33; color:#ffd2c0}
+.rcmult{font-weight:700; color:var(--cream)} .rcmult.pos{color:#8fbf7a} .rcmult.neg{color:#d08a72}
+.bstat.neg{color:#d08a72}

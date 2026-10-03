@@ -1432,16 +1432,13 @@
     return Object.entries(c).filter(([k, v]) => (have[k] || 0) < v).map(([k, v]) => (RES_KO[k] || k) + ' ' + ((have[k] || 0)) + '/' + v);
   }
   // 그 방에서 빛나는 스탯. 노려지는 방에서는 언제나 「담」이다(RESIDENT_STATS §5)
-  // S11-C: 12종으로 넓혔다. 손 = 만들고 고치는 방, 눈 = 읽고 내다보는 방, 숨 = 버티고 돌보는 방.
-  // 거주·목욕·홀은 일하는 방이 아니라 비워 둔다. ★ 기획 확인 대상(TASKS 요청함)
-  const ROOM_STAT = { workshop: 'hand', generator: 'hand', storage: 'hand', pantry: 'hand', well: 'hand',
-                      library: 'eye', decoder: 'eye', lounge: 'eye',
-                      infirmary: 'breath', greenhouse: 'breath', airlock: 'breath' };
+  // S14: 방 → 능력치 표의 정본은 서버 /api/ark stats_meta.room_stat(기획 stakes.json). 클라이언트 사본은 없앴다
+  const roomStat = (id) => ((ark && ark.stats_meta && ark.stats_meta.room_stat) || {})[id] || null;
   const STAT_KO_DEF = { hand: '손', eye: '눈', breath: '숨', nerve: '담' };
   function goodStats(slot) {
     const room = (ark.rooms || []).find(r => r.slot === slot);
     const out = [];
-    if (room && ROOM_STAT[room.id]) out.push(ROOM_STAT[room.id]);
+    if (room && roomStat(room.id)) out.push(roomStat(room.id));
     if (raidTargetSlot() === slot) out.push('nerve');
     return out;
   }
@@ -1466,7 +1463,10 @@
   // 들고 있는 사람의 '그 방에 유리한 숫자'(갈 곳 목록에 붙인다)
   function destStat(slot) {
     const p = carry && (ark.residents_list || []).find(r => r.id === carry.id);
-    if (!p || !p.stats) return '';
+    if (!p) return '';
+    const pv = movePreview(p.id, slot), t = pv && pctKo(pv.room_delta_pct);
+    if (t) return '<span class="bstat' + (pv.room_delta_pct < 0 ? ' neg' : '') + '">' + esc(t) + '</span>';
+    if (!p.stats) return '';
     const ko = (ark.stats_meta || {}).ko || STAT_KO_DEF;
     const ks = goodStats(slot);
     return ks.length ? '<span class="bstat">' + ks.map(k => esc(ko[k] || k) + ' ' + (p.stats[k] || 0)).join(' · ') + '</span>' : '';
@@ -2600,7 +2600,9 @@
             (prod && prod.label ? '<i class="rctag">' + esc(prod.label) + '</i>' : '') + '</h4>' +
             (crk ? '<p class="rcline">' + esc(K.ext.T ? K.ext.T('crack.still_cracked', { room: spec.name || room.id }, '') : '') + '</p>' : '') +
             (prod && prod.ko && !crk ? '<p class="rcline">' + esc(plain(prod.ko)) + '</p>' : '') +
+            contribLine(prod) +
             '<div class="rcmeta"><span>' + n + '/' + cap + '명</span>' +
+            (prod && typeof prod.mult === 'number' ? '<span class="rcmult' + (prod.mult < 1 ? ' neg' : (prod.mult > 1 ? ' pos' : '')) + '">생산 ×' + (Math.round(prod.mult * 100) / 100) + '</span>' : '') +
             st.map(k => '<span class="rcstat" title="이 방에 유리한 능력치">' + esc(ko[k] || k) + '</span>').join('') + '</div>' +
             (crk
               ? '<div class="rcbtns"><button data-c="repair" class="on">' + esc(K.ext.T ? K.ext.T('crack.label_repair', {}, '수리하기') : '수리하기') +
@@ -2621,6 +2623,17 @@
     placeCard();
   }
 
+  // S14: 누가 이 방 산출을 얼마나 올리고 내리는지(production[slot].per_person, 서버 계산). 셋까지만
+  function contribLine(prod) {
+    const pp = (prod && prod.per_person) || [];
+    if (!pp.length) return '';
+    const ko = (ark.stats_meta || {}).ko || STAT_KO_DEF;
+    return '<p class="rccontrib">' + pp.slice(0, 3).map(x => {
+      const pct = Math.round((x.v || 0) * 100);
+      return '<span class="' + (pct > 0 ? 'pos' : (pct < 0 ? 'neg' : '')) + '">' + esc(ko[x.stat] || x.stat) + ' ' + esc(x.value) + ' ' +
+        esc(x.name) + ' 님 ' + (pct > 0 ? '+' : (pct < 0 ? '−' : '±')) + Math.abs(pct) + '%</span>';
+    }).join('') + '</p>';
+  }
   // 금 간 방 수리(API_S13 §5). 봉합 패치가 있으면 그것을 먼저 쓴다
   async function repairRoom(sl) {
     const rp = ark.repair || {};
@@ -2632,29 +2645,48 @@
     } catch (e) { toast(e.message || '수리하지 못했습니다'); }
   }
   // ── 끄는 동안: 방마다 그 사람의 유리한 숫자 하나만(목록 UI 가 아니다) ──
+  // ±% 꼴(서버가 계산한 값만 보여 준다 — D2·PM 결정). null 이면 쌓이는 산출이 없는 방
+  const pctKo = (v) => (v == null ? null : (v > 0 ? '+' : (v < 0 ? '−' : '±')) + Math.abs(Math.round(v)) + '%');
+  function movePreview(id, slot) {
+    const mp = (ark.move_preview || {})[id] || {};
+    return mp[slot == null ? 'hall' : String(slot)] || null;
+  }
+  function pill(x, y, text, kind) {                    // kind: up | down | off | flat
+    ctx.font = 'bold 15px "Noto Sans KR",sans-serif';
+    const tw = Math.max(34, ctx.measureText(text).width + 16), h = 26;
+    const C = { up: ['rgba(20,34,18,0.94)', '#8fbf7a', '#c8f0b0'], down: ['rgba(60,24,18,0.94)', '#d08a72', '#ffd2c0'],
+                off: ['rgba(30,28,26,0.85)', '#4a4440', '#7a726c'], flat: ['rgba(20,17,12,0.92)', '#f0b055', '#f0b055'] }[kind];
+    ctx.fillStyle = C[0]; ctx.fillRect(x - tw / 2, y - h / 2, tw, h);
+    ctx.strokeStyle = C[1]; ctx.lineWidth = 1.5; ctx.strokeRect(x - tw / 2, y - h / 2, tw, h);
+    ctx.fillStyle = C[2]; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x, y + 1);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
   function drawCarryNumbers() {
     const who = dragging || (carry && (ark.residents_list || []).find(r => r.id === carry.id));
-    if (!who || !who.stats) return;
+    if (!who) return;
+    const here = cb.stations[who.id];
     (ark.rooms || []).forEach(room => {
-      if (room.flooded) return;
+      if (room.flooded || room.slot === here) return;
       const r = rectOf(room.slot); if (!r) return;
-      const ks = goodStats(room.slot); if (!ks.length) return;
-      const v = Math.max(...ks.map(k => who.stats[k] || 0));
-      const x = sx(r.x + r.w / 2), y = sy(r.y) + 6;
-      if (x < -40 || x > view.w + 40 || y < -40 || y > view.h + 40) return;
-      const full = (peopleBySlot()[room.slot] || []).length >= capOf(room.slot) && cb.stations[who.id] !== room.slot;
-      ctx.beginPath(); ctx.arc(x, y + 16, 17, 0, 6.2832);
-      ctx.fillStyle = full ? 'rgba(60,30,26,0.92)' : 'rgba(20,17,12,0.92)'; ctx.fill();
-      ctx.strokeStyle = full ? '#6b3b33' : '#f0b055'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = full ? '#9a7a72' : '#f0b055'; ctx.font = 'bold 17px "Noto Sans KR",sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(v), x, y + 17);
-      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      const x = sx(r.x + r.w / 2), y = sy(r.y) + 22;
+      if (x < -60 || x > view.w + 60 || y < -40 || y > view.h + 40) return;
+      const pv = movePreview(who.id, room.slot);
+      if (pv && pv.can === false) { pill(x, y, '꽉 참', 'off'); return; }
+      const t = pv && pctKo(pv.room_delta_pct);
+      if (t) { pill(x, y, t, pv.room_delta_pct > 0 ? 'up' : (pv.room_delta_pct < 0 ? 'down' : 'flat')); return; }
+      // 쌓이는 산출이 없는 방(공방·발전실·창고…): 그 방에 맞는 능력치 숫자 하나
+      const ks = goodStats(room.slot);
+      if (ks.length && who.stats) pill(x, y, ((ark.stats_meta || {}).ko || STAT_KO_DEF)[ks[0]] + ' ' + (who.stats[ks[0]] || 0), 'flat');
     });
-    // 지금 서 있는 방: 빠지면 일손이 줄어든다. 마지막 한 분이면 「일손 없음」
-    const from = cb.stations[who.id];
+    // 지금 서 있는 방: 빠지면 그 방 산출이 얼마나 주는지(손끝 아래 칸의 from_delta_pct, 없으면 홀로 갈 때 값)
+    const from = here;
     if (from !== undefined) {
       const r = rectOf(from), pr = (ark.production || {})[String(from)];
-      if (r && pr) {
+      const tgt = dragging ? slotAt(pointer.x, pointer.y) : null;
+      const pv = movePreview(who.id, tgt != null && tgt !== from ? tgt : null);
+      const fp = pv && pctKo(pv.from_delta_pct);
+      if (r && fp) { pill(sx(r.x + r.w / 2), sy(r.y + r.h) - 26, '▼ ' + fp, 'down'); }
+      else if (r && pr) {
         const left = Math.max(0, (pr.staff != null ? pr.staff : (peopleBySlot()[from] || []).length) - 1);
         const lbl = left === 0 ? (K.ext.T ? K.ext.T('staffing.label', {}, '일손 없음') : '일손 없음') : '일손 −1';
         const x = sx(r.x + r.w / 2), y = sy(r.y + r.h) - 26;
