@@ -1305,6 +1305,297 @@ def _post(key):
     print("POST", key, "→", os.path.join(RAW, f"{key}_hero.png"), flush=True)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  S11-C — 수묵 수채 그림책 판 (같은 구도, 다른 화풍). python tools/blender_maps.py ink m5
+#   종이 바탕 + 먹선 + 연한 회색 담채 + 단색 군청 번짐(해초·덩굴·유리) + 금색은 등불에만.
+#   깊이는 검정이 아니라 '먹물 담채가 짙어지는 것'으로. 생물은 먹 얼룩 실루엣.
+# ══════════════════════════════════════════════════════════════════════════════
+def _ink(key):
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFilter
+
+    S = SCENES[key]()
+    CX, CZ = S["cx"], S["cz"]
+    W, H = W2 // 2, H2 // 2
+    ppm = PPM / 2
+    rnd = np.random.default_rng(5)
+
+    def P(x, z):
+        return (W / 2 + (x - CX) * ppm, H / 2 - (z - CZ) * ppm)
+
+    PAPER = np.array([239, 230, 210], np.float32) / 255
+    INK = np.array([52, 42, 34], np.float32) / 255          # 세피아 먹
+    BLUE = np.array([38, 64, 178], np.float32) / 255        # 군청 하나
+    GOLD = np.array([214, 158, 52], np.float32) / 255       # 금색 — 등불에만
+    WASH = np.array([96, 112, 128], np.float32) / 255       # 물: 푸른 회색 담채
+    DEEP = np.array([30, 36, 52], np.float32) / 255         # 해구: 먹물 담채(검정 아님)
+
+    def noise(scale, seed, octaves=3):
+        g = np.random.default_rng(seed); out = np.zeros((H, W), np.float32); amp = 1.0; tot = 0
+        for o in range(octaves):
+            s = max(2, int(scale / (2 ** o)))
+            small = g.random((H // s + 2, W // s + 2)).astype(np.float32)
+            out += amp * np.asarray(Image.fromarray((small * 255).astype("uint8")).resize((W + 2 * s, H + 2 * s), Image.BICUBIC),
+                                    np.float32)[s:s + H, s:s + W] / 255
+            tot += amp; amp *= 0.5
+        return out / tot
+
+    def blur(a, r):
+        return np.asarray(Image.fromarray(np.clip(a * 255, 0, 255).astype("uint8")).filter(ImageFilter.GaussianBlur(r)), np.float32) / 255
+
+    def lay(img, a, col):
+        """수채 곱하기: 종이 위에 색을 a 만큼 올린다(색이 겹칠수록 짙어진다)"""
+        a = np.clip(a, 0, 1)[..., None]
+        return img * (1 - a * (1 - col))
+
+    def watercolor(mask, strength, col, seed, edge=0.55, gran=0.35, bleed=3):
+        """번짐 + 가장자리 고임(마른 테) + 입자(그래뉼레이션)"""
+        m = blur(mask, bleed)
+        rim = np.clip(m - blur(m, 6), 0, 1) * 4.0
+        g = noise(6, seed, 2)[:m.shape[0], :m.shape[1]]
+        a = m * strength * (1 - gran + gran * 2 * g) + rim * edge
+        return a, col
+
+    img = np.ones((H, W, 3), np.float32) * PAPER
+
+    # ── 물: 깊이에 따라 짙어지는 푸른 회색 담채, 해구 쪽은 먹물 담채 ──
+    yy = np.linspace(0, 1, H)[:, None] * np.ones((1, W), np.float32)
+    xx = np.ones((H, 1), np.float32) * np.linspace(0, 1, W)[None, :]
+    n1 = noise(160, 1); n2 = noise(40, 2)
+    depth = np.clip(yy ** 1.15, 0, 1)
+    a_water = 0.05 + 0.92 * depth ** 1.3 + (n1 - 0.5) * 0.2 + (n2 - 0.5) * 0.07
+    # 빛기둥: 위에서 비스듬히 종이가 비치는 띠
+    for x0, w0, dx in ((0.62, 0.035, -0.06), (0.78, 0.05, -0.04), (0.92, 0.03, -0.08), (0.30, 0.04, -0.05)):
+        band = np.exp(-(((xx - (x0 + dx * yy)) / (w0 * (1 + yy))) ** 2)) * (1 - yy) ** 1.5
+        a_water -= band * 0.22
+    img = lay(img, a_water, WASH)
+    trench = np.clip((xx - 0.45) * 2.0, 0, 1) * np.clip((yy - 0.30) * 1.7, 0, 1)
+    trench = trench * (0.75 + 0.5 * (noise(90, 3) - 0.5))
+    img = lay(img, trench * 1.15, DEEP)
+    # 젖은 종이 위 물 자국(띠 모양 얼룩)
+    for i in range(7):
+        m = np.zeros((H, W), np.float32)
+        cx_, cy_ = rnd.uniform(0.55, 1.0) * W, rnd.uniform(0.15, 0.95) * H
+        rr = rnd.uniform(60, 160)
+        m[(np.arange(H)[:, None] - cy_) ** 2 / (rr * 0.6) ** 2 + (np.arange(W)[None, :] - cx_) ** 2 / rr ** 2 < 1] = 1
+        a, c = watercolor(m, 0.05, WASH, 30 + i, edge=0.18, bleed=10)
+        img = lay(img, a, c)
+
+    # ── 먼 실루엣: 종이 쪽으로 사라지는 가는 선 몇 줄 ──
+    far = Image.new("L", (W, H), 0); d = ImageDraw.Draw(far)
+    for pts in ([(22, -30), (24.6, -30), (24.6, 3.0), (23.6, 4.2), (22, 2.6)], [(27.0, -30), (29.5, -30), (29.5, -2.0), (27.0, -1.0)]):
+        d.line([P(*p) for p in pts], fill=110, width=1)
+    img = lay(img, np.asarray(far, np.float32) / 255, INK)
+
+    # ── 구조물: Blender 렌더(알파·밝기) → 연한 담채 + 먹선 ──
+    mid = Image.open(os.path.join(RAW, f"_{key}_mid.png")).convert("RGBA").reduce(2)
+    M = np.asarray(mid, np.float32) / 255
+    alpha = M[..., 3]
+    r_, g_, b_ = M[..., 0], M[..., 1], M[..., 2]
+    lum = 0.3 * r_ + 0.59 * g_ + 0.11 * b_
+    kelpm = (alpha > 0.5) & ((g_ - r_) > 0.03) & (g_ > b_ + 0.01)      # 해초(초록)
+    glassm = (alpha > 0.5) & ((b_ - r_) > 0.12) & (lum > 0.2)          # 돔 유리(청록) — 옛 창(어두운 청록)은 제외
+    blueish = kelpm | glassm                                            # → 군청 번짐
+    warm = (alpha > 0.5) & (r_ > 0.55) & (g_ > 0.4)              # 유인 등불·통로 등 → 금색
+    dark = ((alpha > 0.5) & (lum < 0.095)).astype("uint8") * 255
+    opened = Image.fromarray(dark).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))
+    line = (dark > 0) & (np.asarray(opened) == 0)                 # 가는 것만 = Freestyle 먹선(두꺼운 어두운 면은 담채로)
+    # 담채: 어두운 면일수록 짙게, 바위는 따뜻한 회갈색
+    wash_a = np.where(alpha > 0.5, 0.10 + (0.30 - lum) * 1.1, 0)
+    wash_a = np.clip(wash_a, 0.08, 0.5) * (0.8 + 0.4 * noise(8, 7, 2))
+    rocky = (alpha > 0.5) & (r_ > b_ + 0.015) & ~warm
+    img = lay(img, wash_a * ~blueish * ~rocky, np.array([120, 118, 112], np.float32) / 255)
+    img = lay(img, np.clip(wash_a * 1.7, 0, 0.75) * rocky * (0.75 + 0.5 * noise(12, 71, 2)), np.array([128, 104, 80], np.float32) / 255)
+    # 외곽선: 알파 경계 + 렌더 먹선. 손으로 그은 듯 약간 흔들고 굵기를 섞는다
+    edge = np.asarray(Image.fromarray((alpha * 255).astype("uint8")).filter(ImageFilter.FIND_EDGES), np.float32) / 255
+    ink_a = np.clip(edge * 1.4 + line * 0.85, 0, 1) * (0.65 + 0.45 * noise(5, 9, 2))
+    img = lay(img, ink_a, INK)
+    # 군청 번짐 + 흘러내리는 물감
+    a, c = watercolor(blueish.astype(np.float32), 0.62, BLUE, 11, edge=0.5, bleed=2)
+    img = lay(img, a, c)
+    drips = Image.new("L", (W, H), 0); dd = ImageDraw.Draw(drips)
+    ys, xs = np.nonzero(blueish[:-6] & ~blueish[6:])               # 번짐의 아래 가장자리에서
+    if len(xs):
+        for i in rnd.choice(len(xs), size=min(90, len(xs)), replace=False):
+            x, y = int(xs[i]), int(ys[i]); ln = int(rnd.uniform(14, 70)); w = int(rnd.uniform(1, 3))
+            dd.line([(x, y), (x + rnd.uniform(-1, 1), y + ln)], fill=150, width=w)
+            dd.ellipse([x - w - 1, y + ln - 1, x + w + 1, y + ln + w + 2], fill=170)
+    img = lay(img, np.asarray(drips.filter(ImageFilter.GaussianBlur(0.8)), np.float32) / 255 * 0.8, BLUE)
+    img = lay(img, blur(warm.astype(np.float32), 2) * 0.9, GOLD)
+
+    # ── 방: 플레이트를 종이·먹·금으로 다시 칠한다(어두운 상자가 아니라 삽화 속 단면 칸) ──
+    def plate_ink(kind, state):
+        sfx = "lit" if state in ("lit", "pump") else "dark"
+        im = Image.open(os.path.join(ART, "plates", f"room_plate_{kind}_{sfx}.png")).convert("RGB").crop(PLATE_CROP)
+        w = round(im.width * ppm / PLATE_PPM); h = round(im.height * ppm / PLATE_PPM)
+        im = im.resize((w, h), Image.LANCZOS)
+        A = np.asarray(im, np.float32) / 255
+        L_ = 0.3 * A[..., 0] + 0.59 * A[..., 1] + 0.11 * A[..., 2]
+        if sfx == "dark":
+            L_ = np.clip(L_ * 2.2, 0, 1)
+        out = np.ones_like(A) * PAPER
+        out = lay(out, np.clip(0.75 - L_, 0, 1) * 0.85, np.array([110, 100, 90], np.float32) / 255)   # 명암 → 먹 담채
+        e = np.asarray(im.convert("L").filter(ImageFilter.FIND_EDGES), np.float32) / 255
+        out = lay(out, np.clip(e * 2.2, 0, 1) * 0.8, INK)
+        sat = A.max(-1) - A.min(-1)
+        if state == "lit" or state == "pump":
+            # 등불 쪽(위 가운데)만 금색 담채, 원래 물건의 따뜻한 색은 아주 옅게
+            hh, ww = L_.shape
+            gy, gx = np.mgrid[0:hh, 0:ww].astype(np.float32)
+            glow = np.exp(-(((gx - ww / 2) / (ww * 0.42)) ** 2 + ((gy - hh * 0.25) / (hh * 0.7)) ** 2))
+            out = lay(out, glow * 0.62, GOLD)
+            out = lay(out, np.clip(sat - 0.25, 0, 1) * 0.35, np.array([196, 120, 70], np.float32) / 255)
+        if state in ("flood", "pump"):
+            hh = out.shape[0]; top = int(hh * (0.36 if state == "flood" else 0.70))
+            m = np.zeros(out.shape[:2], np.float32); m[top:, 3:-3] = 1
+            a, c = watercolor(m, 0.55, BLUE, 40, edge=0.6, bleed=1)
+            out = lay(out, a, c)
+        # 방 테두리: 두 번 그은 먹선
+        o = Image.fromarray((np.clip(out, 0, 1) * 255).astype("uint8")); dd = ImageDraw.Draw(o)
+        dd.rectangle([0, 0, o.width - 1, o.height - 1], outline=(52, 42, 34), width=2)
+        dd.line([(1, 2), (o.width - 3, 1)], fill=(52, 42, 34), width=1)
+        return o
+
+    canvas = Image.fromarray((np.clip(img, 0, 1) * 255).astype("uint8"))
+    dc = ImageDraw.Draw(canvas)
+    rooms = S["rooms"]
+    for x, zf, k, s in rooms:
+        l, b, r2, t = slot_rect(x, zf)
+        (pl, pt), (pr, pb) = P(l, t), P(r2, b)
+        if s == "plan":
+            for (ax, ay), (bx, by) in (((pl, pt), (pr, pt)), ((pr, pt), (pr, pb)), ((pr, pb), (pl, pb)), ((pl, pb), (pl, pt))):
+                ln = math.hypot(bx - ax, by - ay); n = int(ln / 14)
+                for j in range(n):
+                    t0, t1 = j / n, (j + 0.55) / n
+                    dc.line([(ax + (bx - ax) * t0, ay + (by - ay) * t0), (ax + (bx - ax) * t1, ay + (by - ay) * t1)],
+                            fill=(52, 42, 34), width=1)
+            cxp, cyp = (pl + pr) / 2, (pt + pb) / 2
+            dc.line([(cxp - 9, cyp), (cxp + 9, cyp)], fill=(52, 42, 34), width=2)
+            dc.line([(cxp, cyp - 9), (cxp, cyp + 9)], fill=(52, 42, 34), width=2)
+            continue
+        canvas.paste(plate_ink(k, s), (int(round(pl)), int(round(pt))))
+
+    # ── 아래로 갈수록 먹물 담채가 거점까지 삼킨다(검정이 아니라 짙은 담채) ──
+    A = np.asarray(canvas, np.float32) / 255
+    zs = CZ + (H / 2 - np.arange(H)) / ppm
+    fz = np.clip((-5.0 - zs) / 11.0, 0, 1)[:, None] * np.ones((1, W), np.float32)
+    A = lay(A, fz * 0.8 * (0.85 + 0.3 * noise(70, 61)), DEEP)
+    canvas = Image.fromarray((np.clip(A, 0, 1) * 255).astype("uint8"))
+
+    # ── 생물: 먹 얼룩(튀긴 가장자리) ──
+    def blot(mask_img, seed):
+        m = np.asarray(mask_img, np.float32) / 255
+        nn = noise(4, seed, 2)
+        mm = blur(m, 2.5)
+        solid = (mm + (nn - 0.5) * 0.35) > 0.45
+        sp = Image.new("L", (W, H), 0); ds = ImageDraw.Draw(sp)
+        ys, xs = np.nonzero(np.asarray(mask_img.filter(ImageFilter.FIND_EDGES)) > 0)
+        g = np.random.default_rng(seed)
+        if len(xs):
+            for i in g.choice(len(xs), size=min(160, len(xs)), replace=False):
+                ang = g.uniform(0, 6.28); dist = g.uniform(3, 22); rr = g.uniform(0.6, 2.6)
+                x, y = xs[i] + math.cos(ang) * dist, ys[i] + math.sin(ang) * dist
+                ds.ellipse([x - rr, y - rr, x + rr, y + rr], fill=255)
+        return np.clip(solid.astype(np.float32) + np.asarray(sp, np.float32) / 255, 0, 1)
+
+    lev = Image.new("L", (W, H), 0); dl = ImageDraw.Draw(lev)
+    cx_, cy_, ln_, f_ = 1390, 655, 520, -1
+    top, bot = [], []
+    for i in range(41):
+        t = i / 40
+        x = cx_ + f_ * (t - 0.5) * ln_
+        th = math.sin(math.pi * min(1, t * 1.15) ** 0.8) * ln_ * 0.075 * (1 - 0.6 * t)
+        yc = cy_ + math.sin(t * 3.0) * ln_ * 0.02
+        top.append((x, yc - th)); bot.append((x, yc + th * 0.85))
+    dl.polygon(top + bot[::-1], fill=255)
+    tx = cx_ - f_ * 0.5 * ln_; tyc = cy_ + math.sin(3.0) * ln_ * 0.02
+    dl.polygon([(tx + f_ * ln_ * 0.04, tyc), (tx - f_ * ln_ * 0.09, tyc - ln_ * 0.09), (tx - f_ * ln_ * 0.05, tyc),
+                (tx - f_ * ln_ * 0.09, tyc + ln_ * 0.07)], fill=255)
+    fx_ = cx_ + f_ * ln_ * 0.12
+    dl.polygon([(fx_, cy_ + ln_ * 0.03), (fx_ - f_ * ln_ * 0.14, cy_ + ln_ * 0.13), (fx_ - f_ * ln_ * 0.04, cy_ + ln_ * 0.04)], fill=255)
+    lng = Image.open(os.path.join(ART, "threats", "threat_longneck_near.png")).convert("RGBA")
+    bb = lng.getchannel("A").point(lambda v: 255 if v > 18 else 0).getbbox(); lng = lng.crop(bb)
+    lw = 340; lng = lng.resize((lw, int(lng.height * lw / lng.width)), Image.LANCZOS)
+    lev.paste(255, (1480 - lw // 2, 840 - lng.height // 2), lng.getchannel("A").point(lambda v: 255 if v > 60 else 0))
+    A = np.asarray(canvas, np.float32) / 255
+    A = lay(A, blot(lev, 21) * 0.93, np.array([16, 14, 14], np.float32) / 255)
+    canvas = Image.fromarray((np.clip(A, 0, 1) * 255).astype("uint8"))
+    d = ImageDraw.Draw(canvas)
+    for x, y in ((1200, 640), (1214, 644)):      # 해구 속 눈: 종이색 두 점
+        d.ellipse([x - 3, y - 3, x + 3, y + 3], fill=(239, 230, 210))
+
+    # ── 물고기(먹 붓질 한 획씩) · 해파리(군청 담채 + 먹선) · 유인 등불 금빛 ──
+    g = np.random.default_rng(3)
+    def stroke_fish(cx0, cy0, cx1, cy1, n, spread, size, col):
+        for _ in range(n):
+            t = g.random(); x = cx0 + (cx1 - cx0) * t + g.normal(0, spread); y = cy0 + (cy1 - cy0) * t + g.normal(0, spread * 0.45)
+            s_ = size * g.uniform(0.7, 1.2)
+            d.ellipse([x - s_, y - s_ * 0.36, x + s_, y + s_ * 0.36], fill=col)
+            d.polygon([(x - s_, y), (x - s_ * 1.6, y - s_ * 0.45), (x - s_ * 1.6, y + s_ * 0.45)], fill=col)
+    stroke_fish(1120, 140, 1600, 110, 70, 45, 6, (60, 52, 46))
+    stroke_fish(1130, 560, 1300, 540, 26, 26, 5, (40, 34, 30))
+    stroke_fish(1200, 300, 1520, 280, 22, 20, 4, (38, 64, 178))
+    J = Image.new("L", (W, H), 0); dj = ImageDraw.Draw(J)
+    for x, y, r in ((1225, 520, 14), (1470, 420, 10), (1545, 520, 8), (1140, 400, 11), (1125, 760, 7)):
+        dj.pieslice([x - r, y - r, x + r, y + r], 180, 360, fill=255)
+        for k in range(4):
+            tx_ = x - r * 0.6 + k * r * 0.4
+            dj.line([(tx_, y), (tx_ + math.sin(k) * 3, y + r * 1.3), (tx_ - 2, y + r * 2.3)], fill=200, width=1)
+    A = np.asarray(canvas, np.float32) / 255
+    a, c = watercolor(np.asarray(J, np.float32) / 255, 0.7, BLUE, 51, edge=0.6, bleed=1)
+    A = lay(A, a, c)
+    lx, ly = P(20.4, -1.0)
+    gy, gx = np.mgrid[0:H, 0:W].astype(np.float32)
+    A = lay(A, np.exp(-(((gx - lx) ** 2 + (gy - ly) ** 2) / (2 * 26 ** 2))) * 0.55, GOLD)
+    # 낡은 종이: 결 + 가장자리 바램
+    grain = noise(3, 77, 2)
+    A *= (0.965 + 0.06 * grain)[..., None]
+    v = np.clip(np.minimum.reduce([xx, 1 - xx, yy * 1.78, (1 - yy) * 1.78]) * 18, 0, 1)
+    edge_n = noise(30, 78, 2)
+    A = lay(A, (1 - v) * (0.25 + 0.2 * edge_n), np.array([160, 130, 90], np.float32) / 255)
+    canvas = Image.fromarray((np.clip(A, 0, 1) * 255).astype("uint8"))
+
+    # ── 사람: P2 도트 ×1, 팔레트를 먹·군청·따뜻한 살색으로 ──
+    rows = {"idle": 0, "walk": 1, "work": 2, "sit": 3, "carry": 4}
+
+    def remap(cell):
+        a = np.asarray(cell, np.float32)
+        rgb = a[..., :3] / 255; al = a[..., 3]
+        L_ = 0.3 * rgb[..., 0] + 0.59 * rgb[..., 1] + 0.11 * rgb[..., 2]
+        skin = (rgb[..., 0] > rgb[..., 1] + 0.06) & (rgb[..., 1] > rgb[..., 2] + 0.04) & (L_ > 0.45)
+        out = np.empty_like(rgb)
+        dark = L_ < 0.22
+        ramp_t = np.clip((L_ - 0.22) / 0.6, 0, 1)[..., None]
+        cloth = BLUE * (1 - ramp_t) + PAPER * ramp_t                    # 옷 = 군청 ~ 종이
+        out[:] = cloth
+        out[dark] = INK
+        out[skin] = np.array([232, 190, 150], np.float32) / 255
+        return Image.fromarray(np.dstack([np.clip(out * 255, 0, 255), al]).astype("uint8"), "RGBA")
+
+    sheets = {}
+    for ri, lst in S["people"].items():
+        x, zf, k, s = rooms[ri]
+        for j, (role, off, pose) in enumerate(lst):
+            if role not in sheets:
+                sheets[role] = Image.open(os.path.join(ART, "chars", "front", "p2", "src", f"{role}.png")).convert("RGBA")
+            fr = (ri + j) % 2
+            cell = remap(sheets[role].crop((fr * 64, rows[pose] * 64, fr * 64 + 64, rows[pose] * 64 + 64)))
+            px, py = P(x + off, zf)
+            canvas.paste(cell, (int(round(px - 32)), int(round(py - 60))), cell)
+    out = os.path.join(RAW, f"{key}_ink_hero.png")
+    canvas.save(out)
+    # 방 하나 2배 확대(최근접) — 도트와 화풍의 충돌을 판정하기 위한 컷
+    x, zf, k, s = rooms[S.get("ink_zoom", 4)]
+    l, b, r2, t = slot_rect(x, zf)
+    (pl, pt), (pr, pb) = P(l - 0.6, t + 0.8), P(r2 + 0.6, b - 0.4)
+    z = canvas.crop((int(pl), int(pt), int(pr), int(pb)))
+    z.resize((z.width * 2, z.height * 2), Image.NEAREST).save(os.path.join(RAW, f"{key}_ink_room2x.png"))
+    os.makedirs(DST, exist_ok=True)
+    canvas.save(os.path.join(DST, f"{key}_ink_hero.jpg"), quality=90, optimize=True)
+    Image.open(os.path.join(RAW, f"{key}_ink_room2x.png")).save(os.path.join(DST, f"{key}_ink_room2x.jpg"), quality=92)
+    print("INK", out, flush=True)
+
+
 def _serve():
     import shutil
     os.makedirs(DST, exist_ok=True)
@@ -1338,6 +1629,8 @@ if __name__ == "__main__":
         cmd = sys.argv[1] if len(sys.argv) > 1 else "post"
         if cmd == "serve":
             _serve()
+        elif cmd == "ink":
+            _ink(sys.argv[2] if len(sys.argv) > 2 else "m5")
         else:
             arg = sys.argv[2] if len(sys.argv) > 2 else "all"
             for k in (list(SCENES) if arg == "all" else [arg]):

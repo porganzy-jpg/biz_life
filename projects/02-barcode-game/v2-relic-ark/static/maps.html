@@ -25,6 +25,7 @@
   figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
   figure img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #000; cursor: zoom-in; }
   body.phone figure img { aspect-ratio: 844 / 390; }
+  body.phone figure[data-fixed] img { aspect-ratio: 16 / 9; }
   figcaption { padding: 12px 14px 14px; }
   .tag { display: inline-block; font-size: 12px; color: var(--bg); background: var(--warm); border-radius: 4px;
          padding: 1px 7px; margin-right: 8px; font-weight: 700; }
@@ -57,6 +58,12 @@
       <figcaption><span class="tag">M5</span><span class="tag" style="background:#2e7e90;color:#e8dcbf">M2+M4 혼합</span><span class="name">절벽 끝에 기댄 가라앉은 탑</span>
         <div class="ref">Dome Keeper + Fallout Shelter (M2 절벽 · M4 탑)</div>
         <div class="line">절벽 끝 홈에 기대 선 수몰 탑. 꼭대기 아트리움이 돔, 층을 따라 해구 위 어둠으로 내려간다. 바위를 판 굴 방이 탑과 이어지고, 오른쪽 심연에 유인 등불을 건다 — 위협은 그쪽에서만 온다.</div></figcaption>
+    </figure>
+    <figure data-k="m5_ink" data-fixed="1">
+      <img src="art/maps/m5_ink_hero.jpg" alt="M5 수묵 수채 샘플 — 같은 구도를 종이 바탕, 먹선, 군청 번짐, 금색 등불로 다시 칠한 판">
+      <figcaption><span class="tag">M5</span><span class="tag" style="background:#2640b2;color:#efe6d2">수묵 수채 샘플</span><span class="name">M5 · 수묵 수채 샘플</span>
+        <div class="ref">사용자 레퍼런스(종이·먹선·단색 군청 번짐·금색 포인트) 화풍 시험</div>
+        <div class="line">같은 M5 구도를 종이·먹·군청 하나·금색(등불에만)으로. 깊이는 검정이 아니라 짙어지는 먹물 담채, 생물은 먹 얼룩. 도트 주민 판정용 <a href="art/maps/m5_ink_room2x.jpg" style="color:#f4ae43">방 하나 2배 확대</a>.</div></figcaption>
     </figure>
     <figure data-k="m1">
       <img src="art/maps/m1_hero.jpg" alt="M1 가라앉은 배 속의 집 — 해저 비탈에 기운 화물선의 단면, 선미 쪽 칸은 불이 켜지고 뱃머리 쪽 칸은 물에 잠겨 있다">
@@ -94,7 +101,7 @@
   function setView(v) {
     view = v;
     document.body.classList.toggle('phone', v === 'phone');
-    grid.querySelectorAll('figure').forEach(f => {
+    grid.querySelectorAll('figure:not([data-fixed])').forEach(f => {
       f.querySelector('img').src = `art/maps/${f.dataset.k}_${v}.jpg`;
     });
     document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
@@ -105,9 +112,11 @@
     document.querySelectorAll('[data-cols]').forEach(x => x.setAttribute('aria-pressed', x === b));
   }));
   grid.addEventListener('click', e => {
+    if (e.target.closest('a')) return;
     const img = e.target.closest('img'); if (!img) return;
     const k = img.closest('figure').dataset.k;
-    big.querySelector('img').src = view === 'phone' ? `art/maps/${k}_phone2x.jpg` : `art/maps/${k}_hero.jpg`;
+    const fixed = img.closest('figure').dataset.fixed;
+    big.querySelector('img').src = (view === 'phone' && !fixed) ? `art/maps/${k}_phone2x.jpg` : `art/maps/${k}_hero.jpg`;
     big.querySelector('img').alt = img.alt;
     big.showModal();
   });
