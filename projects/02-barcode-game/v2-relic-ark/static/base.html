@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>잔해 방주 — 거점 단면</title>
+<meta name="screen-orientation" content="landscape">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/static/base.css">
 </head>
@@ -105,8 +106,18 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- 폰 세로: 가로로 돌려 달라는 부드러운 안내(S12-B). 닫으면 세로로도 쓸 수 있다 -->
+  <div class="rotate" id="rotate" hidden>
+    <div class="rotate-in">
+      <div class="phone-ico" aria-hidden="true"></div>
+      <p>폰을 <b>가로로</b> 돌리면 돔과 바깥 심연이 한 화면에 들어온다.</p>
+      <button id="rotateOk">세로로 계속</button>
+    </div>
+  </div>
 </div>
 <script src="/static/movement.js"></script>
+<script src="/static/m5map.js"></script>
 <script src="/static/base.js"></script>
 </body>
 </html>

@@ -14,27 +14,31 @@
 (() => {
   'use strict';
 
-  // ── 세계 좌표(px). 1층 = 방 2칸 + 가운데 척추 ──────────────────
-  const ROOM_W = 208, ROOM_H = 112, SPINE_W = 70, FLOOR_GAP = 18;
-  const FLOOR_PITCH = ROOM_H + FLOOR_GAP;          // 층 간격
+  // ── 세계 좌표(px) — S12-B: M5 「절벽 끝에 기댄 가라앉은 탑」. 칸·승강로·홀은 m5map.js(맵 어댑터)가 준다 ──
+  // 세계 1 m = 82.5 px(플레이트·도트 ×3 과 같은 자). 칸 = 플레이트 outer_rect 564×317 을 1:1.
   const DEPTH_PER_FLOOR = 60;                      // m. server.py 의 같은 상수와 맞춘다
-  const PAD = 8;                                   // 방 둘레 어두운 여백(= 물)
+  const PAD = 0;                                   // 칸 = 플레이트 바깥 테두리(벽까지). 여백은 탑 골조가 그린다
   let DOME_FLOOR = 1;                              // 깊이 0 m 의 층(= 시작 방 slot 2 의 층). 서버가 내려준다
+  const MAP = () => window.ArkMap.get();
 
   // 깊이 구역: 화면 위는 갈 수 없는 광층, 아래는 해구 (REF_CROSS_SECTION §3)
-  const M2PX = FLOOR_PITCH / DEPTH_PER_FLOOR;      // 깊이 1 m = 화면 몇 px. 서버 좌표(m) → 세계(px)
-  // 경계는 미터로 정하고 px 로 옮긴다 — server.py DEPTH_ZONES 와 같은 값이어야 한다(0 / 180 / 210 m).
+  // 경계는 **미터로** 정하고 맵의 깊이 자(depthY: 0 m = 1층 윗변, 60 m = 한 층)로 옮긴다 —
+  // server.py DEPTH_ZONES 와 같은 값이어야 한다(0 / 180 / 210 m).
   // 해구 문턱 180 m = threats.json 등급 4 의 깊이. 두 곳이 달랐던 것을 S10-C 에서 180 으로 통일.
-  const ZONES = [
-    { y0: -1600,        y1: -100 * M2PX, ko: '광층',    note: '갈 수 없다' },
-    { y0: -100 * M2PX,  y1: -45 * M2PX,  ko: '박광층',  note: '실루엣의 층' },
-    { y0: -45 * M2PX,   y1: 180 * M2PX,  ko: '무광층',  note: '돔이 사는 층' },
-    { y0: 180 * M2PX,   y1: 210 * M2PX,  ko: '해구 문턱', note: '여기부터 값이 달라진다' },
-    { y0: 210 * M2PX,   y1: 1600,        ko: '해구',    note: '가장 오래된 성문' },
+  // M5 에서 180 m 선은 탑 4번째 층(storey 3) 윗변 = layout.json depth.trench_y(2295)와 같다(S12-B 에서 대조).
+  const TRENCH_M = 180, TRENCH_DEEP_M = 210;
+  const ZONE_M = [
+    { m0: -1e4, m1: -100, ko: '광층',    note: '갈 수 없다' },
+    { m0: -100, m1: -45,  ko: '박광층',  note: '실루엣의 층' },
+    { m0: -45,  m1: TRENCH_M, ko: '무광층',  note: '돔이 사는 층' },
+    { m0: TRENCH_M, m1: TRENCH_DEEP_M, ko: '해구 문턱', note: '여기부터 값이 달라진다' },
+    { m0: TRENCH_DEEP_M, m1: 1e4, ko: '해구',    note: '가장 오래된 성문' },
   ];
-  // 물색: 위(광층)에서 아래(해구)로. 청록~남색~검정만 쓴다(FLAT_FOLK §5 — 물만 차갑다)
-  const WATER = [[-1600, '#1e737c'], [-500, '#14545e'], [-217, '#0d3b45'], [-97, '#0a2a33'],
-                 [130, '#07202a'], [325, '#04141c'], [455, '#020a10'], [1600, '#01060a']];
+  const zoneY = (m) => MAP().depthY(Math.max(-400, Math.min(400, m)));
+  const ZONES_OF = () => ZONE_M.map(z => ({ y0: z.m0 < -1e3 ? -1e5 : zoneY(z.m0), y1: z.m1 > 1e3 ? 1e5 : zoneY(z.m1), ko: z.ko, note: z.note }));
+  // 물색: 위(광층)에서 아래(해구)로. 청록~남색~검정만 쓴다(FLAT_FOLK §5 — 물만 차갑다). 단위는 깊이 m
+  const WATER_M = [[-200, '#1e737c'], [-130, '#14545e'], [-60, '#0d3b45'], [-20, '#0a2a33'],
+                   [40, '#07202a'], [120, '#04141c'], [200, '#020a10'], [300, '#01060a']];
 
   // 방 색: 전부 따뜻한 쪽, 명도는 물보다 항상 높게 (DECISIONS 2026-09-23 D1 수정)
   const ROOM_COLOR = {
@@ -124,7 +128,7 @@
     b:  { path: (r) => '/static/art/chars/front/b/' + r + '.png', cell: 256, baseline: 240, cols: 5, idle: 0, frames: 5, ppm: 110, pixel: false },
     a:  { path: (r) => '/static/art/chars/front/a/' + r + '.png', cell: 256, baseline: 240, cols: 5, idle: 0, frames: 5, ppm: 110, pixel: false },
   };
-  const TARGET_PPM = 37.4;        // 화면에서 1 m = 몇 px (cam.z = 1 기준). 옛 규약과 같은 크기
+  const TARGET_PPM = 82.5;        // 세계 1 m = 82.5 px (cam.z = 1 이면 도트 ×3 — 플레이트와 같은 자, S12-B)
 
   const sprites = {};
   function sprite(role) {
@@ -169,55 +173,55 @@
   const TINT_LIT = '#fae6c8';      // 흰색과 등불(#f0b055)을 7:3
   const TINT_DARK = '#8fa3ad';     // 불 꺼진 방 — 물빛이 남는다
 
-  // ── 칸 기하 ───────────────────────────────────────────────
-  const floorOf = (slot) => Math.floor(slot / floorSlots);
-  const sideOf = (slot) => slot % floorSlots;                       // 0 왼쪽, 1 오른쪽
+  // ── 칸 기하 (S12-B: 서버 slot → M5 칸은 m5map.js 의 대응표 하나) ─────────────
+  const floorOf = (slot) => Math.floor(slot / floorSlots);          // 서버 층(깊이 계산의 정본)
+  const storeyOf = (slot) => floorOf(slot) - DOME_FLOOR;            // 맵 층(storey 0 = 깊이 0 m)
+  function cellOf(slot) { return window.ArkMap.slotCell(slot, floorSlots, DOME_FLOOR); }
+  // rectOf 는 예전 이름 그대로 — 칸의 세계 사각형. 서버 칸이 맵에 없으면(돔 상부 slot 0·1) null
   function rectOf(slot) {
-    const f = floorOf(slot), side = sideOf(slot);
-    const x = side === 0 ? -(SPINE_W / 2 + ROOM_W) : (SPINE_W / 2);
-    // 세계의 y=0 은 **돔이 앉은 층**이다. 그 위(slot 0·1)는 돔 상부, 아래로 갈수록 깊다
-    return { x, y: (f - DOME_FLOOR) * FLOOR_PITCH, w: ROOM_W, h: ROOM_H, floor: f, side };
+    const c = cellOf(slot);
+    if (!c) return null;
+    return { x: c.x, y: c.y, w: c.w, h: c.h, floor: floorOf(slot), storey: c.storey, col: c.col,
+             floorY: c.floor_y, stand: c.stand_x || [c.x + 84, c.x + c.w - 84], cell: c };
   }
   const floorCount = () => Math.max(1, Math.ceil(slots / floorSlots));
-  function worldBounds() {
-    const b = (floorCount() - DOME_FLOOR) * FLOOR_PITCH;
-    return { x0: -(SPINE_W / 2 + ROOM_W) - 30, x1: (SPINE_W / 2 + ROOM_W) + 30,
-             y0: -DOME_FLOOR * FLOOR_PITCH - 120, y1: b + 40 };
-  }
-  // 홀 = 돔 상부의 공용 공간. 배치되지 않은 사람이 여기 모인다
+  function worldBounds() { return MAP().world; }
+  // 홀 = 돔 안의 공용 공간. 배치되지 않은 사람이 여기 모인다
   function hallRect() {
-    const l = rectOf(0), r = rectOf(1);
-    return { x: l.x, y: l.y - 86, w: (r.x + r.w) - l.x, h: 76 };
+    const d = MAP().dome;
+    const w = Math.min(d.w, 1240), x = d.x + (d.w - w) / 2;          // 돔 유리 아래 가운데. 바닥 = dome.floor_y
+    return { x, y: d.floor_y - 230, w, h: 230 };
   }
-  // 에어락 바깥. 밖에 나가 있는 사람이 서는 자리(손톱 무리의 날에만 보인다)
+  // 에어락 바깥. 밖에 나가 있는 사람이 서는 자리(손톱 무리의 날에만 보인다) — 탑 오른 외벽 밖, 심연 쪽
   function outsideRect() {
-    const l = rectOf(0);
-    return { x: l.x - 150, y: 6, w: 128, h: 70 };
+    const L = MAP(), s0 = L.tower.storeys[0];
+    return { x: L.tower.x1 + 30, y: s0.floor_y - 200, w: 300, h: 200 };
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  이동 어댑터 — **맵마다 다른 것은 이 블록 하나뿐이다.** (S11-C)
+  //  이동 어댑터 — **맵마다 다른 것은 이 블록 하나뿐이다.** (S11-C → S12-B M5)
   //  길 계산·엘리베이터 시간표·방 안의 삶은 movement.js 가 하고, 그쪽은 화면 좌표를 모른다.
-  //  새 맵이 정해지면 이 세 함수만 새로 쓴다: graph() · nodeOf() · toWorld().
-  //  지금 맵: 세로 척추 하나 = 엘리베이터 하나(가로 0 m). 층 = slot / floorSlots. 홀 = -1층.
+  //  M5: 승강로 둘(layout.json shafts A·B). 층 = storey(0 = 깊이 0 m), 홀 = -1층(돔 바닥).
   // ══════════════════════════════════════════════════════════════
   const PX_PER_M = TARGET_PPM;                       // 세계 px / m — 캐릭터 키를 재는 자와 같은 자
   const HALL_FLOOR = -1;
   function floorLine(f) {                            // 그 층 사람들의 발선(세계 px)
-    if (f <= HALL_FLOOR) { const h = hallRect(); return h.y + h.h - 6; }
-    const r = rectOf(f * floorSlots); return r.y + PAD + (r.h - 2 * PAD) * 0.86;
+    return MAP().floorY(f <= HALL_FLOOR ? -1 : f);
   }
+  function standX(r, i, n) { return r.stand[0] + (r.stand[1] - r.stand[0]) * (i + 1) / (n + 1); }
   const MOVE_ADAPTER = {
     graph() {
-      return { walkSpeed: 1.3, shafts: [{ id: 'spine', x: 0, floors: [HALL_FLOOR, floorCount() - 1],
-               cap: 3, secPerFloor: 0.9, door: 0.5, home: DOME_FLOOR,
-               doorGap: (SPINE_W / 2) / PX_PER_M + 0.3 }] };        // 척추 바로 바깥에 줄을 선다
+      const L = MAP(), last = L.storeys.length - 1, cap = (L.car && (L.car.cap || L.car.cap_hint)) || 2;
+      return { walkSpeed: 1.3, shafts: L.shafts.map(s => ({ id: s.id, x: s.cx / PX_PER_M, floors: [HALL_FLOOR, last],
+               cap, secPerFloor: 0.9, door: 0.5, home: 0,
+               doorGap: (s.w / 2) / PX_PER_M + 0.3 })) };            // 승강로 바로 바깥에 줄을 선다
     },
     nodeOf(where, i, n) {                            // where: slot 번호 | 'hall' | 'out'
-      if (where === 'out') { const o = outsideRect(); return { floor: DOME_FLOOR, x: (o.x + o.w / 2) / PX_PER_M }; }
+      if (where === 'out') { const o = outsideRect(); return { floor: 0, x: (o.x + o.w * (i + 1) / (n + 1)) / PX_PER_M }; }
       if (where === 'hall') { const h = hallRect(); return { floor: HALL_FLOOR, x: (h.x + h.w * (i + 1) / (n + 1)) / PX_PER_M }; }
-      const r = rectOf(where), iw = r.w - 2 * PAD;
-      return { floor: r.floor, x: (r.x + PAD + iw * (i + 1) / (n + 1)) / PX_PER_M };
+      const r = rectOf(where);
+      if (!r) { const h = hallRect(); return { floor: HALL_FLOOR, x: (h.x + h.w / 2) / PX_PER_M }; }
+      return { floor: r.storey, x: standX(r, i, n) / PX_PER_M };
     },
     toWorld(floor, x) {                              // floor 는 소수도 받는다(엘리베이터 안)
       const f0 = Math.floor(floor), f1 = Math.ceil(floor), y0 = floorLine(f0);
@@ -236,26 +240,66 @@
   const wxOf = (px) => (px - view.w / 2) / cam.z + cam.x;
   const wyOf = (py) => (py - view.h / 2) / cam.z + cam.y;
 
-  // UI 가 가린 만큼을 빼고 맞춘다. 폰에서 습격 막대가 홀을 덮어 사람을 못 집는 일을 막는다
+  // ── 가로 화면(S12-B, DECISIONS 2026-10-03 「화면은 가로」) ─────────────
+  // UI 가 가린 만큼을 빼고 맞춘다. 가로에서는 HUD 가 왼쪽 위·왼쪽 아래·오른쪽 아래 가장자리에만 있다.
+  // 오른쪽은 열린 심연 — 위협이 오는 쪽이라 비워 둔다(습격 막대만 오른쪽 위에 뜬다).
+  const isPortrait = () => view.h > view.w;
   function uiInset() {
     const bar = $('#raidbar');
-    const top = (bar && !bar.hidden && view.w <= 560) ? bar.offsetHeight + 10 : 0;
-    return { top, bottom: view.w <= 560 ? 104 : 72 };
+    if (isPortrait()) {
+      const top = (bar && !bar.hidden && view.w <= 560) ? bar.offsetHeight + 10 : 0;
+      return { top, bottom: view.w <= 560 ? 104 : 72, left: 0, right: 0 };
+    }
+    const phone = view.h <= 500;
+    return { top: phone ? 34 : 64, bottom: phone ? 52 : 70, left: 0, right: 0 };
   }
+  const ZMIN_ABS = 0.12, ZMAX = 2.4;
+  function zMin() {                                  // 세계 밖이 보이지 않을 만큼만 물러난다
+    const b = worldBounds();
+    return Math.max(ZMIN_ABS, Math.max(view.w / (b.x1 - b.x0), view.h / (b.y1 - b.y0)));
+  }
+  // 카메라는 세계 경계 안에 묶는다(가로·세로 팬 + 줌). 성장은 아래 — 세로로 끌면 깊이 내려간다
+  function clampCam() {
+    const b = worldBounds();
+    cam.z = Math.max(zMin(), Math.min(ZMAX, cam.z));
+    const hw = view.w / 2 / cam.z, hh = view.h / 2 / cam.z;
+    cam.x = (b.x1 - b.x0) <= 2 * hw ? (b.x0 + b.x1) / 2 : Math.max(b.x0 + hw, Math.min(b.x1 - hw, cam.x));
+    cam.y = (b.y1 - b.y0) <= 2 * hh ? (b.y0 + b.y1) / 2 : Math.max(b.y0 + hh, Math.min(b.y1 - hh, cam.y));
+  }
+  // 처음 화면(PM 결정 2026-10-03, 두 단계): ① 홀·돔 가운데, 주민이 70 CSS px 이상으로 보이는 줌에서 연다
+  // ② 습격 예고(실루엣)가 열리면 심연 쪽으로 옮긴다(raidPan). 도트는 정수 배율이라 ×2 가 되는 첫 줌(0.5)이 하한 —
+  // 키 1.6 m = 원본 44 px × 2 = 88 px. 그 아래(×1)는 44 px 로 판독 하한에 못 미친다
+  const READ_Z = (1.5 * 27.5) / TARGET_PPM + 0.005;
   function fit() {
-    const b = worldBounds(), ins = uiInset();
-    const h = Math.max(120, view.h - ins.top - ins.bottom);
-    const z = Math.min(view.w / (b.x1 - b.x0), h / (b.y1 - b.y0)) * 0.94;
-    cam.z = Math.max(0.18, Math.min(2.2, z));
-    cam.x = (b.x0 + b.x1) / 2;
-    // 보이는 띠의 한가운데에 거점을 둔다
-    cam.y = (b.y0 + b.y1) / 2 + ((ins.bottom - ins.top) / 2) / cam.z;
+    const L = MAP(), d = L.dome;
+    cam.z = Math.max(zMin(), Math.min(ZMAX, READ_Z));
+    cam.x = L.glass ? L.glass.cx : d.x + d.w / 2;
+    // 돔 꼭대기가 HUD 바로 아래에 오게 — 그 아래로 홀과 1층이 이어진다
+    const ins = uiInset();
+    cam.y = (d.y - 30) + (view.h / 2 - ins.top) / cam.z;
+    if (isPortrait()) cam.y = d.floor_y + 120;
+    clampCam();
+  }
+  // 습격 예고가 열리면 노려지는 방과 그 오른쪽 심연이 한 화면에 들어오게 천천히 옮긴다(줌은 그대로)
+  let raidPanned = null;
+  function raidPan(raid) {
+    if (!raid || raid.stage !== 'silhouette' || raid.target_slot == null || raidPanned === raid.id + ':' + raid.stage) return;
+    const r = rectOf(raid.target_slot); if (!r) return;
+    raidPanned = raid.id + ':' + raid.stage;
+    const L = MAP(), bar = $('#raidbar');
+    // 습격 막대가 덮지 않는 폭 안에 [노려지는 방 … 외벽 밖 600 px] 이 들어오게. 안 들어갈 때만 그만큼 물러난다
+    const barW = (!bar.hidden && !isPortrait()) ? bar.offsetWidth + 24 : 0;
+    const avail = Math.max(200, view.w - barW), span = (L.tower.x1 + 600) - (r.x - 60);
+    const z = Math.max(zMin(), Math.min(cam.z, avail / span));
+    const x = (r.x - 60) + (view.w / 2) / z;
+    camTo = { from: { x: cam.x, y: cam.y, z: cam.z }, x, y: r.y + r.h / 2, z, t0: performance.now(), dur: 1200 };
   }
   function zoomAt(px, py, k) {
     const wx = wxOf(px), wy = wyOf(py);
-    cam.z = Math.max(0.18, Math.min(2.4, cam.z * k));
+    cam.z = Math.max(zMin(), Math.min(ZMAX, cam.z * k));
     cam.x = wx - (px - view.w / 2) / cam.z;
     cam.y = wy - (py - view.h / 2) / cam.z;
+    clampCam();
   }
 
   function resize() {
@@ -263,74 +307,214 @@
     view.w = cv.clientWidth; view.h = cv.clientHeight;
     cv.width = Math.round(view.w * view.dpr); cv.height = Math.round(view.h * view.dpr);
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    if (ark) clampCam();
   }
 
-  // ── 그리기 ────────────────────────────────────────────────
-  function drawWater(t) {
-    const g = ctx.createLinearGradient(0, sy(WATER[0][0]), 0, sy(WATER[WATER.length - 1][0]));
-    const span = WATER[WATER.length - 1][0] - WATER[0][0];
-    WATER.forEach(([y, c]) => g.addColorStop((y - WATER[0][0]) / span, c));
-    ctx.fillStyle = g; ctx.fillRect(0, 0, view.w, view.h);
-    const topY = sy(WATER[0][0]);
-    if (topY > 0) { ctx.fillStyle = WATER[0][1]; ctx.fillRect(0, 0, view.w, topY); }
-    const botY = sy(WATER[WATER.length - 1][0]);
-    if (botY < view.h) { ctx.fillStyle = WATER[WATER.length - 1][1]; ctx.fillRect(0, botY, view.w, view.h - botY); }
+  // ── 그리기: 겹 다섯(S12-B) — 뒤(물·빛) · 가운데(절벽·먼 것) · 탑 껍데기 · 승강기 · 앞(해초·부유물) ──
+  // 배경 담당의 층 그림(layout.json layers.files)이 오면 그 겹 자리에 그대로 얹는다. 오기 전에는 같은 자리에
+  // 벡터로 그린다. 매 프레임 겹마다 drawImage 한 번 또는 경로 몇 개 — 픽셀 단위 작업은 없다(D8).
+  const layerImgs = {};                               // 겹 이름 → [{img, x, y, w, h, parallax}]
+  function loadLayers() {
+    MAP().layers.forEach(f => {
+      const key = f.layer || f.id || f.name || 'back';
+      const img = new Image();
+      const sc = f.scale || 1;
+      // place[] 가 있으면 같은 그림을 여러 자리에(승강로 A·B)
+      const spots = (f.place && f.place.length) ? f.place : [{ x: f.x || 0, y: f.y || 0 }];
+      const rows = spots.map(p => ({ img, ok: false, x: p.x, y: p.y, w: f.w != null ? f.w * sc : null, h: f.h != null ? f.h * sc : null,
+                                     sc, parallax: f.parallax || 1 }));
+      img.onload = () => rows.forEach(row => {
+        row.ok = img.naturalWidth > 0;
+        if (row.w == null) row.w = img.naturalWidth * sc;
+        if (row.h == null) row.h = img.naturalHeight * sc;
+      });
+      img.src = window.ArkMap.dir + f.file;
+      (layerImgs[key] = layerImgs[key] || []).push(...rows);
+    });
+  }
+  // 겹 이름은 배경 담당 표기 어느 쪽이든 받는다
+  const LAYER_ALIAS = { back: ['back', 'bg', 'far'], mid: ['cliff', 'mid'], shell: ['tower_shell', 'shell', 'tower'],
+                        elevator: ['elevator_shaft', 'elevator', 'shaft'], front: ['front', 'fg', 'near'] };
+  function layerReady(name) { return (LAYER_ALIAS[name] || [name]).some(k => (layerImgs[k] || []).some(r => r.ok)); }
+  // 보이는 부분만 잘라 그린다(원본 픽셀 → 화면). 큰 겹(탑 껍데기 3907×2890)도 매 프레임 화면 크기만큼만 옮긴다(D8)
+  function drawLayer(name) {
+    let drew = false;
+    (LAYER_ALIAS[name] || [name]).forEach(k => (layerImgs[k] || []).forEach(r => {
+      if (!r.ok) return;
+      drew = true;
+      // 시차(앞 겹 1.12): 카메라가 기준점에서 움직인 만큼 조금 더 움직인다
+      let ox = 0, oy = 0;
+      if (r.parallax !== 1) { const L = MAP(); ox = -(cam.x - (L.tower.x0 + L.tower.x1) / 2) * (r.parallax - 1); oy = -(cam.y - L.depth.y0) * (r.parallax - 1) * 0.5; }
+      const vx0 = wxOf(0) - ox, vy0 = wyOf(0) - oy, vx1 = wxOf(view.w) - ox, vy1 = wyOf(view.h) - oy;
+      const x0 = Math.max(r.x, vx0), y0 = Math.max(r.y, vy0), x1 = Math.min(r.x + r.w, vx1), y1 = Math.min(r.y + r.h, vy1);
+      if (x1 <= x0 || y1 <= y0) return;
+      const k = r.img.naturalWidth / r.w;               // 세계 px → 원본 px
+      ctx.drawImage(r.img, (x0 - r.x) * k, (y0 - r.y) * k, (x1 - x0) * k, (y1 - y0) * k,
+                    sx(x0 + ox), sy(y0 + oy), (x1 - x0) * cam.z, (y1 - y0) * cam.z);
+    }));
+    return drew;
+  }
 
-    // 광층에서 내려오는 빛 — 갈 수 없는 밝음(REF_CROSS_SECTION §3)
+  function drawWater(t) {
+    const W = WATER_M.map(([m, c]) => [zoneY(m), c]);
+    const g = ctx.createLinearGradient(0, sy(W[0][0]), 0, sy(W[W.length - 1][0]));
+    const span = W[W.length - 1][0] - W[0][0];
+    W.forEach(([y, c]) => g.addColorStop(Math.max(0, Math.min(1, (y - W[0][0]) / span)), c));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, view.w, view.h);
+    if (drawLayer('back')) return;
+    // 광층에서 내려오는 빛 — 갈 수 없는 밝음(REF_CROSS_SECTION §3). 심연 쪽으로 기운다
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 3; i++) {
-      const bx = sx(-300 + i * 300 + Math.sin(t / 9000 + i) * 40);
-      const y0 = sy(-1600), y1 = sy(-60);
+    const L = MAP();
+    for (let i = 0; i < 4; i++) {
+      const bx = sx(L.tower.x0 + i * 1100 + Math.sin(t / 9000 + i) * 60);
+      const y0 = sy(0), y1 = sy(L.depth.y0 + 200);
       const lg = ctx.createLinearGradient(0, y0, 0, y1);
       lg.addColorStop(0, 'rgba(120,200,205,0.10)'); lg.addColorStop(1, 'rgba(120,200,205,0)');
       ctx.fillStyle = lg;
       ctx.beginPath();
-      ctx.moveTo(bx - 26 * cam.z, y0); ctx.lineTo(bx + 26 * cam.z, y0);
-      ctx.lineTo(bx + 120 * cam.z, y1); ctx.lineTo(bx - 120 * cam.z, y1);
+      ctx.moveTo(bx - 50 * cam.z, y0); ctx.lineTo(bx + 50 * cam.z, y0);
+      ctx.lineTo(bx + 340 * cam.z, y1); ctx.lineTo(bx - 160 * cam.z, y1);
       ctx.closePath(); ctx.fill();
     }
     ctx.restore();
   }
 
-  // 부유물(D5). 물은 가만히 있지 않는다
-  const MOTES = Array.from({ length: 110 }, (_, i) => ({
-    x: -700 + Math.random() * 1400, y: -600 + Math.random() * 1600,
-    r: 0.6 + Math.random() * 1.8, v: 4 + Math.random() * 12, ph: Math.random() * 6.3,
+  // 가운데 겹: 절벽(왼쪽 바위). 탑이 기대 선다. 절벽은 해구 문턱 바로 아래에서 끝난다(MAP_CONCEPTS M2)
+  function drawCliff() {
+    const L = MAP();
+    if (!drawLayer('mid')) {
+      const c = L.cliff, xT = c.x1_at_tower, top = c.top_y, bot = c.bottom_y;
+      const pts = [[0, top + 40], [180, top], [520, top + 30], [760, top + 120], [xT - 60, top + 260], [xT, top + 420],
+                   [xT, bot - 260], [xT - 140, bot - 80], [xT - 420, bot], [0, bot + 60]];
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y))));
+      ctx.closePath();
+      const g = ctx.createLinearGradient(0, sy(top), 0, sy(bot));
+      g.addColorStop(0, '#3a2b1d'); g.addColorStop(0.55, '#24190f'); g.addColorStop(1, '#0c0907');
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = 'rgba(12,9,6,0.9)'; ctx.lineWidth = Math.max(1.5, 6 * cam.z); ctx.stroke();
+      // 지층 결 몇 줄 — 바위가 읽히게(Oxygen Not Included: 땅이 지도)
+      ctx.save(); ctx.clip();
+      ctx.strokeStyle = 'rgba(150,110,70,0.16)'; ctx.lineWidth = Math.max(1, 3 * cam.z);
+      for (let k = 1; k < 8; k++) {
+        const y = top + 140 + k * 240;
+        ctx.beginPath(); ctx.moveTo(sx(0), sy(y)); ctx.bezierCurveTo(sx(300), sy(y - 40), sx(640), sy(y + 50), sx(xT), sy(y + 10)); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // 바위 칸으로 가는 굴(아직 파지 못했다 — 서버 칸이 없다. 칸 자체는 drawSealed). 절벽 그림에는 이미 있다
+    if (!layerReady('mid')) L.rock.forEach(r => {
+      if (!r.tunnel) return;
+      const tu = r.tunnel;
+      ctx.fillStyle = 'rgba(13,10,7,0.92)'; ctx.fillRect(sx(tu.x), sy(tu.y), tu.w * cam.z, tu.h * cam.z);
+      ctx.strokeStyle = 'rgba(90,67,32,0.6)'; ctx.lineWidth = Math.max(1, 3 * cam.z);
+      ctx.strokeRect(sx(tu.x), sy(tu.y), tu.w * cam.z, tu.h * cam.z);
+    });
+  }
+
+  // 부유물(D5). 물은 가만히 있지 않는다. 세계 좌표에 뿌리고 화면 밖은 건너뛴다
+  const MOTES = Array.from({ length: 140 }, () => ({
+    x: Math.random() * 5600, y: Math.random() * 3400,
+    r: 1 + Math.random() * 3.5, v: 6 + Math.random() * 18, ph: Math.random() * 6.3,
   }));
   function drawMotes(t) {
     ctx.fillStyle = 'rgba(200,225,225,0.30)';
     for (const m of MOTES) {
-      const y = ((m.y + (t / 1000) * m.v) % 2200 + 2200) % 2200 - 600;
-      const x = m.x + Math.sin(t / 2600 + m.ph) * 14;
+      const y = ((m.y + (t / 1000) * m.v) % 3400 + 3400) % 3400;
+      const x = m.x + Math.sin(t / 2600 + m.ph) * 24;
       const px = sx(x), py = sy(y);
       if (px < -20 || px > view.w + 20 || py < -20 || py > view.h + 20) continue;
       ctx.beginPath(); ctx.arc(px, py, Math.max(0.5, m.r * cam.z), 0, 6.2832); ctx.fill();
     }
   }
 
+  // 바깥의 삶: 물고기 떼·해파리·먹 얼룩·어둠 속 눈. 배경의 생물 아틀라스(layers.creatures: frames + spawn)를
+  // 스폰 표대로 띄운다 — 흐름(drift)·위아래(bob)·깜빡임(blink). 열몇 장뿐이고 탭이 숨으면 rAF 가 멈춘다.
+  // 아틀라스가 없으면 작은 윤곽으로 대신한다. 심연 쪽에 산다 — 바깥이 살아 있다(MAP_CONCEPTS §3)
+  const LIFE = [];
+  const atlas = { img: new Image(), ok: false };
+  function initLife() {
+    LIFE.length = 0;
+    const L = MAP(), C = L.creatures;
+    if (C && C.file && C.frames && C.spawn) {
+      atlas.img.onload = () => { atlas.ok = atlas.img.naturalWidth > 0; };
+      atlas.img.src = window.ArkMap.dir + C.file;
+      C.spawn.forEach((sp, i) => { const f = C.frames[sp.s]; if (f) LIFE.push(Object.assign({ fr: f, i }, sp)); });
+      return;
+    }
+    const a = L.abyss;
+    for (let i = 0; i < 3; i++) LIFE.push({ vec: 'school', x: a.x + 300 + i * 600, y: a.y + 300 + i * 520, speed: 22 + i * 7, drift: [-1, 0], z: 10, i });
+    for (let i = 0; i < 4; i++) LIFE.push({ vec: 'jelly', x: a.x + 260 + i * 420, y: L.depth.y0 + 300 + (i * 431) % 1300, bob: [0, 30], period: 5 + i, z: 12, i });
+  }
+  function lifePos(c, s) {
+    const W = MAP().world.x1, w = c.fr ? c.fr.w : 300;
+    let x = c.x, y = c.y;
+    if (c.drift) { const span = W + 2 * w; x = ((c.x + w + c.drift[0] * c.speed * s) % span + span) % span - w; }
+    if (c.bob) y += Math.sin((s / (c.period || 5)) * 6.2832 + c.i) * c.bob[1];
+    return { x, y };
+  }
+  function drawLife(t, front) {
+    const s = t / 1000;
+    for (const c of LIFE) {
+      if ((c.z || 0) >= 20 ? !front : front) continue;   // z<20 은 탑 뒤, 20 이상은 탑 앞
+      const p = lifePos(c, s);
+      if (c.fr) {
+        if (!atlas.ok) continue;
+        const w = c.fr.w * cam.z, h = c.fr.h * cam.z, px = sx(p.x), py = sy(p.y);
+        if (px + w < 0 || px > view.w || py + h < 0 || py > view.h) continue;
+        let a = c.alpha == null ? 1 : c.alpha;
+        if (c.blink) a *= (Math.sin(s * 0.7 + c.i * 2.3) > 0.55) ? 1 : 0.0;   // 어둠 속 눈 — 가끔만 뜬다
+        if (a <= 0) continue;
+        const flip = !!c.flip;                       // 아틀라스의 떼는 오른쪽을 본다 — 스폰 표의 flip 이 왼쪽
+        ctx.save(); ctx.globalAlpha = a;
+        if (flip) { ctx.translate(px + w, py); ctx.scale(-1, 1); ctx.drawImage(atlas.img, c.fr.x, c.fr.y, c.fr.w, c.fr.h, 0, 0, w, h); }
+        else ctx.drawImage(atlas.img, c.fr.x, c.fr.y, c.fr.w, c.fr.h, px, py, w, h);
+        ctx.restore();
+        continue;
+      }
+      if (c.vec === 'school') {
+        if (sx(p.x + 400) < 0 || sx(p.x - 400) > view.w || sy(p.y + 200) < 0 || sy(p.y - 200) > view.h) continue;
+        ctx.fillStyle = 'rgba(150,200,205,0.30)';
+        for (let i = 0; i < 26; i++) {
+          const ox = ((i * 53) % 260) - 130 + Math.sin(s * 1.3 + i) * 8, oy = ((i * 37) % 120) - 60 + Math.cos(s + i * 0.7) * 6;
+          ctx.beginPath(); ctx.ellipse(sx(p.x + ox), sy(p.y + oy), Math.max(0.8, 9 * cam.z), Math.max(0.5, 3 * cam.z), 0, 0, 6.2832); ctx.fill();
+        }
+      } else {
+        const px = sx(p.x), py = sy(p.y), r = 24 * cam.z;
+        if (px < -60 || px > view.w + 60 || py < -80 || py > view.h + 80) continue;
+        ctx.fillStyle = 'rgba(160,220,225,0.22)'; ctx.strokeStyle = 'rgba(160,220,225,0.32)'; ctx.lineWidth = Math.max(0.6, 2 * cam.z);
+        ctx.beginPath(); ctx.ellipse(px, py, r, r * 0.7, 0, Math.PI, 0); ctx.fill();
+        for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(px + k * r * 0.35, py); ctx.lineTo(px + k * r * 0.35 + Math.sin(s * 1.6 + k) * 4 * cam.z, py + r * 1.8); ctx.stroke(); }
+      }
+    }
+  }
+
   function drawSpots(t) {
+    const L = MAP(), ppd = L.depth.pxPerM;
     for (const sp of spots) {
       if (!sp.unlocked || !sp.has_pos) continue;
-      const px = sx(sp.pos.x * M2PX), py = sy(sp.pos.y * M2PX);
+      // 서버의 스팟 좌표(m, 가로 0 = 거점 가운데)를 같은 깊이 자로 옮긴다
+      const px = sx((L.tower.x0 + L.tower.x1) / 2 + sp.pos.x * ppd), py = sy(L.depthY(sp.pos.y));
       if (px < -60 || px > view.w + 60 || py < -40 || py > view.h + 40) continue;
-      const r = (4 + Math.sin(t / 900 + sp.pos.x) * 1.2) * Math.max(0.6, cam.z);
+      const r = (6 + Math.sin(t / 900 + sp.pos.x) * 1.5) * Math.max(0.6, cam.z * 2);
       const g = ctx.createRadialGradient(px, py, 0, px, py, r * 5);
       g.addColorStop(0, 'rgba(240,176,85,0.55)'); g.addColorStop(1, 'rgba(240,176,85,0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r * 5, 0, 6.2832); ctx.fill();
       ctx.fillStyle = '#f0b055'; ctx.beginPath();
       ctx.moveTo(px, py - r); ctx.lineTo(px + r, py); ctx.lineTo(px, py + r); ctx.lineTo(px - r, py);
       ctx.closePath(); ctx.fill();
-      if (cam.z > 0.5) {
+      if (cam.z > 0.25) {
         ctx.font = '11px "Noto Sans KR",sans-serif'; ctx.fillStyle = 'rgba(230,215,176,0.72)';
         ctx.fillText(sp.name || '', px + r + 6, py + 4);
       }
     }
   }
 
+  // 깊이 구역 표지: 오른쪽(심연) 가장자리. 180 m 해구 문턱은 심연을 가로지르는 점선으로 보인다
   function drawZones() {
-    const x = view.w - 14;
+    const x = view.w - 14, Z = ZONES_OF();
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-    for (const z of ZONES) {
+    for (const z of Z) {
       const y0 = sy(z.y0), y1 = sy(z.y1);
       if (y1 < 0 || y0 > view.h) continue;
       ctx.strokeStyle = 'rgba(150,200,200,0.16)'; ctx.lineWidth = 1;
@@ -340,37 +524,170 @@
       ctx.fillText(z.ko, x, my);
     }
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  }
-
-  function drawSpine() {
-    const top = hallRect().y + 8, bot = (floorCount() - DOME_FLOOR) * FLOOR_PITCH - FLOOR_GAP;   // 홀까지 닿는다
-    const x0 = sx(-SPINE_W / 2), x1 = sx(SPINE_W / 2), y0 = sy(top), y1 = sy(bot);
-    ctx.fillStyle = '#0d1512'; ctx.fillRect(x0 - 3, y0, (x1 - x0) + 6, y1 - y0);
-    const g = ctx.createLinearGradient(x0, 0, x1, 0);
-    g.addColorStop(0, '#1b1a12'); g.addColorStop(0.5, '#3a3018'); g.addColorStop(1, '#1b1a12');
-    ctx.fillStyle = g; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-    ctx.strokeStyle = '#14110c'; ctx.lineWidth = Math.max(1, 3 * cam.z);
-    ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-    ctx.strokeStyle = 'rgba(240,176,85,0.22)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
-    for (let y = top + 14; y < bot; y += 34) {
-      const yy = sy(y); if (yy < -10 || yy > view.h + 10) continue;
-      ctx.beginPath(); ctx.moveTo(x0 + 6, yy); ctx.lineTo(x1 - 6, yy); ctx.stroke();
+    const ty = sy(zoneY(TRENCH_M));                    // 해구 문턱 180 m — 심연을 가로지르는 선
+    if (ty > 0 && ty < view.h) {
+      const x0 = Math.max(0, sx(MAP().tower.x1 + 20));
+      ctx.save(); ctx.setLineDash([10, 8]); ctx.strokeStyle = 'rgba(176,58,36,0.38)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x0, ty); ctx.lineTo(view.w, ty); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = 'rgba(224,150,130,0.62)'; ctx.font = '11px "Noto Sans KR",sans-serif';
+      ctx.fillText('180 m · 해구 문턱', x0 + 10, ty - 6);
     }
   }
 
+  // 탑 껍데기: 바깥 골조(파사드)·층 슬래브·지붕. 서버 칸이 없는 칸은 물이 찬 칸으로(drawSealed)
+  function drawShell() {
+    if (drawLayer('shell')) return;
+    const L = MAP(), t = L.tower, last = t.storeys[t.storeys.length - 1];
+    const top = sy(t.roof_y), bot = sy(last.bottom_y + 160);
+    ctx.fillStyle = '#17130e';                        // 탑 몸통(콘크리트 그늘)
+    ctx.fillRect(sx(t.x0), top, (t.x1 - t.x0) * cam.z, bot - top);
+    // 파사드 격자(양옆) — M4 의 건물 실루엣
+    ctx.strokeStyle = 'rgba(120,100,70,0.32)'; ctx.lineWidth = Math.max(1, 4 * cam.z);
+    [[t.x0, t.section_x0], [t.section_x1, t.x1]].forEach(([a, b]) => {
+      for (let y = t.roof_y + 50; y < last.bottom_y + 100; y += 121) {
+        const yy = sy(y); if (yy < -60 || yy > view.h + 10) continue;
+        ctx.strokeRect(sx(a + 24), yy, (b - a - 48) * cam.z, 90 * cam.z);
+      }
+    });
+    // 슬래브(층 바닥)와 지붕
+    ctx.fillStyle = '#2b241a';
+    t.storeys.forEach(s => ctx.fillRect(sx(t.section_x0 - 10), sy(s.bottom_y), (t.section_x1 - t.section_x0 + 20) * cam.z, Math.max(2, t.slab_h * cam.z)));
+    ctx.fillRect(sx(t.x0 - 30), sy(t.roof_y), (t.x1 - t.x0 + 60) * cam.z, Math.max(2, 46 * cam.z));
+  }
+  // 탑 밑동은 해구의 어둠으로 녹아든다(칸·사람 위에 덮는다)
+  function drawDeepDark() {
+    if (layerReady('shell')) return;                  // 껍데기 그림에 이미 구워져 있다
+    const L = MAP(), t = L.tower, last = t.storeys[t.storeys.length - 1];
+    const y0 = sy(last.top_y - 120), dk = sy(L.depth.darkY);
+    if (y0 > view.h) return;
+    const g = ctx.createLinearGradient(0, y0, 0, dk);
+    g.addColorStop(0, 'rgba(1,6,10,0)'); g.addColorStop(1, 'rgba(1,6,10,0.94)');
+    ctx.fillStyle = g; ctx.fillRect(0, y0, view.w, dk - y0 + 1);
+    ctx.fillStyle = 'rgba(1,6,10,0.94)'; ctx.fillRect(0, dk, view.w, Math.max(0, view.h - dk));
+  }
   function drawDome(t) {
-    const r = rectOf(0), rr = rectOf(1);
-    const left = sx(r.x - PAD), right = sx(rr.x + rr.w + PAD), cxs = (left + right) / 2;
-    const base = sy(r.y - 2), h = 104 * cam.z;
-    ctx.beginPath(); ctx.ellipse(cxs, base, (right - left) / 2, h, 0, Math.PI, 0);
-    ctx.fillStyle = 'rgba(214,201,163,0.10)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(230,215,176,0.55)'; ctx.lineWidth = Math.max(1, 3 * cam.z); ctx.stroke();
-    ctx.strokeStyle = 'rgba(230,215,176,0.18)'; ctx.lineWidth = Math.max(1, 1.5 * cam.z);
-    for (let i = 1; i < 5; i++) {
-      const a = Math.PI + (Math.PI * i) / 5;
+    if (layerReady('shell')) return;                  // 돔 골조와 유리는 탑 껍데기 그림에 있다
+    const gl = MAP().glass;
+    const cxs = sx(gl.cx), base = sy(gl.base_y), rx = gl.rx * cam.z, ry = gl.ry * cam.z;
+    ctx.beginPath(); ctx.ellipse(cxs, base, rx, ry, 0, Math.PI, 0);
+    ctx.fillStyle = 'rgba(214,201,163,0.08)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(230,215,176,0.55)'; ctx.lineWidth = Math.max(1, 6 * cam.z); ctx.stroke();
+    ctx.strokeStyle = 'rgba(230,215,176,0.16)'; ctx.lineWidth = Math.max(1, 3 * cam.z);
+    for (let i = 1; i < 7; i++) {
+      const a = Math.PI + (Math.PI * i) / 7;
       ctx.beginPath(); ctx.moveTo(cxs, base);
-      ctx.lineTo(cxs + Math.cos(a) * (right - left) / 2, base + Math.sin(a) * h); ctx.stroke();
+      ctx.lineTo(cxs + Math.cos(a) * rx, base + Math.sin(a) * ry); ctx.stroke();
     }
+    ctx.beginPath(); ctx.ellipse(cxs, base, rx * 0.62, ry * 0.62, 0, Math.PI, 0); ctx.stroke();
+  }
+  // 유인 등불: 탑 지붕에서 심연 쪽으로 뻗은 철골 끝의 등불 하나(M5 그림 그대로). 랜턴 하나 = 주색 하나
+  function drawLure(t) {
+    const lu = MAP().lure; if (!lu || layerReady('shell')) return;
+    ctx.strokeStyle = '#3a2416'; ctx.lineWidth = Math.max(1.5, 14 * cam.z); ctx.lineJoin = 'round';
+    ctx.beginPath(); lu.girder.forEach(([x, y], i) => (i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y)))); ctx.stroke();
+    const [gx, gy] = lu.girder[lu.girder.length - 1], sway = Math.sin(t / 2200) * 18;
+    ctx.strokeStyle = 'rgba(200,190,160,0.45)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
+    ctx.beginPath(); ctx.moveTo(sx(gx), sy(gy)); ctx.lineTo(sx(lu.x + sway), sy(lu.y)); ctx.stroke();
+    const px = sx(lu.x + sway), py = sy(lu.y), r = 22 * cam.z;
+    const g = ctx.createRadialGradient(px, py, 0, px, py, r * 9);
+    g.addColorStop(0, 'rgba(240,176,85,0.45)'); g.addColorStop(1, 'rgba(240,176,85,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r * 9, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = '#f0b055'; ctx.beginPath(); ctx.arc(px, py, Math.max(2, r), 0, 6.2832); ctx.fill();
+  }
+  // 승강로: 레일 두 줄 + 정류장 문틀. 칸은 drawCars 에서
+  function drawShafts() {
+    if (drawLayer('elevator')) return;
+    const L = MAP();
+    L.shafts.forEach(s => {
+      const x0 = sx(s.x), w = s.w * cam.z, y0 = sy(L.dome.floor_y - 230), y1 = sy(s.bottom);
+      ctx.fillStyle = 'rgba(10,9,7,0.88)'; ctx.fillRect(x0, y0, w, y1 - y0);
+      ctx.strokeStyle = 'rgba(150,120,70,0.55)'; ctx.lineWidth = Math.max(1, 5 * cam.z);
+      ctx.beginPath(); ctx.moveTo(x0 + 10 * cam.z, y0); ctx.lineTo(x0 + 10 * cam.z, y1);
+      ctx.moveTo(x0 + w - 10 * cam.z, y0); ctx.lineTo(x0 + w - 10 * cam.z, y1); ctx.stroke();
+      ctx.strokeStyle = 'rgba(150,120,70,0.18)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
+      for (let y = L.dome.floor_y - 200; y < s.bottom; y += 60) {
+        const yy = sy(y); if (yy < -4 || yy > view.h + 4) continue;
+        ctx.beginPath(); ctx.moveTo(x0 + 10 * cam.z, yy); ctx.lineTo(x0 + w - 10 * cam.z, yy + 30 * cam.z); ctx.stroke();
+      }
+      Object.values(s.doors).forEach(dy => {                     // 정류장 문턱
+        ctx.fillStyle = 'rgba(240,176,85,0.30)'; ctx.fillRect(x0, sy(dy) - 2 * cam.z, w, Math.max(1, 5 * cam.z));
+      });
+    });
+  }
+  // 앞 겹: 해초 몇 줄(탑 발치·절벽 턱)
+  const KELP = [[1090, 1300], [1110, 2100], [3540, 1700], [3560, 2500], [700, 760], [3500, 1000]];
+  function drawFront(t) {
+    if (drawLayer('front')) return;
+    ctx.strokeStyle = 'rgba(40,70,40,0.75)'; ctx.lineCap = 'round';
+    KELP.forEach(([x, y], i) => {
+      const h = 260 + (i % 3) * 90;
+      if (sx(x) < -80 || sx(x) > view.w + 80 || sy(y) < -40 || sy(y - h) > view.h) return;
+      ctx.lineWidth = Math.max(1, 10 * cam.z);
+      ctx.beginPath(); ctx.moveTo(sx(x), sy(y));
+      ctx.quadraticCurveTo(sx(x + Math.sin(t / 1800 + i) * 50), sy(y - h * 0.5), sx(x + Math.sin(t / 1500 + i) * 70), sy(y - h));
+      ctx.stroke();
+    });
+    ctx.lineCap = 'butt';
+  }
+
+  // ── 방 플레이트(배경 S8-C). 칸 = outer_rect 564×317 을 1:1 로 자른 것(키우지도 줄이지도 않는다) ──
+  // 플레이트가 있는 방 여섯. 나머지 방은 같은 칸에 평면 채색(FLAT_FOLK)으로 그린다
+  const PLATE_OF = { quarters: 'quarters', storage: 'storage', pantry: 'storage', workshop: 'workshop',
+                     infirmary: 'infirmary', generator: 'power', power: 'power', greenhouse: 'greenhouse' };
+  const plateImgs = {};
+  function plateImg(file) {
+    let p = plateImgs[file];
+    if (!p) { p = plateImgs[file] = { img: new Image(), ok: false }; p.img.onload = () => { p.ok = p.img.naturalWidth > 0; }; p.img.src = '/static/art/plates/' + file; }
+    return p.ok ? p.img : null;
+  }
+  const ovImgs = {};
+  function overlayImg(id) {                          // 배경 S12-A 칸 덧그림(cell_plan·cell_flood)
+    const o = MAP().overlays && MAP().overlays[id]; if (!o) return null;
+    let p = ovImgs[id];
+    if (!p) { p = ovImgs[id] = { img: new Image(), ok: false }; p.img.onload = () => { p.ok = p.img.naturalWidth > 0; }; p.img.src = window.ArkMap.dir + o.file; }
+    return p.ok ? p.img : null;
+  }
+  function drawPlate(file, x, y, w, h, alpha) {
+    const img = plateImg(file); if (!img) return false;
+    const r = (MAP().plate && MAP().plate.src_rect) || [54, 33, 564, 317];
+    if (alpha != null) { ctx.save(); ctx.globalAlpha = alpha; }
+    ctx.drawImage(img, r[0], r[1], r[2], r[3], x, y, w, h);
+    if (alpha != null) ctx.restore();
+    return true;
+  }
+
+  // 서버 칸이 없는 맵 칸: 탑의 오른쪽 열·맨 아래층 = 물이 찬 칸, 바위 칸 = 아직 파지 못한 바위.
+  // 빈 바닥이 아니라 '되찾을 곳'으로 보인다(REF_CROSS_SECTION §1 빈 방 없음). + 는 없다 — 지금은 못 짓는다
+  function drawSealed(c, t) {
+    const x = sx(c.x), y = sy(c.y), w = c.w * cam.z, h = c.h * cam.z;
+    if (x > view.w + 40 || x + w < -40 || y > view.h + 40 || y + h < -40) return;
+    if (c.kind === 'rock') {
+      if (!layerReady('mid')) { ctx.fillStyle = '#1a130c'; ctx.fillRect(x, y, w, h); }
+      ctx.strokeStyle = 'rgba(90,67,32,0.55)'; ctx.lineWidth = Math.max(1, 4 * cam.z); ctx.setLineDash([10 * cam.z, 8 * cam.z]);
+      ctx.strokeRect(x, y, w, h); ctx.setLineDash([]);
+    } else {
+      const fl = overlayImg('cell_flood');
+      if (fl) { ctx.fillStyle = 'rgba(3,14,19,0.45)'; ctx.fillRect(x, y, w, h); ctx.drawImage(fl, x, y, w, h); }
+      else {
+        if (!drawPlate('room_flood.png', x, y, w, h, 0.9)) { ctx.fillStyle = '#082028'; ctx.fillRect(x, y, w, h); }
+        ctx.fillStyle = 'rgba(3,14,19,0.55)'; ctx.fillRect(x, y, w, h);
+      }
+      ctx.strokeStyle = 'rgba(20,17,12,0.9)'; ctx.lineWidth = Math.max(1.5, 5 * cam.z); ctx.strokeRect(x, y, w, h);
+    }
+    if (cam.z > 0.3) {
+      ctx.font = (11 * Math.min(1.6, cam.z * 2)) + 'px "Noto Sans KR",sans-serif';
+      ctx.fillStyle = c.kind === 'rock' ? 'rgba(170,140,100,0.55)' : 'rgba(140,190,195,0.5)';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(c.kind === 'rock' ? '바위 — 아직 파지 못했다' : '물이 찬 칸 — 아직 되찾지 못했다', x + 14 * cam.z, y + 24 * cam.z);
+      ctx.textBaseline = 'alphabetic';
+    }
+    hits.push({ kind: 'sealed', cell: c, x, y, w, h });
+  }
+  function drawSealedAll(t) {
+    const L = MAP(), used = {};
+    for (let s = 0; s < slots; s++) { const c = cellOf(s); if (c) used[c.id] = true; }
+    L.cells.forEach(c => { if (!used[c.id]) drawSealed(c, t); });
+    L.rock.forEach(c => drawSealed(c, t));
   }
 
   function roomColor(id) { return ROOM_COLOR[id] || ROOM_COLOR._default; }
@@ -379,90 +696,93 @@
 
   function drawRoom(slot, room, people, t) {
     const r = rectOf(slot);
+    if (!r) return;                                   // 돔 상부(slot 0·1) — 맵에서는 홀이다
     const x = sx(r.x), y = sy(r.y), w = r.w * cam.z, h = r.h * cam.z;
     if (x > view.w + 40 || x + w < -40 || y > view.h + 40 || y + h < -40) return;
     const picked = carry || dragging;                 // 사람을 들고 있을 때는 놓을 자리를 밝힌다
     const target = raidTargetSlot();
+    const ix = x, iy = y, iw = w, ih = h;
 
-    if (!room) {   // 빈 자리 — 여기로 자란다(성장 방향은 아래)
-      if (r.floor < DOME_FLOOR) { return; }
+    if (!room) {   // 빈 자리 — 여기로 자란다(성장 방향은 아래). 탭하면 물을 뺀다(/api/ark/build)
+      const pl = overlayImg('cell_plan');
+      if (pl) ctx.drawImage(pl, x, y, w, h); else { ctx.fillStyle = 'rgba(6,18,22,0.72)'; ctx.fillRect(x, y, w, h); }
       ctx.save();
-      ctx.setLineDash([6 * cam.z, 6 * cam.z]);
-      ctx.strokeStyle = sel && sel.slot === slot ? 'rgba(240,176,85,0.85)' : 'rgba(150,200,200,0.22)';
-      ctx.lineWidth = Math.max(1, 2 * cam.z);
-      ctx.strokeRect(x + PAD * cam.z, y + PAD * cam.z, w - 2 * PAD * cam.z, h - 2 * PAD * cam.z);
+      ctx.setLineDash([12 * cam.z, 10 * cam.z]);
+      ctx.strokeStyle = sel && sel.slot === slot ? 'rgba(240,176,85,0.9)' : 'rgba(190,225,222,0.38)';
+      ctx.lineWidth = Math.max(1, 4 * cam.z);
+      ctx.strokeRect(x + 16 * cam.z, y + 16 * cam.z, w - 32 * cam.z, h - 32 * cam.z);
       ctx.restore();
-      if (cam.z > 0.42) {
-        ctx.fillStyle = 'rgba(190,225,222,0.34)';
-        ctx.font = (16 * cam.z) + 'px "Noto Sans KR",sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('+', x + w / 2, y + h / 2);
-        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      }
+      ctx.fillStyle = 'rgba(190,225,222,0.55)';
+      ctx.font = Math.max(14, 64 * cam.z) + 'px "Noto Sans KR",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('+', x + w / 2, y + h / 2);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
       return;
     }
 
-    const col = roomColor(room.id), ix = x + PAD * cam.z, iy = y + PAD * cam.z;
-    const iw = w - 2 * PAD * cam.z, ih = h - 2 * PAD * cam.z;
-
+    const col = roomColor(room.id);
     if (room.flooded) {
       // 잃은 방은 사라지지 않고 **물이 찬 채로 영구히 남는다**(§3-6 흔적). 소리도 없다
-      ctx.fillStyle = '#082028'; ctx.fillRect(ix, iy, iw, ih);
+      const pf = PLATE_OF[room.id];
+      if (!(pf && drawPlate('room_plate_' + pf + '_dark.png', ix, iy, iw, ih, 0.5))) { ctx.fillStyle = '#082028'; ctx.fillRect(ix, iy, iw, ih); }
+      const fo = overlayImg('cell_flood');
+      if (fo) ctx.drawImage(fo, ix, iy, iw, ih);
+      else if (!drawPlate('room_flood.png', ix, iy, iw, ih)) { ctx.fillStyle = 'rgba(8,32,40,0.8)'; ctx.fillRect(ix, iy, iw, ih); }
       ctx.save(); ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
       ctx.strokeStyle = 'rgba(120,180,185,0.10)'; ctx.lineWidth = 1;
-      for (let gy = iy + 6 * cam.z; gy < iy + ih; gy += 9 * cam.z) {     // 가라앉은 물의 결
+      for (let gy = iy + 14 * cam.z; gy < iy + ih; gy += 22 * cam.z) {     // 가라앉은 물의 결
         ctx.beginPath(); ctx.moveTo(ix, gy + Math.sin(t / 1800 + gy) * 1.4); ctx.lineTo(ix + iw, gy); ctx.stroke();
       }
-      ctx.fillStyle = 'rgba(60,110,115,0.22)';                           // 안에 남은 그림자(가구의 흔적)
-      ctx.fillRect(ix + iw * 0.2, iy + ih * 0.55, iw * 0.22, ih * 0.3);
-      ctx.fillRect(ix + iw * 0.6, iy + ih * 0.66, iw * 0.16, ih * 0.2);
       ctx.restore();
-      ctx.strokeStyle = '#14110c'; ctx.lineWidth = Math.max(1.5, 3 * cam.z);
+      ctx.strokeStyle = '#14110c'; ctx.lineWidth = Math.max(1.5, 6 * cam.z);
       ctx.strokeRect(ix, iy, iw, ih);
-      if (cam.z > 0.4) {
-        ctx.font = (10.5 * Math.min(1.3, cam.z)) + 'px "Noto Sans KR",sans-serif';
-        ctx.fillStyle = 'rgba(140,190,195,0.55)'; ctx.textBaseline = 'middle';
-        ctx.fillText('물이 찼다', ix + 6 * cam.z, iy + 10 * Math.min(1.3, cam.z));
+      if (cam.z > 0.2) {
+        ctx.font = (11 * Math.min(1.6, cam.z * 2)) + 'px "Noto Sans KR",sans-serif';
+        ctx.fillStyle = 'rgba(140,190,195,0.7)'; ctx.textBaseline = 'middle';
+        ctx.fillText('물이 찼다', ix + 14 * cam.z, iy + 24 * cam.z);
         ctx.textBaseline = 'alphabetic';
       }
       return;
     }
 
     const lit = lightOf(slot);
-    // 평면 채색 + 음영 1~2단 (FLAT_FOLK §1-3). 불을 끄면 같은 색이 어둡게 가라앉는다
-    ctx.save();
-    if (!lit) ctx.globalAlpha = 0.34;
-    ctx.fillStyle = col.base; ctx.fillRect(ix, iy, iw, ih);
-    ctx.fillStyle = col.shade; ctx.fillRect(ix, iy, iw, ih * 0.26);
-    ctx.fillStyle = col.floor; ctx.fillRect(ix, iy + ih * 0.80, iw, ih * 0.20);
-    ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
-    ctx.strokeStyle = 'rgba(20,17,12,0.13)'; ctx.lineWidth = Math.max(1, 1 * cam.z);
-    for (let gx = ix + 16 * cam.z; gx < ix + iw; gx += 22 * cam.z) {
-      ctx.beginPath(); ctx.moveTo(gx, iy + ih * 0.26); ctx.lineTo(gx, iy + ih * 0.80); ctx.stroke();
+    const pf = PLATE_OF[room.id];
+    // 플레이트가 있는 방은 그림으로(켜짐 = lit, 꺼짐 = dark), 없는 방은 평면 채색 + 음영 1~2단(FLAT_FOLK §1-3)
+    if (!(pf && drawPlate('room_plate_' + pf + (lit ? '_lit' : '_dark') + '.png', ix, iy, iw, ih))) {
+      const p = 34 * cam.z, fx = ix + p, fy = iy + p, fw = iw - 2 * p, fh = ih - p - 30 * cam.z;
+      ctx.fillStyle = '#14110c'; ctx.fillRect(ix, iy, iw, ih);
+      ctx.save();
+      if (!lit) ctx.globalAlpha = 0.34;
+      ctx.fillStyle = col.base; ctx.fillRect(fx, fy, fw, fh);
+      ctx.fillStyle = col.shade; ctx.fillRect(fx, fy, fw, fh * 0.26);
+      ctx.fillStyle = col.floor; ctx.fillRect(fx, fy + fh * 0.80, fw, fh * 0.20);
+      ctx.beginPath(); ctx.rect(fx, fy, fw, fh); ctx.clip();
+      ctx.strokeStyle = 'rgba(20,17,12,0.13)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
+      for (let gx = fx + 40 * cam.z; gx < fx + fw; gx += 54 * cam.z) {
+        ctx.beginPath(); ctx.moveTo(gx, fy + fh * 0.26); ctx.lineTo(gx, fy + fh * 0.80); ctx.stroke();
+      }
+      ctx.restore();
+      if (!lit) { ctx.fillStyle = 'rgba(4,16,22,0.55)'; ctx.fillRect(fx, fy, fw, fh); }
     }
-    ctx.restore();
-    if (!lit) { ctx.fillStyle = 'rgba(4,16,22,0.55)'; ctx.fillRect(ix, iy, iw, ih); }
-
-    if (lit) {   // 랜턴 하나 = 주색 하나
+    if (lit) {   // 랜턴 하나 = 주색 하나 — 칸 위쪽 등 자리에서 번진다
+      const c = r.cell, lp = c.lamp || [c.x + c.w / 2, c.y + 77];
       ctx.save(); ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
-      const lx = ix + iw * 0.5, ly = iy + ih * 0.20;
+      const lx = sx(lp[0]), ly = sy(lp[1]);
       const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, ih * 0.9);
-      lg.addColorStop(0, 'rgba(240,176,85,0.40)'); lg.addColorStop(1, 'rgba(240,176,85,0)');
+      lg.addColorStop(0, 'rgba(240,176,85,0.22)'); lg.addColorStop(1, 'rgba(240,176,85,0)');
       ctx.fillStyle = lg; ctx.fillRect(ix, iy, iw, ih);
-      ctx.fillStyle = '#f0b055'; ctx.beginPath();
-      ctx.arc(lx, ly, Math.max(1.2, 3 * cam.z), 0, 6.2832); ctx.fill();
       ctx.restore();
     }
 
     if (room.cracked) drawCrack(ix, iy, iw, ih, slot);
 
     // 두꺼운 검은 테두리: 방을 각각 "불 켜진 상자"로 읽히게 한다(§1-3)
-    let edge = '#14110c', ew = 3;
-    if (sel && sel.slot === slot) { edge = '#f0b055'; ew = 4; }
-    if (target === slot) { edge = '#b03a24'; ew = 4; }                    // 노려지는 방
+    let edge = '#14110c', ew = 6;
+    if (sel && sel.slot === slot) { edge = '#f0b055'; ew = 9; }
+    if (target === slot) { edge = '#b03a24'; ew = 9; }                    // 노려지는 방
     if (picked) {                                                         // 놓을 수 있는 자리
       const full = (people || []).length >= capOf(slot);
-      edge = full ? '#6b3b33' : '#8fbf7a'; ew = 4;
+      edge = full ? '#6b3b33' : '#8fbf7a'; ew = 9;
     }
     ctx.strokeStyle = edge;
     ctx.lineWidth = Math.max(1.5, ew * cam.z);
@@ -470,29 +790,31 @@
 
     drawShelf(slot, ix, iy, iw, ih, lit);
     drawInstalled(slot, ix, iy, iw, ih);
-    drawPeople(people, ix, iy, iw, ih, t, slot);
+    drawPeople(people, r, t, slot);
 
-    if (cam.z > 0.4) {
+    if (cam.z > 0.16) {
       const nm = (catalog[room.id] && catalog[room.id].name) || room.id;
       const cap = capOf(slot), n = (people || []).length;
       const label = nm + (cap ? '  ' + n + '/' + cap : '');
-      ctx.font = (11 * Math.min(1.3, cam.z)) + 'px "Noto Sans KR",sans-serif';
-      ctx.fillStyle = 'rgba(20,17,12,0.75)';
-      const tw = ctx.measureText(label).width + 10 * cam.z;
-      ctx.fillRect(ix, iy, tw, 16 * Math.min(1.3, cam.z));
+      const fz = Math.max(10.5, Math.min(15, 26 * cam.z));
+      ctx.font = fz + 'px "Noto Sans KR",sans-serif';
+      ctx.fillStyle = 'rgba(20,17,12,0.78)';
+      const tw = ctx.measureText(label).width + 10;
+      ctx.fillRect(ix + 4, iy + 4, tw, fz + 6);
       ctx.fillStyle = lit ? '#e6d7b0' : '#93a6a3';
       ctx.textBaseline = 'middle';
-      ctx.fillText(label, ix + 5 * cam.z, iy + 8 * Math.min(1.3, cam.z));
+      ctx.fillText(label, ix + 9, iy + 7 + fz / 2);
       ctx.textBaseline = 'alphabetic';
       if (!lit) {
-        ctx.fillStyle = 'rgba(147,166,163,0.7)';
-        ctx.fillText('불 꺼짐', ix + 5 * cam.z, iy + ih - 6 * cam.z);
+        ctx.fillStyle = 'rgba(147,166,163,0.85)';
+        ctx.fillText('불 꺼짐', ix + 9, iy + ih - 8);
       }
     }
   }
 
   function drawCrack(ix, iy, iw, ih, slot) {
-    // 막아도 긁힌 자국이 남는다(§3-6). 금은 지워지지 않고 봉합 패치로만 덮인다
+    // 막아도 긁힌 자국이 남는다(§3-6). 금은 지워지지 않고 봉합 패치로만 덮인다. 배경의 금 그림이 있으면 그것을
+    if (drawPlate('damage_crack' + (1 + (slot % 3)) + '.png', ix, iy, iw, ih)) return;
     ctx.save(); ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
     ctx.strokeStyle = 'rgba(10,30,36,0.85)'; ctx.lineWidth = Math.max(1, 1.6 * cam.z);
     const bx = ix + iw * (0.3 + (slot % 3) * 0.17), by = iy + ih * 0.18;
@@ -507,12 +829,13 @@
 
   function drawInstalled(slot, ix, iy, iw, ih) {
     const rows = (cb && cb.workshop && cb.workshop.installed && cb.workshop.installed[String(slot)]) || [];
-    if (!rows.length || cam.z < 0.34) return;
+    if (!rows.length || cam.z < 0.15) return;
     const mark = { shutter: '▤', lure_lamp: '✦', hush: '◍', long_net: '╳', brace: '═' };
-    ctx.font = (11 * Math.min(1.4, cam.z)) + 'px "Noto Sans KR",sans-serif';
-    ctx.fillStyle = 'rgba(240,176,85,0.9)';
+    const fz = Math.max(11, Math.min(18, 30 * cam.z));
+    ctx.font = fz + 'px "Noto Sans KR",sans-serif';
+    ctx.fillStyle = 'rgba(240,176,85,0.95)';
     rows.forEach((row, i) => {
-      ctx.fillText(mark[row.id] || '•', ix + iw - (12 + i * 12) * cam.z, iy + ih - 7 * cam.z);
+      ctx.fillText(mark[row.id] || '•', ix + iw - (fz + 6) * (i + 1), iy + ih - 8);
     });
   }
 
@@ -549,7 +872,8 @@
       const sp = s.spec;
       // 도트는 **정수 배율**로만 키운다(2.5D 조건 ①). 렌더 시트는 기존대로 연속 배율
       const want = (TARGET_PPM * cam.z * k) / sp.ppm;
-      const z = sp.pixel ? Math.max(1, Math.round(want)) : want;
+      // 아주 멀리서(폰 가로 맞춤 등) ×1 이 방보다 크면 그때만 소수 배율로 줄인다 — 사람이 방보다 커 보이면 안 된다
+      const z = sp.pixel ? (want >= 0.75 ? Math.max(1, Math.round(want)) : want) : want;
       const cw = sp.cell * z, base = sp.baseline * z;
       const clip = sp.pixel ? clipFor(s, pose || 'idle', roomId) : { name: 'idle', row: sp.idle, frames: sp.frames, ms: 170 };
       usedClips[clip.name] = (usedClips[clip.name] || 0) + 1;
@@ -565,11 +889,11 @@
         ctx.drawImage(sheet, (cell % sp.cols) * sp.cell, Math.floor(cell / sp.cols) * sp.cell, sp.cell, sp.cell,
                       px - cw / 2, floorY - base + bob, cw, cw);
         ctx.imageSmoothingEnabled = sm;
-        if (p.injured) { ctx.fillStyle = 'rgba(140,59,46,0.5)'; ctx.fillRect(px - 6 * cam.z, floorY - 46 * cam.z, 12 * cam.z, 4 * cam.z); }
+        if (p.injured) { ctx.fillStyle = 'rgba(140,59,46,0.5)'; ctx.fillRect(px - 13 * cam.z, floorY - 101 * cam.z, 26 * cam.z, 9 * cam.z); }
         return { w: cw * 0.42, h: base * 0.78 };
       } catch (e) { /* 스프라이트가 아직 덜 왔다 — 아래 색 사각형으로 */ }
     }
-    const hgt = (p.role === 'kid' ? 30 : 40) * cam.z * k, wid = 13 * cam.z * k;
+    const hgt = (p.role === 'kid' ? 66 : 88) * cam.z * k, wid = 29 * cam.z * k;
     ctx.fillStyle = ROLE_COLOR[p.role] || '#d8c9a3';
     ctx.fillRect(px - wid / 2, floorY - hgt + bob, wid, hgt);
     ctx.fillStyle = '#14110c';
@@ -585,7 +909,7 @@
     let L = window.ArkMove ? ArkMove.roomLife(p.id, now) : { pose: 'work', dx: 0 };
     const since = now - traffic.arrivedAt(p.id);
     const ramp = since < 0 ? 0 : Math.min(1, since / 1.2);
-    const spread = Math.min(step * 0.3, 22 * cam.z);
+    const spread = Math.min(step * 0.3, 48 * cam.z);
     let pose = L.pose;
     if (ramp < 1 && Math.abs(L.dx) * spread > 2) pose = 'walk';
     if (!lightOf(slot)) pose = 'idle';                         // 불 꺼진 방에서는 손을 놓고 기다린다
@@ -593,20 +917,21 @@
     return { pose, off: L.dx * spread * ramp, room: room ? room.id : '' };
   }
   function lifeOffsetM(id, slot, i, n, t) {                    // 이동 출발점에 같은 오프셋을 쓴다(세계 m)
-    const r = rectOf(slot), step = (r.w - 2 * PAD) / (n + 1);
+    const r = rectOf(slot); if (!r) return 0;
+    const step = (r.stand[1] - r.stand[0]) / (n + 1);
     const L = window.ArkMove ? ArkMove.roomLife(id, t / 1000) : { dx: 0 };
-    return (L.dx * Math.min(step * 0.3, 22)) / PX_PER_M;
+    return (L.dx * Math.min(step * 0.3, 48)) / PX_PER_M;
   }
 
-  function drawPeople(people, ix, iy, iw, ih, t, slot) {
+  function drawPeople(people, r, t, slot) {
     if (!people || !people.length) return;
-    const floorY = iy + ih * 0.86;
-    const step = iw / (people.length + 1);
+    const floorY = sy(r.floorY);                             // 플레이트 발선(floor_in_cell 282)
+    const step = (r.stand[1] - r.stand[0]) * cam.z / (people.length + 1);
     people.forEach((p, i) => {
       if (dragging && dragging.id === p.id) return;          // 들고 있는 사람은 손끝에 그린다
       if (movingNow[p.id]) return;                           // 아직 오는 중 — 이동 층에서 그린다
       const life = lifeAt(p, slot, t, step);
-      const px = ix + step * (i + 1) + life.off;
+      const px = sx(standX(r, i, people.length)) + life.off;
       const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot), life.pose, life.room);
       if (carry && carry.id === p.id) {                      // 집어 든 표시
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
@@ -617,31 +942,36 @@
     });
   }
 
+  const labelFont = (base) => Math.max(10.5, Math.min(15, base * cam.z * 2.2));
   function drawHall(t) {
-    // 홀: 배치되지 않은 사람이 모이는 돔 상부. 여기도 **빈 방이 아니다**
+    // 홀: 배치되지 않은 사람이 모이는 돔 안. 여기도 **빈 방이 아니다**
     const h = hallRect();
     const x = sx(h.x), y = sy(h.y), w = h.w * cam.z, hh = h.h * cam.z;
     const list = (ark.residents_list || []).filter(r =>
       (!cb || cb.stations[r.id] === undefined) && !(cb && cb.outside.indexOf(r.id) >= 0));
     const picked = carry || dragging;
+    // 돔 바닥의 따뜻한 빛(홀 = 공용의 불 하나)
+    const lg = ctx.createRadialGradient(x + w / 2, y + hh * 0.4, 0, x + w / 2, y + hh * 0.4, w * 0.6);
+    lg.addColorStop(0, 'rgba(240,176,85,' + (cb && cb.power_on ? 0.22 : 0.06) + ')'); lg.addColorStop(1, 'rgba(240,176,85,0)');
+    ctx.fillStyle = lg; ctx.fillRect(x - w * 0.1, y - hh * 0.6, w * 1.2, hh * 1.6);
     ctx.save();
     ctx.fillStyle = 'rgba(58,48,24,0.30)'; ctx.fillRect(x, y, w, hh);
-    ctx.setLineDash([5 * cam.z, 5 * cam.z]);
+    ctx.setLineDash([10 * cam.z, 10 * cam.z]);
     ctx.strokeStyle = picked ? 'rgba(143,191,122,0.85)' : 'rgba(230,215,176,0.22)';
-    ctx.lineWidth = Math.max(1, 2 * cam.z);
+    ctx.lineWidth = Math.max(1, 4 * cam.z);
     ctx.strokeRect(x, y, w, hh);
     ctx.restore();
-    if (cam.z > 0.36) {
-      ctx.font = (10.5 * Math.min(1.3, cam.z)) + 'px "Noto Sans KR",sans-serif';
-      ctx.fillStyle = 'rgba(230,215,176,0.55)';
-      ctx.fillText('홀 · 배치 안 된 사람 ' + list.length, x + 6 * cam.z, y + 13 * cam.z);
+    if (cam.z > 0.12) {
+      ctx.font = labelFont(10.5) + 'px "Noto Sans KR",sans-serif';
+      ctx.fillStyle = 'rgba(230,215,176,0.62)';
+      ctx.fillText('홀 · 배치 안 된 사람 ' + list.length, x + 8, y + 16);
     }
-    const floorY = y + hh - 6 * cam.z, step = w / (list.length + 1);
+    const floorY = sy(MAP().dome.floor_y), step = w / (list.length + 1);
     list.forEach((p, i) => {
       if (dragging && dragging.id === p.id) return;
       if (movingNow[p.id]) return;
       const px = x + step * (i + 1);
-      const box = drawPerson(p, px, floorY, t, i, 0.82, !!(cb && cb.power_on), 'idle');
+      const box = drawPerson(p, px, floorY, t, i, 1, !!(cb && cb.power_on), 'idle');
       if (carry && carry.id === p.id) {
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
         ctx.strokeRect(px - box.w / 2 - 3, floorY - box.h - 6, box.w + 6, box.h + 10);
@@ -653,41 +983,54 @@
   }
 
   function drawOutside(t) {
-    // 밖에 나가 있는 사람. 손톱 무리의 날에만 보이고, 들이면 사라진다
+    // 밖에 나가 있는 사람(탑 오른 외벽 바깥, 심연 쪽). 손톱 무리의 날에만 보이고, 들이면 사라진다
     const ids = (cb && cb.outside) || [];
     if (!ids.length) return;
     const o = outsideRect();
     const x = sx(o.x), y = sy(o.y), w = o.w * cam.z, hh = o.h * cam.z;
     ctx.save();
-    ctx.setLineDash([4 * cam.z, 4 * cam.z]);
-    ctx.strokeStyle = 'rgba(176,58,36,0.75)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
+    ctx.setLineDash([8 * cam.z, 8 * cam.z]);
+    ctx.strokeStyle = 'rgba(176,58,36,0.75)'; ctx.lineWidth = Math.max(1, 4 * cam.z);
     ctx.strokeRect(x, y, w, hh); ctx.restore();
-    ctx.font = (10.5 * Math.min(1.3, cam.z)) + 'px "Noto Sans KR",sans-serif';
+    ctx.font = labelFont(10.5) + 'px "Noto Sans KR",sans-serif';
     ctx.fillStyle = 'rgba(224,150,130,0.9)';
-    ctx.fillText('밖 · ' + ids.length + '명', x + 4 * cam.z, y + 12 * cam.z);
+    ctx.fillText('밖 · ' + ids.length + '명', x + 6, y + 16);
     const list = (ark.residents_list || []).filter(r => ids.indexOf(r.id) >= 0);
-    const floorY = y + hh - 5 * cam.z, step = w / (list.length + 1);
-    list.forEach((p, i) => { if (!movingNow[p.id]) drawPerson(p, x + step * (i + 1), floorY, t, i, 0.78, false, 'idle'); });
+    const floorY = sy(o.y + o.h), step = w / (list.length + 1);
+    list.forEach((p, i) => { if (!movingNow[p.id]) drawPerson(p, x + step * (i + 1), floorY, t, i, 1, false, 'idle'); });
   }
 
-  // ── 이동 중인 사람과 엘리베이터 칸 (S11-C) ─────────────────
-  // 칸은 척추 안에서만 움직이는 얇은 틀이다. 엘리베이터의 진짜 그림은 새 맵이 정해진 뒤 그 위에(DECISIONS 2026-10-03)
+  // ── 이동 중인 사람과 엘리베이터 칸 (S11-C → S12-B: M5 승강로 A·B) ─────────────────
+  // 칸 그림은 배경의 elevator_car.png(138×190, 아래 가운데 = 정류장 문턱)가 있으면 그것을, 없으면 틀을 그린다.
+  // 칸은 움직이는 사람보다 **먼저** 그린다 — 사람이 칸 안에 서 있는 것처럼 보인다
+  const carImg = { img: new Image(), ok: false };
+  function loadCar() {
+    const f = (MAP().car && MAP().car.sprite) || 'elevator_car.png';
+    carImg.img.onload = () => { carImg.ok = carImg.img.naturalWidth > 0; };
+    carImg.img.onerror = () => { carImg.ok = false; };
+    carImg.img.src = window.ArkMap.dir + f;
+  }
   function drawCars(t) {
-    const g = traffic.graph();
+    const g = traffic.graph(), C = MAP().car || { w: 138, h: 190 };
     traffic.cars().forEach(id => {
       const f = traffic.car(id, t / 1000), sh = g.byId[id];
       if (f == null || !sh) return;
       const w = MOVE_ADAPTER.toWorld(f, sh.x);
-      const hw = (SPINE_W / 2 - 5), top = w.y - 62, bot = w.y + 5;
-      const x0 = sx(w.x - hw), x1 = sx(w.x + hw), y0 = sy(top), y1 = sy(bot);
-      if (y1 < -20 || y0 > view.h + 20) return;
-      ctx.fillStyle = 'rgba(20,17,12,0.55)'; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-      ctx.strokeStyle = 'rgba(240,176,85,0.55)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
-      ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
-      ctx.strokeStyle = 'rgba(240,176,85,0.25)'; ctx.lineWidth = Math.max(1, 1 * cam.z);
-      for (let k = 1; k < 4; k++) { const xx = x0 + (x1 - x0) * k / 4; ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y1); ctx.stroke(); }
-      ctx.strokeStyle = 'rgba(230,215,176,0.35)';                       // 줄 — 위로 이어진다
-      ctx.beginPath(); ctx.moveTo((x0 + x1) / 2, y0); ctx.lineTo((x0 + x1) / 2, sy(hallRect().y + 8)); ctx.stroke();
+      const ax = C.anchor ? C.anchor[0] : C.w / 2, ay = C.anchor ? C.anchor[1] : C.h;   // 아래 가운데 = 정류장 바닥
+      const x0 = sx(w.x - ax), y0 = sy(w.y - ay), cw = C.w * cam.z, ch = C.h * cam.z;
+      if (y0 + ch < -20 || y0 > view.h + 20) return;
+      ctx.strokeStyle = 'rgba(230,215,176,0.35)'; ctx.lineWidth = Math.max(1, 2 * cam.z);   // 줄 — 위로 이어진다
+      ctx.beginPath(); ctx.moveTo(x0 + cw / 2, y0); ctx.lineTo(x0 + cw / 2, sy(MAP().dome.floor_y - 230)); ctx.stroke();
+      if (carImg.ok) { ctx.drawImage(carImg.img, x0, y0, cw, ch); return; }
+      ctx.fillStyle = 'rgba(28,22,14,0.82)'; ctx.fillRect(x0, y0, cw, ch);
+      const lg = ctx.createLinearGradient(0, y0, 0, y0 + ch);
+      lg.addColorStop(0, 'rgba(240,176,85,0.28)'); lg.addColorStop(1, 'rgba(240,176,85,0.04)');
+      ctx.fillStyle = lg; ctx.fillRect(x0, y0, cw, ch);
+      ctx.strokeStyle = 'rgba(240,176,85,0.75)'; ctx.lineWidth = Math.max(1, 4 * cam.z);
+      ctx.strokeRect(x0, y0, cw, ch);
+      ctx.strokeStyle = 'rgba(240,176,85,0.28)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
+      for (let k = 1; k < 4; k++) { const xx = x0 + cw * k / 4; ctx.beginPath(); ctx.moveTo(xx, y0 + 6 * cam.z); ctx.lineTo(xx, y0 + ch * 0.55); ctx.stroke(); }
+      ctx.fillStyle = '#f0b055'; ctx.beginPath(); ctx.arc(x0 + cw / 2, y0 + 12 * cam.z, Math.max(1.5, 5 * cam.z), 0, 6.2832); ctx.fill();
     });
   }
   function drawMovers(t) {
@@ -698,7 +1041,7 @@
       const p = byId[id], m = traffic.at(id, now);
       if (!p || !m || (dragging && dragging.id === id)) return;
       const w = MOVE_ADAPTER.toWorld(m.floor, m.x);
-      const k = m.floor < HALL_FLOOR + 0.5 ? 0.82 : 1;
+      const k = 1;
       drawPerson(p, sx(w.x), sy(w.y), t, i, k, !!(cb && cb.power_on), m.pose);
     });
   }
@@ -718,60 +1061,107 @@
     ctx.textBaseline = 'alphabetic';
   }
 
-  // ── 실루엣: 바깥 물에 그림자가 **그 방 쪽으로** 다가온다 (§3-2) ──
+  // ── 실루엣: 열린 심연(오른쪽)에서 그림자가 **그 방 쪽으로** 다가온다 (§3-2, M5: 위협은 한쪽에서만 온다) ──
+  // 그림은 배경의 static/art/threats(990×495, 82.5 px/m — 세계와 같은 자). 그림의 +x 가 거점 쪽이라 좌우를 뒤집는다
+  // (거점이 생물의 왼쪽에 있다). far → near 는 다가올수록 알파로 바뀐다. over_room(덮개·큰 입·그늘)은 방 위에 얹는다.
+  let silDbg = null;
   let approach = 0;                                   // 0 → 1. 다 와도 접촉하지 않고 창 앞에서 멈춘다
-  function drawSilhouette(t, dt) {
+  let threatMeta = {};                                // creature_id → {files, over_room, body}
+  const threatImgs = {};
+  fetch('/static/art/threats/threats_meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
+    ((j && j.threats) || []).forEach(x => { threatMeta[x.creature_id || x.id] = x; });
+  }).catch(() => { threatMeta = {}; });
+  function threatImg(file) {
+    let p = threatImgs[file];
+    if (!p) { p = threatImgs[file] = { img: new Image(), ok: false }; p.img.onload = () => { p.ok = p.img.naturalWidth > 0; }; p.img.src = '/static/art/threats/' + file; }
+    return p.ok ? p.img : null;
+  }
+  function silhouetteState(dt) {
     const raid = cb && cb.raid;
-    if (!raid || raid.stage !== 'silhouette' || raid.target_slot == null) { approach = 0; return; }
+    if (!raid || raid.stage !== 'silhouette' || raid.target_slot == null) { approach = 0; return null; }
     approach = Math.min(1, approach + dt / 22000);    // 약 22초에 걸쳐 천천히. 놀래키지 않는다(§6-2)
-                                                      // 다 와도 창 앞에서 **멈춰 선다** — 접촉은 플레이어가 누를 때만
-    const r = rectOf(raid.target_slot);
-    const fromLeft = sideOf(raid.target_slot) === 0;
-    const tx = fromLeft ? r.x - 26 : r.x + r.w + 26;
-    const ox = fromLeft ? tx - 430 : tx + 430;
-    const wx = ox + (tx - ox) * (1 - Math.pow(1 - approach, 2));
-    const wy = r.y + r.h * 0.45 + Math.sin(t / 1400) * 9;
-    const px = sx(wx), py = sy(wy), k = cam.z;
-    const alpha = 0.30 + 0.45 * approach;
+    const r = rectOf(raid.target_slot);              // 다 와도 창 앞에서 **멈춰 선다** — 접촉은 플레이어가 누를 때만
+    if (!r) return null;
+    return { raid, r, meta: threatMeta[raid.creature.id] || null };
+  }
+  // 몸이 있는 것: 심연 물속(탑 앞 겹보다 뒤)에서 다가온다
+  function drawSilhouette(t, dt) {
+    const S = silhouetteState(dt); if (!S) return;
+    const { raid, r, meta } = S, L = MAP();
+    if (meta && meta.over_room) return;               // 방 위에 얹는 것은 drawOverRoom 에서
+    const tx = L.tower.x1 + 260, ox = L.tower.x1 + 1000;          // 외벽 창 바로 앞 ← 심연 안쪽(처음부터 화면 안에서 보인다)
+    const e = 1 - Math.pow(1 - approach, 2);
+    const wx = ox + (tx - ox) * e;
+    silDbg = { approach, wx, id: raid.creature.id, meta: !!meta };
+    const wy = r.y + r.h * 0.5 + Math.sin(t / 1400) * 18;
+    const alpha = 0.30 + 0.55 * approach;
+    const far = meta && threatImg(meta.files.far), near = meta && threatImg(meta.files.near);
+    if (far || near) {
+      const w = 990 * cam.z, h = 495 * cam.z, px = sx(wx), py = sy(wy);
+      ctx.save();
+      ctx.translate(px, py); ctx.scale(-1, 1);        // +x 가 거점 쪽 → 왼쪽을 보게 뒤집는다
+      // 검은 물에 검은 그림자는 안 보인다 — 가장자리에 물빛 한 겹(REF_CROSS_SECTION §3: 바깥의 것은 윤곽으로 먼저 온다)
+      ctx.shadowColor = 'rgba(132,198,204,' + (0.35 + 0.4 * approach).toFixed(3) + ')';
+      ctx.shadowBlur = Math.max(6, 22 * cam.z);
+      if (far) { ctx.globalAlpha = alpha * (1 - approach); ctx.drawImage(far, -w / 2, -h / 2, w, h); }
+      if (near) { ctx.globalAlpha = alpha * approach; ctx.drawImage(near, -w / 2, -h / 2, w, h); }
+      ctx.restore();
+    } else drawSilhouetteVector(t, raid, wx, wy, alpha);
+    redWindow(r);
+  }
+  // 몸이 없는 것(덮개·큰 입·그늘): 방이 꺼지거나 흐려지는 것이 그 생물이다 — 방 위에 얹는다
+  function drawOverRoom(t) {
+    const raid = cb && cb.raid;
+    if (!raid || raid.stage !== 'silhouette' || raid.target_slot == null) return;
+    const meta = threatMeta[raid.creature.id], r = rectOf(raid.target_slot);
+    if (!meta || !meta.over_room || !r) return;
+    const far = threatImg(meta.files.far), near = threatImg(meta.files.near);
+    const x = sx(r.x), y = sy(r.y), w = r.w * cam.z, h = r.h * cam.z;
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 40 * cam.z, y - 40 * cam.z, w + 80 * cam.z, h + 80 * cam.z); ctx.clip();
+    const iw = 990 * cam.z, ih = 495 * cam.z, cx = x + w / 2, cy = y + h / 2;
+    ctx.translate(cx, cy); ctx.scale(-1, 1);
+    const a = 0.35 + 0.6 * approach;
+    if (far) { ctx.globalAlpha = a * (1 - approach); ctx.drawImage(far, -iw / 2, -ih / 2, iw, ih); }
+    if (near) { ctx.globalAlpha = a * approach; ctx.drawImage(near, -iw / 2, -ih / 2, iw, ih); }
+    if (!far && !near) { ctx.globalAlpha = 0.25 + 0.5 * approach; ctx.fillStyle = '#01070b'; ctx.fillRect(-w / 2, -h / 2, w, h); }
+    ctx.restore();
+    redWindow(r);
+  }
+  function redWindow(r) {                             // 노려지는 창에 붉은 테두리가 번진다
     ctx.save();
-    // 검은 물에 검은 그림자는 안 보인다 — 몸은 더 어둡게, 가장자리는 물빛으로 한 겹.
-    // (REF_CROSS_SECTION §3: 바깥의 것은 윤곽으로 먼저 온다)
+    ctx.strokeStyle = 'rgba(176,58,36,' + (0.25 + 0.5 * approach).toFixed(3) + ')';
+    ctx.lineWidth = Math.max(2, 12 * cam.z);
+    ctx.strokeRect(sx(r.x) - 6 * cam.z, sy(r.y) - 6 * cam.z, (r.w + 12) * cam.z, (r.h + 12) * cam.z);
+    ctx.restore();
+  }
+  // 그림이 없을 때의 윤곽(옛 S8·S10 벡터). 크기는 옛 자(37.4 px/m)로 적혀 있어 ×2.2
+  function drawSilhouetteVector(t, raid, wx, wy, alpha) {
+    const px = sx(wx), py = sy(wy), k = cam.z * 2.2, fromLeft = false;
+    ctx.save();
     ctx.fillStyle = 'rgba(1,7,11,' + Math.min(0.92, alpha + 0.25).toFixed(3) + ')';
     ctx.strokeStyle = 'rgba(1,7,11,' + Math.min(0.92, alpha + 0.25).toFixed(3) + ')';
     ctx.shadowColor = 'rgba(132,198,204,' + (0.18 + 0.30 * approach).toFixed(3) + ')';
-    ctx.shadowBlur = 10 * cam.z;
+    ctx.shadowBlur = 10 * k;
     const c = raid.creature.id;
     if (c === 'longneck') {
       ctx.lineWidth = 15 * k; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(px + (fromLeft ? -210 : 210) * k, py + 80 * k);
-      ctx.quadraticCurveTo(px + (fromLeft ? -90 : 90) * k, py - 60 * k, px, py);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px + 210 * k, py + 80 * k);
+      ctx.quadraticCurveTo(px + 90 * k, py - 60 * k, px, py); ctx.stroke();
       ctx.beginPath(); ctx.ellipse(px, py, 26 * k, 15 * k, 0, 0, 6.2832); ctx.fill();
     } else if (c === 'swarm') {
       for (let i = 0; i < 46; i++) {
-        const a = i * 2.39 + t / 1200;
-        const rr = (16 + (i % 7) * 13) * k;
-        ctx.beginPath();
-        ctx.ellipse(px + Math.cos(a) * rr * (fromLeft ? -1.6 : 1.6) - (fromLeft ? -1 : 1) * 40 * k,
-                    py + Math.sin(a) * rr * 0.8, 5 * k, 2.6 * k, a, 0, 6.2832);
-        ctx.fill();
+        const a = i * 2.39 + t / 1200, rr = (16 + (i % 7) * 13) * k;
+        ctx.beginPath(); ctx.ellipse(px + Math.cos(a) * rr * 1.6 - 40 * k, py + Math.sin(a) * rr * 0.8, 5 * k, 2.6 * k, a, 0, 6.2832); ctx.fill();
       }
     } else if (c === 'warden') {
-      ctx.beginPath(); ctx.ellipse(px + (fromLeft ? -170 : 170) * k, py, 190 * k, 112 * k, 0, 0, 6.2832);
-      ctx.fill();
-      ctx.lineWidth = 3 * k;                          // 압력이 먼저 온다
-      ctx.beginPath(); ctx.ellipse(px, py, (30 + 70 * approach) * k, (22 + 50 * approach) * k, 0, 0, 6.2832);
-      ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(px + 170 * k, py, 190 * k, 112 * k, 0, 0, 6.2832); ctx.fill();
+      ctx.lineWidth = 3 * k;
+      ctx.beginPath(); ctx.ellipse(px, py, (30 + 70 * approach) * k, (22 + 50 * approach) * k, 0, 0, 6.2832); ctx.stroke();
     } else if (c === 'claws') {
       for (let i = 0; i < 70; i++) {
-        const a = i * 1.7;
-        ctx.beginPath();
-        ctx.arc(px + (fromLeft ? -1 : 1) * (i % 14) * 16 * k, py + 54 * k + Math.sin(a + t / 900) * 8 * k,
-                3.4 * k, 0, 6.2832);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(px + (i % 14) * 16 * k, py + 54 * k + Math.sin(i * 1.7 + t / 900) * 8 * k, 3.4 * k, 0, 6.2832); ctx.fill();
       }
     } else if (FISH[c]) {
-      // 신규 일곱(S10-C). 문어 모양으로 떨어지면 '식구'로 읽힌다 — 종마다 윤곽 하나씩(몸 길이·높이·꼬리)
       const f = FISH[c], dir = fromLeft ? -1 : 1, bx = px + dir * f.back * k;
       ctx.beginPath(); ctx.ellipse(bx, py + f.dy * k, f.rx * k, f.ry * k, 0, 0, 6.2832); ctx.fill();
       if (f.tail) {
@@ -779,31 +1169,23 @@
         ctx.lineTo(bx + dir * (f.rx + f.tail) * k, py + f.dy * k - f.tail * 0.6 * k);
         ctx.lineTo(bx + dir * (f.rx + f.tail) * k, py + f.dy * k + f.tail * 0.6 * k); ctx.closePath(); ctx.fill();
       }
-      if (f.eye) {                                    // 거울눈 — 그림자 속에서 눈 하나만 비친다
+      if (f.eye) {
         ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(200,230,232,' + (0.25 + 0.5 * approach).toFixed(3) + ')';
         ctx.beginPath(); ctx.arc(bx - dir * f.rx * 0.55 * k, py + f.dy * k - f.ry * 0.2 * k, 5 * k, 0, 6.2832); ctx.fill();
       }
     } else {
       ctx.beginPath(); ctx.ellipse(px, py, 26 * k, 20 * k, 0, 0, 6.2832); ctx.fill();
-      for (let i = 0; i < 6; i++) {                   // 문어 — 여덟 중 여섯만 보인다
+      for (let i = 0; i < 6; i++) {
         const a = Math.PI * 0.2 + i * 0.4;
         ctx.lineWidth = 4 * k; ctx.beginPath(); ctx.moveTo(px, py + 10 * k);
-        ctx.quadraticCurveTo(px + Math.cos(a + t / 800) * 26 * k, py + 30 * k,
-                             px + Math.cos(a) * 44 * k, py + 40 * k + Math.sin(t / 700 + i) * 5 * k);
+        ctx.quadraticCurveTo(px + Math.cos(a + t / 800) * 26 * k, py + 30 * k, px + Math.cos(a) * 44 * k, py + 40 * k + Math.sin(t / 700 + i) * 5 * k);
         ctx.stroke();
       }
     }
     ctx.restore();
-    // 노려지는 창에 붉은 테두리가 번진다
-    const gx = sx(r.x - PAD), gy = sy(r.y - PAD);
-    ctx.save();
-    ctx.strokeStyle = 'rgba(176,58,36,' + (0.25 + 0.5 * approach).toFixed(3) + ')';
-    ctx.lineWidth = Math.max(2, 5 * cam.z);
-    ctx.strokeRect(gx, gy, (r.w + 2 * PAD) * cam.z, (r.h + 2 * PAD) * cam.z);
-    ctx.restore();
   }
 
-  // 신규 일곱의 윤곽 수치(세계 px). rx·ry 몸, back 창에서 물러난 거리, tail 꼬리, dy 높이
+  // 신규 일곱의 윤곽 수치(옛 세계 px). rx·ry 몸, back 창에서 물러난 거리, tail 꼬리, dy 높이
   const FISH = {
     mirror_eye:   { rx: 70, ry: 26, back: 70, tail: 26, dy: 0, eye: true },
     straight_one: { rx: 120, ry: 7, back: 120, tail: 14, dy: 0 },
@@ -815,35 +1197,55 @@
   };
   const raidTargetSlot = () => (cb && cb.raid && cb.raid.target_slot != null) ? cb.raid.target_slot : null;
 
-  let raf = 0, prev = 0;
+  // 탭이 숨으면 그리기를 멈춘다(배터리·발열 — D8). 돌아오면 이어서
+  let raf = 0, prev = 0, fpsLog = [], workLog = [];
   function frame(t) {
     raf = requestAnimationFrame(frame);
+    const w0 = performance.now();
+    try { frameBody(t); } finally { if (workLog.length > 240) workLog.shift(); workLog.push(performance.now() - w0); }
+  }
+  function frameBody(t) {
     const dt = prev ? Math.min(60, t - prev) : 16; prev = t;
+    if (fpsLog.length > 240) fpsLog.shift(); fpsLog.push(dt);
     if (!view.w) return;
     stepCam(t);
     hits = [];
     ctx.clearRect(0, 0, view.w, view.h);
-    drawWater(t);
-    drawMotes(t);
-    if (!ark) return;
-    drawSilhouette(t, dt);
+    // 그리는 순서 = 배경 계약 layout.json layers.draw_order
+    drawWater(t);                                     // 겹 1 — 뒤(바다)
+    drawLife(t, false);                               //   생물(z<20, 탑 뒤)
+    if (!ark) { drawShell(); drawShafts(); drawCliff(); drawFront(t); return; }
+    drawSpots(t);
+    drawSilhouette(t, dt);                            //   심연의 위협은 탑보다 뒤 물속에
+    drawShell();                                      // 겹 2 — 탑 껍데기
     drawDome(t);
-    drawSpine();
+    drawLure(t);
+    drawShafts();                                     // 겹 3 — 승강로
+    drawCliff();                                      // 겹 4 — 절벽(탑의 왼쪽 외벽을 감싼다)
+    movingNow = {}; traffic.moving(t / 1000).forEach(id => { movingNow[id] = true; });
+    drawSealedAll(t);
     const byslot = {}; (ark.rooms || []).forEach(r => { byslot[r.slot] = r; });
     const people = peopleBySlot();
-    drawSpots(t);
-    movingNow = {}; traffic.moving(t / 1000).forEach(id => { movingNow[id] = true; });
-    drawCars(t);
     for (let s = 0; s < slots; s++) drawRoom(s, byslot[s], people[s], t);
+    drawOverRoom(t);
+    drawCars(t);                                      //   승강기 칸 — 사람은 그 위에
     drawHall(t);
     drawOutside(t);
     drawMovers(t);
+    drawLife(t, true);                                //   생물(z≥20)
+    drawDeepDark();
+    drawMotes(t);
+    drawFront(t);                                     // 겹 5 — 앞(시차 1.12)
     if (dragging) {                                   // 손끝에 매달린 사람
-      drawPerson(dragging, pointer.x, pointer.y + 22 * cam.z, t, 0, 1, true, 'idle');
+      drawPerson(dragging, pointer.x, pointer.y + 48 * cam.z, t, 0, 1, true, 'idle');
       drawDropStat();
     }
     drawZones();
   }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { cancelAnimationFrame(raf); raf = 0; }
+    else if (!raf) { prev = 0; raf = requestAnimationFrame(frame); }
+  });
 
   // 배치는 **서버가 정본**이다(새로고침해도 같은 자리, 저장된다)
   function peopleBySlot() {
@@ -948,7 +1350,11 @@
   // 패널이 습격 막대 아래에서 열리게 한다(데스크톱). 둘이 겹치면 둘 다 안 읽힌다
   function placePanel() {
     const bar = $('#raidbar'), pan = $('#panel');
-    const below = view.w > 560 && !bar.hidden;
+    const desk = view.w > 560 && view.h > 500, raid = !bar.hidden;
+    // 가로 데스크톱: 습격 막대 아래 자리가 좁으면(< 380 px) 패널은 왼쪽으로 — 둘 다 읽혀야 한다
+    const below = desk && raid && (view.h - bar.offsetHeight - 48) >= 380;
+    const left = desk && raid && !below;
+    pan.classList.toggle('left', left);
     pan.style.top = below ? (bar.offsetHeight + 24) + 'px' : '';
     pan.style.maxHeight = below ? (view.h - bar.offsetHeight - 48) + 'px' : '';
   }
@@ -1006,10 +1412,10 @@
       const bo = ark.build_options || null;               // 서버가 '지금 지을 수 있나'를 주면 그것을 그린다
       const ids = Object.keys(catalog).filter(id => !catalog[id].fixed && (!bo || bo[id]));
       body.innerHTML =
-        '<h2>빈 자리</h2>' +
+        '<h2>물이 찬 칸</h2>' +
         '<p class="sub">' + fl + '층 · 깊이 ' + depth + 'm · ' + esc(zoneAt(f)) + '</p>' +
-        '<p class="desc">아래로 내려갈수록 유물이 좋아지고 위험해진다.</p>' +
-        '<h3>증축</h3><div class="blist">' +
+        '<p class="desc">물을 빼면 칸을 되찾는다. 아래로 내려갈수록 유물이 좋아지고 위험해진다.</p>' +
+        '<h3>물을 빼고 무엇으로 쓸까</h3><div class="blist">' +
         ids.map(id => {
           const o = bo && bo[id];
           const lack = o ? Object.entries(o.lacking || {}).map(([k, v]) => (RES_KO[k] || k) + ' ' + v)
@@ -1092,9 +1498,9 @@
 
   function closePanel() { sel = null; $('#panel').hidden = true; }
 
-  function zoneAt(floor) {
-    const y = (floor - DOME_FLOOR) * FLOOR_PITCH;
-    const z = ZONES.find(z => y >= z.y0 && y < z.y1);
+  function zoneAt(floor) {                            // 서버 층 → 깊이(m) → 구역. 경계는 미터(ZONE_M)
+    const m = (floor - DOME_FLOOR) * DEPTH_PER_FLOOR;
+    const z = ZONE_M.find(z => m >= z.m0 && m < z.m1);
     return z ? z.ko : '무광층';
   }
   function creatureName(id) { return (cb && cb.creatures && cb.creatures[id] && cb.creatures[id].name) || id; }
@@ -1150,13 +1556,48 @@
     try { apply(await api('/api/ark/install', { tool_id: id, slot })); toast('붙였다'); openWorkshop(); refreshRaid(); }
     catch (e) { toast(e.message || '붙이지 못했다'); openWorkshop(); }
   }
+  // ── 되찾기 한 줄(S12-B · 시나리오 S12-D tower_lore.json). 깊이 띠(top 0~60·mid 60~120·low 120~) 안에서
+  // 아직 안 쓴 줄. 첫 되찾기 = order_hint first, 180 m 칸 = last. 쓴 줄은 이 기계에만 적는다(없어도 동작)
+  let towerLore = null;
+  fetch('/api/lore/tower').then(r => (r.ok ? r.json() : null)).then(j => { towerLore = j; }).catch(() => {});
+  function loreUsed() { try { return JSON.parse(localStorage.getItem('ark_reclaim_' + uid) || '[]'); } catch (e) { return []; } }
+  function reclaimLine(slot) {
+    const rows = (towerLore && towerLore.reclaim) || [];
+    if (!rows.length) return '';
+    const m = (floorOf(slot) - DOME_FLOOR) * DEPTH_PER_FLOOR;
+    const band = m < 60 ? 'top' : m < 120 ? 'mid' : 'low';
+    const used = loreUsed(), free = rows.filter(r => used.indexOf(r.id) < 0);
+    let pick = null;
+    if (!used.length) pick = free.find(r => r.order_hint === 'first');
+    if (!pick && m >= TRENCH_M) pick = free.find(r => r.order_hint === 'last');
+    if (!pick) pick = free.find(r => r.band === band && r.order_hint !== 'last' && r.order_hint !== 'first');
+    if (!pick) pick = free.find(r => r.band === 'any' || r.band === band);
+    if (!pick) return '';
+    try { localStorage.setItem('ark_reclaim_' + uid, JSON.stringify(used.concat(pick.id))); } catch (e) { /* 이 기계에 못 적어도 줄은 보인다 */ }
+    return pick.line;
+  }
+  // 서버 칸이 없는 맵 칸을 눌렀을 때 — 지금은 되찾을 수 없다고 정직하게. 180 m 아래는 시나리오의 below_limit
+  function openSealed(c) {
+    sel = null;
+    const deep = (c.depth_m || 0) >= TRENCH_M;
+    const bl = towerLore && towerLore.below_limit && towerLore.below_limit.line;
+    const body = $('#panelBody');
+    body.innerHTML = c.kind === 'rock'
+      ? '<h2>벽 쪽 바위</h2><p class="sub">깊이 ' + esc(c.depth_m) + 'm</p><p class="desc">아직 파지 못했다. 굴 끝에 손전등을 비추면 바위 결만 돌아온다.</p>'
+      : '<h2>' + (deep ? '검게 잠긴 칸' : '물이 찬 칸') + '</h2><p class="sub">깊이 ' + esc(c.depth_m) + 'm' + (deep ? ' · ' + esc(zoneAt(DOME_FLOOR + c.depth_m / DEPTH_PER_FLOOR)) : '') + '</p>' +
+        '<p class="desc">' + esc(deep && bl ? bl : '격벽이 아직 열리지 않는다. 지금은 물을 뺄 수 없는 칸이다.') + '</p>';
+    $('#panel').hidden = false; placePanel();
+  }
   async function build(roomId, slot) {
     try {
       const st = await api('/api/ark/build', { room_id: roomId, slot });
       apply(st);
-      toast(((catalog[roomId] || {}).name || roomId) + ' 증축');
+      // M5: 짓는 것이 아니라 물을 빼고 되찾는다(라벨만 — API 는 /api/ark/build 그대로). 되찾은 칸의 한 줄은 시나리오 data/tower_lore.json
+      const line = reclaimLine(slot);
+      toast(((catalog[roomId] || {}).name || roomId) + ' — 물을 뺐다' + (line ? '. ' + line : ''));
       openPanel(slot);
-    } catch (e) { toast(e.message || '증축하지 못했다'); }
+      if (line) { const d = $('#panelBody .desc'); if (d) d.insertAdjacentHTML('beforebegin', '<p class="reclaim">' + esc(line) + '</p>'); }
+    } catch (e) { toast(e.message || '물을 빼지 못했다'); }
   }
 
   async function advanceRaid() {
@@ -1247,6 +1688,7 @@
       lastRaidId = raid.id; lastStage = raid.stage;
       if (raid.stage === 'sound') play(raid.creature.audio.sound, 0.5);
       if (raid.stage === 'silhouette') { approach = 0; play(raid.creature.audio.sound, 0.35); }
+      raidPan(raid);
     }
   }
 
@@ -1353,12 +1795,14 @@
     cam.x = camTo.from.x + (camTo.x - camTo.from.x) * e;
     cam.y = camTo.from.y + (camTo.y - camTo.from.y) * e;
     cam.z = camTo.from.z + (camTo.z - camTo.from.z) * e;
+    clampCam();
     if (k >= 1) camTo = null;
   }
   function flyToSlot(slot) {
     const r = rectOf(slot), ins = uiInset();
     const h = Math.max(120, view.h - ins.top - ins.bottom);
-    const z = Math.max(cam.z, Math.min(2.2, (view.w * 0.82) / (r.w + 2 * PAD), (h * 0.62) / (r.h + 2 * PAD)));
+    if (!r) return;
+    const z = Math.max(cam.z, Math.min(0.9, (view.w * 0.6) / r.w, (h * 0.7) / r.h));
     camTo = { from: { x: cam.x, y: cam.y, z: cam.z }, x: r.x + r.w / 2,
               y: r.y + r.h / 2 + ((ins.bottom - ins.top) / 2) / z, z, t0: performance.now(), dur: 750 };
   }
@@ -1414,12 +1858,13 @@
   // 선반 격자(방 안쪽 기준 세계 좌표). 방 이름표 아래에서 바닥 띠 위까지. 칸이 늘면 줄과 칸 크기가 바뀐다
   function shelfGrid() {
     const cap = shelfCap(), perRow = cap <= 12 ? 6 : 10, rows = Math.ceil(cap / perRow);
-    const innerW = ROOM_W - 2 * PAD - 12, top = 18, avail = (ROOM_H - 2 * PAD) * 0.80 - top;
-    const S = Math.min(1, innerW / (perRow * 34), (avail - rows * 3) / (rows * 30));
-    return { cap, perRow, rows, S, cw: 34 * S, ch: 30 * S, x0: 6 + (innerW - perRow * 34 * S) / 2, top };
+    // M5 칸(564×317, 플레이트 1:1)의 뒷벽: 방 이름표 아래 ~ 사람 머리 위. 칸 좌표(px)
+    const innerW = 470, top = 46, avail = 108;
+    const S = Math.min(2, innerW / (perRow * 34), (avail - rows * 3) / (rows * 30));
+    return { cap, perRow, rows, S, cw: 34 * S, ch: 30 * S, x0: 47 + (innerW - perRow * 34 * S) / 2, top };
   }
   function drawShelf(slot, ix, iy, iw, ih, lit) {
-    if (slot !== shelfRoomSlot() || cam.z < 0.22) return;
+    if (slot !== shelfRoomSlot() || cam.z < 0.1) return;
     const g = shelfGrid(), z = cam.z, now = performance.now();
     const X = (wx) => ix + wx * z, Y = (wy) => iy + wy * z;
     const baseOf = (row) => g.top + row * (g.ch + 3) + g.ch;
@@ -1808,16 +2253,25 @@
     const wx = wxOf(px), wy = wyOf(py);
     for (let s = 0; s < slots; s++) {
       const q = rectOf(s);
-      if (wx >= q.x && wx <= q.x + q.w && wy >= q.y && wy <= q.y + q.h) return s;
+      if (q && wx >= q.x && wx <= q.x + q.w && wy >= q.y && wy <= q.y + q.h) return s;
     }
     return null;
   }
 
   let drag = null;
+  // 두 손가락 = 핀치 줌(폰). 손가락이 둘이 되는 순간 드래그·집기는 취소된다
+  const touches = new Map();
+  let pinch = null;
+  function pinchState() {
+    const [a, b] = [...touches.values()];
+    return { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+  }
   cv.addEventListener('pointerdown', (e) => {
     camTo = null;                                // 손이 닿으면 자동 이동은 멈춘다
     const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
     pointer = { x: px, y: py };
+    touches.set(e.pointerId, { x: px, y: py });
+    if (touches.size === 2) { pinch = pinchState(); drag = null; dragging = null; cv.classList.remove('dragging'); return; }
     const p = hitAt(px, py, 'person');
     drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: 0, person: p || null };
     cv.setPointerCapture(e.pointerId);
@@ -1826,6 +2280,13 @@
   cv.addEventListener('pointermove', (e) => {
     const r = cv.getBoundingClientRect();
     pointer = { x: e.clientX - r.left, y: e.clientY - r.top };
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: pointer.x, y: pointer.y });
+    if (pinch && touches.size === 2) {
+      const n = pinchState();
+      if (pinch.d > 0) zoomAt(n.cx, n.cy, n.d / pinch.d);
+      cam.x -= (n.cx - pinch.cx) / cam.z; cam.y -= (n.cy - pinch.cy) / cam.z; clampCam();
+      pinch = n; return;
+    }
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.moved = Math.max(drag.moved, Math.abs(dx) + Math.abs(dy));
@@ -1837,8 +2298,11 @@
       return;                                  // 사람을 들고 있을 때 카메라는 움직이지 않는다
     }
     cam.x = drag.cx - dx / cam.z; cam.y = drag.cy - dy / cam.z;
+    clampCam();
   });
   cv.addEventListener('pointerup', (e) => {
+    touches.delete(e.pointerId);
+    if (pinch) { if (touches.size < 2) pinch = null; drag = null; return; }
     const d = drag; drag = null; cv.classList.remove('dragging');
     if (!ark || !d) { dragging = null; return; }
     const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
@@ -1873,9 +2337,11 @@
     if (sh) { toast(shelfLine(sh.item)); openPanel(s != null ? s : shelfRoomSlot()); return; }
     if (s != null) { openPanel(s); return; }
     if (hitAt(px, py, 'hall')) { openHallPanel(); return; }
+    const sc = hitAt(px, py, 'sealed');
+    if (sc) { openSealed(sc.cell); return; }
     closePanel();
   });
-  cv.addEventListener('pointercancel', () => { drag = null; dragging = null; cv.classList.remove('dragging'); });
+  cv.addEventListener('pointercancel', (e) => { touches.delete(e.pointerId); pinch = null; drag = null; dragging = null; cv.classList.remove('dragging'); });
   cv.addEventListener('wheel', (e) => {
     e.preventDefault(); camTo = null;
     const r = cv.getBoundingClientRect();
@@ -1901,13 +2367,36 @@
   });
   $('#shelfBtn').addEventListener('click', toShelf);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#scan').hidden) closeScan(); });
-  window.addEventListener('resize', () => { resize(); });
+  let lastPortrait = null;
+  window.addEventListener('resize', () => {
+    resize(); orient();
+    const p = isPortrait();                          // 돌렸을 때만 다시 맞춘다(창 크기만 바뀌면 보던 자리 유지)
+    if (lastPortrait !== null && p !== lastPortrait && ark) fit();
+    lastPortrait = p;
+  });
+  // 폰 세로: 가로로 돌려 달라는 부드러운 안내. 닫으면 세로 그대로 쓸 수 있다(옛 세로 배치가 남아 있다)
+  function orient() {
+    const el = $('#rotate'); if (!el) return;
+    let dismissed = false; try { dismissed = sessionStorage.getItem('ark_rotate_ok') === '1'; } catch (e) { /* 저장 못 해도 */ }
+    el.hidden = !(isPortrait() && view.w <= 560) || dismissed || !!el._ok;
+  }
+  const rb = $('#rotateOk');
+  if (rb) rb.addEventListener('click', () => { $('#rotate')._ok = true; try { sessionStorage.setItem('ark_rotate_ok', '1'); } catch (e) { /* */ } orient(); fit(); });
 
   // 다른 화면(index)과 같은 규약: 밖에서 쓸 수 있게 몇 개만 연다.
   // slotBox·peopleHits 는 자동 검수(Playwright)가 캔버스를 정확히 누르기 위한 읽기 전용 창이다.
   window.ARKBASE = {
     reload: () => load(false), refreshRaid, fit, uid,
-    slotBox: (s) => { const q = rectOf(s); return { x: sx(q.x), y: sy(q.y), w: q.w * cam.z, h: q.h * cam.z }; },
+    slotBox: (s) => { const q = rectOf(s); return q ? { x: sx(q.x), y: sy(q.y), w: q.w * cam.z, h: q.h * cam.z } : null; },
+    // ★ S12-B 검수용: 맵·카메라·프레임 시간
+    map: () => ({ id: window.ArkMap.id, provisional: MAP().provisional, world: MAP().world, layers: Object.keys(layerImgs),
+                  slots: Array.from({ length: slots }, (_, i) => { const c = cellOf(i); return c ? { slot: i, cell: c.id, storey: c.storey, col: c.col } : null; }).filter(Boolean),
+                  trenchY: zoneY(TRENCH_M), layoutTrenchY: MAP().depth.trenchY }),
+    cam: () => Object.assign({}, cam, { zmin: zMin() }),
+    sil: () => silDbg,                                 // ★ 검수용: 지금 다가오는 실루엣의 세계 x
+    fps: () => { const a = fpsLog.slice(-120); const m = a.reduce((x, y) => x + y, 0) / Math.max(1, a.length); const b = workLog.slice(-120), wm = b.reduce((x, y) => x + y, 0) / Math.max(1, b.length);
+      return { avgMs: +m.toFixed(2), fps: +(1000 / m).toFixed(1), worstMs: Math.max(...a), drawMs: +wm.toFixed(2), drawWorstMs: +Math.max(...b).toFixed(2) }; },
+    zoomBy: (k) => zoomAt(view.w / 2, view.h / 2, k), panTo: (x, y) => { cam.x = x; cam.y = y; clampCam(); },
     hallBox: () => { const h = hallRect(); return { x: sx(h.x), y: sy(h.y), w: h.w * cam.z, h: h.h * cam.z }; },
     peopleHits: () => hits.filter(h => h.kind === 'person').map(h => ({ id: h.id, name: h.name, from: h.from,
       cx: h.x + h.w / 2, cy: h.y + h.h / 2 })),
@@ -1923,5 +2412,15 @@
     moveLog: () => moveLog.slice(),                    // 엘리베이터 배차 기록(시각은 performance.now 초)
   };
 
-  resize(); fit(); raf = requestAnimationFrame(frame); load(true);
+  // 맵(layout.json)이 먼저, 상태가 나중. 맵 파일이 없어도 잠정 배치로 바로 돈다(m5map.js)
+  resize(); orient(); raf = requestAnimationFrame(frame);
+  window.ArkMap.ready.then(() => {
+    loadLayers(); initLife(); loadCar();
+    // 플레이트·덧그림은 미리 받아 둔다 — 물을 뺀 순간 첫 프레임부터 그림으로 보이게
+    new Set(Object.values(PLATE_OF)).forEach(id => { plateImg('room_plate_' + id + '_lit.png'); plateImg('room_plate_' + id + '_dark.png'); });
+    ['damage_crack1.png', 'damage_crack2.png', 'damage_crack3.png', 'room_flood.png'].forEach(plateImg);
+    overlayImg('cell_plan'); overlayImg('cell_flood');
+    traffic.setGraph(MOVE_ADAPTER.graph());
+    fit(); lastPortrait = isPortrait(); load(true);
+  });
 })();

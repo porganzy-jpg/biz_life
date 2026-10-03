@@ -2605,6 +2605,17 @@ def is_test_uid(uid: str) -> bool:
     return uid in TEST_UIDS or uid.startswith(TEST_UID_PREFIXES)
 
 
+@app.get("/api/lore/tower")
+def tower_lore():
+    """S12-B: M5 거점 화면의 되찾기 한 줄·180 m 아래 문장(data/tower_lore.json, 시나리오 소유). 읽기 전용."""
+    p = ROOT / "data" / "tower_lore.json"
+    try:
+        j = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"reclaim": [], "below_limit": None}
+    return {"reclaim": j.get("reclaim") or [], "below_limit": j.get("below_limit")}
+
+
 @app.get("/api/stats")
 def stats(all: bool = False):
     """테스트 지표 (H1~H5 원자료). 기본은 에이전트 테스트 uid 제외."""
