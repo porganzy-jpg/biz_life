@@ -666,7 +666,15 @@
   "lounge": "rest_lounge",
   "bath": "sit"
  },
- "room_work_rule": "방에 배치된 사람은 room_work[방 id] 행을 돈다. 플레이트 파일명 power = 방 id generator. 설비(밸브·레버·모루·독서대·화로·공기통·화분·선반·십자 상자)는 **사람 셀 안에 같이 찍혀 있다** — 그래서 방 플레이트의 어느 stand_x 에 세워도 동작이 방을 말한다. 설비는 몸 왼쪽(셀 x 0~20)에 있으므로 좌우 반전해 써도 된다(외곽선·틴트 규칙 동일). bath(물 끓이는 방)는 sit, hall 은 idle.",
+ "room_work_rule": "방에 배치된 사람은 room_work[방 id] 행을 돈다. 플레이트 파일명 power = 방 id generator. 설비(밸브·레버·모루·독서대·화로·공기통·화분·선반·십자 상자)는 **사람 셀 안에 같이 찍혀 있다** — 그래서 방 플레이트의 어느 stand_x 에 세워도 동작이 방을 말한다. 설비는 몸 왼쪽에 있다 — 3/4 다섯 방(거주·창고·정수·온실·의무)은 셀 x 0~20, 옆모습 다섯 방(발전·공방·해독·식량·에어락)은 셀 x 7~27(S12: 옆모습 어깨가 몸 가운데라 팔 길이 안으로 당겼다). 사람은 설비 쪽(왼쪽)을 본다. 설비가 사람 오른쪽에 와야 하면 셀 전체를 좌우 반전한다(외곽선·틴트 규칙 동일). bath(물 끓이는 방)는 sit, hall 은 idle.",
+ "combo_patch_rule": "머리·얼굴을 함께 바꿀 때: 기본 시트 + hair/<role>_<body>/<hair>.png 를 먼저 얹고, 머리가 short 가 아니고 얼굴이 f0 가 아니면 faces/<role>_<body>/<hair>_<face>.png 를, 아니면 faces/<role>_<body>/<face>.png 를 얹는다(PM 2026-10-03 결정 (가)). 정면 0~6행에서 곱슬·두건 × 얼굴②·③ 은 단순 겹침이면 틀린다 — 조합 파일이 그 답이다. 조합 파일은 모든 행(26)을 담고, 생성기가 18조합 × 16시트 × 전 행을 픽셀까지 검사한다.",
+ "combo_check_result": {
+  "combo_face_patches": 160,
+  "combos_tested": 288,
+  "cells_per_combo": 67,
+  "mismatch_with_rule": 0,
+  "mismatch_cells_without_rule_ref": 1224
+ },
  "elevator": {
   "sequence": [
    "elevator_wait",

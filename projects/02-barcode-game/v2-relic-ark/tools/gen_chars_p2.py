@@ -2494,6 +2494,7 @@ def main():
 
     # ── 2. 머리 6종 · 얼굴 3종 패치 (역할 × 체형마다 한 벌) ─────────────
     npatch, bad = 0, 0
+    PATCH_SHEETS = {}
     for body in BODY_IDS:
         for role in ROLES:
             dcells = {}
@@ -2516,12 +2517,54 @@ def main():
                     psheet = sheet_of(pcells, 1)
                     psheet.save(os.path.join(d0, vid + '.png'))
                     npatch += 1
+                    PATCH_SHEETS[(role, body, kind, vid)] = psheet
                     # 전수 검사: 기본 시트 + 패치 == 변형 시트 (한 픽셀도 틀리면 안 된다)
                     if list(apply_patch(dsheet, psheet).getdata()) != \
                        list(sheet_of(vcells, 1).getdata()):
                         bad += 1
                         print('   [!!] 패치 복원 실패: %s %s %s' % (role, body, vid))
     print('[검사] 머리·얼굴 패치 %d장, 기본시트+패치==변형시트 불일치 %d건' % (npatch, bad))
+
+    # ── 2-b. 조합 얼굴 패치 (PM 2026-10-03 결정 (가)) ─────────────────────
+    #   정면 0~6행에서 얼굴②·③ 눈썹이 곱슬·두건 머리 픽셀과 같은 자리라, 머리 패치 위에 얼굴 패치를
+    #   그냥 얹으면 머리를 덮어쓴다(840칸). 0~6행 픽셀은 그대로 두고, **머리가 얹힌 시트 기준의 얼굴 패치**를
+    #   새 파일로 낸다: faces/<role>_<body>/<hair>_<face>.png = (기본 + 머리 패치) → (그 머리 + 그 얼굴) 의 차이.
+    #   규칙: 머리 ≠ short 이고 얼굴 ≠ f0 이면 <face>.png 대신 <hair>_<face>.png 를 얹는다.
+    #   검사: 18조합 × 26행 전부, 기본 + 머리 패치 + (규칙대로 고른 얼굴 패치) == 그 조합을 직접 그린 것.
+    ncombo, combo_bad_all, naive_bad_cells = 0, 0, 0
+    for body in BODY_IDS:
+        for role in ROLES:
+            cellsets = [(clip, i) for clip, n in CLIPS for i in range(n)]
+            dsheet = sheet_of({k: img_of(role, k[0], k[1], body, 'short', 'f0').img() for k in cellsets}, 1)
+            d0 = os.path.join(OUT, 'faces', '%s_%s' % (role, body))
+            for hid, _k, _n in HAIRS:
+                hsheet = apply_patch(dsheet, PATCH_SHEETS[(role, body, 'hair', hid)])
+                for fid, _k2, _n2 in FACES:
+                    want = sheet_of({k: img_of(role, k[0], k[1], body, hid, fid).img() for k in cellsets}, 1)
+                    plain = PATCH_SHEETS[(role, body, 'faces', fid)]
+                    # 참고: 규칙 없이 단순히 겹쳤을 때 틀리는 칸 수(셀 단위)
+                    naive = apply_patch(hsheet, plain)
+                    if naive.tobytes() != want.tobytes():
+                        for r_, (clip, n) in enumerate(CLIPS):
+                            for i in range(n):
+                                box = (CELL * i, CELL * r_, CELL * (i + 1), CELL * (r_ + 1))
+                                if naive.crop(box).tobytes() != want.crop(box).tobytes():
+                                    naive_bad_cells += 1
+                    if hid != 'short' and fid != 'f0':
+                        cp = diff_img(hsheet, want)
+                        cp.save(os.path.join(d0, '%s_%s.png' % (hid, fid)))
+                        ncombo += 1
+                        use = cp
+                    else:
+                        use = plain
+                    if apply_patch(hsheet, use).tobytes() != want.tobytes():
+                        combo_bad_all += 1
+                        print('   [!!] 조합 패치 복원 실패: %s %s %s+%s' % (role, body, hid, fid))
+    COMBO_CHECK = {'combo_face_patches': ncombo, 'combos_tested': len(BODY_IDS) * len(ROLES) * 18,
+                   'cells_per_combo': sum(n for c_, n in CLIPS), 'mismatch_with_rule': combo_bad_all,
+                   'mismatch_cells_without_rule_ref': naive_bad_cells}
+    print('[검사] 조합 얼굴 패치 %d장 · 18조합 × 16시트 × 전 %d행: 규칙대로 얹었을 때 불일치 %d건 '
+          '(규칙 없이 단순 겹침이면 %d칸 틀림 — 참고)' % (ncombo, len(CLIPS), combo_bad_all, naive_bad_cells))
 
     # ── 3. 각인 레이어 — 네 체형(어른 A·B, 아이 A·B)마다 한 벌 ──────────
     for sid, arole, abody in SHAPES:
@@ -3418,8 +3461,17 @@ def main():
         'room_work': ROOM_WORK,
         'room_work_rule': '방에 배치된 사람은 room_work[방 id] 행을 돈다. 플레이트 파일명 power = 방 id generator. '
                           '설비(밸브·레버·모루·독서대·화로·공기통·화분·선반·십자 상자)는 **사람 셀 안에 같이 찍혀 있다** — '
-                          '그래서 방 플레이트의 어느 stand_x 에 세워도 동작이 방을 말한다. 설비는 몸 왼쪽(셀 x 0~20)에 있으므로 '
-                          '좌우 반전해 써도 된다(외곽선·틴트 규칙 동일). bath(물 끓이는 방)는 sit, hall 은 idle.',
+                          '그래서 방 플레이트의 어느 stand_x 에 세워도 동작이 방을 말한다. 설비는 몸 왼쪽에 있다 — '
+                          '3/4 다섯 방(거주·창고·정수·온실·의무)은 셀 x 0~20, 옆모습 다섯 방(발전·공방·해독·식량·에어락)은 '
+                          '셀 x 7~27(S12: 옆모습 어깨가 몸 가운데라 팔 길이 안으로 당겼다). 사람은 설비 쪽(왼쪽)을 본다. '
+                          '설비가 사람 오른쪽에 와야 하면 셀 전체를 좌우 반전한다(외곽선·틴트 규칙 동일). '
+                          'bath(물 끓이는 방)는 sit, hall 은 idle.',
+        'combo_patch_rule': '머리·얼굴을 함께 바꿀 때: 기본 시트 + hair/<role>_<body>/<hair>.png 를 먼저 얹고, '
+                            '머리가 short 가 아니고 얼굴이 f0 가 아니면 faces/<role>_<body>/<hair>_<face>.png 를, '
+                            '아니면 faces/<role>_<body>/<face>.png 를 얹는다(PM 2026-10-03 결정 (가)). '
+                            '정면 0~6행에서 곱슬·두건 × 얼굴②·③ 은 단순 겹침이면 틀린다 — 조합 파일이 그 답이다. '
+                            '조합 파일은 모든 행(26)을 담고, 생성기가 18조합 × 16시트 × 전 행을 픽셀까지 검사한다.',
+        'combo_check_result': COMBO_CHECK,
         'elevator': {'sequence': ['elevator_wait', 'back_walk(칸으로 들어감)', 'elevator_turn', 'elevator_ride',
                                   'walk(내림)'],
                      'note': 'ride 는 거의 정지 — 내려가는 느낌은 칸 전체를 세로로 움직여 낸다. '
