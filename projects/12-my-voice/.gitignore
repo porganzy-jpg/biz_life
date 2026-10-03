@@ -18,3 +18,5 @@ sing_ep/
 singfix/
 cmp*/
 rev/
+# 뮤직비디오: 악기 분리 스템 (demucs 로 재생성, 310MB)
+mv/stems/
