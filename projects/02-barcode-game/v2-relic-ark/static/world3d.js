@@ -37,7 +37,7 @@ const SCENE_GLB = {
 // → 아래는 폴백이고, 서빙되면 그쪽이 이긴다(§요청사항 참고).
 const SPOT_FALLBACK = {
   id: 'spot_flooded_train', name: '물에 잠긴 전철',
-  discovery_text: '잊힌 역의 선로 끝, 물이 무릎까지 차오른 승강장에 열차 한 량이 멈춰 서 있다. 객차 안쪽 바닥은 통째로 맑은 청록 물이고, 손잡이마다 분홍 꽃이 매달려 흔들린다. 깨진 창으로 들어온 빛 기둥 아래를 금붕어들이 천천히 지나간다. 방주에서 온 사람들은 아무 말도 하지 않고, 들어갈 생각도 하지 않고, 문간에 서서 오래 본다.',
+  discovery_text: '잊힌 역의 선로 끝, 물이 무릎까지 차오른 승강장에 열차 한 량이 멈춰 서 있다. 객차 안쪽 바닥은 통째로 맑은 청록 물이고, 손잡이마다 분홍 꽃이 매달려 흔들린다. 깨진 창으로 들어온 빛 기둥 아래를 금붕어들이 천천히 지나간다. 방주에서 온 사람들은 아무 말 없이, 들어가 볼 생각도 없이 문간에 서서 오래 바라본다.',
 };
 
 const PHASES = [
@@ -684,7 +684,7 @@ function applyDay() {
     if (id === 'dusk' || id === 'night') fire('world:lantern_on', { phase: id });
     if (id === 'dusk') {
       fire('ai:dog_warn', { reason: 'dusk' });                     // A5: 개가 0.4초 먼저 짖는다
-      setTimeout(() => warn('해가 기운다. 돌아와야 한다.'), 400);
+      setTimeout(() => warn('해가 기웁니다. 이제 돌아오셔야 합니다.'), 400);
     }
     if (id === 'dawn' && lastPhase === 3) { day++; $('#dayNo').textContent = `${day}일차`; }
     lastPhase = i0;
@@ -698,7 +698,7 @@ function warn(t) {
 applyDay();
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 9. 스캔 훅 — /api/scan 성공 시 몰 입구로 카트가 들어온다(원시 도형, D3 "기다림은 장면으로")
+// 9. 스캔 훅 — /api/scan 성공 시 몰 입구로 카트가 들어옵니다(원시 도형, D3 "기다림은 장면으로")
 // ═══════════════════════════════════════════════════════════════════════════
 const carts = [];
 const crateMat = new THREE.MeshStandardMaterial({ color: 0x8A6A3C, roughness: .85 });
@@ -724,7 +724,7 @@ function onScan(card) {
   g.rotation.y = MALL_ROT + Math.PI / 2;
   scene.add(g);
   carts.push({ g, crate, t: 0, from, to, card: card || null, dropped: false });
-  toast(card ? `카트 도착 — 「${card.name || card.title || '유물'}」` : '카트가 들어온다');
+  toast(card ? `카트가 들어왔습니다. 「${card.name || card.title || '유물'}」` : '카트가 들어옵니다');
   return true;
 }
 function stepCarts(dt) {
@@ -787,11 +787,11 @@ async function doScan(barcode) {
       body: JSON.stringify({ uid, barcode: code }),
     });
     const j = await r.json();
-    if (!r.ok) { toast(j.detail || '해독 실패'); return null; }
+    if (!r.ok) { toast(j.detail || '해독하지 못했습니다'); return null; }
     paintRes(j.resources); fire('api:scan_ok', { card: j.card }); onScan(j.card);
     if (j.voice) setTimeout(() => voiceToast(j.voice), 1800);    // 카트가 들어온 뒤 리더가 한 줄
     return j;
-  } catch (e) { toast('서버에 닿지 않는다'); return null; }
+  } catch (e) { toast('서버와 연결이 안 됩니다'); return null; }
 }
 
 function toast(t) {
@@ -949,7 +949,7 @@ canvas.addEventListener('pointermove', e => {
 function endPtr(e) {
   if (drag && ptrs.size === 1 && drag.b !== 2 && drag.moved < 8 && performance.now() - drag.t < 700) {
     const p = groundAt(drag.sx, drag.sy);
-    if (p) { const n = sendTo(selected, p.x, p.z); if (n) toast(`${selected === 'all' ? '전원' : actors[selected].ko} 출발`); }
+    if (p) { const n = sendTo(selected, p.x, p.z); if (n) toast(`${selected === 'all' ? '전원' : actors[selected].ko} 출발합니다`); }
   }
   ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0; if (ptrs.size === 0) drag = null;
 }
@@ -968,7 +968,7 @@ document.querySelectorAll('#who button').forEach(b => b.onclick = () => {
 });
 $('#btnPhase').onclick = () => { dayT = (Math.floor(dayT) + 1) % 4; applyDay(); };   // 날짜는 applyDay 의 새벽 전이에서만 오른다
 $('#btnAuto').onclick = () => { auto = !auto; $('#btnAuto').classList.toggle('on', auto); };
-$('#btnHome').onclick = () => { const w = toWorld(HALL_L.x, HALL_L.z); sendTo('all', w.x, w.z); toast('홀 허브로 복귀'); };
+$('#btnHome').onclick = () => { const w = toWorld(HALL_L.x, HALL_L.z); sendTo('all', w.x, w.z); toast('모두 홀로 돌아갑니다'); };
 $('#btnView').onclick = () => { camAz = Math.PI / 4; camEl = Math.PI / 4; frustum = 26; camTarget.set(-4, 0.8, -4); placeCamera(); };
 $('#btnScan').onclick = () => doScan();
 $('#dClose').onclick = () => { $('#discover').classList.remove('show'); AUDIO.endCue(); if (camSaved) tweenCam(camSaved, 1.2); };

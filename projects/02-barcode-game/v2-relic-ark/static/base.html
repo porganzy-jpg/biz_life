@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>잔해 방주 — 거점 단면</title>
+<title>잔해 방주 · 거점</title>
 <meta name="screen-orientation" content="landscape">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="/static/base.css">
@@ -47,23 +47,23 @@
     <!-- 관문 행동: 토글로 안 되는 일곱 중 그 생물의 하나. 대가는 누르는 자리에서 낸다 -->
     <div class="ract" id="ract" hidden></div>
     <div class="rwould" id="rwould"></div>
-    <button class="radv" id="radv">듣는다</button>
+    <button class="radv" id="radv">귀 기울이기</button>
     <p class="rhint" id="rhint"></p>
   </aside>
 
   <!-- 오른쪽 아래 둘: 찍기(이 게임의 훅 — J5·E1) · ≡ 메뉴 -->
   <div class="brbtns">
-    <button class="scanbtn" id="scanbtn" title="바코드를 찍는다">찍기</button>
+    <button class="scanbtn" id="scanbtn" title="바코드 찍기">찍기</button>
     <button class="menubtn" id="menubtn" title="메뉴" aria-expanded="false">≡</button>
   </div>
-  <!-- ≡ 메뉴: 창고(자원 전부)·전원·공방·들이다·열쇠 -->
+  <!-- ≡ 메뉴: 창고(자원 전부)·전원·공방·들이기·열쇠 -->
   <div class="menu" id="menu" hidden>
     <h3>창고</h3>
     <div class="mres" id="mres"></div>
     <div class="mbtns">
       <button id="pwr" class="sw" title="돔 전원">전원 켜짐</button>
       <button id="wbtn" class="sw" title="공방">공방</button>
-      <button id="recallbtn" class="sw warn" title="밖에 있는 사람을 들인다" hidden>들이다</button>
+      <button id="recallbtn" class="sw warn" title="밖에 계신 분 들이기" hidden>들이기</button>
       <button id="keybtn" class="sw" title="복구 코드 · 다른 기계에서 이어 하기">열쇠</button>
     </div>
   </div>
@@ -95,12 +95,12 @@
       <button class="close" id="scanClose" aria-label="닫기">×</button>
       <div id="scanCam">
         <p class="sub">성문 해독</p>
-        <h2>물건의 줄무늬를 비춘다</h2>
+        <h2>물건의 줄무늬를 비춰 주세요</h2>
         <div class="cam" id="cam"><video id="video" playsinline muted></video><div class="reticle"></div>
           <div class="camstatus" id="camstatus">카메라 준비 중…</div></div>
         <div class="manual">
           <input id="manual" inputmode="numeric" autocomplete="off" placeholder="바코드 숫자 8~13자리" maxlength="14">
-          <button id="manualBtn">읽는다</button>
+          <button id="manualBtn">읽기</button>
         </div>
         <div class="samples" id="samples" hidden></div>
         <div class="picker" id="picker" hidden></div>
@@ -112,7 +112,7 @@
           <div class="rc-face rc-front" id="rcFront"></div>
         </div></div>
         <div class="rgain" id="rgain"></div>
-        <button class="shelfbtn" id="shelfBtn">선반에 둔다</button>
+        <button class="shelfbtn" id="shelfBtn">선반에 두기</button>
       </div>
     </div>
   </div>
@@ -123,7 +123,7 @@
   <div class="rotate" id="rotate" hidden>
     <div class="rotate-in">
       <div class="phone-ico" aria-hidden="true"></div>
-      <p>폰을 <b>가로로</b> 돌리면 돔과 바깥 심연이 한 화면에 들어온다.</p>
+      <p>폰을 <b>가로로</b> 돌리시면 돔과 바깥 심연이 한 화면에 들어옵니다.</p>
       <button id="rotateOk">세로로 계속</button>
     </div>
   </div>

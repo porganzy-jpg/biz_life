@@ -15,7 +15,7 @@
     let seen = /nointro/.test(location.search); try { seen = seen || localStorage.getItem('ark_intro') === '1'; } catch { }
     if (seen) return;
     const ov = document.createElement('div'); ov.className = 'intro';
-    ov.innerHTML = `<div class="intro-in"><p class="l1">대침묵 213년.</p><p class="l2">문명은 잊혔다. 남은 것은 물건에 새겨진 검은 줄무늬뿐.</p><p class="l3">당신은 그것을 읽을 수 있는 몇 안 되는 사람이다.<br>주민 셋과 함께, 폐허 아래에 방주를 판다.</p><button class="btn lamp" id="introGo">방주로 내려가기</button></div>`;
+    ov.innerHTML = `<div class="intro-in"><p class="l1">대침묵 213년.</p><p class="l2">문명은 잊혔다. 남은 것이라고는 물건에 새겨진 검은 줄무늬뿐이다.</p><p class="l3">당신은 그 줄무늬를 읽을 줄 아는 몇 안 되는 사람이다.<br>주민 셋과 함께 폐허 아래에 방주를 판다.</p><button class="btn lamp" id="introGo">방주로 내려가기</button></div>`;
     $('#app').appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('on'));
     $('#introGo').onclick = () => { ov.classList.add('out'); setTimeout(() => ov.remove(), 900); try { localStorage.setItem('ark_intro', '1'); } catch { } };
@@ -23,15 +23,15 @@
 
   // ── 2. 일지 티커 ─────────────────────────────────────────
   const MOOD = {
-    clear: ['하늘이 드물게 맑다. 지상 정찰에 좋은 날.', '까치들이 조용하다. 불길할 정도로.'],
-    fog: ['안개가 콘크리트 숲을 삼켰다. 소리만 남는다.', '안개 속에서 누군가 걷는 소리. 우리 사람이 아니다.'],
-    rain: ['비가 온다. 정수실이 없다면 빗물을 받아라.', '빗물이 지하 강으로 스며든다. 균류가 좋아하는 날.'],
-    wind: ['바람이 폐허의 간판을 흔든다. 낡은 성문이 떨어진다.', '바람 덕에 라디오탑 신호가 멀리 간다.'],
+    clear: ['하늘이 모처럼 맑다. 지상을 둘러보기 좋은 날이다.', '까치들이 이상하리만치 조용하다.'],
+    fog: ['안개가 콘크리트 숲을 삼켰다. 들리는 건 소리뿐이다.', '안개 속에서 누가 걷는 소리가 난다. 우리 쪽 사람은 아니다.'],
+    rain: ['비가 온다. 정수실이 없으면 빗물이라도 받아 두자.', '빗물이 지하 강으로 스며든다. 균류가 좋아할 날이다.'],
+    wind: ['바람에 폐허의 간판이 흔들린다. 낡은 성문이 하나 떨어져 나온다.', '바람을 타고 라디오탑 신호가 멀리까지 간다.'],
   };
   function journal(w) {
     let el = $('#journal'); if (!el) { el = document.createElement('div'); el.id = 'journal'; el.className = 'journal'; scene.prepend(el); }
     const r = rng('mood' + ark.day + w[1]); const lines = MOOD[w[1]];
-    const low = ark.resources.food <= 2 ? ' 식량이 바닥을 보인다.' : ark.resources.water <= 2 ? ' 물이 모자란다.' : ark.injured ? ` 부상자 ${ark.injured}명이 의무실을 기다린다.` : '';
+    const low = ark.resources.food <= 2 ? ' 식량이 바닥나 간다.' : ark.resources.water <= 2 ? ' 물이 모자란다.' : ark.injured ? ` 다친 사람 ${ark.injured}명이 의무실 자리를 기다린다.` : '';
     el.innerHTML = `<span class="j-meta">DAY ${ark.day} · ${timeOf()} · ${w[0]}</span><span class="j-txt">${lines[Math.floor(r() * lines.length)]}${low}</span>`;
   }
 
@@ -60,7 +60,7 @@
   // ── 4. 자유 이동 주민 (경로 기반) ─────────────────────────
   // 주민은 역 홀을 허브로 지어진 방들 사이를 걸어 다니고, 승강기로 지상에 올라가 둘러본다.
   const WORK = { hall: ['승강기를 손보는 중', '선로 끝을 바라보는 중', '모닥불을 지키는 중'], pantry: ['통조림을 세는 중', '말린 실을 나누는 중'], well: ['물을 거르는 중', '물통을 채우는 중'], infirmary: ['붕대를 감는 중', '약을 세는 중'], library: ['청사진을 읽는 중', '책을 말리는 중'], lot: ['지상을 살피는 중', '채소밭에 물을 주는 중', '하늘을 올려다보는 중'], idle: ['벽에 기대어 쉬는 중', '성문을 들여다보는 중'] };
-  const ROLE_WORK = { scout: ['지상을 정찰하는 중', '발자국을 살피는 중'], cook: ['냄비를 저어보는 중', '말린 실을 끓이는 중'], medic: ['붕대를 개는 중', '약 상자를 정리하는 중'], engineer: ['파이프를 두드리는 중', '배터리를 잇는 중'], farmer: ['씨앗을 세는 중', '화분을 옮기는 중'], scholar: ['성문을 베끼는 중', '책 냄새를 맡는 중'], trader: ['교역품을 헤아리는 중', '누군가와 값을 재는 중'], kid: ['돌멩이를 모으는 중', '벽에 그림을 그리는 중', '까치를 쫓는 중'] };
+  const ROLE_WORK = { scout: ['지상을 정찰하는 중', '발자국을 살피는 중'], cook: ['냄비를 젓는 중', '말린 실을 끓이는 중'], medic: ['붕대를 개는 중', '약 상자를 정리하는 중'], engineer: ['파이프를 두드리는 중', '배터리를 잇는 중'], farmer: ['씨앗을 세는 중', '화분을 옮기는 중'], scholar: ['성문을 베끼는 중', '책 냄새를 맡는 중'], trader: ['교역품을 헤아리는 중', '누군가와 값을 흥정하는 중'], kid: ['돌멩이를 모으는 중', '벽에 그림을 그리는 중', '까치를 쫓는 중'] };
   let actors = [], animT = null, lastT = 0;
   const SPEED = 42; // px/s (월드 기준)
 
@@ -149,7 +149,7 @@
     if (!todayEvent || (ark.today_event && ark.today_event.resolved)) return;
     const ev = todayEvent; const t = document.createElement('button'); t.className = 'threat ' + ev.faction; t.type = 'button';
     const ICON = { scavs: '<i class="fig"></i><i class="fig"></i>', mutant: '<i class="wing"></i><i class="wing"></i><i class="wing"></i>', mycel: '<i class="spore"></i><i class="spore"></i>', machine: '<i class="eye"></i>', world: '<i class="note"></i>' };
-    t.innerHTML = `${ICON[ev.faction] || ICON.world}<span class="t-lab">${ev.positive ? '무언가 다가온다' : '위협 접근'} · ${ev.name}</span>`;
+    t.innerHTML = `${ICON[ev.faction] || ICON.world}<span class="t-lab">${ev.positive ? '무언가 다가옵니다' : '바깥에 손님이 왔습니다'} · ${ev.name}</span>`;
     t.onclick = () => window.ARK && window.ARK.openEvent();
     scene.appendChild(t);
   }

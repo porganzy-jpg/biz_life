@@ -80,6 +80,7 @@
       plate: L.plates || {},
       tower: L.tower, storeys: L.tower.storeys, cells: tower, rock,
       shafts, car, overlays, creatures: LY.creatures || null,
+      entrance: L.entrance || null, hatch: LY.hatch || null, bubbles: LY.bubbles || null,   // S12-B4 입구 포드
       dome: L.dome, glass: L.dome_glass, abyss: L.abyss, lure: L.lure_lamp, cliff: L.cliff,
       depth: { y0: y0m, pxPerM: pxd, trenchY: dep.trench_y != null ? dep.trench_y : y0m + 180 * pxd,
                darkY: dep.dark_full_y || (y0m + 300 * pxd) },

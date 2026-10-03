@@ -118,7 +118,7 @@
       el.className = 'voice-toast morning';
       el.style.bottom = (150 + i * 104) + 'px';           // 여러 명이 같은 아침에 달라졌으면 위로 쌓는다
       el.innerHTML = `<div class="voice morning"><span class="who">아침 · 刻 ${esc(m.imprint_name)}</span>${esc(m.line)}
-        <em>${esc(m.resident)} — ${esc(m.visual)}${m.evolved ? ` · 역할이 「${esc(m.evolved_ko)}」로 진화했다` : ''}</em></div>`;
+        <em>${esc(m.resident)} 님: ${esc(m.visual)}${m.evolved ? ` · 역할이 「${esc(m.evolved_ko)}」로 진화했다` : ''}</em></div>`;
       el.addEventListener('click', () => el.remove());
       document.getElementById('app').appendChild(el);
       requestAnimationFrame(() => el.classList.add('on'));
@@ -192,15 +192,15 @@
     const uc = cellCenter(WORLD.under, 1, 1); plate(stage, 'ground_under', uc.x, uc.y, 24);
     // 지층 경계(지상↔지하) 띠
     const strata = document.createElement('div'); strata.className = 'strata'; strata.style.top = (surfOY + H * 0.9) + 'px'; strata.style.height = (underOY - ISO.fy * s - (surfOY + H * 0.9) + H * 0.5) + 'px'; stage.appendChild(strata);
-    if (keys.length) { const d = document.createElement('div'); d.className = 'away'; d.textContent = `자리를 비운 사이 방주가 생산했습니다: ${keys.map(k => `${RES_KO[k]} +${p[k]}`).join(', ')}`; F.appendChild(d); }
+    if (keys.length) { const d = document.createElement('div'); d.className = 'away'; d.textContent = `자리를 비우신 사이에 방에서 이만큼 만들어 두었습니다: ${keys.map(k => `${RES_KO[k]} +${p[k]}`).join(', ')}`; F.appendChild(d); }
     const roomOpts = (room, slot) => {
       const sp = rooms[room.id];
       const prod = Object.entries(sp.produces).map(([k, v]) => typeof v === 'number' ? `${RES_KO[k]} +${v}` : '대항').join(' ') + ' / 8h';
       return { tile: room.id, cls: 'built', glow: sp.light, label: sp.name, prod, onclick: () => openBuild(slot, true) };
     };
-    const lab0 = document.createElement('div'); lab0.className = 'floor-lab surface'; lab0.style.top = (surfOY - ISO.fy * s + 80) + 'px'; lab0.textContent = 'B0 · 지상 — 재건'; stage.appendChild(lab0);
+    const lab0 = document.createElement('div'); lab0.className = 'floor-lab surface'; lab0.style.top = (surfOY - ISO.fy * s + 80) + 'px'; lab0.textContent = 'B0 · 지상 재건'; stage.appendChild(lab0);
     [0, 1].forEach(slot => { const room = ark.rooms.find(r => r.slot === slot); isoCell(stage, WORLD.surf, slot, 0, room ? roomOpts(room, slot) : { tile: 'lot', cls: 'empty', plus: '재건', onclick: () => openBuild(slot, false) }); });
-    const lab1 = document.createElement('div'); lab1.className = 'floor-lab'; lab1.style.top = (underOY - ISO.fy * s - 10) + 'px'; lab1.textContent = 'B1 · 잊힌 역 — 굴착'; stage.appendChild(lab1);
+    const lab1 = document.createElement('div'); lab1.className = 'floor-lab'; lab1.style.top = (underOY - ISO.fy * s - 10) + 'px'; lab1.textContent = 'B1 · 잊힌 역 굴착'; stage.appendChild(lab1);
     isoCell(stage, WORLD.under, 1, 1, { tile: 'hall', cls: 'built hall', glow: '#F2A93B', label: '역 홀 · 승강기', onclick: () => openHall() });
     GRID.forEach(([i, j], k) => { const slot = k + 2; const room = ark.rooms.find(r => r.slot === slot); isoCell(stage, WORLD.under, i, j, room ? roomOpts(room, slot) : { tile: 'rock', cls: 'empty', plus: '굴착', onclick: () => openBuild(slot, false) }); });
     const actors = document.createElement('div'); actors.className = 'actors'; actors.id = 'actors'; stage.appendChild(actors);
@@ -240,7 +240,7 @@
     const cat = ark.imprints_catalog || {};
     return (r.imprints || []).map(id => {
       const im = cat[id]; if (!im) return '';
-      const tip = im.pending ? im.name : `${im.visual} — 대가: ${im.cost || ''}`;   // 문구 대기 각인은 자리표시 문구를 노출하지 않는다
+      const tip = im.pending ? im.name : `${im.visual} · 대가: ${im.cost || ''}`;   // 문구 대기 각인은 자리표시 문구를 노출하지 않는다
       return `<span class="imp" title="${esc(tip)}">刻 ${esc(im.name)}</span>`;
     }).join('');
   }
@@ -253,14 +253,14 @@
     try { rs = await api(`/api/rumors?uid=${uid}`); } catch { box.innerHTML = '<p class="hint">소문을 불러오지 못했습니다.</p>'; return; }
     const got = rs.filter(r => r.unlocked).length;
     box.innerHTML = `<h3 style="font-family:var(--serif);margin:14px 0 4px">소문 ${got} / ${rs.length}</h3>
-      <p class="hint" style="margin:0 0 6px">짐승과 길손이 물어 온 단서. 당신이 무엇을 해독하느냐가 어느 방향의 소문을 부른다.</p>
+      <p class="hint" style="margin:0 0 6px">짐승과 길손이 물어 온 단서들이다. 무엇을 해독하느냐에 따라 들려오는 소문의 방향이 달라진다.</p>
       ${rs.map(r => `<div class="rumor ${r.unlocked ? 'on' : ''}">
         <div class="rt"><b>${r.unlocked ? esc(r.name) : '? ? ?'}</b><span>${esc(r.categories_ko)} ${r.progress.have}/${r.progress.need}</span></div>
         <div class="bar"><i style="width:${Math.round(100 * r.progress.have / r.progress.need)}%"></i></div>
         <div class="rc">${r.unlocked ? esc(r.clue_text || '') : '아직 아무도 이 방향의 이야기를 물어 오지 않았다.'}</div>
       </div>`).join('')}`;
     const fresh = rs.find(r => r.is_new);
-    if (fresh) toast(`새 소문: ${fresh.name}`);
+    if (fresh) toast(`새 소문이 들어왔습니다. 「${fresh.name}」`);
   }
 
   function openHall() {
@@ -274,9 +274,9 @@
     }).join('');
     const avg = list.length ? Math.round(list.reduce((s, r) => s + trustOf(r), 0) / list.length) : 0;
     const marked = list.filter(r => (r.imprints || []).length).length;
-    openSheet(`<div class="eyebrow">B1 · 역 홀</div><h2>잊힌 역의 승강장</h2><img class="room-hero iso" alt="" src="${isoTile('hall')}"><p class="hint">방주의 중심. 승강기가 지상과 지하를 잇고, 끊어진 선로는 어둠 속 터널로 이어진다.</p>
+    openSheet(`<div class="eyebrow">B1 · 역 홀</div><h2>잊힌 역의 승강장</h2><img class="room-hero iso" alt="" src="${isoTile('hall')}"><p class="hint">방주의 한가운데다. 승강기가 지상과 지하를 잇고, 끊어진 선로는 어두운 터널 속으로 이어진다.</p>
       <h3 style="font-family:var(--serif);margin:10px 0 4px">주민 ${ark.residents}</h3>
-      <p class="hint" style="margin:0 0 6px">각인 가진 사람 ${marked}명 · 서로에 대한 신뢰 평균 ${avg}/100. 사람은 사람을 쉽게 믿지 않는다. 함께 위기를 넘겨야만 오른다.</p>
+      <p class="hint" style="margin:0 0 6px">각인 가진 사람 ${marked}명 · 서로 믿는 정도 평균 ${avg}/100. 사람은 사람을 쉽게 믿지 않는다. 위기를 함께 넘겨야 조금씩 오른다.</p>
       <div class="roster">${roster || '<p class="hint">주민 정보가 없습니다.</p>'}</div>
       <div id="rumors"><p class="hint">소문을 듣는 중…</p></div>`);
     renderRumors();
@@ -302,11 +302,11 @@
       const cost = Object.entries(s.cost).map(([k, v]) => `<span class="${(ark.resources[k] || 0) < v ? 'lack' : ''}">${RES_KO[k]} ${v}</span>`).join(' · ');
       return `<div class="room-opt"><img class="thumb iso" alt="" src="${isoTile(id)}"><div><div class="nm"><i style="background:${s.light}"></i>${s.name}</div><div class="cost">${cost}</div></div><button class="btn ${lack.length ? 'ghost' : ''}" data-r="${id}" ${lack.length ? 'disabled' : ''}>짓기</button><div class="ds">${esc(s.desc)}</div></div>`;
     }).join('');
-    openSheet(`<div class="eyebrow">${surface ? 'B0 지상 · 재건' : '지하 · 굴착'}</div><h2>${surface ? '폐허 위에 무엇을 세울까요?' : '무엇을 파낼까요?'}</h2><p class="hint">방은 8시간마다 생산하고, 자리를 비워도 최대 3번까지 쌓입니다. 유물을 해독해 자원을 모으세요.</p>${opts}`);
+    openSheet(`<div class="eyebrow">${surface ? 'B0 지상 · 재건' : '지하 · 굴착'}</div><h2>${surface ? '폐허 위에 무엇을 세울까요?' : '무엇을 파낼까요?'}</h2><p class="hint">방은 8시간마다 물건을 만들고, 자리를 비우셔도 3번까지는 쌓아 둡니다. 유물을 해독해서 자원을 모아 주세요.</p>${opts}`);
     paintRoomCanvases();
     $('#sheetBody').onclick = async (e) => {
       const b = e.target.closest('button[data-r]'); if (!b) return;
-      try { const st = await api('/api/ark/build', { room_id: b.dataset.r, slot }); ark = { ...ark, ...st }; toast(`${rooms[b.dataset.r].name}을(를) 지었습니다`); closeSheet(); renderHud(); renderScene(); }
+      try { const st = await api('/api/ark/build', { room_id: b.dataset.r, slot }); ark = { ...ark, ...st }; toast(`${rooms[b.dataset.r].name} 공사가 끝났습니다`); closeSheet(); renderHud(); renderScene(); }
       catch (err) { toast(err.message); }
     };
   }
@@ -315,11 +315,11 @@
   let stream = null, detector = null, scanning = false, lastCode = '', lastAt = 0, busy = false;
   const SAMPLES = [['8801043015097', '식품'], ['9791162241905', '도서'], ['8806011000013', '의약'], ['8809000111110', '문구'], ['4901234567894', '미지 가문'], ['8801044007770', '패턴']];
   $('#dkScan').addEventListener('click', () => {
-    openSheet(`<div class="eyebrow">성문 해독</div><h2>물건의 줄무늬를 리더에 비추세요</h2><p class="hint">집과 편의점의 모든 것이 유물입니다. 책(ISBN)은 청사진이 됩니다.</p>
+    openSheet(`<div class="eyebrow">성문 해독</div><h2>물건의 줄무늬를 리더에 비춰 주세요</h2><p class="hint">집이나 편의점에 있는 물건은 모두 유물입니다. 책(ISBN)은 청사진이 됩니다.</p>
       <div class="cam" id="cam"><video id="video" playsinline muted></video><div class="reticle"></div><div class="status" id="camstatus">카메라 준비 중…</div></div>
       <div class="manual"><input id="manual" inputmode="numeric" placeholder="바코드 숫자 13자리" maxlength="14"><button class="btn" id="manualBtn">해독</button></div>
       <div class="samples">${SAMPLES.map(([c, l]) => `<button data-c="${c}">${l} ${c}</button>`).join('')}</div>
-      <div class="quota">오늘의 해독 ${ark.scans_today} / ${ark.scan_cap} · 같은 물건은 2회차 50%, 3회차 10%</div><div id="pickerWrap" hidden></div>`);
+      <div class="quota">오늘의 해독 ${ark.scans_today} / ${ark.scan_cap} · 같은 물건은 두 번째 50%, 세 번째 10%</div><div id="pickerWrap" hidden></div>`);
     $('#manualBtn').onclick = () => handleCode($('#manual').value);
     $('#manual').onkeydown = (e) => { if (e.key === 'Enter') handleCode(e.target.value); };
     $('#sheetBody').querySelector('.samples').onclick = (e) => { const b = e.target.closest('button'); if (b) handleCode(b.dataset.c); };
@@ -327,13 +327,13 @@
   });
   async function startCam() {
     const st = $('#camstatus'), cam = $('#cam'); if (!st) return;
-    if (!('BarcodeDetector' in window)) { cam.classList.add('off'); st.textContent = '이 브라우저는 카메라 바코드 인식을 지원하지 않습니다 — 아래 숫자 입력 또는 샘플을 쓰세요'; return; }
+    if (!('BarcodeDetector' in window)) { cam.classList.add('off'); st.textContent = '이 브라우저에서는 카메라로 바코드를 읽을 수 없습니다. 아래에 숫자를 넣거나 샘플을 눌러 주세요'; return; }
     if (!navigator.mediaDevices || !window.isSecureContext) { cam.classList.add('off'); st.textContent = '카메라는 HTTPS 또는 localhost에서만 열립니다'; return; }
     try {
       detector = detector || new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'ean_8'] });
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
       const v = $('#video'); v.srcObject = stream; await v.play();
-      st.textContent = '성문을 붉은 선에 맞추세요'; scanning = true; loop();
+      st.textContent = '성문을 붉은 선에 맞춰 주세요'; scanning = true; loop();
     } catch (e) { cam.classList.add('off'); st.textContent = '카메라를 열 수 없습니다: ' + e.message; }
   }
   function stopCam() { scanning = false; if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
@@ -363,14 +363,14 @@
   }
   function showPicker(pk) {
     const w = $('#pickerWrap'); if (!w) return; w.hidden = false;
-    w.innerHTML = `<p class="hint" style="margin-top:12px">이 가문의 성문은 처음입니다. 이 물건은 무엇입니까?</p><div class="picker">${pk.categories.map(c => `<button data-c="${c}">${CAT_KO[c]}<small>${c}</small></button>`).join('')}<button data-c="">모름<small>unknown</small></button></div>`;
+    w.innerHTML = `<p class="hint" style="margin-top:12px">처음 보는 가문의 성문입니다. 어떤 물건인가요?</p><div class="picker">${pk.categories.map(c => `<button data-c="${c}">${CAT_KO[c]}<small>${c}</small></button>`).join('')}<button data-c="">모름<small>unknown</small></button></div>`;
     w.querySelector('.picker').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; handleCode(pk.barcode, b.dataset.c || null); };
   }
   function openPack(r) {
     const ov = $('#overlay'), pack = $('#pack'); ov.classList.add('on'); ov.classList.remove('ready'); pack.className = 'pack';
     pack.innerHTML = `<div class="paper l">RELIC</div><div class="paper r">PACK</div>`; pack.appendChild(cardEl(r.card));
     const g = Object.entries(r.gained).map(([k, v]) => `<b>${RES_KO[k]} +${v}</b>`).join(' ');
-    $('#gain').innerHTML = `${r.first_time ? '<span class="first">✦ 도감에 처음 기록된 유물</span><br>' : ''}${g || '<span>이미 해독한 성문 — 얻은 것 없음</span>'}${r.rescan_multiplier < 1 && r.rescan_multiplier > 0 ? `<br><span>재해독 ×${r.rescan_multiplier}</span>` : ''}${voiceHtml(r.voice)}`;
+    $('#gain').innerHTML = `${r.first_time ? '<span class="first">✦ 도감에 처음 기록된 유물</span><br>' : ''}${g || '<span>이미 읽은 물건이라 이번에는 들어온 것이 없습니다.</span>'}${r.rescan_multiplier < 1 && r.rescan_multiplier > 0 ? `<br><span>재해독 ×${r.rescan_multiplier}</span>` : ''}${voiceHtml(r.voice)}`;
     setTimeout(() => pack.classList.add('tear'), 350);
     setTimeout(() => ov.classList.add('ready'), 1200);
     if (navigator.vibrate && ['rare', 'epic', 'legendary'].includes(r.card.rarity)) setTimeout(() => navigator.vibrate([40, 60, 80]), 900);
@@ -380,10 +380,10 @@
   // ── 카드 ────────────────────────────────────────────────
   $('#dkCards').addEventListener('click', async () => {
     const codex = await api(`/api/codex?uid=${uid}`);
-    openSheet(`<div class="eyebrow">유물 카드</div><h2>손패와 도감</h2><p class="hint">태그가 있는 카드는 쪽지(사건)에 대항할 때 쓸 수 있습니다.</p>
+    openSheet(`<div class="eyebrow">유물 카드</div><h2>손패와 도감</h2><p class="hint">태그가 붙은 카드는 쪽지(사건)를 막을 때 쓰실 수 있습니다.</p>
       <div class="codex">${codex.map(c => `<div><b>${CAT_KO[c.category]}</b>${c.found} / ${c.total}<div class="bar"><i style="width:${c.total ? c.found / c.total * 100 : 0}%"></i></div></div>`).join('')}</div><div class="hand" id="hand"></div>`);
     const h = $('#hand');
-    if (!ark.hand.length) h.innerHTML = '<div class="waiting" style="grid-column:1/-1">아직 손패가 없습니다. 태그 있는 유물을 해독하면 여기에 쌓입니다.</div>';
+    if (!ark.hand.length) h.innerHTML = '<div class="waiting" style="grid-column:1/-1">아직 손패가 없습니다. 태그 붙은 유물을 해독하시면 여기에 쌓입니다.</div>';
     [...ark.hand].reverse().forEach(c => h.appendChild(cardEl(c)));
   });
 
@@ -393,14 +393,14 @@
   async function openEvent() {
     await refresh();
     const d = await api(`/api/event/today?uid=${uid}`); const ev = d.event, st = d.state, pos = !!ev.positive;
-    openSheet(`<div class="eyebrow">오늘의 쪽지 · DAY ${st.day}</div><h2>쪽지가 도착했습니다</h2><p class="hint">시간 안에 대항 카드를 누르세요. 대항할 방이 있으면 카드 없이도 반은 막습니다.</p>
+    openSheet(`<div class="eyebrow">오늘의 쪽지 · DAY ${st.day}</div><h2>쪽지가 도착했습니다</h2><p class="hint">시간 안에 대항 카드를 눌러 주세요. 맞는 방이 있으면 카드가 없어도 반은 막습니다.</p>
       <div class="slip ${pos ? 'pos' : ''}" id="slip"><div class="timer" id="tm">${ev.timer_sec}</div><div class="fac">${ev.tribe ? esc(tribeLabel(ev.tribe)) : esc(FAC_KO[ev.faction] || ev.faction)} · 심각도 ${ev.severity}</div><h3>${esc(ev.name)}</h3><p>${esc(ev.text)}</p>
       <div class="tags">대항 태그 ${ev.counter_tags.map(t => `<span>#${esc(t)}</span>`).join('')}${ev.counter_room ? ` · 방 <span>${rooms[ev.counter_room].name}${d.room_backup ? ' ✓' : ' ✗'}</span>` : ''}</div></div>
       <div class="counter-row" id="crow"></div><div class="result" id="result"></div>`);
     requestAnimationFrame(() => setTimeout(() => $('#slip').classList.add('in'), 30));
     if (st.resolved) { showResult({ countered: st.countered, how: st.how, applied: {} }, ev, true); $('#tm').textContent = '·'; return; }
     const row = $('#crow');
-    if (!ark.hand.length) row.innerHTML = `<div class="none">손패가 없습니다.<br>대항할 방이 있으면 50%로 막습니다.</div>`;
+    if (!ark.hand.length) row.innerHTML = `<div class="none">손패가 없습니다.<br>맞는 방이 있으면 50%는 막을 수 있습니다.</div>`;
     ark.hand.forEach(c => { const el = cardEl(c, { badge: false }); if (d.matching_card_ids.includes(c.id)) el.classList.add('match'); el.addEventListener('click', () => resolveEvent(c.id, ev)); row.appendChild(el); });
     let left = ev.timer_sec; const tm = $('#tm');
     clearInterval(evTimer);
@@ -418,18 +418,18 @@
     const ns = r.new_imprints || []; if (!ns.length) return '';
     return `<div class="imprint-news">${ns.map(n => `<div class="one"><b>${esc(n.resident)}에게 각인 「${esc(n.imprint.name)}」${josa(n.imprint.name, '이', '가')} 생겼다</b>
       <div class="vis">${esc(n.line)}</div>
-      ${n.imprint.pending ? '' : `<div class="meta">외형 — ${esc(n.imprint.visual)} · 대가 — ${esc(n.imprint.cost || '없음')}</div>`}
+      ${n.imprint.pending ? '' : `<div class="meta">외형: ${esc(n.imprint.visual)} · 대가: ${esc(n.imprint.cost || '없음')}</div>`}
       ${n.evolved ? `<div class="evoline">세 번째 각인. ${esc(n.resident)}의 역할이 「${esc(n.evolved_ko)}」로 진화했다.</div>` : ''}</div>`).join('')}</div>`;
   }
   function showResult(r, ev, replay) {
     const el = $('#result'); if (!el) return; el.className = 'result on ' + (r.countered ? 'ok' : 'bad');
-    const how = { card: '대항 카드가 통했습니다', room: '방이 대신 막았습니다', role: (r.hero ? `${esc(r.hero.name)}(${esc(r.hero.role_ko)})이(가) 나서서 막았습니다` : '주민이 나서서 막았습니다'), none: '' }[r.how] || '';
+    const how = { card: '대항 카드가 통했습니다', room: '방이 대신 막았습니다', role: (r.hero ? `${esc(r.hero.name)}(${esc(r.hero.role_ko)}) 님이 나서서 막았습니다` : '주민 한 분이 나서서 막았습니다'), none: '' }[r.how] || '';
     const APPLIED_KO = { injured: '부상', resident: '합류', capture: '포획', free_pack: '무료 팩', spot_clue: '힐링 스팟 단서', flag: '기록' };
     const delta = Object.entries(r.applied || {}).filter(([k]) => !['newcomer', 'hero', 'flags'].includes(k))
       .map(([k, v]) => typeof v === 'number' ? `${RES_KO[k] || APPLIED_KO[k] || k} ${v > 0 ? '+' : ''}${v}` : `${APPLIED_KO[k] || k}: ${esc(v)}`).join(' · ');
     // 누가 나섰는가 — 각인은 나선 사람에게만 남는다
     const who = (r.participants || []).length ? `<div class="delta went">나선 사람: ${r.participants.map(p => `${esc(p.name)}<small>(${esc(p.role_ko || '')})</small>`).join(' · ')}</div>` : '';
-    el.innerHTML = `<b>${r.countered ? (ev.positive ? '기회를 잡았습니다' : '막아냈습니다') : (ev.positive ? '기회가 지나갔습니다' : '피해를 입었습니다')}</b> ${how ? '— ' + how : ''}<div class="delta">${delta || (replay ? '오늘 쪽지는 이미 처리되었습니다' : '변화 없음')}</div>${r.used_card ? `<div class="delta">사용한 카드: ${esc(r.used_card.name)}</div>` : ''}${r.applied && r.applied.newcomer ? `<div class="delta" style="color:#3f9a68">새 주민 합류: ${esc(r.applied.newcomer.name)} · ${esc(r.applied.newcomer.role_ko)} — ${esc(r.applied.newcomer.ability)}</div>` : ''}${who}${imprintBlock(r)}${typeof r.trust_delta === 'number' ? `<div class="delta">서로에 대한 신뢰 ${r.trust_delta > 0 ? '+' : ''}${r.trust_delta}</div>` : ''}${voiceHtml(r.spot_voice)}${voiceHtml(r.voice)}<div class="delta" style="margin-top:6px">다음 쪽지는 내일 도착합니다.</div>`;
+    el.innerHTML = `<b>${r.countered ? (ev.positive ? '기회를 잡았습니다' : '막아냈습니다') : (ev.positive ? '기회가 지나갔습니다' : '피해를 입었습니다')}</b> ${how ? ' ' + how : ''}<div class="delta">${delta || (replay ? '오늘 쪽지는 이미 처리되었습니다' : '변화 없음')}</div>${r.used_card ? `<div class="delta">사용한 카드: ${esc(r.used_card.name)}</div>` : ''}${r.applied && r.applied.newcomer ? `<div class="delta" style="color:#3f9a68">새 주민 합류: ${esc(r.applied.newcomer.name)} · ${esc(r.applied.newcomer.role_ko)} · ${esc(r.applied.newcomer.ability)}</div>` : ''}${who}${imprintBlock(r)}${typeof r.trust_delta === 'number' ? `<div class="delta">서로에 대한 신뢰 ${r.trust_delta > 0 ? '+' : ''}${r.trust_delta}</div>` : ''}${voiceHtml(r.spot_voice)}${voiceHtml(r.voice)}<div class="delta" style="margin-top:6px">다음 쪽지는 내일 도착합니다.</div>`;
     const crow = $('#crow'); if (crow) crow.innerHTML = '';
   }
 
