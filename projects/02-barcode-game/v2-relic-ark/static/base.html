@@ -24,6 +24,8 @@
       <i class="rsil" id="rsil"></i><span class="rsline" id="rsline">—</span><b class="rsmore">▸</b>
     </button>
     <!-- 공기·깊이: 작은 아이콘 하나. 누르면 띠가 펼쳐진다 -->
+    <!-- S13-B: 오늘의 쪽지(사건). 있을 때만 뜬다. 누르면 작은 카드 -->
+    <button class="evbtn" id="evbtn" hidden title="오늘의 쪽지"><i>✉</i><span id="evline">쪽지</span></button>
     <button class="gaugebtn" id="gaugebtn" title="공기 · 깊이" aria-expanded="false"><span class="gmini" id="gmini"></span></button>
   </header>
   <div class="gaugepop" id="gaugepop" hidden>
@@ -65,6 +67,9 @@
       <button id="wbtn" class="sw" title="공방">공방</button>
       <button id="recallbtn" class="sw warn" title="밖에 계신 분 들이기" hidden>들이기</button>
       <button id="keybtn" class="sw" title="복구 코드 · 다른 기계에서 이어 하기">열쇠</button>
+      <button id="codexbtn" class="sw" title="도감">도감</button>
+      <button id="rumorbtn" class="sw" title="소문">소문</button>
+      <button id="dayendbtn" class="sw" title="오늘 마감">오늘 마감</button>
     </div>
   </div>
 
@@ -131,5 +136,6 @@
 <script src="/static/movement.js"></script>
 <script src="/static/m5map.js"></script>
 <script src="/static/base.js"></script>
+<script src="/static/base_collect.js"></script>
 </body>
 </html>

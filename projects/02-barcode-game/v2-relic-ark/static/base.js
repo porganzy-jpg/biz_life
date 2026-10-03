@@ -74,7 +74,22 @@
   // 그것도 없으면 색 사각형. 폴더만 들어오면 코드 수정 없이 도트가 켜진다.
   const CHAR_VARIANT = qs.get('chars') || 'p2';
   const CHAR_FALLBACK = ['p2', 'c', 'b', 'a'];
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // ── 문장 자리표시 채우기(S13). ui_moments·creatures 대사·하루 마감에 {room}·{creature}·{name}·{total}·{family}… 가 남아 올 수 있다.
+  //    vars 에 있으면 그 값, 없으면 지금 습격의 방·생물 이름, 그래도 없으면 **빈칸**. 화면에 중괄호가 그대로 나가지 않게
+  //    esc·plain·toast 가 모두 이 길을 지난다(다른 텍스트에 중괄호가 쓰일 일은 없다)
+  const PH = /\{([a-z_]+)\}/g;
+  function phDefaults() {
+    const r = (typeof cb !== 'undefined' && cb && cb.raid) || null;
+    return { room: r && r.target_room, creature: r && r.creature && r.creature.name };
+  }
+  function fillText(str, vars) {
+    const t = String(str == null ? '' : str);
+    if (t.indexOf('{') < 0) return t;
+    const d = phDefaults();
+    return t.replace(PH, (m, k) => { const v = vars && vars[k] != null ? vars[k] : d[k]; return v == null ? '' : String(v); })
+            .replace(/\s{2,}/g, ' ').replace(/ ([,.])/g, '$1');
+  }
+  const esc = (s) => fillText(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   let ark = null, catalog = {}, slots = 10, floorSlots = 2, spots = [];
   let cb = null;                                      // ark.combat
@@ -86,8 +101,18 @@
   let lastStage = null, lastRaidId = null, lastBarH = 0;
   let cam = { x: 0, y: 220, z: 1 }, view = { w: 0, h: 0, dpr: 1 };
 
+  const braceLog = { toasts: 0, canvas: 0, samples: [] };
+  (() => {                                             // 캔버스 글자도 센다(검수용, 비용은 indexOf 한 번)
+    const ft = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (t, ...a) {
+      if (typeof t === 'string' && t.indexOf('{') >= 0) { braceLog.canvas++; if (braceLog.samples.length < 10) braceLog.samples.push(t); }
+      return ft.call(this, t, ...a);
+    };
+  })();
   function toast(m) {
-    const t = $('#toast'); t.textContent = m; t.classList.add('on');
+    m = fillText(m);
+    if (String(m).indexOf('{') >= 0) { braceLog.toasts++; braceLog.samples.push(m); }
+    const t = $('#toast'); t.textContent = fillText(m); t.classList.add('on');
     clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2600);
   }
 
@@ -1061,6 +1086,17 @@
       hits.push({ kind: 'person', id, name: p.name, role: p.role, from: null,
                   x: px - box.w / 2 - 6, y: fy - box.h - 8, w: box.w + 12, h: box.h + 14 });
     });
+    // S13: 문어 선물 — 하루 한 번 포드 위에 작은 방울(누르면 방송, base_collect.js)
+    const gift = K.ext.gift;
+    if (gift && wa) {
+      const gx = sx(wa.x + wa.w * 0.5), gy = sy(wa.y) - 16 + Math.sin(t / 500) * 4, R = 20;
+      const pop = Math.min(1, ((t / 1000) % 6) < 0.3 ? 1.15 : 1);
+      ctx.beginPath(); ctx.arc(gx, gy, R * pop, 0, 6.2832); ctx.fillStyle = 'rgba(200,236,232,0.95)'; ctx.fill();
+      ctx.strokeStyle = '#14110c'; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.fillStyle = '#1a150e'; ctx.font = 'bold 12px "Noto Sans KR",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('선물', gx, gy + 1); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      hits.push({ kind: 'gift', x: gx - R - 4, y: gy - R - 4, w: 2 * R + 8, h: 2 * R + 8 });
+    }
     if (wa) hits.push({ kind: 'hall', x: sx(wa.x), y: sy(wa.y), w: wa.w * cam.z, h: wa.h * cam.z });   // 포드 = 홀의 일부
   }
   const podPoseLog = {};
@@ -1362,6 +1398,8 @@
       drawPerson(dragging, pointer.x, pointer.y + 48 * cam.z, t, 0, 1, true, 'idle');
     }
     drawWords(t);
+    drawLidMark(t);
+    drawNudge(t);
     placeCard();
     drawZones();
   }
@@ -1467,7 +1505,8 @@
       (p.imprints && p.imprints.length ? ' · 刻 ' + p.imprints.length : '') + '</em>' +
       (p.injured ? '<em class="hurt">부상</em>' : '') +
       '<span class="mv">' + (carry && carry.id === p.id ? '놓기 취소' : '옮기기') + '</span></div>' +
-      statRows(p, slot);
+      statRows(p, slot) +
+      (K.ext.wishFor ? K.ext.wishFor(p) : '');   // S13: 주민의 바람(/api/wishes)
   }
 
   // 패널이 습격 막대 아래에서 열리게 한다(데스크톱). 둘이 겹치면 둘 다 안 읽힌다
@@ -1492,7 +1531,9 @@
         '<p class="lost">여기는 물에 잠겼습니다. 격벽은 다시 열리지 않습니다.<br>일도 하지 않고, 소리도 나지 않습니다. ' +
         '그래도 지워지지 않고 그대로 남아 있습니다.</p>' +
         (room.flooded_day ? '<h3>잃은 날</h3><div class="kv"><span>' + esc(room.flooded_day) + '일째</span>' +
-          (room.flooded_by ? '<span>' + esc(creatureName(room.flooded_by)) + '</span>' : '') + '</div>' : '');
+          (room.flooded_by ? '<span>' + esc(creatureName(room.flooded_by)) + '</span>' : '') + '</div>' : '') +
+        rebuildList(slot);
+      body.querySelectorAll('.bopt[data-room]').forEach(b => b.addEventListener('click', () => build(b.dataset.room, slot)));
       $('#panel').hidden = false; placePanel(); return;
     }
     if (room) {
@@ -1697,6 +1738,19 @@
     try { localStorage.setItem('ark_reclaim_' + uid, JSON.stringify(used.concat(pick.id))); } catch (e) { /* 이 기계에 못 적어도 줄은 보인다 */ }
     return pick.line;
   }
+  // 물 찬 칸 되찾기 목록(S13 flooded_cells). 보통 건설비로 Lv1 부터 — 잃기 전 방을 맨 위에 둔다
+  function rebuildList(slot) {
+    const fc = (ark.flooded_cells || []).find(f => f.slot === slot); if (!fc) return '';
+    const bo = ark.build_options || {};
+    const ids = Object.keys(catalog).filter(id => !catalog[id].fixed && bo[id]).sort((a, b) => (b === fc.was_id) - (a === fc.was_id));
+    return '<h3>물을 빼고 다시 짓기 · Lv1</h3><div class="blist">' + ids.map(id => {
+      const o = bo[id];
+      const lack = Object.entries(o.lacking || {}).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).concat((o.cond_missing || []).map(plain));
+      return '<button class="bopt' + (lack.length ? ' lack' : '') + '" data-room="' + esc(id) + '"' + (lack.length ? ' disabled' : '') + '><b>' +
+        esc(catalog[id].name || id) + (id === fc.was_id ? ' · 예전 그 방' : '') + '</b><small>' +
+        esc(lack.length ? '모자람: ' + lack.join(' · ') : costLine(id)) + '</small></button>';
+    }).join('') + '</div>';
+  }
   async function build(roomId, slot) {
     try {
       const st = await api('/api/ark/build', { room_id: roomId, slot });
@@ -1768,15 +1822,15 @@
     $('#rwho').textContent = raid.creature.name + (raid.target_room ? ' → ' + raid.target_room : '');
     const steps = $('#rsteps').children;
     for (let i = 0; i < steps.length; i++) steps[i].classList.toggle('on', i <= raid.stage_no);
-    $('#rtext').textContent = raid.stage === 'sound' ? raid.creature.sound
+    $('#rtext').textContent = plain(raid.stage === 'sound' ? raid.creature.sound
       : raid.stage === 'silhouette' ? raid.creature.silhouette
-      : (raid.line || raid.creature.contact);
-    $('#rhow').textContent = raid.creature.threat ? '막는 법: ' + raid.creature.how : '걱정 안 하셔도 됩니다. 우리 식구입니다.';
+      : (raid.line || raid.creature.contact));
+    $('#rhow').textContent = plain(raid.creature.threat ? '막는 법: ' + raid.creature.how : '걱정 안 하셔도 됩니다. 우리 식구입니다.');
     let eyeEl = $('#reye');
     if (!eyeEl) { eyeEl = document.createElement('p'); eyeEl.id = 'reye'; eyeEl.className = 'eye-early';
                   $('#rhow').after(eyeEl); }
     eyeEl.hidden = !raid.eye_early;
-    if (raid.eye_early) eyeEl.textContent = raid.eye_early.ko;
+    if (raid.eye_early) eyeEl.textContent = plain(raid.eye_early.ko);
     const g = $('#rgate'), wd = $('#rwould');
     if (raid.ready && raid.creature.threat && raid.stage !== 'done') {
       g.hidden = false; wd.hidden = false;
@@ -1867,6 +1921,7 @@
     lastWhere = where; lastLists = lists;
   }
 
+  const applyHooks = [];
   function apply(st) {
     ark = st;
     cb = st.combat || cb;
@@ -1890,8 +1945,11 @@
     $('#recallbtn').hidden = !(cb.outside && cb.outside.length);
     // 이동은 연출이다 — 여기서 무엇이 터져도 상태 반영(정본)은 끝난 뒤다. 숨기지 않고 콘솔에 남긴다(D4)
     try { trackMoves(); } catch (e) { lastWhere = null; console.error('이동 계산 잘 안 됐습니다', e); }
+    // S13-B: 수집·사건 모듈(base_collect.js)이 상태가 바뀔 때마다 듣는다
+    applyHooks.forEach(f => { try { f(st); } catch (e) { console.error('수집 모듈 반영 실패', e); } });
   }
 
+  const loadHooks = [];
   async function load(first) {
     try {
       const st = await api('/api/ark?uid=' + encodeURIComponent(uid));
@@ -1905,6 +1963,7 @@
       if (first) fit();                 // 습격 막대가 뜬 뒤의 여백으로 다시 맞춘다
       const hint = cb && cb.next_raid_hint;
       if (first && hint && hint.ko && (!cb.raid || cb.raid.stage === 'done')) toast(hint.ko);
+      if (first) loadHooks.forEach(f => { try { f(st); } catch (e) { console.error('첫 로드 훅 실패', e); } });
     } catch (e) { toast('방주를 불러오지 못했습니다: ' + (e.message || '')); }
   }
 
@@ -1913,7 +1972,7 @@
   //   ① 찍기(/api/scan) ② 관문 행동(/api/ark/act) ③ 열쇠(/api/account) ④ E1 선반
   //  근거: PLAYER_JOURNEY §2 E1 · §3 J5, COMBAT_AND_DEFENSE §4, data/creatures.json 의 wrong_move
   // ══════════════════════════════════════════════════════════════
-  const plain = (s) => String(s == null ? '' : s).replace(/\*\*/g, '');      // 서버 문장의 강조 표시를 걷는다
+  const plain = (s, vars) => fillText(s, vars).replace(/\*\*/g, '');      // 서버 문장의 강조 표시를 걷는다
   const raidLive = (cid) => !!(cb && cb.raid && cb.raid.creature && cb.raid.creature.id === cid &&
                                cb.raid.stage !== 'done' && !cb.raid.resolved);
 
@@ -2037,6 +2096,13 @@
         rg.addColorStop(0, 'rgba(240,176,85,' + a.toFixed(3) + ')'); rg.addColorStop(1, 'rgba(240,176,85,0)');
         ctx.fillStyle = rg; ctx.fillRect(px - w, py - h, w * 3, h * 3);
       }
+      // 닦기(S13): 2단계 = 윗면에 얇은 빛, 3단계 = 등불색 테두리 빛. 은은하게(판독을 해치지 않게)
+      const lv = it.polish | 0;
+      if (lv >= 3) {
+        const rg = ctx.createRadialGradient(px + w / 2, py + h / 2, 0, px + w / 2, py + h / 2, Math.max(w, h) * 0.9);
+        rg.addColorStop(0, 'rgba(255,230,170,0.30)'); rg.addColorStop(1, 'rgba(255,230,170,0)');
+        ctx.fillStyle = rg; ctx.fillRect(px - w * 0.4, py - h * 0.4, w * 1.8, h * 1.8);
+      }
       const p = propImg(it.prop_id);
       if (p && (p.ok4 || p.ok1)) {
         const useX4 = p.ok4 && (k < 4 || !p.ok1);
@@ -2048,6 +2114,17 @@
         ctx.fillStyle = CAT_FILL[it.category] || CAT_FILL.unknown;
         ctx.fillRect(px + 2, py + h * 0.3, w - 4, h * 0.7);
         ctx.strokeStyle = '#14110c'; ctx.lineWidth = 1; ctx.strokeRect(px + 2, py + h * 0.3, w - 4, h * 0.7);
+      }
+      if (lv >= 2) {                                          // 닦인 윗면 — 한 줄 빛
+        ctx.fillStyle = 'rgba(255,244,214,' + (lv >= 3 ? 0.55 : 0.32) + ')';
+        ctx.fillRect(px + w * 0.15, py + Math.max(1, h * 0.08), w * 0.7, Math.max(1, h * 0.05));
+      }
+      if (it.variant === 'sea') {                             // 바다 무늬 — 청록 빛줄이 천천히 지나간다
+        const k = ((now / 2600) + (i * 0.37)) % 1, bx = px - w * 0.3 + (w * 1.6) * k;
+        ctx.save(); ctx.beginPath(); ctx.rect(px, py, w, h); ctx.clip();
+        const lg = ctx.createLinearGradient(bx - w * 0.25, 0, bx + w * 0.25, 0);
+        lg.addColorStop(0, 'rgba(120,220,215,0)'); lg.addColorStop(0.5, 'rgba(120,220,215,0.45)'); lg.addColorStop(1, 'rgba(120,220,215,0)');
+        ctx.fillStyle = lg; ctx.fillRect(px, py, w, h); ctx.restore();
       }
       if (fl) {
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1.5, 2 * z);
@@ -2081,6 +2158,7 @@
     const w = whenKo(it.scanned_at);
     return nm + (w ? ', ' + w + ' 찍은 것' : '') + (it.category ? ' · ' + (CAT_KO[it.category] || it.category) : '');
   }
+  const POLISH_KO = { 1: '건진 그대로', 2: '한 번 닦음', 3: '윤이 남' };
   function shelfSection(slot) {
     if (slot !== shelfRoomSlot()) return '';
     const cap = shelfCap();
@@ -2088,10 +2166,11 @@
     const fresh = shelfFlash && performance.now() < shelfFlash.until ? shelfFlash.slot : null;
     return '<h3>선반 · ' + rows.length + '점 / ' + cap + '칸</h3><div class="kv shelfkv">' +
       (rows.length ? rows.map(it => '<span' + ((it.slot | 0) === fresh ? ' class="new"' : '') + '>' +
-          esc(it.name || propSpec(it.prop_id).name || it.prop_id) + ' · ' + esc(whenKo(it.scanned_at)) + '</span>').join('')
+          esc(it.name || propSpec(it.prop_id).name || it.prop_id) + ' · ' + esc(whenKo(it.scanned_at)) +
+          ((it.polish | 0) > 1 ? ' · ' + esc(it.polish_label || POLISH_KO[it.polish] || '') : '') + (it.variant === 'sea' ? ' · 바다 무늬' : '') + '</span>').join('')
         : '<span>비어 있습니다. 찍은 물건이 여기 놓입니다</span>') + '</div>';
   }
-  function focusShelf(slot) {
+  function focusShelf(slot, pol) {
     const rs = shelfRoomSlot();
     if (rs == null) { toast('물건을 둘 창고가 없습니다'); return; }
     flyToSlot(rs);
@@ -2100,6 +2179,7 @@
     const it = shelf.find(x => (x.slot | 0) === slot);
     const room = (ark.rooms || []).find(r => r.slot === rs);
     const nm = (room && (catalog[room.id] || {}).name) || '창고';
+    if (pol) { toast(plain(pol.ko || '닦였습니다.')); return; }
     toast((it ? '\'' + (it.name || propSpec(it.prop_id).name) + '\', ' : '') + nm + ' 선반에 두었습니다.');
   }
 
@@ -2234,7 +2314,7 @@
     scanBusy = true; $('#manualBtn').disabled = true;
     try {
       if (userCat === undefined) {
-        const pk = await api('/api/peek?barcode=' + code);
+        const pk = await api('/api/peek?barcode=' + code + '&uid=' + encodeURIComponent(uid));
         if (pk.needs_category) { showPicker(pk); return; }
       }
       const r = await api('/api/scan', { barcode: code, user_category: userCat || null });
@@ -2262,7 +2342,7 @@
     const pid = (item && item.prop_id) || propForCategory(c.category);
     const sp = propSpec(pid);
     const front = $('#rcFront');
-    front.className = 'rc-face rc-front ' + (RAR_KO[c.rarity] ? c.rarity : 'common');
+    front.className = 'rc-face rc-front ' + (RAR_KO[c.rarity] ? c.rarity : 'common') + ((r.variant && r.variant.shiny) || c.sea_variant ? ' sea' : '');
     front.innerHTML = '<div class="rr">' + esc(RAR_KO[c.rarity] || c.rarity || '') + (r.first_time ? ' · 처음 보는 것' : '') + '</div>' +
       '<h3>' + esc(c.name || '이름 없는 것') + '</h3>' +
       '<div class="art">' + (pid && PROP_ID_OK.test(pid)
@@ -2272,16 +2352,26 @@
         (c.family_name ? '<span>' + esc(c.family_name) + '</span>' : '') +
         (c.tags || []).filter(t => t !== '미확인').slice(0, 3).map(t => '<span>#' + esc(t) + '</span>').join('') + '</div>';
     const g = Object.entries(r.gained || {}).map(([k, v]) => '<b>' + esc(RES_KO[k] || k) + ' +' + esc(v) + '</b>').join(' · ');
-    const shelfNote = slot != null
-      ? '<span class="where">' + esc((item && item.name) || sp.name || '물건') + ', 선반 ' + (slot + 1) + '번째 칸에 두겠습니다</span>'
-      : (has ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : '');
+    // S13: 이미 선반에 있는 바코드면 새 칸을 먹지 않고 「닦였습니다」(polish). 서버가 준 문장이 이긴다
+    const pol = r.polish || null, again = pol && r.shelf_new === false;
+    const shelfNote = again
+      ? '<span class="where polished">' + esc(plain(pol.ko || '')) + (pol.label ? ' <b class="plv lv' + esc(pol.level) + '">' + esc(pol.label) + '</b>' : '') + '</span>'
+      : (slot != null
+        ? '<span class="where">' + esc((item && item.name) || sp.name || '물건') + ', 선반 ' + (slot + 1) + '번째 칸에 두겠습니다</span>'
+        : (has ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : ''));
+    const vr = r.variant && r.variant.shiny ? r.variant : null;
+    const extra = (vr ? '<span class="variantline">' + esc(plain(vr.ko || '')) + '</span>' : '') +
+      (r.first_meet || []).map(m => '<span class="meetline">' + esc(plain(m.line || '')) + '</span>').join('') +
+      (r.family_set && r.family_set.ko ? '<span class="famline' + (r.family_set.just_completed ? ' done' : '') + '">' + esc(plain(r.family_set.ko)) + '</span>' : '') +
+      (r.wishes_done || []).map(w => '<span class="wishline">' + esc(plain(w.line || '')) + '</span>').join('');
     $('#rgain').innerHTML = (r.first_time ? '<span class="first">도감에 처음 적힌 유물</span><br>' : '') +
       (g || '<span>이미 읽은 성문이라 새로 얻은 건 없습니다</span>') +
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
-      shelfNote +
+      shelfNote + extra +
       ((r.voice && r.voice.text) ? '<span class="voice">' + esc(r.voice.who_ko || '') + (r.voice.who_ko ? ': ' : '') + esc(r.voice.text) + '</span>' : '');
     const btn = $('#shelfBtn');
-    btn.textContent = slot != null ? '선반에 두기' : '닫기';
+    btn.textContent = slot != null ? (again ? '선반 보기' : '선반에 두기') : '닫기';
+    if (r.family_set && r.family_set.just_completed && K.ext.celebrate) setTimeout(() => K.ext.celebrate(plain(r.family_set.ko)), 1600);
     btn.classList.remove('on');
     $('#scanCam').hidden = true; $('#scanCard').hidden = false;
     const card = $('#rcard'); card.classList.remove('flip');
@@ -2292,7 +2382,7 @@
   }
   function toShelf() {
     const r = lastScan; closeScan();
-    if (r && typeof r.shelf_slot === 'number') focusShelf(r.shelf_slot);
+    if (r && typeof r.shelf_slot === 'number') focusShelf(r.shelf_slot, r.polish && r.shelf_new === false ? r.polish : null);
   }
 
   // ── 레벨업(서버 S10 upgrades·hall_upgrade). 숫자가 아니라 '새로 할 수 있는 것'을 먼저 말한다 ──
@@ -2356,7 +2446,7 @@
         if (r.uid === uid) { err.className = 'keyerr keyok'; err.textContent = '이미 이 방주입니다.'; return; }
         try { localStorage.setItem('ark_uid', r.uid); }
         catch (e) { err.textContent = '이 브라우저에는 저장할 수 없습니다(사생활 보호 창인가요?)'; return; }
-        err.className = 'keyerr keyok'; err.textContent = r.ko || '돌아오셨습니다.';
+        err.className = 'keyerr keyok'; err.textContent = plain(r.ko || '돌아오셨습니다.');
         setTimeout(() => location.reload(), 900);
       } catch (e) {
         // 429 = 잠금(틀린 열쇠를 여러 번), 400 = 형식, 404 = 없는 열쇠. 셋은 할 일이 다르다
@@ -2421,7 +2511,8 @@
     const meta = threatMeta[raid.creature.id];
     $('#rsil').style.backgroundImage = meta ? 'url(/static/art/threats/' + meta.files.far + ')' : '';
     const stage = STAGE_LABEL[raid.stage] || raid.stage;
-    const res = (done && lastOutcome && lastOutcome.raidId === raid.id) ? ' · ' + lastOutcome.result_ko : '';
+    const rko = raid.result_ko || ((lastOutcome && lastOutcome.raidId === raid.id) ? lastOutcome.result_ko : '');
+    const res = done && rko ? ' · ' + rko + (raid.auto ? ' (밤사이)' : '') : '';
     // 소리 단계: 관리실 방송 한 줄을 띠에. 넘치면 여는 말을 「관리실입니다.」로 줄인다(전문은 카드의 서술 줄에)
     const el = $('#rsline');
     if (raid.stage === 'sound' && raid.creature.sound) {
@@ -2483,29 +2574,54 @@
         h = '<h4>물이 찬 칸<small>깊이 ' + depth + 'm</small></h4><p class="rcline">물을 빼면 이 칸을 되찾습니다.</p>' +
             '<div class="rcbtns"><button class="on" data-c="build">물 빼기</button></div>';
       } else if (room.flooded) {
-        h = '<h4>' + esc((catalog[room.id] || {}).name || room.id) + '<small>물에 잠김</small></h4>' +
-            '<p class="rcline">격벽은 다시 열리지 않습니다.</p><div class="rcbtns"><button data-c="more">자세히</button></div>';
+        const fc = (ark.flooded_cells || []).find(f => f.slot === slot) || {};
+        const was = fc.was_name || (catalog[room.id] || {}).name || room.id;
+        h = '<h4>' + esc(was) + '<small>물에 잠김</small></h4>' +
+            '<p class="rcline">' + esc(was) + ' 자리가 물에 잠겼습니다. 물을 빼면 처음부터 다시 지을 수 있습니다.</p>' +
+            '<div class="rcbtns"><button class="on" data-c="build">물 빼기</button><button data-c="more">자세히</button></div>';
       } else {
         const spec = catalog[room.id] || {}, n = (peopleBySlot()[slot] || []).length, cap = capOf(slot), lit = lightOf(slot);
         const ko = (ark.stats_meta || {}).ko || STAT_KO_DEF, st = goodStats(slot);
         const worst = lit && raidLive('mirror_eye') && (raidTargetSlot() == null || raidTargetSlot() === slot);
-        h = '<h4>' + esc(spec.name || room.id) + '<small>Lv' + esc(room.level || 1) + '</small></h4>' +
+        const prod = (ark.production || {})[String(slot)] || null;
+        const crk = !!room.cracked, rp = ark.repair || {};
+        const rcost = Object.entries(rp.cost || {}).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).join(' · ');
+        h = '<h4>' + esc(spec.name || room.id) + '<small>Lv' + esc(room.level || 1) + '</small>' +
+            (crk ? '<i class="rctag crack">' + esc(K.ext.T ? K.ext.T('crack.label_cracked', {}, '금 감') : '금 감') + '</i>' : '') +
+            (prod && prod.label ? '<i class="rctag">' + esc(prod.label) + '</i>' : '') + '</h4>' +
+            (crk ? '<p class="rcline">' + esc(K.ext.T ? K.ext.T('crack.still_cracked', { room: spec.name || room.id }, '') : '') + '</p>' : '') +
+            (prod && prod.ko && !crk ? '<p class="rcline">' + esc(plain(prod.ko)) + '</p>' : '') +
             '<div class="rcmeta"><span>' + n + '/' + cap + '명</span>' +
             st.map(k => '<span class="rcstat" title="이 방에 유리한 능력치">' + esc(ko[k] || k) + '</span>').join('') + '</div>' +
-            '<div class="rcbtns"><button data-c="light" class="' + (lit ? 'on' : '') + (worst ? ' worst' : '') + '">' +
-            (lit ? (worst ? '끄지 마세요' : '불 끄기') : '불 켜기') + '</button><button data-c="more">자세히</button></div>';
+            (crk
+              ? '<div class="rcbtns"><button data-c="repair" class="on">' + esc(K.ext.T ? K.ext.T('crack.label_repair', {}, '수리하기') : '수리하기') +
+                  (rp.have_patch ? '' : (rcost ? '<small>' + esc(rcost) + '</small>' : '')) + (rp.have_patch ? '<small>봉합 패치 ' + rp.have_patch + '</small>' : '') +
+                  '</button><button data-c="more">자세히</button></div>'
+              : '<div class="rcbtns"><button data-c="light" class="' + (lit ? 'on' : '') + (worst ? ' worst' : '') + '">' +
+                  (lit ? (worst ? '끄지 마세요' : '불 끄기') : '불 켜기') + '</button><button data-c="more">자세히</button></div>');
       }
     }
     el.innerHTML = h; el.hidden = false;
     el.querySelectorAll('button[data-c]').forEach(b => b.addEventListener('click', () => {
       const k = b.dataset.c;
       if (k === 'more') { const cc = card; closeCard(); if (cc.hall) openHallPanel(); else openPanel(cc.slot); }
-      else if (k === 'build') { const sl = card.slot; closeCard(); openPanel(sl); }
+      else if (k === 'build') { const sl = card.slot; closeCard(); openPanel(sl); }   // 빈 칸·물 찬 칸 모두 같은 짓기 흐름
+      else if (k === 'repair') { const sl = card.slot; repairRoom(sl); }
       else if (k === 'light') { const sl = card.slot; setLight(sl, !lightOf(sl)).then(() => { if (card && card.slot === sl) openCard({ slot: sl }); }); }
     }));
     placeCard();
   }
 
+  // 금 간 방 수리(API_S13 §5). 봉합 패치가 있으면 그것을 먼저 쓴다
+  async function repairRoom(sl) {
+    const rp = ark.repair || {};
+    try {
+      const r = await api('/api/ark/repair', { slot: sl, use_patch: !!rp.have_patch });
+      if (r.state) apply(r.state);
+      toast(plain(r.ko || '수리를 마쳤습니다.')); play('sfx_tool_install.ogg', 0.5);
+      animStart(sl, 'level'); openCard({ slot: sl });
+    } catch (e) { toast(e.message || '수리하지 못했습니다'); }
+  }
   // ── 끄는 동안: 방마다 그 사람의 유리한 숫자 하나만(목록 UI 가 아니다) ──
   function drawCarryNumbers() {
     const who = dragging || (carry && (ark.residents_list || []).find(r => r.id === carry.id));
@@ -2525,6 +2641,22 @@
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(v), x, y + 17);
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     });
+    // 지금 서 있는 방: 빠지면 일손이 줄어든다. 마지막 한 분이면 「일손 없음」
+    const from = cb.stations[who.id];
+    if (from !== undefined) {
+      const r = rectOf(from), pr = (ark.production || {})[String(from)];
+      if (r && pr) {
+        const left = Math.max(0, (pr.staff != null ? pr.staff : (peopleBySlot()[from] || []).length) - 1);
+        const lbl = left === 0 ? (K.ext.T ? K.ext.T('staffing.label', {}, '일손 없음') : '일손 없음') : '일손 −1';
+        const x = sx(r.x + r.w / 2), y = sy(r.y + r.h) - 26;
+        ctx.font = 'bold 14px "Noto Sans KR",sans-serif';
+        const tw = ctx.measureText('▼ ' + lbl).width + 16;
+        ctx.fillStyle = 'rgba(60,24,18,0.92)'; ctx.fillRect(x - tw / 2, y - 12, tw, 24);
+        ctx.strokeStyle = '#d08a72'; ctx.lineWidth = 1.5; ctx.strokeRect(x - tw / 2, y - 12, tw, 24);
+        ctx.fillStyle = '#ffd2c0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('▼ ' + lbl, x, y);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      }
+    }
   }
 
   // ── 생산 방울 ── 서버는 생산을 시간에 맞춰 이미 더한다(tick_production, 8시간마다). 새 API 를 만들지 않았다:
@@ -2535,7 +2667,11 @@
   function bubbleOf(room) {
     const spec = catalog[room.id] || {}, pr = spec.produces || {};
     const k = Object.keys(pr).find(x => CHIP[x]) || Object.keys(pr)[0];
-    return k ? { res: k, n: pr[k] } : null;
+    if (!k) return null;
+    const pm = (ark.production || {})[String(room.slot)];
+    const mult = pm && typeof pm.mult === 'number' ? pm.mult : 1;
+    const n = Math.round(pr[k] * mult * 10) / 10;
+    return { res: k, n, mult, label: pm && pm.label };
   }
   function drawBubbles(t) {
     if (!cb || !cb.power_on) return;
@@ -2549,9 +2685,9 @@
       const k = pop < 1 ? 1 + 0.35 * Math.sin(pop * Math.PI) : 1;               // 톡 튀어 오른다
       const x = sx(r.x + r.w - 70), y = sy(r.y) - 14 + Math.sin(t / 650 + i) * 3 - (1 - pop) * 10;
       if (x < -30 || x > view.w + 30 || y < -30 || y > view.h + 30) return;
-      const R = 19 * k;
+      const R = 19 * k * (0.7 + 0.3 * Math.min(1, b.mult));          // 일손이 줄면 방울도 작아진다
       ctx.beginPath(); ctx.arc(x, y, R, 0, 6.2832);
-      ctx.fillStyle = 'rgba(250,230,200,0.95)'; ctx.fill();
+      ctx.fillStyle = b.mult < 1 ? 'rgba(200,190,170,0.9)' : 'rgba(250,230,200,0.95)'; ctx.fill();
       ctx.strokeStyle = '#14110c'; ctx.lineWidth = 2.5; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x - 5, y + R - 2); ctx.lineTo(x, y + R + 7); ctx.lineTo(x + 5, y + R - 2); ctx.fillStyle = 'rgba(250,230,200,0.95)'; ctx.fill();
       ctx.fillStyle = '#1a150e'; ctx.font = 'bold 12px "Noto Sans KR",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2616,7 +2752,31 @@
     }
     ctx.restore();
   }
-  function floatWord(slot, text, color) { words.push({ slot, text, color, t0: performance.now() }); }
+  // 첫날 살짝 찌르기(S13): 일손 없는 생산 방에 은은한 초록 테두리 + 「한 분만」. 강제 안내가 아니다 — 누가 들어가면 사라진다
+  function drawNudge(t) {
+    const sl = K.ext.nudgeSlot; if (sl == null || carry || dragging) return;
+    const pr = (ark.production || {})[String(sl)];
+    if (!pr || (pr.staff || 0) > 0) { K.ext.nudgeSlot = null; return; }
+    const r = rectOf(sl); if (!r) return;
+    const a = 0.35 + 0.35 * Math.sin(t / 600);
+    ctx.save(); ctx.strokeStyle = 'rgba(143,191,122,' + a.toFixed(3) + ')'; ctx.lineWidth = Math.max(2, 10 * cam.z);
+    ctx.strokeRect(sx(r.x) - 4, sy(r.y) - 4, r.w * cam.z + 8, r.h * cam.z + 8); ctx.restore();
+    const lbl = '한 분만 와 주세요', x = sx(r.x + r.w / 2), y = sy(r.y + r.h) + 18;
+    ctx.font = 'bold 13px "Noto Sans KR",sans-serif';
+    const tw = ctx.measureText(lbl).width + 16;
+    ctx.fillStyle = 'rgba(20,30,18,0.9)'; ctx.fillRect(x - tw / 2, y - 11, tw, 22);
+    ctx.fillStyle = '#b8e0a6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lbl, x, y);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+  function drawLidMark(t) {
+    const raid = cb && cb.raid;
+    if (!raid || !raid.lid_revealed || raid.target_slot == null || raid.stage === 'done' || raid.resolved) return;
+    const r = rectOf(raid.target_slot); if (!r) return;
+    const x = sx(r.x + r.w / 2), y = sy(r.y) - 18 - Math.abs(Math.sin(t / 380)) * 8;
+    ctx.fillStyle = '#ffd59a'; ctx.strokeStyle = '#14110c'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x - 14, y - 16); ctx.lineTo(x + 14, y - 16); ctx.lineTo(x, y); ctx.closePath(); ctx.stroke(); ctx.fill();
+  }
+  function floatWord(slot, text, color) { words.push({ slot, text: fillText(text), color, t0: performance.now() }); }
   function drawWords(t) {
     for (let i = words.length - 1; i >= 0; i--) {
       const w = words[i], k = (t - w.t0) / 2600;
@@ -2726,6 +2886,7 @@
       toast(d.person.name + ' 님, 옮겨 갈 방을 눌러 주세요');
       return;
     }
+    if (hitAt(px, py, 'gift') && K.ext.onGift) { K.ext.onGift(); return; }
     const bb = hitAt(px, py, 'bubble');
     if (bb) { collectBubble(bb); return; }
     const sh = hitAt(px, py, 'shelf');
@@ -2780,7 +2941,20 @@
 
   // 다른 화면(index)과 같은 규약: 밖에서 쓸 수 있게 몇 개만 연다.
   // slotBox·peopleHits 는 자동 검수(Playwright)가 캔버스를 정확히 누르기 위한 읽기 전용 창이다.
+  // S13-B: base_collect.js 가 쓰는 안쪽 손잡이(화면 모듈끼리만). 상태는 읽기만 하고, 바꾸는 길은 api → apply 하나다
+  const K = {
+    api, toast, play, esc, plain, uid, fill: fillText,
+    get ark() { return ark; }, get cb() { return cb; }, get catalog() { return catalog; }, RES_KO,
+    apply: (st) => apply(st), reload: () => load(false),
+    onApply: (f) => applyHooks.push(f), onLoad: (f) => loadHooks.push(f),
+    panel(html) { closeCard(); closePops(); sel = null; $('#panelBody').innerHTML = html; $('#panel').hidden = false; placePanel(); return $('#panelBody'); },
+    closePanel: () => closePanel(), closeMenu: () => { $('#menu').hidden = true; $('#menubtn').setAttribute('aria-expanded', 'false'); },
+    propImgSrc: (cat) => { const id = propForCategory(cat); return id ? '/static/art/props/x4/' + id + '.png' : ''; },
+    flyToSlot: (s) => flyToSlot(s), openCard: (c) => openCard(c), floatWord: (slot, t, c) => floatWord(slot, t, c),
+    ext: {},                                           // base_collect.js 가 채운다(방 카드·그리기에 끼우는 자리)
+  };
   window.ARKBASE = {
+    _k: K,
     reload: () => load(false), refreshRaid, fit, uid,
     slotBox: (s) => { const q = rectOf(s); return q ? { x: sx(q.x), y: sy(q.y), w: q.w * cam.z, h: q.h * cam.z } : null; },
     // ★ S12-B 검수용: 맵·카메라·프레임 시간
@@ -2789,6 +2963,11 @@
                   trenchY: zoneY(TRENCH_M), layoutTrenchY: MAP().depth.trenchY }),
     cam: () => Object.assign({}, cam, { zmin: zMin() }),
     sil: () => silDbg,
+    // ★ S13 검수: 화면에 보이는 글(DOM 글자 + 지금까지 띄운 토스트 + 캔버스 글자)에 '{' 가 몇 번 나왔나
+    braceCheck: () => {
+      const dom = (document.body.innerText.match(/[{}]/g) || []).length;
+      return { dom, toasts: braceLog.toasts, canvas: braceLog.canvas, samples: braceLog.samples.slice(0, 5) };
+    },
     bubbles: () => hits.filter(h => h.kind === 'bubble').map(h => ({ slot: h.slot, res: h.res, n: h.n, cx: h.x + h.w / 2, cy: h.y + h.h / 2 })),   // ★ 검수용                                 // ★ 검수용: 지금 다가오는 실루엣의 세계 x
     fps: () => { const a = fpsLog.slice(-120); const m = a.reduce((x, y) => x + y, 0) / Math.max(1, a.length); const b = workLog.slice(-120), wm = b.reduce((x, y) => x + y, 0) / Math.max(1, b.length);
       return { avgMs: +m.toFixed(2), fps: +(1000 / m).toFixed(1), worstMs: Math.max(...a), drawMs: +wm.toFixed(2), drawWorstMs: +Math.max(...b).toFixed(2) }; },
