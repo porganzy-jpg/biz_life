@@ -2651,9 +2651,10 @@
     const mp = (ark.move_preview || {})[id] || {};
     return mp[slot == null ? 'hall' : String(slot)] || null;
   }
-  function pill(x, y, text, kind) {                    // kind: up | down | off | flat
-    ctx.font = 'bold 15px "Noto Sans KR",sans-serif';
-    const tw = Math.max(34, ctx.measureText(text).width + 16), h = 26;
+  function pill(x, y, text, kind, big, anchorRight) {   // kind: up | down | off | flat
+    ctx.font = 'bold ' + (big ? 22 : 15) + 'px "Noto Sans KR",sans-serif';
+    const tw = Math.max(34, ctx.measureText(text).width + (big ? 22 : 16)), h = big ? 36 : 26;
+    if (anchorRight) x -= tw / 2;                      // x 가 오른쪽 끝이면 알약 가운데로 옮긴다
     const C = { up: ['rgba(20,34,18,0.94)', '#8fbf7a', '#c8f0b0'], down: ['rgba(60,24,18,0.94)', '#d08a72', '#ffd2c0'],
                 off: ['rgba(30,28,26,0.85)', '#4a4440', '#7a726c'], flat: ['rgba(20,17,12,0.92)', '#f0b055', '#f0b055'] }[kind];
     ctx.fillStyle = C[0]; ctx.fillRect(x - tw / 2, y - h / 2, tw, h);
@@ -2665,19 +2666,32 @@
     const who = dragging || (carry && (ark.residents_list || []).find(r => r.id === carry.id));
     if (!who) return;
     const here = cb.stations[who.id];
+    const hover = dragging ? slotAt(pointer.x, pointer.y) : null;
+    // 방마다 알약 하나 — 방의 오른쪽 위 모서리(끌고 있는 사람 그림은 손끝 아래에 매달리므로 가리지 않는다).
+    // 손끝 아래 방은 같은 값을 손끝 오른쪽 위에 크게 한 번 더(가장 중요한 숫자)
+    const pillOf = (slot) => {
+      const pv = movePreview(who.id, slot);
+      if (pv && pv.can === false) return ['꽉 참', 'off'];
+      const t = pv && pctKo(pv.room_delta_pct);
+      if (t) return [t, pv.room_delta_pct > 0 ? 'up' : (pv.room_delta_pct < 0 ? 'down' : 'flat')];
+      // 쌓이는 산출이 없는 방(공방·발전실·창고…): 그 방에 맞는 능력치 숫자 하나
+      const room = (ark.rooms || []).find(r => r.slot === slot), ks = room ? goodStats(slot) : [];
+      return ks.length && who.stats ? [((ark.stats_meta || {}).ko || STAT_KO_DEF)[ks[0]] + ' ' + (who.stats[ks[0]] || 0), 'flat'] : null;
+    };
     (ark.rooms || []).forEach(room => {
       if (room.flooded || room.slot === here) return;
       const r = rectOf(room.slot); if (!r) return;
-      const x = sx(r.x + r.w / 2), y = sy(r.y) + 22;
-      if (x < -60 || x > view.w + 60 || y < -40 || y > view.h + 40) return;
-      const pv = movePreview(who.id, room.slot);
-      if (pv && pv.can === false) { pill(x, y, '꽉 참', 'off'); return; }
-      const t = pv && pctKo(pv.room_delta_pct);
-      if (t) { pill(x, y, t, pv.room_delta_pct > 0 ? 'up' : (pv.room_delta_pct < 0 ? 'down' : 'flat')); return; }
-      // 쌓이는 산출이 없는 방(공방·발전실·창고…): 그 방에 맞는 능력치 숫자 하나
-      const ks = goodStats(room.slot);
-      if (ks.length && who.stats) pill(x, y, ((ark.stats_meta || {}).ko || STAT_KO_DEF)[ks[0]] + ' ' + (who.stats[ks[0]] || 0), 'flat');
+      const xr = sx(r.x + r.w) - 10, y = sy(r.y) + 22;
+      if (xr < -60 || xr > view.w + 160 || y < -40 || y > view.h + 40) return;
+      const pl = pillOf(room.slot); if (pl) pill(xr, y, pl[0], pl[1], false, true);
     });
+    if (hover != null && hover !== here) {
+      const pl = pillOf(hover);
+      if (pl) {
+        const bx = Math.min(view.w - 70, pointer.x + 70), by = Math.max(60, pointer.y - 70);   // 손끝 오른쪽 위 — 사람 그림 밖
+        pill(bx, by, pl[0], pl[1], true);
+      }
+    }
     // 지금 서 있는 방: 빠지면 그 방 산출이 얼마나 주는지(손끝 아래 칸의 from_delta_pct, 없으면 홀로 갈 때 값)
     const from = here;
     if (from !== undefined) {
