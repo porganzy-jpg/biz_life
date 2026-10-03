@@ -781,6 +781,13 @@ def _blender_main(key):
             kelp(f"k{i}", x, z, h, 0.2, km, 500 + i, lean=0.12, w=0.28)
         room_backs()
 
+    # S11-D: 바깥(절벽)은 flux 가 그린다 — 탑 층만 남긴다
+    NOCLIFF = os.environ.get("MAPS_NOCLIFF") == "1"
+    if NOCLIFF:
+        for o in list(bpy.data.objects):
+            if o.name.split(".")[0] in ("cliff", "edge_rim") or o.name.startswith(("strata", "crk", "hang", "kc")):
+                bpy.data.objects.remove(o, do_unlink=True)
+
     # ── 손그림 선 (blender_section F6 와 같은 처방, 독립 구현) ──
     sc.render.use_freestyle = True
     sc.render.line_thickness = 1.0
@@ -820,7 +827,7 @@ def _blender_main(key):
         pass
     sc.view_settings.view_transform = 'Standard'
     sc.view_settings.exposure = 0.0
-    sc.render.filepath = os.path.join(RAW, f"_{key}_mid.png")
+    sc.render.filepath = os.path.join(RAW, f"_{key}_fg_mid.png" if NOCLIFF else f"_{key}_mid.png")
     bpy.ops.render.render(write_still=True)
     print("RENDER", sc.render.filepath, flush=True)
 
@@ -1596,6 +1603,227 @@ def _ink(key):
     print("INK", out, flush=True)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  S11-D — 바깥 배경만 flux(Pollinations), 탑·방·주민은 우리 렌더를 위에 얹는다(사용자 승인).
+#   python tools/blender_maps.py flux a 101 202   → art_raw/maps/m5_flux_a_bg_<seed>.jpg
+#   규칙: 요청 사이 ≥15초, 429·오류면 즉시 멈추고 5분 이상 쉰다(자동 재시도 없음).
+# ══════════════════════════════════════════════════════════════════════════════
+FLUX_PROMPTS = {
+    "a": ("Watercolor wash on cream paper of an underwater cliff, mostly empty cream paper, loose sepia ink lines, "
+          "sparse ultramarine blue watercolor blooms with drips, a rock cliff mass drawn in ink on the left third, "
+          "empty paper water on the right with a few faint blue washes deeper toward the bottom right, storybook sketch, "
+          "side view, wide landscape, no people, no text, no buildings, no characters, no frame, no border"),
+    "b": ("Deep sea cliff and abyss, dark wet-in-wet watercolor illustration, deep indigo and teal ground getting darker "
+          "toward the bottom right trench, granulation and paint drips, loose ink lines, a large rock cliff mass on the left third, "
+          "open water on the right, faint light from above, a few cobalt and teal blooms, kelp silhouettes, "
+          "pale washes for distant shapes, a large dark creature silhouette in the distance, side view, wide landscape, "
+          "no people, no text, no buildings, no characters"),
+}
+
+
+def _flux(variant, seeds):
+    import time, urllib.request, urllib.parse
+    prompt = FLUX_PROMPTS[variant]
+    log = os.path.join(RAW, "m5_flux_log.jsonl")
+    FW, FH = int(os.environ.get("FLUX_W", "1024")), int(os.environ.get("FLUX_H", "576"))   # 1600×900 은 402(유료) 응답
+    for i, seed in enumerate(seeds):
+        if i:
+            time.sleep(20)
+        url = ("https://image.pollinations.ai/prompt/" + urllib.parse.quote(prompt)
+               + f"?width={FW}&height={FH}&seed={seed}&nologo=true&model=flux")
+        dst = os.path.join(RAW, f"m5_flux_{variant}_bg_{seed}.jpg")
+        t = time.time()
+        try:
+            data = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=240).read()
+            if len(data) < 15000:
+                raise RuntimeError(f"too small {len(data)}")
+        except Exception as e:
+            print(f"FAIL {variant} {seed}: {e} — 5분 이상 쉬고 다시 돌릴 것", flush=True)
+            return
+        open(dst, "wb").write(data)
+        with open(log, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"variant": variant, "seed": seed, "prompt": prompt, "file": os.path.basename(dst),
+                                "model": "flux", "size": f"{FW}x{FH}"}, ensure_ascii=False) + "\n")
+        print(f"ok {dst} {len(data)//1024}KB {time.time()-t:.0f}s", flush=True)
+
+
+def _fluxcomp(variant, seed, key="m5"):
+    """flux 바깥 배경 + 우리 탑 층(렌더·플레이트·도트 주민) 합성. 1600×900."""
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFilter
+
+    S = SCENES[key]()
+    CX, CZ = S["cx"], S["cz"]
+    W, H = W2 // 2, H2 // 2
+    ppm = PPM / 2
+
+    def P(x, z):
+        return (W / 2 + (x - CX) * ppm, H / 2 - (z - CZ) * ppm)
+
+    # ── 배경: 오른쪽 아래 워터마크 자리를 잘라 내고 화면을 덮게 키운다 ──
+    bg = Image.open(os.path.join(RAW, f"m5_flux_{variant}_bg_{seed}.jpg")).convert("RGB")
+    bw, bh = bg.size
+    bg = bg.crop((int(bw * 0.035), int(bh * 0.045), int(bw * 0.965), int(bh * 0.92)))   # 탄 종이 테두리·워터마크 제거
+    sc_ = max(W / bg.width, H / bg.height)
+    bg = bg.resize((round(bg.width * sc_), round(bg.height * sc_)), Image.LANCZOS)
+    bg = bg.crop(((bg.width - W) // 2, 0, (bg.width - W) // 2 + W, H))
+    B = np.asarray(bg, np.float32) / 255
+    if variant == "a" and os.environ.get("FLUX_PAPERMAP") == "1":
+        # flux 가 종이색을 못 냈을 때: 밝기를 종이→군청 담채로 다시 매핑하고, 형태 경계만 세피아 먹선으로
+        Lb = B.mean(-1)
+        aw = np.clip((0.80 - Lb) * 1.25, 0, 1) * 0.72
+        Bn = np.ones_like(B) * np.array([239, 230, 210], np.float32) / 255
+        Bn = Bn * (1 - aw[..., None] * (1 - np.array([38, 64, 178], np.float32) / 255))
+        e = np.asarray(Image.fromarray((Lb * 255).astype("uint8")).filter(ImageFilter.GaussianBlur(1.5)).filter(ImageFilter.FIND_EDGES), np.float32) / 255
+        ea = np.clip((e - 0.03) * 9, 0, 0.8)
+        B = Bn * (1 - ea[..., None] * (1 - np.array([52, 42, 34], np.float32) / 255))
+    if variant == "b":
+        # 배경이 방보다 밝으면 안 된다: 전체를 낮추고 오른쪽 아래(해구)로 더 어둡게, 채도 살짝 빼기
+        yy_, xx_ = np.mgrid[0:H, 0:W].astype(np.float32)
+        ramp = np.clip(0.42 * xx_ / W + 0.75 * yy_ / H - 0.25, 0, 1)
+        lumB = B.mean(-1, keepdims=True)
+        B = (B * 0.8 + lumB * 0.2) * (0.62 - 0.42 * ramp)[..., None]
+
+    PAPER = np.array([239, 230, 210], np.float32) / 255
+    INK = np.array([52, 42, 34], np.float32) / 255
+    BLUE = np.array([38, 64, 178], np.float32) / 255
+    GOLD = np.array([214, 158, 52], np.float32) / 255
+
+    def lay(img, a, col):
+        a = np.clip(a, 0, 1)[..., None]
+        return img * (1 - a * (1 - col))
+
+    # ── 탑 층 ──
+    mid = Image.open(os.path.join(RAW, f"_{key}_fg_mid.png")).convert("RGBA").reduce(2)
+    M = np.asarray(mid, np.float32) / 255
+    al = M[..., 3]
+    rgb = M[..., :3]
+    lum = 0.3 * rgb[..., 0] + 0.59 * rgb[..., 1] + 0.11 * rgb[..., 2]
+    if variant == "a":
+        # 종이 위 담채 + 먹선 + 유리·해초만 군청
+        glass = (al > 0.5) & ((rgb[..., 2] - rgb[..., 0]) > 0.12) & (lum > 0.2)
+        kelp = (al > 0.5) & ((rgb[..., 1] - rgb[..., 0]) > 0.03) & (rgb[..., 1] > rgb[..., 2] + 0.01)
+        warm = (al > 0.5) & (rgb[..., 0] > 0.55) & (rgb[..., 1] > 0.4)
+        wash = np.clip(0.10 + (0.30 - lum) * 1.1, 0.08, 0.5)
+        col = np.ones_like(rgb) * PAPER
+        col = lay(col, wash * ~glass * ~kelp, np.array([120, 118, 112], np.float32) / 255)
+        col = lay(col, (glass | kelp) * 0.7, BLUE)
+        col = lay(col, warm * 0.9, GOLD)
+        dark = ((al > 0.5) & (lum < 0.095)).astype("uint8") * 255
+        opened = np.asarray(Image.fromarray(dark).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5)))
+        thin = (dark > 0) & (opened == 0)
+        edge = np.asarray(Image.fromarray((al * 255).astype("uint8")).filter(ImageFilter.FIND_EDGES), np.float32) / 255
+        col = lay(col, np.clip(edge * 1.5 + thin * 0.85, 0, 1), INK)
+        rgb = col
+    fg = np.dstack([rgb, al])
+
+    def plate_img(kind, state):
+        sfx = "lit" if state in ("lit", "pump") else "dark"
+        im = Image.open(os.path.join(ART, "plates", f"room_plate_{kind}_{sfx}.png")).convert("RGB").crop(PLATE_CROP)
+        w = round(im.width * ppm / PLATE_PPM); h = round(im.height * ppm / PLATE_PPM)
+        if variant == "b":
+            im = im.convert("RGBA")
+            if state in ("flood", "pump"):
+                fl = Image.open(os.path.join(ART, "plates", "room_flood.png")).convert("RGBA").crop(PLATE_CROP)
+                if state == "pump":
+                    fl = fl.transform(fl.size, Image.AFFINE, (1, 0, 0, 0, 1, -int(fl.height * 0.32)))
+                    im = Image.alpha_composite(im, fl)
+                else:
+                    a = np.asarray(im, np.float32); a[..., :3] *= np.array([0.35, 0.55, 0.62])
+                    im = Image.alpha_composite(Image.fromarray(a.astype("uint8"), "RGBA"), fl)
+            elif state == "dark":
+                a = np.asarray(im, np.float32); a[..., :3] *= 0.7; im = Image.fromarray(a.astype("uint8"), "RGBA")
+            return im.convert("RGB").resize((w, h), Image.LANCZOS)
+        im = im.resize((w, h), Image.LANCZOS)
+        A = np.asarray(im, np.float32) / 255
+        L_ = 0.3 * A[..., 0] + 0.59 * A[..., 1] + 0.11 * A[..., 2]
+        if sfx == "dark":
+            L_ = np.clip(L_ * 2.2, 0, 1)
+        out = np.ones_like(A) * PAPER
+        out = lay(out, np.clip(0.75 - L_, 0, 1) * 0.85, np.array([110, 100, 90], np.float32) / 255)
+        e = np.asarray(im.convert("L").filter(ImageFilter.FIND_EDGES), np.float32) / 255
+        out = lay(out, np.clip(e * 2.2, 0, 1) * 0.8, INK)
+        if state in ("lit", "pump"):
+            hh, ww = L_.shape
+            gy, gx = np.mgrid[0:hh, 0:ww].astype(np.float32)
+            out = lay(out, np.exp(-(((gx - ww / 2) / (ww * 0.42)) ** 2 + ((gy - hh * 0.25) / (hh * 0.7)) ** 2)) * 0.62, GOLD)
+        if state in ("flood", "pump"):
+            top = int(out.shape[0] * (0.36 if state == "flood" else 0.70))
+            m = np.zeros(out.shape[:2], np.float32); m[top:, 2:-2] = 1
+            out = lay(out, m * 0.55, BLUE)
+        o = Image.fromarray((np.clip(out, 0, 1) * 255).astype("uint8"))
+        ImageDraw.Draw(o).rectangle([0, 0, o.width - 1, o.height - 1], outline=(52, 42, 34), width=2)
+        return o
+
+    fgi = Image.fromarray((np.clip(fg, 0, 1) * 255).astype("uint8"), "RGBA")
+    d = ImageDraw.Draw(fgi)
+    rooms = S["rooms"]
+    lamp_pts = []
+    for x, zf, k, s in rooms:
+        l, b, r2, t = slot_rect(x, zf)
+        (pl, pt), (pr, pb) = P(l, t), P(r2, b)
+        if s == "plan":
+            colp = (52, 42, 34, 230) if variant == "a" else (232, 220, 191, 150)
+            for (ax, ay), (bx, by) in (((pl, pt), (pr, pt)), ((pr, pt), (pr, pb)), ((pr, pb), (pl, pb)), ((pl, pb), (pl, pt))):
+                ln = math.hypot(bx - ax, by - ay); n = int(ln / 14)
+                for j in range(n):
+                    t0, t1 = j / n, (j + 0.55) / n
+                    d.line([(ax + (bx - ax) * t0, ay + (by - ay) * t0), (ax + (bx - ax) * t1, ay + (by - ay) * t1)], fill=colp, width=2)
+            cxp, cyp = (pl + pr) / 2, (pt + pb) / 2
+            d.line([(cxp - 9, cyp), (cxp + 9, cyp)], fill=colp, width=3); d.line([(cxp, cyp - 9), (cxp, cyp + 9)], fill=colp, width=3)
+            continue
+        fgi.paste(plate_img(k, s), (int(round(pl)), int(round(pt))))
+        if s in ("lit", "pump"):
+            lamp_pts.append(((pl + pr) / 2, (pt + pb) / 2, pr - pl, pb - pt, s == "lit"))
+    # 아래층은 배경의 깊이 속으로 사라진다(B=어둠, A=종이 안개)
+    F = np.asarray(fgi, np.float32) / 255
+    zs = CZ + (H / 2 - np.arange(H)) / ppm
+    fz = np.clip((-5.0 - zs) / 11.0, 0, 1)[:, None]
+    if variant == "b":
+        F[..., :3] *= (1 - 0.75 * fz)[..., None]
+    else:   # 투명하게 하지 않는다(벽이 비친다) — 종이 안개색으로 덮는다
+        F[..., :3] = F[..., :3] * (1 - 0.5 * fz)[..., None] + PAPER * (0.5 * fz)[..., None]
+    fgi = Image.fromarray((np.clip(F, 0, 1) * 255).astype("uint8"), "RGBA")
+
+    # ── 등불 번짐(B) / 금빛 담채(A) 를 배경에 먼저 ──
+    G = Image.new("L", (W, H), 0); dg = ImageDraw.Draw(G)
+    for cx_, cy_, w_, h_, lit in lamp_pts:
+        pad = 70
+        dg.ellipse([cx_ - w_ / 2 - pad, cy_ - h_ / 2 - pad, cx_ + w_ / 2 + pad, cy_ + h_ / 2 + pad], fill=150 if lit else 90)
+    lx, ly = P(20.4, -1.0)
+    dg.ellipse([lx - 60, ly - 60, lx + 60, ly + 60], fill=170)
+    g = np.asarray(G.filter(ImageFilter.GaussianBlur(45)), np.float32) / 255
+    if variant == "b":
+        warmc = np.array([1.0, 0.68, 0.3], np.float32)
+        B = 1 - (1 - B) * (1 - (g * 0.75)[..., None] * warmc)
+    else:
+        B = lay(B, g * 0.35, GOLD)
+    img = Image.fromarray((np.clip(B, 0, 1) * 255).astype("uint8")).convert("RGBA")
+    img = Image.alpha_composite(img, fgi)
+    # 유인 등불 자체
+    dl = ImageDraw.Draw(img)
+    dl.ellipse([lx - 6, ly - 7, lx + 6, ly + 7], fill=(255, 214, 130, 255) if variant == "b" else (214, 158, 52, 255))
+
+    # ── 주민: P2 도트 ×1, 원래 팔레트 그대로(정수 배율·최근접) ──
+    rows = {"idle": 0, "walk": 1, "work": 2, "sit": 3, "carry": 4}
+    sheets = {}
+    for ri, lst in S["people"].items():
+        x, zf, k, s = rooms[ri]
+        for j, (role, off, pose) in enumerate(lst):
+            if role not in sheets:
+                sheets[role] = Image.open(os.path.join(ART, "chars", "front", "p2", "src", f"{role}.png")).convert("RGBA")
+            fr = (ri + j) % 2
+            cell = sheets[role].crop((fr * 64, rows[pose] * 64, fr * 64 + 64, rows[pose] * 64 + 64))
+            px, py = P(x + off, zf)
+            img.paste(cell, (int(round(px - 32)), int(round(py - 60))), cell)
+    img = img.convert("RGB")
+    out = os.path.join(RAW, f"m5_flux_{variant}_hero.png")
+    img.save(out)
+    os.makedirs(DST, exist_ok=True)
+    img.save(os.path.join(DST, f"m5_flux_{variant}_hero.jpg"), quality=90, optimize=True)
+    print("FLUXCOMP", out, flush=True)
+
+
 def _serve():
     import shutil
     os.makedirs(DST, exist_ok=True)
@@ -1629,6 +1857,10 @@ if __name__ == "__main__":
         cmd = sys.argv[1] if len(sys.argv) > 1 else "post"
         if cmd == "serve":
             _serve()
+        elif cmd == "fluxcomp":
+            _fluxcomp(sys.argv[2], int(sys.argv[3]))
+        elif cmd == "flux":
+            _flux(sys.argv[2], [int(v) for v in sys.argv[3:]])
         elif cmd == "ink":
             _ink(sys.argv[2] if len(sys.argv) > 2 else "m5")
         else:

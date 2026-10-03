@@ -167,3 +167,47 @@ M1을 고를 때 풀어야 할 것: 기운 선체 안의 계단식 방 배치를
 ## 남은 것
 - 이것은 화풍 시험 한 장이다. 폰 크롭은 만들지 않았다.
 - 레퍼런스 원본을 직접 보지 못하고 설명으로만 작업했다. 군청의 채도, 번짐 크기, 선 굵기는 원본과 다를 수 있다.
+
+---
+
+# 추가 S11-D — 바깥 배경만 flux, 탑·방·주민은 우리 것 (2026-10-03, 사용자 승인)
+
+## 결과 요약
+- **B 「flux 심해 수채」: 쓸 만한 샘플 한 장.** `static/art/maps/m5_flux_b_hero.jpg`
+- **A 「flux 종이 수채」: 시도 한도 안에서 실패.** 받은 한 장이 종이·먹·번짐이 아니라 파란 사진풍 하늘이었다. 비교용으로만 남긴다: `static/art/maps/m5_flux_a_hero.jpg`
+- maps.html에서 수묵 샘플 다음에 두 카드(「M5 · flux 종이 수채」·「M5 · flux 심해 수채」)를 두었고, A 카드에는 '실패 기록'이라고 적었다. 콘솔 오류 0.
+- PM이 13:26에 본 B 합성은 **flux가 아니라 내 시험 실행이었다.** 합성 코드를 점검하려고 기존 3D M5 대표 컷을 임시 배경으로 넣은 것이라 원본과 똑같아 보였다. 그 임시 파일은 지웠다.
+
+## 생성 기록(남긴 것)
+| 판 | seed | 크기 | 프롬프트 |
+|---|---|---|---|
+| A | 1101 | 1024×576 | "Underwater cliff and open sea, storybook ink and watercolor illustration on cream paper, fine sepia ink linework, ultramarine blue watercolor blooms with drips on kelp and seaweed, a large rock cliff mass on the left third, open empty water on the right, deeper blue wash toward the bottom right, faint distant shapes fading into the paper, soft light rays from above, a large dark whale-like silhouette far away, sparse gold accents, side view, wide landscape, no people, no text, no buildings, no characters" |
+| B | 2202 | 1024×576 | "Deep sea cliff and abyss, dark wet-in-wet watercolor illustration, deep indigo and teal ground getting darker toward the bottom right trench, granulation and paint drips, loose ink lines, a large rock cliff mass on the left third, open water on the right, faint light from above, a few cobalt and teal blooms, kelp silhouettes, pale washes for distant shapes, a large dark creature silhouette in the distance, side view, wide landscape, no people, no text, no buildings, no characters" |
+
+전체 기록은 `art_raw/maps/m5_flux_log.jsonl`, 원본 배경은 `art_raw/maps/m5_flux_a_bg_1101.jpg`·`m5_flux_b_bg_2202.jpg`. 모델은 flux, `nologo=true`.
+
+**요청 이력(총 7회)**: A 1101 → 500 / B 2201 → 402 (1600×900) / A 1101 → 성공 / B 2201 → 402 (1024×576) / B 2202 → 성공 / A 1102 → 402 / A 1103 → 500 (A 셋째 시도부터는 "종이가 대부분 비어 있는" 프롬프트로 바꿨다).
+- 1600×900은 402(Payment Required)가 나서 1024×576으로 줄이고 1600×900으로 키웠다. 그래서 배경이 무르다.
+- **규칙 위반 1건**: 첫 실행에서 A가 500으로 실패한 뒤 B 요청이 5분이 아니라 **20초 뒤에** 나갔다(명령을 `&&`로 이어서 생긴 실수). 그 뒤로는 매 실패 뒤 5분 30초를 쉬고, 실패하면 거기서 멈추게 바꿨다.
+- `nologo=true`를 넣었는데도 오른쪽 아래에 워터마크가 찍혀 나왔고, 탄 종이 테두리도 붙었다. 합성할 때 가장자리(좌우 3.5%, 위 4.5%, 아래 8%)를 잘라 내고 화면을 덮게 키웠다.
+
+## 합성 방법
+- 탑 층: M5를 `MAPS_NOCLIFF=1`로 다시 렌더했다. 절벽·지층·균열·덩굴은 빼고 탑·돔·철골·통로·굴 방만 남겼다(`art_raw/maps/_m5_fg_mid.png`). 그 위에 플레이트·분필 점선·P2 도트 주민 ×1(원래 팔레트, 최근접)을 얹었다.
+- B: 탑은 3D 그대로 두고, 등불 번짐을 배경에 먼저 깔았다. 배경 보정 — 1차 합성에서 오른쪽 청록 물이 방보다 밝아 보여서 배경 전체를 낮추고(×0.62), 오른쪽 아래로 더 어둡게(해구), 채도를 20% 뺐다. 아래층은 어둠으로 잠기게 했다.
+- A: 탑을 S11-C 방식(종이 담채·먹선·군청 유리·금색 등불)으로 다시 칠했다. PM 지적("아래층이 비쳐 벽 너머 배경이 보인다")을 받아 투명하게 빼는 대신 **종이 안개색으로 덮는** 방식으로 바꿨다. 배경이 종이처럼 안 나와서 밝기를 종이→군청 담채 + 경계 먹선으로 다시 매핑하는 단계도 넣었다(`FLUX_PAPERMAP=1`). 하지만 원본에 절벽도 종이 결도 없어서 살아나지 않았다.
+
+## flux가 잘한 것 / 못한 것
+- **잘한 것(B)**: 왼쪽 큰 동굴 절벽 덩어리와 오른쪽 열린 물이라는 구도는 지시대로 나왔다. 붓질 결이 있는 물과 바위는 우리가 절차로 만든 그라데이션보다 **바깥이 훨씬 '그린 그림'처럼 풍부하다.** 빈 바다 문제는 확실히 줄었다.
+- **못한 것**: (1) 지시한 질감 — 젖은 번짐, 입자감, 물감 흘림, 먹선 — 은 두 판 모두 거의 나오지 않았다. 대신 매끈한 디지털 유화풍이다. (2) A는 '종이·크림'을 무시하고 파란 사진풍 하늘·빙하를 그렸다. (3) 해상도가 1024×576 상한이라 키우면 무르다. (4) 응답이 402·500으로 자주 실패하고 워터마크가 붙는다. 같은 그림을 다시 얻는 재현성도 보장되지 않는다. (5) 큰 생물 실루엣이나 물고기 같은 '살아 있는 것'은 그려 주지 않았다.
+
+## 탑이 자연스럽게 앉는가
+- **B**: 등불이 화면에서 가장 밝다는 조건은 지켰다. 그러나 **배경과 구조물의 그림 언어가 다르다.** 배경은 부드러운 붓질의 원근 있는 풍경인데, 탑은 손그림 외곽선의 평면 단면이다. 그래서 "그림 앞에 세운 무대 세트"처럼 보인다. 굴 방은 왼쪽 어두운 절벽 앞에 있어서 그럴듯하지만, flux 절벽의 원근(동굴 안쪽으로 굽음)과 우리 단면의 정면성이 맞지 않는다. 바닥이 안 보이는 탑 밑동도 배경에 '해구'가 없어서 그냥 잘려 보인다.
+- **A**: 앉지 않는다. 배경이 종이도 바다도 아니어서 탑이 오려 붙인 종이처럼 떠 있다.
+
+## 판정: A vs B vs 지금 3D
+1. **지금 3D(M5)가 여전히 가장 일관되다.** 바깥이 덜 풍부하지만 모든 요소가 같은 축척·같은 선·같은 빛 규칙 안에 있고, 생물·물고기·유인 등불이 '게임 정보'로 놓여 있다. 재현 가능하고 AI 공개 부담도 없다.
+2. **B는 "바깥을 그림으로 풍부하게"라는 방향이 맞다는 증거로는 의미가 있다.** 다만 지금 상태로 바로 쓰기는 어렵다(질감 불일치, 저해상도, 재현성, 공개 의무). 이 방향을 원하면 flux 결과를 그대로 쓰지 말고 **우리 3D 바깥(절벽·먼 형체) 렌더를 구도 가이드로 넣는 방식**(Colab ControlNet depth, 07 교본 §3-4)이 맞다. 그러면 원근 불일치가 사라진다.
+3. **A는 이 도구로는 나오지 않는다.** 종이 수채 화풍을 원하면 S11-C처럼 절차 후처리로 가는 쪽이 훨씬 가깝다.
+
+## AI 공개 관리표
+B(그리고 A)는 플레이어가 볼 수 있는 생성 AI 배경이다. 채택되면 PM 관리표(07 §6)에 "배경 바깥 레이어 — flux(Pollinations) + 후처리"를 올려야 한다. 지금은 비교 페이지에만 있다.
