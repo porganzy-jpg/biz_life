@@ -350,8 +350,13 @@ def spot_gate(sid: str, spot: dict | None = None) -> dict | None:
 
 
 def scan_counts(uid: str) -> dict:
+    """스팟 문턱이 읽는 카테고리별 수. S13: stakes spot_unlock.count_distinct_barcodes 면 **서로 다른 바코드**만 센다
+    (중복 스캔·값 0 재스캔이 단서를 열던 구멍)."""
+    distinct = bool(stk("spot_unlock.count_distinct_barcodes"))
+    q = ("SELECT category, COUNT(DISTINCT barcode) c FROM scans WHERE uid=? GROUP BY category" if distinct
+         else "SELECT category, COUNT(*) c FROM scans WHERE uid=? GROUP BY category")
     with db() as con:
-        rows = con.execute("SELECT category, COUNT(*) c FROM scans WHERE uid=? GROUP BY category", (uid,)).fetchall()
+        rows = con.execute(q, (uid,)).fetchall()
     return {r["category"]: r["c"] for r in rows}
 
 
@@ -643,10 +648,12 @@ def load_state(uid: str) -> dict:
             save_state(uid, st)
         changed = migrate_residents(st, uid)      # 각인·신뢰·스탯이 없는 구버전 주민 보강
         changed = migrate_state(st) or changed    # 소문·사건 이력 필드 보강
+        changed = migrate_s13(st, uid) or changed  # S13 선반 바코드·닦기·중복 칸 정리·카테고리 고정
         if changed:
             save_state(uid, st)
         return st
     st = new_state(uid)
+    migrate_s13(st, uid)
     save_state(uid, st)
     log(uid, "ark_created")
     return st
@@ -817,6 +824,7 @@ def grant_imprints(st: dict, ev: dict | None, flags: list[str], targets: list[di
         if imp["id"] in r["imprints"] or len(r["imprints"]) >= MAX_IMPRINTS:
             continue                                   # 같은 각인은 한 번, 최대 3개
         r["imprints"].append(imp["id"])
+        day_note(st, "imprint", r["name"])
         evolved = False
         if len(r["imprints"]) >= EVOLVE_AT and not r.get("role_evolved"):
             r["role_evolved"] = True
@@ -996,6 +1004,7 @@ def tick_production(st: dict) -> dict:
     관문의 **대가**가 여기서 돈을 낸다(defense.json gates.gate_cost):
       전원 차단(문지기의 정답) → 그 기간 전 방 생산 0 — 이 게임에서 가장 비싼 올바른 행동
       불 끄기(긴목의 정답)     → 그 방 생산 ×0.5 — 끄면 우리도 그 방을 못 본다
+    S13: 방마다 × staff_mult[그 방에 서 있는 사람 수] × (금 갔으면 crack.prod_mult) — data/balance/stakes.json
     """
     elapsed = time.time() - st["last_tick"]
     ticks = min(int(elapsed // PRODUCTION_TICK_SEC), MAX_OFFLINE_TICKS)
@@ -1005,10 +1014,15 @@ def tick_production(st: dict) -> dict:
     if not st.get("power_on", True):
         # 전원을 내려 둔 채로 시간이 흘렀다. 조용한 대신 아무것도 만들지 못한다
         st["last_tick"] += ticks * PRODUCTION_TICK_SEC
+        if not staff_snapshot_active(st):
+            st.pop("staff_snapshot", None)
         st["dark_note"] = {"kind": "blackout", "ticks": ticks,
                            "ko": "전원이 내려가 있는 동안 아무 방도 일하지 않았다."}
         return produced
     st.pop("dark_note", None)
+    snap = staff_snapshot_active(st)
+    if snap and float(snap["tick_start"]) >= st["last_tick"] + ticks * PRODUCTION_TICK_SEC:
+        snap = None                                   # 접촉한 틱은 아직 정산 범위 밖이다(다음 정산에서 쓴다)
     # 물 찬 방은 생산하지 않는다. 인접 보너스도 주지 않는다 — 그 방은 더 이상 방이 아니다
     live = [r for r in st["rooms"] if not r.get("flooded")]
     room_ids = [r["id"] for r in live]
@@ -1022,6 +1036,10 @@ def tick_production(st: dict) -> dict:
         if not light_on(st, r["slot"]):
             mul = 0.5
             dark_rooms.append(spec["name"])
+        # S13 배치 = 생산(stakes staffing) × 금(stakes crack). 서 있는 사람 수는 **정산 순간**의 배치이고,
+        # 접촉이 있었던 틱 하나만은 접촉 순간 배치(staff_snapshot)로 센다 — 틱 평균 배율로 합친다
+        cur_m = room_mult(st, r)[0]
+        mul *= ((room_mult(st, r, snap["counts"])[0] + cur_m * (ticks - 1)) / ticks) if snap else cur_m
         for k, v in room_produces(r).items():
             if k == "heal" and isinstance(v, (int, float)):
                 heal_extra += v * mul          # 의무실·물 끓이는 방 = 회복 속도(재고가 아니다)
@@ -1066,6 +1084,8 @@ def tick_production(st: dict) -> dict:
             res["injured"] = False; heal -= 1
     st["injured"] = sum(1 for x in st.get("residents_list", []) if x.get("injured"))
     st["last_tick"] += ticks * PRODUCTION_TICK_SEC
+    if not staff_snapshot_active(st):
+        st.pop("staff_snapshot", None)           # 접촉한 틱이 정산됐다(또는 지난 것이다)
     return produced
 
 
@@ -1308,6 +1328,10 @@ def raid_ctx(st: dict, raid: dict, consumables: list | None = None) -> dict:
         "acts": list(raid.get("acts") or []),                 # 이번 습격에 치른 행동(대가를 이미 냈다)
         "moves": int(raid.get("moves") or 0),                 # 습격이 시작된 뒤 사람을 옮긴 횟수(덮개)
         "lure_elsewhere": lure_elsewhere(st, slot),           # 반대쪽이 더 밝은가(거울눈)
+        # S13 금 간 방은 바탕이 낮다(stakes crack.room_base_penalty). 금 가지 않은 방에는 키 자체가 없다
+        **({"room_base_adj": float(stk("crack.room_base_penalty") or 0),
+            "room_base_adj_ko": moment("crack.label_cracked") or "금 간 유리"}
+           if r and not r.get("flooded") and r.get("cracked") else {}),
     }
 
 
@@ -1381,6 +1405,9 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
     eye, eye_who = best_stat(inside, "eye")
     early = bool(eye >= EYE_EARLY and eye_who)
     quiet = raid["stage"] == "sound" and not early    # 보통은 소리 단계에서 어느 방인지 모른다(§3-1·3-2)
+    revealed = lid_revealed(raid, cre)                # S13 덮개: stakes lid.reveal_from_stage 부터 대상 방을 연다
+    if revealed:
+        quiet = False
     return {
         "id": raid["id"], "day": raid["day"], "stage": raid["stage"],
         "stage_ko": combat.STAGE_KO.get(raid["stage"], raid["stage"]),
@@ -1397,6 +1424,9 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
         "grade": int(raid.get("grade") or grade_of(st)),
         "moves": int(raid.get("moves") or 0),
         "acts": list(raid.get("acts") or []),
+        "lid_revealed": revealed,
+        "reveal_ko": moment("lid.target_revealed", room=room_name or "") if revealed else None,
+        "auto": bool(raid.get("auto")), "capped": bool(raid.get("capped")),
         # 그 생물을 막는 **행동 버튼**(관문이 토글로 안 되는 일곱). 대가와 낼 수 있는지까지 서버가 판단한다
         "action": None if quiet else gate_action_public(st, raid, cre),
         # 접촉 전 미리보기(실루엣 단계부터). 숫자보다 "무엇이 모자란지"를 먼저 말한다
@@ -1408,6 +1438,18 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
             "parts": preview["parts"], "shielded": preview.get("shielded"),
         },
     }
+
+
+def lid_revealed(raid: dict, cre: dict) -> bool:
+    """덮개(관문 = 움직이지 않기)의 대상 방 공개. stakes lid.reveal_target 이 참이고 reveal_from_stage 이후면 True.
+    이 단계부터의 이동은 덮개의 moves 에 세지 않는다(stakes lid._note — 공개가 의미를 갖게)."""
+    if (cre or {}).get("gate") != "stand_still" or not stk("lid.reveal_target"):
+        return False
+    stages = list(combat.STAGES)
+    rv = str(stk("lid.reveal_from_stage") or "silhouette")
+    if raid.get("stage") not in stages or rv not in stages:
+        return False
+    return stages.index(raid["stage"]) >= stages.index(rv)
 
 
 def gate_action_public(st: dict, raid: dict, cre: dict) -> dict | None:
@@ -1556,6 +1598,24 @@ def public_state(st: dict, uid: str) -> dict:
         "room_caps": {rid: combat.room_cap(rid) for rid in ROOMS},
         # 스탯 사전. 화면은 숫자를 크게 쓰지 않고 점 네 줄로 그린다(RESIDENT_STATS §5)
         "stats_meta": {"keys": list(STAT_KEYS), "ko": STAT_KO, "use": STAT_USE, "max": 10},
+        # ── S13 이해관계·수집 (docs/API_S13.md) ─────────────────────
+        "production": production_public(st),
+        # 물 찬 칸(사용자 결정 2026-10-03): 다시 지을 수 있다. was_* 는 잃기 전 방(화면이 같은 방을 먼저 권할 수 있게)
+        "flooded_cells": [{"slot": r["slot"], "was_id": (r.get("flooded_from") or {}).get("id", r.get("id")),
+                           "was_name": (ROOMS.get((r.get("flooded_from") or {}).get("id", r.get("id"))) or {}).get("name"),
+                           "was_level": (r.get("flooded_from") or {}).get("level", room_level(r)),
+                           "flooded_day": r.get("flooded_day"), "by": r.get("flooded_by"),
+                           "reclaim": "build"}
+                          for r in st.get("rooms", []) if r.get("flooded")],
+        "repair": {"cost": dict(stk("crack.repair_cost") or {}), "patch_tool": REPAIR_PATCH_TOOL,
+                   "have_patch": int((st.get("tools") or {}).get(REPAIR_PATCH_TOOL, 0)) if REPAIR_PATCH_TOOL else 0,
+                   "label": moment("crack.label_repair")},
+        "night_judge": {"hour": int(stk("night_judge.hour")), "worst": stk("night_judge.worst_result"), "report": None},
+        "octopus": octopus_public(st),
+        "wishes_new": [],
+        "families_done": sorted((st.get("family_sets") or {}).keys()),
+        "decor": [{"code": k, "name": (v or {}).get("decor")} for k, v in (st.get("family_sets") or {}).items()
+                  if (v or {}).get("decor")],
     }
 
 
@@ -1609,9 +1669,19 @@ def shelf_public(st: dict) -> list[dict]:
     cap = shelf_capacity(st)
     if not cap:
         return []
-    keys = ("slot", "prop_id", "name", "category", "rarity", "family", "scanned_at")
-    return [{k: it.get(k) for k in keys} for it in (st.get("shelf") or [])
-            if int(it.get("slot", 0)) + prop_width(it.get("prop_id", "")) <= cap]
+    keys = ("slot", "prop_id", "name", "category", "rarity", "family", "scanned_at",
+            "barcode", "relic_name", "variant")          # S13: 뒤 셋은 덧붙임(계약 앞 일곱은 그대로)
+    out = []
+    for it in (st.get("shelf") or []):
+        if int(it.get("slot", 0)) + prop_width(it.get("prop_id", "")) > cap:
+            continue
+        row = {k: it.get(k) for k in keys}
+        lv = polish_level(it)
+        row["polish"] = lv
+        row["polish_label"] = moment(f"shelf.levels.{lv}.label")
+        row["polish_value_mult"] = polish_value_mult(lv)
+        out.append(row)
+    return out
 
 
 def shelf_place(st: dict, card: dict) -> int | None:
@@ -1638,7 +1708,11 @@ def shelf_place(st: dict, card: dict) -> int | None:
                 shelf.append({"slot": start, "prop_id": prop["id"], "name": prop.get("name"),
                               "category": cat, "rarity": card.get("rarity"),
                               "family": card.get("family_name") or None,
-                              "scanned_at": time.time(), "card_id": card.get("id")})
+                              "scanned_at": time.time(), "card_id": card.get("id"),
+                              # S13 닦기·변형: 같은 바코드는 이 칸 하나를 키운다(새 칸을 먹지 않는다)
+                              "barcode": card.get("barcode"), "relic_name": card.get("name"),
+                              "polish": 1, "polish_scans": 0, "placed_day": card.get("_day"),
+                              "variant": "sea" if card.get("sea_variant") else None})
                 return start
     return None
 
@@ -1646,6 +1720,599 @@ def shelf_place(st: dict, card: dict) -> int | None:
 def shelf_remove_card(st: dict, card_id: str | None) -> None:
     if card_id:
         st["shelf"] = [it for it in (st.get("shelf") or []) if it.get("card_id") != card_id]
+
+
+# ─────────────────────────────────────────────────────────────
+# S13-A 이해관계·수집 (docs/reports/review_fun_collection_20261003.md 추천 1~4, 사용자 승인)
+#   수치 정본: data/balance/stakes.json (기획 소유) — 여기에는 숫자를 두지 않는다.
+#   화면 문장: data/ui_moments.json (시나리오 소유) — GET /api/text/moments 로 그대로 내보낸다.
+#   계약: docs/API_S13.md
+# ─────────────────────────────────────────────────────────────
+# 파일이 없거나 키가 빠졌을 때만 쓰는 안전값. **정본이 아니다**(TODO: stakes.json 이 항상 있으면 지운다).
+# 값은 stakes.json 1차 값과 같게 두어, 파일이 깨져도 게임의 성격이 바뀌지 않게 한다.
+_STAKES_SAFE = {
+    "staffing": {"staff_mult": [0.5, 1.0, 1.35, 1.6, 1.8]},
+    "crack": {"prod_mult": 0.7, "room_base_penalty": -0.5, "repair_cost": {"cloth": 1, "med": 1}, "stacks": False},
+    "lid": {"reveal_target": True, "reveal_from_stage": "silhouette"},
+    "night_judge": {"hour": 21, "worst_result": "scarred", "reward_mult": 1.0},
+    "polish": {"scans_per_level": [2, 3], "value_mult": [1.0, 1.25, 1.5], "max_level": 3, "per_barcode_per_day": 1},
+    "variant": {"rate": 0.03125, "seed_rule": "barcode+isoweek"},
+    "family_sets": {"pieces_required": 3, "reward": {"lore_piece": 1, "decor": 1, "morale": 2}},
+    "category_lock": True,
+    "spot_unlock": {"count_distinct_barcodes": True},
+}
+_STAKES_CACHE: dict = {"mtime": "unset", "data": {}}
+
+
+def stakes() -> dict:
+    """stakes.json 을 읽는다(파일이 바뀌면 재시작 없이 반영 — 기획이 아직 다듬는 중). 없으면 안전값."""
+    p = ROOT / "data" / "balance" / "stakes.json"
+    try:
+        mtime = p.stat().st_mtime
+    except OSError:
+        mtime = None
+    if mtime != _STAKES_CACHE["mtime"]:
+        data = {}
+        if mtime is not None:
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"[stakes] stakes.json 을 읽지 못했다 → 안전값으로 돈다: {e}")
+        else:
+            print("[stakes] data/balance/stakes.json 없음 → 안전값(TODO 기획)")
+        _STAKES_CACHE.update({"mtime": mtime, "data": data})
+    return _STAKES_CACHE["data"]
+
+
+def stk(path: str):
+    """'crack.prod_mult' 같은 경로. 파일 값이 이기고, 없으면 안전값."""
+    for src in (stakes(), _STAKES_SAFE):
+        cur = src
+        ok = True
+        for k in path.split("."):
+            if isinstance(cur, dict) and k in cur:
+                cur = cur[k]
+            else:
+                ok = False
+                break
+        if ok:
+            return cur
+    return None
+
+
+# ── 화면 문장(data/ui_moments.json) ─────────────────────────────
+_MOMENTS_CACHE: dict = {"mtime": "unset", "data": {}}
+
+
+def moments() -> dict:
+    p = ROOT / "data" / "ui_moments.json"
+    try:
+        mtime = p.stat().st_mtime
+    except OSError:
+        mtime = None
+    if mtime != _MOMENTS_CACHE["mtime"]:
+        data = {}
+        if mtime is not None:
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"[moments] ui_moments.json 무시: {e}")
+        _MOMENTS_CACHE.update({"mtime": mtime, "data": data})
+    return _MOMENTS_CACHE["data"]
+
+
+def moment(key: str, **vars) -> str | None:
+    """'family_set.complete.8801043' 같은 키의 문장(중첩·점 섞인 키 둘 다 받는다). 치환자는 {name} 꼴."""
+    cur = moments()
+    parts = key.split(".")
+    i = 0
+    while i < len(parts) and isinstance(cur, dict):
+        for j in range(len(parts), i, -1):            # 가장 긴 키부터 — "complete.8801043" 처럼 점이 든 키도 받는다
+            k = ".".join(parts[i:j])
+            if k in cur:
+                cur, i = cur[k], j
+                break
+        else:
+            return None
+    if i < len(parts) or not isinstance(cur, str):
+        return None
+    for k, v in vars.items():
+        cur = cur.replace("{" + k + "}", str(v))
+    return cur
+
+
+# ── 일지(하루 마감이 읽는 '오늘 바뀐 것') ─────────────────────────
+DAY_LOG_KEEP = 7
+
+
+def day_note(st: dict, kind: str, value) -> None:
+    log_ = st.setdefault("day_log", {})
+    d = str(day_of(st))
+    row = log_.setdefault(d, {})
+    row.setdefault(kind, []).append(value)
+    for k in sorted(log_, key=lambda x: int(x))[:-DAY_LOG_KEEP]:
+        log_.pop(k, None)
+
+
+# ── 배치 = 생산 (staffing) · 금 (crack) ──────────────────────────
+def staff_mult(n: int) -> float:
+    arr = stk("staffing.staff_mult") or [1.0]
+    return float(arr[max(0, min(int(n), len(arr) - 1))])
+
+
+def staff_counts(st: dict) -> dict:
+    return {str(k): len(v) for k, v in stations_map(st).items()}
+
+
+def staff_snapshot_active(st: dict) -> dict | None:
+    """stakes staffing.measure == contact_snapshot: 습격 접촉 순간의 배치가 **그 틱**의 생산을 정한다.
+    (옮겨서 막고 바로 되돌리면 비용이 0 이 되던 구멍 — design_stakes §7.) 아직 정산되지 않은 그 틱에만 산다."""
+    snap = st.get("staff_snapshot")
+    if not isinstance(snap, dict) or stk("staffing.measure") != "contact_snapshot":
+        return None
+    return snap if float(snap.get("tick_start", -1)) >= float(st.get("last_tick", 0)) else None
+
+
+def take_staff_snapshot(st: dict) -> None:
+    if stk("staffing.measure") == "contact_snapshot":
+        lt = float(st.get("last_tick") or time.time())
+        start = lt + int(max(0.0, time.time() - lt) // PRODUCTION_TICK_SEC) * PRODUCTION_TICK_SEC   # 지금이 든 틱
+        st["staff_snapshot"] = {"tick_start": start, "counts": staff_counts(st), "at": time.time()}
+
+
+def room_mult(st: dict, room: dict, counts: dict | None = None) -> tuple[float, dict]:
+    """그 방 생산 배율 = 일손 배율 × 금 배율. 화면 미리보기와 정산이 같은 함수를 쓴다(D2).
+    counts 를 주면 그 배치(접촉 순간 스냅숏)로 센다."""
+    n = (int(counts.get(str(room["slot"]), 0)) if counts is not None
+         else len(stations_map(st).get(int(room["slot"]), [])))
+    sm = staff_mult(n)
+    cm = float(stk("crack.prod_mult")) if room.get("cracked") else 1.0
+    return sm * cm, {"staff": n, "staff_mult": sm, "cracked": bool(room.get("cracked")), "crack_mult": cm}
+
+
+def production_public(st: dict) -> dict:
+    out = {}
+    for r in live_rooms(st):
+        if not room_produces(r):
+            continue                                  # 생산하는 방만(stakes staffing.applies_to)
+        snap = staff_snapshot_active(st)
+        m, info = room_mult(st, r, snap["counts"] if snap else None)
+        name = (ROOMS.get(r["id"]) or {}).get("name", r["id"])
+        info.update({"room_id": r["id"], "mult": round(m, 3), "snapshot": bool(snap)})
+        if snap:
+            # 이번 틱은 접촉 순간 배치로 이미 정해졌다. 다음 틱부터는 지금 배치(now_mult)
+            info["now_mult"] = round(room_mult(st, r)[0], 3)
+        if info["staff"] == 0:
+            info["label"] = moment("staffing.label")
+            info["ko"] = moment("staffing.reduced", room=name)
+        if info["cracked"]:
+            info["crack_label"] = moment("crack.label_cracked")
+            info["crack_ko"] = moment("crack.still_cracked", room=name)
+        out[str(r["slot"])] = info
+    return out
+
+
+def crack_room(st: dict, room: dict) -> bool:
+    """금. 이미 금 간 방은 더 나빠지지 않는다(stakes crack.stacks=false). 새로 금 갔으면 True."""
+    if room.get("cracked") and not stk("crack.stacks"):
+        return False
+    room["cracked"] = True
+    room["cracked_day"] = day_of(st)
+    return True
+
+
+# ── 변형(바다 무늬) ───────────────────────────────────────────
+def iso_week(ts: float | None = None) -> str:
+    y, w, _ = datetime.fromtimestamp(ts if ts is not None else time.time()).isocalendar()
+    return f"{y}-W{w:02d}"
+
+
+def sea_variant(code: str, ts: float | None = None) -> dict:
+    """같은 주·같은 바코드 = 전 세계 같은 결과(D6). 수치 가치는 없다 — 표시만."""
+    import hashlib
+    week = iso_week(ts)
+    rule = str(stk("variant.seed_rule") or "barcode+isoweek")
+    key = f"{code}:{week}" if rule == "barcode+isoweek" else code
+    h = int(hashlib.sha256(f"VARIANT|{key}".encode()).hexdigest()[:8], 16) / 2 ** 32
+    shiny = h < float(stk("variant.rate") or 0)
+    return {"id": "sea" if shiny else None, "shiny": shiny, "week": week,
+            "label": moment("variant.label") if shiny else None}
+
+
+# ── 닦기(polish) ──────────────────────────────────────────────
+def polish_level(it: dict) -> int:
+    try:
+        return max(1, min(int(stk("polish.max_level")), int(it.get("polish") or 1)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def polish_value_mult(lv: int) -> float:
+    arr = stk("polish.value_mult") or [1.0]
+    return float(arr[max(0, min(lv - 1, len(arr) - 1))])
+
+
+def polish_threshold(lv: int) -> int | None:
+    """lv 에서 lv+1 로 가는 누적 재스캔 수. 최대면 None."""
+    arr = list(stk("polish.scans_per_level") or [])
+    if lv >= int(stk("polish.max_level")) or lv - 1 >= len(arr):
+        return None
+    return int(sum(arr[:lv]))
+
+
+def shelf_item_for(st: dict, code: str) -> dict | None:
+    return next((it for it in (st.get("shelf") or []) if it.get("barcode") == code), None)
+
+
+def polish_item(st: dict, it: dict, card_name: str) -> dict:
+    """선반에 이미 있는 바코드를 다시 찍었다 — 새 칸 대신 그 물건을 닦는다. 하루 한 번만 센다."""
+    day = day_of(st)
+    prev = polish_level(it)
+    counted = False
+    per_day = int(stk("polish.per_barcode_per_day") or 1)
+    if it.get("polish_day") != day:                   # 날이 바뀌었다 — 오늘 몫을 새로 센다
+        it["polish_day"] = day
+        it["polish_today"] = 0
+    # 놓인 날(placed_day)에는 닦지 않는다: '다른 날' 다시 찍어야 한다(stakes polish._rule)
+    if it.get("placed_day") != day and int(it.get("polish_today") or 0) < per_day:
+        it["polish_today"] = int(it.get("polish_today") or 0) + 1
+        it["polish_scans"] = int(it.get("polish_scans") or 0) + 1
+        counted = True
+    lv = prev
+    while True:
+        need = polish_threshold(lv)
+        if need is None or int(it.get("polish_scans") or 0) < need:
+            break
+        lv += 1
+    it["polish"] = lv
+    nxt = polish_threshold(lv)
+    at_max = nxt is None
+    return {"barcode": it.get("barcode"), "slot": it.get("slot"), "level": lv, "prev_level": prev,
+            "leveled_up": lv > prev, "scans": int(it.get("polish_scans") or 0), "next_at": nxt,
+            "max": int(stk("polish.max_level")), "counted_today": counted, "value_mult": polish_value_mult(lv),
+            "label": moment(f"shelf.levels.{lv}.label"), "line": moment(f"shelf.levels.{lv}.line"),
+            # 같은 날 두 번째(세지 않은) 재스캔에는 '닦았다'고 말하지 않는다 — 거짓 문장이 된다
+            "ko": (moment("shelf.rescan_max", item=card_name) if (at_max and lv == prev)
+                   else moment("shelf.rescan", item=card_name) if counted else None)}
+
+
+# ── 가문 세트 · 첫 만남 ────────────────────────────────────────
+FAMILY_LORE = ((_load_json("family_lore.json") or {}).get("families") or {})
+FAMILY_NAMES = {k: v for k, v in (_load_json("family_names.json") or {}).items()
+                if not k.startswith("_") and isinstance(v, dict)}
+FIRST_MEET = _load_json("first_meet.json") or {}
+_KNOWN_FAM_CAT = {k: (v or {}).get("category") for k, v in GEN.families.items()
+                  if not k.startswith("_") and isinstance(v, dict)}     # 카테고리만. 실제 이름은 쓰지 않는다
+
+
+def family_have(uid: str, code: str) -> int:
+    with db() as con:
+        return con.execute("SELECT COUNT(DISTINCT barcode) c FROM scans WHERE uid=? AND substr(barcode,1,7)=?",
+                           (uid, code)).fetchone()["c"]
+
+
+def family_set_state(st: dict, uid: str, code: str) -> dict | None:
+    if code not in FAMILY_NAMES:
+        return None
+    total = int(stk("family_sets.pieces_required"))
+    have = family_have(uid, code)
+    name = FAMILY_NAMES[code].get("name")
+    done = code in (st.get("family_sets") or {})
+    return {"code": code, "name": name, "have": min(have, total), "total": total, "completed": done}
+
+
+def family_set_check(st: dict, uid: str, code: str) -> dict | None:
+    """스캔 직후. 문턱을 처음 넘으면 완성 보상(이야기·장식·사기)을 한 번 준다."""
+    fs = family_set_state(st, uid, code)
+    if not fs:
+        return None
+    fs["just_completed"] = False
+    fs["reward"] = None
+    if not fs["completed"] and fs["have"] >= fs["total"]:
+        rw = dict(stk("family_sets.reward") or {})
+        lore = FAMILY_LORE.get(code) or {}
+        st.setdefault("family_sets", {})[code] = {"day": day_of(st), "decor": lore.get("decor")}
+        mor = int(rw.get("morale") or 0)
+        if mor:
+            st["resources"]["morale"] = int(st["resources"].get("morale", 0)) + mor
+        fs.update({"completed": True, "just_completed": True,
+                   "reward": {"story": lore.get("story") if rw.get("lore_piece") else None,
+                              "decor": lore.get("decor") if rw.get("decor") else None, "morale": mor}})
+        fs["ko"] = moment(f"family_set.complete.{code}") or moment("family_set.complete_default", family=fs["name"])
+        day_note(st, "family_set", fs["name"])
+    elif fs["completed"]:
+        fs["ko"] = None
+    elif fs["total"] - fs["have"] == 1:
+        fs["ko"] = moment("family_set.one_left", family=fs["name"])
+    else:
+        fs["ko"] = moment("family_set.progress", family=fs["name"], n=fs["have"], total=fs["total"])
+    return fs
+
+
+def first_meet_lines(st: dict, cat: str, fam: str) -> list[dict]:
+    out = []
+    seen_f = st.setdefault("seen_families", [])
+    seen_c = st.setdefault("seen_categories", [])
+    if fam in FAMILY_NAMES and fam not in seen_f:
+        seen_f.append(fam)
+        line = ((FIRST_MEET.get("families") or {}).get(fam) or {}).get("line")
+        if line:
+            out.append({"kind": "family", "key": fam, "line": line})
+    if cat not in seen_c:
+        seen_c.append(cat)
+        line = ((FIRST_MEET.get("categories") or {}).get(cat) or {}).get("line")
+        if line:
+            out.append({"kind": "category", "key": cat, "line": line})
+    return out
+
+
+# ── 도감 메타(줄기별 희귀도·변형) ─────────────────────────────
+def stem_of(cat: str, name: str) -> str | None:
+    for t in (TEMPLATES.get(cat) or []):
+        s = t["name"].replace("{adj} ", "")
+        if name.endswith(s):
+            return s
+    return None
+
+
+def codex_note(st: dict, cat: str, name: str, rarity: str, variant: bool) -> None:
+    s = stem_of(cat, name)
+    if not s:
+        return
+    row = st.setdefault("codex_meta", {}).setdefault(cat, {}).setdefault(s, {"rarities": [], "variant": False})
+    if rarity not in row["rarities"]:
+        row["rarities"].append(rarity)
+    row["variant"] = bool(row.get("variant") or variant)
+    row["name"] = name
+
+
+def ensure_codex_meta(st: dict, uid: str) -> bool:
+    """구버전 방주: 희귀도 기록이 없으면 scans 표의 (바코드, 카테고리)로 다시 만들어 채운다(같은 바코드 = 같은 유물)."""
+    if isinstance(st.get("codex_meta"), dict):
+        return False
+    st["codex_meta"] = {}
+    with db() as con:
+        rows = con.execute("SELECT DISTINCT barcode, category FROM scans WHERE uid=?", (uid,)).fetchall()
+    for r in rows:
+        try:
+            c = GEN.generate(r["barcode"], user_category=r["category"])
+        except ValueError:
+            continue
+        codex_note(st, c.category.value, c.name, c.rarity.value, False)
+    return True
+
+
+RARITY_KEYS = ("common", "uncommon", "rare", "epic", "legendary")
+REPAIR_PATCH_TOOL = next((t for t, v in combat.TOOLS.items() if v.get("heals_crack")), None)   # 봉합 패치
+
+
+# ── 문어(동거 짐승) ───────────────────────────────────────────
+OCTOPUS = _load_json("companion_octopus.json") or {}
+
+
+def octopus_tick(st: dict, uid: str) -> dict | None:
+    """첫 등장(arrival.day)부터 하루 선물 하나. 전날 찍은 카테고리와 맞는 것에 가중치(data _for_dev 권장식)."""
+    arr = OCTOPUS.get("arrival") or {}
+    day = day_of(st)
+    if not arr or day < int(arr.get("day") or 1):
+        return None
+    oc = st.setdefault("octopus", {"arrived_day": day, "name": None, "finds": {}, "gift_day": None})
+    out: dict = {}
+    if not oc.get("arrival_shown"):
+        oc["arrival_shown"] = True
+        out["arrival"] = {"beats": arr.get("beats") or [], "closing": arr.get("closing"), "where": arr.get("where")}
+    finds = [f for f in (OCTOPUS.get("finds") or []) if isinstance(f, dict) and f.get("id")]
+    if finds and oc.get("gift_day") != day:
+        with db() as con:
+            rows = con.execute("SELECT DISTINCT category FROM scans WHERE uid=? AND day=?", (uid, day - 1)).fetchall()
+        fav = {r["category"] for r in rows}
+        weights = [1 + (int(f.get("weight") or 0) if f.get("favor_category") in fav else 0) for f in finds]
+        pick = random.Random(f"{uid}|{day}|octopus_gift").choices(finds, weights=weights, k=1)[0]
+        oc["gift_day"] = day
+        oc.setdefault("finds", {})[pick["id"]] = int(oc["finds"].get(pick["id"], 0)) + 1
+        oc["gift_today"] = pick["id"]
+        day_note(st, "octopus", pick["name"])
+        out["gift"] = pick
+    return out
+
+
+def octopus_public(st: dict) -> dict:
+    oc = st.get("octopus")
+    if not oc:
+        return {"arrived": False}
+    moods = OCTOPUS.get("moods") or []
+    # TODO(기획): 기분 단계 규칙 수치가 아직 없다. 임시 = 첫 단계 + 이름을 지었으면 +1 + 함께 지낸 주(週)마다 +1.
+    days = max(0, day_of(st) - int(oc.get("arrived_day") or day_of(st)))
+    stage = 1 + (1 if oc.get("name") else 0) + days // 7
+    mood = moods[max(0, min(stage, len(moods)) - 1)] if moods else None
+    g = next((f for f in (OCTOPUS.get("finds") or []) if f.get("id") == oc.get("gift_today")), None)
+    gift = None
+    if g and oc.get("gift_day") == day_of(st):
+        gift = {"id": g["id"], "name": g["name"], "line": g.get("line"), "kind": g.get("kind"),
+                "spot_hint": g.get("spot_hint"), "label": moment("octopus_gift.label"),
+                "ko": moment("octopus_gift.pop", item=g["name"])}
+    return {"arrived": True, "name": oc.get("name"), "arrived_day": oc.get("arrived_day"),
+            "mood": ({k: mood.get(k) for k in ("id", "ko", "stage", "line", "tell")} if mood else None),
+            "gift_today": gift, "finds_count": sum(int(v) for v in (oc.get("finds") or {}).values())}
+
+
+# ── 주민 바람(wishes) ─────────────────────────────────────────
+WISHES = [w for w in ((_load_json("wishes.json") or {}).get("wishes") or []) if isinstance(w, dict) and w.get("id")]
+
+
+def wish_progress(st: dict, uid: str, w: dict, resident: dict) -> tuple[bool, dict | None]:
+    """data 의 condition.hint 를 판정식으로 읽는다(정본은 개발 — wishes.json _for_dev). 아는 키만 본다."""
+    h = (w.get("condition") or {}).get("hint") or {}
+    hand = st.get("hand") or []
+    rooms = {r["id"] for r in live_rooms(st)}
+    if h.get("room_feature") == "window":
+        # 창이 있는 방 = 전망 라운지. 이 주민이 거기 서 있어야 한다(assign: self)
+        slot = station_slot(st, resident["id"])
+        r = room_at(st, slot) if slot is not None else None
+        return bool(r and r.get("id") == "lounge" and not r.get("flooded")), None
+    if h.get("props_category"):
+        need = int(h.get("count") or 1)
+        have = sum(1 for it in (st.get("shelf") or []) if it.get("category") == h["props_category"])
+        return have >= need, {"have": min(have, need), "need": need}
+    if h.get("category") and h.get("room"):
+        return (h["room"] in rooms and any(c.get("category") == h["category"] for c in hand)), None
+    if h.get("spot") or h.get("or_spot") or h.get("octopus_find"):
+        ok = any(spot_found(st, uid, s) for s in (h.get("spot"), h.get("or_spot")) if s)
+        if h.get("octopus_find") and int(((st.get("octopus") or {}).get("finds") or {}).get(h["octopus_find"], 0)) > 0:
+            ok = True
+        for k, v in (h.get("or_resource") or {}).items():
+            if int(st["resources"].get(k, 0)) >= int(v):
+                ok = True
+        return ok, None
+    if h.get("flag") == "survived_together":
+        return any(v > 0 for v in (resident.get("trust") or {}).values()), None
+    if h.get("family") or h.get("or_tag"):
+        ok = bool(h.get("family")) and family_have(uid, h["family"]) > 0
+        if h.get("or_tag") and any(h["or_tag"] in (c.get("tags") or []) for c in hand):
+            ok = True
+        return ok, None
+    return False, None
+
+
+def wishes_public(st: dict, uid: str) -> list[dict]:
+    done = st.get("wishes_done") or {}
+    out = []
+    for r in st.get("residents_list") or []:
+        for w in WISHES:
+            if w.get("role") != r.get("role"):
+                continue
+            d = done.get(w["id"])
+            ok, prog = (True, None) if d else wish_progress(st, uid, w, r)
+            out.append({"id": w["id"], "resident_id": r["id"], "name": r["name"], "role": r["role"],
+                        "wish": w.get("wish"), "condition": (w.get("condition") or {}).get("text"),
+                        "done": bool(d), "done_day": (d or {}).get("day"),
+                        "line": (w.get("line_after") if d else w.get("line_before") or "").replace("{name}", r["name"]),
+                        "beast_beat": w.get("beast_beat") if d else None, "progress": prog})
+    return out
+
+
+def wishes_tick(st: dict, uid: str) -> list[dict]:
+    """이뤄진 바람을 기록한다(되돌아가지 않는다). 이번에 이뤄진 것만 돌려준다."""
+    done = st.setdefault("wishes_done", {})
+    new = []
+    for r in st.get("residents_list") or []:
+        for w in WISHES:
+            if w.get("role") != r.get("role") or w["id"] in done:
+                continue
+            ok, _ = wish_progress(st, uid, w, r)
+            if ok:
+                done[w["id"]] = {"day": day_of(st), "resident_id": r["id"]}
+                day_note(st, "wish", r["name"])
+                new.append({"id": w["id"], "resident_id": r["id"], "name": r["name"],
+                            "line": (w.get("line_after") or "").replace("{name}", r["name"])})
+    return new
+
+
+# ── 밤 자동 판정 ──────────────────────────────────────────────
+_RESULT_RANK = {"held": 0, "passed": 0, "scarred": 1, "breached": 2}
+
+
+def night_deadline(started: float) -> float:
+    """습격을 처음 본 시각 다음에 오는 night_judge.hour 정각."""
+    hour = int(stk("night_judge.hour"))
+    t = datetime.fromtimestamp(started)
+    dl = t.replace(hour=hour, minute=0, second=0, microsecond=0)
+    if t >= dl:
+        from datetime import timedelta
+        dl = dl + timedelta(days=1)
+    return dl.timestamp()
+
+
+def night_judge(st: dict, uid: str, force: bool = False) -> dict | None:
+    """접촉을 누르지 않은 오늘(또는 어제)의 습격을 그 시각의 배치 그대로 판정한다. 최악은 worst_result.
+    습격은 /api/raid/today 를 연 날에만 생긴다 = 플레이어가 화면에서 봤다(stakes applies_if).
+    이미 끝난 습격은 건드리지 않는다(멱등)."""
+    raid = st.get("raid")
+    if not raid or raid.get("none") or raid.get("resolved"):
+        return None
+    due = force or raid.get("day") != day_of(st) or time.time() >= night_deadline(float(raid.get("started") or time.time()))
+    if not due:
+        return None
+    # 상한은 데이터만 정한다. 값이 없거나(null) 엔진 결과 이름이 아니면 상한 없음 = 누른 것과 같은 결과
+    # (사용자 결정 2026-10-03: worst_result = "breached" → 상한이 걸리지 않는다)
+    cap = stk("night_judge.worst_result")
+    cap = cap if cap in _RESULT_RANK else None
+    out = resolve_raid(st, uid, raid, [], cap=cap, auto=True)
+    cre = combat.CREATURES.get(raid["creature"]) or {}
+    room = out.get("room_name") or ""
+    key = {"held": "night_judge.blocked", "passed": "night_judge.passed",
+           "scarred": "night_judge.cracked", "breached": "night_judge.lost"}.get(out["result"])
+    ko = moment(key, creature=cre.get("name", ""), room=room) if key else None
+    return {"raid_id": raid.get("id"), "creature": cre.get("name"), "creature_id": raid.get("creature"),
+            "result": out["result"], "result_ko": out["result_ko"], "capped": bool(out.get("capped")),
+            "room": room, "gained": out.get("gained"), "lost_room": out.get("lost_room"),
+            "ko": ko or out.get("line"), "key": key}
+
+
+def far_call_note(st: dict) -> None:
+    """먼 울음 간격을 날마다 적어 둔다(하루 마감 cry_shorter 가 어제와 비교한다)."""
+    fl = st.setdefault("far_call_log", {})
+    fl[str(day_of(st))] = gauges_of(st)["far_call_sec"]
+    for k in sorted(fl, key=lambda x: int(x))[:-DAY_LOG_KEEP]:
+        fl.pop(k, None)
+
+
+def day_tick(st: dict, uid: str, force_night: bool = False) -> dict:
+    """상태를 읽는 요청마다 한 번. 밤 판정 → 문어 → 바람 → 울음 기록. 모두 멱등이다."""
+    out = {"night_judge": night_judge(st, uid, force=force_night)}
+    out["octopus"] = octopus_tick(st, uid)
+    out["wishes_new"] = wishes_tick(st, uid)
+    far_call_note(st)
+    return out
+
+
+# ── 저장 이전(S13) ────────────────────────────────────────────
+def migrate_s13(st: dict, uid: str) -> bool:
+    """구버전 방주 보강. 선반 물건의 바코드를 card_id 앞부분에서 되살리고, 옛 중복 칸 버그로 생긴
+    같은 바코드 두 번째 칸부터는 걷어 낸다. 바코드 카테고리 고정·첫 만남 기록은 scans 표에서 채운다."""
+    changed = False
+    shelf = st.get("shelf") if isinstance(st.get("shelf"), list) else []
+    seen, keep = set(), []
+    for it in shelf:
+        if not isinstance(it, dict):
+            changed = True
+            continue
+        if not it.get("barcode"):
+            head = str(it.get("card_id") or "").split("-")[0]
+            if head.isdigit() and len(head) == 13:
+                it["barcode"] = head; changed = True
+        if "polish" not in it:
+            it["polish"] = 1; it["polish_scans"] = 0; changed = True
+        bc = it.get("barcode")
+        if bc and bc in seen:
+            changed = True                              # 옛 버그의 중복 칸 — 첫 칸만 남긴다
+            continue
+        if bc:
+            seen.add(bc)
+        keep.append(it)
+    if changed:
+        st["shelf"] = keep
+    if not isinstance(st.get("barcodes"), dict):
+        st["barcodes"] = {}
+        with db() as con:
+            rows = con.execute("SELECT barcode, category FROM scans WHERE uid=? ORDER BY ts", (uid,)).fetchall()
+        for r in rows:
+            if r["category"] and r["category"] != "unknown":
+                st["barcodes"].setdefault(r["barcode"], {"category": r["category"]})
+        changed = True
+    if not isinstance(st.get("seen_categories"), list) or not isinstance(st.get("seen_families"), list):
+        with db() as con:
+            rows = con.execute("SELECT DISTINCT barcode, category FROM scans WHERE uid=?", (uid,)).fetchall()
+        st["seen_categories"] = sorted({r["category"] for r in rows if r["category"]})
+        st["seen_families"] = sorted({r["barcode"][:7] for r in rows if r["barcode"][:7] in FAMILY_NAMES})
+        changed = True
+    for r in st.get("rooms") or []:                      # 옛 '잃은 방'(flooded) → 무엇이었는지 기억하는 물 찬 칸
+        if r.get("flooded") and not isinstance(r.get("flooded_from"), dict):
+            r["flooded_from"] = {"id": r.get("id"), "level": room_level(r)}; changed = True
+    for key in ("family_sets", "wishes_done", "day_log", "far_call_log"):
+        if not isinstance(st.get(key), dict):
+            st[key] = {}; changed = True
+    return changed
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1658,16 +2325,20 @@ class ScanIn(BaseModel):
 
 
 @app.get("/api/peek")
-def peek(barcode: str):
-    """스캔 직전: 카테고리를 유저에게 물어야 하는지 알려준다."""
+def peek(barcode: str, uid: str | None = None):
+    """스캔 직전: 카테고리를 유저에게 물어야 하는지 알려준다.
+    S13: uid 를 주면 그 방주에서 이 바코드에 고정된 카테고리(category_lock)가 있을 때 묻지 않는다."""
     try:
         code = GEN.normalize(barcode)
     except ValueError as e:
         raise HTTPException(400, str(e))
     parsed = GEN.parse(code)
     cat = GEN.infer_category(parsed)
+    locked = None
+    if uid and stk("category_lock") and cat == Category.UNKNOWN and ark_exists(uid):
+        locked = ((load_state(uid).get("barcodes") or {}).get(code) or {}).get("category")
     return {"barcode": code, "known_category": None if cat == Category.UNKNOWN else cat.value,
-            "needs_category": cat == Category.UNKNOWN,
+            "needs_category": cat == Category.UNKNOWN and not locked, "locked_category": locked,
             "categories": [c.value for c in Category if c != Category.UNKNOWN and c != Category.BOOK]}
 
 
@@ -1688,7 +2359,14 @@ def scan(inp: ScanIn):
     if today >= DAILY_SCAN_CAP:
         raise HTTPException(429, "오늘의 성문 해독 상한에 도달했습니다 (20회).")
 
-    card = GEN.generate(code, hour=datetime.now().hour, user_category=inp.user_category)
+    # S13 카테고리 고정(stakes category_lock): 이 방주에서 그 바코드에 처음 정해진 카테고리를 다시 쓴다.
+    # 모르는 가문 바코드가 고르는 카테고리마다 다른 유물(평균 7개)이 되던 구멍 — 같은 바코드 = 같은 유물.
+    bmeta = st.setdefault("barcodes", {}).setdefault(code, {})
+    locked = bmeta.get("category") if stk("category_lock") else None
+    pick_cat = locked or inp.user_category
+    card = GEN.generate(code, hour=datetime.now().hour, user_category=pick_cat)
+    if card.category != Category.UNKNOWN and not bmeta.get("category"):
+        bmeta["category"] = card.category.value       # 정체불명(고르지 않음)은 고정하지 않는다 — 다음에 고를 수 있게
     mult = rescan_multiplier(prev)
     gained = {k: int(round(v * mult)) for k, v in card.yields.items() if round(v * mult) >= 1}
     for k, v in gained.items():
@@ -1699,20 +2377,39 @@ def scan(inp: ScanIn):
         if eff["book_bonus"]:
             gained["knowledge"] = gained.get("knowledge", 0) + eff["book_bonus"]; st["resources"]["knowledge"] += eff["book_bonus"]
 
+    # S13 변형(바다 무늬): 바코드 + ISO 주. 수치 보상은 없다
+    var = sea_variant(code)
+    if var["shiny"]:
+        var["ko"] = moment("variant.found", item=card.name)
+
     # 도감
     cx = st["codex"].setdefault(card.category.value, {})
     first_time = card.name not in cx
     cx[card.name] = cx.get(card.name, 0) + 1
+    ensure_codex_meta(st, inp.uid)
+    codex_note(st, card.category.value, card.name, card.rarity.value, var["shiny"])
 
     # 손패 (대항용). 정체불명은 대항 태그가 없으므로 손패에 넣지 않음
     card_d = card.to_dict()
     card_d["id"] = f"{code}-{int(time.time()*1000)}"
+    card_d["sea_variant"] = var["shiny"]
     usable_tags = [t for t in card.tags if t != "미확인"]
     if mult > 0 and usable_tags and len(st["hand"]) < HAND_LIMIT:
-        if True:
-            st["hand"].append(card_d)
-    # E1 — 찍은 물건이 선반에 놓인다. 재스캔 감쇠로 아무것도 못 얻은 물건(mult 0)은 놓이지 않는다
-    shelf_slot = shelf_place(st, card_d) if mult > 0 else None
+        st["hand"].append(card_d)
+    # E1 — 찍은 물건이 선반에 놓인다. S13: **이미 선반에 있는 바코드면 새 칸을 먹지 않고 닦는다**
+    # (감쇠 0.5·0.1 재스캔이 같은 물건을 한 칸 더 놓던 버그의 수정). 값이 0인 재스캔도 닦는다.
+    polish = None
+    have_it = shelf_item_for(st, code)
+    if have_it:
+        polish = polish_item(st, have_it, card.name)
+        if var["shiny"] and not have_it.get("variant"):
+            have_it["variant"] = "sea"
+        shelf_slot, shelf_new = have_it.get("slot"), False
+    else:
+        card_d["_day"] = day
+        shelf_slot = shelf_place(st, card_d) if mult > 0 else None
+        card_d.pop("_day", None)
+        shelf_new = shelf_slot is not None
 
     # 가문 크라우드소싱
     if inp.user_category and card.family_code not in GEN.families:
@@ -1722,15 +2419,23 @@ def scan(inp: ScanIn):
     with db() as con:
         con.execute("INSERT INTO scans(uid,barcode,category,rarity,mult,ts,day) VALUES(?,?,?,?,?,?,?)",
                     (inp.uid, code, card.category.value, card.rarity.value, mult, time.time(), day))
+    # S13 첫 만남(가문 먼저) · 가문 세트(서로 다른 바코드 수, 방금 넣은 스캔 포함) · 바람
+    first_meet = first_meet_lines(st, card.category.value, card.family_code)
+    fam_set = family_set_check(st, inp.uid, card.family_code)
+    wishes_new = wishes_tick(st, inp.uid)
     save_state(inp.uid, st)
-    log(inp.uid, "scan", {"barcode": code, "rarity": card.rarity.value, "category": card.category.value, "mult": mult})
+    log(inp.uid, "scan", {"barcode": code, "rarity": card.rarity.value, "category": card.category.value, "mult": mult,
+                          "locked": bool(locked), "variant": var["id"], "polish": (polish or {}).get("level"),
+                          "family_set": (fam_set or {}).get("just_completed")})
     # 스캔은 버튼이 아니라 세계에 물자가 도착하는 장면이다(WORLD_PRESENTATION §1-3) → 두 AI 중 하나가 한 줄 읊는다
     vseed = f"{inp.uid}|{code}|{today}"
     cat = card.category.value
     _act = int(st.get("act") or 1)
     voice = voice_for(f"scan_{cat}", vseed, act=_act) or voice_for(SCAN_VOICE_FALLBACK.get(cat, ""), vseed, act=_act)
     return {"card": card_d, "gained": gained, "rescan_multiplier": mult, "first_time": first_time,
-            "shelf_slot": shelf_slot,
+            "shelf_slot": shelf_slot, "shelf_new": shelf_new,
+            "category_locked": locked, "variant": var, "polish": polish,
+            "first_meet": first_meet, "family_set": fam_set, "wishes_done": wishes_new,
             "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice}
 
 
@@ -1781,7 +2486,10 @@ def account_restore(inp: RestoreIn, request: Request):
 
 
 @app.get("/api/ark")
-def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 이 방주의 막(1 심해/2 터널/3 지상)을 바꾼다. 막별 사건 풀 검증용. RELIC_DEV=1 에서만 동작한다.")):
+def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 이 방주의 막(1 심해/2 터널/3 지상)을 바꾼다. 막별 사건 풀 검증용. RELIC_DEV=1 에서만 동작한다."),
+            debug_night: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 밤 자동 판정 시각을 기다리지 않고 지금 판정한다. RELIC_DEV=1 에서만.")):
+    if debug_night and not DEV_MODE:
+        raise HTTPException(404, "없는 질의입니다")
     st = load_state(uid)
     if debug_act is not None:
         if not DEV_MODE:
@@ -1793,6 +2501,7 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
         save_state(uid, st)
     produced = tick_production(st)
     day = day_of(st)
+    ticked = day_tick(st, uid, force_night=bool(debug_night) and DEV_MODE)
     # 각인의 다음 날 아침: 밀린 연출 문장을 한 번만 내려보내고 큐에서 뺀다
     pending = st.get("morning_pending") or []
     morning = [p for p in pending if p.get("day", 0) <= day]
@@ -1804,6 +2513,10 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     save_state(uid, st)
     out = public_state(st, uid)
     out["produced_while_away"] = produced
+    out["night_judge"]["report"] = ticked["night_judge"]
+    out["wishes_new"] = ticked["wishes_new"]
+    if (ticked.get("octopus") or {}).get("arrival"):
+        out["octopus"]["arrival"] = ticked["octopus"]["arrival"]
     out["rooms_catalog"] = ROOMS
     out["morning_lines"] = morning
     # 목소리: 첫 화면(game_start) > 야간 진입(night). 하루 안에서는 같은 줄(D6)
@@ -1902,8 +2615,9 @@ def build(inp: BuildIn):
         raise HTTPException(400, "없는 방입니다")
     if ROOMS[inp.room_id].get("fixed"):
         raise HTTPException(400, "홀은 처음부터 있습니다. 짓는 것이 아니라 올리는 방입니다")
-    if not (0 <= inp.slot < SLOTS) or any(r["slot"] == inp.slot for r in st["rooms"]):
+    if not (0 <= inp.slot < SLOTS) or any(r["slot"] == inp.slot and not r.get("flooded") for r in st["rooms"]):
         raise HTTPException(400, "그 자리는 비어 있지 않습니다")
+    flooded = next((r for r in st["rooms"] if r["slot"] == inp.slot and r.get("flooded")), None)
     miss = cond_check(st, inp.uid, BUILD_COND.get(inp.room_id))
     if miss:
         raise HTTPException(400, "아직 지을 수 없습니다: " + " · ".join(miss))
@@ -1912,10 +2626,24 @@ def build(inp: BuildIn):
         raise HTTPException(400, f"자원이 부족합니다: {lacking}")
     for k, v in cost.items():
         st["resources"][k] -= v
+    reclaimed = None
+    if flooded:
+        # 물 찬 칸 되찾기(사용자 결정 2026-10-03): 물을 빼고 **새로 짓는다** — 보통 건설비, Lv1.
+        # 예전 방·레벨을 공짜로 되살리지 않는 이유: 되살리기가 싸면 상실이 '잠깐 불편'이 되고, 비싸게 따로
+        # 매기려면 새 경제 수치가 필요하다(기획 소유). 그래서 보통 짓기 하나로 둔다. 무엇이었는지는 기록에 남긴다.
+        st["rooms"].remove(flooded)
+        reclaimed = dict(flooded.get("flooded_from") or {"id": flooded.get("id"), "level": room_level(flooded)})
+        reclaimed.update({"slot": inp.slot, "day": day_of(st), "flooded_day": flooded.get("flooded_day"),
+                          "rebuilt_as": inp.room_id})
+        st.setdefault("reclaimed", []).append(reclaimed)
+        del st["reclaimed"][:-30]
+        day_note(st, "reclaimed", ROOMS.get(inp.room_id, {}).get("name", inp.room_id))
     st["rooms"].append({"id": inp.room_id, "slot": inp.slot, "built": time.time(), "level": 1})
     save_state(inp.uid, st)
-    log(inp.uid, "build", {"room": inp.room_id, "slot": inp.slot, "cost": cost})
-    return public_state(st, inp.uid)
+    log(inp.uid, "build", {"room": inp.room_id, "slot": inp.slot, "cost": cost, "reclaimed": reclaimed})
+    out = public_state(st, inp.uid)
+    out["reclaimed"] = reclaimed
+    return out
 
 
 class UpgradeIn(BaseModel):
@@ -1990,7 +2718,7 @@ def station(inp: StationIn):
         if not room:
             raise HTTPException(400, "그 자리에는 방이 없습니다")
         if room.get("flooded"):
-            raise HTTPException(400, "물이 찬 방입니다. 격벽은 다시 열리지 않습니다")
+            raise HTTPException(400, "물이 찬 방입니다. 다시 지어야 들어갈 수 있습니다")
         cap = room_cap_of(room)
         here = [p for p in stations_map(st).get(int(inp.slot), []) if p["id"] != inp.resident_id]
         if len(here) >= cap:
@@ -2001,7 +2729,8 @@ def station(inp: StationIn):
     # 이 게임의 주된 동사(사람을 옮긴다)가 최악수가 되는 유일한 생물이라 세는 자리가 필요하다.
     raid = st.get("raid")
     if (raid and not raid.get("none") and not raid.get("resolved")
-            and raid.get("day") == day_of(st) and before != (int(inp.slot) if inp.slot is not None else None)):
+            and raid.get("day") == day_of(st) and before != (int(inp.slot) if inp.slot is not None else None)
+            and not lid_revealed(raid, combat.CREATURES.get(raid.get("creature")) or {})):
         raid["moves"] = int(raid.get("moves") or 0) + 1
     save_state(inp.uid, st)
     log(inp.uid, "station", {"resident": inp.resident_id, "slot": inp.slot})
@@ -2184,9 +2913,11 @@ def gate_act(inp: ActIn):
             "raid": raid_public(st, raid), "state": public_state(st, inp.uid)}
 
 
-def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
+def resolve_raid(st: dict, uid: str, raid: dict, consumables: list,
+                 cap: str | None = None, auto: bool = False) -> dict:
     """접촉. **방어 판정 공식은 engine/combat.evaluate 하나뿐이고 난수가 없다**(D6).
-    같은 배치 = 같은 결과, 다른 배치 = 다른 결과. 이것이 이 시스템의 합격 기준이다."""
+    같은 배치 = 같은 결과, 다른 배치 = 다른 결과. 이것이 이 시스템의 합격 기준이다.
+    S13: cap 을 주면 결과가 그보다 나쁠 수 없다(밤 자동 판정 = stakes night_judge.worst_result). auto 는 그 표시."""
     cre = combat.CREATURES[raid["creature"]]
     day = raid["day"]
     owned = st.setdefault("tools", {})
@@ -2197,8 +2928,12 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
         if combat.TOOLS[t].get("recalls") and st.get("outside"):
             st["outside"] = []
     ctx = raid_ctx(st, raid, use)
+    take_staff_snapshot(st)                         # S13 staffing.measure: 접촉 순간 배치가 이번 틱 생산을 정한다
     ev = combat.evaluate(cre, ctx)
     result = ev["result"]
+    capped = False
+    if cap and _RESULT_RANK.get(result, 0) > _RESULT_RANK.get(cap, 2):
+        result, capped = cap, True                  # 보지 않는 사이 방을 잃게 하지 않는다(B4)
     for t in use:                                   # ② 쓴 것은 없어진다
         owned[t] = max(0, int(owned.get(t, 0)) - 1)
     # ③ 내구 도구(긴 장대 그물)는 이번 접촉에 기여했으면 한 번 닳는다
@@ -2217,6 +2952,9 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
     # 들키지 않고 넘긴 위협(문지기)은 막은 것과 같은 보상 — 그날 생산을 통째로 내준 값이다
     gained = combat.reward_for(combat.HELD if (result == combat.PASSED and cre.get("threat")) else result,
                                raid["severity"], int(raid.get("grade") or 1))
+    if auto:
+        rm = float(stk("night_judge.reward_mult") if stk("night_judge.reward_mult") is not None else 1.0)
+        gained = {k: int(round(v * rm)) for k, v in gained.items() if int(round(v * rm))}
     for k, v in gained.items():
         st["resources"][k] = max(0, st["resources"].get(k, 0) + v)
 
@@ -2227,17 +2965,21 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
     if result == combat.HELD:
         flags = list(cre.get("hold_flags") or [])
     elif result == combat.SCARRED and room:
-        room["cracked"] = True
         if any(combat.TOOLS[t].get("heals_crack") for t in use):   # 봉합 패치로 그 자리에서 꿰맨다
-            room["cracked"] = False
             line += " 봉합 패치가 그 자리를 덮었다."
+        elif crack_room(st, room):                  # S13: 금이 실효를 갖는다 — 수리 전까지 생산 ×crack.prod_mult
+            day_note(st, "crack", room_name)
     elif result == combat.BREACHED and room:
         # 격벽이 닫힌다. 그 방은 **사라지지 않고 물이 찬 채로 영구히 남는다**(§3-6 흔적)
         room["flooded"] = True
         room["cracked"] = False
+        # 사용자 결정 2026-10-03: 상실 = **물 찬 칸**. 영구 삭제가 아니다 — 무엇이 몇 레벨이었는지 기억하고,
+        # 그 칸은 보통 짓기(/api/ark/build, economy.json 건설비)로 Lv1 부터 다시 지을 수 있다
+        room["flooded_from"] = {"id": room["id"], "level": room_level(room)}
         room["flooded_day"] = day
         room["flooded_by"] = cre["id"]
         lost_room = ROOMS.get(room["id"], {}).get("name", room["id"])
+        day_note(st, "room_lost", lost_room)
         for p in list(stations_map(st).get(int(raid["target_slot"]), [])):
             set_station(st, p["id"], None)          # 살아 나온 사람은 홀로 모인다
         (st.get("lights") or {}).pop(str(raid["target_slot"]), None)
@@ -2268,7 +3010,10 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
         st["next_raid_hint"] = None                 # 예고한 날이 지나갔다
 
     bump_trust(st, TRUST_ON_COUNTER if result in (combat.HELD, combat.PASSED) else TRUST_ON_FAIL)
+    if result in (combat.HELD, combat.PASSED) and cre.get("threat"):
+        day_note(st, "blocked", cre["id"])
     raid.update({"stage": "done", "resolved": True, "result": result, "line": line,
+                 "auto": bool(auto), "capped": capped,
                  "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
                  "gate_ok": ev["gate"]["ok"], "used": use, "ended": time.time(),
                  "shielded": ev.get("shielded")})
@@ -2277,8 +3022,11 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
                                "slot": raid["target_slot"], "score": ev["score"], "need": ev["need"],
                                "gate": ev["gate"]["ok"], "used": use, "grade": raid.get("grade"),
                                "severity": raid.get("severity"), "acts": list(raid.get("acts") or []),
-                               "moves": raid.get("moves"), "shielded": ev.get("shielded")})
-    return {"result": result, "result_ko": ev.get("result_ko") or combat.RESULT_KO[result], "line": line,
+                               "moves": raid.get("moves"), "shielded": ev.get("shielded"),
+                               "auto": bool(auto), "capped": capped})
+    return {"result": result,
+            "result_ko": (combat.RESULT_KO[result] if capped else (ev.get("result_ko") or combat.RESULT_KO[result])),
+            "line": line, "auto": bool(auto), "capped": capped, "room_name": room_name,
             "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
             "gate": ev["gate"], "parts": ev["parts"], "used": use, "worn_out": worn,
             "shielded": ev.get("shielded"), "grade": int(raid.get("grade") or 1),
@@ -2301,11 +3049,14 @@ def raid_today(uid: str,
         raise HTTPException(400, f"없는 생물입니다: {debug_raid}")
     if debug_grade is not None and not (1 <= debug_grade <= 5):
         raise HTTPException(400, f"없는 등급입니다: {debug_grade}")
+    # S13: 어제(또는 오늘 밤 시각을 넘긴) 누르지 않은 습격을 먼저 판정한다 — ensure_raid 가 덮어쓰기 전에
+    ticked = day_tick(st, uid)
     ensure_raid(st, uid, force=debug_raid, reset=bool(debug_reset), grade_force=debug_grade)
     save_state(uid, st)
     out = combat_public(st)
     return {"raid": out["raid"], "day": day_of(st), "outside": out["outside"],
-            "next_raid_hint": out["next_raid_hint"], "state": public_state(st, uid)}
+            "next_raid_hint": out["next_raid_hint"], "night_judge": ticked["night_judge"],
+            "state": public_state(st, uid)}
 
 
 class RaidStepIn(BaseModel):
@@ -2515,6 +3266,8 @@ def rumors(uid: str):
         is_new = False
         if unlocked and sid not in seen:
             seen.append(sid); changed = is_new = True
+            if (1 if spot.get("_src") == "spots_deep.json" else 3) == int(st.get("act") or 1):
+                day_note(st, "spot", spot.get("name") or sid)     # 하루 마감에는 지금 막의 스팟만(1막에 지상 이름이 새지 않게)
             log(uid, "rumor_unlocked", {"spot": sid, "have": have, "categories": rule["categories"]})
         pick = None
         if unlocked:
@@ -2583,7 +3336,12 @@ def spots(uid: str | None = None):
 
 @app.get("/api/codex")
 def codex(uid: str):
+    """도감. 옛 필드(category·total·found·names)는 그대로(옛 화면 app.js 가 읽는다).
+    S13: 칸마다 entries — **모르는 칸도 실루엣으로 전부**(stem 은 숨기고 그림자 문장만), 본 칸은 최고 희귀도·변형."""
     st = load_state(uid)
+    if ensure_codex_meta(st, uid):
+        save_state(uid, st)
+    meta = st.get("codex_meta") or {}
     out = []
     for cat, pool in TEMPLATES.items():
         if cat.startswith("_"):
@@ -2592,8 +3350,222 @@ def codex(uid: str):
         # 템플릿 이름은 {adj}가 치환되므로 접미 부분으로 매칭
         stems = [t["name"].replace("{adj} ", "") for t in pool]
         got = [s for s in stems if any(n.endswith(s) for n in found)]
-        out.append({"category": cat, "total": len(stems), "found": len(got), "names": got})
+        hint = moment(f"codex.category_hints.{cat}")
+        entries, rar = [], {k: 0 for k in RARITY_KEYS}
+        for t, stem in zip(pool, stems):
+            m = (meta.get(cat) or {}).get(stem) or {}
+            if stem in got:
+                rs = [r for r in RARITY_KEYS if r in (m.get("rarities") or [])]
+                for r in rs:
+                    rar[r] += 1
+                entries.append({"stem": stem, "known": True,
+                                "name": m.get("name") or next((n for n in found if n.endswith(stem)), stem),
+                                "count": sum(c for n, c in found.items() if n.endswith(stem)),
+                                "rarity_best": rs[-1] if rs else None, "rarities": rs,
+                                "variant_seen": bool(m.get("variant")),
+                                "tags": t.get("tags") or [], "flavor": t.get("flavor")})
+            else:
+                entries.append({"stem": None, "known": False, "silhouette": hint,
+                                "hint_ko": (moment("codex.unknown", hint=hint) if hint
+                                            else moment("codex.unknown_no_hint")),
+                                "rarity_best": None, "variant_seen": False})   # 모르는 칸은 태그도 숨긴다
+        out.append({"category": cat, "category_ko": CAT_KO.get(cat, cat), "total": len(stems), "found": len(got),
+                    "names": got, "entries": entries, "rarity": rar})
     return out
+
+
+@app.get("/api/collection")
+def collection(uid: str):
+    """도감의 나머지 쪽 — 가문 세트 18 · 생물 · 문어 선물 · 희귀도 요약. 모르는 칸은 실루엣(known:false)."""
+    st = load_state(uid)
+    if ensure_codex_meta(st, uid):
+        save_state(uid, st)
+    total = int(stk("family_sets.pieces_required"))
+    seen_f = set(st.get("seen_families") or [])
+    done = st.get("family_sets") or {}
+    fams = []
+    for code, fn in FAMILY_NAMES.items():
+        cat = _KNOWN_FAM_CAT.get(code)
+        lore = FAMILY_LORE.get(code) or {}
+        known = code in seen_f
+        hint = moment(f"codex.category_hints.{cat}") if cat else None
+        row = {"code": code, "known": known, "name": fn.get("name") if known else None,
+               "category": cat, "category_ko": CAT_KO.get(cat or "", ""),
+               "have": min(family_have(uid, code), total) if known else 0, "total": total,
+               "completed": code in done, "lore_set_count": lore.get("set_count"),
+               "story": lore.get("story") if code in done else None,
+               "decor": lore.get("decor") if code in done else None,
+               "flavor": fn.get("flavor") if known else None}
+        if not known:
+            row["silhouette"] = moment("codex.unknown", hint=hint) if hint else moment("codex.unknown_no_hint")
+        fams.append(row)
+    seen_c: dict = {}
+    for r in st.get("raid_log") or []:
+        c = r.get("creature")
+        if c:
+            seen_c.setdefault(c, {"times": 0, "last": None})
+            seen_c[c]["times"] += 1
+            seen_c[c]["last"] = r.get("result")
+    cres = []
+    for cid, c in combat.CREATURES.items():
+        k = cid in seen_c
+        cres.append({"id": cid, "known": k, "name": c.get("name") if k else None,
+                     "how": c.get("how") if k else None, "threat": bool(c.get("threat")),
+                     "times": seen_c.get(cid, {}).get("times", 0), "last_result": seen_c.get(cid, {}).get("last"),
+                     "silhouette": None if k else c.get("silhouette")})
+    oc_f = (st.get("octopus") or {}).get("finds") or {}
+    finds = [{"id": f["id"], "known": f["id"] in oc_f, "name": f.get("name") if f["id"] in oc_f else None,
+              "line": f.get("line") if f["id"] in oc_f else None, "kind": f.get("kind"),
+              "count": int(oc_f.get(f["id"], 0))} for f in (OCTOPUS.get("finds") or []) if f.get("id")]
+    rar = {k: 0 for k in RARITY_KEYS}
+    with db() as con:
+        for r in con.execute("SELECT rarity, COUNT(DISTINCT barcode) c FROM scans WHERE uid=? GROUP BY rarity", (uid,)):
+            if r["rarity"] in rar:
+                rar[r["rarity"]] = r["c"]
+    variants = sum(1 for cat in (st.get("codex_meta") or {}).values() for m in cat.values() if m.get("variant"))
+    deep = [x for x in SPOTS if x.get("_src") == "spots_deep.json"]
+    return {"families": fams, "families_done": len(done), "families_total": len(FAMILY_NAMES),
+            "creatures": cres, "octopus_finds": finds, "rarity": rar, "variants": {"seen": variants},
+            "spots": {"found": sum(1 for x in deep if spot_found(st, uid, x["id"])), "total": len(deep)}}
+
+
+@app.get("/api/text/moments")
+def text_moments():
+    """S13 화면 순간 문장(data/ui_moments.json, 시나리오 소유). /data 는 내보내지 않으므로 읽기 전용으로 연다."""
+    return moments()
+
+
+@app.get("/api/wishes")
+def wishes(uid: str):
+    """주민의 작은 바람(E5, data/wishes.json). 지금 방주에 있는 역할의 것만. 이루면 대사가 영구히 바뀐다."""
+    st = load_state(uid)
+    new = wishes_tick(st, uid)
+    if new:
+        save_state(uid, st)
+    return wishes_public(st, uid)
+
+
+class OctoNameIn(BaseModel):
+    uid: str
+    name: str
+
+
+@app.post("/api/octopus/name")
+def octopus_name(inp: OctoNameIn):
+    st = load_state(inp.uid)
+    oc = st.get("octopus")
+    if not oc:
+        raise HTTPException(400, "아직 아무도 오지 않았습니다")
+    name = " ".join(str(inp.name or "").split())
+    if not (1 <= len(name) <= 12):
+        raise HTTPException(400, "이름은 1~12자로 적어 주세요")
+    had = oc.get("name")
+    oc["name"] = name
+    save_state(inp.uid, st)
+    log(inp.uid, "octopus_name", {"name": name, "rename": bool(had)})
+    nm = OCTOPUS.get("naming") or {}
+    line = (nm.get("rename_line") if had else nm.get("after_name_line")) or ""
+    return {"name": name, "ko": line.replace("{oct_name}", name), "octopus": octopus_public(st)}
+
+
+class RepairIn(BaseModel):
+    uid: str
+    slot: int
+    use_patch: bool = False
+
+
+@app.post("/api/ark/repair")
+def repair(inp: RepairIn):
+    """금 간 방 수리(stakes crack.repair_cost). 봉합 패치가 있으면 패치 하나로 대신할 수 있다. 즉시 끝난다."""
+    st = load_state(inp.uid)
+    tick_production(st)                       # 금 간 채로 흐른 시간은 금 간 값으로 먼저 정산한다
+    room = room_at(st, inp.slot)
+    if not room or room.get("flooded"):
+        raise HTTPException(400, "그 자리에는 고칠 방이 없습니다")
+    if not room.get("cracked"):
+        raise HTTPException(400, "금 간 데가 없습니다")
+    name = (ROOMS.get(room["id"]) or {}).get("name", room["id"])
+    paid, used_patch = {}, False
+    if inp.use_patch:
+        if not REPAIR_PATCH_TOOL or int((st.get("tools") or {}).get(REPAIR_PATCH_TOOL, 0)) <= 0:
+            raise HTTPException(400, "봉합 패치가 없습니다")
+        st["tools"][REPAIR_PATCH_TOOL] -= 1
+        used_patch = True
+    else:
+        cost = {k: int(v) for k, v in (stk("crack.repair_cost") or {}).items()}
+        lack = {k: v - int(st["resources"].get(k, 0)) for k, v in cost.items() if int(st["resources"].get(k, 0)) < v}
+        if lack:
+            raise HTTPException(400, "모자랍니다: " + " · ".join(f"{RES_KO_SRV.get(k, k)} {v}" for k, v in lack.items()))
+        for k, v in cost.items():
+            st["resources"][k] = int(st["resources"].get(k, 0)) - v
+        paid = cost
+    room["cracked"] = False
+    room.pop("cracked_day", None)
+    day_note(st, "repaired", name)
+    save_state(inp.uid, st)
+    log(inp.uid, "repair", {"slot": inp.slot, "room": room["id"], "paid": paid, "patch": used_patch})
+    return {"ok": True, "slot": inp.slot, "paid": paid, "used_patch": used_patch,
+            "ko": moment("crack.repaired", room=name), "state": public_state(st, inp.uid)}
+
+
+DAY_END = _load_json("day_end.json") or {}
+
+
+@app.get("/api/day_end")
+def day_end(uid: str):
+    """하루 마감 컷(E6). **오늘 바뀐 것만**, data/day_end.json 상황표의 우선순위·최대 줄 수로 고른다. 시드 uid|day."""
+    st = load_state(uid)
+    day = day_of(st)
+    note = (st.get("day_log") or {}).get(str(day)) or {}
+    oc = st.get("octopus") or {}
+    fl = st.get("far_call_log") or {}
+    now_sec, prev_sec = fl.get(str(day)), fl.get(str(day - 1))
+    vals = {
+        "imprint": ({"name": note["imprint"][0]} if note.get("imprint") else None),
+        "room_lost": ({"room": note["room_lost"][0]} if note.get("room_lost") else None),
+        "octopus_brought": ({"oct_name": oc.get("name") or "문어", "item": note["octopus"][0]}
+                            if note.get("octopus") else None),
+        "spot_found": ({"spot": note["spot"][0]} if note.get("spot") else None),
+        "cry_shorter": ({"sec": now_sec, "delta": prev_sec - now_sec}
+                        if isinstance(now_sec, int) and isinstance(prev_sec, int) and now_sec < prev_sec else None),
+    }
+    frame = DAY_END.get("frame") or {}
+    sits = sorted([x for x in (DAY_END.get("situations") or []) if isinstance(x, dict)],
+                  key=lambda x: int(x.get("priority", 9)))
+    lines = []
+    for sit in sits:
+        v = vals.get(sit.get("id"))
+        if v is None or not sit.get("lines"):
+            continue
+        t = random.Random(f"{uid}|{day}|day_end|{sit['id']}").choice(sit["lines"])
+        for k, x in v.items():
+            t = t.replace("{" + k + "}", str(x))
+        lines.append({"id": sit["id"], "text": t})
+    lines = lines[: int(frame.get("max_lines") or 3)]
+    if not lines:
+        q = next((x for x in sits if x.get("id") == "quiet"), None)
+        if q and q.get("lines"):
+            lines = [{"id": "quiet", "text": random.Random(f"{uid}|{day}|day_end|quiet").choice(q["lines"])}]
+    with db() as con:
+        n_scan = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND day=?", (uid, day)).fetchone()["c"]
+    blocked = len(note.get("blocked") or [])
+    floors = len({r["slot"] // FLOOR_SLOTS for r in live_rooms(st)})
+    facts_ko = [x for x in (moment("day_end.scans", scan_count=n_scan) if n_scan else None,
+                            moment("day_end.blocked", blocked=blocked) if blocked else None,
+                            moment("day_end.floors", floors=floors)) if x]
+    # 맺음 줄(내일의 낚싯바늘)은 **사실일 때만** 쓴다: [0] 내일 아침 볼 것(각인 아침 연출) / [1] 문어가 있다 /
+    # [2] 내일 예보된 손님(문어의 다음 습격 예고). 해당 없으면 생략(day_end.json frame — 생략 가능)
+    cl = frame.get("closing") or []
+    hint = st.get("next_raid_hint") or {}
+    cand = [cl[i] for i, ok in ((2, hint.get("day") == day + 1 and hint.get("creature")),
+                                (0, any(p.get("day", 0) > day for p in st.get("morning_pending") or [])),
+                                (1, bool(oc))) if ok and i < len(cl)]
+    return {"day": day, "title": frame.get("title"), "open": moment("day_end.open"),
+            "lines": lines, "facts": {"scan_count": n_scan, "blocked": blocked, "floors": floors},
+            "facts_ko": facts_ko,
+            "nothing": moment("day_end.nothing") if not note else None,
+            "closing": cand[0] if cand else None,
+            "close": moment("day_end.close")}
 
 
 # 에이전트·PM이 만든 테스트 방주. 지표(H1~H5)에서 뺀다. ?all=1 로 전부 볼 수 있다.

@@ -675,6 +675,12 @@ def evaluate(creature: dict, ctx: dict) -> dict:
         base = ROOM_BASE.get(lvl, ROOM_BASE.get(1, 1.0))
         score += base
         parts.append({"ko": f"방이 있다 (Lv{lvl})", "v": base})
+        # S13: 금 간 방은 바탕이 낮다(stakes.json crack.room_base_penalty). server 가 그 방이 금 갔을 때만
+        # 이 키를 넣는다 — 키가 없으면 이 줄은 아무 일도 하지 않아 예전 판정과 바이트까지 같다.
+        adj = float(ctx.get("room_base_adj") or 0.0)
+        if adj:
+            score += adj
+            parts.append({"ko": str(ctx.get("room_base_adj_ko") or "금 간 유리"), "v": adj})
     for p in people:
         w = person_weight(p)
         score += w
