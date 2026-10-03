@@ -209,9 +209,13 @@ CREATURES = {
         "audio": {"sound": "amb_far_call.ogg", "contact": "amb_far_call.ogg"},
     },
 }
+# 그 생물을 넘겨 본 사람의 각인(시나리오 2026-10-03 등재). 넘긴 생물에 강해지는 것이 계단식 성장의 핵심이다
+CREATURES["needle"]["imprints"] = ["made_way"]
+CREATURES["big_maw"]["imprints"] = ["fed_it"]
+CREATURES["upper_child"]["imprints"] = ["sent_up"]
 for _cid, _c in CREATURES.items():                      # 공통 기본값
     _c.setdefault("gate_need", 0)
-    _c.setdefault("imprints", list((BAL.get("imprint_match") or {}).get(_cid) or []))
+    _c["imprints"] = sorted(set(_c.get("imprints") or []) | set((BAL.get("imprint_match") or {}).get(_cid) or []))
     _c.setdefault("need", 3.0)                          # 폴백. 실제 need 는 등급에서 나온다
 
 STAGES = ("sound", "silhouette", "contact", "done")
@@ -285,6 +289,7 @@ for _tid, _row in (BAL.get("tool_power") or {}).items():
         TOOLS[_tid]["uses"] = _row["uses"]
 
 INSTALLED_KINDS = ("install", "durable", "permanent")      # 방에 붙는 것
+MAX_TOOL_HANDS = sum(1 for t in TOOLS.values() if t.get("hands"))   # 한 방에서 도구가 대신 들 수 있는 손의 최대
 CARRY_KINDS = ("consumable",)                              # 접촉 순간에 쓰는 것
 
 # 방 정원 — 방 크기별 2~4명 (COMBAT_AND_DEFENSE §9 "방 정원은 몇 명인가"에 대한 답).
@@ -584,6 +589,11 @@ def gate_state(creature: dict, ctx: dict) -> dict:
         # 사람 수가 관문이다. 다만 손이 모자랄 때 **도구가 한 사람 몫을 한다**(봉합 패치·긴 장대 그물·
         # 이음매 보강대). 좁은 방(정원 2)이 센 떼를 영영 못 막는 막다른 골목을 피하려는 장치다.
         need = creature.get("gate_need", 2) + sev
+        # 필요 인원은 **그 방이 채울 수 있는 최대(정원 + 도구 칸)** 를 넘지 않는다. 정원 2 인 좁은 방이
+        # 세기 4 의 떼를 영영 못 막는 막다른 길을 없앤다(defense.json gates.swarm._basis, 리뷰 2026-10-03)
+        reach = int(ctx.get("room_cap") or 0) + MAX_TOOL_HANDS
+        if reach > 0:
+            need = min(need, reach)
         hands = int(ctx.get("hands", 0))
         n = len(ctx.get("people", []))
         have = n + hands
@@ -655,7 +665,8 @@ def evaluate(creature: dict, ctx: dict) -> dict:
 
     cid = creature["id"]
     people = ctx.get("people", [])
-    imps = set(IMPRINT_MATCH.get(cid) or creature.get("imprints") or [])
+    # 밸런스 표(defense.json imprint_match)와 생물 자신의 목록을 **합친다** — 한쪽에만 있는 각인이 0점이 되지 않게
+    imps = set(IMPRINT_MATCH.get(cid) or []) | set(creature.get("imprints") or [])
     parts: list[dict] = []
     score = 0.0
 
@@ -703,6 +714,14 @@ def evaluate(creature: dict, ctx: dict) -> dict:
 
     gate = gate_state(creature, ctx)
     grade = int(ctx.get("grade") or 1)
+    if gate["ok"] and gate["kind"] == "quiet":
+        # 문지기는 **소리를 듣고 오는** 생물이다. 들키지 않았으면 맞설 일 자체가 없다 — 못 찾고 지나간다.
+        # 그래서 점수 판정을 하지 않는다. 노리는 방이 소리 단계에서 숨겨져 있어도 "전부 숨죽인다"가
+        # 정답으로 성립한다(PM 결정 2026-10-03). 관문을 놓치면 아래의 점수 판정으로 간다.
+        return {"result": PASSED, "result_ko": "들키지 않았다", "score": round(score, 2),
+                "need": need_for(creature, grade, int(ctx.get("severity", 0))), "margin": 0.0,
+                "gate": gate, "parts": parts, "used": used, "grade": grade, "shielded": None,
+                "unheard": True}
     need = need_for(creature, grade, int(ctx.get("severity", 0)))
     score = round(score, 2)
     margin = round(score - need, 2)

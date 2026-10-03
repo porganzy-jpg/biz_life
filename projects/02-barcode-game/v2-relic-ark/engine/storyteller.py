@@ -43,7 +43,9 @@ EVENT_REQUIRED = ("id", "name", "faction", "severity", "text", "counter_tags", "
 #   events_tribes.json — 일곱 부족 접촉
 #   events_outside.json— 바깥(공룡·원정·스팟 단서)
 #   events_deep.json   — 1막 심해(유리돔·깊이 4구역·큰 것들). 2026-09-22 결정으로 1막이 심해가 됐다
-EVENT_FILES = ("events.json", "events_tribes.json", "events_outside.json", "events_deep.json")
+# events_tunnel.json = 2막(침수 터널) 전용. 아직 없어도 정상이다(없는 파일은 건너뛴다).
+# 시나리오가 2막 카드를 events.json 에서 옮겨 오는 자리(PM 2026-10-03).
+EVENT_FILES = ("events.json", "events_tribes.json", "events_outside.json", "events_deep.json", "events_tunnel.json")
 
 
 # ─────────────────────────────────────────────────────────────

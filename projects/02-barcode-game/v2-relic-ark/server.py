@@ -19,7 +19,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -36,19 +36,97 @@ DB = ROOT / "relic_ark.db"
 DEV_MODE = os.environ.get("RELIC_DEV") == "1"
 ROOMS = json.loads((ROOT / "data" / "rooms.json").read_text(encoding="utf-8"))
 ROOMS.pop("_comment", None)
-# 공방 — 대응 도구 일곱이 나오는 방(COMBAT_AND_DEFENSE §5-1·§6.5). `data/rooms.json` 은 시나리오 소유라
-# 고치지 않고 **런타임에 덧붙인다**. 같은 id 가 파일에 생기면 파일이 이긴다(DEEP_IMPRINTS 와 같은 규약).
-WORKSHOP_ROOM = {
-    "workshop": {
-        "name": "공방", "light": "#F2A93B", "tier": 2,
-        "cost": {"parts": 4, "scrap": 4},
-        "produces": {"parts": 1},
-        "counters": ["breach"],
-        "desc": "남이 버린 것을 다시 쓸 것으로 바꾸는 방. 막고 가리고 꿰매는 물건이 여기서 나온다.",
-    },
+# ── 방 열두 종 (ROOMS_AND_ITEMS §2 · 수치 정본 data/balance/economy.json rooms.list) ──────────
+# S10-C: 코드에 다섯 종(pantry·well·infirmary·library·workshop)뿐이라 기획서의 12종 중 7종이 "없는 방"이었다.
+# 정본 셋을 이 순서로 겹친다 — 아래로 갈수록 이긴다.
+#   ① ROOM_TEXT_DEFAULT (개발 초안: 이름·한 줄 설명·등불색)
+#   ② data/balance/economy.json rooms.list (**수치**: 건설비·정원·생산·레벨업 재료와 조건)
+#   ③ data/rooms.json (시나리오 소유: **이름·설명·등불색**과 숫자가 아닌 생산물 counter_card·blueprint_progress)
+# 기존 다섯 id 는 그대로 남는다(저장 호환). pantry·library 는 economy 표에 없어서 rooms.json 값으로 돈다.
+_ECON = (combat._balance("economy").get("rooms") or {})
+ECON_ROOMS = {k: v for k, v in (_ECON.get("list") or {}).items() if isinstance(v, dict)}
+ROOM_TEXT_DEFAULT = {
+    "hall":       ("홀", "#E6D7B0", "층을 잇는 척추. 배치되지 않은 사람이 여기 모인다."),
+    "quarters":   ("거주실", "#F2C27B", "잠자리 넷. 사람들이 서로 얼굴을 보고 잠드는 곳이라 사기가 돌아온다."),
+    "storage":    ("창고", "#C08A33", "선반 여섯 칸. 찍어 온 물건이 하나씩 놓인다."),
+    "greenhouse": ("온실", "#9FBF6A", "흙 상자와 등불. 먹을 것이 자라고, 언젠가 숨도 자란다."),
+    "generator":  ("발전실", "#E4B453", "돔의 심장 소리. 어디를 밝힐지는 여기서 정해진다."),
+    "airlock":    ("에어락", "#A2B3A0", "바깥으로 나가는 유일한 문. 한 번에 한 사람."),
+    "workshop":   ("공방", "#F2A93B", "남이 버린 것을 다시 쓸 것으로 바꾸는 방. 막고 가리고 꿰매는 물건이 여기서 나온다."),
+    "decoder":    ("해독실", "#D4AF37", "성문(바코드)을 읽는 책상. 가문 도감이 여기 있다."),
+    "lounge":     ("전망 라운지", "#E8C9A0", "아무것도 만들지 않는다. 창이 크고, 바깥이 보인다."),
+    "bath":       ("물 끓이는 방", "#E9B98A", "아무것도 만들지 않는다. 200년 만에 처음 더운물에 몸을 담근다."),
 }
-for _rid, _spec in WORKSHOP_ROOM.items():
-    ROOMS.setdefault(_rid, _spec)
+# 생산물 중 **자원 재고가 아닌 것**. resources 에 넣으면 유령 키가 된다(S10-C 버그 셋 참조)
+ROOM_META_PRODUCE = ("power_supply", "heal", "craft_slots", "blueprint_progress", "counter_card")
+# 짓는 조건(특수 방). economy.json 의 cond 글을 코드가 판정하는 형태로 옮긴 것
+BUILD_COND = {
+    "workshop": {"role": "engineer", "ko": "기술자 1명"},
+    "decoder":  {"role": "scholar", "ko": "학자 1명"},
+    "lounge":   {"room_level": ("quarters", 2), "ko": "거주실 Lv2"},
+    "bath":     {"room_level": ("generator", 2), "ko": "발전실 Lv2"},
+}
+# 레벨업 조건(돈으로 못 사는 것). economy.json lvN.cond 글 → 판정식
+UPGRADE_COND = {
+    ("hall", 3):       {"depth_m": 180, "ko": "해구 문턱 도달(깊이 180m)"},
+    ("quarters", 3):   {"imprints_on_one": 3, "ko": "각인 3개 보유자 1명"},
+    ("greenhouse", 3): {"spot": "spot_kelp_ceiling", "ko": "스팟 「위를 보는 숲」 발견"},
+    ("generator", 3):  {"spot": "spot_vent_garden", "ko": "스팟 「열수구 정원」 발견"},
+    # 「숨의 손」 각인은 아직 imprints.json 에 없다 → 가장 가까운 「아낀 숨」으로 임시 판정(B7, TASKS 요청함)
+    ("infirmary", 3):  {"imprint": "saved_breath", "ko": "「숨의 손」 각인 보유자 (임시: 「아낀 숨」)"},
+}
+HALL_ID = "hall"     # 홀은 칸에 짓는 방이 아니라 **처음부터 있는 척추**다. 레벨만 오른다
+
+
+def _build_room_catalog() -> dict:
+    out: dict = {}
+    for rid, (ko, light, desc) in ROOM_TEXT_DEFAULT.items():
+        out[rid] = {"name": ko, "light": light, "desc": desc, "tier": 1, "counters": [],
+                    "cost": {}, "produces": {}}
+    for rid, e in ECON_ROOMS.items():
+        spec = out.setdefault(rid, {"name": e.get("ko", rid), "light": "#F2A93B", "desc": "", "tier": 1,
+                                    "counters": [], "cost": {}, "produces": {}})
+        spec["name"] = spec.get("name") or e.get("ko", rid)
+        spec["cost"] = dict(e.get("build") or {})
+        spec["produces"] = dict(e.get("produces") or {})
+        spec["cap"] = int(e.get("cap") or combat.ROOM_CAP_DEFAULT)
+        if e.get("shelves"):
+            spec["shelves"] = int(e["shelves"])
+        if e.get("cond"):
+            spec["cond_ko"] = str(e["cond"])
+        lv = {}
+        for n in (2, 3):
+            row = e.get(f"lv{n}")
+            if isinstance(row, dict):
+                lv[str(n)] = {"cost": dict(row.get("cost") or {}), "opens": row.get("opens"),
+                              "cond_ko": (UPGRADE_COND.get((rid, n)) or {}).get("ko") or row.get("cond"),
+                              "cap": row.get("cap_after"), "produces": row.get("produces_after"),
+                              "shelves": row.get("shelves_after")}
+        spec["levels"] = lv
+    for rid, f in ROOMS.items():                      # 시나리오 파일: 글은 이기고, 숫자는 표가 없을 때만
+        spec = out.setdefault(rid, {"counters": [], "produces": {}, "cost": {}})
+        for k in ("name", "light", "desc", "counters", "unlocks", "adjacency_bonus", "tier"):
+            if k in f:
+                spec[k] = f[k]
+        if rid not in ECON_ROOMS:
+            spec["cost"] = dict(f.get("cost") or {})
+            spec["produces"] = dict(f.get("produces") or {})
+        else:                                         # 숫자 아닌 생산물(counter_card 등)은 파일 것을 덧붙인다
+            for k, v in (f.get("produces") or {}).items():
+                if k in ROOM_META_PRODUCE and k not in spec["produces"]:
+                    spec["produces"][k] = v
+    for rid, spec in out.items():
+        spec.setdefault("cap", combat.ROOM_CAP.get(rid, combat.ROOM_CAP_DEFAULT))
+        spec.setdefault("levels", {})
+        if rid == "pantry":                           # 시작 방 = 식량창고. 선반이 있는 창고 구실도 한다(E1)
+            spec.setdefault("shelves", 6)
+        spec["fixed"] = (rid == HALL_ID)
+        spec["special"] = rid in BUILD_COND
+    return out
+
+
+ROOMS = _build_room_catalog()
+combat.ROOM_CAP.update({rid: int(spec["cap"]) for rid, spec in ROOMS.items()})
 EVENTS = {e["id"]: e for e in load_events()}
 # 막(acts) — DECISIONS 2026-09-23. 1 심해 / 2 터널 / 3 지상. 방주 상태의 act 가 오늘의 사건 풀을 고른다.
 ACTS = (1, 2, 3)
@@ -69,67 +147,9 @@ GEN = RelicGenerator()
 IMPRINT_DATA = json.loads((ROOT / "data" / "imprints.json").read_text(encoding="utf-8"))
 IMPRINT_LIST = IMPRINT_DATA["imprints"]
 
-# ── 심해 1막 각인 4종 (런타임 우선 병합) ─────────────────────────
-# docs/WORLD_BIBLE_DEEP.md §7 표 + DECISIONS 2026-09-22(「발자국」은 육상 전용, 심해는 「두드림을 들은 자」).
-# data/imprints.json 은 시나리오 소유라 고치지 않고 여기서 덧붙인다. 같은 id가 파일에 생기면 **파일이 이긴다**
-# (아래 병합 루프가 file-first). 스프린트 2의 roles_evolved/imprint_lines 와 같은 방식.
-DEEP_IMPRINTS = [
-    {
-        "id": "saved_breath",
-        "name": "아낀 숨",
-        "crisis": "air_out",
-        "crisis_ko": "공기 부족 (숨이 바닥난 원정에서 생환)",
-        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
-                    "id_prefixes": ["deep_air"], "flags": ["air_survived"]},
-        "visual": {"keyword": "short_sentences_quiet", "ko": "짧아진 문장, 줄어든 말수",
-                   "line": "{name}의 문장이 짧아졌다. 숨을 아껴 본 사람은 말도 아낀다."},
-        "effect": {"air_cap": 0.2},
-        "cost": {"ko": "사람들이 그의 말을 놓친다 — 남의 사기를 덜 올린다", "effect": {"morale_heal_others": -1}},
-    },
-    {
-        "id": "crack_seen",
-        "name": "금을 본 자",
-        "crisis": "hull_breach",
-        "crisis_ko": "유리 균열 (방 하나를 닫고 생존)",
-        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
-                    "id_prefixes": ["deep_glass"], "flags": ["room_sealed"]},
-        "visual": {"keyword": "hand_on_glass", "ko": "늘 창을 만지며 지나간다",
-                   "line": "{name}은 이제 창을 만지며 지나간다. 손끝으로 먼저 안다."},
-        "effect": {"counter_bonus": {"부품": 0.3, "청사진": 0.2}},
-        "cost": {"ko": "닫힌 방 앞을 지나지 못한다 — 동선이 길어져 생산이 조금 준다",
-                 "effect": {"production_penalty": 0.05}},
-    },
-    {
-        "id": "depth_mark",
-        "name": "깊이의 자국",
-        "crisis": "descent",
-        "crisis_ko": "해구 하강 (무광층 아래에 처음 닿음)",
-        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
-                    "id_prefixes": ["deep_trench", "deep_ballast"], "flags": ["deep_descent"]},
-        "visual": {"keyword": "pressed_ears_low_voice", "ko": "귀와 코의 눌린 자국, 낮아진 목소리",
-                   "line": "{name}의 귀 뒤에 눌린 자국이 남았다. 목소리가 한 뼘 낮아졌다."},
-        "effect": {"depth_cap": 0.2},
-        "cost": {"ko": "얕은 곳에서 불안해한다 — 광층 체류 중 사기 −1", "effect": {"morale_daily": -1}},
-    },
-    {
-        # 2026-09-26(S4): 시나리오 S4-C 가 WORLD_BIBLE_DEEP §7 표 1행과 imprint_lines.json 줄을 채웠다 →
-        # 자리표시(_pending_text)를 풀고 정식 문구로 바꾼다. 연출문은 imprint_lines.json 이 다시 덮어쓴다(파일 우선).
-        "id": "knock_heard",
-        "name": "두드림을 들은 자",
-        "crisis": "beast",
-        "crisis_ko": "대형 생물 조우 (긴목·문지기가 다녀가고 생환)",
-        "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [],
-                    "id_prefixes": [], "flags": ["beast_left"]},
-        "visual": {"keyword": "knock_twice_and_wait",
-                   "ko": "무엇을 만지기 전에 두 번 두드리고 대답을 기다린다. 귀가 소리 쪽으로 먼저 돈다",
-                   "line": "{name}의 손끝에 아직 유리의 떨림이 남아 있다. 무엇을 만지기 전에 두 번 두드리고, 대답을 기다린다."},
-        "effect": {"counter_bonus": {"야행": 0.2}},
-        "cost": {"ko": "두드리는 소리가 나면 하던 일을 멈춘다 — 밤 작업이 느려진다",
-                 "effect": {"night_production": -1}},
-    },
-]
-_HAVE_IMPRINTS = {i["id"] for i in IMPRINT_LIST}
-IMPRINT_LIST += [i for i in DEEP_IMPRINTS if i["id"] not in _HAVE_IMPRINTS]   # 파일이 먼저, 코드가 나중
+# 심해 각인 4종(saved_breath·crack_seen·depth_mark·knock_heard)과 신규 셋(made_way·fed_it·sent_up)은
+# 이제 전부 data/imprints.json 에 있다. 예전의 코드 사본 DEEP_IMPRINTS 는 S10-C 에서 지웠다 —
+# 파일과 코드가 갈라질 위험만 남았기 때문이다(PM 2026-10-03). 각인의 정본은 그 파일 하나다.
 IMPRINTS = {i["id"]: i for i in IMPRINT_LIST}
 
 # 심해 카드의 flag 별칭. data/events_deep.json 이 대형 생물 조우에 임시로 육상 flag(dino_escaped)를 쓰고 있다.
@@ -389,6 +409,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS codes (code TEXT PRIMARY KEY, uid TEXT NOT NULL, created REAL, used REAL);
         CREATE INDEX IF NOT EXISTS codes_uid ON codes(uid);
         """)
+        try:   # 한 방주에 코드는 하나 — 동시 발급 경합을 DB 가 막는다(리뷰 2026-10-03)
+            con.execute("CREATE UNIQUE INDEX IF NOT EXISTS codes_uid_unique ON codes(uid)")
+        except sqlite3.IntegrityError as e:
+            print(f"[codes] 유일 인덱스를 만들지 못했다(이미 중복 있음): {e}")
 
 
 def log(uid: str, kind: str, payload: dict | None = None):
@@ -409,21 +433,13 @@ CODE_LEN = 6                                          # 32^6 ≈ 10.7억. 한 �
 CODE_GROUP = 3                                        # 화면에는 ABC-DEF 로 끊어 보여 준다
 
 
-def normalize_code(raw: str) -> str:
-    """사람이 적은 것을 받아 준다 — 소문자·공백·하이픈·헷갈리는 글자(O→0 아님, 0→O)를 되돌린다."""
-    up = "".join(ch for ch in str(raw or "").upper() if ch.isalnum())
-    fix = {"0": "O", "O": "O", "1": "I", "I": "I", "L": "I"}     # 적힌 모양 기준으로 되돌린다
-    out = []
-    for ch in up:
-        if ch in CODE_ALPHABET:
-            out.append(ch)
-        elif ch in ("0", "O"):
-            out.append("Q")      # O 계열은 알파벳에 없다 → 가장 가까운 Q 로 본다
-        elif ch in ("1", "I", "L"):
-            out.append("J")
-        else:
-            out.append(ch)
-    return "".join(out)[:CODE_LEN]
+def normalize_code(raw: str) -> str | None:
+    """사람이 적은 것을 받아 준다 — 소문자·공백·하이픈은 지운다. 알파벳에 없는 글자(0·O·1·I)가 섞였거나
+    길이가 여섯이 아니면 None(→ 400). 조용히 잘라서 다른 코드를 시도하지 않는다(리뷰 2026-10-03)."""
+    code = "".join(ch for ch in str(raw or "").upper() if ch.isalnum())
+    if len(code) != CODE_LEN or any(ch not in CODE_ALPHABET for ch in code):
+        return None
+    return code
 
 
 def code_pretty(code: str) -> str:
@@ -444,16 +460,51 @@ def issue_code(uid: str) -> str:
                             (code, uid, time.time()))
                 return code
             except sqlite3.IntegrityError:
-                continue            # 충돌. 다시 뽑는다
+                row = con.execute("SELECT code FROM codes WHERE uid=?", (uid,)).fetchone()
+                if row:              # 같은 방주에 다른 요청이 먼저 발급했다 → 그 코드를 쓴다
+                    return row["code"]
+                continue            # 코드 충돌. 다시 뽑는다
     raise HTTPException(500, "코드를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요")
 
 
 def uid_for_code(code: str) -> str | None:
     with db() as con:
         row = con.execute("SELECT uid FROM codes WHERE code=?", (code,)).fetchone()
-        if row:
-            con.execute("UPDATE codes SET used=? WHERE code=?", (time.time(), code))
         return row["uid"] if row else None
+
+
+# 불러오기 시도 제한 — 코드가 곧 방주의 열쇠라 무차별 대입을 막는다(리뷰 2026-10-03).
+#   IP 마다: 1분에 실패 5회까지. 넘으면 잠금, 잠길 때마다 대기가 두 배(30초 → 60 → … 최대 1시간).
+#   전역: 1분에 실패 120회가 넘으면 모든 불러오기를 1분 쉰다(여러 IP 로 나눠 찍는 것을 막는다).
+#   성공은 세지 않는다. 메모리에만 둔다 — 서버를 다시 켜면 풀리지만, 그 정도는 공격 속도를 바꾸지 못한다.
+RESTORE_WINDOW, RESTORE_MAX_FAILS = 60.0, 5
+RESTORE_GLOBAL_MAX = 120
+_RESTORE_FAILS: dict[str, list] = {}          # ip -> [실패 시각...]
+_RESTORE_LOCK: dict[str, tuple] = {}          # ip -> (풀리는 시각, 잠긴 횟수)
+_RESTORE_GLOBAL: list = []
+
+
+def restore_gate(ip: str) -> float:
+    """지금 막혀 있으면 남은 초, 아니면 0."""
+    now = time.time()
+    until, _n = _RESTORE_LOCK.get(ip, (0.0, 0))
+    if until > now:
+        return until - now
+    _RESTORE_GLOBAL[:] = [t for t in _RESTORE_GLOBAL if now - t < RESTORE_WINDOW]
+    if len(_RESTORE_GLOBAL) >= RESTORE_GLOBAL_MAX:
+        return RESTORE_WINDOW - (now - _RESTORE_GLOBAL[0])
+    return 0.0
+
+
+def restore_failed(ip: str) -> None:
+    now = time.time()
+    _RESTORE_GLOBAL.append(now)
+    rows = [t for t in _RESTORE_FAILS.get(ip, []) if now - t < RESTORE_WINDOW] + [now]
+    _RESTORE_FAILS[ip] = rows
+    if len(rows) >= RESTORE_MAX_FAILS:
+        _until, n = _RESTORE_LOCK.get(ip, (0.0, 0))
+        _RESTORE_LOCK[ip] = (now + min(3600.0, 30.0 * (2 ** n)), n + 1)
+        _RESTORE_FAILS[ip] = []
 
 
 # ─────────────────────────────────────────────────────────────
@@ -552,7 +603,7 @@ def new_state(uid: str = "") -> dict:
         "created": now, "last_tick": now,
         "resources": {"food": 4, "water": 4, "med": 0, "power": 0, "parts": 1, "morale": 5,
                       "cloth": 0, "trade": 0, "knowledge": 0, "scrap": 2, "chem": 0},
-        "rooms": [{"id": "pantry", "slot": 2, "built": now}],   # 시작 방주: 지하 1층 식량창고 1칸 (첫 화면이 비지 않게)
+        "rooms": [{"id": "pantry", "slot": 2, "built": now, "level": 1}],   # 시작 방주: 지하 1층 식량창고 1칸 (첫 화면이 비지 않게)
         "residents": 3, "injured": 0,
         "hand": [],             # 유물 카드 (대항용)
         "codex": {},            # category -> {template_name: count}
@@ -642,6 +693,13 @@ def migrate_state(st: dict) -> bool:
                          ("outside", []), ("raid_log", [])):
         if not isinstance(st.get(key), type(default)):
             st[key] = type(default)(); changed = True
+    for r in st.get("rooms", []):           # S10-C 방 레벨. 구버전 방은 전부 Lv1
+        if not isinstance(r.get("level"), int):
+            r["level"] = 1; changed = True
+    if not isinstance(st.get("shelf"), list):
+        st["shelf"] = []; changed = True
+    if not isinstance(st.get("hall_level"), int):
+        st["hall_level"] = 1; changed = True
     if not isinstance(st.get("power_on"), bool):
         st["power_on"] = True; changed = True
     for key in ("raid", "next_raid_hint"):
@@ -956,14 +1014,20 @@ def tick_production(st: dict) -> dict:
     room_ids = [r["id"] for r in live]
     eff = role_effects(st)
     dark_rooms = []
+    heal_extra = 0.0
     for r in live:
-        spec = ROOMS[r["id"]]
+        spec = ROOMS.get(r["id"]) or {"name": r["id"], "produces": {}}
         bonus = eff["room_bonus"].get(r["id"], {})
         mul = 1.0
         if not light_on(st, r["slot"]):
             mul = 0.5
-            dark_rooms.append(ROOMS[r["id"]]["name"])
-        for k, v in spec["produces"].items():
+            dark_rooms.append(spec["name"])
+        for k, v in room_produces(r).items():
+            if k == "heal" and isinstance(v, (int, float)):
+                heal_extra += v * mul          # 의무실·물 끓이는 방 = 회복 속도(재고가 아니다)
+                continue
+            if k in ("power_supply", "craft_slots"):
+                continue                       # 공급량·동시 제작 수. 쌓이는 재고가 아니다(economy power._rule)
             if k in NON_RESOURCE_PRODUCE:
                 if k == "blueprint_progress" and isinstance(v, (int, float)):
                     amt = int(round(v * ticks * mul))
@@ -993,8 +1057,8 @@ def tick_production(st: dict) -> dict:
     if dark_rooms:
         st["dark_note"] = {"kind": "dark", "rooms": sorted(set(dark_rooms)),
                            "ko": "불을 꺼 둔 방은 절반만 일했다 — " + " · ".join(sorted(set(dark_rooms)))}
-    # 부상 회복: 틱마다 1명 (의무병 있으면 2명)
-    heal = eff["heal_rate"] * ticks
+    # 부상 회복: 틱마다 1명 (의무병 있으면 2명) + 의무실·물 끓이는 방의 회복(heal) 값
+    heal = int(round((eff["heal_rate"] + heal_extra) * ticks))
     # 숨이 긴 사람이 먼저 일어난다(RESIDENT_STATS §4 "부상 회복 = 숨 + 의무실 등급")
     for res in sorted(st.get("residents_list", []),
                       key=lambda r: -int((r.get("stats") or {}).get("breath", 5))):
@@ -1085,6 +1149,40 @@ def grade_of(st: dict) -> int:
 def live_rooms(st: dict) -> list[dict]:
     """아직 방인 것들. 물 찬 방은 빠진다."""
     return [r for r in st.get("rooms", []) if not r.get("flooded")]
+
+
+def room_level(room: dict | None) -> int:
+    try:
+        return max(1, min(3, int((room or {}).get("level") or 1)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _level_val(room: dict, key: str):
+    """레벨에 따라 바뀌는 값(cap·produces·shelves). 그 레벨에 값이 없으면 아래 레벨 값을 물려받는다."""
+    spec = ROOMS.get(room.get("id"), {})
+    val = spec.get(key)
+    for n in range(2, room_level(room) + 1):
+        v = ((spec.get("levels") or {}).get(str(n)) or {}).get(key)
+        if v is not None:
+            val = v
+    return val
+
+
+def room_cap_of(room: dict | None) -> int:
+    if not room:
+        return combat.ROOM_CAP_DEFAULT
+    if room.get("flooded"):
+        return 0
+    return int(_level_val(room, "cap") or combat.room_cap(room["id"]))
+
+
+def room_produces(room: dict) -> dict:
+    return dict(_level_val(room, "produces") or {})
+
+
+def shelves_of(room: dict) -> int:
+    return int(_level_val(room, "shelves") or 0)
 
 
 def room_at(st: dict, slot) -> dict | None:
@@ -1190,6 +1288,7 @@ def raid_ctx(st: dict, raid: dict, consumables: list | None = None) -> dict:
         "room_id": (r or {}).get("id") if r and not r.get("flooded") else None,
         "room_name": (ROOMS.get((r or {}).get("id"), {}).get("name") if r else None) or "빈 자리",
         "room_level": int((r or {}).get("level") or 1),
+        "room_cap": room_cap_of(r) if r else 0,
         "people": people,
         "light_on": light_on(st, slot) if slot is not None else True,
         "forced_dark": any(combat.TOOLS.get(t, {}).get("forces_dark") for t in inst),
@@ -1399,7 +1498,7 @@ def tool_public(st: dict) -> dict:
 def combat_public(st: dict) -> dict:
     caps = {}
     for r in st.get("rooms", []):
-        caps[str(r["slot"])] = 0 if r.get("flooded") else combat.room_cap(r["id"])
+        caps[str(r["slot"])] = room_cap_of(r)
     return {
         "stations": {k: int(v) for k, v in (st.get("stations") or {}).items()},
         "hall": [r["id"] for r in hall_of(st)],
@@ -1430,6 +1529,17 @@ def public_state(st: dict, uid: str) -> dict:
         # 막: 오늘의 사건이 어느 풀에서 나왔는지와 같은 값이다(DECISIONS 2026-09-23)
         "act": int(st.get("act") or 1), "act_ko": ACT_KO.get(int(st.get("act") or 1), ""),
         "gauges": gauges_of(st),
+        # E1 선반(계약 형식 고정). shelf_room 은 어느 방의 선반인지 알려 주는 덧붙임
+        "shelf": shelf_public(st),
+        "shelf_room": ({"slot": shelf_room(st)["slot"], "room_id": shelf_room(st)["id"],
+                        "level": room_level(shelf_room(st)), "capacity": shelf_capacity(st)}
+                       if shelf_room(st) else None),
+        # 짓기·레벨업 가능 여부(서버가 판단한다. 화면은 그리기만)
+        "build_options": build_options(st, uid),
+        "upgrades": {str(r["slot"]): upgrade_option(st, uid, r["id"], room_level(r))
+                     for r in live_rooms(st)},
+        "hall_level": int(st.get("hall_level") or 1),
+        "hall_upgrade": upgrade_option(st, uid, HALL_ID, int(st.get("hall_level") or 1)),
         # 위협 등급 1~5. **깊이로만 올라간다**(threats.json). 화면은 이것을 숫자로 찍지 않고
         # 「해구 문턱」 같은 구역 이름과 깊이 띠로 보여 준다(D2)
         "grade": grade_of(st),
@@ -1447,6 +1557,95 @@ def public_state(st: dict, uid: str) -> dict:
         # 스탯 사전. 화면은 숫자를 크게 쓰지 않고 점 네 줄로 그린다(RESIDENT_STATS §5)
         "stats_meta": {"keys": list(STAT_KEYS), "ko": STAT_KO, "use": STAT_USE, "max": 10},
     }
+
+
+# ─────────────────────────────────────────────────────────────
+# E1 선반 — 찍은 물건이 창고 선반에 **실물로** 쌓인다 (PLAYER_JOURNEY E1, 이 게임의 정체성)
+#   소품 이름표: data/relic_props.json (시나리오) · 그림·폭: static/art/props/props_meta.json (배경)
+#   계약(화면 담당과 합의, 형식을 바꾸지 않는다):
+#     GET /api/ark → shelf: [{slot, prop_id, name, category, rarity, family, scanned_at}]
+#     POST /api/scan → shelf_slot: int | null (선반이 차면 null)
+#   slot 은 선반 **칸** 번호다. 폭 2 소품(68px)은 slot 과 slot+1 두 칸을 차지한다(폭은 props_meta 의 slots).
+#   선반 방 = 창고(storage). 없으면 시작 방 식량창고(pantry)가 그 구실을 한다 — 첫 스캔부터 선반에
+#   물건이 놓여야 E1 이 첫 3분 안에 보인다(D5). 둘 다 없으면 빈 배열.
+# ─────────────────────────────────────────────────────────────
+_PROPS = (_load_json("relic_props.json") or {}).get("props") or {}
+try:
+    _PROPS_META = json.loads((ROOT / "static" / "art" / "props" / "props_meta.json").read_text(encoding="utf-8")).get("props") or {}
+except (OSError, json.JSONDecodeError):
+    _PROPS_META = {}
+SHELF_ROOMS = ("storage", "pantry")       # 앞이 우선
+
+
+def prop_width(pid: str) -> int:
+    m = _PROPS_META.get(pid) or {}
+    if isinstance(m.get("slots"), int):
+        return max(1, min(2, m["slots"]))
+    for rows in _PROPS.values():
+        for r in rows:
+            if r.get("id") == pid:
+                return max(1, min(2, int(r.get("slots") or 1)))
+    return 1
+
+
+def shelf_room(st: dict) -> dict | None:
+    """선반이 있는 방 = **선반 칸이 가장 많은 방**(창고를 짓거나 올리면 물건이 그리로 옮겨 간다 —
+    창고 레벨업이 선반으로 보여야 한다, D2). 칸 수가 같으면 지금 쓰던 방을 지킨다(물건이 괜히 옮겨 다니지 않게)."""
+    live = [r for r in live_rooms(st) if r["id"] in SHELF_ROOMS]
+    if not live:
+        return None
+    keep = st.get("shelf_room_slot")
+    live.sort(key=lambda r: (-shelves_of(r), r["slot"] != keep, SHELF_ROOMS.index(r["id"]), r["slot"]))
+    st["shelf_room_slot"] = live[0]["slot"]
+    return live[0]
+
+
+def shelf_capacity(st: dict) -> int:
+    r = shelf_room(st)
+    return shelves_of(r) if r else 0
+
+
+def shelf_public(st: dict) -> list[dict]:
+    cap = shelf_capacity(st)
+    if not cap:
+        return []
+    keys = ("slot", "prop_id", "name", "category", "rarity", "family", "scanned_at")
+    return [{k: it.get(k) for k in keys} for it in (st.get("shelf") or [])
+            if int(it.get("slot", 0)) + prop_width(it.get("prop_id", "")) <= cap]
+
+
+def shelf_place(st: dict, card: dict) -> int | None:
+    """스캔한 물건 하나를 선반의 빈 칸에 놓는다. 놓인 칸 번호, 자리가 없으면 None.
+    같은 카테고리를 여러 번 찍으면 소품 넷을 돌아가며 쓴다(relic_props._for_dev)."""
+    cap = shelf_capacity(st)
+    if not cap:
+        return None
+    shelf = st.setdefault("shelf", [])
+    cat = card.get("category") or "unknown"
+    pool = _PROPS.get(cat) or _PROPS.get("unknown") or []
+    if not pool:
+        return None
+    used = set()
+    for it in shelf:
+        for c in range(int(it["slot"]), int(it["slot"]) + prop_width(it["prop_id"])):
+            used.add(c)
+    n_same = sum(1 for it in shelf if it.get("category") == cat)
+    order = [pool[(n_same + i) % len(pool)] for i in range(len(pool))]   # 돌아가며, 안 맞으면 다음 것
+    for prop in order:
+        w = prop_width(prop["id"])
+        for start in range(0, cap - w + 1):
+            if all(c not in used for c in range(start, start + w)):
+                shelf.append({"slot": start, "prop_id": prop["id"], "name": prop.get("name"),
+                              "category": cat, "rarity": card.get("rarity"),
+                              "family": card.get("family_name") or None,
+                              "scanned_at": time.time(), "card_id": card.get("id")})
+                return start
+    return None
+
+
+def shelf_remove_card(st: dict, card_id: str | None) -> None:
+    if card_id:
+        st["shelf"] = [it for it in (st.get("shelf") or []) if it.get("card_id") != card_id]
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1512,6 +1711,8 @@ def scan(inp: ScanIn):
     if mult > 0 and usable_tags and len(st["hand"]) < HAND_LIMIT:
         if True:
             st["hand"].append(card_d)
+    # E1 — 찍은 물건이 선반에 놓인다. 재스캔 감쇠로 아무것도 못 얻은 물건(mult 0)은 놓이지 않는다
+    shelf_slot = shelf_place(st, card_d) if mult > 0 else None
 
     # 가문 크라우드소싱
     if inp.user_category and card.family_code not in GEN.families:
@@ -1529,14 +1730,23 @@ def scan(inp: ScanIn):
     _act = int(st.get("act") or 1)
     voice = voice_for(f"scan_{cat}", vseed, act=_act) or voice_for(SCAN_VOICE_FALLBACK.get(cat, ""), vseed, act=_act)
     return {"card": card_d, "gained": gained, "rescan_multiplier": mult, "first_time": first_time,
+            "shelf_slot": shelf_slot,
             "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice}
 
 
 # ── 이어하기 API ──────────────────────────────────────────────
+def ark_exists(uid: str) -> bool:
+    with db() as con:
+        return con.execute("SELECT 1 FROM arks WHERE uid=?", (uid,)).fetchone() is not None
+
+
 @app.get("/api/account")
 def account(uid: str):
-    """이 방주의 복구 코드. 처음 물으면 그 자리에서 발급된다(기존 uid 사용자 포함)."""
-    st = load_state(uid)                      # 없는 방주면 여기서 생긴다 = 코드가 빈 방주를 가리키지 않는다
+    """이 방주의 복구 코드. 처음 물으면 그 자리에서 발급된다(기존 uid 사용자 포함).
+    **이미 있는 방주에만** 발급한다 — 아무 uid 로 물어 빈 방주가 쌓이지 않게(리뷰 2026-10-03)."""
+    if not ark_exists(uid):
+        raise HTTPException(404, "아직 없는 방주입니다")
+    st = load_state(uid)
     code = issue_code(uid)
     return {"uid": uid, "code": code, "pretty": code_pretty(code),
             "day": day_of(st), "rooms": len(st.get("rooms") or []),
@@ -1549,13 +1759,19 @@ class RestoreIn(BaseModel):
 
 
 @app.post("/api/account/restore")
-def account_restore(inp: RestoreIn):
+def account_restore(inp: RestoreIn, request: Request):
     """코드로 다른 기기에서 이어하기. 계정도 비밀번호도 없다 — 코드가 곧 방주다."""
+    ip = (request.client.host if request.client else "?") or "?"
+    wait = restore_gate(ip)
+    if wait > 0:
+        raise HTTPException(429, f"너무 여러 번 틀렸습니다. {int(wait) + 1}초 뒤에 다시 적어 주세요")
     code = normalize_code(inp.code)
-    if len(code) != CODE_LEN:
-        raise HTTPException(400, f"{CODE_LEN}글자를 적어 주세요")
+    if not code:
+        restore_failed(ip)
+        raise HTTPException(400, f"{CODE_LEN}글자를 적어 주세요 (0·O·1·I 는 코드에 없습니다)")
     uid = uid_for_code(code)
     if not uid:
+        restore_failed(ip)
         raise HTTPException(404, "그런 코드는 없습니다. 적어 둔 것을 다시 봐 주세요")
     st = load_state(uid)
     log(uid, "restore", {"code": code})
@@ -1604,25 +1820,143 @@ class BuildIn(BaseModel):
     slot: int
 
 
+def spot_found(st: dict, uid: str, sid: str) -> bool:
+    if sid in (st.get("rumors_seen") or []):
+        return True
+    gate = spot_gate(sid, next((x for x in SPOTS if x.get("id") == sid), None))
+    if not gate:
+        return False
+    counts = scan_counts(uid)
+    return sum(counts.get(c, 0) for c in gate["categories"]) >= gate["need"]
+
+
+def room_level_of(st: dict, rid: str) -> int:
+    """그 종류의 방 중 가장 높은 레벨(홀은 방주 하나에 하나, 상태에 따로 있다). 없으면 0."""
+    if rid == HALL_ID:
+        return int(st.get("hall_level") or 1)
+    lv = [room_level(r) for r in live_rooms(st) if r["id"] == rid]
+    return max(lv) if lv else 0
+
+
+def cond_check(st: dict, uid: str, cond: dict | None) -> list[str]:
+    """돈으로 못 사는 조건. 못 채운 것의 문장 목록(빈 목록 = 충족)."""
+    if not cond:
+        return []
+    miss = []
+    res = st.get("residents_list") or []
+    if cond.get("role") and not any(r.get("role") == cond["role"] for r in res):
+        miss.append(cond["ko"])
+    if cond.get("room_level"):
+        rid, n = cond["room_level"]
+        if room_level_of(st, rid) < n:
+            miss.append(cond["ko"])
+    if cond.get("depth_m") and depth_of(st) < cond["depth_m"]:
+        miss.append(cond["ko"])
+    if cond.get("imprints_on_one") and not any(len(r.get("imprints") or []) >= cond["imprints_on_one"] for r in res):
+        miss.append(cond["ko"])
+    if cond.get("imprint") and not any(cond["imprint"] in (r.get("imprints") or []) for r in res):
+        miss.append(cond["ko"])
+    if cond.get("spot") and not spot_found(st, uid, cond["spot"]):
+        miss.append(cond["ko"])
+    return miss
+
+
+def priced(st: dict, cost: dict) -> tuple[dict, dict]:
+    disc = role_effects(st)["build_discount"]
+    cost = {k: max(1, int(round(v * (1 - disc)))) for k, v in (cost or {}).items()}
+    lack = {k: v - int(st["resources"].get(k, 0)) for k, v in cost.items() if int(st["resources"].get(k, 0)) < v}
+    return cost, lack
+
+
+def build_options(st: dict, uid: str) -> dict:
+    """방마다 '지금 지을 수 있나'. 화면은 계산하지 않고 이것을 그린다(D2·정보를 숨기지 않는다)."""
+    out = {}
+    for rid, spec in ROOMS.items():
+        if spec.get("fixed"):
+            continue
+        cost, lack = priced(st, spec.get("cost"))
+        miss = cond_check(st, uid, BUILD_COND.get(rid))
+        out[rid] = {"cost": cost, "lacking": lack, "cond": (BUILD_COND.get(rid) or {}).get("ko"),
+                    "cond_missing": miss, "can": not lack and not miss}
+    return out
+
+
+def upgrade_option(st: dict, uid: str, rid: str, level: int) -> dict | None:
+    """다음 레벨로 올리는 데 필요한 것. 최고 레벨이면 None."""
+    if level >= 3:
+        return None
+    row = (ROOMS.get(rid, {}).get("levels") or {}).get(str(level + 1))
+    if not row:
+        return None
+    cost, lack = priced(st, row.get("cost"))
+    miss = cond_check(st, uid, UPGRADE_COND.get((rid, level + 1)))
+    return {"to": level + 1, "cost": cost, "lacking": lack, "opens": row.get("opens"),
+            "cond": row.get("cond_ko"), "cond_missing": miss, "can": not lack and not miss}
+
+
 @app.post("/api/ark/build")
 def build(inp: BuildIn):
     st = load_state(inp.uid)
     tick_production(st)
     if inp.room_id not in ROOMS:
         raise HTTPException(400, "없는 방입니다")
+    if ROOMS[inp.room_id].get("fixed"):
+        raise HTTPException(400, "홀은 처음부터 있습니다. 짓는 것이 아니라 올리는 방입니다")
     if not (0 <= inp.slot < SLOTS) or any(r["slot"] == inp.slot for r in st["rooms"]):
         raise HTTPException(400, "그 자리는 비어 있지 않습니다")
-    disc = role_effects(st)["build_discount"]
-    cost = {k: max(1, int(round(v * (1 - disc)))) for k, v in ROOMS[inp.room_id]["cost"].items()}
-    lacking = {k: v - st["resources"].get(k, 0) for k, v in cost.items() if st["resources"].get(k, 0) < v}
+    miss = cond_check(st, inp.uid, BUILD_COND.get(inp.room_id))
+    if miss:
+        raise HTTPException(400, "아직 지을 수 없습니다: " + " · ".join(miss))
+    cost, lacking = priced(st, ROOMS[inp.room_id]["cost"])
     if lacking:
         raise HTTPException(400, f"자원이 부족합니다: {lacking}")
     for k, v in cost.items():
         st["resources"][k] -= v
-    st["rooms"].append({"id": inp.room_id, "slot": inp.slot, "built": time.time()})
+    st["rooms"].append({"id": inp.room_id, "slot": inp.slot, "built": time.time(), "level": 1})
     save_state(inp.uid, st)
-    log(inp.uid, "build", {"room": inp.room_id, "slot": inp.slot})
+    log(inp.uid, "build", {"room": inp.room_id, "slot": inp.slot, "cost": cost})
     return public_state(st, inp.uid)
+
+
+class UpgradeIn(BaseModel):
+    uid: str
+    slot: int | None = None       # 칸의 방. 홀은 칸이 없으므로 room_id="hall"
+    room_id: str | None = None
+
+
+@app.post("/api/ark/upgrade")
+def upgrade(inp: UpgradeIn):
+    """레벨업 = **재료 + 조건**(ROOMS_AND_ITEMS §2-1). 각 레벨은 '새로 할 수 있는 것' 하나를 연다."""
+    st = load_state(inp.uid)
+    tick_production(st)
+    if inp.room_id == HALL_ID:
+        rid, room, level = HALL_ID, None, int(st.get("hall_level") or 1)
+    else:
+        room = room_at(st, inp.slot)
+        if not room:
+            raise HTTPException(400, "그 자리에는 방이 없습니다")
+        if room.get("flooded"):
+            raise HTTPException(400, "물이 찬 방은 올릴 수 없습니다")
+        rid, level = room["id"], room_level(room)
+    opt = upgrade_option(st, inp.uid, rid, level)
+    if not opt:
+        raise HTTPException(400, "더 올릴 수 없습니다")
+    if opt["cond_missing"]:
+        raise HTTPException(400, "아직 조건이 안 됩니다: " + " · ".join(opt["cond_missing"]))
+    if opt["lacking"]:
+        raise HTTPException(400, f"자원이 부족합니다: {opt['lacking']}")
+    for k, v in opt["cost"].items():
+        st["resources"][k] -= v
+    if room is None:
+        st["hall_level"] = opt["to"]
+    else:
+        room["level"] = opt["to"]
+    save_state(inp.uid, st)
+    log(inp.uid, "upgrade", {"room": rid, "slot": inp.slot, "to": opt["to"], "cost": opt["cost"]})
+    out = public_state(st, inp.uid)
+    out["upgraded"] = {"room_id": rid, "slot": inp.slot, "level": opt["to"], "opens": opt["opens"],
+                       "name": ROOMS[rid]["name"]}
+    return out
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1657,7 +1991,7 @@ def station(inp: StationIn):
             raise HTTPException(400, "그 자리에는 방이 없습니다")
         if room.get("flooded"):
             raise HTTPException(400, "물이 찬 방입니다. 격벽은 다시 열리지 않습니다")
-        cap = combat.room_cap(room["id"])
+        cap = room_cap_of(room)
         here = [p for p in stations_map(st).get(int(inp.slot), []) if p["id"] != inp.resident_id]
         if len(here) >= cap:
             raise HTTPException(400, f"{ROOMS[room['id']]['name']}{combat.josa(ROOMS[room['id']]['name'], ('은', '는'))} {cap}명까지입니다")
@@ -1828,6 +2162,7 @@ def gate_act(inp: ActIn):
         card = (st.get("hand") or [])[0]
         st["hand"] = st["hand"][1:]
         gone_card = card.get("name")
+        shelf_remove_card(st, card.get("id"))      # 선반의 그 자리도 빈다(creatures.json follower.lines.held)
     if spec.get("next_severity"):                      # 금기를 어긴 값은 **다음**에 치른다
         st["severity_debt"] = int(st.get("severity_debt", 0)) + int(spec["next_severity"])
 
@@ -1879,11 +2214,16 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
     room = room_at(st, raid["target_slot"])
     room_name = ctx["room_name"]
     line = combat.outcome_line(cre, result, room_name)
-    gained = combat.reward_for(result, raid["severity"], int(raid.get("grade") or 1))
+    # 들키지 않고 넘긴 위협(문지기)은 막은 것과 같은 보상 — 그날 생산을 통째로 내준 값이다
+    gained = combat.reward_for(combat.HELD if (result == combat.PASSED and cre.get("threat")) else result,
+                               raid["severity"], int(raid.get("grade") or 1))
     for k, v in gained.items():
         st["resources"][k] = max(0, st["resources"].get(k, 0) + v)
 
     flags, hurt, lost_room = [], None, None
+    if result == combat.PASSED and cre.get("threat"):
+        flags = list(cre.get("hold_flags") or [])     # 숨죽여 넘긴 것도 '겪고 넘긴' 것이다(문지기)
+        line = (cre.get("lines") or {}).get("held") or line
     if result == combat.HELD:
         flags = list(cre.get("hold_flags") or [])
     elif result == combat.SCARRED and room:
@@ -1938,7 +2278,7 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
                                "gate": ev["gate"]["ok"], "used": use, "grade": raid.get("grade"),
                                "severity": raid.get("severity"), "acts": list(raid.get("acts") or []),
                                "moves": raid.get("moves"), "shielded": ev.get("shielded")})
-    return {"result": result, "result_ko": combat.RESULT_KO[result], "line": line,
+    return {"result": result, "result_ko": ev.get("result_ko") or combat.RESULT_KO[result], "line": line,
             "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
             "gate": ev["gate"], "parts": ev["parts"], "used": use, "worn_out": worn,
             "shielded": ev.get("shielded"), "grade": int(raid.get("grade") or 1),
@@ -2009,6 +2349,22 @@ def seen_once(st: dict) -> set:
     return {e for e in st.get("seen_events", []) if e.startswith(ONCE_PREFIXES)}
 
 
+# 막을 여는 카드 — 그 막에 들어서면 **무작위보다 먼저**, 이 순서로 한 장씩 나온다.
+# 2막: 「먼 울음」 회수 두 장(DECISIONS 2026-09-22 — 1막 내내 숨긴 정체를 2막 입구에서 회수).
+# 뒤에 섞여 나오면 200년 묵은 수수께끼의 회수가 김이 빠진다(PM 2026-10-03).
+ACT_OPENERS = {2: ("tunnel_cry_at_the_mouth", "tunnel_log_last_line")}
+ALL_OPENERS = {e for ids in ACT_OPENERS.values() for e in ids}
+
+
+def act_opener(st: dict) -> str | None:
+    """이 막에서 아직 안 나온 여는 카드 중 첫 번째. 없으면 None(→ 평소처럼 뽑는다)."""
+    seen = set(st.get("seen_events") or [])
+    for eid in ACT_OPENERS.get(int(st.get("act") or 1), ()):
+        if eid in EVENTS and eid not in seen:
+            return eid
+    return None
+
+
 @app.get("/api/event/today")
 def event_today(uid: str, debug_force_event: str | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 사건을 이 id로 덮어쓰고 미해결 상태로 되돌린다. 각인·신뢰 테스트용. RELIC_DEV=1 환경변수에서만 동작한다.")):
     st = load_state(uid)
@@ -2030,7 +2386,9 @@ def event_today(uid: str, debug_force_event: str | None = Query(None, descriptio
         log(uid, "event_shown", {"event": debug_force_event, "day": day, "debug": True})
     elif not te or te["day"] != day:
         # 부족 첫 접촉은 1회 소모: 이미 나온 tribe_* 카드는 후보에서 뺀다(첫 대면의 연출은 한 번뿐이다)
-        ev = pick_event(ark_state_obj(st), rng=random.Random(f"{uid}|{day}"), exclude=seen_once(st))
+        opener = act_opener(st)
+        ev = EVENTS[opener] if opener else             pick_event(ark_state_obj(st), rng=random.Random(f"{uid}|{day}"),
+                       exclude=seen_once(st) | ALL_OPENERS)    # 여는 카드는 한 번뿐이다. 무작위로 다시 나오지 않는다
         te = {"day": day, "event_id": ev["id"], "resolved": False, "countered": None, "shown_at": time.time()}
         st["today_event"] = te
         mark_seen(st, ev["id"])
