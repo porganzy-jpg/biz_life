@@ -1,0 +1,116 @@
+{
+  "_doc": "docs/LORE_M5_기댄집.md — M5 「절벽 끝에 기댄 가라앉은 탑」의 화면 문장. 2026-10-03 S12-D 시나리오. M5는 잠정 선택이다(DECISIONS 2026-10-03).",
+  "_rule": "1막 화면 문자열이다. 하늘·도시·거리·지상·옥상·출구라는 글자·탑이라는 말, 그리고 WORLD_BIBLE_DEEP §9-5 봉인 어휘(터널·레일·선로·콘크리트·환승·드나든다·빨려든다·반대쪽)를 쓰지 않는다. 문어는 발화하지 않는다(DECISIONS 2026-09-27) — octopus_beats 는 행동 문장이고 따옴표·말풍선으로 내지 않는다.",
+  "_for_dev": "스키마 없음(시나리오 자율 형식). reclaim[] 은 물 찬 칸을 비워 되찾는 순간 한 번 보여 주는 한 줄. band 는 깊이 띠(top=0~60m, mid=60~120m, low=120~180m 권장 — 경계 수치는 기획 소유)이고, 같은 띠 안에서 아직 안 쓴 줄을 고른다. order_hint 'first' 는 첫 되찾기에, 'last' 는 180m 직전 마지막 되찾기에 쓰기를 권한다. category_hint 는 그 칸에서 처음 나오는 유물의 스캔 카테고리를 기울이자는 제안이다(확률은 기획·개발 소유, 쓰지 않아도 문장은 성립한다). ambient[] 의 voice 는 주민의 출신 무리, when 은 제안 태그(기존 dialogue enum 이 아니다).",
+  "names": {
+    "primary": "기댄집",
+    "alternatives": ["벼랑집", "층층집", "등불집"],
+    "everyday_word": "돔",
+    "note": "주민은 지금도 집 전체를 '돔'이라고 부른다(처음 백 년 동안 사는 곳이 유리 지붕뿐이었다). 장소 이름이 필요할 때만 '기댄집'. 1막 화면에서 '탑'이라고 부르지 않는다."
+  },
+  "sides": {
+    "rock": "벽 쪽",
+    "open": "트인 쪽",
+    "roof": "유리 지붕"
+  },
+  "reclaim": [
+    {
+      "id": "stairwell_arrow",
+      "band": "any",
+      "order_hint": "first",
+      "category_hint": [],
+      "line": "계단참 표지판은 글자가 다 닳고 화살표 하나만 남았다. 화살표는 위를 가리킨다."
+    },
+    {
+      "id": "office_pens",
+      "band": "top",
+      "category_hint": ["stationery", "electronics"],
+      "line": "책상 마흔 개가 한쪽을 보고 앉아 있다. 서랍마다 펜이 한 자루씩, 펜마다 같은 성문이다."
+    },
+    {
+      "id": "kitchen_marks",
+      "band": "top",
+      "category_hint": ["drink"],
+      "line": "작은 부엌이다. 찬장 문 안쪽에 연필 눈금이 층층이 그어져 있다. 이름은 지워졌고 키만 남았다."
+    },
+    {
+      "id": "sample_racks",
+      "band": "mid",
+      "category_hint": ["apparel"],
+      "line": "옷걸이마다 옷이 딱 한 벌씩 걸려 있고, 크기가 전부 다르다. 아이가 제일 작은 것을 골랐다."
+    },
+    {
+      "id": "lost_and_found",
+      "band": "mid",
+      "category_hint": ["tobacco"],
+      "line": "주인을 기다리는 칸이다. 장갑 한 짝, 열쇠 꾸러미, 이름표 붙은 도시락통. 찾으러 온 사람은 우리가 처음이다."
+    },
+    {
+      "id": "sick_room",
+      "band": "mid",
+      "category_hint": ["medical"],
+      "line": "침대 하나, 의자 하나, 약상자 하나. 봉인이 아직 붙어 있다. 여기서는 아픈 사람이 드물었던 모양이다."
+    },
+    {
+      "id": "ledger_room",
+      "band": "low",
+      "category_hint": ["book"],
+      "line": "철 서랍 수백 개, 서랍마다 숫자뿐인 종이다. 눈금 무리 사람이 서랍 하나를 열고 한참 말이 없었다."
+    },
+    {
+      "id": "sealed_stock",
+      "band": "low",
+      "order_hint": "last",
+      "category_hint": ["food"],
+      "line": "선반이 불빛 끝까지 이어진다. 상자마다 성문이 붙어 있고, 한 번도 뜯긴 적이 없다."
+    }
+  ],
+  "ambient": [
+    {
+      "id": "lean_on_wall",
+      "voice": "그물 무리",
+      "when": "idle_hall",
+      "line": "벽이 받쳐 주니까 이 집은 안 넘어져요. 기댈 데가 있으면 다 그래요."
+    },
+    {
+      "id": "tilt_zero",
+      "voice": "눈금 무리",
+      "when": "morning",
+      "line": "기울기 영. 이백 년째 영. 오늘도 적는다."
+    },
+    {
+      "id": "one_more_floor",
+      "voice": "닻 무리",
+      "when": "after_reclaim",
+      "line": "한 층 더. 물 뺀다. 내일."
+    },
+    {
+      "id": "arrows_up",
+      "voice": "손님 무리",
+      "when": "elevator",
+      "line": "이 건물 화살표는 전부 위쪽만 안내합니다. 저희는 아래층으로 가겠습니다."
+    },
+    {
+      "id": "what_they_counted",
+      "voice": "아이",
+      "when": "in_ledger_or_stock_room",
+      "line": "옛날 사람들은 여기서 하루 종일 뭘 셌어?"
+    }
+  ],
+  "octopus_beats": [
+    {
+      "id": "oct_first_in",
+      "when": "after_reclaim",
+      "beat": "새 층의 물이 빠지면 문어가 제일 먼저 들어가 계단참 화살표에 빨판을 하나 붙여 보고 돌아온다."
+    },
+    {
+      "id": "oct_roof_sleep",
+      "when": "night",
+      "beat": "밤이면 문어가 유리 지붕 한가운데 붙어 잔다. 거기가 집에서 가장 따뜻한 자리라는 걸 아이들은 문어를 보고 알았다."
+    }
+  ],
+  "below_limit": {
+    "when": "180m 아래 검게 잠긴 칸을 눌렀을 때",
+    "line": "벽이 여기서 끝난다. 이 아래 층은 양쪽이 다 트여 있다."
+  }
+}
