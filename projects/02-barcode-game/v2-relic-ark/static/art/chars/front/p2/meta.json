@@ -35,7 +35,12 @@
   "rest_lounge",
   "elevator_wait",
   "elevator_turn",
-  "elevator_ride"
+  "elevator_ride",
+  "walk_side",
+  "carry_side",
+  "work_34",
+  "carry_34",
+  "idle_glance"
  ],
  "frames": {
   "idle": 2,
@@ -58,7 +63,12 @@
   "rest_lounge": 2,
   "elevator_wait": 2,
   "elevator_turn": 1,
-  "elevator_ride": 2
+  "elevator_ride": 2,
+  "walk_side": 3,
+  "carry_side": 2,
+  "work_34": 3,
+  "carry_34": 2,
+  "idle_glance": 3
  },
  "rows": {
   "idle": 0,
@@ -81,7 +91,12 @@
   "rest_lounge": 17,
   "elevator_wait": 18,
   "elevator_turn": 19,
-  "elevator_ride": 20
+  "elevator_ride": 20,
+  "walk_side": 21,
+  "carry_side": 22,
+  "work_34": 23,
+  "carry_34": 24,
+  "idle_glance": 25
  },
  "anim_seconds": {
   "idle": 2.8,
@@ -104,7 +119,12 @@
   "rest_lounge": 3.2,
   "elevator_wait": 1.6,
   "elevator_turn": 0.25,
-  "elevator_ride": 2.4
+  "elevator_ride": 2.4,
+  "walk_side": 0.8,
+  "carry_side": 1.0,
+  "work_34": 1.4,
+  "carry_34": 1.0,
+  "idle_glance": 2.4
  },
  "sheet": "static/art/chars/front/p2/<role>.png  (체형 A, x4, 셀 256, 발 기준선 240)",
  "sheet_b": "static/art/chars/front/p2/<role>_b.png  (체형 B, 같은 규약)",
@@ -678,23 +698,133 @@
     "depth_mark",
     "knock_heard"
    ],
+   "a/work_airlock/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_airlock/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_airlock/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_decoder/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_decoder/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_decoder/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_generator/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_generator/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_generator/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_greenhouse/f0": [
+    "depth_mark"
+   ],
+   "a/work_greenhouse/f1": [
+    "depth_mark"
+   ],
+   "a/work_greenhouse/f2": [
+    "depth_mark"
+   ],
+   "a/work_infirmary/f0": [
+    "depth_mark"
+   ],
+   "a/work_infirmary/f1": [
+    "depth_mark"
+   ],
+   "a/work_infirmary/f2": [
+    "depth_mark"
+   ],
+   "a/work_pantry/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_pantry/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_pantry/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
    "a/work_quarters/f0": [
+    "depth_mark",
     "empty_seat",
     "empty_stomach",
     "footprint"
    ],
    "a/work_quarters/f1": [
+    "depth_mark",
     "empty_stomach"
    ],
    "a/work_quarters/f2": [
+    "depth_mark",
     "empty_stomach"
    ],
    "a/work_storage/f0": [
-    "debt_paid"
+    "debt_paid",
+    "depth_mark"
    ],
    "a/work_storage/f1": [
     "debt_paid",
+    "depth_mark",
     "sun_memory"
+   ],
+   "a/work_storage/f2": [
+    "depth_mark"
+   ],
+   "a/work_well/f0": [
+    "depth_mark"
+   ],
+   "a/work_well/f1": [
+    "depth_mark"
+   ],
+   "a/work_well/f2": [
+    "depth_mark"
+   ],
+   "a/work_workshop/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_workshop/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "a/work_workshop/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
    ],
    "b/elevator_ride/f0": [
     "empty_stomach"
@@ -710,23 +840,133 @@
     "depth_mark",
     "knock_heard"
    ],
+   "b/work_airlock/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_airlock/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_airlock/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_decoder/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_decoder/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_decoder/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_generator/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_generator/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_generator/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_greenhouse/f0": [
+    "depth_mark"
+   ],
+   "b/work_greenhouse/f1": [
+    "depth_mark"
+   ],
+   "b/work_greenhouse/f2": [
+    "depth_mark"
+   ],
+   "b/work_infirmary/f0": [
+    "depth_mark"
+   ],
+   "b/work_infirmary/f1": [
+    "depth_mark"
+   ],
+   "b/work_infirmary/f2": [
+    "depth_mark"
+   ],
+   "b/work_pantry/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_pantry/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_pantry/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
    "b/work_quarters/f0": [
+    "depth_mark",
     "empty_seat",
     "empty_stomach",
     "footprint"
    ],
    "b/work_quarters/f1": [
+    "depth_mark",
     "empty_stomach"
    ],
    "b/work_quarters/f2": [
+    "depth_mark",
     "empty_stomach"
    ],
    "b/work_storage/f0": [
-    "debt_paid"
+    "debt_paid",
+    "depth_mark"
    ],
    "b/work_storage/f1": [
     "debt_paid",
+    "depth_mark",
     "sun_memory"
+   ],
+   "b/work_storage/f2": [
+    "depth_mark"
+   ],
+   "b/work_well/f0": [
+    "depth_mark"
+   ],
+   "b/work_well/f1": [
+    "depth_mark"
+   ],
+   "b/work_well/f2": [
+    "depth_mark"
+   ],
+   "b/work_workshop/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_workshop/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "b/work_workshop/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
    ],
    "kid/rest_lounge/f0": [
     "depth_mark",
@@ -736,26 +976,135 @@
     "depth_mark",
     "knock_heard"
    ],
+   "kid/work_airlock/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_airlock/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_airlock/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_decoder/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_decoder/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_decoder/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_generator/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_generator/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_generator/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_greenhouse/f0": [
+    "depth_mark"
+   ],
    "kid/work_greenhouse/f1": [
+    "depth_mark",
     "sun_memory"
    ],
+   "kid/work_greenhouse/f2": [
+    "depth_mark"
+   ],
+   "kid/work_infirmary/f0": [
+    "depth_mark"
+   ],
+   "kid/work_infirmary/f1": [
+    "depth_mark"
+   ],
+   "kid/work_infirmary/f2": [
+    "depth_mark"
+   ],
+   "kid/work_pantry/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_pantry/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_pantry/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
    "kid/work_quarters/f0": [
+    "depth_mark",
     "empty_seat",
     "empty_stomach"
    ],
    "kid/work_quarters/f1": [
+    "depth_mark",
     "empty_stomach"
    ],
    "kid/work_quarters/f2": [
+    "depth_mark",
     "empty_stomach"
    ],
    "kid/work_storage/f0": [
     "debt_paid",
+    "depth_mark",
     "empty_stomach"
    ],
    "kid/work_storage/f1": [
     "debt_paid",
+    "depth_mark",
+    "spore_mark",
     "sun_memory"
+   ],
+   "kid/work_storage/f2": [
+    "depth_mark"
+   ],
+   "kid/work_well/f0": [
+    "depth_mark"
+   ],
+   "kid/work_well/f1": [
+    "depth_mark"
+   ],
+   "kid/work_well/f2": [
+    "depth_mark"
+   ],
+   "kid/work_workshop/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_workshop/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid/work_workshop/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
    ],
    "kid_b/rest_lounge/f0": [
     "depth_mark",
@@ -765,26 +1114,134 @@
     "depth_mark",
     "knock_heard"
    ],
+   "kid_b/work_airlock/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_airlock/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_airlock/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_decoder/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_decoder/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_decoder/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_generator/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_generator/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_generator/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_greenhouse/f0": [
+    "depth_mark"
+   ],
    "kid_b/work_greenhouse/f1": [
+    "depth_mark",
     "sun_memory"
    ],
+   "kid_b/work_greenhouse/f2": [
+    "depth_mark"
+   ],
+   "kid_b/work_infirmary/f0": [
+    "depth_mark"
+   ],
+   "kid_b/work_infirmary/f1": [
+    "depth_mark"
+   ],
+   "kid_b/work_infirmary/f2": [
+    "depth_mark"
+   ],
+   "kid_b/work_pantry/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_pantry/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_pantry/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
    "kid_b/work_quarters/f0": [
+    "depth_mark",
     "empty_seat",
     "empty_stomach"
    ],
    "kid_b/work_quarters/f1": [
+    "depth_mark",
     "empty_stomach"
    ],
    "kid_b/work_quarters/f2": [
+    "depth_mark",
     "empty_stomach"
    ],
    "kid_b/work_storage/f0": [
     "debt_paid",
+    "depth_mark",
     "empty_stomach"
    ],
    "kid_b/work_storage/f1": [
     "debt_paid",
+    "depth_mark",
     "sun_memory"
+   ],
+   "kid_b/work_storage/f2": [
+    "depth_mark"
+   ],
+   "kid_b/work_well/f0": [
+    "depth_mark"
+   ],
+   "kid_b/work_well/f1": [
+    "depth_mark"
+   ],
+   "kid_b/work_well/f2": [
+    "depth_mark"
+   ],
+   "kid_b/work_workshop/f0": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_workshop/f1": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
+   ],
+   "kid_b/work_workshop/f2": [
+    "debt_paid",
+    "depth_mark",
+    "spore_mark"
    ]
   }
  },
@@ -943,6 +1400,296 @@
     "frames": 2
    }
   ]
+ },
+ "s12_rows": {
+  "walk_side": {
+   "row": 21,
+   "frames": 3,
+   "where": "층 복도",
+   "what": "오른쪽으로 걷는다 — 디딤(가까운 발 앞) → 지나감(먼 발 듦) → 디딤(먼 발 앞). 팔은 다리와 반대로 흔든다",
+   "hands": "가까운 손에 역할 도구",
+   "seconds": 0.8,
+   "stride_src_px_per_loop": {
+    "adult": 16,
+    "kid": 12
+   }
+  },
+  "carry_side": {
+   "row": 22,
+   "frames": 2,
+   "where": "층 복도",
+   "what": "유물 상자를 가슴 앞에 안고 오른쪽으로 걷는다 — 두 걸음. 역할 도구는 상자에 꽂혀 있다",
+   "hands": "두 손 · 도구는 상자 위",
+   "seconds": 1.0,
+   "stride_src_px_per_loop": {
+    "adult": 12,
+    "kid": 8
+   }
+  }
+ },
+ "facing": {
+  "walk_side": "right",
+  "carry_side": "right",
+  "note": "옆모습 행은 **오른쪽을 보는 것이 원본**이다. 왼쪽으로 걸을 때는 셀을 좌우 반전한다(CSS scaleX(-1) / drawImage 음수 폭). 반전 축은 셀 가운데(원화 x 32, ×4 시트는 128)다. 발 기준선은 그대로라 세로 보정은 0이다. 머리·얼굴·각인 패치도 같은 반전을 함께 건다(같은 셀이므로). 반전하면 보이는 쪽 각인이 그대로 따라온다 — 왼쪽으로 걸어도 「오른」 각인이 보인다(도트 게임의 관례적 생략).",
+  "other_rows": "0~20행은 정면·뒷모습이라 반전하지 않는다(기존 그대로)"
+ },
+ "side_speed": "바닥 이동 = stride_src_px_per_loop × 배율 / seconds. 예: walk_side 어른 ×3 → 16×3/0.8 = 60px/초. 이 값으로 밀면 발이 미끄러지지 않는다. 아이는 보폭이 작다.",
+ "side_imprints": {
+  "near_shown": [
+   "warden",
+   "debt_paid",
+   "knock_heard",
+   "saved_breath",
+   "empty_stomach"
+  ],
+  "center_shown": [
+   "footprint",
+   "water_memory",
+   "sun_memory"
+  ],
+  "far_hidden": [
+   "spore_mark",
+   "empty_seat",
+   "crack_seen",
+   "depth_mark"
+  ],
+  "rule": "오른쪽을 보면 몸의 오른쪽이 보는 사람을 향한다 → 이름에 「오른」이 든 각인은 보이고 「왼」 각인 넷은 먼 쪽이라 끈다. 가슴 목걸이·이마·머리 뒤 베일은 옆에서도 보인다. 앞으로 흔든 팔·장갑·도구·상자가 가린 칸은 잘라 내고, 한 점만 남으면 그 프레임에서 끈다. 각인 시트의 그 칸이 이미 비어 있으므로 클라이언트가 할 일은 없다."
+ },
+ "side_layers": "머리 6종·얼굴 3종은 옆모습에서도 같은 패치 방식이다(hair/·faces/ 시트의 21~22행). 여섯 머리가 모두 같은 앞머리 띠 + 귀밑머리로 시작하고, 갈래(매듭·긴머리·땋음·두건 꼬리)는 뒤통수 밑에서만 나온다. 얼굴 픽셀과 머리 픽셀이 겹치지 않아 머리 패치 + 얼굴 패치를 함께 얹어도 그 조합과 픽셀이 같다(18조합 전수 검사).",
+ "side_check_result": {
+  "side_clash": 0,
+  "all_rows_clash": 0,
+  "detail": [],
+  "patch_combo_mismatch": 0,
+  "patch_combo_tested": 11808,
+  "variant_vanished": [],
+  "hair_variants_identical": [],
+  "imprint_visible_cells": {
+   "spore_mark": "0/20",
+   "empty_stomach": "20/20",
+   "warden": "20/20",
+   "sun_memory": "20/20",
+   "empty_seat": "0/20",
+   "footprint": "16/20",
+   "debt_paid": "12/20",
+   "water_memory": "20/20",
+   "saved_breath": "20/20",
+   "crack_seen": "0/20",
+   "depth_mark": "0/20",
+   "knock_heard": "20/20"
+  }
+ },
+ "s12_lit_strips": {
+  "cells": [
+   "walk_side f0",
+   "walk_side f1",
+   "walk_side f2",
+   "carry_side f0",
+   "carry_side f1"
+  ],
+  "scale": 3,
+  "strips": {
+   "scout": {
+    "file": "check/sidelit_scout.png",
+    "role": "scout",
+    "body": "a",
+    "hair": "short",
+    "face": "f0"
+   },
+   "cook": {
+    "file": "check/sidelit_cook.png",
+    "role": "cook",
+    "body": "a",
+    "hair": "short",
+    "face": "f0"
+   },
+   "medic": {
+    "file": "check/sidelit_medic.png",
+    "role": "medic",
+    "body": "a",
+    "hair": "long",
+    "face": "f2"
+   },
+   "engineer": {
+    "file": "check/sidelit_engineer.png",
+    "role": "engineer",
+    "body": "a",
+    "hair": "braid",
+    "face": "f1"
+   },
+   "farmer": {
+    "file": "check/sidelit_farmer.png",
+    "role": "farmer",
+    "body": "a",
+    "hair": "braid",
+    "face": "f1"
+   },
+   "scholar": {
+    "file": "check/sidelit_scholar.png",
+    "role": "scholar",
+    "body": "a",
+    "hair": "long",
+    "face": "f2"
+   },
+   "trader": {
+    "file": "check/sidelit_trader.png",
+    "role": "trader",
+    "body": "a",
+    "hair": "short",
+    "face": "f0"
+   },
+   "kid": {
+    "file": "check/sidelit_kid.png",
+    "role": "kid",
+    "body": "a",
+    "hair": "short",
+    "face": "f2"
+   },
+   "scout_b": {
+    "file": "check/sidelit_scout_b.png",
+    "role": "scout",
+    "body": "b",
+    "hair": "scarf",
+    "face": "f0"
+   },
+   "cook_b": {
+    "file": "check/sidelit_cook_b.png",
+    "role": "cook",
+    "body": "b",
+    "hair": "braid",
+    "face": "f2"
+   },
+   "medic_b": {
+    "file": "check/sidelit_medic_b.png",
+    "role": "medic",
+    "body": "b",
+    "hair": "tied",
+    "face": "f2"
+   },
+   "engineer_b": {
+    "file": "check/sidelit_engineer_b.png",
+    "role": "engineer",
+    "body": "b",
+    "hair": "long",
+    "face": "f1"
+   },
+   "farmer_b": {
+    "file": "check/sidelit_farmer_b.png",
+    "role": "farmer",
+    "body": "b",
+    "hair": "curly",
+    "face": "f2"
+   },
+   "scholar_b": {
+    "file": "check/sidelit_scholar_b.png",
+    "role": "scholar",
+    "body": "b",
+    "hair": "tied",
+    "face": "f2"
+   },
+   "trader_b": {
+    "file": "check/sidelit_trader_b.png",
+    "role": "trader",
+    "body": "b",
+    "hair": "braid",
+    "face": "f0"
+   },
+   "kid_b": {
+    "file": "check/sidelit_kid_b.png",
+    "role": "kid",
+    "body": "b",
+    "hair": "scarf",
+    "face": "f0"
+   }
+  }
+ },
+ "s12b_rows": {
+  "work_34": {
+   "row": 23,
+   "frames": 3,
+   "where": "어디서나",
+   "what": "3/4 왼쪽을 보고 일한다 — 정면 work 와 같은 동작. 정면 work(2행)는 초상·UI 카드용으로 남는다",
+   "hands": "오른손 도구",
+   "seconds": 1.4,
+   "view": "q34_left"
+  },
+  "carry_34": {
+   "row": 24,
+   "frames": 2,
+   "where": "어디서나",
+   "what": "3/4 왼쪽을 보고 상자를 든다 — 정면 carry(4행)는 그대로 남는다",
+   "hands": "두 손",
+   "seconds": 1.0,
+   "view": "q34_left"
+  },
+  "idle_glance": {
+   "row": 25,
+   "frames": 3,
+   "where": "홀·대기",
+   "what": "정면 → 고개를 3/4 왼쪽으로 돌림 → 눈만 남기고 정면으로 돌아옴. idle 사이에 가끔 한 번",
+   "hands": "오른손 도구",
+   "seconds": 2.4,
+   "view": "front > q34_left > front"
+  }
+ },
+ "work_view": {
+  "work_workshop": "profile_left",
+  "work_pantry": "profile_left",
+  "work_generator": "profile_left",
+  "work_decoder": "profile_left",
+  "work_airlock": "profile_left",
+  "work_quarters": "q34_left",
+  "work_storage": "q34_left",
+  "work_infirmary": "q34_left",
+  "work_well": "q34_left",
+  "work_greenhouse": "q34_left",
+  "rest_lounge": "back",
+  "work_34": "q34_left",
+  "carry_34": "q34_left",
+  "idle_glance": "front > q34_left > front"
+ },
+ "work_view_rule": "7~16행은 S12-B 에서 제자리에 다시 그렸다(행 번호·프레임 수·초 그대로). 설비가 셀 왼쪽에 있으므로 **왼쪽을 보는 것이 원본**이다. 설비가 사람 오른쪽에 와야 하는 자리면 셀 전체를 좌우 반전한다(설비·사람·패치·각인 함께). profile_left = 옆모습(먼 팔은 몸 뒤, 역할 도구는 허리 뒤에 건다), q34_left = 3/4(왼손이 일하고 오른손 도구는 그대로). 17행 rest_lounge 는 뒷모습, 18~20행 엘리베이터와 0~6행은 정면 그대로다. 정면 work(2)·carry(4)는 초상·UI 카드용으로 남고, 방 밖에서 일하거나 드는 장면에는 work_34·carry_34 를 쓴다.",
+ "turn_imprints": {
+  "profile_left_hidden": [
+   "spore_mark",
+   "depth_mark",
+   "debt_paid"
+  ],
+  "q34_left_hidden": [
+   "depth_mark"
+  ],
+  "rule": "옆모습 작업: 먼 쪽 목덜미·관자놀이와 허리에 건 도구 쪽 손목을 끈다. 일하는 팔의 각인(왼 위팔·왼 장갑)은 보인다. 3/4: 돌린 얼굴의 먼 관자놀이만 끄고, 베일은 뒤통수(오른쪽)로 늘어진다. 가려진 칸은 시트에서 이미 비어 있다."
+ },
+ "s12b_lit_strips": {
+  "cells": [
+   "work_34 f0",
+   "work_34 f1",
+   "work_34 f2",
+   "carry_34 f0",
+   "carry_34 f1",
+   "idle_glance f0",
+   "idle_glance f1",
+   "idle_glance f2"
+  ],
+  "scale": 3,
+  "strips": {
+   "scout": "check/turnlit_scout.png",
+   "cook": "check/turnlit_cook.png",
+   "medic": "check/turnlit_medic.png",
+   "engineer": "check/turnlit_engineer.png",
+   "farmer": "check/turnlit_farmer.png",
+   "scholar": "check/turnlit_scholar.png",
+   "trader": "check/turnlit_trader.png",
+   "kid": "check/turnlit_kid.png",
+   "scout_b": "check/turnlit_scout_b.png",
+   "cook_b": "check/turnlit_cook_b.png",
+   "medic_b": "check/turnlit_medic_b.png",
+   "engineer_b": "check/turnlit_engineer_b.png",
+   "farmer_b": "check/turnlit_farmer_b.png",
+   "scholar_b": "check/turnlit_scholar_b.png",
+   "trader_b": "check/turnlit_trader_b.png",
+   "kid_b": "check/turnlit_kid_b.png"
+  }
  },
  "rules_2_5d": {
   "1_integer_scale": "정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지",

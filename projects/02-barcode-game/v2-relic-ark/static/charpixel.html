@@ -80,6 +80,104 @@
 <body>
 <div class="wrap">
 
+<!-- ══════════════ §walk_side — 옆모습 걷기 · 일하는 쪽을 보기 (스프린트 12-C) ══════════════ -->
+<style>
+  .floor{position:relative;height:250px;overflow:hidden;border-radius:12px;border:1px solid var(--line);
+         background:linear-gradient(180deg,#3b2a1f 0%,#5a412f 70%,#8e6c46 70.4%,#6e5236 100%)}
+  .floor .lane{position:absolute;left:0;top:30px;width:192px;height:192px}
+  .floor .who{position:absolute;left:0;top:0;width:192px;height:192px;image-rendering:pixelated;background-repeat:no-repeat}
+  .floor .sh{position:absolute;left:66px;top:178px;width:60px;height:10px;border-radius:50%;background:rgba(8,5,3,.5);filter:blur(4px)}
+  @keyframes sw3{from{background-position-x:0}to{background-position-x:-576px}}
+  @keyframes sc2{from{background-position-x:-576px}to{background-position-x:-960px}}
+  @keyframes pace{0%{transform:translateX(-40px)}48%{transform:translateX(var(--far))}50%{transform:translateX(var(--far))}98%{transform:translateX(-40px)}100%{transform:translateX(-40px)}}
+  @keyframes face{0%,48.9%{transform:scaleX(1)}49%,98.9%{transform:scaleX(-1)}99%,100%{transform:scaleX(1)}}
+  .paused2 .who,.paused2 .lane{animation-play-state:paused !important}
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px;margin-top:12px}
+  .tcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 0 10px;min-width:0}
+  .tcard .who{position:relative;width:192px;height:192px;margin:0 auto;image-rendering:pixelated;background-repeat:no-repeat}
+  .tcard h3{font-size:14px;margin:4px 12px 0}
+  @keyframes t3a{from{background-position-x:0}to{background-position-x:-576px}}
+  @keyframes t2b{from{background-position-x:-576px}to{background-position-x:-960px}}
+  @keyframes t3c{from{background-position-x:-960px}to{background-position-x:-1536px}}
+</style>
+<section id="walk_side">
+  <h1>§walk_side — 옆으로 걷고, 일하는 쪽을 본다<span class="badge">신규 S12</span></h1>
+  <p class="sub">2026-10-03 · 가로 화면(M5 탑, 한 층 3칸)에서 주민은 층을 따라 <b>옆으로</b> 걸어 엘리베이터까지 간다.
+     정면 <code>walk</code> 를 옆으로 미는 대신 <b>옆모습 걷기</b>를 행으로 더했다(21행 <code>walk_side</code> · 22행 <code>carry_side</code>).
+     그리고 사용자 지시 <b>“일하면서 카메라를 정면으로 보는 건 부자연스럽다”</b>에 따라 방별 작업 10행(7~16)을
+     <b>일하는 쪽을 보게</b> 제자리에서 다시 그렸고, 정면이 필요 없는 장면용 3/4 행 셋을 더했다(23~25행).
+     0~6행과 17~20행은 한 픽셀도 바뀌지 않았다(행 단위 해시 대조, 288시트).</p>
+  <div class="rules">
+    <b>방향 규칙</b>
+    <ol style="margin:8px 0 0 18px;padding:0;line-height:1.75">
+      <li><b>옆모습 걷기는 오른쪽이 원본</b>이다. 왼쪽으로 갈 때는 셀을 좌우 반전한다(축 = 셀 가운데). 아래 바닥에서 사람이 돌아설 때가 반전이다.</li>
+      <li><b>방별 작업은 왼쪽이 원본</b>이다 — 설비가 셀 왼쪽에 있으므로. 설비가 오른쪽에 와야 하면 셀 전체를 반전한다.</li>
+      <li><b>얼굴은 돌아서도 얼굴이다.</b> 옆모습은 큰 눈 하나(2×3)·눈썹·코·입·홍조, 3/4는 가까운 눈(크게)·먼 눈(한 줄)·눈썹·입·홍조. 머리 6종·얼굴 3종 패치가 그대로 얹힌다.</li>
+      <li><b>각인은 보이는 쪽만.</b> 오른쪽을 보면 「오른」 각인이 보이고 「왼」 넷은 끈다. 몸 앞으로 온 팔·도구·상자가 가린 칸은 시트에서 이미 비어 있다.</li>
+    </ol>
+    <table class="conv" id="sidetable"><tr><th>행</th><th>클립</th><th>무엇을 하나</th><th>보는 쪽</th><th>프레임 · 초</th></tr></table>
+  </div>
+  <div class="bar" style="padding:12px 0 0"><button id="stoggle">전부 정지 ■</button>
+    <span class="meta" style="padding:0">×3 = 방 합성 배율. 바닥 이동 속도 = 보폭 16px × 3 / 0.8초 = 60px/초(발이 미끄러지지 않는 값)</span></div>
+  <h2 style="margin-top:14px">1. 층 복도 — 걷기 · 들고 걷기</h2>
+  <div class="floor" id="sfloor"></div>
+  <h2 style="margin-top:22px">2. 새 3/4 행 — 정면은 초상·UI 카드용으로 남는다</h2>
+  <div class="tgrid" id="tgrid"></div>
+  <p class="cap">관련 그림:
+     <a href="art/chars/front/p2/check/walk_side.png" style="color:var(--accent)">옆모습 순서</a> ·
+     <a href="art/chars/front/p2/check/side70.png" style="color:var(--accent)">70px · 실루엣</a> ·
+     <a href="art/chars/front/p2/check/side_hair_face.png" style="color:var(--accent)">옆얼굴 머리 6 · 얼굴 3</a> ·
+     <a href="art/chars/front/p2/check/turn_new.png" style="color:var(--accent)">3/4 새 행</a> ·
+     <a href="art/chars/front/p2/check/work70.png" style="color:var(--accent)">일하는 쪽을 보는 방별 작업 70px</a></p>
+</section>
+<script>
+(function(){
+  const ROLE_KO = {scout:'정찰병',cook:'요리사',medic:'의무병',engineer:'기술자',farmer:'농부',scholar:'학자',trader:'교섭가',kid:'아이'};
+  const root = 'art/chars/front/p2/';
+  fetch(root + 'meta.json').then(r => r.json()).then(meta => {
+    const tb = document.getElementById('sidetable');
+    const rowsT = [];
+    const add = (clip, r, view) => rowsT.push([r.row,
+      `<tr><td>${r.row}</td><td><code>${clip}</code></td><td>${r.what}</td><td>${view}</td><td>${r.frames} · ${r.seconds}s</td></tr>`]);
+    Object.entries(meta.s12_rows).forEach(([c, r]) => add(c, r, '오른쪽(원본) · 왼쪽 = 반전'));
+    Object.entries(meta.s12b_rows).forEach(([c, r]) => add(c, r, r.view));
+    Object.entries(meta.work_view).filter(([c]) => meta.s11_rows[c]).forEach(([c, v]) => add(c, meta.s11_rows[c], v + (meta.s11_rows[c].row <= 16 ? ' (다시 그림)' : ' (그대로)')));
+    rowsT.sort((a, b) => a[0] - b[0]).forEach(([, h]) => tb.insertAdjacentHTML('beforeend', h));
+    const fl = document.getElementById('sfloor');
+    const W = () => Math.max(260, fl.clientWidth - 150);
+    const st = meta.s12_lit_strips.strips;
+    const cast = [['scout','a',0,0],['cook','b',1,0],['medic','a',0,1],['kid','b',1,1],['trader','a',0,2],['engineer','b',1,2]];
+    cast.forEach(([r, b, carry, k]) => {
+      const nm = b === 'a' ? r : r + '_b';
+      const loop = W() / 60;                                  // 60px/초 — 왕복이라 두 배
+      const anim = carry ? 'sc2 1s steps(2) infinite' : 'sw3 .8s steps(3) infinite';
+      fl.insertAdjacentHTML('beforeend', `<div class="lane" style="--far:${W()}px;top:${30 + k * 6}px;
+          animation:pace ${(loop * 2 * (carry ? 1.33 : 1)).toFixed(1)}s linear infinite;animation-delay:-${(k * 3.1 + carry * 1.7).toFixed(1)}s">
+        <div class="sh"></div>
+        <div class="who" title="${ROLE_KO[r]} · ${carry ? 'carry_side' : 'walk_side'}"
+          style="background-image:url('${root}${st[nm].file}');background-size:960px 192px;
+          animation:${anim},face ${(loop * 2 * (carry ? 1.33 : 1)).toFixed(1)}s step-end infinite;
+          animation-delay:0s,-${(k * 3.1 + carry * 1.7).toFixed(1)}s"></div></div>`);
+    });
+    const tg = document.getElementById('tgrid');
+    const gl = meta.s12b_lit_strips.strips;
+    const shows = [['work_34','t3a 1.4s steps(3) infinite','engineer'],['carry_34','t2b 1s steps(2) infinite','trader_b'],
+                   ['idle_glance','t3c 2.4s steps(3) infinite','medic_b'],['work_34','t3a 1.4s steps(3) infinite','kid_b'],
+                   ['carry_34','t2b 1s steps(2) infinite','farmer'],['idle_glance','t3c 2.4s steps(3) infinite','scholar']];
+    shows.forEach(([clip, anim, nm]) => {
+      tg.insertAdjacentHTML('beforeend', `<div class="tcard"><div class="who" style="background-image:url('${root}${gl[nm]}');
+        background-size:1536px 192px;animation:${anim}"></div><h3><code>${clip}</code></h3>
+        <div class="sig">${ROLE_KO[nm.replace('_b','')]} · ${meta.s12b_rows[clip].what}</div></div>`);
+    });
+  }).catch(e => { document.getElementById('sfloor').textContent = 'meta.json 을 읽지 못했다: ' + e; });
+  const t = document.getElementById('stoggle');
+  t.addEventListener('click', () => {
+    const on = document.getElementById('walk_side').classList.toggle('paused2');
+    t.textContent = on ? '전부 재생 ▶' : '전부 정지 ■';
+  });
+})();
+</script>
+
 <!-- ══════════════ §작업 — 방별 작업 동작 · 엘리베이터 (스프린트 11-B) ══════════════ -->
 <style>
   .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(460px,100%),1fr));gap:16px;margin-top:12px}
@@ -112,6 +210,10 @@
      · <b>“각 방에 엘리베이터를 타고 내려가는 걸로”</b>.
      역할 여덟이 똑같이 하던 <code>work</code> 한 줄 대신, <b>방마다 다른 일</b>을 시트에 <b>행으로 더했다</b>(7행 → 21행).
      기존 7행은 한 픽셀도 바뀌지 않았다(출하물 해시 대조).</p>
+  <p class="sub" style="margin-top:-12px"><b>S12 갱신</b> — 사용자 지시 <b>“일하면서 카메라를 정면으로 보는 건 부자연스럽다”</b>.
+     7~16행을 같은 행 번호로 다시 그려 <b>몸과 얼굴이 설비(왼쪽) 쪽을 본다</b>:
+     옆모습 = 모루·냄비·레버·독서대·공기통, 3/4 = 담요·상자·붕대·밸브·화분. 라운지(17)는 뒷모습, 엘리베이터(18~20)는 그대로다.
+     옆모습에서는 먼 팔이 몸 뒤라 역할 도구를 <b>허리 뒤에 건다</b>.</p>
   <div class="rules">
     <b>원칙 셋</b>
     <ol style="margin:8px 0 0 18px;padding:0;line-height:1.75">
@@ -150,7 +252,8 @@
     const tb = document.getElementById('worktable');
     Object.entries(meta.s11_rows).forEach(([clip, r]) => {
       const rid = Object.keys(meta.room_work).filter(k => meta.room_work[k] === clip).join(' · ') || '—';
-      tb.insertAdjacentHTML('beforeend', `<tr><td>${r.row} <code>${clip}</code></td><td>${rid}</td><td>${r.what}</td><td>${r.frames} · ${r.seconds}s</td></tr>`);
+      const vw = (meta.work_view && meta.work_view[clip]) ? `<br><span style="color:var(--dim)">보는 쪽: ${meta.work_view[clip]}</span>` : '';
+      tb.insertAdjacentHTML('beforeend', `<tr><td>${r.row} <code>${clip}</code></td><td>${rid}</td><td>${r.what}${vw}</td><td>${r.frames} · ${r.seconds}s</td></tr>`);
     });
     const g = document.getElementById('wgrid');
     Object.entries(meta.s11_lit_strips).forEach(([rid, ppl]) => {

@@ -19,6 +19,23 @@ gen_chars_p2.py — P2(48px 생활형 도트) 확정판 · 전체 등장인물 �
 import os, io, json, math
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+import time
+_PIL_SAVE = Image.Image.save
+
+
+def _save_retry(self, fp, *args, **kw):
+    """S12: 서버·브라우저가 PNG 를 읽는 순간 윈도우가 쓰기를 거절한다(Errno 22). 잠깐 기다렸다 다시 쓴다."""
+    for t in range(10):
+        try:
+            return _PIL_SAVE(self, fp, *args, **kw)
+        except OSError:
+            if t == 9:
+                raise
+            time.sleep(0.4)
+
+
+Image.Image.save = _save_retry
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'static', 'art', 'chars', 'front', 'p2')
 
@@ -82,6 +99,56 @@ ROOM_WORK = {
     'lounge': 'rest_lounge', 'bath': 'sit',
 }
 BACK_CLIPS = ('back_walk', 'rest_lounge')
+
+# ── S12: 옆모습 — 가로 화면(M5 탑, 한 층 3칸)에서 층을 따라 엘리베이터까지 걷는다 ──
+#   역시 **행을 뒤에 더하기만** 한다(0~20행 불변, 해시로 증명). 열 수 3 그대로.
+#   오른쪽을 보는 것이 원본이고, 왼쪽은 개발이 좌우 반전한다.
+#   보이는 쪽 = 각인 이름의 「오른」 쪽(오른 광대·오른 손목·오른 관자놀이·오른 옷깃·허리 오른 매듭).
+#   오른쪽을 보고 걸으면 몸의 오른쪽이 보는 사람을 향하기 때문이다. 「왼」 각인 넷은 먼 쪽이라 끈다.
+S12_CLIPS = [('walk_side', 3), ('carry_side', 2)]
+S12_IDS = [c for c, _n in S12_CLIPS]
+SIDE_IDS = set(S12_IDS)
+CLIPS = CLIPS + S12_CLIPS
+CLIP_SEC.update({'walk_side': 0.8, 'carry_side': 1.0})
+S12_KO = {
+    'walk_side':  ('층 복도', '오른쪽으로 걷는다 — 디딤(가까운 발 앞) → 지나감(먼 발 듦) → 디딤(먼 발 앞). 팔은 다리와 반대로 흔든다',
+                   '가까운 손에 역할 도구'),
+    'carry_side': ('층 복도', '유물 상자를 가슴 앞에 안고 오른쪽으로 걷는다 — 두 걸음. 역할 도구는 상자에 꽂혀 있다',
+                   '두 손 · 도구는 상자 위'),
+}
+# 걸음 폭(원화 px) — 개발이 바닥을 미는 속도. 한 바퀴에 두 걸음.
+S12_STRIDE = {'walk_side': {'adult': 16, 'kid': 12}, 'carry_side': {'adult': 12, 'kid': 8}}
+SIDE_NEAR = ('warden', 'debt_paid', 'knock_heard', 'saved_breath', 'empty_stomach')
+SIDE_CENTER = ('footprint', 'water_memory', 'sun_memory')
+SIDE_FAR = ('spore_mark', 'empty_seat', 'crack_seen', 'depth_mark')
+
+# ── S12-B: 일하는 사람은 일하는 쪽을 본다(사용자 지시 2026-10-03, PM 범위 추가) ─────
+#   7~16행(방별 작업)을 **제자리에서 다시 그린다**(행 번호 그대로 — 개발의 room_work 가 그대로 먹는다).
+#   설비가 셀 왼쪽에 있으므로 몸이 왼쪽을 본다. 반대쪽 설비면 개발이 셀 전체를 좌우 반전한다.
+#   옆모습(왼쪽): 모루 망치·냄비 젓기·레버 당기기·독서대 읽기·공기통 두드리기 — 손과 눈이 한 줄에 있는 일
+#   3/4(왼쪽):   담요 개기·상자 올리기·붕대 감기·밸브 돌리기·잎 따기 — 몸 앞에서 두 손이 움직이는 일
+#   rest_lounge(17)는 뒷모습 그대로, 엘리베이터(18~20)는 문을 보는 게 자연스러워 그대로다.
+TURN_PROFILE = ('work_workshop', 'work_pantry', 'work_generator', 'work_decoder', 'work_airlock')
+TURN_Q34 = ('work_quarters', 'work_storage', 'work_infirmary', 'work_well', 'work_greenhouse')
+S12B_CLIPS = [('work_34', 3), ('carry_34', 2), ('idle_glance', 3)]
+S12B_IDS = [c for c, _n in S12B_CLIPS]
+CLIPS = CLIPS + S12B_CLIPS
+CLIP_SEC.update({'work_34': 1.4, 'carry_34': 1.0, 'idle_glance': 2.4})
+S12B_KO = {
+    'work_34': ('어디서나', '3/4 왼쪽을 보고 일한다 — 정면 work 와 같은 동작. 정면 work(2행)는 초상·UI 카드용으로 남는다', '오른손 도구'),
+    'carry_34': ('어디서나', '3/4 왼쪽을 보고 상자를 든다 — 정면 carry(4행)는 그대로 남는다', '두 손'),
+    'idle_glance': ('홀·대기', '정면 → 고개를 3/4 왼쪽으로 돌림 → 눈만 남기고 정면으로 돌아옴. idle 사이에 가끔 한 번', '오른손 도구'),
+}
+BASE_OF = {'work_34': 'work', 'carry_34': 'carry', 'idle_glance': 'idle'}   # 팔·다리는 이 행을 빌린다
+WORK_VIEW = {c: 'profile_left' for c in TURN_PROFILE}
+WORK_VIEW.update({c: 'q34_left' for c in TURN_Q34})
+WORK_VIEW.update({'rest_lounge': 'back', 'work_34': 'q34_left', 'carry_34': 'q34_left',
+                  'idle_glance': 'front > q34_left > front'})
+# 옆모습 작업에서 오른쪽 몸 기준으로 그린 뒤 뒤집어 붙이는 각인(얼굴·가슴·허리 — 몸통 쪽)
+MIRROR_IMPS = ('warden', 'knock_heard', 'water_memory', 'sun_memory', 'saved_breath', 'footprint',
+               'empty_stomach')
+PROFILE_HIDE = ('spore_mark', 'depth_mark', 'debt_paid')     # 먼 쪽 목덜미·관자놀이, 허리에 건 도구 쪽 손목
+Q34_HIDE = ('depth_mark',)                                   # 돌린 얼굴의 먼 관자놀이
 
 # ── 팔레트 ───────────────────────────────────────────────────────────────
 # 흙 계열 따뜻한 색이 바탕. 차가운 색은 유리·물에만(고글 렌즈, 각인 '금을 본 자').
@@ -591,6 +658,10 @@ POSE = {
 }
 for _c in S11_IDS:      # S11 — 전부 선 자세. 몸통·다리 규약은 idle 과 같다
     POSE[_c] = dict(drop=0, tr=7.2, tdy=9, legs='stand', front=False)
+for _c in S12_IDS:      # S12 — 옆모습. 세로 좌표 규약(머리·목·몸통·허리)은 walk 와 같다
+    POSE[_c] = dict(drop=0, tr=7.2, tdy=9, legs='side', front=False)
+for _c in S12B_IDS:
+    POSE[_c] = dict(POSE[BASE_OF[_c]])
 S11_BOB = {'work_quarters': [0, -1, 0], 'work_storage': [1, 0, -1], 'work_well': [0, 1, 0],
            'work_greenhouse': [1, 1, 1], 'work_generator': [0, 0, 1], 'work_infirmary': [1, 1, 0],
            'work_workshop': [-1, 0, 1], 'work_decoder': [1, 1, 1], 'work_pantry': [0, 1, 0],
@@ -793,7 +864,7 @@ def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
         hp = mid + 1
         fx.rect(hp - 2, yt - 1, hp + 2, yt - 1, 'flameR'); fx.set(hp, yt - 1, 'flame')
         if f == 0:
-            lhand, d = P(-5, -11), (-0.45, -0.9)
+            lhand, d = ((P(-12, -6), (-0.3, -0.95)) if g.get('profile') else (P(-5, -11), (-0.45, -0.9)))   # 옆모습: 얼굴 앞을 피해 앞으로 든다
         elif f == 1:
             lhand, d = P(-9, -2), (-1.0, 0.15)
         else:
@@ -983,8 +1054,10 @@ def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
         rhand = (ir(rhand[0]), ir(rhand[1]))
     am = Cv()                        # 팔만 따로 — 머리 뒤 베일 각인을 가리는 판정에 쓴다
     mid_ = belt_y - 4
+    prof = g.get('profile', False)   # S12 옆모습 작업 — 먼 팔은 몸통 뒤라 그리지 않고 도구는 허리에 건다
     am.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y0 + 3, 'suitM')      # 어깨 뿌리
-    am.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y0 + 3, 'suitD')
+    if not prof:
+        am.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y0 + 3, 'suitD')
     if lhand is not None:
         e = arm_to(am, SL, lhand, R, 'l')
         wl = (lhand[0], lhand[1])
@@ -996,6 +1069,8 @@ def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
     if rhand is not None:
         arm_to(am, SR, rhand, R, 'r')
         wr = (rhand[0], rhand[1])
+    elif prof:
+        wr = g['hip_xy']
     else:
         am.rect(ax_r, arm_y0 + 1, ax_r + 3, mid_, 'suitD'); am.rect(ax_r - tk, mid_, ax_r + 3 - tk, arm_y1, 'suitD')
         wr = (ax_r + 2 - tk, arm_y1 + 2)
@@ -1008,11 +1083,13 @@ def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
     mitten(mitc, wl[0], wl[1])
     if rhand is not None:
         mitten(mitc, wr[0], wr[1], 'creamD')
+    elif prof:
+        hand_prop(c, role, wr[0], wr[1])
     else:
         mitten(c, wr[0], wr[1], 'creamD')
         if not g['back'] and not hip and not no_prop:
             hand_prop(c, role, wr[0], wr[1])
-    if hip and not g['back']:
+    if hip and not g['back'] and not prof:
         hand_prop(c, role, ax_r - 1, belt_y + 3)
     ov.blit(mitc)
     objc.blit(fx); objc.blit(hh)
@@ -1025,6 +1102,349 @@ def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
     return wl, wr
 
 
+# ── S12: 옆모습 (오른쪽을 본다) ─────────────────────────────────────────
+def _mirror_into(dst, src, ax):
+    """src 를 세로축 x=ax 기준으로 뒤집어 dst 에 얹는다(뒤 꼬리를 뒤통수 쪽으로 돌릴 때)."""
+    for y in range(src.h):
+        for x in range(src.w):
+            t = src.g[y][x]
+            if t is not None:
+                dst.set(2 * ax - x, y, t)
+
+
+def headwear_side(c, role, hx, hy, hr, layer, f=0):
+    """머리에 쓴 것 — 옆에서 본 꼴. 대부분 앞모습 그대로(돌려 봐도 같은 모양)이고,
+    **뒤로 늘어지는 것**(정찰병 후드 꼬리·의무병 머릿수건 꼬리·학자 모자 술)만 뒤통수 쪽(왼쪽)으로 돌린다.
+    기술자 고글은 렌즈 하나가 이마 앞으로 튀어나온다."""
+    top = hy - hr
+    rM, rD, rL = 'r_' + role, 'rD_' + role, 'rL_' + role
+    if role in ('scout', 'medic', 'scholar') and layer == 'under':
+        tmp = Cv()
+        headwear(tmp, role, hx, hy, hr, False, 'under')
+        _mirror_into(c, tmp, int(round(hx)))
+        return
+    if role == 'medic' and layer == 'over':                  # 이마 십자 — 이마가 앞(오른쪽)에 있다
+        x0 = int(round(hx + hr - 4))
+        c.rect(x0 - 1, top + 1, x0 + 1, top + 1, 'ox'); c.set(x0, top, 'ox'); c.set(x0, top + 2, 'ox')
+        return
+    if role == 'engineer' and layer == 'over':
+        c.rect(hx - hr - 1, top - 2, hx + hr, top + 2, rD)                     # 고글 끈
+        c.rect(hx - hr - 1, top - 2, hx + hr, top - 2, 'tankL')
+        c.rect(hx - hr - 1, top - 1, hx - hr, top + 2, 'tankL')                 # 뒤 버클
+        c.ell(hx + hr - 1.2, top - .2, 2.4, 1.9, 'glassD')                      # 앞으로 나온 렌즈 하나
+        c.set(int(round(hx + hr - 2)), int(round(top - 1)), 'glass')
+        c.rect(hx - hr - 3, top + 2, hx - hr, top + 5, 'tankL')                 # 공구띠 끝(뒤)
+        return
+    headwear(c, role, hx, hy, hr, False, layer)
+
+
+def side_boot(c, x0, x1, y0, y1, far):
+    """옆에서 본 무게추 장화 — 발끝이 오른쪽."""
+    c.rect(x0, y0, x1, y1 - 1, 'suitD' if far else 'bootM')
+    if not far:
+        c.rect(x0, y0, x0 + 1, y1 - 1, 'bootL')
+        c.set(x1, y0, 'bootL')
+    c.rect(x0, y1, x1, y1, 'brassD' if far else 'brassM')                     # 무게추 밑창
+    if not far:
+        c.set(x1, y1, 'brass')
+
+
+def build_side(role, clip, f, body, stand=False):
+    """옆모습 본체(오른쪽을 본다). build_raw 와 같은 (base, ov, 앵커) 를 돌려준다.
+    세로 좌표(맨머리 44/33px · 목 · 몸통 · 허리 · 발 기준선)는 앞모습과 같은 식이다."""
+    c = Cv()
+    ov = Cv(stencil=c)
+    kid = (role == 'kid')
+    H = H_KID if kid else H_ADULT
+    rM, rD, rL = 'r_' + role, 'rD_' + role, 'rL_' + role
+    B = BODIES[body]
+    carry = (clip == 'carry_side')
+    if stand:                                       # 옆모습 작업(S12-B) — 선 몸통만. 팔·설비는 s11_pose 가 붙인다
+        bob = S11_BOB.get(clip, [0, 0, 0])[f]
+    else:
+        bob = ([0, 1] if carry else [0, -1, 0])[f]
+
+    hr = 8.5 if not kid else 7.4
+    head_top = FOOT - (H - 1) + bob
+    hy = head_top + hr
+    cx = 31
+    hx = cx + 1
+    neck_y = head_top + (17 if not kid else 15)
+    torso_ry = 7.2 if not kid else 5.0
+    torso_rx = 6.0 if not kid else 4.8              # 옆에서 본 가슴 두께
+    torso_cy = neck_y + (9 if not kid else 6)
+    belt_y = int(round(torso_cy + torso_ry * .45))
+    leg_y0 = int(round(torso_cy + torso_ry - 1))
+    arm_y0 = neck_y + 1
+    arm_y1 = belt_y + (2 if not kid else 1)
+    R = float(arm_y1 - arm_y0)
+
+    # ── 걸음 — 가까운 다리(오른) / 먼 다리. 팔은 다리와 반대 ──
+    st = (3 if kid else 4) if not carry else (2 if kid else 3)
+    if stand:
+        near_dx, far_dx, near_lift, far_lift = 1, -2, 0, 0
+        swing = 0
+    elif carry:
+        near_dx, far_dx, near_lift, far_lift = [st, -st][f], [-st, st][f], 0, 0
+        swing = 0
+    else:
+        near_dx = [st, 0, -st][f]
+        far_dx = [-st, -1, st][f]
+        near_lift, far_lift = 0, [0, 2, 0][f]
+        swing = [-1, 0, 1][f]                       # 가까운 팔: 가까운 다리가 앞이면 뒤로
+    # 팔 흔들기 각도(도, +가 앞). 가까운 팔은 앞쪽으로 치우쳐 흔든다 — 뒤로 크게 빼면 도구가 몸통에 묻힌다
+    near_deg = [2, 12, 26][f] if not (carry or stand) else 0
+    far_deg = [20, 6, -10][f] if not (carry or stand) else 0
+
+    tool_cv, obj = Cv(), Cv()
+    anc = {}
+
+    # ── 등 뒤 공기통 (옆에서 보면 등 뒤로 튀어나온다 — 옆모습의 가장 큰 실루엣 단서) ──
+    if not kid:
+        tank(c, cx - torso_rx - 1, torso_cy - 1, torso_ry - 1.2)
+        c.rect(cx - torso_rx, neck_y - 1, cx - torso_rx + 2, neck_y + 1, 'suitD')   # 호스 이음
+
+    # ── 먼 팔 (몸통 뒤) ──
+    SF = (cx - 0.5, arm_y0 + 2.0)
+    SN = (cx + 0.5, arm_y0 + 2.0)
+    if not carry and not stand:
+        a = math.radians(far_deg)
+        hf = (SF[0] + R * 0.9 * math.sin(a), SF[1] + R * 0.9 * math.cos(a))
+        hf = (int(round(hf[0])), int(round(hf[1])))
+        arm_to(c, SF, hf, R, 'r')
+        mitten(c, hf[0], hf[1], 'creamD')
+
+    # ── 다리: 먼 다리 → 가까운 다리 ──
+    lw = 4 if not kid else 3
+    for dx, lift, far in ((far_dx, far_lift, True), (near_dx, near_lift, False)):
+        hip = (cx - (1 if far else 0), leg_y0)
+        ank = (cx + dx, FOOT - 4 - lift)
+        seg(c, hip, ank, 'suitD' if far else 'suitM', lw)
+        if not far:
+            seg(c, (hip[0] + 1, hip[1]), (ank[0] + 1, ank[1]), 'suitL', 1)
+        fxp = int(round(cx + dx))
+        side_boot(c, fxp - 2, fxp + (3 if not kid else 2), FOOT - 4 - lift, FOOT - lift, far)
+
+    # ── 몸통 ──
+    c.ell(cx, torso_cy, torso_rx, torso_ry, rM)
+    c.ell_in(cx - 2, torso_cy - 2.2, torso_rx - 2, torso_ry - 1.2, rL, only=(rM,))
+    c.ell_in(cx, torso_cy + torso_ry - 1, torso_rx, 3.2, rD, only=(rM, rL))
+    if B['waist']:                                  # 체형 B — 옆에서는 허리 앞뒤가 1px 들어간다
+        coat = (rM, rD, rL)
+        for yy in range(belt_y - 2, belt_y + 2):
+            dy = (yy - torso_cy) / max(torso_ry, .001)
+            if abs(dy) >= 1.0:
+                continue
+            rr = torso_rx * math.sqrt(1.0 - dy * dy)
+            cut = B['waist'] * (1.0 - abs(yy - belt_y + 0.5) / 2.6)
+            if cut <= 0:
+                continue
+            for xx in range(cx - 12, cx + 13):
+                if abs(xx - cx) > rr - cut and c.own(xx, yy) in coat:
+                    c.clear(xx, yy)
+    c.rect(cx - 4, torso_cy - 2, cx - 3, torso_cy, 'ox')                   # 기운 자국
+    c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y + 1, 'oliv')
+    c.rect(int(cx + torso_rx - 1), belt_y, int(cx + torso_rx - 1), belt_y + 1, 'brassM')   # 버클(앞)
+
+    # ── 허리 랜턴 — 등 쪽 허리에 건다 ──
+    if not kid:
+        lantern(c, int(cx - torso_rx), belt_y + 3)
+
+    # ── 목 실링 + 어깨 링 ──
+    c.ell(cx, neck_y - 1, torso_rx - .2, 2.6, 'cream')
+    c.ell(cx, neck_y - 2, torso_rx - .8, 1.9, 'creamD')
+    wave(c, cx - torso_rx + 2, cx + torso_rx - 2, neck_y - 3, 'suitD')
+    c.rect(cx - torso_rx + 1, neck_y, cx + torso_rx - 1, neck_y, 'brassD')
+
+    # ── 머리: 놋쇠 돔 + 옆으로 난 얼굴 창 ──
+    c.ell(hx, hy, hr, hr, 'brassD')
+    c.ell(hx, hy - .5, hr - .9, hr - .9, 'brassM')
+    c.ell(hx, hy - 1.1, hr - 1.9, hr - 1.9, 'brass')
+    c.ell(hx - hr * .42, hy - hr * .58, hr * .36, hr * .24, 'brassH')
+    headwear_side(c, role, hx, hy, hr, 'under', f)
+    c.set(int(round(hx - hr + 1.6)), int(round(hy - 1)), 'brassH')            # 뒤 볼트 하나
+    fy = hy + 1.5
+    fr = hr - 2.2
+    wrx, wry = fr - 2.0, fr
+    wx = hx + hr - wrx - 1.2                       # 얼굴 창은 투구 앞쪽에 붙는다
+    c.ell(wx, fy, wrx + .9, wry + .9, 'brassD')
+    c.ell(wx, fy, wrx, wry, 'skin')
+    c.ell_in(wx + 1.4, fy + 1.6, wrx - .6, wry - .8, 'skinD', only=('skin',))
+    win = {}
+    for yy in range(int(fy - wry) - 1, int(fy + wry) + 2):
+        xs = [xx for xx in range(64) if c.own(xx, yy) in ('skin', 'skinD')]
+        if xs:
+            win[yy] = (min(xs), max(xs))
+    ey = ey_of(fy)
+    nose = (win[ey + 2][1] + 1, ey + 2)                                      # 코 — 창 테를 1px 넘는다
+    c.set(nose[0], nose[1], 'skin'); c.set(nose[0], nose[1] + 1, 'skinD')
+
+    if role == 'scholar':                          # 깨진 안경 — 앞 렌즈 테 + 귀로 가는 다리
+        xf = win[ey][1]
+        ov.rect(xf - 3, ey - 1, xf + 1, ey - 1, 'brassM')
+        ov.set(xf + 1, ey, 'brassM'); ov.set(xf + 1, ey + 1, 'brassM')
+        ov.set(xf - 1, ey - 1, 'brassH')
+    if role == 'trader':                           # 목도리 — 꼬리가 뒤로 날린다
+        ov.rect(hx - hr + 3, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
+        tx = int(round(hx - hr + 3)) - [0, 1, 0][f] if not (carry or stand) else int(round(hx - hr + 3))
+        ov.rect(tx - 2, hy + hr, tx, hy + hr + 1, rM)
+        ov.rect(tx - 3, hy + hr + 2, tx - 1, hy + hr + 3, rM)
+    headwear_side(ov, role, hx, hy, hr, 'over', f)
+
+    # ── 가까운 팔 · 도구 / 상자 ──
+    am, mit = Cv(), Cv()
+    if stand:
+        wr = (cx, belt_y)
+    elif not carry:
+        a = math.radians(near_deg)
+        hn = (SN[0] + R * 0.9 * math.sin(a), SN[1] + R * 0.9 * math.cos(a))
+        hn = (int(round(hn[0])), int(round(hn[1])))
+        arm_to(am, SN, hn, R, 'l')
+        c.blit(am)
+        mitten(mit, hn[0], hn[1], 'cream')
+        c.blit(mit)
+        hand_prop(tool_cv, role, hn[0], hn[1])
+        c.blit(tool_cv)
+        wr = hn
+    else:
+        bw, bh = (10, 8) if not kid else (8, 6)
+        bx0 = cx + (2 if not kid else 1)
+        by0 = int(round(torso_cy - (3 if not kid else 2)))
+        bx1, by1 = bx0 + bw - 1, by0 + bh - 1
+        top_rel = {'scout': -5, 'cook': -6, 'medic': 1, 'engineer': -7, 'farmer': -4,
+                   'scholar': -4, 'trader': -6, 'kid': -2}[role]
+        hand_prop(tool_cv, role, bx0 + 2, by0 - (3 if not kid else 2) - top_rel)   # 상자에 꽂힌 도구
+        box = Cv()
+        box.rect(bx0, by0, bx1, by1, 'suitL'); box.rect(bx0, by0, bx1, by0, 'suitH')
+        box.rect(bx0, by0, bx0, by1, 'suitH'); box.rect(bx0, by1, bx1, by1, 'suitD')
+        box.rect(bx1, by0 + 1, bx1, by1, 'suitM')
+        lx0, ly0 = bx0 + 2, by0 + 2                                          # 바코드 표 — 유물을 읽는 행위
+        box.rect(lx0, ly0, lx0 + (5 if not kid else 4), ly0 + (2 if not kid else 1), 'cream')
+        for k_, xx in enumerate(range(lx0, lx0 + (5 if not kid else 4) + 1)):
+            if k_ in ((0, 1, 3, 5) if not kid else (0, 2, 3)):      # 굵기가 다른 세로줄 — 바코드
+                box.rect(xx, ly0, xx, ly0 + (2 if not kid else 1), 'ink')
+        c.blit(tool_cv)
+        for (xx, yy) in box.pixels():                                         # 상자가 도구 아랫부분을 가린다
+            tool_cv.clear(xx, yy)
+        c.blit(box)
+        obj.blit(box)
+        hn = (bx0 + 2, by1 - 1)
+        arm_to(am, SN, hn, R, 'l')
+        c.blit(am)
+        mitten(mit, hn[0], hn[1], 'cream')
+        c.blit(mit)
+        wr = hn
+    obj.blit(tool_cv)
+
+    xf = win[ey][1]
+    aL = {
+        'role': role, 'body': body, 'kid': kid, 'clip': clip, 'f': f,
+        'hx': hx, 'hy': hy, 'hr': hr, 'fy': fy, 'fr': fr,
+        'cx': cx, 'neck_y': neck_y, 'torso_rx': torso_rx, 'belt_y': belt_y,
+        'torso_cy': torso_cy, 'torso_ry': torso_ry, 'arm_y0': arm_y0, 'arm_y1': arm_y1, 'head_top_y': head_top,
+        'ax_l': int(cx - torso_rx), 'ax_r': int(cx + torso_rx),
+        'sad': False, 'side': True,
+        'wx': wx, 'wrx': wrx, 'wry': wry, 'win': win, 'ey': ey, 'nose': nose,
+        'rim': int(round(hy + hr)),
+        'head_top': (int(hx), int(head_top)),
+        'forehead': ((win[min(win) + 1][0] + win[min(win) + 1][1]) // 2 + 1, min(win) + 1),
+        'temple_l': (0, 0), 'neck_l': (0, 0), 'arm_l': (0, 0), 'mitten_l': (0, 0),
+        'temple_r': (int(win[ey][0] - 1), int(ey)),                       # 귀 자리 = 창 뒤 테
+        # 「지킨 자」 흉터 — 어른은 볼, 아이는 얼굴 창이 좁아(입 높이에서 3~5px) 턱으로 내린다
+        'cheek_r': ((int(win[ey + 3][0] + 2), int(ey + 3)) if not kid else (int(win[ey + 5][0]), int(ey + 5))),
+        'collar_r': (int(cx + 2), int(neck_y + 1)),
+        'chest': (int(cx + torso_rx - 2), int(neck_y + 3)),
+        'wrist_r': (int(wr[0]), int(wr[1] - 2)),
+        'belt_c': (int(cx - 4), int(belt_y + 1)),          # 허리 옆 매듭 — 흔드는 팔 뒤쪽(팔에 안 가린다)
+        'face_shown': True,
+        'hide': set(SIDE_FAR),
+    }
+    # 몸 앞으로 온 것(가까운 팔·장갑·도구·상자)이 가린 각인 픽셀은 잘라 낸다.
+    # 손목 팔찌(debt_paid)는 팔 **위**에 있으므로 팔에는 잘리지 않고, 든 물건에만 잘린다.
+    front_all = am.pixels() | mit.pixels() | obj.pixels()
+    aL['side_cut'] = {'*': front_all, 'debt_paid': obj.pixels()}
+    aL['obj_cv'] = obj
+    aL['mit_px'] = mit.pixels()
+    aL['front_px'] = set(obj.pixels())
+    return c, ov, aL
+
+
+MX = 61          # 옆모습 작업: 오른쪽 몸을 x' = 61 - x 로 뒤집는다(몸 중심 31 -> 30)
+
+
+def mirror_cv(cv):
+    out = Cv()
+    for y in range(cv.h):
+        row = cv.g[y]
+        for x in range(cv.w):
+            if row[x] is not None:
+                out.set(MX - x, y, row[x])
+    return out
+
+
+def build_profile_work(role, clip, f, body):
+    """
+    S12-B 옆모습 작업(왼쪽을 본다). 몸·머리는 build_side(선 자세)를 뒤집어 쓰고,
+    팔·설비·든 물건은 S11 의 s11_pose 를 그대로 쓴다(어깨만 옆모습 어깨로 옮겼다 -> 설비가 7px 오른쪽으로 온다).
+    머리·얼굴·몸통 각인은 오른쪽 몸 기준(aL['_r'])으로 그린 뒤 뒤집는다.
+    """
+    cR, ovR, aR = build_side(role, clip, f, body, stand=True)
+    c = mirror_cv(cR)
+    ov = Cv(stencil=c)
+    ov.blit(mirror_cv(ovR))
+    kid = (role == 'kid')
+    cxL = MX - aR['cx']
+    shL = MX - (aR['cx'] + 0.5)
+    g = dict(role=role, kid=kid, cx=cxL, neck_y=aR['neck_y'], torso_cy=aR['torso_cy'],
+             torso_ry=aR['torso_ry'], torso_rx=aR['torso_rx'], belt_y=aR['belt_y'],
+             head_top=aR['head_top_y'], ax_l=shL - 1.5, ax_r=shL - 1.5,
+             arm_y0=aR['arm_y0'], arm_y1=aR['arm_y1'], tk=0, back=False,
+             profile=True, hip_xy=(cxL + 2, aR['belt_y'] + 3))
+    s11_anc, s11_hide = {}, set()
+    s11_obj, s11_mit = Cv(), Cv()
+    s11_pose(c, ov, clip, f, g, s11_obj, s11_mit, s11_anc, s11_hide)
+    hx = MX - aR['hx']
+    aL = {
+        'role': role, 'body': body, 'kid': kid, 'clip': clip, 'f': f,
+        'hx': hx, 'hy': aR['hy'], 'hr': aR['hr'], 'fy': aR['fy'], 'fr': aR['fr'],
+        'cx': cxL, 'neck_y': aR['neck_y'], 'torso_rx': aR['torso_rx'], 'belt_y': aR['belt_y'],
+        'ax_l': int(shL - 1.5), 'ax_r': int(shL - 1.5), 'sad': False, 'face_shown': True,
+        'view': 'profile_left', '_r': aR,
+        'head_top': (int(hx), int(aR['head_top_y'])),
+        'neck_l': (0, 0), 'temple_l': (0, 0), 'temple_r': (0, 0), 'cheek_r': (0, 0),
+        'forehead': (0, 0), 'collar_r': (0, 0), 'chest': (0, 0), 'belt_c': (0, 0),
+    }
+    front = s11_anc.pop('_front')
+    armc = s11_anc.pop('_arm')
+    fxc = s11_anc.pop('_fx')
+    fixvis = set(p_ for p_ in fxc.pixels() if c.own(*p_) == fxc.own(*p_) and ov.own(*p_) is None)
+    armvis = set(p_ for p_ in armc.pixels() if c.own(*p_) == armc.own(*p_) and ov.own(*p_) is None)
+    aL['clip_px'] = fixvis
+    aL['behind_px'] = armvis | s11_mit.pixels() | fixvis
+    aL.update(s11_anc)
+    # 옆모습: 일하는 팔은 몸 앞 — 몸통 각인을 가린다. 팔 위의 각인(왼 위팔 띠·왼 장갑 금)은 제외.
+    # 가슴 목걸이는 팔 띠에도 비킨다(팔이 앞).
+    es_raw = _imprint_raw('empty_seat', aL).pixels()
+    front_arm = armvis | s11_mit.pixels()
+    hs_ = hair_layer('short', aL, c)
+    face_px = set()
+    for _fid, _k, _n in FACES:                       # 장갑이 얼굴 앞을 지날 때 금은 얼굴에 비킨다
+        face_px |= face_layer(_fid, aL, c, hs_).pixels()
+    aL['side_cut'] = {'*': front_arm, 'empty_seat': set(), 'crack_seen': face_px,
+                      'footprint': front_arm | es_raw}
+    fp = front.pixels() - s11_mit.pixels()
+    aL['front_px'] = fp
+    aL['hide'] = set()
+    s11_hide.update(PROFILE_HIDE)
+    for _iid, _k, _p, _c in IMPRINTS:
+        if imprint_layer(_iid, aL).pixels() & fp:
+            s11_hide.add(_iid)
+    aL['hide'] = set(s11_hide)
+    aL['obj_cv'] = s11_obj
+    aL['mit_px'] = s11_mit.pixels()
+    return c, ov, aL
+
+
 def build_raw(role, clip='idle', f=0, body='a'):
     """본체를 **두 장**으로 돌려준다 (스프린트 9-A에서 레이어로 쪼갰다).
          base : 머리에 쓴 것(under) · 몸 · 얼굴 구멍의 맨살까지
@@ -1033,6 +1453,10 @@ def build_raw(role, clip='idle', f=0, body='a'):
          base → 머리 레이어 → 얼굴 레이어 → ov → 외곽선
     이 순서가 S8의 그리기 순서와 **한 칸도 다르지 않다**(기본 조합 short+f0 기준).
     """
+    if clip in SIDE_IDS:                     # S12 옆모습 — 따로 그린다(기존 행 경로는 손대지 않음)
+        return build_side(role, clip, f, body)
+    if clip in TURN_PROFILE:                 # S12-B 옆모습 작업(왼쪽)
+        return build_profile_work(role, clip, f, body)
     c = Cv()
     ov = Cv(stencil=c)
     kid = (role == 'kid')
@@ -1043,9 +1467,14 @@ def build_raw(role, clip='idle', f=0, body='a'):
     s11 = clip in S11_IDS
     P = POSE[clip]
     B = BODIES[body]
+    pc = BASE_OF.get(clip, clip)            # S12-B 새 행은 팔·다리를 이 행에서 빌린다(기존 행은 pc == clip)
+    q34 = (clip in TURN_Q34 or clip in ('work_34', 'carry_34') or (clip == 'idle_glance' and f == 1))
 
     if s11:
         bob, lean = S11_BOB[clip][f], S11_LEAN[clip][f]
+    elif clip in S12B_IDS:
+        bob = {'work_34': [0, -1, 0], 'carry_34': [0, 1], 'idle_glance': [0, 0, 0]}[clip][f]
+        lean = -1 if clip == 'work_34' else 0
     else:
         bob = {'walk': [0, -1, -1], 'back_walk': [0, -1, -1], 'idle': [0, 1],
                'sit': [0, 1], 'work': [0, -1, 0], 'carry': [0, 1],
@@ -1123,7 +1552,7 @@ def build_raw(role, clip='idle', f=0, body='a'):
     arm_y0 = neck_y + 1
     arm_y1 = belt_y + (2 if not kid else 1)
     ax_l, ax_r = int(cx - torso_rx - 2), int(cx + torso_rx - 1)
-    if clip == 'carry':
+    if pc == 'carry':
         c.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y1 - 1, 'suitM')
         c.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y1 - 1, 'suitD')
         bx0, bx1 = cx - 7, cx + 7
@@ -1155,7 +1584,7 @@ def build_raw(role, clip='idle', f=0, body='a'):
         wl, wr = s11_pose(c, ov, clip, f, g, s11_obj, s11_mit, s11_anc, s11_hide)
     else:
         sw = [0, 1, -1][f] if clip in ('walk', 'back_walk') else 0
-        lift = [0, -4, -2][f] if clip == 'work' else 0
+        lift = [0, -4, -2][f] if pc == 'work' else 0
         # 허리선은 **팔이 만든다**. 몸통을 깎아도 팔이 그 자리를 덮어 버려서
         # 바깥선이 바뀌지 않는다(S9에서 폭을 재 보고 알았다). 체형 B는 팔꿈치
         # 아래를 1px 안으로 붙여 어깨→허리로 좁아지는 바깥선을 만든다.
@@ -1180,7 +1609,7 @@ def build_raw(role, clip='idle', f=0, body='a'):
         draw_legs(c, P['legs'], cx, leg_y0, kid, f)
 
     # ── 손에 든 것 (③) ──
-    if not back and clip in ('idle', 'walk', 'work'):
+    if not back and pc in ('idle', 'walk', 'work'):
         hand_prop(c, role, wr[0], wr[1])
 
     # ── 목 실링 + 어깨 링 ──
@@ -1227,6 +1656,28 @@ def build_raw(role, clip='idle', f=0, body='a'):
         if role == 'trader':
             ov.rect(hx - hr + 1, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
             ov.rect(hx + hr - 3, hy + hr + 1, hx + hr - 1, hy + hr + 4, rM)
+    elif q34:
+        # S12-B 3/4 왼쪽 — 얼굴 창이 왼쪽(보는 쪽)으로 1.6px 옮겨 가고 폭이 좁아진다. 오른쪽은 투구 옆면(놋쇠)
+        wx = hx - 1.6
+        wrx = fr - .7
+        c.ell(wx, fy, wrx + .9, fr + .9, 'brassD')
+        c.ell(wx, fy, wrx, fr, 'skin')
+        c.ell_in(wx + 1.6, fy + 1.6, wrx - .6, fr - .6, 'skinD', only=('skin',))
+        q_win = {}
+        for yy in range(int(fy - fr) - 1, int(fy + fr) + 2):
+            xs = [xx for xx in range(64) if c.own(xx, yy) in ('skin', 'skinD')]
+            if xs:
+                q_win[yy] = (min(xs), max(xs))
+        q_ey = ey_of(fy)
+        lo_ = q_win[q_ey][0]
+        if role == 'scholar':                            # 깨진 안경 — 가까운 알은 크게, 먼 알은 테 두 칸
+            ov.rect(lo_ + 3, q_ey - 1, lo_ + 7, q_ey - 1, 'brassM')
+            ov.set(lo_ + 3, q_ey, 'brassM'); ov.set(lo_ + 7, q_ey, 'brassM')
+            ov.rect(lo_, q_ey - 1, lo_ + 1, q_ey - 1, 'brassM')
+            ov.set(lo_ + 6, q_ey - 1, 'brassH')
+        if role == 'trader':
+            ov.rect(hx - hr + 1, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
+            ov.rect(hx + hr - 3, hy + hr + 1, hx + hr - 1, hy + hr + 4, rM)
     else:
         c.ell(hx, fy, fr, fr, 'skin')
         c.ell_in(hx + 1.6, fy + 1.6, fr - .6, fr - .6, 'skinD', only=('skin',))
@@ -1242,7 +1693,7 @@ def build_raw(role, clip='idle', f=0, body='a'):
 
     headwear(ov, role, hx, hy, hr, back, 'over')
 
-    if clip == 'work' and f == 1 and not back:           # 일하는 티 (C7)
+    if pc == 'work' and f == 1 and not back:             # 일하는 티 (C7)
         ov.set(wr[0] + 4, wr[1] - 8, 'cream')
         ov.set(wr[0] + 5, wr[1] - 10, 'creamD')
 
@@ -1268,6 +1719,24 @@ def build_raw(role, clip='idle', f=0, body='a'):
         'belt_c': (int(cx + (4 if not kid else 0)), int(belt_y + 1)),
         'face_shown': (not back),
     }
+    if q34:                              # S12-B 3/4 왼쪽 — 얼굴 쪽 앵커를 돌린 얼굴에 맞춘다
+        t0_ = min(q_win)
+        lo1, hi1 = q_win[t0_ + 1]
+        aL.update({'q34': True, 'view': 'q34_left', 'win': q_win, 'ey': q_ey,
+                   'rim': int(round(hy + hr)),
+                   'temple_r': (q_win[q_ey][1] + 1, q_ey),            # 가까운 관자놀이 = 창 뒤 테
+                   'cheek_r': ((q_win[q_ey + 3][1] - 1, q_ey + 3) if not kid
+                               else (q_win[q_ey + 4][1], q_ey + 4)),
+                   'forehead': ((lo1 + hi1) // 2, t0_ + 1)})
+        # 베일은 정면 식(머리 왼쪽)에 둔다 — 뒤통수(오른쪽)는 묶은 머리 매듭·두건 꼬리 자리라 부딪친다
+        if kid:                          # 아이: 목덜미 자국을 목 실링 줄로 내리고 1px 비킨다(돌린 얼굴 창이 턱까지 내려온다)
+            aL['neck_l'] = (aL['neck_l'][0] - 2, int(neck_y) + 1)
+        # 머리 뒤 베일은 맨 뒤(IMPRINT_FRONT 1) — 목덜미 자국과 겹치면 베일이 비킨다
+        aL['side_cut'] = {'*': set(), 'sun_memory': _imprint_raw('spore_mark', aL).pixels()}
+        s11_hide.update(Q34_HIDE)
+        aL['hide'] = set(Q34_HIDE)
+    if clip == 'idle_glance' and f == 2:  # 고개는 돌아왔고 눈만 아직 왼쪽
+        aL['eye_dx'] = -1
     if s11:
         front = s11_anc.pop('_front')
         armc = s11_anc.pop('_arm')
@@ -1305,6 +1774,12 @@ def ey_of(fy):
 def hair_layer(hid, a, base):
     """머리카락 한 벌을 투명 레이어로. 6종 전부 **같은 정수리 띠**로 시작하므로
     기본(short)으로 구워 낸 시트 위에 얹으면 기본 머리가 완전히 덮인다."""
+    if a.get('_r') is not None:          # S12-B 옆모습 작업 — 오른쪽 몸 기준으로 그려 뒤집는다
+        return mirror_cv(hair_layer(hid, a['_r'], mirror_cv(base)))
+    if a.get('side'):                    # S12 옆모습 — 옆에서 본 머리 6종
+        return hair_layer_side(hid, a, base)
+    if a.get('q34'):                     # S12-B 3/4 왼쪽
+        return hair_layer_q34(hid, a, base)
     c = Cv(stencil=base)
     hx, hy, hr = a['hx'], a['hy'], a['hr']
     fy, fr = a['fy'], a['fr']
@@ -1370,15 +1845,26 @@ def face_layer(fid, a, base, hair=None):
     c = Cv(stencil=base)
     if hair is not None:                 # 홍조 판정이 머리카락 아래를 보면 안 된다
         st = Cv(stencil=base); st.blit(hair); c.stencil = st
+    if a.get('_r') is not None:          # S12-B 옆모습 작업
+        st = Cv()
+        st.blit(base)
+        if hair is not None:
+            st.blit(hair)
+        return mirror_cv(face_layer(fid, a['_r'], mirror_cv(st)))
     if not a['face_shown']:
         return c
+    if a.get('side'):                    # S12 옆모습 — 눈 하나·눈썹·입·코·홍조
+        return face_layer_side(fid, a, c)
+    if a.get('q34'):                     # S12-B 3/4 왼쪽 — 먼 눈은 한 줄, 가까운 눈은 크게
+        return face_layer_q34(fid, a, c)
     hx, fy, fr = a['hx'], a['fy'], a['fr']
     sad = a['sad']
     ey = ey_of(fy)
 
+    edx = a.get('eye_dx', 0)             # S12-B idle_glance f2 — 눈만 왼쪽(기존 행은 0)
     if fid == 'f0':                      # S8의 얼굴 그대로 (기본값)
         ew = 3
-        exl = int(round(hx - 4.5)); exr = int(round(hx + 1.5))
+        exl = int(round(hx - 4.5)) + edx; exr = int(round(hx + 1.5)) + edx
         brow(c, exl, ey - 3 + (1 if sad else 0), ew, 'l')
         brow(c, exr, ey - 3 + (1 if sad else 0), ew, 'r')
         eye(c, exl, ey, ew, 2 if sad else 3)
@@ -1388,7 +1874,7 @@ def face_layer(fid, a, base, hair=None):
         blush(c, int(hx - 6), int(hx - 5), ey + 2)
         blush(c, int(hx + 5), int(hx + 6), ey + 2)
     elif fid == 'f1':                    # 좁고 긴 눈 · 바깥이 올라간 눈썹 · 작은 입
-        exl = int(round(hx - 4)); exr = int(round(hx + 2))
+        exl = int(round(hx - 4)) + edx; exr = int(round(hx + 2)) + edx
         for i in range(3):               # 바깥이 올라간 눈썹
             c.set(exl - 1 + i, ey - 3 + (1 if sad else 0) + (1 if i == 2 else 0), 'ink')
             c.set(exr + i, ey - 3 + (1 if sad else 0) + (1 if i == 0 else 0), 'ink')
@@ -1405,7 +1891,7 @@ def face_layer(fid, a, base, hair=None):
         ew = 3
         # 아이는 얼굴이 작다. 고정 간격으로 벌리면 관자놀이 각인과 부딪친다
         # (자동 검사에서 잡혔다) → 얼굴 반지름에 비례해 벌린다.
-        exl = int(round(hx - (fr - 0.3))); exr = int(round(hx + (fr - 3.3)))
+        exl = int(round(hx - (fr - 0.3))) + edx; exr = int(round(hx + (fr - 3.3))) + edx
         for i in range(ew):
             c.set(exl + i, ey - 3 + (1 if sad else 0) + (1 if i == 0 else 0), 'ink')
             c.set(exr + i, ey - 3 + (1 if sad else 0) + (1 if i == ew - 1 else 0), 'ink')
@@ -1417,6 +1903,193 @@ def face_layer(fid, a, base, hair=None):
         c.set(hx + 2, ey + 3 + (1 if sad else 0), 'ink')
         blush(c, int(hx - 5), int(hx - 5), ey + 3)
         blush(c, int(hx + 5), int(hx + 5), ey + 3)
+    return c
+
+
+# ── S12: 옆모습의 머리 6종 · 얼굴 3종 ─────────────────────────────────────
+#   규칙은 앞모습과 같다: ①여섯 종 모두 **같은 앞머리 띠 + 귀밑머리**로 시작한다(기본 short 가 완전히 덮인다)
+#   ②갈래는 투구 테 아래(뒤통수 밑)에서만 나온다 ③얼굴 픽셀과 머리 픽셀은 한 칸도 겹치지 않는다
+#   — 그래야 머리 패치와 얼굴 패치를 **함께** 얹어도 그 조합이 그대로 나온다(생성기가 18조합 전수 검사).
+def hair_layer_side(hid, a, base):
+    c = Cv(stencil=base)
+    win, ey = a['win'], a['ey']
+    hx, hr, rim = a['hx'], a['hr'], a['rim']
+    kid = a['kid']
+    cr = 'cream' if hid == 'scarf' else 'hair'
+    crD = 'creamD' if hid == 'scarf' else 'hairD'
+    core, hi = (cr, crD) if hid == 'scarf' else (crD, cr)
+    SK = ('skin', 'skinD')
+    t0 = min(win)
+    # ① 공통: 앞머리 띠(창 윗줄 ~ 눈썹 위) + 귀밑머리(창 뒤 두 칸, 눈썹 줄 ~ 눈 아래)
+    band = list(range(t0, min(ey - 3, t0 + 2)))      # 두 줄 — 창이 작아 얼굴 자리를 남긴다
+    for yy in band:
+        lo, hi_ = win[yy]
+        for xx in range(lo, hi_ + 1):
+            if c.get(xx, yy) in SK:
+                c.set(xx, yy, crD if (yy == band[-1] and xx <= lo + 1) else cr)
+    for yy in range(band[-1] + 1, ey + 1):
+        lo = win[yy][0]
+        pts = ((lo, crD), (lo + 1, cr)) if yy <= ey - 2 else ((lo, crD),)
+        for xx, t in pts:
+            if c.get(xx, yy) in SK:
+                c.set(xx, yy, t)
+    bx = int(round(hx - hr))                         # 뒤통수 바깥선
+    if hid == 'tied':                                # 뒤통수 밑 매듭 + 짧은 꽁지
+        kx = bx + 3
+        c.ell(kx + .5, rim - .5, 2.2, 2.0, core)
+        c.ell_in(kx, rim - 1.2, 1.3, 1.0, hi, only=(core,))
+        c.rect(kx - 1, rim + 1, kx, rim + 3, core)
+        c.set(kx - 1, rim + 4, hi)
+    elif hid == 'long':                              # 등으로 곧게 내린 머리
+        L = 7 if not kid else 5
+        c.rect(bx + 2, rim - 2, bx + 4, rim + L, core)
+        c.rect(bx + 2, rim - 2, bx + 2, rim + L - 1, hi)
+        c.set(bx + 4, rim + L, hi)
+    elif hid == 'braid':                             # 등으로 내린 세 마디 땋음 + 붉은 끈
+        for k in range(3 if not kid else 2):
+            yy = rim - 1 + k * 3
+            c.rect(bx + 3, yy, bx + 4, yy + 2, core)
+            c.set(bx + 3 + (k % 2), yy, hi)
+        yy = rim - 1 + (3 if not kid else 2) * 3
+        c.set(bx + 3, yy, 'ox'); c.set(bx + 4, yy, 'ox')
+        c.set(bx + 4, yy + 1, core)
+    elif hid == 'curly':                             # 앞머리 끝이 창 테를 넘고, 귀밑머리에 곱슬 한 덩이
+        lo0, hi0 = win[t0 + 1]
+        c.set(hi0 + 1, t0 + 1, cr); c.set(hi0 + 1, t0, crD)
+        lo1 = win[ey - 3][0]
+        c.set(lo1 + 2, ey - 3, cr); c.set(lo1 + 2, ey - 2, crD)
+        c.set(win[t0][0] - 1, t0, cr)
+    elif hid == 'scarf':                             # 두건 매듭 꼬리 — 뒤통수 밑으로
+        kx = bx + 2
+        c.rect(kx, rim - 2, kx + 2, rim - 1, cr)
+        c.rect(kx - 1, rim, kx, rim + 2, crD)
+        c.set(kx + 1, rim, cr)
+    return c
+
+
+def face_layer_side(fid, a, c):
+    """옆얼굴 — 눈 하나(크다: 2×3), 눈썹 한 획, 입, 홍조. 코는 본체(창 테를 1px 넘는 살)."""
+    win, ey = a['win'], a['ey']
+    kid = a['kid']
+    xf = win[ey][1]
+    xm = win[ey + 4][1]
+    ym = ey + 4
+
+    def eye_side(ex, y0, h):
+        c.rect(ex, y0, ex + 1, y0 + h - 1, 'ink')
+        c.set(ex + 1, y0, 'white')                   # 앞쪽 위 반짝임
+    if fid == 'f0':                                  # 둥근 눈 · 곧은 눈썹 · 웃는 입
+        ex = xf - 2
+        eye_side(ex, ey, 3)
+        c.set(ex, ey - 3, 'ink'); c.set(ex + 1, ey - 3, 'ink')
+        c.set(xm - 1, ym, 'ink'); c.set(xm, ym, 'ink'); c.set(xm - 2, ym - 1, 'ink')
+        blush(c, xm - 3, xm - 3, ey + 2); blush(c, xm - 3, xm - 3, ey + 3)
+    elif fid == 'f1':                                # 좁은 눈 · 올라간 눈썹 · 작은 입 · 주근깨
+        ex = xf - 2
+        eye_side(ex, ey + 1, 2)
+        c.set(ex - 1, ey - 2, 'ink'); c.set(ex, ey - 3, 'ink'); c.set(ex + 1, ey - 3, 'ink')
+        c.set(xm, ym, 'ink'); c.set(xm - 1, ym, 'ink')
+        blush(c, xm - 3, xm - 3, ey + 2)
+        for fx_, fy_ in ((xm - 2, ey + 3), (win[ey + 1][0] + 2, ey + 1)):
+            if c.get(fx_, fy_) in ('skin', 'skinD'):
+                c.set(fx_, fy_, 'skinD' if c.get(fx_, fy_) == 'skin' else 'blush')
+    else:                                            # f2 — 뒤로 물러난 눈 · 앞이 내려온 눈썹 · 넓은 입
+        ex = xf - 3
+        eye_side(ex, ey, 3)
+        c.set(ex - 1, ey - 3, 'ink'); c.set(ex, ey - 3, 'ink'); c.set(ex + 1, ey - 2, 'ink')
+        c.set(xm - 2, ym, 'ink'); c.set(xm - 1, ym, 'ink'); c.set(xm, ym, 'ink')
+        blush(c, xm - 3, xm - 3, ey + 3)
+    return c
+
+
+# ── S12-B: 3/4 왼쪽의 머리 6종 · 얼굴 3종 ────────────────────────────────
+#   옆모습과 같은 규칙: 공통 앞머리 띠 + 귀밑머리(뒤 = 오른쪽)로 시작, 얼굴과 머리 픽셀은 겹치지 않는다.
+#   묶은·긴·땋은 머리의 갈래는 몸에 붙은 것이라 정면 식을 그대로 쓴다(투구 테 아래).
+def hair_layer_q34(hid, a, base):
+    c = Cv(stencil=base)
+    win, ey = a['win'], a['ey']
+    hx, hr, rim = a['hx'], a['hr'], a['rim']
+    neck_y = a['neck_y']
+    cr = 'cream' if hid == 'scarf' else 'hair'
+    crD = 'creamD' if hid == 'scarf' else 'hairD'
+    core, hi = (cr, crD) if hid == 'scarf' else (crD, cr)
+    SK = ('skin', 'skinD')
+    t0 = min(win)
+    band = list(range(t0, min(ey - 3, t0 + 2)))
+    for yy in band:
+        lo, hi_ = win[yy]
+        for xx in range(lo, hi_ + 1):
+            if c.get(xx, yy) in SK:
+                c.set(xx, yy, crD if (yy == band[-1] and xx >= hi_ - 1) else cr)
+    for yy in range(band[-1] + 1, ey + 1):
+        hi_ = win[yy][1]
+        pts = ((hi_, crD), (hi_ - 1, cr)) if yy <= ey - 2 else ((hi_, crD),)
+        for xx, t in pts:
+            if c.get(xx, yy) in SK:
+                c.set(xx, yy, t)
+    rim_ = int(round(a['hy'] + hr))
+    if hid == 'tied':                                # 정면과 같은 오른쪽 매듭(= 뒤통수 쪽)
+        c.ell(hx + hr - 1, rim_ - 2, 2.4, 2.2, core)
+        c.ell_in(hx + hr - 2, rim_ - 3, 1.6, 1.3, hi, only=(core,))
+        c.rect(hx + hr, rim_, hx + hr + 1, rim_ + 3, core)
+        c.set(hx + hr + 1, rim_ + 4, hi)
+    elif hid == 'long':
+        for sx in (a['ax_l'] + 5, a['ax_r'] - 3):
+            c.rect(sx, neck_y + 3, sx + 1, neck_y + 7, core)
+            c.rect(sx, neck_y + 3, sx, neck_y + 6, hi)
+            c.set(sx + 1, neck_y + 7, core)
+    elif hid == 'braid':
+        bx = a['ax_l'] + 5
+        for k in range(3):
+            yy = neck_y + 1 + k * 2
+            c.rect(bx, yy, bx + 1, yy + 1, core)
+            c.set(bx + (k % 2), yy, hi)
+        c.set(bx, neck_y + 7, core)
+    elif hid == 'curly':
+        lo0 = win[t0 + 1][0]
+        c.set(lo0 - 1, t0 + 1, cr); c.set(lo0 - 1, t0, crD)
+        hi1 = win[ey - 3][1]
+        c.set(hi1 - 2, ey - 3, cr); c.set(hi1 - 2, ey - 2, crD)
+    elif hid == 'scarf':                             # 두건 매듭 꼬리 — 뒤통수 밑(오른쪽)
+        kx = int(round(hx + hr - 1))                 # 옷깃(아낀 숨 고리) 위에서 멈춘다
+        c.rect(kx - 1, rim_ - 3, kx + 1, rim_ - 2, cr)
+        c.rect(kx + 1, rim_ - 1, kx + 2, rim_, crD)
+    return c
+
+
+def face_layer_q34(fid, a, c):
+    win, ey = a['win'], a['ey']
+    kid = a['kid']
+    lo = win[ey][0]
+    nx = lo + (5 if (fid == 'f2' and not kid) else 4)        # 가까운 눈
+    c.set(lo + 2, ey + 3, 'skinD')                           # 코끝(먼 볼 쪽)
+    if fid == 'f0':
+        c.rect(lo + 1, ey, lo + 1, ey + 2, 'ink')            # 먼 눈 — 한 줄
+        eye(c, nx, ey, 3, 3)
+        c.set(lo + 1, ey - 3, 'ink')
+        for i in range(3):
+            c.set(nx + i, ey - 3, 'ink')
+        smile(c, lo + 3, ey + 4, 1)
+        blush(c, nx + 3, nx + 4, ey + 2)
+    elif fid == 'f1':
+        c.rect(lo + 1, ey + 1, lo + 1, ey + 2, 'ink')
+        eye(c, nx, ey, 2, 3)
+        c.set(lo + 1, ey - 3, 'ink')
+        c.set(nx, ey - 3, 'ink'); c.set(nx + 1, ey - 3, 'ink'); c.set(nx + 2, ey - (3 if kid else 4), 'ink')   # 아이는 ey-4 가 앞머리 띠
+        c.set(lo + 3, ey + 4, 'ink'); c.set(lo + 4, ey + 4, 'ink')
+        blush(c, nx + 3, nx + 4, ey + 2)
+        for fx_, fy_ in ((nx + 1, ey + 3), (nx + 3, ey + 3)):
+            if c.get(fx_, fy_) == 'skin':
+                c.set(fx_, fy_, 'skinD')
+    else:
+        c.rect(lo + 1, ey, lo + 1, ey + 2, 'ink')
+        eye(c, nx, ey, 3, 3)
+        c.set(lo + 1, ey - 3, 'ink')
+        c.set(nx, ey - 2, 'ink'); c.set(nx + 1, ey - 3, 'ink'); c.set(nx + 2, ey - 3, 'ink')
+        for xx in (lo + 2, lo + 3, lo + 4):
+            c.set(xx, ey + 4, 'ink')
+        c.set(lo + 1, ey + 3, 'ink'); c.set(lo + 5, ey + 3, 'ink')
+        blush(c, nx + 3, nx + 3, ey + 3)
     return c
 
 
@@ -1468,11 +2141,16 @@ def imprint_layer(iid, a):
         cut |= a['clip_px']
     if iid == 'sun_memory' and 'behind_px' in a:
         cut |= a['behind_px']
-    if a.get('clip') not in S11_IDS:          # PM 2026-10-03: 기존 7행 충돌 39건 수리
+    if 'side_cut' in a:                       # S12 옆모습 — 몸 앞으로 온 팔·장갑·도구·상자가 가린 칸
+        cut |= a['side_cut'].get(iid, a['side_cut']['*'])
+    if a.get('clip') not in S11_IDS and a.get('clip') not in SIDE_IDS:   # PM 2026-10-03: 기존 7행 충돌 39건 수리
         cut |= _old_row_cut(iid, a)
+    mine = c.pixels()
     for (x, y) in cut:
         if c.own(x, y) is not None:
             c.clear(x, y)
+    if 'side_cut' in a and mine and len(c.pixels()) <= 1 and len(mine) > 1:
+        c = Cv()                              # 한 점만 남으면 그 프레임에서 끈다(S11 규칙과 같다)
     return c
 
 
@@ -1515,6 +2193,8 @@ def _imprint_raw(iid, a):
     face = a['face_shown']
     if iid in a.get('hide', ()):      # S11: 그 프레임에 물건에 가려진 부위
         return c
+    if a.get('_r') is not None and iid in MIRROR_IMPS:     # S12-B 옆모습 작업 — 몸통 쪽 각인은 오른쪽 몸에서 뒤집는다
+        return mirror_cv(_imprint_raw(iid, a['_r']))
     if iid == 'spore_mark':
         x, y = a['neck_l']
         c.rect(x, y, x + 1, y, 'impGrn'); c.set(x + 1, y + 1, 'impGrn')
@@ -1526,6 +2206,12 @@ def _imprint_raw(iid, a):
             return c
         x, y = a['cheek_r']
         c.set(x, y, 'ox'); c.set(x, y + 1, 'ox'); c.set(x + 1, y + 2, 'ox')
+    elif iid == 'sun_memory' and a.get('veil_back'):        # S12-B 3/4 왼쪽 — 베일은 뒤통수(오른쪽)로
+        x, y = a['head_top']
+        hr = int(a['hr'])
+        c.rect(x + hr, y + 10, x + hr + 2, y + 16, 'impPale')
+        c.rect(x + hr + 2, y + 13, x + hr + 3, y + 17, 'impPale')
+        c.set(x + hr, y + 9, 'impPale')
     elif iid == 'sun_memory':
         x, y = a['head_top']
         hr = int(a['hr'])
@@ -2317,6 +3003,7 @@ def main():
     #   ④각인×방 설비/든 물건(보이는 픽셀) ⑤얼굴×설비/물건 ⑥머리×옆 설비
     #   기존 7행은 **참고로만** 센다(손대지 않기로 했으므로). 새 14행은 전부 0이어야 한다.
     s11_tot, old_tot, s11_hidden = 0, 0, {}
+    s12_tot, s12_det = 0, []
     for sid, arole, abody in SHAPES:
         for clip, n in CLIPS:
             for i in range(n):
@@ -2339,7 +3026,7 @@ def main():
                         for hid in hrs:
                             if imp[iid] & hrs[hid]:
                                 cnt += 1; det.append('%s×머리%s' % (iid, hid))
-                if clip in S11_IDS:
+                if clip in S11_IDS or clip in SIDE_IDS:
                     comp, _ = build(arole, clip, i, abody)
                     oc = a0['obj_cv']
                     vis = set(p_ for p_ in oc.pixels() if comp.own(*p_) == oc.own(*p_)) - a0['mit_px']
@@ -2353,11 +3040,22 @@ def main():
                     for hid in hrs:
                         if hrs[hid] & fixv:
                             cnt += 1; det.append('머리%s×설비' % hid)
+                    if clip in SIDE_IDS:                  # S12 — 따로 센다(S11 기록값은 그대로 둔다)
+                        s12_tot += cnt
+                        if cnt:
+                            s12_det.append('%s %s f%d: %s' % (sid, clip, i, det[:4]))
+                            print('   [!!] S12 %s %s f%d: %s' % (sid, clip, i, det[:4]))
+                        continue
                     for h_ in sorted(a0['hide']):
                         s11_hidden.setdefault((sid, clip, i), []).append(h_)
                     s11_tot += cnt
                     if cnt:
                         print('   [!!] %s %s f%d: %s' % (sid, clip, i, det[:4]))
+                elif clip in S12B_IDS:                    # S12-B 새 행(work_34·carry_34·idle_glance)
+                    s12_tot += cnt
+                    if cnt:
+                        s12_det.append('%s %s f%d: %s' % (sid, clip, i, det[:4]))
+                        print('   [!!] S12B %s %s f%d: %s' % (sid, clip, i, det[:4]))
                 else:
                     old_tot += cnt
     print('[검사 S11] 새 14행 × 4체형 레이어 충돌: %d건 (기존 7행 참고: %d건)' % (s11_tot, old_tot))
@@ -2511,6 +3209,165 @@ def main():
         strip.save(os.path.join(OUT, 'check', 'elevlit_%s.png' % sheet_name(role, body)))
     print('[ok] S11 check/work_rooms.png · work70.png · elevator.png · worklit_* · elevlit_*')
 
+    # ── S12 검사 — 옆모습: 각인 보임/끔 · 머리+얼굴 패치 18조합 · 변형이 옆에서도 보이는가 ──
+    all_tot = s11_tot + old_tot + s12_tot
+    print('[검사 S12] 옆모습 2행 + 새 3행 × 4체형 레이어 충돌: %d건 · 전 %d행 합계: %d건' % (s12_tot, len(CLIPS), all_tot))
+    TURNED = list(TURN_Q34) + list(TURN_PROFILE) + S12_IDS + S12B_IDS   # 돌아선 얼굴이 있는 모든 행
+    combo_bad, empty_var, same_var, side_frames = 0, [], [], 0
+    imp_seen = {}
+    for body in BODY_IDS:
+        for role in ROLES:
+            for clip in TURNED:
+                for i in range(dict(CLIPS)[clip]):
+                    if clip == 'idle_glance' and i != 1:
+                        continue                     # 정면 머리(f0·f2)는 0~6행과 같은 정면 레이어 — 아래 참고 검사로 따로 센다
+                    side_frames += 1
+                    di = img_of(role, clip, i, body, 'short', 'f0').img()
+                    hp = {h: diff_img(di, img_of(role, clip, i, body, h, 'f0').img()) for h, _k, _n in HAIRS}
+                    fp_ = {fc: diff_img(di, img_of(role, clip, i, body, 'short', fc).img()) for fc, _k, _n in FACES}
+                    for h, _k, _n in HAIRS:          # 변형이 옆모습에서 사라지면 안 된다
+                        if h != 'short' and hp[h].getbbox() is None:
+                            empty_var.append('%s_%s %s f%d %s' % (role, body, clip, i, h))
+                    for fc, _k, _n in FACES:
+                        if fc != 'f0' and fp_[fc].getbbox() is None:
+                            empty_var.append('%s_%s %s f%d %s' % (role, body, clip, i, fc))
+                    hl = [h for h, _k, _n in HAIRS]
+                    for x_ in range(len(hl)):
+                        for y_ in range(x_ + 1, len(hl)):
+                            if list(hp[hl[x_]].getdata()) == list(hp[hl[y_]].getdata()):
+                                same_var.append('%s_%s %s f%d %s=%s' % (role, body, clip, i, hl[x_], hl[y_]))
+                    for h, _k, _n in HAIRS:          # 머리 패치 + 얼굴 패치를 **함께** 얹어도 그 조합이 나오는가
+                        for fc, _k2, _n2 in FACES:
+                            got = apply_patch(apply_patch(di, hp[h]), fp_[fc])
+                            want = img_of(role, clip, i, body, h, fc).img()
+                            if list(got.getdata()) != list(want.getdata()):
+                                combo_bad += 1
+                                print('   [!!] 조합 실패 %s_%s %s f%d %s+%s' % (role, body, clip, i, h, fc))
+    for sid, arole, abody in SHAPES:
+        for clip in S12_IDS:
+            for i in range(dict(CLIPS)[clip]):
+                _b, _o, a0 = raw_of(arole, clip, i, abody)
+                for iid, _k, _p, _c in IMPRINTS:
+                    if imprint_layer(iid, a0).pixels():
+                        imp_seen.setdefault(iid, set()).add('%s/%s/f%d' % (sid, clip, i))
+    n_side_cells = len(SHAPES) * sum(n for c_, n in S12_CLIPS)
+    imp_vis = {iid: '%d/%d' % (len(imp_seen.get(iid, ())), n_side_cells) for iid, _k, _p, _c in IMPRINTS}
+    print('[검사 S12] 머리+얼굴 패치 18조합 × 돌아선 행 %d칸: 불일치 %d건 · 사라진 변형 %d · 같아진 머리 %d'
+          % (side_frames, combo_bad, len(empty_var), len(same_var)))
+    print('[검사 S12] 각인이 보이는 칸(4체형 × 5칸 중):', imp_vis)
+    S12_CHECK = {'side_clash': s12_tot, 'all_rows_clash': all_tot, 'detail': s12_det,
+                 'patch_combo_mismatch': combo_bad, 'patch_combo_tested': side_frames * 18,
+                 'variant_vanished': empty_var, 'hair_variants_identical': same_var,
+                 'imprint_visible_cells': imp_vis}
+
+    # ── S12 검증 그림 ──
+    # ① 걷기 순서(×3) — 8역할, 체형 A·B 번갈아, 각자 머리·얼굴
+    seqS = [('walk_side', 0), ('walk_side', 1), ('walk_side', 2), ('carry_side', 0), ('carry_side', 1)]
+    WS, HS = 150 + len(seqS) * 150, 40 + 8 * 170
+    im = room_bg(WS, HS, 0.99, False)
+    d = ImageDraw.Draw(im)
+    for r, role in enumerate(ROLES):
+        body = BODY_IDS[r % 2]
+        hair, face = LOOK[(role, body)]
+        y0 = 40 + r * 170
+        d.text((8, y0 + 70), ROLE_KO[role], font=f14, fill=(236, 206, 150))
+        d.text((8, y0 + 90), '%s · %s/%s' % (BODIES[body]['ko'], hair, face), font=f12, fill=(170, 144, 110))
+        for j, (clip, fi) in enumerate(seqS):
+            cc_, _ = build(role, clip, fi, body, hair, face)
+            spr = room_light(up(cc_.img(), 3))
+            im.paste(spr, (150 + j * 150 - 20, y0 + 160 - BASE_Y * 3), spr)
+    for j, (clip, fi) in enumerate(seqS):
+        d.text((150 + j * 150 + 10, 20), '%s f%d' % (clip, fi), font=f12, fill=(236, 206, 150))
+    d.text((8, 2), '옆모습 — 오른쪽이 원본, 왼쪽은 좌우 반전(×3, 방 빛)', font=f14, fill=(236, 206, 150))
+    im.save(os.path.join(OUT, 'check', 'walk_side.png'))
+
+    # ② 70px 판독 — 색 / 검은 실루엣, 8역할 × 체형 A·B
+    sc70 = 70.0 / 49.0
+    W7, H7 = 140 + 16 * 70, 34 + 3 * 110
+    im = room_bg(W7, H7, 0.99, True)
+    d = ImageDraw.Draw(im)
+    for rr, (lab, clip, fi, sil) in enumerate((('색 · 걷기 f2', 'walk_side', 2, False),
+                                               ('실루엣 · 걷기 f0', 'walk_side', 0, True),
+                                               ('색 · 들고 걷기', 'carry_side', 0, False))):
+        y0 = 34 + rr * 110
+        d.text((8, y0 + 40), lab, font=f12, fill=(40, 28, 18))
+        for j, (role, body) in enumerate(order):
+            hair, face = LOOK[(role, body)]
+            one = build(role, clip, fi, body, hair, face)[0].img()
+            if sil:
+                px_ = one.load()
+                for yy in range(one.height):
+                    for xx in range(one.width):
+                        if px_[xx, yy][3] > 0:
+                            px_[xx, yy] = (22, 14, 10, 255)
+            z70 = one.resize((int(round(CELL * sc70)), int(round(CELL * sc70))), Image.NEAREST)
+            im.paste(z70, (140 + j * 70 + 35 - z70.width // 2, y0 + 104 - int(BASE_Y * sc70)), z70)
+    for j, (role, body) in enumerate(order):
+        d.text((140 + j * 70 + 6, 6), ROLE_KO[role][:2] + body.upper(), font=f12, fill=(40, 28, 18))
+    im.save(os.path.join(OUT, 'check', 'side70.png'))
+
+    # ③ 옆얼굴 — 머리 6종 · 얼굴 3종 (×7), 어른과 아이
+    W8, H8 = 20 + 8 * 230, 60 + 2 * 300
+    im = room_bg(W8, H8, 0.99, False)
+    d = ImageDraw.Draw(im)
+    looks8 = [(h, 'f0') for h, _k, _n in HAIRS] + [('short', 'f1'), ('short', 'f2')]
+    for rr, (role, body) in enumerate((('engineer', 'a'), ('kid', 'b'))):
+        for j, (h, fc) in enumerate(looks8):
+            cc_, a_ = build(role, 'walk_side', 0, body, h, fc)
+            ht = int(a_['head_top'][1])
+            cut = cc_.img().crop((16, ht - 6, 44, ht + 28))
+            z = up(cut, 7)
+            im.paste(z, (20 + j * 230, 50 + rr * 300), z)
+            if rr == 0:
+                d.text((20 + j * 230, 30), '%s · %s' % (h, fc), font=f14, fill=(236, 206, 150))
+    d.text((8, 4), '옆얼굴 — 눈(2×3)·눈썹·코·입·홍조. 머리 갈래는 뒤통수 밑에서만 나온다(위: 어른, 아래: 아이)',
+           font=f14, fill=(236, 206, 150))
+    im.save(os.path.join(OUT, 'check', 'side_hair_face.png'))
+
+    # ④ 방 빛 받은 옆모습 띠(×3, 5칸: walk_side f0~2 + carry_side f0~1) — 비교 페이지가 쓴다
+    side_lit = {}
+    for body in BODY_IDS:
+        for role in ROLES:
+            hair, face = LOOK[(role, body)]
+            strip = Image.new('RGBA', (CELL * 3 * 5, CELL * 3), (0, 0, 0, 0))
+            for j, (clip, fi) in enumerate(seqS):
+                cc_, _ = build(role, clip, fi, body, hair, face)
+                strip.paste(room_light(up(cc_.img(), 3)), (CELL * 3 * j, 0))
+            nm = 'sidelit_%s.png' % sheet_name(role, body)
+            strip.save(os.path.join(OUT, 'check', nm))
+            side_lit[sheet_name(role, body)] = {'file': 'check/' + nm, 'role': role, 'body': body,
+                                               'hair': hair, 'face': face}
+    # ⑤ S12-B 새 행 — work_34 · carry_34 · idle_glance (×3, 방 빛), 8역할
+    seqB = [(c_, i_) for c_, n_ in S12B_CLIPS for i_ in range(n_)]
+    WB, HB = 150 + len(seqB) * 130, 40 + 8 * 170
+    im = room_bg(WB, HB, 0.99, False)
+    d = ImageDraw.Draw(im)
+    for r, role in enumerate(ROLES):
+        body = BODY_IDS[r % 2]
+        hair, face = LOOK[(role, body)]
+        y0 = 40 + r * 170
+        d.text((8, y0 + 70), ROLE_KO[role], font=f14, fill=(236, 206, 150))
+        for j, (clip, fi) in enumerate(seqB):
+            cc_, _ = build(role, clip, fi, body, hair, face)
+            spr = room_light(up(cc_.img(), 3))
+            im.paste(spr, (150 + j * 130 - 40, y0 + 160 - BASE_Y * 3), spr)
+    for j, (clip, fi) in enumerate(seqB):
+        d.text((150 + j * 130 + 4, 20), '%s f%d' % (clip, fi), font=f12, fill=(236, 206, 150))
+    d.text((8, 2), 'S12-B 새 행 — 3/4 일하기 · 3/4 들기 · 정면→3/4→정면 둘러보기 (×3)', font=f14, fill=(236, 206, 150))
+    im.save(os.path.join(OUT, 'check', 'turn_new.png'))
+    glance_lit = {}
+    for body in BODY_IDS:
+        for role in ROLES:
+            hair, face = LOOK[(role, body)]
+            strip = Image.new('RGBA', (CELL * 3 * len(seqB), CELL * 3), (0, 0, 0, 0))
+            for j, (clip, fi) in enumerate(seqB):
+                cc_, _ = build(role, clip, fi, body, hair, face)
+                strip.paste(room_light(up(cc_.img(), 3)), (CELL * 3 * j, 0))
+            nm = 'turnlit_%s.png' % sheet_name(role, body)
+            strip.save(os.path.join(OUT, 'check', nm))
+            glance_lit[sheet_name(role, body)] = 'check/' + nm
+    print('[ok] S12 check/walk_side.png · side70.png · side_hair_face.png · turn_new.png · sidelit_* · turnlit_*')
+
     # ── 메타 ──
     meta = {
         '_comment': 'P2 48px 생활형 도트 — 확정 화풍. 정수 배율 + image-rendering:pixelated 필수.',
@@ -2573,6 +3430,44 @@ def main():
                             '④각인×설비·든 물건 ⑤얼굴×설비·든 물건 ⑥머리×옆 설비 를 전수 검사한다.',
         's11_check_result': S11_CHECK,
         's11_lit_strips': lit_index,
+        # ── S12 (스프린트 12-C) — 아래 키는 전부 **새로 더한 것**이다. 위의 값은 그대로 ──
+        's12_rows': {c: {'row': i, 'frames': n, 'where': S12_KO[c][0], 'what': S12_KO[c][1],
+                         'hands': S12_KO[c][2], 'seconds': CLIP_SEC[c],
+                         'stride_src_px_per_loop': S12_STRIDE[c]}
+                     for i, (c, n) in enumerate(CLIPS) if c in SIDE_IDS},
+        'facing': {'walk_side': 'right', 'carry_side': 'right',
+                   'note': '옆모습 행은 **오른쪽을 보는 것이 원본**이다. 왼쪽으로 걸을 때는 셀을 좌우 반전한다'
+                           '(CSS scaleX(-1) / drawImage 음수 폭). 반전 축은 셀 가운데(원화 x 32, ×4 시트는 128)다. '
+                           '발 기준선은 그대로라 세로 보정은 0이다. 머리·얼굴·각인 패치도 같은 반전을 함께 건다(같은 셀이므로). '
+                           '반전하면 보이는 쪽 각인이 그대로 따라온다 — 왼쪽으로 걸어도 「오른」 각인이 보인다(도트 게임의 관례적 생략).',
+                   'other_rows': '0~20행은 정면·뒷모습이라 반전하지 않는다(기존 그대로)'},
+        'side_speed': '바닥 이동 = stride_src_px_per_loop × 배율 / seconds. 예: walk_side 어른 ×3 → 16×3/0.8 = 60px/초. '
+                      '이 값으로 밀면 발이 미끄러지지 않는다. 아이는 보폭이 작다.',
+        'side_imprints': {'near_shown': list(SIDE_NEAR), 'center_shown': list(SIDE_CENTER),
+                          'far_hidden': list(SIDE_FAR),
+                          'rule': '오른쪽을 보면 몸의 오른쪽이 보는 사람을 향한다 → 이름에 「오른」이 든 각인은 보이고 「왼」 각인 넷은 '
+                                  '먼 쪽이라 끈다. 가슴 목걸이·이마·머리 뒤 베일은 옆에서도 보인다. 앞으로 흔든 팔·장갑·도구·상자가 '
+                                  '가린 칸은 잘라 내고, 한 점만 남으면 그 프레임에서 끈다. 각인 시트의 그 칸이 이미 비어 있으므로 '
+                                  '클라이언트가 할 일은 없다.'},
+        'side_layers': '머리 6종·얼굴 3종은 옆모습에서도 같은 패치 방식이다(hair/·faces/ 시트의 21~22행). '
+                       '여섯 머리가 모두 같은 앞머리 띠 + 귀밑머리로 시작하고, 갈래(매듭·긴머리·땋음·두건 꼬리)는 뒤통수 밑에서만 나온다. '
+                       '얼굴 픽셀과 머리 픽셀이 겹치지 않아 머리 패치 + 얼굴 패치를 함께 얹어도 그 조합과 픽셀이 같다(18조합 전수 검사).',
+        'side_check_result': S12_CHECK,
+        's12_lit_strips': {'cells': ['%s f%d' % (c_, i_) for c_, i_ in seqS], 'scale': 3, 'strips': side_lit},
+        # ── S12-B (PM 범위 추가: 일하는 사람은 일하는 쪽을 본다) ──
+        's12b_rows': {c: {'row': i, 'frames': n, 'where': S12B_KO[c][0], 'what': S12B_KO[c][1],
+                          'hands': S12B_KO[c][2], 'seconds': CLIP_SEC[c], 'view': WORK_VIEW[c]}
+                      for i, (c, n) in enumerate(CLIPS) if c in S12B_IDS},
+        'work_view': WORK_VIEW,
+        'work_view_rule': '7~16행은 S12-B 에서 제자리에 다시 그렸다(행 번호·프레임 수·초 그대로). 설비가 셀 왼쪽에 있으므로 '
+                          '**왼쪽을 보는 것이 원본**이다. 설비가 사람 오른쪽에 와야 하는 자리면 셀 전체를 좌우 반전한다(설비·사람·패치·각인 함께). '
+                          'profile_left = 옆모습(먼 팔은 몸 뒤, 역할 도구는 허리 뒤에 건다), q34_left = 3/4(왼손이 일하고 오른손 도구는 그대로). '
+                          '17행 rest_lounge 는 뒷모습, 18~20행 엘리베이터와 0~6행은 정면 그대로다. 정면 work(2)·carry(4)는 초상·UI 카드용으로 남고, '
+                          '방 밖에서 일하거나 드는 장면에는 work_34·carry_34 를 쓴다.',
+        'turn_imprints': {'profile_left_hidden': list(PROFILE_HIDE), 'q34_left_hidden': list(Q34_HIDE),
+                          'rule': '옆모습 작업: 먼 쪽 목덜미·관자놀이와 허리에 건 도구 쪽 손목을 끈다. 일하는 팔의 각인(왼 위팔·왼 장갑)은 보인다. '
+                                  '3/4: 돌린 얼굴의 먼 관자놀이만 끄고, 베일은 뒤통수(오른쪽)로 늘어진다. 가려진 칸은 시트에서 이미 비어 있다.'},
+        's12b_lit_strips': {'cells': ['%s f%d' % (c_, i_) for c_, i_ in seqB], 'scale': 3, 'strips': glance_lit},
         'rules_2_5d': {
             '1_integer_scale': '정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지',
             '2_lamp_tint': 'masks/<role>.png 가 흰 곳만 방 등불색을 곱한다. 0인 곳(눈·외곽선·랜턴 불꽃·유리)은 건드리지 않는다. 권장식: rgb *= (1 + 0.30*(tint-1)) * (1.13 - 0.32*(y/h))',
