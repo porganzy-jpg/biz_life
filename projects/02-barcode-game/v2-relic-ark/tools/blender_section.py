@@ -112,16 +112,29 @@ L = {1: 6.4, 2: 2.0, 3: -2.4, 4: -6.8}
 # ══════════════════════════════════════════════════════════════
 # F3. 팔레트 — REF_ART_FLAT_FOLK §5 그대로. 청록~남색은 물 전용.
 # ══════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════
+# S10-B. **방 색의 명도 사다리** — 색맹 점검(OPEN_GAPS B4)의 결과로 고친 값.
+#
+#   고치기 전: 공방 L*49.0 · 온실 L*49.0 — **명도가 똑같았다.** 그래서
+#   적록색약 시야에서 창고–온실 ΔE 4.6, 흑백에서 공방–온실 ΔE 0.4.
+#   여섯 방 중 셋이 **한 색**이었다(측정: tools/check_colorblind.py).
+#
+#   고친 방법: 색상(hue angle)은 한 방도 안 바꾸고 **L\* 만 사다리로 벌렸다.**
+#     의무실 88 > 거주 76 > 창고 64 > 온실 52 > 공방 39 > 발전실 26
+#   의미도 맞는다 — 사람이 오래 머무는 방일수록 밝고, 기계의 방일수록 어둡다.
+#   결과: 적색맹 최저 ΔE 4.6 → 17.9, 녹색맹 4.6 → 21.5, 흑백 0.4 → 11.9.
+#   색만으로 여섯을 가르는 것은 끝내 무리라, **고유 무늬가 정본 식별자**다(아래 MOTIF).
+# ══════════════════════════════════════════════════════════════
 PAL = {
-    "cream":   "#E6D8B4",     # 크림/뼈 — 화면에서 가장 밝은 면
+    "cream":   "#E8DCBF",     # 크림/뼈 — 화면에서 가장 밝은 면 (L*88, 의무실)
     "bone":    "#C9B896",
-    "ochre":   "#C68F3E",     # 황토
-    "ochre_d": "#8A6531",
-    "burnt":   "#B85A24",     # 번트오렌지
-    "oxblood": "#6E2A22",     # 적갈
+    "ochre":   "#F4AE43",     # 황토 (L*76, 거주 — 가장 따뜻하고 밝은 사람의 방)
+    "ochre_d": "#C4924D",     # 마른 황토 (L*64, 창고)
+    "burnt":   "#954515",     # 번트오렌지 (L*39, 공방 — 어두워야 불이 산다. B2)
+    "oxblood": "#642E26",     # 적갈 (L*26, 발전실 — 가장 어두운 방)
     "char":    "#1C1712",     # 숯검정 — 선·그림자·실루엣
     "char_lt": "#3A312A",
-    "olive":   "#6F7A3C",     # 탁한 올리브
+    "olive":   "#79804F",     # 탁한 올리브 (L*52, 온실)
     "olive_d": "#464E26",
     # 물 전용 (사람·방에 쓰지 않는다)
     "sea_top": "#2E7E90",
@@ -517,18 +530,52 @@ def motif_arch(rid, x0, x1, z, m, unit=1.30):
 
 
 def motif_slash(rid, x0, x1, z, m, unit=0.44):
-    """굴착면 — 한 방향 빗금. 아직 손이 닿지 않은 면."""
+    """발전실 — 한 방향 빗금. 돌아가는 것의 자국."""
     n = max(2, int((x1 - x0) / unit))
     for k in range(n):
         x = x0 + (k + 0.5) * (x1 - x0) / n
         _bar(rid, x, z + 0.22, 0.09, 0.62, m, math.radians(26))
 
 
-MOTIF = {"lounge": motif_arch, "quarters": motif_zigzag, "greenhouse": motif_chevron,
-         "workshop": motif_teeth, "storage": motif_dots, "library": motif_hatch,
-         "bath": motif_wave, "airlock": motif_diamond,
-         # S8-C 플레이트에서 새로 생긴 두 방(COMBAT_AND_DEFENSE 5-1)
-         "infirmary": motif_arch, "power": motif_slash}
+def motif_rings(rid, x0, x1, z, m, unit=0.96):
+    """목욕탕 — 동심원 파문. 물방울이 떨어진 자리(S10-B 신규).
+    빗금·마름모와 달리 **직선이 하나도 없다** — 흑백에서도 바로 갈린다."""
+    n = max(2, int((x1 - x0) / unit))
+    for k in range(n):
+        cx = x0 + (k + 0.5) * (x1 - x0) / n
+        for ri, r in enumerate((0.16, 0.33)):
+            for t in range(10 + ri * 4):
+                a = 2 * math.pi * t / (10 + ri * 4)
+                _bar(rid, cx + r * math.cos(a), z + 0.33 + r * math.sin(a),
+                     0.10, 0.10, m)
+
+
+def motif_crosshatch(rid, x0, x1, z, m, unit=0.64):
+    """의무실 — 엇갈려 감은 붕대. ×자(S10-B 신규).
+    발전실의 빗금(한 방향)과 공방의 마름모(채워진 덩어리) 사이에서 혼자만
+    **가늘고 열린 ×**다. 색을 다 빼도 셋이 안 섞인다."""
+    n = max(2, int((x1 - x0) / unit))
+    for k in range(n):
+        x = x0 + (k + 0.5) * (x1 - x0) / n
+        _bar(rid, x, z + 0.26, 0.085, 0.58, m, math.radians(34))
+        _bar(rid, x, z + 0.26, 0.085, 0.58, m, math.radians(-34))
+
+
+# ── 방 = 무늬 ─────────────────────────────────────────────────
+#  S10-B. 색맹 점검(OPEN_GAPS B4) 결과 **무늬가 방의 정본 식별자**가 됐다.
+#  색은 보조다 — 적록색약에게 여섯 색은 끝내 셋으로 보인다(측정값은 PAL 주석).
+#  그래서 열 방이 서로 **다른 형태 부류**를 하나씩 가진다:
+#     아치(반원) · 물결(수평 곡선) · 꺾쇠(V) · 마름모(채워진 덩어리) · 점(격자)
+#     세로 빗금(책등) · 동심원 · 사각 톱니 · ×(열린 교차) · 사선 빗금(한 방향)
+#  고친 둘:
+#   · 거주 지그재그 → **물결**. 지그재그가 온실의 꺾쇠와 같은 V 부류였고,
+#     게다가 톱니(이빨)로 읽혔다(REF_ART_FLAT_FOLK §7-3-4 가 경고한 바로 그것).
+#   · 공방 톱니 → **마름모**(금속 체커 플레이트). 톱니는 에어락으로 보냈다.
+#   · 의무실은 라운지와 아치를 함께 쓰고 있었다 → **×(붕대)** 신설.
+MOTIF = {"lounge": motif_arch, "quarters": motif_wave, "greenhouse": motif_chevron,
+         "workshop": motif_diamond, "storage": motif_dots, "library": motif_hatch,
+         "bath": motif_rings, "airlock": motif_teeth,
+         "infirmary": motif_crosshatch, "power": motif_slash}
 
 
 # ══════════════════════════════════════════════════════════════
@@ -760,10 +807,7 @@ def room_shell(x0, x1, z0, hue, rid, dim=1.0):
     DOME.mesh_of_quads("r_%s_back" % rid, [[Vector((bx0, D, bz0)), Vector((bx1, D, bz0)),
                                             Vector((bx1, D, bz1)), Vector((bx0, D, bz1))]], backm)
     # F5. 장식 문양 — 뒷벽 위·아래 띠 두 줄
-    pcol = M["pat_light"] if _is_dark(hue) else M["pat_dark"]
-    if COZY:
-        # 문양은 벽의 결이지 주인공이 아니다. 대비를 반쯤 낮춰 생활 소품이 먼저 읽히게 한다.
-        pcol = mixhex(pcol, base, 0.48)
+    pcol = pat_color(base)
     pm = flat_mat("pat_m_" + rid, pcol)
     fn = MOTIF.get(rid, motif_dots)
     fn(rid, bx0 + 0.25, bx1 - 0.25, bz1 - 0.55, pm)
@@ -776,12 +820,89 @@ def room_shell(x0, x1, z0, hue, rid, dim=1.0):
         iso.cube("hull_s_%s" % rid, (sx, D / 2 - 0.1, (z0 + z1) / 2), (HULL, D + 0.4, RH + HULL * 2), fr)
     for sx in (x0 + 0.5, x1 - 0.5):
         iso.cube("rib_%s" % rid, (sx, -0.06, (z0 + z1) / 2), (0.12, 0.12, RH), M["frame_lt"])
+    lintel_motif(rid, hue, x0, x1, z1 + HULL / 2)
     return z0
+
+
+LINTEL_K = 0.42          # 상인방 문양의 축척(뒷벽 문양 대비)
+LINTEL_MIN_L = 50.0      # 숯검정 테두리(L*8) 위에서 읽히는 최저 명도
+
+
+def _toward_l(base, tgt, want):
+    """base 를 tgt 쪽으로 섞어 L* 가 want 에 닿는 가장 옅은 배합."""
+    if _lstar(base) >= want:
+        return base
+    lo, hi = 0.0, 1.0                               # mixhex(tgt, base, t): t=1 이면 base
+    for _ in range(18):
+        mid = (lo + hi) / 2
+        if _lstar(mixhex(tgt, base, mid)) >= want:
+            lo = mid
+        else:
+            hi = mid
+    return mixhex(tgt, base, lo)
+
+
+def lintel_motif(rid, hue, x0, x1, zc):
+    """S10-B. **상인방 문양** — 방 위 테두리(숯검정 들보)에 그 방의 무늬를 **그 방의 색**으로.
+
+    색맹 점검에서 빈 방은 무늬로 여섯이 다 갈렸지만, **등불을 켜고 소품을 넣으면
+    뒷벽 무늬가 선반·번짐에 가려 사라졌다**(colorblind_check.png D 블록). 실제 플레이 화면은
+    늘 그쪽이다. 그래서 무늬를 아무것도 앞을 가리지 않는 자리 — 카메라 쪽 들보 — 에 한 번 더 둔다.
+    문 위 문패이자 옷단 문양이다(REF_ART_FLAT_FOLK §1-5). 숯검정 위라 명도차가 늘 크다."""
+    before = set(bpy.data.objects.keys())
+    col = _toward_l(hue, M["pat_light"], LINTEL_MIN_L)
+    pm = flat_mat("lintel_m_" + rid, col)
+    cx = (x0 + x1) / 2
+    half = (x1 - x0 - 0.9) / 2 / LINTEL_K           # 축소 전 폭 — 줄이면 들보 폭에 맞는다
+    MOTIF.get(rid, motif_dots)(rid, cx - half, cx + half, 0.0, pm)
+    new = [bpy.data.objects[n] for n in bpy.data.objects.keys() if n not in before]
+    if not new:
+        return
+    zs = [o.location.z for o in new]
+    zmid = (min(zs) + max(zs)) / 2
+    for o in new:
+        o.location.x = cx + (o.location.x - cx) * LINTEL_K
+        o.location.z = zc + (o.location.z - zmid) * LINTEL_K
+        o.location.y = -0.34                         # 들보 앞면(y=-0.30)보다 카메라 쪽
+        o.scale = (o.scale.x * LINTEL_K, o.scale.y, o.scale.z * LINTEL_K)
 
 
 def _is_dark(hexc):
     r, g, b = (int(hexc.lstrip('#')[i:i + 2], 16) for i in (0, 2, 4))
     return (0.299 * r + 0.587 * g + 0.114 * b) < 128
+
+
+def _lstar(hexc):
+    """CIE L* (0~100). 색맹 판정과 같은 척도를 쓴다 — 눈이 아니라 숫자로 맞춘다."""
+    h = hexc.lstrip('#')
+    y = sum(w * _s2l(int(h[i:i + 2], 16) / 255.0) for w, i in ((0.2126, 0), (0.7152, 2), (0.0722, 4)))
+    return 116 * (y ** (1 / 3)) - 16 if y > 0.008856 else 903.3 * y
+
+
+PAT_DL = 26.0      # 무늬와 벽의 최소 명도차(L*). 색을 다 빼도 이만큼은 남는다
+
+
+def pat_color(base):
+    """S10-B. 무늬 색을 **고정 배합이 아니라 목표 명도차로** 정한다.
+
+    전에는 `mixhex(극단색, base, 0.48)` 한 줄이었다. 밝은 방(의무실)에서는 충분하고
+    어두운 방(발전실·공방)에서는 거의 안 보여서, 흑백으로 바꾸면 방 넷이 민무늬였다.
+    무늬가 색맹 대비책인데 정작 색을 뺐을 때 사라지면 대비책이 아니다(OPEN_GAPS B4).
+
+    그래서 벽에서 **L* 로 PAT_DL 만큼 떨어진 색**을 이분 탐색으로 찾는다.
+    아늑함은 유지된다 — 밝기 차이지 채도 대비가 아니고, 무늬는 여전히 벽의 결이다."""
+    lb = _lstar(base)
+    tgt = M["pat_light"] if lb < 50 else M["pat_dark"]
+    want = lb + PAT_DL if lb < 50 else lb - PAT_DL
+    lo, hi = 0.0, 1.0
+    for _ in range(18):                     # mixhex(tgt, base, t): t=1 이면 base
+        mid = (lo + hi) / 2
+        c = mixhex(tgt, base, mid)
+        if (_lstar(c) > want) == (lb < 50):
+            lo = mid                        # 아직 더 섞어도 된다
+        else:
+            hi = mid
+    return mixhex(tgt, base, lo)
 
 
 def room_lamp(x, z0, hue, rid, spread=1.0):
@@ -2441,12 +2562,376 @@ def threat_clawswarm(near):
     th_rim("claw_rim", 0.6, -1.6, 6.4, 1.6, near, k=0.5)
 
 
+# ══════════════════════════════════════════════════════════════
+# S10-B  신규 아홉 — **보이지 않는 것을 보이게**
+#
+#   시나리오(scenario_S9 / data/creatures.json)가 못 박은 것:
+#     · 「덮개」는 몸을 그리지 않는다. 창이 통째로 꺼지는 것이 그 생물이다.
+#     · 「큰 입」은 입 윤곽선 하나뿐이다. 몸이 화면에 안 들어온다.
+#     · 「따라온 것」은 빛 둘 사이의 간격이다. 형체가 아니라 사이.
+#     · 「그늘」은 넓고 느린 어둠 한 장. 생물을 그리지 않는다.
+#     · 「먼 울음」은 어떤 형태도 만들지 않는다. 실루엣 칸이 비어 있는 것이 설계다.
+#
+#   그래서 이 아홉은 **몸을 그리는 문제가 아니라 화면을 다루는 문제**다.
+#   열세 종이 서로 갈리도록 **판독 축을 하나씩 다르게** 줬다(겹치면 실패다):
+#     작은 떼 = 중간 크기 개체 여럿      긴목 = 가로지르는 한 줄기 곡선 + 머리
+#     문지기 = 양쪽 화면 밖으로 이어진 한 몸   손톱 무리 = 바닥의 점 밀도
+#     거울눈 = 날이 선 선 ↔ 접시(그 위에 우리 창이 비친다)
+#     곧은치 = 번짐이 하나도 없는 짧은 직선(정지)
+#     덮개   = 화면이 꺼진다(가장자리 없음) + 느린 주름 하나
+#     바늘   = 화면에서 유일한 세로 띠, 양 끝이 화면 밖
+#     큰 입  = 화면에서 유일한 **밝은 선**. 가장자리가 어디에도 없다
+#     따라온 것 = 빛 둘. 그 사이가 벌어지는 것이 전부
+#     윗물 아이 = 화면 위쪽에 있는 작고 둥근 것 하나(기울어 있다)
+#     그늘   = 가장자리 없는 넓은 흐려짐(검어지지 않는다)
+#     먼 울음 = 아무것도 없다
+#
+#   OVER_ROOM 인 것(덮개·그늘)은 방 **위에** 얹는다. 나머지는 방 바깥 물에 얹는다.
+# ══════════════════════════════════════════════════════════════
+TH_LIGHT = "#A8D4D8"        # 생물이 **스스로 내는** 빛. 따라온 것의 두 점에만 쓴다
+TH_LIP = "#2A5F6B"          # 큰 입의 입술선 — 물빛이 걸리는 자리. 유일한 밝은 선
+
+
+def lin_mat(name, hexc, a0, a1, half, axis="x", ease=True):
+    """한 방향으로 알파가 변하는 면. 가장자리가 **없는** 어둠을 만드는 데 쓴다.
+
+    warm_mat(구형 번짐)로는 '덮개'·'그늘'이 안 된다 — 둥근 자국이 남아서
+    덩어리로 읽힌다. 여기서는 직선 램프라 경계가 생기지 않는다.
+    soft_mat 은 손대지 않는다(물·부유물이 쓰는 함수, 알려진 Mapping 버그는 그대로 둔다)."""
+    m = bpy.data.materials.new(name); m.use_nodes = True
+    nt = m.node_tree; nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    mr = nt.nodes.new("ShaderNodeMapRange")
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.interpolation = 'EASE' if ease else 'LINEAR'
+    nt.links.new(tc.outputs["Object"], sep.inputs[0])
+    nt.links.new(sep.outputs["X" if axis == "x" else "Z"], mr.inputs["Value"])
+    mr.inputs["From Min"].default_value = -max(half, 1e-4)
+    mr.inputs["From Max"].default_value = max(half, 1e-4)
+    nt.links.new(mr.outputs[0], ramp.inputs["Fac"])
+    cr = ramp.color_ramp
+    cr.elements[0].position = 0.0; cr.elements[0].color = (a0, a0, a0, 1)
+    cr.elements[1].position = 1.0; cr.elements[1].color = (a1, a1, a1, 1)
+    em = nt.nodes.new("ShaderNodeEmission"); em.inputs[1].default_value = 1.0
+    em.inputs[0].default_value = (*srgb_hexcol(hexc), 1)
+    mix = nt.nodes.new("ShaderNodeMixShader"); tr = nt.nodes.new("ShaderNodeBsdfTransparent")
+    nt.links.new(ramp.outputs["Color"], mix.inputs[0])
+    nt.links.new(tr.outputs[0], mix.inputs[1]); nt.links.new(em.outputs[0], mix.inputs[2])
+    nt.links.new(mix.outputs[0], out.inputs["Surface"])
+    _blend(m)
+    return _mark(m)
+
+
+def th_sheet(name, cx, cz, hw, hh, hexc, a0, a1, axis="x", y=0.0, ease=True):
+    """가장자리 없는 어둠 한 장(덮개·그늘·큰 입의 몸)."""
+    q = [Vector((-hw, 0, -hh)), Vector((hw, 0, -hh)), Vector((hw, 0, hh)), Vector((-hw, 0, hh))]
+    o = DOME.mesh_of_quads("PRV_warm_ths_" + name, [q],
+                           lin_mat("thsm_" + name, hexc, a0, a1,
+                                   hw if axis == "x" else hh, axis, ease))
+    o.name = "PRV_warm_ths_" + name
+    o.location = (cx, y, cz)
+    return o
+
+
+def th_line(name, pts, hexc, alpha, y=-0.3):
+    """밝은 선 하나(큰 입의 입술, 덮개의 주름). 번지지 않는 또렷한 선이다."""
+    return th_strip(name, pts, flat_mat("thl_%s" % name, hexc, alpha=alpha), y=y)
+
+
+# ── 5. 거울눈 ────────────────────────────────────────────────
+def threat_mirror_eye(near):
+    """거울눈 — 정면에서는 **선 하나**로 사라지고 옆으로 돌면 **창만큼 넓어진다**.
+    막는 법: 불을 끄지 않는다. 반대쪽에 더 밝은 불을 켠다.
+
+    이 생물의 공포는 몸이 아니라 **몸에 비친 우리 창**이다. 그래서 near 에는
+    방 비례(2:1)의 희미한 사각형을 몸 위에 올렸다 — 저쪽이 보고 있는 제 짝이
+    사실은 우리다. 눈 옆의 은빛 판은 점 하나로만."""
+    if not near:
+        # 날이 선 쪽. 접시를 정면에서 보면 선 하나다 — 거의 아무것도 아니다
+        mat = th_mat(False, 1.30, "me")
+        th_poly("me_edge", [(-4.6, 0.02), (1.0, 0.11), (4.4, 0.03),
+                            (1.0, -0.10), (-4.6, -0.02)], mat)
+        th_blob("me_haze", 0.0, 0.0, 5.2, 0.42, False, k=0.30)
+        soft_blob("th_mepoint", 3.70, 0.22, 0.13, 0.12, TH_RIM, alpha=0.26, y=-0.4)
+        return
+    mat = th_mat(True, 0.96, "me")
+    # 접시 — 위아래가 평평하고 양 끝이 뾰족하다. 양 끝이 화면 안에 들어온다
+    #         (문지기는 양 끝이 화면 밖이다. 그 하나로 둘이 갈린다)
+    body = []
+    for k in range(29):
+        t = k / 28.0
+        x = -5.1 + 9.4 * t
+        body.append((x, 1.62 * math.sin(math.pi * t) ** 0.42))
+    for k in range(28, -1, -1):
+        t = k / 28.0
+        x = -5.1 + 9.4 * t
+        body.append((x, -1.52 * math.sin(math.pi * t) ** 0.42))
+    th_poly("me_disc", body, mat)
+    th_blob("me_haze", -0.4, 0.0, 6.4, 2.6, True, k=0.34)
+    # 몸의 은빛 면에 **우리 창이 비친다**. 방 비례(가로 2 : 세로 1)
+    for (rx, rz, a) in ((1.48, 0.74, 0.17), (1.26, 0.60, 0.13)):
+        q = [Vector((0.30 - rx, -0.45, -0.10 - rz)), Vector((0.30 + rx, -0.45, -0.10 - rz)),
+             Vector((0.30 + rx, -0.45, -0.10 + rz)), Vector((0.30 - rx, -0.45, -0.10 + rz))]
+        DOME.mesh_of_quads("PRV_th_me_refl", [q],
+                           flat_mat("me_refl_%d" % int(rx * 100), TH_RIM, alpha=a))
+    soft_blob("th_meplate", 3.95, 0.86, 0.17, 0.16, TH_RIM, alpha=0.34, y=-0.5)
+
+
+# ── 6. 곧은치 ────────────────────────────────────────────────
+def threat_straight_one(near):
+    """곧은치 — 창 높이의 절반쯤 되는 **가는 직선 하나**. 겨누는 동안 움직이지 않는다.
+    막는 법: 물을 흐리게 한다.
+
+    판독 축은 **번짐의 없음**이다. 열세 종 가운데 유일하게 th_blob(헤일로)도
+    th_rim(물빛 테)도 쓰지 않는다. 다른 것은 전부 물에 녹아 있는데 이것만
+    또렷하고 멈춰 있다 — 정지가 이 생물의 실루엣이다(creatures.json)."""
+    L_ = 1.95
+    cx, cz = (3.05, 0.10) if near else (-1.35, 0.55)
+    w = 0.085 if near else 0.062
+    mat = th_mat(near, 1.0 if near else 1.75, "st")
+    pts = []
+    for k in range(13):
+        t = k / 12.0
+        # 꼬리에서 주둥이까지 **완전한 직선**. z 가 한 번도 변하지 않는다
+        hw = w * (0.30 + 0.70 * math.sin(math.pi * min(1.0, t * 1.18)) ** 0.5)
+        pts.append((cx - L_ / 2 + L_ * t, cz, hw if t < 0.97 else 0.004))
+    th_strip("st_body", pts, mat)
+    # 갈라진 꼬리 — **뒤로** 벌어진다. 1차 렌더에서 지느러미를 몸 쪽으로 붙였더니
+    # 화살촉(◄)이 되어 거점 반대쪽을 겨누는 것으로 읽혔다. 꼬리는 몸 밖으로 뻗어야 한다.
+    tx = cx - L_ / 2
+    for sgn in (1, -1):
+        th_poly("st_fin%d" % sgn, [(tx + 0.10, cz + sgn * 0.01), (tx - 0.20, cz + sgn * 0.19),
+                                   (tx - 0.10, cz + sgn * 0.03)], mat)
+    th_poly("st_dorsal", [(cx + 0.05, cz + w * 0.8), (cx - 0.22, cz + w * 0.8 + 0.08),
+                          (cx - 0.30, cz + w * 0.8)], mat)
+
+
+# ── 7. 덮개 ──────────────────────────────────────────────────
+def threat_lid(near):
+    """덮개 — **몸을 그리지 않는다.** 창이 통째로 꺼지는 것이 그 생물이다.
+    막는 법: 아무도 움직이지 않는다.
+
+    가장자리를 만들면 실패다. 가장자리가 보이는 순간 '큰 가오리'가 되고,
+    그러면 플레이어는 '무엇이 왔나'를 보지 '방이 꺼졌다'를 보지 않는다.
+    그래서 윤곽선·폴리곤을 한 조각도 쓰지 않고 **직선 램프 한 장**으로만 덮는다.
+    남기는 단서는 **느린 주름 하나**뿐 — 돌이 아니라 살이라는 유일한 증거다."""
+    c = TH_NEAR[0] if near else "#03101A"
+    if near:
+        th_sheet("lid_all", 0.0, 0.0, 6.6, 3.3, c, 0.96, 0.93, axis="x", y=0.2)
+        th_sheet("lid_all2", 0.0, 0.0, 6.6, 3.3, c, 0.93, 0.96, axis="z", y=0.22)
+        fold = [(-6.6, 1.35, 0.055), (-3.0, 0.78, 0.085), (0.6, 0.36, 0.075),
+                (3.8, 0.52, 0.055), (6.6, 0.95, 0.035)]
+        th_line("lid_fold", fold, TH_RIM, 0.13, y=0.0)
+        fold2 = [(-6.6, -1.75, 0.035), (-2.0, -2.05, 0.060), (2.6, -1.80, 0.045),
+                 (6.6, -1.35, 0.025)]
+        th_line("lid_fold2", fold2, TH_RIM, 0.08, y=0.0)
+    else:
+        # 내려앉는 중 — 위에서부터 꺼진다. 아래 가장자리는 **풀려 있어야** 한다
+        th_sheet("lid_down", 0.0, 1.15, 6.6, 2.15, c, 0.0, 0.95, axis="z", y=0.2)
+        th_sheet("lid_haze", 0.0, 0.10, 6.6, 1.60, c, 0.0, 0.30, axis="z", y=0.21)
+        fold = [(-6.6, 2.35, 0.045), (-2.4, 1.92, 0.070), (1.8, 1.70, 0.055),
+                (6.6, 2.05, 0.030)]
+        th_line("lid_fold", fold, TH_RIM, 0.09, y=0.0)
+
+
+# ── 8. 바늘 ──────────────────────────────────────────────────
+def threat_needle(near):
+    """바늘 — 화면 **세로**를 가로지르는 한 줄. 시작과 끝이 동시에 보이지 않는다.
+    막는 법: 길을 비킨다(그물·계류줄을 걷는다).
+
+    열세 종 가운데 유일한 세로다. 그 하나로 다 갈린다. 머리도 꼬리도 그리지 않는다 —
+    '지나가는 중'이지 '온 것'이 아니다. 이백 년치 성장 자국만 몸을 따라 느리게 흐른다."""
+    cx = 2.45 if near else -2.70
+    w = 0.26 if near else 0.17
+    lean = 0.55 if near else 0.38
+    mat = th_mat(near, 1.0 if near else 1.70, "nd")
+    pts = []
+    for k in range(25):
+        t = k / 24.0
+        z = 3.6 - 7.2 * t
+        x = cx + lean * (t - 0.5) * 2.0 + 0.14 * math.sin(t * 4.1)
+        pts.append((x, z, w * (1.0 + 0.09 * math.sin(t * 9.0))))
+    th_strip("nd_body", pts, mat)
+    th_blob("nd_haze", cx, 0.0, w * 7.5, 3.4, near, k=0.26)
+    # 성장 자국 — 몸을 가로지르는 아주 옅은 가로줄. 마디가 아니라 해(年)다
+    nrings = 7 if near else 5
+    for i in range(nrings):
+        t = (i + 0.6) / nrings
+        z = 3.6 - 7.2 * t
+        x = cx + lean * (t - 0.5) * 2.0 + 0.14 * math.sin(t * 4.1)
+        ww = w * (1.0 + 0.09 * math.sin(t * 9.0))
+        th_line("nd_ring%d" % i, [(x - ww, z - 0.02, 0.030), (x + ww, z + 0.02, 0.030)],
+                TH_RIM, 0.11 if near else 0.06, y=-0.1)
+
+
+# ── 9. 큰 입 ─────────────────────────────────────────────────
+def threat_big_maw(near):
+    """큰 입 — **입의 윤곽선 하나**만 그리고 나머지는 어둠으로 둔다.
+    화면 전체가 입의 일부다. 막는 법: 먹이를 내준다.
+
+    열세 종 가운데 유일하게 **밝은 선**으로 그린다. 그리고 유일하게
+    가장자리가 어디에도 없다 — 몸의 크기를 알 방법이 화면 안에 없다는 것이
+    이 생물이다. far 는 선 하나(다문 입), near 는 선 둘과 그 사이의 검정(벌어진 입)."""
+    body = "#04121B"
+    if not near:
+        th_sheet("bm_body", 0.0, 0.0, 6.6, 3.3, body, 0.22, 0.14, axis="z")
+        lip = [(-6.6, -0.95, 0.040), (-3.2, -0.52, 0.055), (0.4, -0.34, 0.058),
+               (3.6, -0.46, 0.048), (6.6, -0.76, 0.032)]
+        th_line("bm_lip", lip, TH_LIP, 0.30)
+        return
+    th_sheet("bm_body", 0.0, 0.0, 6.6, 3.3, body, 0.52, 0.34, axis="z")
+    up = [(-6.6, 0.42, 0.055), (-3.0, 0.92, 0.075), (0.5, 1.08, 0.080),
+          (3.8, 0.86, 0.065), (6.6, 0.44, 0.040)]
+    dn = [(-6.6, -0.52, 0.055), (-3.0, -1.14, 0.075), (0.5, -1.34, 0.080),
+          (3.8, -1.08, 0.065), (6.6, -0.58, 0.040)]
+    # 벌어진 틈 — 입 안. 화면에서 가장 검은 자리이고 가장자리가 입술선뿐이다
+    gap = []
+    for a, b in zip(up, dn):
+        gap.append((a[0], (a[1] + b[1]) / 2, max(0.02, (a[1] - b[1]) / 2 - 0.02)))
+    # 몸(y=0) **앞**에 둔다. 뒤(y=0.1)에 두었더니 반투명 정렬에서 통째로 빠졌다(1차 렌더)
+    th_strip("bm_gap", gap, flat_mat("bm_in", "#01070B", alpha=0.94), y=-0.12)
+    th_line("bm_up", up, TH_LIP, 0.46)
+    th_line("bm_dn", dn, TH_LIP, 0.46)
+
+
+# ── 10. 따라온 것 ────────────────────────────────────────────
+def threat_follower(near):
+    """따라온 것 — 보이는 것은 **빛 둘**. 형체가 아니라 **그 사이의 간격**이다.
+    막는 법: 그날 해구에서 올린 유물 하나를 돌려보낸다.
+
+    몸을 끝까지 보여 주지 않는다. 그래서 이 그림에는 어두운 덩어리가 한 조각도 없다 —
+    물에 점 둘뿐이다. far 는 2.6 m, near 는 9.3 m. **간격이 벌어지는 것이 접근이다.**
+    짐작한 사람이 말을 못 하는 이유를 플레이어가 스스로 세게 만든다."""
+    gap = 9.30 if near else 2.60
+    z = -0.25 if near else -0.70
+    core = 0.085 if near else 0.078
+    ca = 0.62 if near else 0.34
+    ha = 0.14 if near else 0.075
+    for sgn in (-1, 1):
+        x = sgn * gap / 2
+        soft_blob("th_fo_halo%d" % sgn, x, z, core * 7.0, core * 6.4, TH_RIM,
+                  alpha=ha, y=0.0)
+        soft_blob("th_fo_core%d" % sgn, x, z, core, core * 0.94, TH_LIGHT,
+                  alpha=ca, y=-0.4)
+
+
+# ── 11. 윗물 아이 ────────────────────────────────────────────
+def threat_upper_child(near):
+    """윗물 아이 — 작고 둥글고 지느러미가 짧다. 긴목의 축소판이되 목은 짧게.
+    막는 법이 아니라 **보내 주는** 법: 위로 빛의 길을 낸다.
+
+    유일하게 화면 **위쪽**에 있다(광층의 것이라 올라가려 한다). 그리고 유일하게
+    기울어 있다 — 또래 아이처럼 어설프게. 겁먹은 쪽이 저쪽이라는 것이
+    자세 하나로 보여야 한다. 눈은 긴목보다 크고 둥글다."""
+    cx, cz, tilt, s = (3.55, 1.25, -0.22, 1.0) if near else (-1.95, 1.95, 0.30, 0.74)
+    mat = th_mat(near, 1.0 if near else 1.55, "uc")
+    ca, sa = math.cos(tilt), math.sin(tilt)
+
+    def put(px, pz):
+        return (cx + (px * s) * ca - (pz * s) * sa, cz + (px * s) * sa + (pz * s) * ca)
+    # 몸 — 물방울. 아래가 넓고 둥글다(REF §1-6 덩어리진 실루엣)
+    body = [put(*p) for p in ((0.46, 0.08), (0.30, 0.34), (-0.08, 0.44), (-0.46, 0.30),
+                              (-0.62, 0.02), (-0.44, -0.30), (-0.04, -0.44), (0.32, -0.32))]
+    th_poly("uc_body", body, mat)
+    # 짧은 목 + 작고 둥근 머리
+    th_strip("uc_neck", [put(0.38, 0.10) + (0.13 * s,), put(0.62, 0.20) + (0.11 * s,),
+                         put(0.82, 0.26) + (0.09 * s,)], mat)
+    head = [put(*p) for p in ((1.08, 0.26), (0.98, 0.40), (0.80, 0.42), (0.70, 0.30),
+                              (0.74, 0.14), (0.92, 0.12))]
+    th_poly("uc_head", head, mat)
+    for sgn, ln in ((1, 0.30), (-1, 0.26)):          # 아직 다 자라지 않은 지느러미
+        th_poly("uc_fin%d" % sgn, [put(-0.10, sgn * 0.36), put(-0.34, sgn * (0.36 + ln)),
+                                   put(-0.48, sgn * 0.30)], mat)
+    th_poly("uc_tail", [put(-0.58, 0.04), put(-0.98, 0.34), put(-0.86, 0.0),
+                        put(-0.98, -0.32)], mat)
+    th_blob("uc_haze", cx, cz, 1.9 * s, 1.5 * s, near, k=0.30)
+    hx_, hz_ = put(0.92, 0.30)
+    soft_blob("th_uc_eye", hx_, hz_, 0.085 * s, 0.085 * s, TH_RIM,
+              alpha=0.40 if near else 0.22, y=-0.5)
+
+
+# ── 12. 그늘 ─────────────────────────────────────────────────
+def threat_shade(near):
+    """그늘 — 생물을 그리지 않는다. **넓고 느린 어둠 한 장**이 지나갈 뿐이다.
+    판정이 없다. 돔에서 가장 조용한 시간이고, 쉼표다(P3).
+
+    덮개와 반드시 갈려야 한다. 덮개는 **꺼지고**(0.95, 주름 있음, 창 하나),
+    그늘은 **흐려진다**(0.42, 주름 없음, 전부). 가장자리를 만들지 않는다 —
+    광층의 몸은 평생 못 보고 보는 것은 그늘뿐이다."""
+    c = "#04141C"
+    if near:
+        th_sheet("sh_all", 0.0, 0.0, 6.6, 3.3, c, 0.34, 0.42, axis="x")
+        th_sheet("sh_top", 0.0, 1.4, 6.6, 1.9, c, 0.0, 0.16, axis="z")
+    else:
+        # 앞 가장자리가 왼쪽에서 들어온다. 끝은 풀려 있다 — 선이 생기면 덮개가 된다
+        th_sheet("sh_edge", -1.6, 0.0, 5.0, 3.3, c, 0.46, 0.0, axis="x")
+        th_sheet("sh_top", -2.0, 1.5, 4.6, 1.8, c, 0.16, 0.0, axis="x")
+
+
+# ── 13. 먼 울음 ──────────────────────────────────────────────
+def threat_far_cry(near):
+    """먼 울음 — **어떤 형태도 만들지 않는다.** 실루엣 칸이 '없다'로 비어 있는 것이 설계다
+    (creatures.json: "없다. 이백 년 동안 한 번도 없었다").
+
+    그런데도 파일을 두 장 내는 이유는 하나다 — 표에 구멍을 내지 않기 위해서.
+    담긴 것은 **아래에서 올라오는 물의 떨림**뿐이고, 최대 알파 0.075 라 형태로
+    읽힐 수 없다(테두리가 없고, 선이 없고, 중심이 없다). 이 생물의 연출은
+    그림이 아니라 **소리와 랜턴 불꽃의 흔들림**이다 — 개발·사운드 몫이다.
+    봉인(DECISIONS 2026-09-22): 이 두 장의 어느 화소도 정체를 암시하지 않는다."""
+    th_sheet("fc_rise", 0.0, -1.3, 6.6, 2.0, "#051018",
+             0.075 if near else 0.040, 0.0, axis="z")
+
+
 THREATS = [
-    ("swarm", "작은 떼", threat_swarm, "사람 수로 막는다. 누구든 여럿"),
-    ("longneck", "긴목", threat_longneck, "불을 끈다(차광 덧문·유인 등불)"),
-    ("gatekeeper", "문지기", threat_gatekeeper, "소리를 죽인다(소리 가리개·전원 차단)"),
-    ("clawswarm", "손톱 무리", threat_clawswarm, "밖에 나간 사람을 즉시 들인다(귀환 신호기)"),
+    # (id, 이름, 함수, 막는 법, creatures.json id, 몸을 그리는가, 방 위에 얹는가)
+    ("swarm", "작은 떼", threat_swarm, "사람 수로 막는다. 누구든 여럿",
+     "swarm", True, False),
+    ("longneck", "긴목", threat_longneck, "불을 끈다(차광 덧문·유인 등불)",
+     "longneck", True, False),
+    ("gatekeeper", "문지기", threat_gatekeeper, "소리를 죽인다(소리 가리개·전원 차단)",
+     "warden", True, False),
+    ("clawswarm", "손톱 무리", threat_clawswarm, "밖에 나간 사람을 즉시 들인다(귀환 신호기)",
+     "claws", True, False),
+    # ── S10-B 신규 아홉 ──
+    ("mirror_eye", "거울눈", threat_mirror_eye, "불을 끄지 않는다. 반대쪽에 더 밝은 불을 켠다",
+     "mirror_eye", True, False),
+    ("straight_one", "곧은치", threat_straight_one, "물을 흐리게 한다",
+     "straight_one", True, False),
+    ("lid", "덮개", threat_lid, "아무도 움직이지 않는다(배치를 바꾸지 않는다)",
+     "lid", False, True),
+    ("needle", "바늘", threat_needle, "길을 비킨다. 그물과 계류줄을 걷는다",
+     "needle", True, False),
+    ("big_maw", "큰 입", threat_big_maw, "먹이를 내준다",
+     "big_maw", False, True),
+    ("follower", "따라온 것", threat_follower, "가져온 것을 돌려보낸다",
+     "follower", False, False),
+    ("upper_child", "윗물 아이", threat_upper_child, "위로 빛의 길을 내서 올려 보낸다",
+     "upper_child", True, False),
+    ("shade", "그늘", threat_shade, "막지 않는다. 지나갈 뿐이다",
+     "shade", False, True),
+    ("far_cry", "먼 울음", threat_far_cry, "막는 법이 없다. 세는 것 말고는 할 수 있는 것이 없다",
+     "far_cry", False, False),
 ]
+
+# 사운드 담당의 예고음(static/audio, 읽기만). 이름 규칙이 우리 id 와 달라서 표로 잇는다.
+# None = 예고음 파일이 없다 — 문지기·덮개·그늘·먼 울음은 '소리의 없음/무게'로 오는 것들이다
+TH_SFX = {"swarm": "sfx_warn_swarm.ogg", "longneck": "sfx_warn_longneck.ogg",
+          "clawswarm": "sfx_warn_claws.ogg", "mirror_eye": "sfx_warn_mirroreye.ogg",
+          "straight_one": "sfx_warn_straight.ogg", "needle": "sfx_warn_needle.ogg",
+          "big_maw": "sfx_warn_bigmaw.ogg", "follower": "sfx_warn_follower.ogg",
+          "upper_child": "sfx_warn_upperchild.ogg"}
+
+# 몸을 그리지 않는 것들의 한 줄 — 메타에 그대로 실어 개발이 연출을 틀리지 않게 한다
+TH_FORM = {
+    "lid": "몸 없음. 창이 통째로 꺼지는 것이 이 생물이다. 방 **위에** 얹는다",
+    "big_maw": "몸 없음. 입술선 하나(far)·둘(near)뿐. 화면 전체가 입의 일부다. 방 위에 얹는다",
+    "follower": "몸 없음. 빛 둘과 그 사이의 간격이 전부다. far 2.6 m → near 9.3 m",
+    "shade": "몸 없음. 가장자리 없는 넓은 흐려짐. 방 위에 얹는다. 판정 없음(쉼표)",
+    "far_cry": "**형태 없음.** 두 장은 의도적으로 거의 비어 있다(최대 알파 0.075). "
+               "연출은 소리와 랜턴 불꽃이 맡는다 — 실루엣을 그리면 봉인이 깨진다",
+}
 
 
 def build_threat(fn, near):
@@ -2459,25 +2944,40 @@ def build_threat(fn, near):
 
 
 def shot_threats():
+    """열세 종 × 두 단계. `-- threats <id,id,...>` 로 일부만 다시 그릴 수 있다(메타는 전체를 다시 쓴다)."""
     os.makedirs(OUT_THREAT, exist_ok=True)
+    only = set(argv[1].split(",")) if len(argv) > 1 else None
     out = []
-    for tid, name, fn, counter in THREATS:
+    for tid, name, fn, counter, cid, body, over in THREATS:
         files = {}
         for stage, near in (("far", False), ("near", True)):
-            build_threat(fn, near)
             f = "threat_%s_%s.png" % (tid, stage)
-            render(os.path.join(OUT_THREAT, f), ortho=THREAT_W_M, target=(0.0, 0, 0.0),
-                   res=THREAT_RES, grain=0.13, vig=0.0, alpha=True, line=0.0)
+            if only is None or tid in only:
+                build_threat(fn, near)
+                render(os.path.join(OUT_THREAT, f), ortho=THREAT_W_M, target=(0.0, 0, 0.0),
+                       res=THREAT_RES, grain=0.13, vig=0.0, alpha=True, line=0.0)
             files[stage] = f
-        out.append({"id": tid, "name": name, "counter": counter, "files": files})
+        e = {"id": tid, "creature_id": cid, "name": name, "counter": counter,
+             "body": body, "over_room": over, "files": files}
+        if tid in TH_FORM:
+            e["form"] = TH_FORM[tid]
+        sf = TH_SFX.get(tid)
+        e["warn_sound"] = ("static/audio/" + sf) if sf else None
+        out.append(e)
     meta = {
-        "_note": "S8-C 바깥에서 오는 것들. 전투 예고 2단계(COMBAT_AND_DEFENSE §3-2).",
-        "_rule": ("물 위에 그대로 얹는 RGBA. 플레이트와 같은 84px/m 격자다. "
-                  "오른쪽(+x)이 거점 쪽 — 거점이 왼쪽이면 좌우 반전해서 쓴다."),
+        "_note": ("S8-C 넷 + S10-B 아홉 = 열셋. 전투 예고 2단계(COMBAT_AND_DEFENSE §3-2). "
+                  "creature_id 는 data/creatures.json 의 id. 옛 id(gatekeeper·clawswarm)는 "
+                  "파일명 호환을 위해 그대로 둔다."),
+        "_rule": ("RGBA, 플레이트와 같은 82.5px/m 격자. 오른쪽(+x)이 거점 쪽 — 거점이 왼쪽이면 "
+                  "좌우 반전. over_room=false 는 방 바깥 물에, **over_room=true 는 방 플레이트 위에** "
+                  "얹는다(덮개·큰 입·그늘 — 방이 꺼지거나 흐려지는 것이 그 생물이다). "
+                  "body=false 는 몸을 그리지 않은 것 — form 한 줄을 반드시 읽을 것."),
         "canvas": list(THREAT_RES), "px_per_m": PLATE_PPM,
-        "stages": {"far": "멀리 있는 흐릿한 그림자 — 어느 방이 위험한지 아직 모른다",
-                   "near": "창에 가까이 온 상태 — 대상 방이 정해졌다"},
+        "stages": {"far": "멀리 — 어느 방이 위험한지 아직 모른다",
+                   "near": "가까이 — 대상 방이 정해졌다. far→near 는 알파 크로스페이드"},
+        "order": "소리 → 실루엣 → 접촉(creatures.json _설계원칙). 실루엣은 sfx_warn_* 다음에 띄운다",
         "approach": "right",
+        "not_drawn": {"octopus": "동거 문어 — 그림자가 없다. 이미 안에 있다(creatures.json). 캐릭터 몫"},
         "threats": out,
     }
     with open(os.path.join(OUT_THREAT, "threats_meta.json"), "w", encoding="utf-8") as f:

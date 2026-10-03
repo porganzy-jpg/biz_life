@@ -139,11 +139,21 @@ def threats_sheet():
     d = ImageDraw.Draw(out)
     for r, t in enumerate(meta["threats"]):
         y = r * (sh + bar)
-        _label(d, 4, y + 6, "%s (%s)  — %s" % (t["name"], t["id"], t["counter"]))
+        _label(d, 4, y + 6, "%s (%s)%s  — %s" % (t["name"], t["id"],
+                                                  "  [방 위]" if t.get("over_room") else "",
+                                                  t["counter"]))
         for c, stage in enumerate(("far", "near")):
             p = os.path.join(RAW_THREAT, t["files"][stage])
             fg = Image.open(p).convert("RGBA").resize((sw, sh), Image.LANCZOS)
             bg = water_bg(sw, sh).convert("RGBA")
+            if t.get("over_room"):
+                # S10-B: 덮개·큰 입·그늘은 방 **위에** 얹는 것이다. 물 위에서만 보면
+                # 판정이 안 된다 — 실제 플레이트(거주, 등불 켜짐)를 같은 격자로 깔고 본다.
+                pl = os.path.join(RAW_PLATE, "room_plate_quarters_lit.png")
+                if os.path.exists(pl):
+                    pim = Image.open(pl).convert("RGBA")
+                    pim = pim.resize((pim.size[0] // 2, pim.size[1] // 2), Image.LANCZOS)
+                    bg.alpha_composite(pim, ((sw - pim.size[0]) // 2, (sh - pim.size[1]) // 2))
             bg.alpha_composite(fg)
             out.paste(bg.convert("RGB"), (c * (sw + gap), y + bar))
     p = os.path.join(RAW_THREAT, "threats_sheet.png")

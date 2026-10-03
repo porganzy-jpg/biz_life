@@ -14,7 +14,7 @@
   1. sRGB → 선형 RGB → Machado 2009 severity 1.0 행렬 → 선형 → sRGB
      (protanopia 적색맹 / deuteranopia 녹색맹 / tritanopia 청색맹)
   2. 방 색 6종의 **모든 쌍**에 대해 CIE76 ΔE 를 잰다. 넓은 단색 면끼리의 구분이므로
-     ΔE 25 이상 = 넉넉 / 15~25 = 아슬 / 15 미만 = 구분 안 됨 으로 본다.
+     ΔE 20 이상 = 넉넉 / 10~20 = 아슬 / 10 미만 = 구분 안 됨 으로 본다.
   3. 같은 일을 **명도만 남긴 판**(완전 흑백)에도 한다. 여기서 살아남는 차이는
      색맹 종류와 무관하게 언제나 작동하는 차이다 — 그게 무늬와 명도다.
   4. 결과를 **변환 전/후를 나란히 놓은 한 장**으로 찍는다. 이게 판정 자료다.
@@ -44,7 +44,7 @@ MATS = {
 KIND_KR = {"normal": "정상", "protan": "적색맹(protan)", "deutan": "녹색맹(deutan)",
            "tritan": "청색맹(tritan)", "gray": "명도만(흑백)"}
 
-OK, WARN = 25.0, 15.0          # ΔE 판정 문턱
+OK, WARN = 20.0, 10.0          # ΔE 판정 문턱(넓은 단색 면: 20↑ 확실히 다른 색, 10↓ 같은 색)
 
 
 def _s2l(c):
@@ -128,8 +128,8 @@ def rooms():
     return [(r["id"], r["name"], r["hue"], r["files"]) for r in meta["rooms"]]
 
 
-MOTIF_KR = {"quarters": "지그재그", "storage": "점", "workshop": "톱니",
-            "infirmary": "아치", "power": "빗금", "greenhouse": "꺾쇠"}
+MOTIF_KR = {"quarters": "물결", "storage": "점", "workshop": "마름모",
+            "infirmary": "×(붕대)", "power": "빗금", "greenhouse": "꺾쇠"}
 
 
 def table(rs):
@@ -170,93 +170,106 @@ def font(sz):
     return ImageFont.load_default()
 
 
+# 고치기 전 방 색(S8-C). 판정 컷에서 '전/후'를 나란히 놓기 위해 남겨 둔다.
+BEFORE = {"quarters": "#C68F3E", "storage": "#8A6531", "workshop": "#B85A24",
+          "infirmary": "#E6D8B4", "power": "#6E2A22", "greenhouse": "#6F7A3C"}
+MOTIF_BEFORE = {"quarters": "지그재그", "storage": "점", "workshop": "톱니",
+                "infirmary": "아치", "power": "빗금", "greenhouse": "꺾쇠"}
+
+
+def _pairs(cols, kind):
+    c = [(n, sim_rgb(v, kind)) for n, v in cols]
+    return sorted((de76(a[1], b[1]), a[0], b[0]) for i, a in enumerate(c) for b in c[i + 1:])
+
+
 def sheet(rs):
-    KINDS = ("normal", "protan", "deutan", "gray")
     f_h, f_m, f_s = font(22), font(16), font(13)
-    SW, SH = 150, 92                      # 색 견본 한 칸
-    PW, PH = 252, 142                     # 플레이트 축소판
-    pad, head = 14, 64
-    left = 108
-
-    # 플레이트(빈 방 = 색 + 무늬만. 소품이 없어서 색/무늬 판정에 가장 정직하다)
-    plates = {}
-    for rid, nm, h, files in rs:
-        p = os.path.join(RAW_PLATE, files["dark"])
-        plates[rid] = Image.open(p).convert("RGB").resize((PW, PH), Image.LANCZOS) \
-            if os.path.exists(p) else None
-
-    rowsA = len(rs)
-    blockA = head + rowsA * (SH + 6)
-    blockB = head + 6 * 22 + 30
-    blockC = head + rowsA * (PH + 6)
-    W = left + len(KINDS) * (max(SW, PW) + pad) + 330
-    H = blockA + blockB + blockC + 150
-    out = Image.new("RGB", (W, H), (16, 14, 12))
+    W = 1500
+    SW, SH = 120, 64
+    PW, PH = 252, 142
+    out = Image.new("RGB", (W, 3200), (16, 14, 12))
     d = ImageDraw.Draw(out)
+    y = 0
 
-    def hdr(y, t, sub):
+    def hdr(t, sub):
+        nonlocal y
         d.rectangle([0, y, W, y + 2], fill=(90, 70, 46))
         d.text((10, y + 10), t, font=f_h, fill=(236, 206, 152))
         d.text((10, y + 38), sub, font=f_s, fill=(160, 142, 116))
+        y += 64
 
-    # ── A. 방 색 6종 ─────────────────────────────────────────
-    y0 = 0
-    hdr(y0, "A. 방 색 6종 — 변환 전 / 후", "같은 색을 정상·적색맹·녹색맹·명도만 네 가지 눈으로 본다")
-    cw = max(SW, PW) + pad
-    for c, k in enumerate(KINDS):
-        d.text((left + c * cw, y0 + 42), KIND_KR[k], font=f_m, fill=(214, 186, 142))
-    for r, (rid, nm, h, _) in enumerate(rs):
-        y = y0 + head + r * (SH + 6)
-        d.text((8, y + 26), nm, font=f_m, fill=(226, 206, 170))
-        d.text((8, y + 48), h, font=f_s, fill=(140, 124, 104))
-        for c, k in enumerate(KINDS):
-            col = sim_rgb(hex2rgb(h), k)
-            x = left + c * cw
-            d.rectangle([x, y, x + SW, y + SH], fill=col)
-            d.text((x + 6, y + SH - 20), "#%02X%02X%02X" % col, font=f_s,
-                   fill=(0, 0, 0) if sum(col) > 330 else (255, 255, 255))
+    def badge(x, yy, dd):
+        col = (92, 196, 120) if dd >= 20 else ((224, 176, 64) if dd >= 10 else (226, 84, 70))
+        d.text((x, yy), "%.1f" % dd, font=f_m, fill=col)
 
-    # ── B. ΔE 판정표 ─────────────────────────────────────────
-    y0 = blockA + 12
-    hdr(y0, "B. 쌍별 색차 ΔE(CIE76) — 넓은 단색 면 기준 25↑ 넉넉 / 15~25 아슬 / 15↓ 실패",
-        "가장 가까운 쌍이 무너지는 곳이 곧 플레이어가 방을 헷갈리는 곳이다")
-    cellw, cellh = 72, 22
-    bx = left
-    for c, k in enumerate(("normal", "protan", "deutan", "gray")):
-        x = bx + c * (cellw * 3 + 46)
-        d.text((x, y0 + 44), KIND_KR[k], font=f_m, fill=(214, 186, 142))
-        cols = [(nm, sim_rgb(hex2rgb(h), k)) for _, nm, h, _ in rs]
-        pairs = sorted((de76(a[1], b[1]), a[0], b[0])
-                       for i, a in enumerate(cols) for b in cols[i + 1:])
-        for i, (dd, na, nb) in enumerate(pairs[:6]):
-            col = (92, 196, 120) if dd >= OK else ((224, 176, 64) if dd >= WARN else (226, 84, 70))
-            yy = y0 + head + i * cellh
-            d.rectangle([x, yy, x + cellw * 3 - 8, yy + cellh - 3], fill=(32, 28, 24))
-            d.rectangle([x, yy, x + 5, yy + cellh - 3], fill=col)
-            d.text((x + 12, yy + 3), "%s–%s" % (na, nb), font=f_s, fill=(206, 190, 164))
-            d.text((x + cellw * 3 - 54, yy + 3), "%5.1f" % dd, font=f_s, fill=col)
+    # ── A. 방 색: 고치기 전 / 후, 각각 정상·적색맹·녹색맹 ──
+    hdr("A. 방 색 6종 — 고치기 전(S8) / 고친 뒤(S10), 각각 세 가지 눈",
+        "왼쪽 셋이 문제였다: 창고·공방·온실이 적록색약 눈에 한 색. 오른쪽 넷은 명도 사다리를 적용한 뒤")
+    left = 100
+    kinds_b = ("normal", "protan", "deutan")
+    kinds_a = ("normal", "protan", "deutan", "gray")
+    for i, k in enumerate(kinds_b):
+        d.text((left + i * (SW + 8), y), "전 · " + KIND_KR[k].split("(")[0], font=f_s, fill=(200, 150, 120))
+    ox = left + 3 * (SW + 8) + 40
+    for i, k in enumerate(kinds_a):
+        d.text((ox + i * (SW + 8), y), "후 · " + KIND_KR[k].split("(")[0], font=f_s, fill=(150, 214, 150))
+    y += 22
+    for rid, nm, h, _ in rs:
+        d.text((8, y + 12), nm, font=f_m, fill=(226, 206, 170))
+        d.text((8, y + 36), "%s→%s" % (BEFORE[rid][1:], h[1:]), font=font(10), fill=(140, 124, 104))
+        for i, k in enumerate(kinds_b):
+            d.rectangle([left + i * (SW + 8), y, left + i * (SW + 8) + SW, y + SH],
+                        fill=sim_rgb(hex2rgb(BEFORE[rid]), k))
+        for i, k in enumerate(kinds_a):
+            d.rectangle([ox + i * (SW + 8), y, ox + i * (SW + 8) + SW, y + SH],
+                        fill=sim_rgb(hex2rgb(h), k))
+        y += SH + 6
+    y += 14
 
-    # ── C. 실제 플레이트 ─────────────────────────────────────
-    y0 = blockA + blockB + 12
-    hdr(y0, "C. 빈 방 플레이트(색 + 고유 무늬) — 같은 네 가지 눈",
-        "색이 무너져도 무늬가 남는가. 오른쪽 끝(명도만)이 최악의 경우다")
-    cw2 = PW + pad
-    for c, k in enumerate(KINDS):
-        d.text((left + c * cw2, y0 + 42), KIND_KR[k], font=f_m, fill=(214, 186, 142))
-    for r, (rid, nm, h, _) in enumerate(rs):
-        y = y0 + head + r * (PH + 6)
-        d.text((6, y + 40), nm, font=f_m, fill=(226, 206, 170))
-        d.text((6, y + 62), "무늬 " + MOTIF_KR.get(rid, "?"), font=f_s, fill=(150, 134, 112))
-        im = plates.get(rid)
-        if im is None:
-            continue
-        for c, k in enumerate(KINDS):
-            out.paste(sim_image(im, k), (left + c * cw2, y))
+    # ── B. 가장 가까운 쌍 ──
+    hdr("B. 가장 가까운 세 쌍의 ΔE(CIE76) — 20↑ 초록 / 10~20 노랑 / 10↓ 빨강",
+        "이 숫자가 곧 '플레이어가 방을 헷갈리는 곳'이다. 흑백은 색이 통째로 없을 때(최악)")
+    cb = [(nm, hex2rgb(BEFORE[rid])) for rid, nm, h, _ in rs]
+    ca = [(nm, hex2rgb(h)) for rid, nm, h, _ in rs]
+    for ci, k in enumerate(("protan", "deutan", "gray")):
+        x = 20 + ci * 490
+        d.text((x, y), KIND_KR[k], font=f_m, fill=(214, 186, 142))
+        for j, (pb, pa) in enumerate(zip(_pairs(cb, k)[:3], _pairs(ca, k)[:3])):
+            yy = y + 26 + j * 24
+            d.text((x, yy), "전 %s–%s" % (pb[1], pb[2]), font=f_s, fill=(190, 170, 150))
+            badge(x + 150, yy - 2, pb[0])
+            d.text((x + 230, yy), "후 %s–%s" % (pa[1], pa[2]), font=f_s, fill=(190, 170, 150))
+            badge(x + 380, yy - 2, pa[0])
+    y += 26 + 3 * 24 + 20
 
+    # ── C/D. 플레이트 ──
+    def plate_block(title, sub, state, kinds):
+        nonlocal y
+        hdr(title, sub)
+        for i, k in enumerate(kinds):
+            d.text((left + i * (PW + 12), y), KIND_KR[k], font=f_m, fill=(214, 186, 142))
+        y += 24
+        for rid, nm, h, files in rs:
+            p = os.path.join(RAW_PLATE, files[state])
+            d.text((6, y + 40), nm, font=f_m, fill=(226, 206, 170))
+            d.text((6, y + 62), "무늬 " + MOTIF_KR.get(rid, "?"), font=f_s, fill=(150, 134, 112))
+            if os.path.exists(p):
+                im = Image.open(p).convert("RGB").resize((PW, PH), Image.LANCZOS)
+                for i, k in enumerate(kinds):
+                    out.paste(sim_image(im, k), (left + i * (PW + 12), y))
+            y += PH + 6
+        y += 10
+
+    plate_block("C. 빈 방(색 + 무늬만) — 고친 뒤", "무늬: 거주 물결 · 창고 점 · 공방 마름모 · 의무실 × · "
+                "발전실 빗금 · 온실 꺾쇠. 무늬와 벽의 명도차를 L* 26 으로 고정", "dark",
+                ("normal", "protan", "deutan", "gray"))
+    plate_block("D. 등불 켠 방(소품 있음) — 고친 뒤", "실제 플레이 화면. 소품이 무늬를 가리는가 — 위쪽 띠가 남아야 한다",
+                "lit", ("normal", "protan", "deutan", "gray"))
+    out = out.crop((0, 0, W, y + 10))
     os.makedirs(OUT_DIR, exist_ok=True)
     p = os.path.join(OUT_DIR, "colorblind_check.png")
     out.save(p, optimize=True)
-    print("\nSHEET", p, out.size, "%.0f KB" % (os.path.getsize(p) / 1024))
+    print("SHEET", p, out.size, "%.0f KB" % (os.path.getsize(p) / 1024))
     return p
 
 
