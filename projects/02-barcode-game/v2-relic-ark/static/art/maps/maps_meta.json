@@ -1,0 +1,34 @@
+{
+ "m1": {
+  "name": "가라앉은 배 속의 집",
+  "ref": "Spiritfarer + Barotrauma",
+  "line": "옆으로 기운 화물선의 선체가 집이다. 물을 빼고 한 칸씩 되찾는다. 뱃머리는 해구 쪽 어둠으로.",
+  "hero": "m1_hero.jpg",
+  "phone": "m1_phone.jpg",
+  "phone2x": "m1_phone2x.jpg"
+ },
+ "m2": {
+  "name": "절벽에 뿌리내린 돔",
+  "ref": "Dome Keeper + Fallout Shelter",
+  "line": "왼쪽은 바위를 깎은 굴 같은 방들, 오른쪽은 해구로 떨어지는 심연. 위협은 열린 쪽에서 온다.",
+  "hero": "m2_hero.jpg",
+  "phone": "m2_phone.jpg",
+  "phone2x": "m2_phone2x.jpg"
+ },
+ "m3": {
+  "name": "고래 낙하 위의 마을",
+  "ref": "Spiritfarer + 심해 고래 낙하 생태",
+  "line": "쓰러진 거대 생물의 갈비뼈가 기둥이다. 죽음 위에 사는 삶, 뼈 주위로 작은 생물이 모인다.",
+  "hero": "m3_hero.jpg",
+  "phone": "m3_phone.jpg",
+  "phone2x": "m3_phone2x.jpg"
+ },
+ "m4": {
+  "name": "가라앉은 탑",
+  "ref": "Fallout Shelter + 3막 지상 도시 복선",
+  "line": "수몰 고층 건물의 꼭대기 유리 아트리움이 돔이다. 거점은 층을 따라 해구의 어둠으로 내려간다.",
+  "hero": "m4_hero.jpg",
+  "phone": "m4_phone.jpg",
+  "phone2x": "m4_phone2x.jpg"
+ }
+}
