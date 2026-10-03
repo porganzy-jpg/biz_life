@@ -1,6 +1,8 @@
 {
   "_comment": "각인(刻印) 8종 — docs/GROWTH_AND_MYTH.md §1 표를 그대로 데이터로 옮긴 것. 경험치·레벨은 없다. 주민은 '처음 겪는 종류의 위기'를 살아서 넘겼을 때만 변한다(계단식 성장). 각인에는 반드시 대가(cost)가 붙는다. 서버: server.py imprint_for_event() / grant_imprints() / role_effects().",
-  "_version": 1,
+  "_version": 2,
+  "_v2_note": "2026-10-01(시나리오 S10). 8종 → **15종**. 뒤의 일곱이 심해(1막) 각인이다. ① 넷(saved_breath·crack_seen·depth_mark·knock_heard)은 server.py `DEEP_IMPRINTS` 가 런타임으로 덧붙이던 것을 **파일로 옮긴 것**이다 — id·crisis·trigger·effect·cost 를 글자 그대로 유지했으므로 동작은 바뀌지 않고(병합 루프가 file-first), 다만 이제 **데이터가 정본**이 된다. 개발은 다음에 손댈 때 `DEEP_IMPRINTS` 블록을 지워도 된다. ② 셋(made_way·fed_it·sent_up)은 신규다. 생물 열넷 확장(`data/creatures.json`)으로 생긴 '처음 겪는 종류' 셋이고, 각인 id 를 그 생물의 관문 key 와 같은 말로 맞췄다(make_way→made_way, feed→fed_it, guide_up→sent_up) — 사람이 몸에 새기는 것은 괴물이 아니라 **그날 자기가 한 행동**이기 때문이다(교본 S8). 표는 `docs/WORLD_BIBLE_DEEP.md` §7, 연출문은 `data/imprint_lines.json`(파일이 아래 visual.line 을 이긴다).",
+  "_why_registered": "밸런스 보고 `docs/reports/design_balance_20261001.md` §7: 등재 전까지 방어 공식의 각인 항을 아무도 검증할 수 없었다. 등재가 곧 계약이다.",
 
   "_rules": {
     "max_per_resident": 3,
@@ -29,6 +31,9 @@
     "heal_rate": "부상 회복 인원/틱 가산",
     "build_discount": "건설 비용 할인 비율 가산(총 0.5 상한)",
     "light_cap": "바깥 원정 빛 게이지 상한 배율 증감 (예약)",
+    "air_cap": "바깥 원정 공기 게이지 상한 배율 증감 (예약 — 심해판 light_cap)",
+    "depth_cap": "내려갈 수 있는 깊이 상한 배율 증감 (예약)",
+    "defense_penalty": "그 사람이 선 방의 방어 기여 감소 비율 (예약)",
     "power_cost": "전력 구매 비용 배율 증감 (예약)",
     "drifter_rate": "표류자 합류 확률 배율 증감 (예약)",
     "night_production": "야간 생산 배율 증감 (예약)",
@@ -136,6 +141,87 @@
                  "line": "{name}의 머리가 아직 젖어 있다. 눈이 이상하게 밝다. 물을 본 사람의 눈이다."},
       "effect": {"morale_cap": 2, "spot_guide": 1},
       "cost": {"ko": "돌아온 뒤 사흘간 방주가 좁게 느껴진다", "effect": {"morale_daily": -1}, "duration_days": 3}
+    },
+
+    {
+      "id": "saved_breath",
+      "name": "아낀 숨",
+      "crisis": "air_out",
+      "crisis_ko": "공기 부족 (숨이 바닥난 원정에서 생환)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["deep_air"], "flags": ["air_survived"]},
+      "visual": {"keyword": "short_sentences_quiet", "ko": "짧아진 문장, 줄어든 말수",
+                 "line": "{name}의 문장이 짧아졌다. 숨을 아껴 본 사람은 말도 아낀다."},
+      "effect": {"air_cap": 0.2},
+      "cost": {"ko": "사람들이 그의 말을 놓친다 — 남의 사기를 덜 올린다", "effect": {"morale_heal_others": -1}}
+    },
+    {
+      "id": "crack_seen",
+      "name": "금을 본 자",
+      "crisis": "hull_breach",
+      "crisis_ko": "유리 균열 (방 하나를 닫고 생존)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["deep_glass"], "flags": ["room_sealed"]},
+      "visual": {"keyword": "hand_on_glass", "ko": "늘 창을 만지며 지나간다",
+                 "line": "{name}은 이제 창을 만지며 지나간다. 손끝으로 먼저 안다."},
+      "effect": {"counter_bonus": {"부품": 0.3, "청사진": 0.2}},
+      "cost": {"ko": "닫힌 방 앞을 지나지 못한다 — 동선이 길어져 생산이 조금 준다", "effect": {"production_penalty": 0.05}}
+    },
+    {
+      "id": "depth_mark",
+      "name": "깊이의 자국",
+      "crisis": "descent",
+      "crisis_ko": "해구 하강 (무광층 아래에 처음 닿음)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["deep_trench", "deep_ballast"], "flags": ["deep_descent"]},
+      "visual": {"keyword": "pressed_ears_low_voice", "ko": "귀와 코의 눌린 자국, 낮아진 목소리",
+                 "line": "{name}의 귀 뒤에 눌린 자국이 남았다. 목소리가 한 뼘 낮아졌다."},
+      "effect": {"depth_cap": 0.2},
+      "cost": {"ko": "얕은 곳에서 불안해한다 — 광층 체류 중 사기 −1", "effect": {"morale_daily": -1}}
+    },
+    {
+      "id": "knock_heard",
+      "name": "두드림을 들은 자",
+      "crisis": "beast",
+      "crisis_ko": "대형 생물 조우 (긴목·문지기가 다녀가고 생환)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["beast_left"]},
+      "visual": {"keyword": "knock_twice_and_wait",
+                 "ko": "무엇을 만지기 전에 두 번 두드리고 대답을 기다린다. 귀가 소리 쪽으로 먼저 돈다",
+                 "line": "{name}의 손끝에 아직 유리의 떨림이 남아 있다. 무엇을 만지기 전에 두 번 두드리고, 대답을 기다린다."},
+      "effect": {"counter_bonus": {"야행": 0.2}},
+      "cost": {"ko": "두드리는 소리가 나면 하던 일을 멈춘다 — 밤 작업이 느려진다", "effect": {"night_production": -1}}
+    },
+
+    {
+      "id": "made_way",
+      "name": "비킨 자",
+      "crisis": "make_way",
+      "crisis_ko": "길을 비킴 (해마다 오는 길 위에서 지켜 온 것을 스스로 걷음)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["way_made"]},
+      "visual": {"keyword": "half_step_back_at_doorway", "ko": "문간에서 반걸음 먼저 물러선다. 들고 있던 것을 내려놓는 손이 빠르다",
+                 "line": "{name}은 문간에서 반걸음 먼저 물러선다. 걷어 둔 그물을 다시 거는 손만 빠르다."},
+      "effect": {"build_discount": 0.05, "counter_bonus": {"청사진": 0.2}},
+      "cost": {"ko": "닫으라는 말을 못 한다 — 격벽을 내리는 결정이 한 박자 늦는다", "effect": {"defense_penalty": 0.1}}
+    },
+    {
+      "id": "fed_it",
+      "name": "내준 손",
+      "crisis": "feed",
+      "crisis_ko": "먹이를 내줌 (그해 수확을 통째로 밖으로 흘려보냄)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["fed_out"]},
+      "visual": {"keyword": "palm_up_serves_first", "ko": "남의 몫을 먼저 덜어 놓고 자기 그릇을 든다. 손바닥이 늘 위를 향한다",
+                 "line": "{name}의 그릇이 제일 늦게 찼다. 빈 창고 문은 닫지 않고 그냥 열어 두었다."},
+      "effect": {"morale_heal_others": 1, "counter_bonus": {"온실": 0.2}},
+      "cost": {"ko": "내주는 데 익숙해졌다 — 그가 있는 방은 하루 식량이 조금 더 든다", "effect": {"food_daily": 0.2}}
+    },
+    {
+      "id": "sent_up",
+      "name": "올려보낸 아이",
+      "crisis": "guide_up",
+      "crisis_ko": "윗물 아이를 올려보냄 (위로 빛의 길을 내고 박광층 금기를 깸)",
+      "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["guided_up"]},
+      "visual": {"keyword": "looks_up_at_ceiling", "ko": "천장을 올려다본다. 등을 켜는 순서를 손가락으로 세는 버릇이 남았다",
+                 "line": "{name}은 자꾸 천장을 올려다본다. 구한 밤에 우리도 보였다는 것을 혼자만 세고 있다."},
+      "effect": {"morale_cap": 2, "counter_bonus": {"조명": 0.3}},
+      "cost": {"ko": "구한 밤에 우리가 보였다 — 천장을 올려다보는 버릇(광층 금기)이 남아 밤마다 사기가 내려간다", "effect": {"morale_daily": -1}},
+      "_contradiction": "1막에서 유일하게 '구하는' 습격의 각인이다. 같은 한 번의 행동이 구원이자 발각이라 보상과 대가가 분리되지 않는다 — 효과의 사기 상한 +2 와 대가의 일일 사기 −1 이 같은 밤에서 나온다. 습격 쪽 대가(다음 습격 세기 +1)는 각인이 아니라 관문의 값이다(defense.json.gates.gate_cost.guide_up)."
     }
   ]
 }

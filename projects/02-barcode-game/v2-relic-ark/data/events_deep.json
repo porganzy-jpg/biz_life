@@ -676,10 +676,10 @@
     "on_counter": {
       "morale": 2,
       "scrap": 2,
-      "flag": "beast_left"
+      "flag": "way_made"
     },
     "timer_sec": 3,
-    "note": "생물 needle. 막는 법 make_way(길을 비킨다). 질문(S3): 지켜 온 것을 스스로 걷을 수 있는가. severity 3 이라 1~3일차 억제에 걸린다(의도). 깊이 120m 이후."
+    "note": "생물 needle. 막는 법 make_way(길을 비킨다). 질문(S3): 지켜 온 것을 스스로 걷을 수 있는가. severity 3 이라 1~3일차 억제에 걸린다(의도). 깊이 120m 이후. 2026-10-01(S10): flag 를 beast_left → way_made 로 옮겨 전용 각인 「비킨 자」(made_way)에 붙였다 — 바늘은 긴목·문지기가 아니고, 몸에 남는 것도 두드림이 아니라 '물러섰다'는 사실이다."
   },
   {
     "id": "deep_big_maw",
@@ -703,10 +703,10 @@
     "on_counter": {
       "food": -2,
       "morale": 1,
-      "flag": "beast_left"
+      "flag": "fed_out"
     },
     "timer_sec": 3,
-    "note": "생물 big_maw. 막는 법 feed(먹이를 내준다). 질문(S3): 성공해도 식량이 준다. 세계관 훅 — 해구가 비어 간다는 신호를 설명 없이 먹이로 전한다(S1)."
+    "note": "생물 big_maw. 막는 법 feed(먹이를 내준다). 질문(S3): 성공해도 식량이 준다. 세계관 훅 — 해구가 비어 간다는 신호를 설명 없이 먹이로 전한다(S1). 2026-10-01(S10): flag 를 beast_left → fed_out 으로 옮겨 전용 각인 「내준 손」(fed_it)에 붙였다."
   },
   {
     "id": "deep_followed_home",
@@ -755,10 +755,11 @@
     },
     "on_counter": {
       "morale": 3,
-      "knowledge": 1
+      "knowledge": 1,
+      "flag": "guided_up"
     },
     "timer_sec": 3,
-    "note": "생물 upper_child. 막는 법 guide_up(위로 빛의 길). 질문(S3): 1막에서 유일하게 막는 것이 아니라 보내 주는 습격. 성공 보상이 사기뿐이고 대가는 다음 습격의 세기 +1 — 수치는 개발에 요청함. 박광층 금기('위로 빛을 비추지 말 것')를 어기는 유일한 정답."
+    "note": "생물 upper_child. 막는 법 guide_up(위로 빛의 길). 질문(S3): 1막에서 유일하게 막는 것이 아니라 보내 주는 습격. 성공 보상이 사기뿐이고 대가는 다음 습격의 세기 +1 — 수치는 개발에 요청함. 박광층 금기('위로 빛을 비추지 말 것')를 어기는 유일한 정답. 2026-10-01(S10): on_counter 에 flag guided_up 신설 → 전용 각인 「올려보낸 아이」(sent_up). 구한 밤과 들킨 밤이 같은 밤이라 보상과 대가가 한 각인 안에서 갈라지지 않는다."
   },
   {
     "id": "deep_shade_passes",

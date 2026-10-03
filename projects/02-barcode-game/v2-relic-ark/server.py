@@ -386,6 +386,8 @@ def init_db():
             rarity TEXT, mult REAL, ts REAL, day INTEGER);
         CREATE TABLE IF NOT EXISTS family_votes (uid TEXT, family_code TEXT, category TEXT, ts REAL);
         CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, uid TEXT, kind TEXT, payload TEXT, ts REAL);
+        CREATE TABLE IF NOT EXISTS codes (code TEXT PRIMARY KEY, uid TEXT NOT NULL, created REAL, used REAL);
+        CREATE INDEX IF NOT EXISTS codes_uid ON codes(uid);
         """)
 
 
@@ -393,6 +395,65 @@ def log(uid: str, kind: str, payload: dict | None = None):
     with db() as con:
         con.execute("INSERT INTO logs(uid,kind,payload,ts) VALUES(?,?,?,?)",
                     (uid, kind, json.dumps(payload or {}, ensure_ascii=False), time.time()))
+
+
+# ─────────────────────────────────────────────────────────────
+# 이어하기 — **여섯 자리 복구 코드** (DECISIONS D5 추천안, S10-C)
+#   폰으로 하는 게임인데 지금까지는 localStorage 의 uid 하나뿐이라, 기기를 바꾸거나 브라우저
+#   데이터를 지우면 방주가 통째로 사라졌다. 계정도 비밀번호도 만들지 않는다 —
+#   **보여 주고 적어 두라고 말하는 여섯 글자**가 전부다(첫 3분 루프에 탭을 한 번도 더하지 않는다, D5).
+#   기존 uid 사용자는 처음 열 때 코드가 하나 발급되고 방주는 그대로다(마이그레이션 = 없음).
+# ─────────────────────────────────────────────────────────────
+CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # 0·O·1·I·L 제외. 손으로 적고 다시 치는 글자다
+CODE_LEN = 6                                          # 32^6 ≈ 10.7억. 한 사람이 찍어 맞힐 수는 없다
+CODE_GROUP = 3                                        # 화면에는 ABC-DEF 로 끊어 보여 준다
+
+
+def normalize_code(raw: str) -> str:
+    """사람이 적은 것을 받아 준다 — 소문자·공백·하이픈·헷갈리는 글자(O→0 아님, 0→O)를 되돌린다."""
+    up = "".join(ch for ch in str(raw or "").upper() if ch.isalnum())
+    fix = {"0": "O", "O": "O", "1": "I", "I": "I", "L": "I"}     # 적힌 모양 기준으로 되돌린다
+    out = []
+    for ch in up:
+        if ch in CODE_ALPHABET:
+            out.append(ch)
+        elif ch in ("0", "O"):
+            out.append("Q")      # O 계열은 알파벳에 없다 → 가장 가까운 Q 로 본다
+        elif ch in ("1", "I", "L"):
+            out.append("J")
+        else:
+            out.append(ch)
+    return "".join(out)[:CODE_LEN]
+
+
+def code_pretty(code: str) -> str:
+    return "-".join(code[i:i + CODE_GROUP] for i in range(0, len(code), CODE_GROUP))
+
+
+def issue_code(uid: str) -> str:
+    """그 방주의 복구 코드. 이미 있으면 그대로 돌려준다(코드는 하나뿐이고 바뀌지 않는다)."""
+    with db() as con:
+        row = con.execute("SELECT code FROM codes WHERE uid=? ORDER BY created LIMIT 1", (uid,)).fetchone()
+        if row:
+            return row["code"]
+        rng = random.SystemRandom()
+        for _ in range(40):
+            code = "".join(rng.choice(CODE_ALPHABET) for _ in range(CODE_LEN))
+            try:
+                con.execute("INSERT INTO codes(code,uid,created,used) VALUES(?,?,?,NULL)",
+                            (code, uid, time.time()))
+                return code
+            except sqlite3.IntegrityError:
+                continue            # 충돌. 다시 뽑는다
+    raise HTTPException(500, "코드를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요")
+
+
+def uid_for_code(code: str) -> str | None:
+    with db() as con:
+        row = con.execute("SELECT uid FROM codes WHERE code=?", (code,)).fetchone()
+        if row:
+            con.execute("UPDATE codes SET used=? WHERE code=?", (time.time(), code))
+        return row["uid"] if row else None
 
 
 # ─────────────────────────────────────────────────────────────
@@ -841,30 +902,97 @@ def day_of(st: dict) -> int:
     return int((time.time() - st["created"]) // 86400) + 1
 
 
+# ── 생산물의 길 (S10-C 버그 셋 중 둘) ────────────────────────────
+# `data/rooms.json` 의 produces 에는 **자원이 아닌 것이 둘** 있다. 시나리오 소유 파일이라 고치지 않고
+# 읽을 때 올바른 자리로 보낸다(DEEP_IMPRINTS 와 같은 규약).
+#   library.blueprint_progress → st["blueprint_progress"] (전에는 resources 에 유령 키를 만들어
+#                                 화면에도 안 보이고 건설에도 안 쓰였다 = 서고 생산 사망)
+#   infirmary.counter_card     → 손패의 **대항 카드** (값이 문자열이라 isinstance(v,int) 에서 걸러져
+#                                 생산이 0 이었다)
+NON_RESOURCE_PRODUCE = ("blueprint_progress", "counter_card")
+COUNTER_CARD_SPECS = {
+    # 유물 카드와 같은 모양이라야 손패 UI(app.js cardEl)가 그대로 그린다.
+    "heal": {"name": "처치 꾸러미", "tags": ["치료"], "category": "medical", "rarity": "common",
+             "card_type": "tool", "family_name": "의무실", "barcode": "8800000000013",
+             "flavor": "끓인 천과 하얀 가루. 누가 언제 감았는지는 아무도 모른다.",
+             "yields": {"med": 1}},
+}
+
+
+def make_counter_card(kind: str, st: dict) -> dict | None:
+    """방이 만들어 내는 대항 카드 한 장. 스캔 카드와 같은 계약(id·barcode·tags)을 지킨다."""
+    spec = COUNTER_CARD_SPECS.get(kind)
+    if not spec or len(st.get("hand") or []) >= HAND_LIMIT:
+        return None
+    card = dict(spec)
+    card["id"] = f"made-{kind}-{int(time.time() * 1000)}-{len(st['hand'])}"
+    card["seed"] = card["id"]
+    card["made_by_room"] = True
+    st["hand"].append(card)
+    return card
+
+
 def tick_production(st: dict) -> dict:
-    """오프라인 생산 정산. 반환: 이번에 생산된 자원 요약."""
+    """오프라인 생산 정산. 반환: 이번에 생산된 자원 요약.
+
+    관문의 **대가**가 여기서 돈을 낸다(defense.json gates.gate_cost):
+      전원 차단(문지기의 정답) → 그 기간 전 방 생산 0 — 이 게임에서 가장 비싼 올바른 행동
+      불 끄기(긴목의 정답)     → 그 방 생산 ×0.5 — 끄면 우리도 그 방을 못 본다
+    """
     elapsed = time.time() - st["last_tick"]
     ticks = min(int(elapsed // PRODUCTION_TICK_SEC), MAX_OFFLINE_TICKS)
     produced: dict = {}
     if ticks <= 0:
         return produced
+    if not st.get("power_on", True):
+        # 전원을 내려 둔 채로 시간이 흘렀다. 조용한 대신 아무것도 만들지 못한다
+        st["last_tick"] += ticks * PRODUCTION_TICK_SEC
+        st["dark_note"] = {"kind": "blackout", "ticks": ticks,
+                           "ko": "전원이 내려가 있는 동안 아무 방도 일하지 않았다."}
+        return produced
+    st.pop("dark_note", None)
     # 물 찬 방은 생산하지 않는다. 인접 보너스도 주지 않는다 — 그 방은 더 이상 방이 아니다
     live = [r for r in st["rooms"] if not r.get("flooded")]
     room_ids = [r["id"] for r in live]
     eff = role_effects(st)
+    dark_rooms = []
     for r in live:
         spec = ROOMS[r["id"]]
         bonus = eff["room_bonus"].get(r["id"], {})
+        mul = 1.0
+        if not light_on(st, r["slot"]):
+            mul = 0.5
+            dark_rooms.append(ROOMS[r["id"]]["name"])
         for k, v in spec["produces"].items():
-            if isinstance(v, int):
-                amt = (v + bonus.get(k, 0)) * ticks
+            if k in NON_RESOURCE_PRODUCE:
+                if k == "blueprint_progress" and isinstance(v, (int, float)):
+                    amt = int(round(v * ticks * mul))
+                    st["blueprint_progress"] = int(st.get("blueprint_progress", 0)) + amt
+                    if amt:
+                        produced[k] = produced.get(k, 0) + amt
+                elif k == "counter_card" and isinstance(v, str):
+                    made = sum(1 for _ in range(int(max(1, round(ticks * mul))))
+                               if make_counter_card(v, st))
+                    if made:
+                        produced[k] = produced.get(k, 0) + made
+                continue
+            if isinstance(v, (int, float)):
+                amt = int(round((v + bonus.get(k, 0)) * ticks * mul))
+                if not amt:
+                    continue
                 st["resources"][k] = st["resources"].get(k, 0) + amt
                 produced[k] = produced.get(k, 0) + amt
         for nb, bonus in spec.get("adjacency_bonus", {}).items():
             if nb in room_ids:
                 for k, v in bonus.items():
-                    st["resources"][k] = st["resources"].get(k, 0) + v * ticks
-                    produced[k] = produced.get(k, 0) + v * ticks
+                    amt = int(round(v * ticks * mul))
+                    if not amt:
+                        continue
+                    st["resources"][k] = st["resources"].get(k, 0) + amt
+                    produced[k] = produced.get(k, 0) + amt
+    if dark_rooms:
+        st["dark_note"] = {"kind": "dark", "rooms": sorted(set(dark_rooms)),
+                           "ko": "불을 꺼 둔 방은 절반만 일했다 — " + " · ".join(sorted(set(dark_rooms)))}
     # 부상 회복: 틱마다 1명 (의무병 있으면 2명)
     heal = eff["heal_rate"] * ticks
     # 숨이 긴 사람이 먼저 일어난다(RESIDENT_STATS §4 "부상 회복 = 숨 + 의무실 등급")
@@ -892,7 +1020,9 @@ def ark_state_obj(st: dict) -> ArkState:
 FLOOR_SLOTS = 2             # 한 층에 방 2칸. index.html·base.js 와 같은 규약(slot // 2 = 층)
 DOME_FLOOR = 1              # 깊이 0 m 의 층 = 시작 방(slot 2)이 있는 층. 그 위 슬롯 0·1 은 돔 상부다
 DEPTH_PER_FLOOR = 60        # 층 하나 = 60 m. static/base.js 의 같은 상수와 맞춘다
-DEPTH_ZONES = ((0, "무광층"), (150, "해구 문턱"), (210, "해구"))   # static/base.js ZONES 와 같은 경계(m)
+# 깊이 구역 경계(m). **해구 문턱은 180 m 다** — 밸런스 threats.json grade_source.map 의 등급 4 깊이와
+# 같은 값이어야 한다(등급을 깊이로 판정하므로). S10-C 에서 150 → 180 으로 통일했다.
+DEPTH_ZONES = ((0, "무광층"), (180, "해구 문턱"), (210, "해구"))   # static/base.js ZONES 와 같은 경계(m)
 AIR_FIXED = 0.82            # ★ 원정(공기 소모)이 생기면 실제 값으로 바뀐다. 지금은 UI 자리만
 
 
@@ -927,6 +1057,31 @@ def gauges_of(st: dict) -> dict:
 # 판정 공식과 생물·도구 표는 engine/combat.py 에 있다. 여기서는 **상태를 읽어 ctx 를 만들고**
 # 돌아온 판정을 상태에 쓰기만 한다. 난수는 전부 `uid|day|raid|목적` 시드다(02_DEV D6).
 # ─────────────────────────────────────────────────────────────
+
+# 위협 등급 — **깊이로만 정해진다. 날짜가 아니다**(threats.json grade_source, BALANCE §3).
+# 띄엄띄엄 하는 사람은 얕은 곳에 오래 머물고, 그에게는 센 것이 오지 않는다. 난이도를 시간이
+# 밀면 조급해지고 플레이어가 당기면 아늑함이 남는다(B4).
+THREAT_GRADES = sorted(
+    [{"grade": int(r["grade"]), "depth_m": int(r.get("depth_m") or 0), "rooms_min": int(r.get("rooms_min") or 0)}
+     for r in (((combat.THR.get("grade_source") or {}).get("map")) or []) if isinstance(r, dict) and r.get("grade")],
+    key=lambda r: r["grade"]) or [{"grade": 1, "depth_m": 0, "rooms_min": 0}]
+
+
+def depth_of(st: dict) -> int:
+    """거점 최심부 깊이(m). 등급도 화면의 깊이 띠도 이 한 값에서 나온다."""
+    deepest = max([r["slot"] // FLOOR_SLOTS for r in st.get("rooms", [])] or [DOME_FLOOR])
+    return max(0, deepest - DOME_FLOOR) * DEPTH_PER_FLOOR
+
+
+def grade_of(st: dict) -> int:
+    """오늘 올 수 있는 위협의 등급 1~5. 깊이 + (등급 5 만) 방 칸 수."""
+    depth_m, rooms = depth_of(st), len(live_rooms(st))
+    g = THREAT_GRADES[0]["grade"]
+    for row in THREAT_GRADES:
+        if depth_m >= row["depth_m"] and rooms >= row["rooms_min"]:
+            g = row["grade"]
+    return int(g)
+
 def live_rooms(st: dict) -> list[dict]:
     """아직 방인 것들. 물 찬 방은 빠진다."""
     return [r for r in st.get("rooms", []) if not r.get("flooded")]
@@ -1010,12 +1165,22 @@ def gathered_one_room(st: dict):
     return False, None
 
 
+def lure_elsewhere(st: dict, slot) -> bool:
+    """**다른 방**에 유인 등불이 켜져 있는가. 거울눈의 관문(반대쪽이 더 밝다)이 이것을 본다."""
+    for r in live_rooms(st):
+        if slot is not None and int(r["slot"]) == int(slot):
+            continue
+        if any(combat.TOOLS.get(t, {}).get("lures_elsewhere") for t in installed_at(st, r["slot"])):
+            return True
+    return False
+
+
 def raid_ctx(st: dict, raid: dict, consumables: list | None = None) -> dict:
     """판정에 들어가는 '그 순간의 사실들'. 화면이 보여 주는 것과 한 글자도 달라서는 안 된다(D2)."""
     slot = raid.get("target_slot")
     r = room_at(st, slot)
     people = [{"id": p["id"], "name": p["name"], "injured": bool(p.get("injured")),
-               "counter_tags": list(ROLES.get(p["role"], {}).get("counter_tags", [])),
+               "role": p.get("role"),
                "nerve": int((p.get("stats") or {}).get("nerve", 5)),
                "imprints": list(p.get("imprints") or [])}
               for p in stations_map(st).get(int(slot), [])] if slot is not None else []
@@ -1024,6 +1189,7 @@ def raid_ctx(st: dict, raid: dict, consumables: list | None = None) -> dict:
     return {
         "room_id": (r or {}).get("id") if r and not r.get("flooded") else None,
         "room_name": (ROOMS.get((r or {}).get("id"), {}).get("name") if r else None) or "빈 자리",
+        "room_level": int((r or {}).get("level") or 1),
         "people": people,
         "light_on": light_on(st, slot) if slot is not None else True,
         "forced_dark": any(combat.TOOLS.get(t, {}).get("forces_dark") for t in inst),
@@ -1038,6 +1204,11 @@ def raid_ctx(st: dict, raid: dict, consumables: list | None = None) -> dict:
         "hands": sum(int((combat.TOOLS.get(t) or {}).get("hands", 0))
                      for t in list(inst) + list(consumables or [])),
         "severity": int(raid.get("severity", 0)),
+        # ── S10-C 신규 관문 일곱이 읽는 사실 셋 ─────────────────────
+        "grade": int(raid.get("grade") or grade_of(st)),      # need 가 등급에서 나온다
+        "acts": list(raid.get("acts") or []),                 # 이번 습격에 치른 행동(대가를 이미 냈다)
+        "moves": int(raid.get("moves") or 0),                 # 습격이 시작된 뒤 사람을 옮긴 횟수(덮개)
+        "lure_elsewhere": lure_elsewhere(st, slot),           # 반대쪽이 더 밝은가(거울눈)
     }
 
 
@@ -1055,31 +1226,36 @@ def send_outside(st: dict, uid: str, day: int) -> list:
 def archive_raid(st: dict, raid: dict) -> None:
     rows = st.setdefault("raid_log", [])
     rows.append({k: raid.get(k) for k in
-                 ("id", "day", "creature", "target_slot", "severity", "result", "line", "score", "need")})
+                 ("id", "day", "creature", "target_slot", "severity", "result", "line", "score",
+                  "need", "grade", "gate_ok", "shielded")})
     del rows[:-60]
 
 
-def ensure_raid(st: dict, uid: str, force: str | None = None, reset: bool = False) -> dict | None:
+def ensure_raid(st: dict, uid: str, force: str | None = None, reset: bool = False,
+                grade_force: int | None = None) -> dict | None:
     """오늘의 습격. **하루 1회 이하**(§6-1) — 이미 오늘 것이 있으면 새로 뽑지 않는다."""
     day = day_of(st)
     cur = st.get("raid")
-    if cur and cur.get("day") == day and not (reset or force):
+    if cur and cur.get("day") == day and not (reset or force or grade_force):
         return None if cur.get("none") else cur
     st["outside"] = []                   # 어제 밖에 있던 사람은 밤새 들어왔다. 밖은 하루를 넘기지 않는다
-    cre = combat.pick_creature(uid, day, force=force)
+    grade = int(grade_force) if grade_force else grade_of(st)
+    cre = combat.pick_creature(uid, day, grade, force=force)
     if not cre:
-        st["raid"] = {"day": day, "none": True}
+        st["raid"] = {"day": day, "none": True, "grade": grade}
         return None
     slot = combat.pick_target(uid, day, cre, live_rooms(st), st.get("room_tools") or {})
     if slot is None:
         # 갈 방이 없다(전부 침수거나 전부 유인 등불). 긴목은 다른 불빛을 따라 간다
-        st["raid"] = {"day": day, "none": True, "diverted": cre["id"]}
+        st["raid"] = {"day": day, "none": True, "diverted": cre["id"], "grade": grade}
         return None
+    sev = combat.severity(uid, day, grade)
+    sev += int(st.pop("severity_debt", 0) or 0)      # 윗물 아이를 올려 보낸 값(금기를 어겼다)
     raid = {
-        "id": f"raid-{day}-{cre['id']}", "day": day, "creature": cre["id"],
-        "target_slot": int(slot), "severity": combat.severity(uid, day),
+        "id": f"raid-{day}-{cre['id']}", "day": day, "creature": cre["id"], "grade": grade,
+        "target_slot": int(slot), "severity": max(0, min(4, sev)),
         "stage": "sound", "started": time.time(), "resolved": False, "result": None,
-        "outside_sent": [],
+        "outside_sent": [], "acts": [], "moves": 0,
     }
     if cre["gate"] == "all_inside":
         raid["outside_sent"] = send_outside(st, uid, day)
@@ -1119,14 +1295,55 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
         "result": raid.get("result"), "result_ko": combat.RESULT_KO.get(raid.get("result") or ""),
         "line": raid.get("line"),
         "outside": list(st.get("outside") or []),
+        "grade": int(raid.get("grade") or grade_of(st)),
+        "moves": int(raid.get("moves") or 0),
+        "acts": list(raid.get("acts") or []),
+        # 그 생물을 막는 **행동 버튼**(관문이 토글로 안 되는 일곱). 대가와 낼 수 있는지까지 서버가 판단한다
+        "action": None if quiet else gate_action_public(st, raid, cre),
         # 접촉 전 미리보기(실루엣 단계부터). 숫자보다 "무엇이 모자란지"를 먼저 말한다
         "eye_early": ({"name": eye_who["name"], "eye": eye,
                        "ko": eye_who["name"] + "의 눈이 밝다 — 소리만 듣고 어느 창인지 안다."} if early else None),
         "ready": None if quiet else {
             "gate": preview["gate"], "score": preview["score"], "need": preview["need"],
             "would": preview["result"], "would_ko": combat.RESULT_KO[preview["result"]],
-            "parts": preview["parts"],
+            "parts": preview["parts"], "shielded": preview.get("shielded"),
         },
+    }
+
+
+def gate_action_public(st: dict, raid: dict, cre: dict) -> dict | None:
+    """관문 행동 한 개(있는 생물만). 대가·충족 여부·이미 했는지를 전부 서버가 말한다 —
+    화면은 계산하지 않는다(정보를 숨기지 않는다, 02_DEV §3 Slay the Spire)."""
+    spec = combat.action_for_gate(cre.get("gate") or "none")
+    if not spec:
+        return None
+    sev = int(raid.get("severity", 0))
+    cost = combat.action_cost(spec["id"], sev)
+    have = st.get("resources") or {}
+    lack = {k: v - int(have.get(k, 0)) for k, v in cost.items() if int(have.get(k, 0)) < v}
+    why = []
+    if spec.get("needs_room") and not any(r["id"] == spec["needs_room"] for r in live_rooms(st)):
+        why.append(f"{ROOMS.get(spec['needs_room'], {}).get('name', spec['needs_room'])}이(가) 없다")
+    if spec.get("needs_hall") and not hall_of(st):
+        why.append("홀에 사람이 없다 — 등을 순서대로 켤 사람이 필요하다")
+    if spec.get("needs_power_on") and not st.get("power_on", True):
+        why.append("전원이 내려가 있다")
+    if spec.get("needs_light_on") and not light_on(st, raid.get("target_slot")):
+        why.append("이 방의 불이 꺼져 있다 — 끄면 비침이 사라진다")
+    if spec.get("spends_relic") and not (st.get("hand") or []):
+        why.append("돌려보낼 유물이 창고에 없다")
+    inst_now = installed_at(st, raid.get("target_slot"))
+    cost_ko = spec["cost_ko"]
+    if spec.get("strips_tools"):
+        # 걷을 것이 없으면 공짜다. 대신 그 방은 지금 맨몸이라는 뜻이기도 하다
+        cost_ko = ("걷어 낼 것: " + " · ".join(combat.TOOLS[t]["name"] for t in inst_now) +
+                   " — 영영 잃는다") if inst_now else "그 방에는 걷어 낼 것이 없다. 비키기만 하면 된다"
+    return {
+        "id": spec["id"], "ko": spec["ko"], "why": spec["why"], "cost_ko": cost_ko,
+        "cost": cost, "lacking": lack,
+        "done": spec["id"] in (raid.get("acts") or []),
+        "blocked": why,
+        "can": not lack and not why and spec["id"] not in (raid.get("acts") or []),
     }
 
 
@@ -1194,7 +1411,10 @@ def combat_public(st: dict) -> dict:
         "raid_log": list(st.get("raid_log") or [])[-8:],
         "next_raid_hint": st.get("next_raid_hint"),
         "workshop": tool_public(st),
-        "creatures": {c["id"]: {"name": c["name"], "how": c["how"], "threat": c["threat"]}
+        "grade": grade_of(st),
+        "creatures": {c["id"]: {"name": c["name"], "how": c["how"], "threat": c["threat"],
+                                "gate": c.get("gate", "none"),
+                                "gate_ko": combat.GATE_KO.get(c.get("gate", "none"), "")}
                       for c in combat.CREATURES.values()},
     }
 
@@ -1210,6 +1430,10 @@ def public_state(st: dict, uid: str) -> dict:
         # 막: 오늘의 사건이 어느 풀에서 나왔는지와 같은 값이다(DECISIONS 2026-09-23)
         "act": int(st.get("act") or 1), "act_ko": ACT_KO.get(int(st.get("act") or 1), ""),
         "gauges": gauges_of(st),
+        # 위협 등급 1~5. **깊이로만 올라간다**(threats.json). 화면은 이것을 숫자로 찍지 않고
+        # 「해구 문턱」 같은 구역 이름과 깊이 띠로 보여 준다(D2)
+        "grade": grade_of(st),
+        "dark_note": st.get("dark_note"),
         "residents_list": st.get("residents_list", []), "effects": role_effects(st),
         # 각인·신뢰 (residents_list[].imprints / .crises / .trust 와 함께 읽는다)
         "imprints_catalog": {i["id"]: {"name": i["name"], "crisis_ko": i.get("crisis_ko"), "visual": i["visual"]["ko"],
@@ -1306,6 +1530,38 @@ def scan(inp: ScanIn):
     voice = voice_for(f"scan_{cat}", vseed, act=_act) or voice_for(SCAN_VOICE_FALLBACK.get(cat, ""), vseed, act=_act)
     return {"card": card_d, "gained": gained, "rescan_multiplier": mult, "first_time": first_time,
             "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice}
+
+
+# ── 이어하기 API ──────────────────────────────────────────────
+@app.get("/api/account")
+def account(uid: str):
+    """이 방주의 복구 코드. 처음 물으면 그 자리에서 발급된다(기존 uid 사용자 포함)."""
+    st = load_state(uid)                      # 없는 방주면 여기서 생긴다 = 코드가 빈 방주를 가리키지 않는다
+    code = issue_code(uid)
+    return {"uid": uid, "code": code, "pretty": code_pretty(code),
+            "day": day_of(st), "rooms": len(st.get("rooms") or []),
+            "residents": len(st.get("residents_list") or []),
+            "ko": "이 여섯 글자가 방주의 열쇠다. 적어 두면 다른 기계에서도 이어서 할 수 있다."}
+
+
+class RestoreIn(BaseModel):
+    code: str
+
+
+@app.post("/api/account/restore")
+def account_restore(inp: RestoreIn):
+    """코드로 다른 기기에서 이어하기. 계정도 비밀번호도 없다 — 코드가 곧 방주다."""
+    code = normalize_code(inp.code)
+    if len(code) != CODE_LEN:
+        raise HTTPException(400, f"{CODE_LEN}글자를 적어 주세요")
+    uid = uid_for_code(code)
+    if not uid:
+        raise HTTPException(404, "그런 코드는 없습니다. 적어 둔 것을 다시 봐 주세요")
+    st = load_state(uid)
+    log(uid, "restore", {"code": code})
+    return {"uid": uid, "code": code, "pretty": code_pretty(code), "day": day_of(st),
+            "rooms": len(st.get("rooms") or []), "residents": len(st.get("residents_list") or []),
+            "ko": f"{day_of(st)}일째 방주로 돌아왔다."}
 
 
 @app.get("/api/ark")
@@ -1405,7 +1661,14 @@ def station(inp: StationIn):
         here = [p for p in stations_map(st).get(int(inp.slot), []) if p["id"] != inp.resident_id]
         if len(here) >= cap:
             raise HTTPException(400, f"{ROOMS[room['id']]['name']}{combat.josa(ROOMS[room['id']]['name'], ('은', '는'))} {cap}명까지입니다")
+    before = station_slot(st, inp.resident_id)
     set_station(st, inp.resident_id, inp.slot)
+    # 「덮개」의 관문은 **아무도 움직이지 않는 것**이다. 습격이 시작된 뒤의 이동을 센다 —
+    # 이 게임의 주된 동사(사람을 옮긴다)가 최악수가 되는 유일한 생물이라 세는 자리가 필요하다.
+    raid = st.get("raid")
+    if (raid and not raid.get("none") and not raid.get("resolved")
+            and raid.get("day") == day_of(st) and before != (int(inp.slot) if inp.slot is not None else None)):
+        raid["moves"] = int(raid.get("moves") or 0) + 1
     save_state(inp.uid, st)
     log(inp.uid, "station", {"resident": inp.resident_id, "slot": inp.slot})
     return public_state(st, inp.uid)
@@ -1518,6 +1781,74 @@ def install(inp: InstallIn):
     return public_state(st, inp.uid)
 
 
+class ActIn(BaseModel):
+    uid: str
+    action: str
+
+
+@app.post("/api/ark/act")
+def gate_act(inp: ActIn):
+    """관문 행동 하나. **대가를 그 자리에서 낸다**(defense.json gates.gate_cost).
+
+    토글(불·전원·귀환)로 표현되지 않는 일곱 — 반대쪽에 불 켜기 / 물 흐리기 / 길 비키기 /
+    먹이 내주기 / 돌려주기 / 올려 보내기 — 이 여기로 온다. 「가만히 서기」는 행동이 아니라
+    **하지 않는 것**이라 버튼이 없다(세는 것은 /api/ark/station 쪽이다).
+    되돌릴 수 없다. 대가 없는 관문은 그냥 누르는 버튼이 되어 선택이 사라진다(B3).
+    """
+    st = load_state(inp.uid)
+    tick_production(st)
+    spec = combat.GATE_ACTIONS.get(inp.action)
+    if not spec:
+        raise HTTPException(400, "없는 대응입니다")
+    raid = st.get("raid")
+    if not raid or raid.get("none") or raid.get("day") != day_of(st) or raid.get("resolved"):
+        raise HTTPException(400, "지금 맞설 것이 없습니다")
+    cre = combat.CREATURES.get(raid.get("creature")) or {}
+    if cre.get("gate") != spec["gate"]:
+        raise HTTPException(400, f"{cre.get('name', '그것')}에게는 통하지 않습니다")
+    pub = gate_action_public(st, raid, cre)
+    if pub["done"]:
+        raise HTTPException(400, "이미 했습니다")
+    if pub["blocked"]:
+        raise HTTPException(400, " · ".join(pub["blocked"]))
+    if pub["lacking"]:
+        raise HTTPException(400, "모자랍니다: " +
+                            " · ".join(f"{RES_KO_SRV.get(k, k)} {v}" for k, v in pub["lacking"].items()))
+
+    paid: dict = {}
+    for k, v in pub["cost"].items():
+        st["resources"][k] = max(0, int(st["resources"].get(k, 0)) - int(v))
+        paid[k] = int(v)
+    lost = []
+    if spec.get("strips_tools"):                       # 걷어 낸 것은 돌아오지 않는다
+        rows = (st.get("room_tools") or {}).pop(str(int(raid["target_slot"])), []) or []
+        lost = [combat.TOOLS[r["id"]]["name"] for r in rows if r.get("id") in combat.TOOLS]
+    gone_card = None
+    if spec.get("spends_relic"):                       # 수집을 깎는 유일한 대가라 가장 아프다
+        card = (st.get("hand") or [])[0]
+        st["hand"] = st["hand"][1:]
+        gone_card = card.get("name")
+    if spec.get("next_severity"):                      # 금기를 어긴 값은 **다음**에 치른다
+        st["severity_debt"] = int(st.get("severity_debt", 0)) + int(spec["next_severity"])
+
+    raid.setdefault("acts", []).append(spec["id"])
+    save_state(inp.uid, st)
+    log(inp.uid, "gate_act", {"action": spec["id"], "raid": raid["id"], "paid": paid,
+                              "lost_tools": lost, "lost_card": gone_card})
+    bits = [spec["ko"] + "."]
+    if paid:
+        bits.append("치른 것 — " + " · ".join(f"{RES_KO_SRV.get(k, k)} {v}" for k, v in paid.items()))
+    if lost:
+        bits.append("걷어 낸 것 — " + " · ".join(lost) + " (영영)")
+    if gone_card:
+        bits.append(f"「{gone_card}」을(를) 내려보냈다. 도감의 그 칸은 비어 있는 채로 남는다")
+    if spec.get("next_severity"):
+        bits.append("위로 빛을 비췄다. 다음에 오는 것이 한 단계 세진다")
+    return {"ok": True, "action": spec["id"], "paid": paid, "lost_tools": lost,
+            "lost_card": gone_card, "ko": " ".join(bits),
+            "raid": raid_public(st, raid), "state": public_state(st, inp.uid)}
+
+
 def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
     """접촉. **방어 판정 공식은 engine/combat.evaluate 하나뿐이고 난수가 없다**(D6).
     같은 배치 = 같은 결과, 다른 배치 = 다른 결과. 이것이 이 시스템의 합격 기준이다."""
@@ -1548,7 +1879,7 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
     room = room_at(st, raid["target_slot"])
     room_name = ctx["room_name"]
     line = combat.outcome_line(cre, result, room_name)
-    gained = combat.reward_for(result, raid["severity"])
+    gained = combat.reward_for(result, raid["severity"], int(raid.get("grade") or 1))
     for k, v in gained.items():
         st["resources"][k] = max(0, st["resources"].get(k, 0) + v)
 
@@ -1584,9 +1915,9 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
     new_imprints = grant_imprints(st, None, flags, here) if flags else []
 
     hint = None
-    if not cre["threat"]:
+    if cre.get("foretells"):
         # 문어는 위협이 아니라 **다음을 미리 알린다**(§4). 말은 하지 않는다 — 알리는 것은 행동이다
-        nxt = combat.pick_creature(uid, day + 1)
+        nxt = combat.pick_creature(uid, day + 1, int(raid.get("grade") or grade_of(st)))
         hint = {"day": day + 1, "creature": nxt["id"] if nxt else None,
                 "name": nxt["name"] if nxt else None,
                 "how": nxt["how"] if nxt else None,
@@ -1599,14 +1930,18 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
     bump_trust(st, TRUST_ON_COUNTER if result in (combat.HELD, combat.PASSED) else TRUST_ON_FAIL)
     raid.update({"stage": "done", "resolved": True, "result": result, "line": line,
                  "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
-                 "gate_ok": ev["gate"]["ok"], "used": use, "ended": time.time()})
+                 "gate_ok": ev["gate"]["ok"], "used": use, "ended": time.time(),
+                 "shielded": ev.get("shielded")})
     archive_raid(st, raid)
     log(uid, "raid_resolved", {"raid": raid["id"], "creature": cre["id"], "result": result,
                                "slot": raid["target_slot"], "score": ev["score"], "need": ev["need"],
-                               "gate": ev["gate"]["ok"], "used": use})
+                               "gate": ev["gate"]["ok"], "used": use, "grade": raid.get("grade"),
+                               "severity": raid.get("severity"), "acts": list(raid.get("acts") or []),
+                               "moves": raid.get("moves"), "shielded": ev.get("shielded")})
     return {"result": result, "result_ko": combat.RESULT_KO[result], "line": line,
             "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
             "gate": ev["gate"], "parts": ev["parts"], "used": use, "worn_out": worn,
+            "shielded": ev.get("shielded"), "grade": int(raid.get("grade") or 1),
             "gained": gained, "injured": hurt, "lost_room": lost_room,
             "new_imprints": new_imprints, "next_raid_hint": hint,
             "voice": voice_for("event_counter" if result in (combat.HELD, combat.PASSED) else "event_fail",
@@ -1615,15 +1950,18 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list) -> dict:
 
 @app.get("/api/raid/today")
 def raid_today(uid: str,
-               debug_raid: str | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 습격을 이 생물로 강제한다(swarm/longneck/warden/claws/octopus). RELIC_DEV=1 에서만."),
-               debug_reset: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 습격을 처음 단계로 되돌린다. 같은 습격을 다른 배치로 다시 돌려 보기 위한 훅. RELIC_DEV=1 에서만.")):
+               debug_raid: str | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 습격을 이 생물로 강제한다(swarm/longneck/warden/claws/mirror_eye/straight_one/lid/needle/big_maw/follower/upper_child/octopus/shade/far_cry). RELIC_DEV=1 에서만."),
+               debug_reset: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 오늘의 습격을 처음 단계로 되돌린다. 같은 습격을 다른 배치로 다시 돌려 보기 위한 훅. RELIC_DEV=1 에서만."),
+               debug_grade: int | None = Query(None, description="★ 개발 전용(DEV ONLY): 위협 등급 1~5 를 강제한다. 깊이를 파지 않고 need 곡선을 확인하는 훅. RELIC_DEV=1 에서만.")):
     st = load_state(uid)
     tick_production(st)
-    if (debug_raid or debug_reset) and not DEV_MODE:
+    if (debug_raid or debug_reset or debug_grade) and not DEV_MODE:
         raise HTTPException(404, "없는 질의입니다")       # 존재를 알리지 않는다(DECISIONS 2026-09-23)
     if debug_raid and debug_raid not in combat.CREATURES:
         raise HTTPException(400, f"없는 생물입니다: {debug_raid}")
-    ensure_raid(st, uid, force=debug_raid, reset=bool(debug_reset))
+    if debug_grade is not None and not (1 <= debug_grade <= 5):
+        raise HTTPException(400, f"없는 등급입니다: {debug_grade}")
+    ensure_raid(st, uid, force=debug_raid, reset=bool(debug_reset), grade_force=debug_grade)
     save_state(uid, st)
     out = combat_public(st)
     return {"raid": out["raid"], "day": day_of(st), "outside": out["outside"],

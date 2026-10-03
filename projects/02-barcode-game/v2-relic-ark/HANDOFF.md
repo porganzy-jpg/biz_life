@@ -11,7 +11,7 @@
 | **시점 변경**(2026-09-23) | 1막 거점을 **정면 평면 단면**으로. 아이소는 바깥 원정·3막에서 유지. `docs/refs/REF_CROSS_SECTION.md` |
 | 스프린트 4 | 착수 직후 중단. 평면 단면 1차 렌더까지 나옴(`static/art/deep/section_hero.png`) |
 
-**읽는 순서**: `docs/CONCEPT_DEEP_SEA.md` → `docs/DECISIONS.md`(최신이 위) → `docs/TASKS.md` → `docs/reports/review_sprint3.md` → `docs/TEAM.md`.
+**읽는 순서**: `docs/DEVELOPMENT_GUIDE.md`(전체 개발 가이드, 여기부터) → `docs/CONCEPT_DEEP_SEA.md` → `docs/DECISIONS.md`(최신이 위) → `docs/TASKS.md` → `docs/reports/review_sprint3.md` → `docs/TEAM.md`.
 
 ## 2. 새 컴퓨터에서 준비할 것
 
