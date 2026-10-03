@@ -187,7 +187,47 @@ def scene_m4():
     return dict(key="m4", cx=0.0, cz=0.0, rooms=rooms, people=people)
 
 
-SCENES = {"m1": scene_m1, "m2": scene_m2, "m3": scene_m3, "m4": scene_m4}
+M5_X0, M5_HW, M5_IN = -4.6, 14.0, 10.8     # M5 탑: 중심 x, 바깥 반폭, 잘라 낸 단면 반폭
+
+
+def scene_m5():
+    """M2+M4 혼합 — 절벽 끝에 기대 선 수몰 탑. 왼쪽 바위, 가운데 탑, 오른쪽 열린 심연."""
+    C = [M5_X0 - 7.3, M5_X0, M5_X0 + 7.3]
+    F = [2.4, -2.0, -6.4, -10.8, -15.2]
+    st = [
+        ["quarters:lit", "infirmary:lit", "workshop:lit"],
+        ["storage:lit", "quarters:lit", "power:lit"],
+        ["workshop:lit", "storage:pump", "quarters:flood"],
+        ["storage:flood", "plan", "workshop:flood"],
+        ["plan", "storage:dark", "plan"],
+    ]
+    rooms = []
+    for fi, row in enumerate(st):
+        for ci, cell in enumerate(row):
+            if cell == "plan":
+                rooms.append((C[ci], F[fi], "storage", "plan"))
+            else:
+                k, s_ = cell.split(":")
+                rooms.append((C[ci], F[fi], k, s_))
+    rooms.append((-24.2, -2.0, "greenhouse", "lit"))    # 15 바위를 판 굴 방(탑과 절벽이 만나는 곳)
+    rooms.append((-24.2, -6.4, "storage", "plan"))      # 16 더 팔 자리
+    rooms.append((M5_X0, 7.6, "greenhouse", "lit"))     # 17 꼭대기 아트리움(돔)
+    people = {
+        0: [("cook", -1.4, "idle"), ("kid", 1.2, "sit")],
+        1: [("medic", 0.2, "work")],
+        2: [("engineer", -0.4, "work"), ("trader", 1.8, "idle")],
+        3: [("trader", -1.0, "carry")],
+        4: [("scholar", -1.6, "sit"), ("scout", 1.0, "idle")],
+        5: [("engineer", 0.2, "work")],
+        6: [("engineer", -1.5, "work"), ("kid", 1.4, "idle")],
+        7: [("scout", -1.8, "work")],
+        15: [("farmer", -0.8, "work"), ("kid", 1.6, "idle")],
+        17: [("farmer", -2.2, "work"), ("scholar", -0.2, "sit"), ("kid", 1.6, "idle"), ("cook", 2.6, "idle")],
+    }
+    return dict(key="m5", cx=0.0, cz=0.0, rooms=rooms, people=people)
+
+
+SCENES = {"m1": scene_m1, "m2": scene_m2, "m3": scene_m3, "m4": scene_m4, "m5": scene_m5}
 
 META = {
     "m1": dict(name="가라앉은 배 속의 집", ref="Spiritfarer + Barotrauma",
@@ -196,6 +236,8 @@ META = {
                line="왼쪽은 바위를 깎은 굴 같은 방들, 오른쪽은 해구로 떨어지는 심연. 위협은 열린 쪽에서 온다."),
     "m3": dict(name="고래 낙하 위의 마을", ref="Spiritfarer + 심해 고래 낙하 생태",
                line="쓰러진 거대 생물의 갈비뼈가 기둥이다. 죽음 위에 사는 삶, 뼈 주위로 작은 생물이 모인다."),
+    "m5": dict(name="절벽 끝에 기댄 가라앉은 탑", ref="M2+M4 혼합 — Dome Keeper + Fallout Shelter",
+               line="절벽 끝에 기대 선 수몰 탑. 꼭대기 아트리움이 돔, 층을 따라 해구 위 어둠으로 내려간다. 오른쪽은 열린 심연, 위협은 그쪽에서 온다."),
     "m4": dict(name="가라앉은 탑", ref="Fallout Shelter + 3막 지상 도시 복선",
                line="수몰 고층 건물의 꼭대기 유리 아트리움이 돔이다. 거점은 층을 따라 해구의 어둠으로 내려간다."),
 }
@@ -468,7 +510,7 @@ def _blender_main(key):
             pts = [(-29.5, z + r.uniform(-0.4, 0.4))]
             for x in range(-26, 2, 3):
                 pts.append((x, z + r.uniform(-0.5, 0.5) + (x + 29) * 0.03))
-            ribbon(f"strata{i}", pts, 0.5 + r.uniform(0, 0.4), 0.9, mat("strata", ["#2E2A24", "#3A362E"], [0, 0.5]))
+            ribbon(f"strata{i}", pts, 0.5 + r.uniform(0, 0.4), 0.8, mat("strata", ["#2E2A24", "#3A362E"], [0, 0.5]))
         # 심연 쪽 가장자리 테: 물빛을 받은 차가운 모서리(B3 경계 강조)
         ribbon("edge_rim", jag(edge[3:14], amp=0.15, closed=False, seed=12), 0.7, 0.85,
                mat("erim", ["#3A4644", "#56625C"], [0, 0.5]))
@@ -651,6 +693,94 @@ def _blender_main(key):
             kelp(f"k{i}", x, z, h, 0.2, km, 500 + i, lean=0.1 if x > 0 else -0.1, w=0.28)
         room_backs()
 
+    # ───────────────────────── M5 (M2+M4 혼합) ─────────────────────────
+    elif key == "m5":
+        X0, HW, IN = M5_X0, M5_HW, M5_IN          # 탑 중심·반폭·단면 반폭
+        L_, R_ = X0 - HW, X0 + HW
+        conc = mat("conc", ["#16191A", "#22282A", "#30383A", "#424A4A"], [0, 0.3, 0.65, 0.9], noise=0.04)
+        conc_d = mat("conc_d", ["#101314", "#1A2022", "#262E30"], [0, 0.5, 0.85])
+        # 절벽(왼쪽) — 탑이 그 끝에 기대 섰다. 절벽은 해구 바로 위에서 끝나고, 탑만 더 아래로 내려간다.
+        # 절벽이 탑의 왼쪽 외벽을 감싸 쥔다(탑이 절벽 끝 홈에 기대 섰다)
+        edge = [(-29.5, 16.6), (-26.4, 16.6), (-25.0, 12.4), (-22.6, 8.8), (-19.8, 6.6), (-17.4, 4.4),
+                (-15.9, 1.6), (-15.6, -3.0), (-16.0, -7.6), (-15.7, -10.4), (-17.0, -12.4), (-19.2, -13.2),
+                (-21.0, -12.4), (-22.8, -13.6), (-24.8, -12.6), (-26.8, -13.8), (-29.5, -12.8)]
+        rock = mat("rock", ["#18130F", "#241E19", "#302922", "#3E352C"], [0, 0.3, 0.62, 0.86], noise=0.08, nscale=1.6)
+        poly("cliff", edge, 0.85, rock, j=0.22, seed=11)
+        r = random.Random(8)
+        for i, z in enumerate([2.4, -1.8, -5.6, -9.4]):
+            pts = [(-29.5, z + r.uniform(-0.4, 0.4))]
+            for x in range(-27, -16, 3):
+                pts.append((x, z + r.uniform(-0.5, 0.5) + (x + 29) * 0.04))
+            ribbon(f"strata{i}", pts, 0.5 + r.uniform(0, 0.4), 0.8, mat("strata", ["#2E2A24", "#3A362E"], [0, 0.5]))
+        cm = mat("crack", ["#0A0806"])
+        for i in range(10):
+            x = r.uniform(-28.5, -19.5); z = r.uniform(-10, 4); pts = [(x, z)]
+            for _ in range(4):
+                x += r.uniform(-1.0, 1.0); z += r.uniform(-1.6, -0.4); pts.append((x, z))
+            ribbon(f"crk{i}", pts, 0.18, 0.78, cm, w1=0.04)
+        ribbon("edge_rim", jag(edge[1:], amp=0.15, closed=False, seed=12), 0.6, 0.75, mat("erim", ["#3A4644", "#56625C"], [0, 0.5]))
+        # 절벽 밑동에서 늘어진 덩굴 — 밑은 허공
+        km = mat("kelp", ["#1E2A16", "#2E3A1E", "#46502A"], [0, 0.5, 0.85])
+        for i, x in enumerate([-19.6, -22.4, -25.6, -28.4]):
+            z0 = -12.6 - (i % 2) * 0.7
+            pts = [(x + math.sin(t * 2.5 + i) * 0.4, z0 - t * (1.8 + i % 3)) for t in [k / 8 for k in range(9)]]
+            ribbon(f"hang{i}", pts, 0.22, 0.8, km, w1=0.05)
+        for i, (x, z, h, ln) in enumerate([(-21.5, 7.6, 3.6, 0.1), (-24.8, 11.8, 3.0, 0.0), (-18.6, 5.0, 2.4, 0.3)]):
+            kelp(f"kc{i}", x, z, h, 0.8, km, 600 + i, lean=ln, w=0.26)
+        # 바위를 판 굴 방과 탑을 잇는 짧은 통로
+        poly("tunnel", rect(-21.0, -2.5, L_ + 0.2, 0.9), 0.3, mat("tunnel", ["#2A1E16", "#3A2A1E"], [0, 0.5]))
+        win("tunlamp", -19.6, 0.4, 0.4, 0.4, 0.28, "#FFC870")
+        # 탑 몸통 — 화면 아래로 끝없이(해구 위 어둠 속으로)
+        poly("tower", rect(L_, -30, R_, 5.6), 1.2, conc_d, j=0.05, seed=2)
+        floors = [5.6, 1.6, -2.8, -7.2, -11.6, -16.0, -20.4]
+        for side in (-1, 1):
+            xa, xb = X0 + side * IN, X0 + side * HW
+            x0, x1 = min(xa, xb), max(xa, xb)
+            poly(f"facade{side}", rect(x0, -30, x1, 5.6), 1.0, mat("facade", ["#1A2022", "#262E30", "#343E40"], [0, 0.5, 0.85]),
+                 j=0.04, seed=3 + side)
+            for fi in range(len(floors) - 1):
+                zbot = floors[fi + 1]
+                for wx in (x0 + 0.3, x0 + 1.75):
+                    for half in (0, 1):
+                        zz = zbot + 0.5 + half * 2.0
+                        roll = r.random()
+                        if fi <= 1 and roll < 0.30:
+                            col = "#5A4026"
+                        elif roll < 0.25:
+                            col = "#06090A"
+                        else:
+                            col = "#16303A" if fi < 3 else "#0C1A20"
+                        poly(f"w{side}{fi}{wx}{half}", rect(wx, zz, wx + 1.2, zz + 1.6), 0.9, mat("win" + col, [col]))
+        for x in (L_, X0 - IN, X0 - 3.65, X0 + 3.65, X0 + IN, R_):
+            ribbon(f"col{x}", [(x, -30), (x, 5.6)], 0.7, 0.4, conc)
+        for f in floors:
+            ribbon(f"slab{f}", [(L_ - 0.6, f), (R_ + 0.6, f)], 0.6, 0.4, conc)
+        # 지붕 + 아트리움 유리돔
+        poly("roof", rect(L_ - 1.0, 5.6, R_ + 1.0, 6.8), 0.5, mat("roofc", ["#3A4242", "#5A6262"], [0, 0.6]))
+        ribbon("parapet", [(L_ - 1.0, 7.4), (R_ + 1.0, 7.4)], 0.35, 0.5, mat("roofc", []))
+        poly("atrium", ellipse(X0, 6.8, 10.2, 7.8, 34, 0, math.pi), 0.6,
+             mat("dglass", ["#1C3E44", "#2A5A60", "#3E7A80"], [0, 0.45, 0.85]))
+        for i in range(1, 8):
+            a = math.pi * i / 8
+            ribbon(f"arib{i}", [(X0 + 10.2 * math.cos(a), 6.8 + 7.8 * math.sin(a)), (X0, 6.8)], 0.14, 0.55,
+                   mat("drib", ["#6A5A48"]))
+        for k in (0.45, 0.75):
+            ribbon(f"aring{k}", ellipse(X0, 6.8, 10.2 * k, 7.8 * k, 20, 0, math.pi), 0.12, 0.55, mat("drib", []))
+        # 지붕 오른쪽 끝에서 심연으로 내민 부러진 철골 + 유인 등불(위협이 오는 쪽으로 빛을 건다)
+        ribbon("girder", [(R_ - 0.6, 6.6), (14.0, 10.0), (20.4, 9.4)], 0.5, 0.45, mat("gird", ["#3A2420", "#5A3428"], [0, 0.5]))
+        for i in range(5):
+            x = R_ + 0.8 + i * 1.9
+            zt = 6.8 + min(3.2, (x - R_) * 0.7)
+            ribbon(f"gird_x{i}", [(x, zt - 0.4), (x + 1.0, zt + 0.5)], 0.16, 0.45, mat("gird", []))
+        ribbon("lure_rope", [(20.4, 9.4), (20.5, 4.0), (20.4, -0.6)], 0.07, 0.45, mat("rope", ["#8A7A60"]))
+        poly("lure_cage", ellipse(20.4, -1.0, 0.38, 0.46, 12), 0.44, mat("lure", ["#E8B060"]))
+        ribbon("antenna", [(L_ + 2.0, 6.8), (L_ + 1.6, 12.4), (L_ + 3.0, 13.8)], 0.3, 0.5, mat("ant", ["#4A3E34"]))
+        # 외벽 해초(심연 쪽 창턱에서 자란다)
+        for i, (x, z, h) in enumerate([(R_ + 0.3, -7.2, 5.5), (R_ + 0.4, 1.6, 3.4), (R_ + 0.2, -16.0, 7.0),
+                                       (R_ - 1.0, 7.4, 2.4)]):
+            kelp(f"k{i}", x, z, h, 0.2, km, 500 + i, lean=0.12, w=0.28)
+        room_backs()
+
     # ── 손그림 선 (blender_section F6 와 같은 처방, 독립 구현) ──
     sc.render.use_freestyle = True
     sc.render.line_thickness = 1.0
@@ -721,13 +851,14 @@ def _post(key):
         "m2": [(0.0, "#2A7080"), (0.25, "#154A58"), (0.5, "#0A2630"), (0.75, "#030E13"), (1.0, "#000000")],
         "m3": [(0.0, "#1E5A68"), (0.3, "#103C48"), (0.6, "#08222A"), (1.0, "#02080B")],
         "m4": [(0.0, "#2E7888"), (0.25, "#185262"), (0.55, "#0A2A34"), (0.8, "#03111A"), (1.0, "#000203")],
+        "m5": [(0.0, "#2A7080"), (0.25, "#154A58"), (0.5, "#0A2630"), (0.75, "#030E13"), (1.0, "#000000")],
     }[key]
     ys = np.linspace(0, 1, H2)
     col = np.zeros((H2, 3))
     for c in range(3):
         col[:, c] = np.interp(ys, [s[0] for s in stops], [hexrgb(s[1])[c] for s in stops])
     bg = np.repeat(col[:, None, :], W2, axis=1)
-    if key == "m2":   # 오른쪽 아래 = 해구: 더 빨리 검어진다
+    if key in ("m2", "m5"):   # 오른쪽 아래 = 해구: 더 빨리 검어진다
         xx = np.linspace(0, 1, W2)[None, :]; yy = ys[:, None]
         dark = np.clip((xx - 0.45) * 1.6, 0, 1) * np.clip((yy - 0.35) * 1.8, 0, 1)
         bg *= (1 - 0.85 * dark)[..., None]
@@ -791,6 +922,11 @@ def _post(key):
             d.line(pts, fill=(30, 66, 72, 255), width=14)
         img = over(img, L.filter(ImageFilter.GaussianBlur(4)))
         img = over(img, far([jag_line(-40, 40, -9.5, 1.0, 2.0, 5)], (11, 30, 36), 3))
+    elif key == "m5":
+        # 3막 스포일러 방지: 도시 스카이라인 없음. 아주 먼 데 무언가 서 있던 흔적 둘만, 물빛에 거의 녹아서.
+        img = over(img, far([[(22, -30), (24.6, -30), (24.6, 3.0), (23.6, 4.2), (22, 2.6)],
+                             [(27.0, -30), (29.5, -30), (29.5, -2.0), (27.0, -1.0)]], (18, 50, 60), 12, alpha=150))
+        img = over(img, far([[(25, 20), (31, 20), (31, -30), (27, -30), (28.5, -8), (26.0, 4)]], (12, 34, 40), 9, alpha=170))
     elif key == "m4":
         # 수몰 도시 스카이라인 — 세 겹(먼 것일수록 물빛에 녹는다)
         r = random.Random(7)
@@ -876,6 +1012,7 @@ def _post(key):
         "m2": [("LEVIATHAN", 2500, 820, 1600, 0.75, True), ("threat_longneck_near.png", 2700, 1560, 1100, 0.65, False),
                ("threat_needle_far.png", 2050, 1560, 420, 0.5, False)],
         "m3": [("LEVIATHAN", 900, 300, 1200, 0.55, False), ("threat_longneck_near.png", 3000, 820, 700, 0.4, False)],
+        "m5": [("LEVIATHAN", 2750, 820, 1150, 0.72, True), ("threat_longneck_near.png", 2900, 1560, 950, 0.6, False)],
         "m4": [("LEVIATHAN", 2650, 470, 1300, 0.6, True), ("threat_longneck_near.png", 380, 1350, 800, 0.45, True)],
     }[key]
     for nm, x_, y_, w_, a_, fl in big:
@@ -884,7 +1021,8 @@ def _post(key):
         else:
             img = over(img, threat(nm, x_, y_, w_, a_, fl))
     eye_pts = {"m1": [(3010, 1560), (3040, 1566), (2350, 1680)], "m2": [(2600, 1420), (2632, 1428), (2950, 1700), (2200, 1740)],
-               "m3": [(3080, 1640), (3104, 1646)], "m4": [(2900, 1640), (2930, 1646), (420, 1700)]}[key]
+               "m3": [(3080, 1640), (3104, 1646)], "m4": [(2900, 1640), (2930, 1646), (420, 1700)],
+               "m5": [(2600, 1430), (2632, 1438), (3000, 1700), (2300, 1740)]}[key]
     E = eyes(eye_pts)
     img = screen(img, E.filter(ImageFilter.GaussianBlur(9)), 1.0); img = over(img, E)
 
@@ -899,7 +1037,8 @@ def _post(key):
     jel = {"m1": [(2300, 1150, 26), (2700, 1300, 18), (1800, 1350, 14)],
            "m2": [(2200, 1100, 30), (2550, 1250, 20), (2850, 1050, 16), (2400, 1500, 22), (1900, 1650, 14)],
            "m3": [(600, 900, 22), (2900, 600, 18), (2700, 900, 26), (1400, 380, 14)],
-           "m4": [(2700, 1200, 26), (450, 900, 20), (2950, 1500, 16), (300, 1550, 18)]}[key]
+           "m4": [(2700, 1200, 26), (450, 900, 20), (2950, 1500, 16), (300, 1550, 18)],
+           "m5": [(2450, 1180, 28), (2800, 1300, 20), (3050, 1060, 16), (2600, 1520, 22), (2250, 1650, 14)]}[key]
     for x, y, r in jel:
         jelly(L, x, y, r, (140, 230, 225), 120)
     glow = L.filter(ImageFilter.GaussianBlur(14))
@@ -937,6 +1076,9 @@ def _post(key):
         "m3": [(((900, 300), (1600, 80), (2400, 260)), 160, 110, 15, (150, 200, 200), 150),
                (((1150, 520), (1650, 420), (2050, 620)), 70, 70, 11, (190, 170, 120), 150),
                (((2600, 300), (2900, 420), (3200, 300)), 40, 50, 12, (120, 170, 175), 120)],
+        "m5": [(((2200, 300), (2700, 120), (3200, 380)), 140, 90, 16, (150, 205, 205), 160),
+               (((2250, 1150), (2600, 980), (3150, 1250)), 80, 60, 13, (12, 22, 26), 210),
+               (((2350, 600), (2650, 700), (3050, 560)), 45, 40, 10, (120, 180, 185), 120)],
         "m4": [(((300, 200), (1200, 0), (2200, 220)), 140, 100, 15, (150, 205, 205), 150),
                (((2300, 650), (2800, 520), (3200, 760)), 70, 60, 13, (130, 185, 188), 140),
                (((200, 700), (500, 820), (900, 760)), 50, 45, 12, (14, 26, 30), 200)],
@@ -955,7 +1097,7 @@ def _post(key):
     # ── 7. 등불 번짐 → 플레이트 ──
     rooms = S["rooms"]
     halo = layer(); d = ImageDraw.Draw(halo)
-    hk = {"m1": 1.0, "m2": 0.55, "m3": 0.85, "m4": 0.7}[key]
+    hk = {"m1": 1.0, "m2": 0.55, "m3": 0.85, "m4": 0.7, "m5": 0.65}[key]
     for i, (x, zf, k, s) in enumerate(rooms):
         l, b, r_, t = slot_rect(x, zf)
         (pl, pt), (pr, pb) = P(l, t), P(r_, b)
@@ -1018,7 +1160,7 @@ def _post(key):
     img = over(img, L)
 
     # ── 7.5 아래로 갈수록 어둠이 구조물까지 삼킨다(더 깊은 곳 = 아직 못 간 곳) ──
-    fade = {"m2": (-9.0, -17.0, 0.55), "m4": (-6.0, -16.4, 0.72)}.get(key)
+    fade = {"m5": (-5.0, -16.4, 0.8), "m2": (-9.0, -17.0, 0.55), "m4": (-6.0, -16.4, 0.72)}.get(key)
     if fade:
         z0, z1, st_ = fade
         arr = np.asarray(img).astype(np.float32)
@@ -1038,9 +1180,14 @@ def _post(key):
         for x, z in [(-23.2, -12.2), (-25.0, 6.0), (-21.4, 11.0)]:
             px, py = P(x, z); d.ellipse([px - 12, py - 12, px + 12, py + 12], fill=(250, 210, 130, 230))
     # 가장 깊은 곳의 희미한 불빛 하나 — "저 아래 뭔가 있다"
-    deep_pts = {"m1": [(26.0, -15.8)], "m2": [(-9.5, -16.0)], "m3": [(18.6, -14.4)], "m4": [(3.5, -15.0)]}[key]
+    deep_pts = {"m1": [(26.0, -15.8)], "m2": [(-9.5, -16.0)], "m3": [(18.6, -14.4)], "m4": [(3.5, -15.0)], "m5": [(12.0, -15.2)]}[key]
     for x, z in deep_pts:
         px, py = P(x, z); d.ellipse([px - 9, py - 9, px + 9, py + 9], fill=(255, 200, 120, 255))
+    if key == "m5":     # 유인 등불 — 심연 쪽에 건 빛. 방 다음으로 밝다
+        G = layer(); dg = ImageDraw.Draw(G)
+        px, py = P(20.4, -1.1)
+        dg.ellipse([px - 120, py - 120, px + 120, py + 120], fill=(255, 190, 100, 85))
+        img = screen(img, G.filter(ImageFilter.GaussianBlur(60)), 1.0)
     glow = L.filter(ImageFilter.GaussianBlur(10))
     img = screen(img, glow, 1.0); img = over(img, L)
 
@@ -1055,7 +1202,7 @@ def _post(key):
         pts = [(x + math.cos(a + k * 1.57) * s * (1 if k % 2 else 0.45), y + math.sin(a + k * 1.57) * s * (1 if k % 2 else 0.45)) for k in range(4)]
         d.polygon(pts, fill=(*lerp(water_at(x, y), (0, 0, 0), 0.5), 210))
     bub_src = {"m1": [(-15.0, 15.4), (5.2, 9.0), (21.0, 0.6)], "m2": [(-8.6, 14.2), (-4.4, 7.4)],
-               "m3": [(13.4, 0.6), (-1.5, 3.4)], "m4": [(0.0, 14.8), (-7.3, 6.0), (7.3, 6.0)]}[key]
+               "m3": [(13.4, 0.6), (-1.5, 3.4)], "m4": [(0.0, 14.8), (-7.3, 6.0), (7.3, 6.0)], "m5": [(-4.6, 14.6), (20.4, -0.4)]}[key]
     for bx, bz in bub_src:
         px, py = P(bx, bz)
         for j in range(16):
@@ -1081,7 +1228,7 @@ def _post(key):
 
     # ── 10. 앞쪽 해초(화면 가장자리, 어둡고 흐릿하게 — 깊이) ──
     L = layer(); d = ImageDraw.Draw(L); r = random.Random(21 + int(key[1]))
-    fg = {"m1": [(80, 6), (3120, 3)], "m2": [(60, 5), (1500, 2)], "m3": [(70, 4), (3150, 5)], "m4": [(90, 4), (3100, 4)]}[key]
+    fg = {"m5": [(3140, 4)], "m1": [(80, 6), (3120, 3)], "m2": [(60, 5), (1500, 2)], "m3": [(70, 4), (3150, 5)], "m4": [(90, 4), (3100, 4)]}[key]
     for bx, n in fg:
         for i in range(n):
             x = bx + r.uniform(-90, 90); h = r.uniform(380, 820); ph = r.uniform(0, 6)
@@ -1147,7 +1294,7 @@ def _post(key):
     paste_actors(hero, 1, canvas_scale=0.5)
     hero.save(os.path.join(RAW, f"{key}_hero.png"))
     # 폰 가로(844×390) — 거점 중심 크롭. 2x 판은 캔버스에서 바로(캐릭터 ×2)
-    crop_c = {"m1": (-4.0, 3.5), "m2": (3.0, 1.0), "m3": (-1.0, -2.0), "m4": (4.0, 4.0)}[key]   # 안팎 경계가 들어가게
+    crop_c = {"m1": (-4.0, 3.5), "m2": (3.0, 1.0), "m3": (-1.0, -2.0), "m4": (4.0, 4.0), "m5": (9.0, 3.4)}[key]   # 안팎 경계가 들어가게
     pcx, pcy = P(*crop_c)
     x0 = int(min(W2 - 1688, max(0, pcx - 844))) // 2 * 2; y0 = int(min(H2 - 780, max(0, pcy - 390))) // 2 * 2
     ph2 = canvas.crop((x0, y0, x0 + 1688, y0 + 780))

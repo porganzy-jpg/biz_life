@@ -30,5 +30,13 @@
   "hero": "m4_hero.jpg",
   "phone": "m4_phone.jpg",
   "phone2x": "m4_phone2x.jpg"
+ },
+ "m5": {
+  "name": "절벽 끝에 기댄 가라앉은 탑",
+  "ref": "M2+M4 혼합 — Dome Keeper + Fallout Shelter",
+  "line": "절벽 끝에 기대 선 수몰 탑. 꼭대기 아트리움이 돔, 층을 따라 해구 위 어둠으로 내려간다. 오른쪽은 열린 심연, 위협은 그쪽에서 온다.",
+  "hero": "m5_hero.jpg",
+  "phone": "m5_phone.jpg",
+  "phone2x": "m5_phone2x.jpg"
  }
 }
