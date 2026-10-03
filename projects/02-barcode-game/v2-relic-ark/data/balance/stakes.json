@@ -76,6 +76,29 @@
   "category_lock": true,
   "_category_lock_basis": "감사: 모르는 가문 바코드는 고르는 카테고리마다 다른 유물(평균 7.00개)이 나와 '같은 바코드 = 같은 유물'이 깨지고, 바코드 하나로 도감 7칸·스팟 카운트 7종을 채울 수 있었다. 처음 고른 카테고리를 그 바코드에(그 플레이어 기준) 영구 고정한다.",
 
+  "stat_production": {
+    "_rule": "방 생산 = 기본[레벨] × staffing.staff_mult[n] × stat_factor(그 방 사람들, room_stat[방]) × crack × 조명. 스탯이 처음으로 습격 밖에서 일을 한다. 담(nerve)은 생산에 쓰지 않는다 — 담은 방어 판정 전용이라 '지키는 사람'과 '일하는 사람'이 갈린다.",
+    "_status": "검증 완료(tools/sim_statprod.py, 씨앗 30). 보고 design_statprod_20261003.md",
+    "room_stat": {
+      "workshop": "hand", "generator": "hand", "storage": "hand", "pantry": "hand", "infirmary": "hand",
+      "well": "breath", "greenhouse": "breath", "airlock": "breath", "quarters": "breath", "bath": "breath",
+      "decoder": "eye", "library": "eye", "lounge": "eye", "hall": "eye",
+      "_changes_from_draft": "static/base.js ROOM_STAT 초안에서 둘을 바꿨다. ①의무실 breath→hand: 치료는 손이다(RESIDENT_STATS §2 '봉합'). breath 면 의무병(손7·숨4)이 자기 방에서 가장 약해진다. 환자의 숨은 이미 회복 순서에 쓰인다(server.py tick_production). ②정수실 hand→breath: 펌프질은 숨이다. hand 방이 다섯·여섯으로 몰리면 손 좋은 역할(기술자8·요리사7·의무병7)이 모든 생산 방의 정답이 된다(B3). 이제 손 5 · 숨 5 · 눈 4. 초안에 없던 홀·거주실·물 끓이는 방을 채웠다.",
+      "_note": "pantry·library 는 서버 카탈로그의 옛 id(식량창고·서고)라 함께 적었다. 생산이 없는 방(창고·에어락·홀)의 스탯은 화면 강조용이다"
+    },
+    "center": 5,
+    "per_point": 0.05,
+    "min_mult": 0.88,
+    "max_mult": 1.18,
+    "_curve_basis": "스탯 5 = ×1.0, 1점당 ±5%, 사람당 0.88~1.18. 스탯 8(역할 강점) = 1.15, 스탯 3(약점) = 0.90. 같은 방에서 최선 vs 최악 한 사람 배치 = 평균 +27%, 어떤 명단에서도 최대 +34%(1.18/0.88) — 목표 20~35% 안. 1차 0.85~1.20 은 평균 28% 였지만 특이점 ±2 극단이 겹친 명단(90분위)에서 41% 로 각인 하나의 효과(+20~30%)를 넘었다(B6). 그래서 양 끝을 깎았다 — 스탯 2 이하와 9 이상은 차이가 없다.",
+    "aggregate": "mean",
+    "_aggregate_basis": "방의 배율 = 서 있는 사람들 배율의 평균. ①읽기 쉽다 — 화면에 '이 방 손 평균 6.3'. ②best_plus 는 방마다 전문가 한 명 + 아무나가 정답이 되어 사람을 숫자로만 보게 한다. ③sum_excess 는 머릿수와 곱해져 '좋은 사람을 한 방에 몰기'가 staff_mult 의 체감을 상쇄한다(B3 위반). 평균이면 약한 사람을 넣을 때 배율은 조금 내려가도 staff_mult 가 더 크게 올라(2명째 +0.35) **사람을 넣는 것은 언제나 이득**이고, 누구를 어디에 넣을지만 고민이 된다.",
+    "role_bonus_in_room_only": true,
+    "_role_basis": "role_effects 의 room_bonus(요리사→식량창고 식량+1, 기술자→정수실 물+1)는 그 사람이 그 방에 서 있을 때만. 이 보너스는 틱당 +1 이라 식량창고 기본 2 의 +50% 로 스탯보다 크다 — 이제 '요리사를 식량창고에'가 배치 결정이 된다. 기술자는 정수실(역할 보너스, 숨 5) vs 공방·발전실(손 8) 사이에서 고른다(B3).",
+    "injured_counts": false,
+    "_injured_basis": "다친 사람은 생산 인원으로도 스탯으로도 세지 않는다(서 있어도 눕는다, D12). 의무실 Lv2 '다친 분도 가벼운 일'이 열리면 인원으로 세고 스탯은 center(5)로 친다 — 레벨업이 숫자가 아니라 할 수 있는 일을 연다는 원칙(ROOMS_AND_ITEMS §2-1)."
+  },
+
   "_measured_20261003": {
     "_source": "python tools/sim_stakes.py — 방주 200 × 30일, 가구 120 × 120일. 감사 스크립트의 엔진 호출·가정을 그대로 썼다",
     "allin_optimal_share": {"before": 1.00, "after": 0.35},
