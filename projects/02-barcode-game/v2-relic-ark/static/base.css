@@ -213,3 +213,135 @@ body{
 .quirk{display:block; margin-top:5px; font-size:12px; color:var(--cream); font-style:normal}
 .quirk.minus{color:#d08a72}
 .eye-early{font-size:11.5px; color:var(--lamp); margin:0 0 8px; line-height:1.55}
+
+/* ══════════════════════════════════════════════════════════════
+   스프린트 10-E — 찍기(J5·E1) · 관문 행동 · 반전 · 열쇠
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 찍기 버튼: 아래 가운데. 이 화면에서 가장 큰 단추 하나 ─────── */
+.scanbtn{position:absolute; z-index:6; left:50%; bottom:12px; transform:translateX(-50%);
+  min-width:96px; height:52px; padding:0 22px; border-radius:26px; cursor:pointer;
+  font-size:15px; font-weight:700; letter-spacing:.12em; color:#1a150e;
+  background:var(--lamp); border:2px solid #14110c; box-shadow:0 0 0 3px rgba(240,176,85,.18), 0 6px 18px rgba(0,0,0,.5)}
+.scanbtn:active{background:var(--cream)}
+.toast{bottom:80px}
+.carry{bottom:80px}
+
+/* ── 찍기 화면 ──────────────────────────────────── */
+.scan{position:absolute; inset:0; z-index:12; background:rgba(1,6,10,.88);
+  display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto}
+.scan-in{position:relative; width:min(420px,100%); max-height:100%; overflow:auto;
+  background:#0b0e0c; border:1px solid #2a2419; border-top:3px solid var(--ochre); border-radius:10px; padding:18px 18px 16px}
+.scan-in .close{position:absolute; right:6px; top:4px; width:40px; height:40px; background:none; border:0;
+  color:var(--dim); font-size:24px; cursor:pointer; z-index:2}
+.scan-in h2{margin:0 0 12px; font-size:17px; color:var(--cream)}
+.scan-in .sub{margin:0 0 2px; font-size:11px; color:var(--dim); letter-spacing:.16em}
+.cam{position:relative; width:100%; aspect-ratio:4/3; background:#050807; border:1px solid #20241f;
+  border-radius:6px; overflow:hidden}
+.cam video{width:100%; height:100%; object-fit:cover; display:block}
+.cam .reticle{position:absolute; left:12%; right:12%; top:50%; height:2px; background:var(--oxblood);
+  box-shadow:0 0 10px rgba(176,58,36,.8)}
+.cam.off{aspect-ratio:auto; min-height:64px}
+.cam.off video, .cam.off .reticle{display:none}
+.camstatus{position:absolute; left:0; right:0; bottom:0; padding:7px 10px; font-size:11.5px; line-height:1.5;
+  color:var(--ink); background:rgba(1,6,10,.78)}
+.cam.off .camstatus{position:static; padding:12px; text-align:center; background:none; color:var(--dim)}
+.manual{display:flex; gap:6px; margin-top:10px}
+.manual input{flex:1; min-width:0; min-height:44px; padding:0 12px; font-size:16px; letter-spacing:.08em;
+  color:var(--cream); background:#151a17; border:1px solid #2a2419; border-radius:5px}
+.manual button, .shelfbtn, .keyrow button{min-height:44px; padding:0 16px; font-size:14px; font-weight:700; cursor:pointer;
+  color:#1a150e; background:var(--ochre); border:0; border-radius:5px}
+.manual button:disabled{background:#3a3a36; color:#7a7a72}
+.samples{display:flex; flex-wrap:wrap; gap:5px; margin-top:9px}
+.samples button, .picker button{min-height:34px; padding:0 9px; font-size:11px; cursor:pointer; color:var(--ink);
+  background:#151a17; border:1px solid #2a2419; border-radius:4px}
+.picker{display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-top:10px}
+.picker p{grid-column:1/-1; margin:0 0 3px; font-size:12px; color:var(--lamp)}
+.picker button{min-height:44px; font-size:12.5px}
+.quota{margin:10px 0 0; font-size:11px; color:var(--dim)}
+
+/* ── 카드: 한 장이 뒤집힌다 ───────────────────────── */
+.rcard{width:min(250px,64vw); aspect-ratio:5/7; margin:4px auto 12px; perspective:900px}
+.rc-in{position:relative; width:100%; height:100%; transform-style:preserve-3d;
+  transition:transform .8s cubic-bezier(.3,.7,.2,1)}
+.rcard.flip .rc-in{transform:rotateY(180deg)}
+.rc-face{position:absolute; inset:0; border-radius:10px; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  border:3px solid #14110c; overflow:hidden}
+.rc-back{background:repeating-linear-gradient(45deg,#3a2a14 0 10px,#2c200f 10px 20px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px}
+.rc-back span{font-size:22px; font-weight:700; letter-spacing:.3em; color:var(--lamp)}
+.rc-back em{font-style:normal; font-size:11px; color:#b39a70; letter-spacing:.1em}
+.rc-front{transform:rotateY(180deg); background:#e6d7b0; color:#14110c; display:flex; flex-direction:column}
+.rc-front .rr{font-size:10px; letter-spacing:.16em; padding:5px 10px; color:#f2e7ce; background:#49331d}
+.rc-front.uncommon .rr{background:#464821} .rc-front.rare .rr{background:#8e5f1b}
+.rc-front.epic .rr{background:#84360f} .rc-front.legendary .rr{background:#5c170f}
+.rcard.flip .rc-front.legendary, .rcard.flip .rc-front.epic{box-shadow:0 0 22px rgba(240,176,85,.55)}
+.rc-front h3{margin:8px 10px 0; font-size:15px; line-height:1.3}
+.rc-front .art{flex:1; min-height:0; display:flex; align-items:flex-end; justify-content:center; margin:6px 10px;
+  background:linear-gradient(#d9c9a3 0 76%,#96703f 76% 80%,#c4ad7f 80%); border:2px solid #14110c; border-radius:4px; padding-bottom:22%}
+.rc-front .art img{display:block; max-width:100%; height:auto}
+.rc-front .fl{margin:0 10px; font-size:11px; line-height:1.5; color:#49331d; font-style:italic}
+.rc-front .meta{display:flex; flex-wrap:wrap; gap:4px; margin:6px 10px 9px}
+.rc-front .meta span{font-size:10px; padding:2px 6px; border:1px solid #96703f; border-radius:3px; color:#49331d}
+.rgain{font-size:12.5px; line-height:1.7; color:var(--ink); text-align:center; min-height:20px}
+.rgain b{color:var(--cream)}
+.rgain .first{color:var(--lamp)}
+.rgain .voice{display:block; margin-top:6px; font-size:12px; color:#b9ae94}
+.rgain .where{display:block; margin-top:4px; color:var(--lamp)}
+.shelfbtn{display:block; width:100%; margin-top:12px; opacity:.001; transition:opacity .4s}
+.shelfbtn.on{opacity:1}
+
+/* ── 관문 행동 · 반전 ──────────────────────────────── */
+.rflip{font-size:12px; line-height:1.55; color:var(--cream); background:rgba(140,59,46,.16);
+  border-left:2px solid var(--oxblood); padding:5px 8px; margin:2px 0 8px}
+.rflip b{color:var(--lamp)}
+.rflip.bad{background:rgba(176,58,36,.32); color:#fff1dc}
+.rflip.bad b{color:#ffd59a}
+.rflip button{display:block; margin-top:6px; min-height:36px; padding:0 12px; font-size:12px; font-weight:700; cursor:pointer;
+  color:#1a150e; background:var(--lamp); border:0; border-radius:4px}
+.ract{margin:2px 0 9px; padding:8px; border:1px solid #3a2a18; border-radius:6px; background:rgba(240,176,85,.05)}
+.ractbtn{display:block; width:100%; min-height:44px; cursor:pointer; font-size:13.5px; font-weight:700; letter-spacing:.03em;
+  color:var(--cream); background:#2c200f; border:1px solid var(--ochre); border-radius:5px}
+.ractbtn:active{background:#3d2d15}
+.ractbtn:disabled{cursor:default; color:#7a7a72; border-color:#3a3a36; background:#1a1a17}
+.ract.done .ractbtn:disabled{color:#8fbf7a; border-color:#4b6b3e; background:#141c12}
+.rcost{margin-top:6px; font-size:11.5px; line-height:1.55; color:var(--lamp)}
+.rcost.lack{color:#d08a72}
+.rwhy{margin-top:3px; font-size:11px; line-height:1.55; color:#8d9a96}
+.rno{margin-top:4px; font-size:11.5px; line-height:1.5; color:#d08a72}
+.rpaid{margin-top:6px; font-size:11.5px; line-height:1.55; color:var(--cream); border-top:1px dashed #3a2a18; padding-top:6px}
+.carry.warn{background:rgba(176,58,36,.96); color:#fff1dc}
+.rowbtns button.worst{border-color:var(--oxblood); color:#ffd2c0}
+
+/* ── 열쇠(복구 코드) ───────────────────────────────── */
+.keycode{font-family:"Consolas",monospace; font-size:30px; font-weight:700; letter-spacing:.18em;
+  color:var(--lamp); text-align:center; padding:12px 6px; margin:4px 0 8px; background:#151a17;
+  border:1px dashed #5a4320; border-radius:6px; user-select:all}
+.keyrow{display:flex; gap:6px; margin-top:6px}
+.keyrow input{flex:1; min-width:0; min-height:44px; padding:0 12px; font-size:18px; letter-spacing:.14em; text-transform:uppercase;
+  font-family:"Consolas",monospace; color:var(--cream); background:#151a17; border:1px solid #2a2419; border-radius:5px}
+.keyrow button.ghost{color:var(--ink); background:#151a17; border:1px solid #2a2419; font-weight:400}
+.keyerr{margin:7px 0 0; font-size:12px; color:#d08a72; min-height:18px}
+.keyok{color:#8fbf7a}
+
+/* ── 선반 목록(창고 패널) ─────────────────────────── */
+.shelfkv span.new{border-color:var(--lamp); color:var(--lamp)}
+
+@media (max-width:560px){
+  /* 폰: 아래 줄은 게이지·스위치(왼쪽)와 줌(오른쪽)이 차지한다 → 찍기는 줌 바로 위, 엄지 자리 */
+  .scanbtn{left:auto; right:12px; bottom:66px; transform:none; min-width:96px; height:52px; padding:0 18px}
+  .toast{bottom:128px; max-width:calc(100% - 32px)}
+  .carry{bottom:128px}
+  .rwhy{display:none}
+  .raidbar.has-act .rtext, .raidbar.has-act .rhow, .raidbar.has-act #reye{display:none}
+  /* 관문 줄은 '준비됐다/아직이다'만 — 까닭은 반전 줄과 행동 칸이 이미 말한다 */
+  .raidbar.has-act .rgate span{display:none}
+  .raidbar.has-act .rsteps{margin-bottom:6px}
+  .rpaid{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .rflip{font-size:11.5px; padding:4px 7px; margin-bottom:6px}
+  .ract{padding:6px; margin-bottom:7px}
+  .ractbtn{min-height:44px}
+  .scan{padding:0; align-items:stretch}
+  .scan-in{width:100%; border-radius:0; max-height:none}
+  .keycode{font-size:26px}
+}

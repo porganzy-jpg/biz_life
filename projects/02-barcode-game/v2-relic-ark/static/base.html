@@ -29,6 +29,10 @@
     <p class="rtext" id="rtext"></p>
     <div class="rhow" id="rhow"></div>
     <div class="rgate" id="rgate"></div>
+    <!-- 반전: 먼저 배운 정답이 여기서는 오답이다(거울눈·덮개) -->
+    <div class="rflip" id="rflip" hidden></div>
+    <!-- 관문 행동: 토글로 안 되는 일곱 중 그 생물의 하나. 대가는 누르는 자리에서 낸다 -->
+    <div class="ract" id="ract" hidden></div>
     <div class="rwould" id="rwould"></div>
     <button class="radv" id="radv">듣는다</button>
     <p class="rhint" id="rhint"></p>
@@ -49,8 +53,12 @@
       <button id="pwr" class="sw" title="돔 전원">전원 켜짐</button>
       <button id="wbtn" class="sw" title="공방">공방</button>
       <button id="recallbtn" class="sw warn" title="밖에 있는 사람을 들인다" hidden>들이다</button>
+      <button id="keybtn" class="sw" title="복구 코드 · 다른 기계에서 이어 하기">열쇠</button>
     </div>
   </div>
+
+  <!-- 아래 가운데: 찍기. 이 게임의 훅 — 현실의 물건이 방주로 들어오는 문(J5·E1) -->
+  <button class="scanbtn" id="scanbtn" title="바코드를 찍는다">찍기</button>
 
   <!-- 우하단: 카메라 -->
   <div class="hud hud-br zoomctl">
@@ -67,6 +75,34 @@
 
   <!-- 집은 사람 (탭-탭 배치의 손) -->
   <div class="carry" id="carry" hidden></div>
+
+  <!-- 찍기 화면: 카메라 → 카드가 뒤집힌다 → 선반에 놓는다 (PLAYER_JOURNEY J5) -->
+  <div class="scan" id="scan" hidden>
+    <div class="scan-in">
+      <button class="close" id="scanClose" aria-label="닫기">×</button>
+      <div id="scanCam">
+        <p class="sub">성문 해독</p>
+        <h2>물건의 줄무늬를 비춘다</h2>
+        <div class="cam" id="cam"><video id="video" playsinline muted></video><div class="reticle"></div>
+          <div class="camstatus" id="camstatus">카메라 준비 중…</div></div>
+        <div class="manual">
+          <input id="manual" inputmode="numeric" autocomplete="off" placeholder="바코드 숫자 8~13자리" maxlength="14">
+          <button id="manualBtn">읽는다</button>
+        </div>
+        <div class="samples" id="samples" hidden></div>
+        <div class="picker" id="picker" hidden></div>
+        <p class="quota" id="quota"></p>
+      </div>
+      <div id="scanCard" hidden>
+        <div class="rcard" id="rcard"><div class="rc-in">
+          <div class="rc-face rc-back"><span>RELIC</span><em>바다가 보관한 것</em></div>
+          <div class="rc-face rc-front" id="rcFront"></div>
+        </div></div>
+        <div class="rgain" id="rgain"></div>
+        <button class="shelfbtn" id="shelfBtn">선반에 둔다</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 </div>
