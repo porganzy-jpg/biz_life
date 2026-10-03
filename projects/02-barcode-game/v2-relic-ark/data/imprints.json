@@ -63,7 +63,7 @@
       "visual": {"keyword": "green_spots_on_skin", "ko": "피부의 녹색 반점",
                  "line": "{name}의 목덜미에 옅은 녹색 반점이 돋았다. 그 밤을 견딘 자국이다."},
       "effect": {"counter_bonus": {"해독": 0.3, "치료": 0.3}},
-      "cost": {"ko": "봄철 기침 — 생산이 조금 준다", "effect": {"production_penalty": 0.05}}
+      "cost": {"ko": "봄철 기침으로 생산이 조금 준다", "effect": {"production_penalty": 0.05}}
     },
     {
       "id": "empty_stomach",
@@ -74,7 +74,7 @@
       "visual": {"keyword": "gaunt_body_belt_relic", "ko": "마른 몸, 허리띠 유물",
                  "line": "{name}의 허리에 낡은 띠 하나가 늘었다. 몸은 더 말랐고, 먹는 양은 줄었다."},
       "effect": {"food_daily": -0.3},
-      "cost": {"ko": "식량을 몰래 숨긴다 — 사기 −1 사건이 생긴다", "effect": {"hoard_risk": 1}}
+      "cost": {"ko": "식량을 몰래 숨겨서 사기 −1 사건이 생긴다", "effect": {"hoard_risk": 1}}
     },
     {
       "id": "warden",
@@ -85,7 +85,7 @@
       "visual": {"keyword": "face_scar_club", "ko": "얼굴 흉터, 방망이",
                  "line": "{name}의 광대에 흉터가 남았다. 그날 이후 밤마다 입구 쪽을 한 번 더 본다."},
       "effect": {"counter_bonus": {"방어": 0.3}, "night_watch": 1},
-      "cost": {"ko": "낯선 이를 경계한다 — 표류자 합류율이 떨어진다", "effect": {"drifter_rate": -0.2}}
+      "cost": {"ko": "낯선 이를 경계해서 표류자 합류율이 떨어진다", "effect": {"drifter_rate": -0.2}}
     },
     {
       "id": "sun_memory",
@@ -96,7 +96,7 @@
       "visual": {"keyword": "sunburnt_skin_veil", "ko": "그을린 피부, 베일",
                  "line": "{name}의 피부가 붉게 그을렸다. 눈을 가리는 천을 손에서 놓지 않는다."},
       "effect": {"light_cap": 0.2},
-      "cost": {"ko": "어둠이 답답해진다 — 지하 체류 사기 −1", "effect": {"morale_daily": -1}}
+      "cost": {"ko": "어둠이 답답해서 지하에 머물면 사기 −1", "effect": {"morale_daily": -1}}
     },
     {
       "id": "empty_seat",
@@ -105,7 +105,7 @@
       "crisis_ko": "상실 (가까운 주민의 부상·이별)",
       "trigger": {"type": "state", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["ally_crisis", "companion_died"]},
       "visual": {"keyword": "black_armband", "ko": "검은 팔띠",
-                 "line": "{name}의 팔에 검은 띠가 감겼다. 말수가 줄었고, 대신 남의 옆에 오래 앉아 있는다."},
+                 "line": "{name}의 팔에 검은 띠가 감겼다. 말수가 줄었고, 대신 다른 사람 옆에 오래 앉아 있다."},
       "effect": {"morale_heal_others": 1},
       "cost": {"ko": "자기 사기 회복이 느려진다", "effect": {"self_morale_recover": -1}}
     },
@@ -118,7 +118,7 @@
       "visual": {"keyword": "torn_clothes_tooth_necklace", "ko": "찢긴 옷, 이빨 목걸이",
                  "line": "{name}의 옷이 어깨부터 찢겼다. 주워 온 이빨 하나를 목에 걸고 다닌다."},
       "effect": {"dino_predict": 1},
-      "cost": {"ko": "밤에 잠을 못 잔다 — 야간 생산 0", "effect": {"night_production": -1}}
+      "cost": {"ko": "밤에 잠을 못 자서 야간 생산 0", "effect": {"night_production": -1}}
     },
     {
       "id": "debt_paid",
@@ -127,9 +127,9 @@
       "crisis_ko": "불꽃 부족의 빚 청산",
       "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["flame_debt", "debt_", "tribe_flame_debt"], "tribes": [], "flags": ["flame_debt_cleared"]},
       "visual": {"keyword": "brass_bracelet", "ko": "놋쇠 팔찌",
-                 "line": "{name}의 손목에 놋쇠 팔찌가 채워졌다. 빚을 다 갚은 자만 찰 수 있는 것이다."},
+                 "line": "{name}의 손목에 놋쇠 팔찌가 채워졌다. 빚을 다 갚은 사람만 차는 팔찌다."},
       "effect": {"power_cost": -0.2},
-      "cost": {"ko": "다시는 빚을 지지 않겠다 — 한동안 전기를 사지 못한다", "effect": {"no_power_purchase": 1}}
+      "cost": {"ko": "다시는 빚을 지지 않겠다며 한동안 전기를 사지 못한다", "effect": {"no_power_purchase": 1}}
     },
     {
       "id": "water_memory",
@@ -152,7 +152,7 @@
       "visual": {"keyword": "short_sentences_quiet", "ko": "짧아진 문장, 줄어든 말수",
                  "line": "{name}의 문장이 짧아졌다. 숨을 아껴 본 사람은 말도 아낀다."},
       "effect": {"air_cap": 0.2},
-      "cost": {"ko": "사람들이 그의 말을 놓친다 — 남의 사기를 덜 올린다", "effect": {"morale_heal_others": -1}}
+      "cost": {"ko": "사람들이 그의 말을 놓쳐서 남의 사기를 덜 올린다", "effect": {"morale_heal_others": -1}}
     },
     {
       "id": "crack_seen",
@@ -163,7 +163,7 @@
       "visual": {"keyword": "hand_on_glass", "ko": "늘 창을 만지며 지나간다",
                  "line": "{name}은 이제 창을 만지며 지나간다. 손끝으로 먼저 안다."},
       "effect": {"counter_bonus": {"부품": 0.3, "청사진": 0.2}},
-      "cost": {"ko": "닫힌 방 앞을 지나지 못한다 — 동선이 길어져 생산이 조금 준다", "effect": {"production_penalty": 0.05}}
+      "cost": {"ko": "닫힌 방 앞을 지나지 못해 동선이 길어지고 생산이 조금 준다", "effect": {"production_penalty": 0.05}}
     },
     {
       "id": "depth_mark",
@@ -174,7 +174,7 @@
       "visual": {"keyword": "pressed_ears_low_voice", "ko": "귀와 코의 눌린 자국, 낮아진 목소리",
                  "line": "{name}의 귀 뒤에 눌린 자국이 남았다. 목소리가 한 뼘 낮아졌다."},
       "effect": {"depth_cap": 0.2},
-      "cost": {"ko": "얕은 곳에서 불안해한다 — 광층 체류 중 사기 −1", "effect": {"morale_daily": -1}}
+      "cost": {"ko": "얕은 곳에서 불안해해서 광층에 머무는 동안 사기 −1", "effect": {"morale_daily": -1}}
     },
     {
       "id": "knock_heard",
@@ -186,7 +186,7 @@
                  "ko": "무엇을 만지기 전에 두 번 두드리고 대답을 기다린다. 귀가 소리 쪽으로 먼저 돈다",
                  "line": "{name}의 손끝에 아직 유리의 떨림이 남아 있다. 무엇을 만지기 전에 두 번 두드리고, 대답을 기다린다."},
       "effect": {"counter_bonus": {"야행": 0.2}},
-      "cost": {"ko": "두드리는 소리가 나면 하던 일을 멈춘다 — 밤 작업이 느려진다", "effect": {"night_production": -1}}
+      "cost": {"ko": "두드리는 소리가 나면 하던 일을 멈춰서 밤 작업이 느려진다", "effect": {"night_production": -1}}
     },
 
     {
@@ -198,7 +198,7 @@
       "visual": {"keyword": "half_step_back_at_doorway", "ko": "문간에서 반걸음 먼저 물러선다. 들고 있던 것을 내려놓는 손이 빠르다",
                  "line": "{name}은 문간에서 반걸음 먼저 물러선다. 걷어 둔 그물을 다시 거는 손만 빠르다."},
       "effect": {"build_discount": 0.05, "counter_bonus": {"청사진": 0.2}},
-      "cost": {"ko": "닫으라는 말을 못 한다 — 격벽을 내리는 결정이 한 박자 늦는다", "effect": {"defense_penalty": 0.1}}
+      "cost": {"ko": "닫으라는 말을 못 해서 격벽을 내리는 결정이 한 박자 늦다", "effect": {"defense_penalty": 0.1}}
     },
     {
       "id": "fed_it",
@@ -209,7 +209,7 @@
       "visual": {"keyword": "palm_up_serves_first", "ko": "남의 몫을 먼저 덜어 놓고 자기 그릇을 든다. 손바닥이 늘 위를 향한다",
                  "line": "{name}의 그릇이 제일 늦게 찼다. 빈 창고 문은 닫지 않고 그냥 열어 두었다."},
       "effect": {"morale_heal_others": 1, "counter_bonus": {"온실": 0.2}},
-      "cost": {"ko": "내주는 데 익숙해졌다 — 그가 있는 방은 하루 식량이 조금 더 든다", "effect": {"food_daily": 0.2}}
+      "cost": {"ko": "내주는 데 익숙해져서, 그가 있는 방은 하루 식량이 조금 더 든다", "effect": {"food_daily": 0.2}}
     },
     {
       "id": "sent_up",
@@ -218,9 +218,9 @@
       "crisis_ko": "윗물 아이를 올려보냄 (위로 빛의 길을 내고 박광층 금기를 깸)",
       "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["guided_up"]},
       "visual": {"keyword": "looks_up_at_ceiling", "ko": "천장을 올려다본다. 등을 켜는 순서를 손가락으로 세는 버릇이 남았다",
-                 "line": "{name}은 자꾸 천장을 올려다본다. 구한 밤에 우리도 보였다는 것을 혼자만 세고 있다."},
+                 "line": "{name}은 자꾸 천장을 올려다본다. 그 밤 위에서 우리도 보였다는 걸 혼자만 마음에 두고 있다."},
       "effect": {"morale_cap": 2, "counter_bonus": {"조명": 0.3}},
-      "cost": {"ko": "구한 밤에 우리가 보였다 — 천장을 올려다보는 버릇(광층 금기)이 남아 밤마다 사기가 내려간다", "effect": {"morale_daily": -1}},
+      "cost": {"ko": "그 밤 위에서 우리가 보였다. 천장을 올려다보는 버릇(광층 금기) 때문에 밤마다 사기가 떨어진다", "effect": {"morale_daily": -1}},
       "_contradiction": "1막에서 유일하게 '구하는' 습격의 각인이다. 같은 한 번의 행동이 구원이자 발각이라 보상과 대가가 분리되지 않는다 — 효과의 사기 상한 +2 와 대가의 일일 사기 −1 이 같은 밤에서 나온다. 습격 쪽 대가(다음 습격 세기 +1)는 각인이 아니라 관문의 값이다(defense.json.gates.gate_cost.guide_up)."
     }
   ]

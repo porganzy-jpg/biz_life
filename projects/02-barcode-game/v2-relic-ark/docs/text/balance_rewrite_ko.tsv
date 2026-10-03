@@ -1,0 +1,71 @@
+file	json_path	old	new
+data/balance/defense.json	role_affinity/swarm/strong/engineer	이음매가 어디부터 벌어지는지 안다	이음매가 어디부터 벌어지는지 압니다
+data/balance/defense.json	role_affinity/swarm/strong/cook	좁은 데를 손으로 막아 본 손이다	좁은 틈을 손으로 막아 본 적이 있습니다
+data/balance/defense.json	role_affinity/swarm/weak/medic	봉합을 거든다	봉합하는 일을 거듭니다
+data/balance/defense.json	role_affinity/swarm/weak/farmer	오래 붙어 있어도 지치지 않는다	오래 붙어 있어도 지치지 않습니다
+data/balance/defense.json	role_affinity/swarm/weak/kid	손이 하나 는다	손 하나라도 보탭니다
+data/balance/defense.json	role_affinity/longneck/strong/engineer	방 전원을 혼자 내린다	혼자서도 방 전원을 내릴 줄 압니다
+data/balance/defense.json	role_affinity/longneck/strong/scout	어둠 속에서 남보다 오래 가만히 있는다	어둠 속에서 남보다 오래 가만히 있을 수 있습니다
+data/balance/defense.json	role_affinity/longneck/weak/scholar	왜 오는지 알아서 언제 꺼야 할지 안다	왜 오는지 알아서, 언제 불을 꺼야 할지 압니다
+data/balance/defense.json	role_affinity/longneck/weak/trader	담이 높아 창 앞에서 물러서지 않는다	담이 커서 창 앞에서도 물러서지 않습니다
+data/balance/defense.json	role_affinity/warden/strong/trader	사람을 한 방에 모으고 입을 다물게 한다	사람들을 한 방에 모으고 조용히 시킵니다
+data/balance/defense.json	role_affinity/warden/strong/farmer	숨을 길게 참는다	숨을 오래 참습니다
+data/balance/defense.json	role_affinity/warden/weak/scholar	유리가 휘는 정도로 압력을 읽는다	유리가 휘는 걸 보고 압력을 읽습니다
+data/balance/defense.json	role_affinity/warden/weak/cook	가장 시끄러운 방을 멈춘다	가장 시끄러운 방을 멈춰 세웁니다
+data/balance/defense.json	role_affinity/warden/weak/kid	울지 않는다. 그게 전부다	울지 않습니다. 그거면 충분합니다
+data/balance/defense.json	role_affinity/claws/strong/scout	밖을 알아 가장 먼저 돌아온다	바깥 사정을 알아서 가장 먼저 돌아옵니다
+data/balance/defense.json	role_affinity/claws/strong/medic	뜯긴 이음매를 그 자리에서 꿰맨다	뜯긴 이음매를 그 자리에서 꿰맵니다
+data/balance/defense.json	role_affinity/claws/weak/engineer	에어락을 빨리 연다	에어락을 빨리 엽니다
+data/balance/defense.json	role_affinity/claws/weak/farmer	마지막 한 사람을 끌고 들어온다	마지막 한 사람까지 끌고 들어옵니다
+data/balance/defense.json	role_affinity/mirror_eye/strong/engineer	다른 쪽에 더 밝은 불을 켤 줄 안다	다른 쪽에 더 밝은 불을 켤 줄 압니다
+data/balance/defense.json	role_affinity/mirror_eye/strong/scholar	이것이 긴목이 아님을 안다 — 불을 끄면 최악이다	긴목이 아니라는 걸 압니다. 불을 끄면 큰일 납니다
+data/balance/defense.json	role_affinity/mirror_eye/weak/scout	어느 방향이 먼지 안다	어느 쪽이 더 먼지 압니다
+data/balance/defense.json	role_affinity/mirror_eye/weak/trader	사람들이 불을 끄려는 것을 말린다	불을 끄려는 사람들을 말립니다
+data/balance/defense.json	role_affinity/straight_one/strong/medic	약재를 풀어 물을 흐린다	약재를 풀어 물을 흐립니다
+data/balance/defense.json	role_affinity/straight_one/strong/cook	끓인 물을 통째로 쏟아 겨눌 수 없게 한다	끓인 물을 한꺼번에 쏟아 겨누지 못하게 합니다
+data/balance/defense.json	role_affinity/straight_one/weak/engineer	정수실을 거꾸로 돌린다	정수실을 거꾸로 돌립니다
+data/balance/defense.json	role_affinity/straight_one/weak/farmer	흙탕을 만든다	흙탕물을 일으킵니다
+data/balance/defense.json	role_affinity/lid/strong/trader	사람들을 붙잡아 둔다 — 움직이지 않는 것이 이 생물의 유일한 답이다	사람들을 붙잡아 둡니다. 저 녀석 앞에서는 가만히 있는 게 유일한 답입니다
+data/balance/defense.json	role_affinity/lid/strong/farmer	가만히 있는 일에 익숙하다	가만히 있는 데 익숙합니다
+data/balance/defense.json	role_affinity/lid/weak/scholar	왜 움직이면 안 되는지 설명한다	왜 움직이면 안 되는지 설명해 줍니다
+data/balance/defense.json	role_affinity/lid/weak/kid	움직이지 않는다. 그게 전부다	움직이지 않습니다. 그거면 충분합니다
+data/balance/defense.json	role_affinity/needle/strong/scout	밖의 그물과 계류줄이 어디 있는지 안다	바깥 그물과 계류줄이 어디 있는지 압니다
+data/balance/defense.json	role_affinity/needle/strong/engineer	외부 해치를 연다	외부 해치를 엽니다
+data/balance/defense.json	role_affinity/needle/weak/farmer	줄 거두는 일을 해 봤다	줄 걷는 일을 해 봤습니다
+data/balance/defense.json	role_affinity/needle/weak/cook	매단 것을 걷는다	매달아 둔 것을 걷습니다
+data/balance/defense.json	role_affinity/big_maw/strong/cook	수확분을 통째로 내준다	수확한 것을 통째로 내줍니다
+data/balance/defense.json	role_affinity/big_maw/strong/farmer	기른 것을 내주는 결정을 한다	기른 것을 내주는 결정을 내립니다
+data/balance/defense.json	role_affinity/big_maw/weak/trader	값을 계산하지 않는다	값을 따지지 않습니다
+data/balance/defense.json	role_affinity/big_maw/weak/medic	아까워하는 사람을 달랜다	아까워하는 사람을 달랩니다
+data/balance/defense.json	role_affinity/follower/strong/scholar	어느 유물이 해구에서 온 것인지 안다	어느 유물이 해구에서 왔는지 압니다
+data/balance/defense.json	role_affinity/follower/strong/trader	무엇을 내줄지 정한다	무엇을 내줄지 정합니다
+data/balance/defense.json	role_affinity/follower/weak/scout	가져온 사람이라 어디서 왔는지 안다	직접 가져온 사람이라 어디서 왔는지 압니다
+data/balance/defense.json	role_affinity/follower/weak/kid	가장 아끼던 것을 먼저 내민다	가장 아끼던 것부터 내밉니다
+data/balance/defense.json	role_affinity/upper_child/strong/engineer	위쪽 등부터 차례로 켠다	위쪽 등부터 차례로 켭니다
+data/balance/defense.json	role_affinity/upper_child/strong/kid	아이가 아이를 부른다	아이가 아이를 부릅니다
+data/balance/defense.json	role_affinity/upper_child/weak/medic	겁먹은 것을 알아본다	겁먹은 걸 알아봅니다
+data/balance/defense.json	role_affinity/upper_child/weak/scout	위쪽 길을 안다	위쪽 길을 압니다
+data/balance/economy.json	rooms/list/hall/lv2/opens	습격 중 재배치 1회	습격 중에 1번 자리 바꾸기
+data/balance/economy.json	rooms/list/hall/lv3/cond	해구 문턱 도달	해구 문턱에 닿은 뒤
+data/balance/economy.json	rooms/list/hall/lv3/opens	동시 2명 재배치	2명 함께 자리 바꾸기
+data/balance/economy.json	rooms/list/quarters/lv2/opens	정원 6, 각인 아침 연출	정원 6명, 아침마다 각인 이야기
+data/balance/economy.json	rooms/list/quarters/lv3/cond	각인 3개 보유자 1명	각인 3개 가진 주민 1명
+data/balance/economy.json	rooms/list/quarters/lv3/opens	정원 8, 꿈 대사	정원 8명, 꿈 이야기
+data/balance/economy.json	rooms/list/storage/lv2/opens	선반 12, 자동 정렬	선반 12칸, 알아서 정리
+data/balance/economy.json	rooms/list/storage/lv3/opens	선반 20, 가문별 진열	선반 20칸, 가문별로 진열
+data/balance/economy.json	rooms/list/well/lv2/opens	역삼투	역삼투로 거르기
+data/balance/economy.json	rooms/list/well/lv3/opens	잉여 물 → 교역품	남는 물을 교역품으로
+data/balance/economy.json	rooms/list/greenhouse/lv2/opens	산소 생산	산소 만들기
+data/balance/economy.json	rooms/list/greenhouse/lv3/cond	스팟 「위를 보는 숲」 발견	스팟 「위를 보는 숲」을 찾은 뒤
+data/balance/economy.json	rooms/list/generator/lv2/opens	방별 조명 제어	방마다 불 켜고 끄기
+data/balance/economy.json	rooms/list/generator/lv3/cond	열수구 정원 발견	열수구 정원을 찾은 뒤
+data/balance/economy.json	rooms/list/generator/lv3/opens	열수구 연결	열수구와 연결
+data/balance/economy.json	rooms/list/infirmary/lv2/opens	부상자 경작업	다친 분도 가벼운 일
+data/balance/economy.json	rooms/list/infirmary/lv3/cond	「숨의 손」 각인 보유자	「숨의 손」 각인 가진 주민
+data/balance/economy.json	rooms/list/infirmary/lv3/opens	중상 치료	크게 다친 분 치료
+data/balance/economy.json	rooms/list/airlock/lv2/opens	2인 동시 출입	2명 함께 출입
+data/balance/economy.json	rooms/list/airlock/lv3/opens	긴급 귀환	급히 돌아오기
+data/balance/economy.json	rooms/list/workshop/lv2/opens	제작 2건 동시	2건 함께 만들기
+data/balance/economy.json	rooms/list/workshop/lv3/opens	3단계 장비 제작	3단계 장비 만들기
+data/balance/economy.json	rooms/list/decoder/lv2/opens	가문 추정	가문 짐작하기
+data/balance/economy.json	rooms/list/decoder/lv3/opens	미등록 가문 해독	처음 보는 가문도 해독

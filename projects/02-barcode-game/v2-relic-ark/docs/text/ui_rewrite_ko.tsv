@@ -1,0 +1,210 @@
+file	old	new
+static/base.js	갈 수 없다	못 가는 곳
+static/base.js	실루엣의 층	그림자가 비치는 층
+static/base.js	돔이 사는 층	돔이 있는 층
+static/base.js	여기부터 값이 달라진다	여기부터 값이 달라집니다
+static/base.js	지나갔다	지나감
+static/base.js	통신 실패	연결이 끊겼습니다
+static/base.js	물이 너무 깊게 찼다 — 아직 손댈 수 없다	물이 너무 깊게 차 있어서, 지금은 손댈 수 없습니다
+static/base.js	물이 찼다	물에 잠김
+static/base.js	 · 꽉 찼다	 · 꽉 참
+static/base.js	><b>홀</b><small>돔 상부 · 아무 방도 지키지 않는다</small></button>	><b>홀</b><small>돔 상부 · 아무 방도 안 지킴</small></button>
+static/base.js	 을(를) 어디로</h3>	 님 자리 옮기기</h3>
+static/base.js	<p class="rno">덮개 앞이다. 옮기는 순간 관문이 깨진다 — 그대로 두려면 사람을 다시 누른다.</p>	<p class="rno">덮개 앞입니다. 지금 옮기시면 관문이 깨집니다. 그대로 두시려면 그분을 한 번 더 눌러 주세요.</p>
+static/base.js	m · 격벽이 닫혔다</p>	m · 격벽 닫힘</p>
+static/base.js	<p class="lost">여기는 물이다. 격벽은 다시 열리지 않는다.<br>생산하지 않고, 소리도 나지 않는다. 	<p class="lost">여기는 물에 잠겼습니다. 격벽은 다시 열리지 않습니다.<br>일도 하지 않고, 소리도 나지 않습니다. 
+static/base.js	그래도 지워지지 않고 남아 있다.</p>	그래도 지워지지 않고 그대로 남아 있습니다.</p>
+static/base.js	<h3>붙어 있는 것</h3><div class="kv">	<h3>붙여 둔 도구</h3><div class="kv">
+static/base.js	<h3>여기 있는 사람</h3>	<h3>여기 계신 분</h3>
+static/base.js	<div class="who"><em>아무도 없다 — 빈 방은 막지 못한다</em></div>	<div class="who"><em>아무도 안 계십니다. 빈 방은 막지 못합니다.</em></div>
+static/base.js	<p class="desc">여기엔 더 놓을 자리가 없다. 방주는 아래로 자란다.<br>배치되지 않은 사람은 이 홀에 모인다.</p>	<p class="desc">여기는 더 놓을 자리가 없습니다. 방주는 아래로 넓어집니다.<br>자리를 정하지 않은 분은 이 홀에 모이십니다.</p>
+static/base.js	<p class="desc">물을 빼면 칸을 되찾는다. 아래로 내려갈수록 유물이 좋아지고 위험해진다.</p>	<p class="desc">물을 빼면 이 칸을 되찾습니다. 아래로 내려갈수록 좋은 유물이 나오지만, 그만큼 위험합니다.</p>
+static/base.js	<h3>물을 빼고 무엇으로 쓸까</h3><div class="blist">	<h3>물 빼고 쓸 방 고르기</h3><div class="blist">
+static/base.js	 — 옮길 방을 고르세요	 님, 옮겨 갈 방을 골라 주세요
+static/base.js	<p class="sub">돔 상부 · 배치되지 않은 사람</p>	<p class="sub">돔 상부 · 자리 안 정한 분</p>
+static/base.js	<p class="desc">여기 있는 사람은 아무 방도 지키지 않는다. 습격이 오기 전에 자리를 정한다.</p>	<p class="desc">여기 계신 분은 아무 방도 지키지 않습니다. 습격이 오기 전에 자리를 정해 주세요.</p>
+static/base.js	<div class="who"><em>모두 자리에 있다</em></div>	<div class="who"><em>모두 자리에 계십니다</em></div>
+static/base.js	<p class="desc">아직 공방이 없다. 빈 자리에 공방을 지어야 만들 수 있다.</p>	<p class="desc">아직 공방이 없습니다. 물을 뺀 칸을 공방으로 쓰셔야 도구를 만들 수 있습니다.</p>
+static/base.js	<p class="desc">공방에 아무도 없다. 도구는 손이 만든다 — 사람을 공방에 두면 재료가 달라진다.</p>	<p class="desc">공방에 아무도 안 계십니다. 도구는 사람 손이 만듭니다. 공방에 사람을 두시면 드는 재료가 달라집니다.</p>
+static/base.js	 — 부족	 · 모자람
+static/base.js	<option value="">붙일 방…</option>	<option value="">붙일 방 고르기…</option>
+static/base.js	 — 덮개 앞이다. 옮기면 최악수	 님, 덮개 앞이라 지금 옮기시면 안 됩니다
+static/base.js	 — 놓을 방을 고르세요	 님, 모실 방을 골라 주세요
+static/base.js	옮겼다 — 덮개가 움직임을 느꼈다	자리를 옮겼습니다. 덮개가 움직임을 느낀 것 같습니다
+static/base.js	홀로 되돌렸다	홀로 모셨습니다
+static/base.js	자리를 옮겼다	자리를 옮겼습니다
+static/base.js	옮기지 못했다	옮기지 못했습니다
+static/base.js	불을 껐다 — 거울눈이 비침을 잃었다. 긴목 때와 반대다	불을 껐습니다. 거울눈이 제 모습을 못 보게 됐습니다. 긴목 때와는 반대입니다
+static/base.js	불을 켰다	불을 켰습니다
+static/base.js	불을 껐다 — 이 방은 우리도 못 본다	불을 껐습니다. 이 방은 저희도 안 보입니다
+static/base.js	실패	잘 안 됐습니다
+static/base.js	전원을 올렸다	전원을 올렸습니다
+static/base.js	전원을 내렸다 — 돔이 조용해진다	전원을 내렸습니다. 돔이 조용해집니다
+static/base.js	명을 들였다	분이 들어오셨습니다
+static/base.js	밖에 아무도 없다	밖에 계신 분이 없습니다
+static/base.js	 을(를) 만들었다	 하나 만들었습니다
+static/base.js	만들지 못했다	만들지 못했습니다
+static/base.js	붙였다	도구를 붙였습니다
+static/base.js	붙이지 못했다	붙이지 못했습니다
+static/base.js	 — 물을 뺐다	 자리, 물을 다 뺐습니다
+static/base.js	물을 빼지 못했다	물을 빼지 못했습니다
+static/base.js	을(를) 잃었다. 격벽은 다시 열리지 않는다.</p>	 쪽이 물에 잠겼습니다. 격벽은 다시 열리지 않습니다.</p>
+static/base.js	이(가) 다쳤다.</p>	 님이 다치셨습니다.</p>
+static/base.js	<h3>겪은 사람</h3>	<h3>겪은 분</h3>
+static/base.js	막는 법 — 	막는 법: 
+static/base.js	위협이 아니다. 식구다.	걱정 안 하셔도 됩니다. 우리 식구입니다.
+static/base.js	준비됐다	준비 끝
+static/base.js	아직이다	아직
+static/base.js	지금 맞서면 <b>	지금 맞서시면 <b>
+static/base.js	귀를 기울인다	귀 기울이기
+static/base.js	맞선다	맞서기
+static/base.js	서두르지 않아도 된다. 누르기 전까지 아무 일도 일어나지 않는다. 그동안 사람을 옮기고 불을 끄고 도구를 붙인다.	급하게 안 하셔도 됩니다. 「맞서기」를 누르시기 전까지는 아무 일도 없으니, 천천히 자리 옮기시고 불도 정리하시고 도구도 붙여 두세요.
+static/base.js	오늘은 지나갔다.	오늘은 지나갔습니다.
+static/base.js	어느 방으로 오는지는 아직 모른다.	어느 방으로 올지는 아직 모릅니다.
+static/base.js	방주를 불러오지 못했다 — 	방주를 불러오지 못했습니다: 
+static/base.js	방금 찍은 것 · 	방금 들어온 물건 · 
+static/base.js	<span>비어 있다 — 찍은 물건이 여기 놓인다</span>	<span>비어 있습니다. 찍은 물건이 여기 놓입니다</span>
+static/base.js	물건을 둘 창고가 없다	물건을 둘 창고가 없습니다
+static/base.js	 선반에 놓였다	 선반에 두었습니다
+static/base.js	불 켜짐 — 끄면 최악수(거울눈)	불 켜짐 · 끄지 마세요(거울눈)
+static/base.js	불 켜짐 — 끄기	불 끄기
+static/base.js	불 꺼짐 — 켜기	불 켜기
+static/base.js	<b>긴목 때와 반대다.</b> 불을 끄지 않는다 — 비침이 사라지면 짝을 찾으러 유리를 민다.	<b>긴목 때와는 반대입니다.</b> 불은 끄지 마세요. 비친 모습이 사라지면 짝을 찾겠다고 유리를 밉니다.
+static/base.js	의 불이 꺼져 있다.</b> 긴목에게 통한 수가 여기서는 가장 나쁜 수다.	의 불이 꺼져 있습니다.</b> 긴목 때 통하던 방법이 여기서는 가장 나쁜 방법입니다.
+static/base.js	">다시 켠다</button>	">다시 켜기</button>
+static/base.js	<b>아무도 옮기지 않는다.</b> 사람을 옮기는 것이 지금은 가장 나쁜 수다 — 움직이는 것 위에는 앉지 않는다.	<b>지금은 아무도 옮기지 마세요.</b> 사람을 옮기는 게 지금은 가장 나쁜 수입니다. 저 녀석은 움직이는 것 위에는 앉지 않습니다.
+static/base.js	<b>이미 	<b>벌써 
+static/base.js	번 옮겼다.</b> 덮개가 움직임을 느꼈다. 살아 있는 줄 알면 놀라서 몸을 턴다.	번 옮기셨습니다.</b> 덮개가 움직임을 느꼈습니다. 살아 있는 줄 알면 놀라서 몸을 텁니다.
+static/base.js	할 수 없다 — 	지금은 못 합니다: 
+static/base.js	모자란다 — 	모자랍니다: 
+static/base.js	했다 — 	완료 · 
+static/base.js	">대가 — 	">대가: 
+static/base.js	하지 못했다	하지 못했습니다
+static/base.js	 · 같은 물건은 다시 읽을수록 덜 나온다	 · 같은 물건은 다시 읽을수록 덜 나옵니다
+static/base.js	이 브라우저는 카메라로 줄무늬를 못 읽는다 — 아래에 숫자를 적는다	이 브라우저는 카메라로 줄무늬를 못 읽습니다. 아래에 숫자를 적어 주세요
+static/base.js	카메라는 HTTPS 에서만 열린다 — 아래에 숫자를 적는다	카메라는 HTTPS에서만 열립니다. 아래에 숫자를 적어 주세요
+static/base.js	줄무늬를 붉은 선에 맞춘다	줄무늬를 붉은 선에 맞춰 주세요
+static/base.js	카메라를 열 수 없다 — 아래에 숫자를 적는다	카메라를 열 수 없습니다. 아래에 숫자를 적어 주세요
+static/base.js	숫자 8~13자리를 적는다	숫자 8~13자리를 적어 주세요
+static/base.js	읽지 못했다	읽지 못했습니다
+static/base.js	<p>이 가문의 성문은 처음이다. 이 물건은 무엇인가?</p>	<p>이 가문의 성문은 처음 봅니다. 어떤 물건인가요?</p>
+static/base.js	<button data-cat="">모른다</button>	<button data-cat="">모름</button>
+static/base.js	 — 선반 	, 선반 
+static/base.js	번째 칸으로</span>	번째 칸에 두겠습니다</span>
+static/base.js	<span class="where">선반이 꽉 찼다. 창고를 넓히면 더 놓인다</span>	<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>
+static/base.js	<span>이미 읽은 성문 — 얻은 것 없음</span>	<span>이미 읽은 성문이라 새로 얻은 건 없습니다</span>
+static/base.js	선반에 둔다	선반에 두기
+static/base.js	닫는다	닫기
+static/base.js	<small>아직 — 	<small>아직: 
+static/base.js	<small>모자란다 — 	<small>모자람: 
+static/base.js	올리지 못했다	올리지 못했습니다
+static/base.js	<h2>방주의 열쇠</h2><p class="lost">열쇠를 꺼내지 못했다 — 	<h2>방주의 열쇠</h2><p class="lost">열쇠를 꺼내지 못했습니다: 
+static/base.js	적어 두면 다른 기계에서도 이어서 할 수 있다.	적어 두시면 다른 기계에서도 이어서 하실 수 있습니다.
+static/base.js	<p class="desc">다른 데서 적어 둔 열쇠를 넣는다. 지금 이 방주로 돌아오려면 위의 열쇠를 먼저 적어 둔다.</p>	<p class="desc">다른 기계에서 적어 둔 열쇠를 넣어 주세요. 지금 이 방주로 다시 오시려면 위 열쇠를 먼저 적어 두세요.</p>
+static/base.js	베꼈다 — 	베껴 두었습니다: 
+static/base.js	길게 눌러 베낀다	길게 눌러 베껴 주세요
+static/base.js	열쇠를 적는다	열쇠를 적어 주세요
+static/base.js	이미 이 방주다.	이미 이 방주입니다.
+static/base.js	이 브라우저에는 저장할 수 없다(사생활 보호 창?)	이 브라우저에는 저장할 수 없습니다(사생활 보호 창인가요?)
+static/base.js	돌아왔다.	돌아오셨습니다.
+static/base.js	잠시 뒤 다시 — 	잠시 뒤 다시 해 주세요: 
+static/base.js	너무 여러 번 틀렸다	너무 여러 번 틀리셨습니다
+static/base.js	열쇠 형식이 다르다 — 	열쇠 형식이 다릅니다: 
+static/base.js	열리지 않았다	열리지 않았습니다
+static/base.js	</small></h4><div class="rcmeta">배치 안 된 사람 	</small></h4><div class="rcmeta">자리 안 정한 분 
+static/base.js	m</small></h4><p class="rcline">물을 빼면 칸을 되찾는다.</p>	m</small></h4><p class="rcline">물을 빼면 이 칸을 되찾습니다.</p>
+static/base.js	<div class="rcbtns"><button class="on" data-c="build">물을 뺀다</button></div>	<div class="rcbtns"><button class="on" data-c="build">물 빼기</button></div>
+static/base.js	<small>물이 찼다</small></h4>	<small>물에 잠김</small></h4>
+static/base.js	<p class="rcline">격벽은 다시 열리지 않는다.</p><div class="rcbtns"><button data-c="more">자세히</button></div>	<p class="rcline">격벽은 다시 열리지 않습니다.</p><div class="rcbtns"><button data-c="more">자세히</button></div>
+static/base.js	끄면 최악수	끄지 마세요
+static/base.js	 (8시간마다 창고로 들어온다)	 (8시간마다 창고로 들어옵니다)
+static/base.js	방이나 홀 위에 놓으세요	방이나 홀 위에 놓아 주세요
+static/base.js	놓았다	내려놓았습니다
+static/base.js	그만두었다	그만두었습니다
+static/base.js	 — 옮길 방을 탭하세요	 님, 옮겨 갈 방을 눌러 주세요
+static/base.html	듣는다	귀 기울이기
+static/base.html	들이다	들이기
+static/base.html	물건의 줄무늬를 비춘다	물건의 줄무늬를 비춰 주세요
+static/base.html	읽는다	읽기
+static/base.html	선반에 둔다	선반에 두기
+static/base.html	돌리면 돔과 바깥 심연이 한 화면에 들어온다.	돌리시면 돔과 바깥 심연이 한 화면에 들어옵니다.
+static/base.html	바코드를 찍는다	바코드 찍기
+static/base.html	밖에 있는 사람을 들인다	밖에 계신 분 들이기
+static/life.js	<div class="intro-in"><p class="l1">대침묵 213년.</p><p class="l2">문명은 잊혔다. 남은 것은 물건에 새겨진 검은 줄무늬뿐.</p><p class="l3">당신은 그것을 읽을 수 있는 몇 안 되는 사람이다.<br>주민 셋과 함께, 폐허 아래에 방주를 판다.</p><button class="btn lamp" id="introGo">방주로 내려가기</button></div>	<div class="intro-in"><p class="l1">대침묵 213년.</p><p class="l2">문명은 잊혔다. 남은 것이라고는 물건에 새겨진 검은 줄무늬뿐이다.</p><p class="l3">당신은 그 줄무늬를 읽을 줄 아는 몇 안 되는 사람이다.<br>주민 셋과 함께 폐허 아래에 방주를 판다.</p><button class="btn lamp" id="introGo">방주로 내려가기</button></div>
+static/life.js	하늘이 드물게 맑다. 지상 정찰에 좋은 날.	하늘이 모처럼 맑다. 지상을 둘러보기 좋은 날이다.
+static/life.js	까치들이 조용하다. 불길할 정도로.	까치들이 이상하리만치 조용하다.
+static/life.js	안개가 콘크리트 숲을 삼켰다. 소리만 남는다.	안개가 콘크리트 숲을 삼켰다. 들리는 건 소리뿐이다.
+static/life.js	안개 속에서 누군가 걷는 소리. 우리 사람이 아니다.	안개 속에서 누가 걷는 소리가 난다. 우리 쪽 사람은 아니다.
+static/life.js	비가 온다. 정수실이 없다면 빗물을 받아라.	비가 온다. 정수실이 없으면 빗물이라도 받아 두자.
+static/life.js	빗물이 지하 강으로 스며든다. 균류가 좋아하는 날.	빗물이 지하 강으로 스며든다. 균류가 좋아할 날이다.
+static/life.js	바람이 폐허의 간판을 흔든다. 낡은 성문이 떨어진다.	바람에 폐허의 간판이 흔들린다. 낡은 성문이 하나 떨어져 나온다.
+static/life.js	바람 덕에 라디오탑 신호가 멀리 간다.	바람을 타고 라디오탑 신호가 멀리까지 간다.
+static/life.js	 식량이 바닥을 보인다.	 식량이 바닥나 간다.
+static/life.js	 부상자 ${ark.injured}명이 의무실을 기다린다.	 다친 사람 ${ark.injured}명이 의무실 자리를 기다린다.
+static/life.js	냄비를 저어보는 중	냄비를 젓는 중
+static/life.js	누군가와 값을 재는 중	누군가와 값을 흥정하는 중
+static/app.js	자리를 비운 사이 방주가 생산했습니다: ${keys.map(k => `${RES_KO[k]} +${p[k]}`).join(', ')}	자리를 비우신 사이에 방에서 이만큼 만들어 두었습니다: ${keys.map(k => `${RES_KO[k]} +${p[k]}`).join(', ')}
+static/app.js	<h3 style="font-family:var(--serif);margin:14px 0 4px">소문 ${got} / ${rs.length}</h3>
+      <p class="hint" style="margin:0 0 6px">짐승과 길손이 물어 온 단서. 당신이 무엇을 해독하느냐가 어느 방향의 소문을 부른다.</p>
+      ${rs.map(r => `<div class="rumor ${r.unlocked ? 'on' : ''}">
+        <div class="rt"><b>${r.unlocked ? esc(r.name) : '? ? ?'}</b><span>${esc(r.categories_ko)} ${r.progress.have}/${r.progress.need}</span></div>
+        <div class="bar"><i style="width:${Math.round(100 * r.progress.have / r.progress.need)}%"></i></div>
+        <div class="rc">${r.unlocked ? esc(r.clue_text || '') : '아직 아무도 이 방향의 이야기를 물어 오지 않았다.'}</div>
+      </div>`).join('')}	<h3 style="font-family:var(--serif);margin:14px 0 4px">소문 ${got} / ${rs.length}</h3>
+      <p class="hint" style="margin:0 0 6px">짐승과 길손이 물어 온 단서들이다. 무엇을 해독하느냐에 따라 들려오는 소문의 방향이 달라진다.</p>
+      ${rs.map(r => `<div class="rumor ${r.unlocked ? 'on' : ''}">
+        <div class="rt"><b>${r.unlocked ? esc(r.name) : '? ? ?'}</b><span>${esc(r.categories_ko)} ${r.progress.have}/${r.progress.need}</span></div>
+        <div class="bar"><i style="width:${Math.round(100 * r.progress.have / r.progress.need)}%"></i></div>
+        <div class="rc">${r.unlocked ? esc(r.clue_text || '') : '아직 아무도 이 방향의 이야기를 물어 오지 않았다.'}</div>
+      </div>`).join('')}
+static/app.js	새 소문: ${fresh.name}	새 소문이 들어왔습니다. 「${fresh.name}」
+static/app.js	<div class="eyebrow">B1 · 역 홀</div><h2>잊힌 역의 승강장</h2><img class="room-hero iso" alt="" src="${isoTile('hall')}"><p class="hint">방주의 중심. 승강기가 지상과 지하를 잇고, 끊어진 선로는 어둠 속 터널로 이어진다.</p>
+      <h3 style="font-family:var(--serif);margin:10px 0 4px">주민 ${ark.residents}</h3>
+      <p class="hint" style="margin:0 0 6px">각인 가진 사람 ${marked}명 · 서로에 대한 신뢰 평균 ${avg}/100. 사람은 사람을 쉽게 믿지 않는다. 함께 위기를 넘겨야만 오른다.</p>
+      <div class="roster">${roster || '<p class="hint">주민 정보가 없습니다.</p>'}</div>
+      <div id="rumors"><p class="hint">소문을 듣는 중…</p></div>	<div class="eyebrow">B1 · 역 홀</div><h2>잊힌 역의 승강장</h2><img class="room-hero iso" alt="" src="${isoTile('hall')}"><p class="hint">방주의 한가운데다. 승강기가 지상과 지하를 잇고, 끊어진 선로는 어두운 터널 속으로 이어진다.</p>
+      <h3 style="font-family:var(--serif);margin:10px 0 4px">주민 ${ark.residents}</h3>
+      <p class="hint" style="margin:0 0 6px">각인 가진 사람 ${marked}명 · 서로 믿는 정도 평균 ${avg}/100. 사람은 사람을 쉽게 믿지 않는다. 위기를 함께 넘겨야 조금씩 오른다.</p>
+      <div class="roster">${roster || '<p class="hint">주민 정보가 없습니다.</p>'}</div>
+      <div id="rumors"><p class="hint">소문을 듣는 중…</p></div>
+static/app.js	<div class="eyebrow">${surface ? 'B0 지상 · 재건' : '지하 · 굴착'}</div><h2>${surface ? '폐허 위에 무엇을 세울까요?' : '무엇을 파낼까요?'}</h2><p class="hint">방은 8시간마다 생산하고, 자리를 비워도 최대 3번까지 쌓입니다. 유물을 해독해 자원을 모으세요.</p>${opts}	<div class="eyebrow">${surface ? 'B0 지상 · 재건' : '지하 · 굴착'}</div><h2>${surface ? '폐허 위에 무엇을 세울까요?' : '무엇을 파낼까요?'}</h2><p class="hint">방은 8시간마다 물건을 만들고, 자리를 비우셔도 3번까지는 쌓아 둡니다. 유물을 해독해서 자원을 모아 주세요.</p>${opts}
+static/app.js	${rooms[b.dataset.r].name}을(를) 지었습니다	${rooms[b.dataset.r].name} 공사가 끝났습니다
+static/app.js	<div class="eyebrow">성문 해독</div><h2>물건의 줄무늬를 리더에 비추세요</h2><p class="hint">집과 편의점의 모든 것이 유물입니다. 책(ISBN)은 청사진이 됩니다.</p>
+      <div class="cam" id="cam"><video id="video" playsinline muted></video><div class="reticle"></div><div class="status" id="camstatus">카메라 준비 중…</div></div>
+      <div class="manual"><input id="manual" inputmode="numeric" placeholder="바코드 숫자 13자리" maxlength="14"><button class="btn" id="manualBtn">해독</button></div>
+      <div class="samples">${SAMPLES.map(([c, l]) => `<button data-c="${c}">${l} ${c}</button>`).join('')}</div>
+      <div class="quota">오늘의 해독 ${ark.scans_today} / ${ark.scan_cap} · 같은 물건은 2회차 50%, 3회차 10%</div><div id="pickerWrap" hidden></div>	<div class="eyebrow">성문 해독</div><h2>물건의 줄무늬를 리더에 비춰 주세요</h2><p class="hint">집이나 편의점에 있는 물건은 모두 유물입니다. 책(ISBN)은 청사진이 됩니다.</p>
+      <div class="cam" id="cam"><video id="video" playsinline muted></video><div class="reticle"></div><div class="status" id="camstatus">카메라 준비 중…</div></div>
+      <div class="manual"><input id="manual" inputmode="numeric" placeholder="바코드 숫자 13자리" maxlength="14"><button class="btn" id="manualBtn">해독</button></div>
+      <div class="samples">${SAMPLES.map(([c, l]) => `<button data-c="${c}">${l} ${c}</button>`).join('')}</div>
+      <div class="quota">오늘의 해독 ${ark.scans_today} / ${ark.scan_cap} · 같은 물건은 두 번째 50%, 세 번째 10%</div><div id="pickerWrap" hidden></div>
+static/app.js	이 브라우저는 카메라 바코드 인식을 지원하지 않습니다 — 아래 숫자 입력 또는 샘플을 쓰세요	이 브라우저에서는 카메라로 바코드를 읽을 수 없습니다. 아래에 숫자를 넣거나 샘플을 눌러 주세요
+static/app.js	성문을 붉은 선에 맞추세요	성문을 붉은 선에 맞춰 주세요
+static/app.js	<p class="hint" style="margin-top:12px">이 가문의 성문은 처음입니다. 이 물건은 무엇입니까?</p><div class="picker">${pk.categories.map(c => `<button data-c="${c}">${CAT_KO[c]}<small>${c}</small></button>`).join('')}<button data-c="">모름<small>unknown</small></button></div>	<p class="hint" style="margin-top:12px">처음 보는 가문의 성문입니다. 어떤 물건인가요?</p><div class="picker">${pk.categories.map(c => `<button data-c="${c}">${CAT_KO[c]}<small>${c}</small></button>`).join('')}<button data-c="">모름<small>unknown</small></button></div>
+static/app.js	<div class="eyebrow">유물 카드</div><h2>손패와 도감</h2><p class="hint">태그가 있는 카드는 쪽지(사건)에 대항할 때 쓸 수 있습니다.</p>
+      <div class="codex">${codex.map(c => `<div><b>${CAT_KO[c.category]}</b>${c.found} / ${c.total}<div class="bar"><i style="width:${c.total ? c.found / c.total * 100 : 0}%"></i></div></div>`).join('')}</div><div class="hand" id="hand"></div>	<div class="eyebrow">유물 카드</div><h2>손패와 도감</h2><p class="hint">태그가 붙은 카드는 쪽지(사건)를 막을 때 쓰실 수 있습니다.</p>
+      <div class="codex">${codex.map(c => `<div><b>${CAT_KO[c.category]}</b>${c.found} / ${c.total}<div class="bar"><i style="width:${c.total ? c.found / c.total * 100 : 0}%"></i></div></div>`).join('')}</div><div class="hand" id="hand"></div>
+static/app.js	<div class="waiting" style="grid-column:1/-1">아직 손패가 없습니다. 태그 있는 유물을 해독하면 여기에 쌓입니다.</div>	<div class="waiting" style="grid-column:1/-1">아직 손패가 없습니다. 태그 붙은 유물을 해독하시면 여기에 쌓입니다.</div>
+static/app.js	<div class="eyebrow">오늘의 쪽지 · DAY ${st.day}</div><h2>쪽지가 도착했습니다</h2><p class="hint">시간 안에 대항 카드를 누르세요. 대항할 방이 있으면 카드 없이도 반은 막습니다.</p>
+      <div class="slip ${pos ? 'pos' : ''}" id="slip"><div class="timer" id="tm">${ev.timer_sec}</div><div class="fac">${ev.tribe ? esc(tribeLabel(ev.tribe)) : esc(FAC_KO[ev.faction] || ev.faction)} · 심각도 ${ev.severity}</div><h3>${esc(ev.name)}</h3><p>${esc(ev.text)}</p>
+      <div class="tags">대항 태그 ${ev.counter_tags.map(t => `<span>#${esc(t)}</span>`).join('')}${ev.counter_room ? ` · 방 <span>${rooms[ev.counter_room].name}${d.room_backup ? ' ✓' : ' ✗'}</span>` : ''}</div></div>
+      <div class="counter-row" id="crow"></div><div class="result" id="result"></div>	<div class="eyebrow">오늘의 쪽지 · DAY ${st.day}</div><h2>쪽지가 도착했습니다</h2><p class="hint">시간 안에 대항 카드를 눌러 주세요. 맞는 방이 있으면 카드가 없어도 반은 막습니다.</p>
+      <div class="slip ${pos ? 'pos' : ''}" id="slip"><div class="timer" id="tm">${ev.timer_sec}</div><div class="fac">${ev.tribe ? esc(tribeLabel(ev.tribe)) : esc(FAC_KO[ev.faction] || ev.faction)} · 심각도 ${ev.severity}</div><h3>${esc(ev.name)}</h3><p>${esc(ev.text)}</p>
+      <div class="tags">대항 태그 ${ev.counter_tags.map(t => `<span>#${esc(t)}</span>`).join('')}${ev.counter_room ? ` · 방 <span>${rooms[ev.counter_room].name}${d.room_backup ? ' ✓' : ' ✗'}</span>` : ''}</div></div>
+      <div class="counter-row" id="crow"></div><div class="result" id="result"></div>
+static/app.js	<div class="none">손패가 없습니다.<br>대항할 방이 있으면 50%로 막습니다.</div>	<div class="none">손패가 없습니다.<br>맞는 방이 있으면 50%는 막을 수 있습니다.</div>
+static/app.js	${esc(r.hero.name)}(${esc(r.hero.role_ko)})이(가) 나서서 막았습니다	${esc(r.hero.name)}(${esc(r.hero.role_ko)}) 님이 나서서 막았습니다
+static/app.js	주민이 나서서 막았습니다	주민 한 분이 나서서 막았습니다
+static/world3d.js	잊힌 역의 선로 끝, 물이 무릎까지 차오른 승강장에 열차 한 량이 멈춰 서 있다. 객차 안쪽 바닥은 통째로 맑은 청록 물이고, 손잡이마다 분홍 꽃이 매달려 흔들린다. 깨진 창으로 들어온 빛 기둥 아래를 금붕어들이 천천히 지나간다. 방주에서 온 사람들은 아무 말도 하지 않고, 들어갈 생각도 하지 않고, 문간에 서서 오래 본다.	잊힌 역의 선로 끝, 물이 무릎까지 차오른 승강장에 열차 한 량이 멈춰 서 있다. 객차 안쪽 바닥은 통째로 맑은 청록 물이고, 손잡이마다 분홍 꽃이 매달려 흔들린다. 깨진 창으로 들어온 빛 기둥 아래를 금붕어들이 천천히 지나간다. 방주에서 온 사람들은 아무 말 없이, 들어가 볼 생각도 없이 문간에 서서 오래 바라본다.
+static/world3d.js	해가 기운다. 돌아와야 한다.	해가 기웁니다. 이제 돌아오셔야 합니다.
+static/world3d.js	카트 도착 — 「${card.name || card.title || '유물'}」	카트가 들어왔습니다. 「${card.name || card.title || '유물'}」
+static/world3d.js	카트가 들어온다	카트가 들어옵니다
+static/world3d.js	해독 실패	해독하지 못했습니다
+static/world3d.js	서버에 닿지 않는다	서버와 연결이 안 됩니다
+static/world3d.js	${selected === 'all' ? '전원' : actors[selected].ko} 출발	${selected === 'all' ? '전원' : actors[selected].ko} 출발합니다
+static/world3d.js	홀 허브로 복귀	모두 홀로 돌아갑니다
+static/world.html	잔해 방주는 가로 화면입니다.	잔해 방주는 가로 화면에 맞춰져 있습니다.
+static/world.html	홀 허브 복귀	홀로 돌아가기
+static/world.html	지면을 탭 = 그곳으로 보낸다 · 휠/두 손가락 = 줌 · 드래그 = 팬 · 우클릭 드래그 = 기울기	땅을 누르면 그곳으로 보냅니다 · 휠/두 손가락으로 확대 · 끌어서 이동 · 오른쪽 버튼으로 끌어 기울이기
+static/world.html	해가 기운다. 돌아와야 한다.	해가 기웁니다. 이제 돌아오셔야 합니다.
+static/world.html	문턱으로 돌아간다	문턱으로 돌아가기

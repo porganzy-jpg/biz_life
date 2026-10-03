@@ -2,7 +2,7 @@
   {
     "id": "rumor_flooded_water_song",
     "spot_id": "spot_flooded_train",
-    "text": "지나가던 줄이 걷는 노래의 한 소절을 바꿔 불렀다. 선로 끝에서 물소리가 난다는 대목만 두 번 불렀다.",
+    "text": "지나가던 줄이 걷는 노래 한 소절을 바꿔 불렀다. 선로 끝에서 물소리가 난다는 대목만 두 번 불렀다.",
     "source": "wayfarer",
     "unlock": {
       "category": "drink",
@@ -12,7 +12,7 @@
   {
     "id": "rumor_flooded_wet_cat",
     "spot_id": "spot_flooded_train",
-    "text": "고양이가 무릎께까지 젖은 발로 돌아와 담요에 자국을 남겼다. 털에 붙은 분홍 꽃잎은 방주 어디에도 없는 것이다.",
+    "text": "고양이가 무릎께까지 젖은 발로 돌아와 담요에 자국을 남겼다. 털에 붙은 분홍 꽃잎은 방주 어디에도 없는 꽃이다.",
     "source": "cat",
     "unlock": {
       "category": "medical",
@@ -22,7 +22,7 @@
   {
     "id": "rumor_flooded_cold_wall",
     "spot_id": "spot_flooded_train",
-    "text": "개가 터널 아래쪽 벽만 골라 긁는다. 그 벽에 손을 대면 다른 벽보다 차갑고, 떼면 손바닥이 젖어 있다.",
+    "text": "개가 터널 아래쪽 벽만 골라 긁는다. 그 벽에 손을 대면 다른 벽보다 차갑고, 떼고 나면 손바닥이 젖어 있다.",
     "source": "dog",
     "unlock": {
       "category": "drink",
@@ -32,7 +32,7 @@
   {
     "id": "rumor_flooded_marked_cloth",
     "spot_id": "spot_flooded_train",
-    "text": "길손 노인이 겹쳐 입은 조끼 안에서 젖어 붙은 천 조각을 꺼냈다. 역 표식 하나에만 손톱으로 파낸 자국이 깊다.",
+    "text": "길손 노인이 겹겹이 입은 조끼 안에서 젖어 들러붙은 천 조각을 꺼냈다. 역 표식 하나에만 손톱으로 깊이 파낸 자국이 있다.",
     "source": "wayfarer",
     "unlock": {
       "category": "apparel",
@@ -62,7 +62,7 @@
   {
     "id": "rumor_canal_bought_word",
     "spot_id": "spot_goldfish_canal",
-    "text": "교역 자리에서 말린 잎 한 줌 값에 소문 하나를 샀다. 다리 아래로 등불이 줄지어 흘러간다는 말이었고, 판 사람은 웃지 않았다.",
+    "text": "교역 자리에서 말린 잎 한 줌을 주고 소문 하나를 샀다. 다리 아래로 등불이 줄지어 흘러간다는 이야기였는데, 판 사람은 웃지 않았다.",
     "source": "wayfarer",
     "unlock": {
       "category": "tobacco",
@@ -72,7 +72,7 @@
   {
     "id": "rumor_canal_mirror_three",
     "spot_id": "spot_goldfish_canal",
-    "text": "탑에서 거울이 세 번 반짝였다. 무너진 복개 아래로 물이 다시 하늘을 본다고, 값은 우리 방주의 이야기 하나라고 한다.",
+    "text": "탑에서 거울이 세 번 반짝였다. 무너진 복개 아래로 물이 다시 하늘을 보고 있다며, 값은 우리 방주의 이야기 하나라고 한다.",
     "source": "tower",
     "unlock": {
       "category": "tobacco",
@@ -82,7 +82,7 @@
   {
     "id": "rumor_cafe_folded_map",
     "spot_id": "spot_greenhouse_cafe",
-    "text": "줄이 두고 간 청사진 책 사이에 접힌 지도 조각이 끼어 있었다. 유리 지붕 표시 옆에 옛 글자로 한 줄, 여기서는 마실 것을 팔았다.",
+    "text": "줄이 두고 간 청사진 책 사이에 접힌 지도 조각이 끼어 있었다. 유리 지붕 표시 옆에 옛 글자로 한 줄이 적혀 있다. 여기서는 마실 것을 팔았다.",
     "source": "wayfarer",
     "unlock": {
       "category": "book",
@@ -102,7 +102,7 @@
   {
     "id": "rumor_cafe_orange_cloth",
     "spot_id": "spot_greenhouse_cafe",
-    "text": "고양이가 물고 온 천 조각이 아직 주황색이다. 200년을 햇빛 아래 두었다기엔 색이 너무 남아 있으니, 지붕 아래 있었다는 뜻이다.",
+    "text": "고양이가 물고 온 천 조각이 아직 주황색이다. 200년을 햇빛 아래 있었다기엔 색이 너무 많이 남았다. 지붕 아래 있던 천이다.",
     "source": "cat",
     "unlock": {
       "category": "apparel",
@@ -112,7 +112,7 @@
   {
     "id": "rumor_cafe_glass_rain",
     "spot_id": "spot_greenhouse_cafe",
-    "text": "탑이 팔아넘긴 말. 비가 오는 날이면 그 거리에서 유리 떨어지는 소리가 센다고 한다. 그들은 소리를 셌지 내려가 본 적은 없다.",
+    "text": "탑이 팔아넘긴 이야기다. 비가 오는 날이면 그 거리에서 유리 떨어지는 소리를 센다고 한다. 그들은 소리를 세기만 했지, 내려가 본 적은 없다.",
     "source": "tower",
     "unlock": {
       "category": "stationery",
@@ -142,7 +142,7 @@
   {
     "id": "rumor_forest_seat_mesh",
     "spot_id": "spot_forest_train_door",
-    "text": "까마귀가 물어 온 것은 삭은 그물 천 한 뼘이었다. 좌석 천이고, 그런 천은 지상 노선의 객차에만 있었다.",
+    "text": "까마귀가 물어 온 것은 삭은 그물 천 한 뼘이었다. 좌석에 쓰던 천인데, 그런 천은 지상 노선 객차에만 있었다.",
     "source": "crow",
     "unlock": {
       "category": "apparel",
@@ -162,7 +162,7 @@
   {
     "id": "rumor_roof_grass_seeds",
     "spot_id": "spot_rooftop_garden",
-    "text": "고양이 목덜미에 마른 풀씨가 여럿 붙어 돌아왔다. 목덜미에 붙으려면 사람 키보다 높은 데서 떨어져야 한다.",
+    "text": "고양이가 목덜미에 마른 풀씨를 여러 개 붙이고 돌아왔다. 목덜미에 붙으려면 사람 키보다 높은 데서 떨어져야 한다.",
     "source": "cat",
     "unlock": {
       "category": "apparel",
@@ -172,7 +172,7 @@
   {
     "id": "rumor_roof_stair_water",
     "spot_id": "spot_rooftop_garden",
-    "text": "개가 무너진 계단참까지만 올라갔다가 되돌아 내려온다. 발바닥에 고인 물 냄새와 풀 냄새가 함께 묻어 있다.",
+    "text": "개가 무너진 계단참까지만 올라갔다가 되돌아 내려온다. 발바닥에서 고인 물 냄새와 풀 냄새가 함께 난다.",
     "source": "dog",
     "unlock": {
       "category": "medical",
@@ -192,7 +192,7 @@
   {
     "id": "rumor_roof_mirror_sold",
     "spot_id": "spot_rooftop_garden",
-    "text": "탑이 거울 신호로 팔아넘긴 정보. 큰 것들이 올라오지 못하는 높이에 물과 짐승이 있다. 값은 우리 이야기 세 개였다.",
+    "text": "탑이 거울 신호로 팔아넘긴 정보다. 큰 것들이 올라오지 못하는 높이에 물과 짐승이 있다고 한다. 값은 우리 이야기 세 개였다.",
     "source": "tower",
     "unlock": {
       "category": "electronics",
@@ -202,7 +202,7 @@
   {
     "id": "rumor_roof_hoof_mark",
     "spot_id": "spot_rooftop_garden",
-    "text": "탑은 그 옥상에 발굽 자국이 둘 찍혀 있다고 했다. 달아나지 않는 짐승이 있다는 뜻인데, 말한 사람은 내려가 본 적이 없다.",
+    "text": "탑 말로는 그 옥상에 발굽 자국 두 개가 찍혀 있다고 한다. 달아나지 않는 짐승이 산다는 이야기인데, 말한 사람은 내려가 본 적이 없다.",
     "source": "tower",
     "unlock": {
       "category": "apparel",
@@ -212,7 +212,7 @@
   {
     "id": "rumor_river_erased_line",
     "spot_id": "spot_lantern_river",
-    "text": "서고에서 빌려 온 낭독 목록 끝줄이 지워져 있었다. 눌린 자국으로 '물가에서 등을 띄우던 밤'까지만 읽힌다.",
+    "text": "서고에서 빌려 온 낭독 목록의 끝줄이 지워져 있었다. 눌린 자국으로는 '물가에서 등을 띄우던 밤'까지만 읽힌다.",
     "source": "wayfarer",
     "unlock": {
       "category": "book",
@@ -222,7 +222,7 @@
   {
     "id": "rumor_river_scorched_paper",
     "spot_id": "spot_lantern_river",
-    "text": "고양이가 물고 온 얇은 종이는 태운 것이 아니라 안쪽에서 오래 그을려 있다. 종이로 무엇을 감싸 두면 그렇게 된다.",
+    "text": "고양이가 물고 온 얇은 종이는 불에 태운 게 아니라 안쪽부터 오래 그을린 것이다. 무언가를 종이로 감싸 두면 그렇게 된다.",
     "source": "cat",
     "unlock": {
       "category": "stationery",
@@ -242,7 +242,7 @@
   {
     "id": "rumor_river_dog_listens",
     "spot_id": "spot_lantern_river",
-    "text": "개가 강 쪽 통로에서만 멈춰 서서 귀를 세운다. 우리에게는 아무 소리도 안 나는데, 개에게는 난다.",
+    "text": "개가 강 쪽 통로에서만 멈춰 서서 귀를 세운다. 우리 귀에는 아무 소리도 안 들리는데, 개에게는 들리는 모양이다.",
     "source": "dog",
     "unlock": {
       "category": "book",
@@ -252,7 +252,7 @@
   {
     "id": "rumor_river_glow_dust",
     "spot_id": "spot_lantern_river",
-    "text": "까마귀가 밤에 나갔다가 새벽에 돌아온 날, 깃에 빛나는 가루가 묻어 있었다. 손으로 문지르면 곧 꺼진다.",
+    "text": "까마귀가 밤에 나갔다가 새벽에 돌아온 날, 깃에 빛나는 가루가 묻어 있었다. 손으로 문지르면 금세 빛이 꺼진다.",
     "source": "crow",
     "unlock": {
       "category": "electronics",
@@ -272,7 +272,7 @@
   {
     "id": "rumor_vent_two_rests",
     "spot_id": "spot_vent_garden",
-    "text": "닻 무리가 손짓으로만 방향을 알려 주었다. 말을 아끼는 사람들이 손을 두 번 편 것은 두 번 쉬어 가라는 뜻이었다.",
+    "text": "닻 무리가 손짓으로만 방향을 알려 주었다. 말을 아끼는 사람들이 손을 두 번 펴 보인 건 두 번 쉬어 가라는 뜻이었다.",
     "source": "anchor",
     "unlock": {
       "category": "electronics",
@@ -282,7 +282,7 @@
   {
     "id": "rumor_jelly_not_danger",
     "spot_id": "spot_jelly_bloom",
-    "text": "눈금 무리의 일지에 열아홉, 아래, 느리다, 위험 아님이라고 적혀 있었다. 위험 아님을 적은 것은 그날이 처음이다.",
+    "text": "눈금 무리의 일지에 열아홉, 아래, 느리다, 위험 아님이라고 적혀 있었다. 위험 아님이라고 적은 건 그날이 처음이다.",
     "source": "gauge",
     "unlock": {
       "category": "stationery",
@@ -302,7 +302,7 @@
   {
     "id": "rumor_courtyard_same_mark",
     "spot_id": "spot_sunken_courtyard",
-    "text": "손님 무리가 뚜껑에 찍힌 무늬를 알아보았다. 항로에서 늘 지나치는 자리에 같은 무늬가 바닥째 깔려 있다고 한다.",
+    "text": "손님 무리가 뚜껑에 찍힌 무늬를 알아보았다. 항로에서 늘 지나치는 자리 바닥에 같은 무늬가 통째로 깔려 있다고 한다.",
     "source": "guest",
     "unlock": {
       "category": "book",
@@ -312,7 +312,7 @@
   {
     "id": "rumor_courtyard_fresh_edge",
     "spot_id": "spot_sunken_courtyard",
-    "text": "문어가 물고 온 조각은 타일이었다. 깨진 면이 새것처럼 날카로우니, 최근에 무언가 한 번 더 기울었다는 뜻이다.",
+    "text": "문어가 물고 온 조각은 타일이었다. 깨진 면이 새것처럼 날카롭다. 얼마 전에 무언가 한 번 더 기운 것이다.",
     "source": "octopus",
     "unlock": {
       "category": "book",
@@ -322,7 +322,7 @@
   {
     "id": "rumor_whale_one_more_table",
     "spot_id": "spot_whale_fall",
-    "text": "그물 무리가 올해는 밥상이 하나 늘었다고 했다. 어디냐고 묻자 가져갈 양을 먼저 정하고 오라고만 했다.",
+    "text": "그물 무리가 올해는 밥상이 하나 늘었다고 했다. 어디냐고 묻자, 가져갈 양부터 정하고 오라는 말뿐이었다.",
     "source": "net",
     "unlock": {
       "category": "food",
@@ -352,7 +352,7 @@
   {
     "id": "rumor_brine_no_one_sent",
     "spot_id": "spot_brine_lake",
-    "text": "눈금 무리가 200년치 수면 높이를 적어 둔 표를 보여 주었다. 사람을 보냈다는 줄만 한 줄도 없다.",
+    "text": "눈금 무리가 200년치 수면 높이를 적어 둔 표를 보여 주었다. 그런데 사람을 보냈다는 기록은 한 줄도 없다.",
     "source": "gauge",
     "unlock": {
       "category": "drink",
@@ -362,7 +362,7 @@
   {
     "id": "rumor_kelp_new_color",
     "spot_id": "spot_kelp_ceiling",
-    "text": "문어가 놓고 간 조각에 돔 안에서 아무도 본 적 없는 색이 남아 있다. 아이가 그것을 초록이라고 부르기로 했다.",
+    "text": "문어가 놓고 간 조각에 돔 안에서 아무도 본 적 없는 색이 남아 있다. 아이는 그 색을 초록이라고 부르기로 했다.",
     "source": "octopus",
     "unlock": {
       "category": "apparel",
@@ -372,7 +372,7 @@
   {
     "id": "rumor_kelp_next_view",
     "spot_id": "spot_kelp_ceiling",
-    "text": "손님 무리의 낡은 방송에 다음 전망 지점이라는 말이 나온다. 그 자리가 어디인지는 방송만 알고 있다.",
+    "text": "손님 무리의 낡은 방송에 '다음 전망 지점'이라는 말이 나온다. 그 자리가 어디인지는 방송만 알고 있다.",
     "source": "guest",
     "unlock": {
       "category": "apparel",
