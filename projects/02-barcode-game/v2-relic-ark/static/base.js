@@ -195,6 +195,41 @@
     return { x: l.x - 150, y: 6, w: 128, h: 70 };
   }
 
+  // ══════════════════════════════════════════════════════════════
+  //  이동 어댑터 — **맵마다 다른 것은 이 블록 하나뿐이다.** (S11-C)
+  //  길 계산·엘리베이터 시간표·방 안의 삶은 movement.js 가 하고, 그쪽은 화면 좌표를 모른다.
+  //  새 맵이 정해지면 이 세 함수만 새로 쓴다: graph() · nodeOf() · toWorld().
+  //  지금 맵: 세로 척추 하나 = 엘리베이터 하나(가로 0 m). 층 = slot / floorSlots. 홀 = -1층.
+  // ══════════════════════════════════════════════════════════════
+  const PX_PER_M = TARGET_PPM;                       // 세계 px / m — 캐릭터 키를 재는 자와 같은 자
+  const HALL_FLOOR = -1;
+  function floorLine(f) {                            // 그 층 사람들의 발선(세계 px)
+    if (f <= HALL_FLOOR) { const h = hallRect(); return h.y + h.h - 6; }
+    const r = rectOf(f * floorSlots); return r.y + PAD + (r.h - 2 * PAD) * 0.86;
+  }
+  const MOVE_ADAPTER = {
+    graph() {
+      return { walkSpeed: 1.3, shafts: [{ id: 'spine', x: 0, floors: [HALL_FLOOR, floorCount() - 1],
+               cap: 3, secPerFloor: 0.9, door: 0.5, home: DOME_FLOOR,
+               doorGap: (SPINE_W / 2) / PX_PER_M + 0.3 }] };        // 척추 바로 바깥에 줄을 선다
+    },
+    nodeOf(where, i, n) {                            // where: slot 번호 | 'hall' | 'out'
+      if (where === 'out') { const o = outsideRect(); return { floor: DOME_FLOOR, x: (o.x + o.w / 2) / PX_PER_M }; }
+      if (where === 'hall') { const h = hallRect(); return { floor: HALL_FLOOR, x: (h.x + h.w * (i + 1) / (n + 1)) / PX_PER_M }; }
+      const r = rectOf(where), iw = r.w - 2 * PAD;
+      return { floor: r.floor, x: (r.x + PAD + iw * (i + 1) / (n + 1)) / PX_PER_M };
+    },
+    toWorld(floor, x) {                              // floor 는 소수도 받는다(엘리베이터 안)
+      const f0 = Math.floor(floor), f1 = Math.ceil(floor), y0 = floorLine(f0);
+      return { x: x * PX_PER_M, y: y0 + (floorLine(f1) - y0) * (floor - f0) };
+    },
+  };
+  // movement.js 가 없으면(로드 실패) 이동 없이 예전처럼 자리에 바로 나타난다 — 화면은 멈추지 않는다
+  const NO_TRAFFIC = { go() {}, at() { return null; }, arrivedAt() { return -Infinity; }, moving() { return []; },
+                       car() { return null; }, cars() { return []; }, setGraph() {}, graph() { return { byId: {} }; }, forget() {} };
+  const traffic = window.ArkMove ? ArkMove.createTraffic(MOVE_ADAPTER.graph()) : NO_TRAFFIC;
+  let movingNow = {};
+
   // ── 카메라 ────────────────────────────────────────────────
   const sx = (wx) => (wx - cam.x) * cam.z + view.w / 2;
   const sy = (wy) => (wy - cam.y) * cam.z + view.h / 2;
@@ -308,7 +343,7 @@
   }
 
   function drawSpine() {
-    const top = rectOf(0).y + 30, bot = (floorCount() - DOME_FLOOR) * FLOOR_PITCH - FLOOR_GAP;
+    const top = hallRect().y + 8, bot = (floorCount() - DOME_FLOOR) * FLOOR_PITCH - FLOOR_GAP;   // 홀까지 닿는다
     const x0 = sx(-SPINE_W / 2), x1 = sx(SPINE_W / 2), y0 = sy(top), y1 = sy(bot);
     ctx.fillStyle = '#0d1512'; ctx.fillRect(x0 - 3, y0, (x1 - x0) + 6, y1 - y0);
     const g = ctx.createLinearGradient(x0, 0, x1, 0);
@@ -481,9 +516,34 @@
     });
   }
 
-  function drawPerson(p, px, floorY, t, i, scale, lit) {
+  // ── 자세(클립). 정본은 front/p2/meta.json 의 rows·frames·anim_seconds(DECISIONS 2026-10-01 자세 정본) ──
+  // 캐릭터 담당이 elevator_wait·elevator_ride·work_<방> 행을 만들고 있다. meta 에 생기고 **시트에도 그 행이
+  // 실제로 있으면** 자동으로 쓰고, 없으면 사슬을 따라 내려가 idle 로 그린다. 코드 수정 없이 켜진다.
+  let CLIPS = { rows: { idle: 0 }, frames: { idle: 2 }, anim_seconds: { idle: 1.24 } };
+  fetch('/static/art/chars/front/p2/meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
+    if (j && j.rows) CLIPS = { rows: j.rows, frames: j.frames || {}, anim_seconds: j.anim_seconds || {} };
+  }).catch(() => {});
+  const POSE_CHAIN = {
+    walk: ['walk'], elevator_wait: ['elevator_wait'], elevator_ride: ['elevator_ride', 'elevator_wait'],
+    hurt: ['hurt'], rest: [], idle: [],
+  };
+  function clipFor(s, pose, roomId) {
+    const cand = (pose === 'work' ? ['work_' + roomId, 'work'] : (POSE_CHAIN[pose] || [])).concat('idle');
+    for (const c of cand) {
+      const row = CLIPS.rows[c];
+      if (row == null) continue;
+      if ((row + 1) * s.spec.cell > s.img.naturalHeight) continue;      // meta 는 새것, 시트는 아직 옛것
+      const fr = Math.max(1, Math.min(s.spec.cols, CLIPS.frames[c] || 1));
+      return { name: c, row, frames: fr, ms: ((CLIPS.anim_seconds[c] || 1) * 1000) / fr };
+    }
+    return { name: 'idle', row: 0, frames: 2, ms: 620 };
+  }
+  const usedClips = {};                               // 검수용: 지금까지 실제로 그린 클립 이름
+
+  function drawPerson(p, px, floorY, t, i, scale, lit, pose, roomId) {
     const k = (scale == null ? 1 : scale);
-    const bob = Math.sin(t / 700 + i * 1.7) * 0.8 * cam.z;
+    const moving = pose === 'walk' || pose === 'elevator_ride';
+    const bob = moving ? 0 : Math.sin(t / 700 + i * 1.7) * 0.8 * cam.z;
     const s = sprite(p.role);
     if (s) {
       const sp = s.spec;
@@ -491,7 +551,9 @@
       const want = (TARGET_PPM * cam.z * k) / sp.ppm;
       const z = sp.pixel ? Math.max(1, Math.round(want)) : want;
       const cw = sp.cell * z, base = sp.baseline * z;
-      const frame = Math.floor(t / (sp.pixel ? 620 : 170) + i) % sp.frames;
+      const clip = sp.pixel ? clipFor(s, pose || 'idle', roomId) : { name: 'idle', row: sp.idle, frames: sp.frames, ms: 170 };
+      usedClips[clip.name] = (usedClips[clip.name] || 0) + 1;
+      const frame = Math.floor(t / clip.ms + i) % clip.frames;
       try {
         const sheet = sp.pixel ? tintedSheet(s, p.role, lit === false ? TINT_DARK : TINT_LIT) : s.img;
         const sm = ctx.imageSmoothingEnabled;
@@ -499,8 +561,8 @@
         // 2.5D 조건 ③ — 발밑 접지 그림자. 없으면 떠 있는 것처럼 보인다
         ctx.fillStyle = 'rgba(12,10,8,0.42)';
         ctx.beginPath(); ctx.ellipse(px, floorY, cw * 0.22, cw * 0.055, 0, 0, 6.2832); ctx.fill();
-        ctx.drawImage(sheet, (sp.idle * sp.cols + frame) % sp.cols * sp.cell,
-                      Math.floor((sp.idle * sp.cols + frame) / sp.cols) * sp.cell, sp.cell, sp.cell,
+        const cell = sp.pixel ? clip.row * sp.cols + frame : sp.idle * sp.cols + frame;
+        ctx.drawImage(sheet, (cell % sp.cols) * sp.cell, Math.floor(cell / sp.cols) * sp.cell, sp.cell, sp.cell,
                       px - cw / 2, floorY - base + bob, cw, cw);
         ctx.imageSmoothingEnabled = sm;
         if (p.injured) { ctx.fillStyle = 'rgba(140,59,46,0.5)'; ctx.fillRect(px - 6 * cam.z, floorY - 46 * cam.z, 12 * cam.z, 4 * cam.z); }
@@ -516,14 +578,36 @@
     return { w: wid, h: hgt };
   }
 
+  // 방 안의 삶: 그 방의 일을 하다가 10~20초에 한 번 쉬거나 몇 걸음 옮긴다(movement.js roomLife).
+  // 막 도착한 사람은 1.2초에 걸쳐 제 자리로 걸어 들어간다 — 도착 순간 순간이동하지 않게
+  function lifeAt(p, slot, t, step) {
+    const now = t / 1000, room = (ark.rooms || []).find(r => r.slot === slot);
+    let L = window.ArkMove ? ArkMove.roomLife(p.id, now) : { pose: 'work', dx: 0 };
+    const since = now - traffic.arrivedAt(p.id);
+    const ramp = since < 0 ? 0 : Math.min(1, since / 1.2);
+    const spread = Math.min(step * 0.3, 22 * cam.z);
+    let pose = L.pose;
+    if (ramp < 1 && Math.abs(L.dx) * spread > 2) pose = 'walk';
+    if (!lightOf(slot)) pose = 'idle';                         // 불 꺼진 방에서는 손을 놓고 기다린다
+    if (p.injured) pose = 'hurt';
+    return { pose, off: L.dx * spread * ramp, room: room ? room.id : '' };
+  }
+  function lifeOffsetM(id, slot, i, n, t) {                    // 이동 출발점에 같은 오프셋을 쓴다(세계 m)
+    const r = rectOf(slot), step = (r.w - 2 * PAD) / (n + 1);
+    const L = window.ArkMove ? ArkMove.roomLife(id, t / 1000) : { dx: 0 };
+    return (L.dx * Math.min(step * 0.3, 22)) / PX_PER_M;
+  }
+
   function drawPeople(people, ix, iy, iw, ih, t, slot) {
     if (!people || !people.length) return;
     const floorY = iy + ih * 0.86;
     const step = iw / (people.length + 1);
     people.forEach((p, i) => {
       if (dragging && dragging.id === p.id) return;          // 들고 있는 사람은 손끝에 그린다
-      const px = ix + step * (i + 1);
-      const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot));
+      if (movingNow[p.id]) return;                           // 아직 오는 중 — 이동 층에서 그린다
+      const life = lifeAt(p, slot, t, step);
+      const px = ix + step * (i + 1) + life.off;
+      const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot), life.pose, life.room);
       if (carry && carry.id === p.id) {                      // 집어 든 표시
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
         ctx.strokeRect(px - box.w / 2 - 3, floorY - box.h - 6, box.w + 6, box.h + 10);
@@ -555,8 +639,9 @@
     const floorY = y + hh - 6 * cam.z, step = w / (list.length + 1);
     list.forEach((p, i) => {
       if (dragging && dragging.id === p.id) return;
+      if (movingNow[p.id]) return;
       const px = x + step * (i + 1);
-      const box = drawPerson(p, px, floorY, t, i, 0.82, !!(cb && cb.power_on));
+      const box = drawPerson(p, px, floorY, t, i, 0.82, !!(cb && cb.power_on), 'idle');
       if (carry && carry.id === p.id) {
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
         ctx.strokeRect(px - box.w / 2 - 3, floorY - box.h - 6, box.w + 6, box.h + 10);
@@ -582,7 +667,55 @@
     ctx.fillText('밖 · ' + ids.length + '명', x + 4 * cam.z, y + 12 * cam.z);
     const list = (ark.residents_list || []).filter(r => ids.indexOf(r.id) >= 0);
     const floorY = y + hh - 5 * cam.z, step = w / (list.length + 1);
-    list.forEach((p, i) => drawPerson(p, x + step * (i + 1), floorY, t, i, 0.78, false));
+    list.forEach((p, i) => { if (!movingNow[p.id]) drawPerson(p, x + step * (i + 1), floorY, t, i, 0.78, false, 'idle'); });
+  }
+
+  // ── 이동 중인 사람과 엘리베이터 칸 (S11-C) ─────────────────
+  // 칸은 척추 안에서만 움직이는 얇은 틀이다. 엘리베이터의 진짜 그림은 새 맵이 정해진 뒤 그 위에(DECISIONS 2026-10-03)
+  function drawCars(t) {
+    const g = traffic.graph();
+    traffic.cars().forEach(id => {
+      const f = traffic.car(id, t / 1000), sh = g.byId[id];
+      if (f == null || !sh) return;
+      const w = MOVE_ADAPTER.toWorld(f, sh.x);
+      const hw = (SPINE_W / 2 - 5), top = w.y - 62, bot = w.y + 5;
+      const x0 = sx(w.x - hw), x1 = sx(w.x + hw), y0 = sy(top), y1 = sy(bot);
+      if (y1 < -20 || y0 > view.h + 20) return;
+      ctx.fillStyle = 'rgba(20,17,12,0.55)'; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+      ctx.strokeStyle = 'rgba(240,176,85,0.55)'; ctx.lineWidth = Math.max(1, 2 * cam.z);
+      ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+      ctx.strokeStyle = 'rgba(240,176,85,0.25)'; ctx.lineWidth = Math.max(1, 1 * cam.z);
+      for (let k = 1; k < 4; k++) { const xx = x0 + (x1 - x0) * k / 4; ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y1); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(230,215,176,0.35)';                       // 줄 — 위로 이어진다
+      ctx.beginPath(); ctx.moveTo((x0 + x1) / 2, y0); ctx.lineTo((x0 + x1) / 2, sy(hallRect().y + 8)); ctx.stroke();
+    });
+  }
+  function drawMovers(t) {
+    const now = t / 1000, ids = Object.keys(movingNow);
+    if (!ids.length) return;
+    const byId = {}; (ark.residents_list || []).forEach(p => { byId[p.id] = p; });
+    ids.forEach((id, i) => {
+      const p = byId[id], m = traffic.at(id, now);
+      if (!p || !m || (dragging && dragging.id === id)) return;
+      const w = MOVE_ADAPTER.toWorld(m.floor, m.x);
+      const k = m.floor < HALL_FLOOR + 0.5 ? 0.82 : 1;
+      drawPerson(p, sx(w.x), sy(w.y), t, i, k, !!(cb && cb.power_on), m.pose);
+    });
+  }
+  // 드래그 중: 손끝 아래 방에서 빛나는 능력치를 숫자로 띄운다(배치할 때 강조 — RESIDENT_STATS §5, 숫자로 2026-10-03)
+  function drawDropStat() {
+    const s = slotAt(pointer.x, pointer.y);
+    if (s == null || !dragging || !dragging.stats) return;
+    const ko = (ark.stats_meta || {}).ko || STAT_KO_DEF;
+    const ks = goodStats(s);
+    if (!ks.length) return;
+    const label = ks.map(k => (ko[k] || k) + ' ' + (dragging.stats[k] || 0)).join('  ');
+    ctx.font = 'bold 13px "Noto Sans KR",sans-serif';
+    const tw = ctx.measureText(label).width + 14, x = pointer.x + 16, y = pointer.y - 36;
+    ctx.fillStyle = 'rgba(20,17,12,0.88)'; ctx.fillRect(x, y, tw, 22);
+    ctx.strokeStyle = '#f0b055'; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, tw, 22);
+    ctx.fillStyle = '#f0b055'; ctx.textBaseline = 'middle'; ctx.fillText(label, x + 7, y + 11);
+    ctx.textBaseline = 'alphabetic';
   }
 
   // ── 실루엣: 바깥 물에 그림자가 **그 방 쪽으로** 다가온다 (§3-2) ──
@@ -699,11 +832,15 @@
     const byslot = {}; (ark.rooms || []).forEach(r => { byslot[r.slot] = r; });
     const people = peopleBySlot();
     drawSpots(t);
+    movingNow = {}; traffic.moving(t / 1000).forEach(id => { movingNow[id] = true; });
+    drawCars(t);
     for (let s = 0; s < slots; s++) drawRoom(s, byslot[s], people[s], t);
     drawHall(t);
     drawOutside(t);
+    drawMovers(t);
     if (dragging) {                                   // 손끝에 매달린 사람
-      drawPerson(dragging, pointer.x, pointer.y + 22 * cam.z, t, 0, 1, true);
+      drawPerson(dragging, pointer.x, pointer.y + 22 * cam.z, t, 0, 1, true, 'idle');
+      drawDropStat();
     }
     drawZones();
   }
@@ -731,7 +868,12 @@
     return Object.entries(c).filter(([k, v]) => (have[k] || 0) < v).map(([k, v]) => (RES_KO[k] || k) + ' ' + ((have[k] || 0)) + '/' + v);
   }
   // 그 방에서 빛나는 스탯. 노려지는 방에서는 언제나 「담」이다(RESIDENT_STATS §5)
-  const ROOM_STAT = { workshop: 'hand', library: 'eye', infirmary: 'breath', well: 'hand', pantry: 'hand' };
+  // S11-C: 12종으로 넓혔다. 손 = 만들고 고치는 방, 눈 = 읽고 내다보는 방, 숨 = 버티고 돌보는 방.
+  // 거주·목욕·홀은 일하는 방이 아니라 비워 둔다. ★ 기획 확인 대상(TASKS 요청함)
+  const ROOM_STAT = { workshop: 'hand', generator: 'hand', storage: 'hand', pantry: 'hand', well: 'hand',
+                      library: 'eye', decoder: 'eye', lounge: 'eye',
+                      infirmary: 'breath', greenhouse: 'breath', airlock: 'breath' };
+  const STAT_KO_DEF = { hand: '손', eye: '눈', breath: '숨', nerve: '담' };
   function goodStats(slot) {
     const room = (ark.rooms || []).find(r => r.slot === slot);
     const out = [];
@@ -739,22 +881,33 @@
     if (raidTargetSlot() === slot) out.push('nerve');
     return out;
   }
+  // 능력치는 **숫자로**(사용자 지시, DECISIONS 2026-10-03 — 10-01 의 '점 네 줄'은 철회).
+  // 넷을 한 줄에 「손 7 · 눈 5 · 숨 6 · 담 4」. 이 방에 유리한 것은 등불색으로, 특이점이 붙은 숫자엔 밑줄.
   function statRows(p, slot) {
     const meta = (ark.stats_meta || {}), keys = meta.keys || ['hand', 'eye', 'breath', 'nerve'];
-    const ko = meta.ko || { hand: '손', eye: '눈', breath: '숨', nerve: '담' };
+    const ko = meta.ko || STAT_KO_DEF, use = meta.use || {};
     const st = p.stats || {};
     if (!keys.some(k => st[k])) return '';
-    const good = goodStats(slot);
+    const good = slot == null ? [] : goodStats(slot);
     const q = p.quirk || {};
-    return '<div class="stats">' + keys.map(k => {
+    return '<div class="stats"><div class="snum">' + keys.map(k => {
       const v = Math.max(0, Math.min(10, st[k] || 0));
-      return '<div class="srow' + (good.indexOf(k) >= 0 ? ' good' : '') + '">' +
-        '<span class="sk">' + esc(ko[k] || k) + '</span>' +
-        '<span class="sd"><b>' + '\u25cf'.repeat(v) + '</b>' + '\u00b7'.repeat(10 - v) + '</span></div>';
-    }).join('') +
+      const qc = q.stat === k ? (q.sign < 0 ? ' qm' : ' qp') : '';
+      return '<span class="sn' + (good.indexOf(k) >= 0 ? ' good' : '') + qc + '"' +
+        (use[k] ? ' title="' + esc(use[k]) + '"' : '') + '><i>' + esc(ko[k] || k) + '</i><b>' + v + '</b></span>';
+    }).join('') + '</div>' +
       (q.ko ? '<em class="quirk' + (q.sign < 0 ? ' minus' : '') + '">' + esc(q.ko) + '</em>' : '') +
       '</div>';
   }
+  // 들고 있는 사람의 '그 방에 유리한 숫자'(갈 곳 목록에 붙인다)
+  function destStat(slot) {
+    const p = carry && (ark.residents_list || []).find(r => r.id === carry.id);
+    if (!p || !p.stats) return '';
+    const ko = (ark.stats_meta || {}).ko || STAT_KO_DEF;
+    const ks = goodStats(slot);
+    return ks.length ? '<span class="bstat">' + ks.map(k => esc(ko[k] || k) + ' ' + (p.stats[k] || 0)).join(' · ') + '</span>' : '';
+  }
+
   // 사람을 들고 있을 때의 **갈 곳 목록**. 폰에서는 패널이 아래 절반을 덮으므로 캔버스를 못 누른다 —
   // 목록이 있으면 손가락 하나로 끝난다(02_DEV §5-4 "폰 가로 720px에서 손가락으로 조작 가능한가").
   function destList() {
@@ -767,7 +920,7 @@
       const tgt = raidTargetSlot() === r.slot;
       return '<button class="bopt' + (full ? ' lack' : '') + '" data-dest="' + r.slot + '"' +
         (full || here ? ' disabled' : '') + '><b>' + esc((catalog[r.id] || {}).name || r.id) +
-        (tgt ? ' · 노려지는 방' : '') + '</b><small>' + n + '/' + cap + '명' +
+        (tgt ? ' · 노려지는 방' : '') + destStat(r.slot) + '</b><small>' + n + '/' + cap + '명' +
         (here ? ' · 지금 여기' : (full ? ' · 꽉 찼다' : '')) + '</small></button>';
     });
     rows.push('<button class="bopt" data-dest="hall"' +
@@ -1106,6 +1259,39 @@
   }
 
   // ── 상태 반영 ─────────────────────────────────────────────
+  // 서버 상태가 바뀌어 누군가의 자리가 달라지면 그 사람을 **걸어서·엘리베이터로** 옮긴다.
+  // 배치는 여전히 서버가 정본이고(새로고침하면 바로 그 자리), 이동은 눈에 보이는 연출일 뿐이다.
+  let lastWhere = null, lastLists = null, moveLog = [];
+  function whereOf(id) {
+    if (cb.outside && cb.outside.indexOf(id) >= 0) return 'out';
+    const s = cb.stations[id]; return s === undefined ? 'hall' : s;
+  }
+  function trackMoves() {
+    if (!cb || !ark) return;
+    const where = {}, lists = {};
+    (ark.residents_list || []).forEach(p => { const w = whereOf(p.id); where[p.id] = w; (lists[w] = lists[w] || []).push(p.id); });
+    if (lastWhere) {
+      const t = performance.now(), moves = [];
+      const nodeIn = (id, w, ls, wander) => {
+        const L = ls[w] || [id], i = Math.max(0, L.indexOf(id)), n = Math.max(L.length, i + 1);
+        const nd = MOVE_ADAPTER.nodeOf(w, i, n);
+        // 출발은 방 안에서 서성이던 그 자리에서. 도착은 제 자리 — 거기서부터 다시 서성인다(lifeAt 의 ramp)
+        if (wander && typeof w === 'number') nd.x += lifeOffsetM(id, w, i, n, t);
+        return nd;
+      };
+      Object.keys(where).forEach(id => {
+        if (lastWhere[id] === undefined || lastWhere[id] === where[id]) return;
+        moves.push({ id, from: nodeIn(id, lastWhere[id], lastLists, true), to: nodeIn(id, where[id], lists, false) });
+      });
+      if (moves.length) {
+        traffic.setGraph(MOVE_ADAPTER.graph());
+        const r = traffic.go(moves, t / 1000); traffic.forget(t / 1000);
+        moveLog = moveLog.concat((r && r.log) || []).slice(-20);
+      }
+    }
+    lastWhere = where; lastLists = lists;
+  }
+
   function apply(st) {
     ark = st;
     cb = st.combat || cb;
@@ -1130,6 +1316,8 @@
     pw.textContent = cb.power_on ? '전원 켜짐' : '전원 내림';
     pw.classList.toggle('off', !cb.power_on);
     $('#recallbtn').hidden = !(cb.outside && cb.outside.length);
+    // 이동은 연출이다 — 여기서 무엇이 터져도 상태 반영(정본)은 끝난 뒤다. 숨기지 않고 콘솔에 남긴다(D4)
+    try { trackMoves(); } catch (e) { lastWhere = null; console.error('이동 계산 실패', e); }
   }
 
   async function load(first) {
@@ -1727,6 +1915,12 @@
       x: h.x, y: h.y, w: h.w, h: h.h })),
     shelfRoomSlot: () => shelfRoomSlot(),
     focusShelf: (s) => focusShelf(s), openScan: () => openScan(), openAccount: () => openAccount(),
+    // ★ S11-C 검수용 읽기 창: 지금 움직이는 사람·그 자세·엘리베이터 칸 층·지금까지 그린 클립
+    moving: () => { const t = performance.now() / 1000;
+      return traffic.moving(t).map(id => Object.assign({ id }, traffic.at(id, t))); },
+    car: () => traffic.cars().map(id => ({ id, floor: traffic.car(id, performance.now() / 1000) })),
+    clips: () => Object.assign({}, usedClips),
+    moveLog: () => moveLog.slice(),                    // 엘리베이터 배차 기록(시각은 performance.now 초)
   };
 
   resize(); fit(); raf = requestAnimationFrame(frame); load(true);
