@@ -1,0 +1,892 @@
+{
+ "_note": "S15-E 물속 아이소 키트(원정 3D 화면). 단위 m, GLB Y-up(Blender +y → glTF -Z), 원점 = 바닥 가운데(발 높이 0). 땅 타일 6 m 격자. 썸네일 카메라는 Blender -y 쪽에서 45°/45°로 본다. 생성기 tools/blender_iso_sea.py",
+ "palette": "M5 — 청록은 물(배경·안개)에만, 바닥 무채색, 등불 #FFC870, 해초 올리브",
+ "scene_hint": {
+  "fog": "#0E3440",
+  "fog_near_m": 8,
+  "fog_far_m": 40,
+  "ambient": "#2A6A78",
+  "sun": "#CFE8E6",
+  "note": "물속은 Three.js 안개(FogExp2 또는 선형)로. 빛나는 것(등·상자 무늬·눈)은 emissive 라 안개 속에서도 보인다"
+ },
+ "box_categories": [
+  "food",
+  "drink",
+  "medical",
+  "electronics",
+  "stationery",
+  "book",
+  "apparel",
+  "tobacco",
+  "blank"
+ ],
+ "assets": [
+  {
+   "id": "ground_sand_a",
+   "file": "ground_sand_a.glb",
+   "footprint_m": [
+    6,
+    6
+   ],
+   "tags": [
+    "ground",
+    "sand"
+   ],
+   "note": "모래 바닥(기본)",
+   "tris": 292,
+   "size_kb": 17.4,
+   "bbox_m": [
+    [
+     -3.0,
+     -3.0,
+     -0.6
+    ],
+    [
+     3.0,
+     3.0,
+     0.12
+    ]
+   ]
+  },
+  {
+   "id": "ground_sand_b",
+   "file": "ground_sand_b.glb",
+   "footprint_m": [
+    6,
+    6
+   ],
+   "tags": [
+    "ground",
+    "sand"
+   ],
+   "note": "물결 무늬 모래(물살 자국)",
+   "tris": 280,
+   "size_kb": 14.2,
+   "bbox_m": [
+    [
+     -3.0,
+     -3.0,
+     -0.69
+    ],
+    [
+     3.0,
+     3.0,
+     0.15
+    ]
+   ]
+  },
+  {
+   "id": "ground_silt",
+   "file": "ground_silt.glb",
+   "footprint_m": [
+    6,
+    6
+   ],
+   "tags": [
+    "ground",
+    "silt"
+   ],
+   "note": "진흙(더 깊은 쪽). 발자국이 안 남는 고운 바닥",
+   "tris": 252,
+   "size_kb": 13.7,
+   "bbox_m": [
+    [
+     -3.0,
+     -3.0,
+     -0.6
+    ],
+    [
+     3.0,
+     3.0,
+     0.08
+    ]
+   ]
+  },
+  {
+   "id": "ground_rock",
+   "file": "ground_rock.glb",
+   "footprint_m": [
+    6,
+    6
+   ],
+   "tags": [
+    "ground",
+    "rock"
+   ],
+   "note": "바위 바닥(울퉁불퉁)",
+   "tris": 272,
+   "size_kb": 16.0,
+   "bbox_m": [
+    [
+     -3.0,
+     -3.0,
+     -0.6
+    ],
+    [
+     3.0,
+     3.0,
+     0.31
+    ]
+   ]
+  },
+  {
+   "id": "ground_edge_drop",
+   "file": "ground_edge_drop.glb",
+   "footprint_m": [
+    6,
+    6
+   ],
+   "tags": [
+    "ground",
+    "edge",
+    "drop"
+   ],
+   "note": "+x 쪽이 심연으로 꺼지는 가장자리. 회전해서 네 방향으로 쓴다",
+   "tris": 252,
+   "size_kb": 14.7,
+   "bbox_m": [
+    [
+     -3.0,
+     -3.0,
+     -3.8
+    ],
+    [
+     3.0,
+     3.0,
+     0.16
+    ]
+   ]
+  },
+  {
+   "id": "ground_edge_corner",
+   "file": "ground_edge_corner.glb",
+   "footprint_m": [
+    6,
+    6
+   ],
+   "tags": [
+    "ground",
+    "edge",
+    "corner"
+   ],
+   "note": "+x·+y 두 쪽이 꺼지는 바깥 모서리",
+   "tris": 192,
+   "size_kb": 9.9,
+   "bbox_m": [
+    [
+     -3.0,
+     -3.0,
+     -3.8
+    ],
+    [
+     3.0,
+     3.0,
+     0.09
+    ]
+   ]
+  },
+  {
+   "id": "ground_edge_wall",
+   "file": "ground_edge_wall.glb",
+   "footprint_m": [
+    6,
+    6
+   ],
+   "tags": [
+    "ground",
+    "edge",
+    "wall"
+   ],
+   "note": "-y(뒤) 쪽에 바위 벽이 솟는 가장자리(절벽 밑)",
+   "tris": 312,
+   "size_kb": 18.6,
+   "bbox_m": [
+    [
+     -3.31,
+     -3.2,
+     -0.6
+    ],
+    [
+     3.34,
+     3.0,
+     2.96
+    ]
+   ]
+  },
+  {
+   "id": "rock_small",
+   "file": "rock_small.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "rock",
+    "prop"
+   ],
+   "note": "",
+   "tris": 40,
+   "size_kb": 4.7,
+   "bbox_m": [
+    [
+     -0.45,
+     -0.43,
+     -0.03
+    ],
+    [
+     0.6,
+     0.44,
+     0.35
+    ]
+   ]
+  },
+  {
+   "id": "rock_boulder",
+   "file": "rock_boulder.glb",
+   "footprint_m": [
+    2,
+    2
+   ],
+   "tags": [
+    "rock",
+    "prop",
+    "blocker"
+   ],
+   "note": "",
+   "tris": 40,
+   "size_kb": 4.7,
+   "bbox_m": [
+    [
+     -0.85,
+     -0.96,
+     -0.04
+    ],
+    [
+     0.91,
+     0.77,
+     1.14
+    ]
+   ]
+  },
+  {
+   "id": "rock_stack",
+   "file": "rock_stack.glb",
+   "footprint_m": [
+    2,
+    2
+   ],
+   "tags": [
+    "rock",
+    "prop",
+    "tall",
+    "landmark"
+   ],
+   "note": "길잡이가 되는 높은 바위 기둥",
+   "tris": 92,
+   "size_kb": 8.6,
+   "bbox_m": [
+    [
+     -0.72,
+     -0.77,
+     -0.03
+    ],
+    [
+     0.76,
+     0.67,
+     2.31
+    ]
+   ]
+  },
+  {
+   "id": "kelp_clump_a",
+   "file": "kelp_clump_a.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "kelp",
+    "plant",
+    "green"
+   ],
+   "note": "",
+   "tris": 104,
+   "size_kb": 7.0,
+   "bbox_m": [
+    [
+     -0.63,
+     -0.32,
+     -0.04
+    ],
+    [
+     0.32,
+     0.46,
+     2.48
+    ]
+   ]
+  },
+  {
+   "id": "kelp_clump_b",
+   "file": "kelp_clump_b.glb",
+   "footprint_m": [
+    2,
+    2
+   ],
+   "tags": [
+    "kelp",
+    "plant",
+    "green",
+    "tall"
+   ],
+   "note": "키 큰 해초 숲 한 무리",
+   "tris": 108,
+   "size_kb": 5.7,
+   "bbox_m": [
+    [
+     -1.02,
+     -1.06,
+     -0.02
+    ],
+    [
+     0.95,
+     0.78,
+     3.72
+    ]
+   ]
+  },
+  {
+   "id": "fan_a",
+   "file": "fan_a.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "fan",
+    "plant",
+    "warm"
+   ],
+   "note": "부채꼴 판 — 흐린 주황",
+   "tris": 86,
+   "size_kb": 7.3,
+   "bbox_m": [
+    [
+     -0.59,
+     -0.45,
+     -0.02
+    ],
+    [
+     0.58,
+     0.49,
+     1.27
+    ]
+   ]
+  },
+  {
+   "id": "fan_b",
+   "file": "fan_b.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "fan",
+    "plant",
+    "pale"
+   ],
+   "note": "부채 셋 무리 — 뼈색",
+   "tris": 218,
+   "size_kb": 14.4,
+   "bbox_m": [
+    [
+     -0.42,
+     -0.33,
+     -0.03
+    ],
+    [
+     0.3,
+     0.34,
+     1.22
+    ]
+   ]
+  },
+  {
+   "id": "relic_crate",
+   "file": "relic_crate.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "relic",
+    "pickup",
+    "debris"
+   ],
+   "note": "나무 궤짝 — 반쯤 묻힘",
+   "tris": 64,
+   "size_kb": 6.1,
+   "bbox_m": [
+    [
+     -0.7,
+     -0.7,
+     -0.14
+    ],
+    [
+     0.7,
+     0.7,
+     0.58
+    ]
+   ]
+  },
+  {
+   "id": "relic_cans",
+   "file": "relic_cans.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "relic",
+    "pickup",
+    "debris"
+   ],
+   "note": "깡통 무더기 — 상표 없는 바랜 띠",
+   "tris": 252,
+   "size_kb": 14.6,
+   "bbox_m": [
+    [
+     -0.34,
+     -0.42,
+     -0.0
+    ],
+    [
+     0.35,
+     0.4,
+     0.2
+    ]
+   ]
+  },
+  {
+   "id": "relic_cart",
+   "file": "relic_cart.glb",
+   "footprint_m": [
+    2,
+    1
+   ],
+   "tags": [
+    "relic",
+    "pickup",
+    "debris",
+    "landmark"
+   ],
+   "note": "넘어진 손수레(장바구니 수레) — 철망 바구니",
+   "tris": 292,
+   "size_kb": 17.4,
+   "bbox_m": [
+    [
+     -0.45,
+     -0.35,
+     -0.26
+    ],
+    [
+     0.92,
+     0.35,
+     0.9
+    ]
+   ]
+  },
+  {
+   "id": "relic_vending_husk",
+   "file": "relic_vending_husk.glb",
+   "footprint_m": [
+    2,
+    1
+   ],
+   "tags": [
+    "relic",
+    "pickup",
+    "debris",
+    "landmark"
+   ],
+   "note": "자판기 껍데기 — 상표 없음, 단추 줄과 꺼진 유리",
+   "tris": 128,
+   "size_kb": 11.5,
+   "bbox_m": [
+    [
+     -0.76,
+     -0.53,
+     -0.25
+    ],
+    [
+     0.76,
+     0.54,
+     2.0
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_food",
+   "file": "sealed_box_food.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "food"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 food",
+   "tris": 108,
+   "size_kb": 9.2,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_drink",
+   "file": "sealed_box_drink.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "drink"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 drink",
+   "tris": 88,
+   "size_kb": 8.0,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_medical",
+   "file": "sealed_box_medical.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "medical"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 medical",
+   "tris": 84,
+   "size_kb": 8.0,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_electronics",
+   "file": "sealed_box_electronics.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "electronics"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 electronics",
+   "tris": 80,
+   "size_kb": 7.7,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_stationery",
+   "file": "sealed_box_stationery.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "stationery"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 stationery",
+   "tris": 76,
+   "size_kb": 7.5,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_book",
+   "file": "sealed_box_book.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "book"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 book",
+   "tris": 84,
+   "size_kb": 7.9,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_apparel",
+   "file": "sealed_box_apparel.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "apparel"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 apparel",
+   "tris": 96,
+   "size_kb": 8.3,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_tobacco",
+   "file": "sealed_box_tobacco.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "tobacco"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 tobacco",
+   "tris": 80,
+   "size_kb": 7.6,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "sealed_box_blank",
+   "file": "sealed_box_blank.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "sealed_box",
+    "pickup",
+    "blank"
+   ],
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 빈 원 = 튜토리얼 상자",
+   "tris": 172,
+   "size_kb": 11.3,
+   "bbox_m": [
+    [
+     -0.37,
+     -0.31,
+     0.0
+    ],
+    [
+     0.37,
+     0.28,
+     0.51
+    ]
+   ]
+  },
+  {
+   "id": "beacon_spot",
+   "file": "beacon_spot.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "marker",
+    "spot",
+    "light"
+   ],
+   "note": "스팟 표지 등대: 말뚝 + 따뜻한 등(점광원 포함)",
+   "tris": 148,
+   "size_kb": 12.9,
+   "bbox_m": [
+    [
+     -0.38,
+     -0.35,
+     -0.03
+    ],
+    [
+     0.33,
+     0.32,
+     2.52
+    ]
+   ]
+  },
+  {
+   "id": "danger_shadow",
+   "file": "danger_shadow.glb",
+   "footprint_m": [
+    6,
+    4
+   ],
+   "tags": [
+    "marker",
+    "danger",
+    "silhouette"
+   ],
+   "note": "위험 표지: 바닥의 큰 그림자 + 떠 있는 검은 몸과 창백한 눈 둘(먹 얼룩 생물 계열). 몸은 반투명",
+   "tris": 184,
+   "size_kb": 14.7,
+   "bbox_m": [
+    [
+     -3.12,
+     -1.58,
+     0.03
+    ],
+    [
+     2.94,
+     1.58,
+     3.01
+    ]
+   ]
+  },
+  {
+   "id": "fork_marker",
+   "file": "fork_marker.glb",
+   "footprint_m": [
+    1,
+    1
+   ],
+   "tags": [
+    "marker",
+    "fork"
+   ],
+   "note": "갈림길 표지: 닳은 화살표 판 둘(끝이 위로 들림). 왼쪽 판에 작은 등불 = 「불빛 쪽」, 오른쪽 판은 검은 돌 = 「어둠 쪽」",
+   "tris": 128,
+   "size_kb": 12.3,
+   "bbox_m": [
+    [
+     -0.78,
+     -0.34,
+     -0.03
+    ],
+    [
+     0.78,
+     0.25,
+     1.95
+    ]
+   ]
+  },
+  {
+   "id": "base_hatch_landmark",
+   "file": "base_hatch_landmark.glb",
+   "footprint_m": [
+    12,
+    6
+   ],
+   "tags": [
+    "landmark",
+    "start",
+    "base"
+   ],
+   "note": "출발 표지: 탑 외벽 아랫동(창 격자) + 위에서 내려온 사다리 + 사다리 발치의 등. 해치·포드는 화면 위(사다리 꼭대기 너머)에 있다는 약속. 외벽은 +y(뒤, glTF 로는 -Z)에, 사다리는 -x 쪽",
+   "tris": 824,
+   "size_kb": 50.8,
+   "bbox_m": [
+    [
+     -6.0,
+     -6.0,
+     -0.6
+    ],
+    [
+     6.0,
+     6.0,
+     10.0
+    ]
+   ]
+  }
+ ],
+ "total_kb": 372.7
+}

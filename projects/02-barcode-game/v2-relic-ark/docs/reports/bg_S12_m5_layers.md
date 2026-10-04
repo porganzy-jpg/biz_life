@@ -157,3 +157,84 @@ python tools/blender_m5_layers.py preview
 ## 요청
 - **캐릭터**: 입구 자세 4종과 잠수복 헤엄 동작(입구 → 사다리 → 물속).
 - **개발**: 배치 안 된 주민은 홀 대신 `entrance.spots`에 세워 달라. 자리가 모자라면 홀로. 탐사 출발과 귀환, 새 사람 도착은 `swim_out` / `swim_back` / `arrival` 경로에 해치 열림과 물방울을 맞춰 달라.
+
+---
+
+# §S15-E — 원정 3D 화면(물속판) 아이소 에셋 키트 (2026-10-04, 사용자 승인)
+
+## 산출
+- `static/art/iso_sea/*.glb` 31종 + `static/art/iso_sea/manifest.json`. 폴더 전체 456KB이고, GLB만 합하면 373KB다(목표 4MB 이하).
+- 접촉 시트: `docs/reports/s15e_iso_sea_sheet.png`(31칸, 45°/45° 직교, 손그림 선). 썸네일 원본은 `art_raw/iso_sea/<id>.png`.
+- 생성기(신규): `tools/blender_iso_sea.py`. `blender_iso.py`·`world3d.js` 같은 기존 코드는 건드리지 않았다. 생성 AI 없음.
+```
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools/blender_iso_sea.py      # 전부(약 2분)
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b --python tools/blender_iso_sea.py -- fan_a beacon_spot   # 일부만
+python tools/blender_iso_sea.py sheet       # 접촉 시트 + manifest
+```
+
+## 규약 (manifest `_note`)
+- 단위 m. GLB는 Y-up이다(Blender +y → glTF −Z).
+- 원점 = 바닥 가운데(발 높이 0).
+- 땅 타일은 **6 m 격자**(육상 아이소판과 같다). 옆면 두께가 0.6 m라 아이소에서 단면이 보인다.
+- 메시는 재질별로 합쳐 자산마다 노드가 거의 하나다(B8). 등은 KHR_lights_punctual 점광원으로 들어 있다(beacon_spot·fork_marker·base_hatch_landmark).
+- 빛나는 것(등·상자 무늬·눈)은 emissive라서 물속 안개에서도 보인다. manifest `scene_hint`에 안개·조명 색 권장값을 적었다.
+
+## 목록 (31종, 삼각형 40~824개)
+| 묶음 | id |
+|---|---|
+| 땅 타일 4 | `ground_sand_a`(조약돌) · `ground_sand_b`(물결 자국) · `ground_silt`(진흙, 작은 구멍) · `ground_rock` |
+| 가장자리 3 | `ground_edge_drop`(+x 쪽이 심연으로 꺼짐) · `ground_edge_corner`(바깥 모서리) · `ground_edge_wall`(바위 벽, 절벽 밑). 회전해 네 방향으로 쓴다 |
+| 바위 3 | `rock_small` · `rock_boulder`(막는 것) · `rock_stack`(길잡이 기둥) |
+| 해초 2 | `kelp_clump_a` · `kelp_clump_b`(키 큰 숲) |
+| 부채 2 | `fan_a`(흐린 주황, 살 무늬) · `fan_b`(뼈색 셋). 실제 종 이름 없음 |
+| 잔해(바코드 물건) 4 | `relic_crate` · `relic_cans`(상표 없는 바랜 띠) · `relic_cart`(넘어진 장바구니 수레) · `relic_vending_husk`(자판기 껍데기, 상표 없음) |
+| 봉인 상자 9 | `sealed_box_<갈래>` — 갈래 여덟 + `sealed_box_blank`(빈 원, 튜토리얼) |
+| 표지 3 | `beacon_spot`(스팟 등대, 따뜻한 등) · `danger_shadow`(바닥의 큰 그림자 + 반투명 검은 몸 + 창백한 눈 둘, 먹 얼룩 생물 계열) · `fork_marker`(닳은 화살표 판 둘, 끝이 위로 들림. 왼쪽 판에 작은 등 =「불빛 쪽」, 오른쪽에 검은 돌 =「어둠 쪽」) |
+| 출발 표지 1 | `base_hatch_landmark`(12×6 m): 탑 외벽 아랫동(창 격자, 불 비친 창 몇 개) + 포드 받침 기둥 + 위에서 내려온 사다리 + 사다리 발치의 등·상자·해초. 해치와 포드는 사다리 꼭대기 너머(화면 위)에 있다는 약속 |
+
+**갈래 무늬**: EXPEDITION.md에는 무늬 이름이 없다. 그래서 스캔 카테고리 여덟(`engine/relic_generator.Category`)에 내가 그림 글자를 붙였다.
+
+| 갈래 | 무늬 |
+|---|---|
+| food | 그릇과 김 |
+| drink | 병 |
+| medical | 십자 |
+| electronics | 번개 |
+| stationery | 연필 |
+| book | 펼친 책 |
+| apparel | 윗옷 |
+| tobacco | 잎 |
+| blank | 빈 원 |
+
+실제 기호나 상표가 아닌 단순 실루엣이다. 무늬판은 크림색에 살짝 빛나게 했다. **기획·시나리오가 정식 이름과 무늬를 정하면 `glyph()` 한 곳만 바꾸면 된다.**
+
+## 직접 보고 고친 것
+- **1차**: 스팟 등대와 출발 표지의 등이 바구니 안에 숨어 꺼져 보였다. `fan_a`가 옆으로 누운 판(탁자)처럼 보였다. 해초가 실처럼 가늘었다. 위험 생물의 눈이 몸 안에 묻혔다.
+- **2차**: 바구니를 가는 살 넷으로 바꾸고 등을 키웠다. 부채는 넓은 면이 아이소 카메라를 보게 돌리고 어두운 살 다섯을 넣었다. 해초 폭을 늘리고 수를 더했다. 눈을 몸 앞으로 꺼냈다.
+- **3차**: 출발 표지의 외벽이 카메라 반대쪽을 보고 있어서, 창이 난 면이 안 보이고 사다리와 등이 벽 뒤에 가렸다. 180° 돌렸다.
+
+## 원칙
+- **B2**: 초록은 해초뿐이고, 주황은 등·부채 하나, 청록은 물(배경·안개)에만 쓴다. 바닥은 무채색이다.
+- **B6**: 썸네일은 45°/45° 직교다.
+- **B7**: 저폴리 + 평면 재질. 썸네일에만 Freestyle 선을 넣었다.
+- **B8**: 자산당 4.7~51KB.
+- **B9**: 조약돌·해초·부채는 시드 난수로 흩었다.
+- **B5**(일상 공간이 유적): 장바구니 수레·자판기·깡통.
+- 아늑함 쪽: 위험 표지도 피 없이 실루엣과 눈 두 점뿐이고, 표지마다 따뜻한 등이 하나씩 있다.
+- 3막 가드: 도시 실루엣이 없다. 외벽은 우리 탑의 아랫동 한 면뿐이다.
+
+## 자가 검수 (03_BG §5)
+1. 주색 하나와 등불 하나: 표지와 출발 표지마다 따뜻한 등이 하나다. **예.**
+2. 초록과 사람 흔적: 해초 2종이 대부분의 자산에 섞여 있다. 출발 표지 발치에 상자가 있다. **예**(사람 흔적은 원정 화면의 주민이 맡는다).
+3. 안/밖을 밝기로 아는가: 이 키트는 전부 '밖'이다. 등만 따뜻하다. **예.**
+4. 격자처럼 놓인 소품: 타일은 격자이고, 그 위 소품은 흩었다. **예.**
+5. 용량·원점·회귀: 373KB. 원점은 바닥 가운데, 6 m 격자. 기존 파일 변경 없음. **예.**
+
+## 미완·리스크
+- **Three.js에서 아직 띄워 보지 않았다**(코드 수정 금지). Blender 썸네일로만 확인했다. 투명 재질(위험 그림자·몸)이 Three.js에서 정렬 문제를 일으킬 수 있다. 그러면 depthWrite=false를 권한다.
+- 땅 타일은 텍스처 없이 평면 색이다. 안개가 들어가면 무늬가 약해진다. 필요하면 다음에 노이즈 텍스처 한 장(256px)을 더한다.
+- 심해 스팟 GLB 여섯(EXPEDITION §3-6)은 이번 범위가 아니다.
+
+## 요청
+- **개발**: `static/world3d.js` 물속판에서 `static/art/iso_sea/manifest.json`을 읽어 배치해 달라. 땅 타일은 6 m 격자, 가장자리는 회전해서 쓴다. 안개는 `scene_hint`를 쓰면 된다.
+- **기획·시나리오**: 봉인 상자 갈래 무늬의 정식 이름과 그림을 확정해 달라(지금은 위 표의 임시 그림 글자).
