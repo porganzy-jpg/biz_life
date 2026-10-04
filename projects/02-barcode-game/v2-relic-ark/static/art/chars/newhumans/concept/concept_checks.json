@@ -1,0 +1,36 @@
+{
+ "lineage_checks": {
+  "lampeye/scholar/a/f0": {
+   "x_imprint": 0,
+   "x_hair_face": 0,
+   "lampeye_on_eye": 6
+  },
+  "wavearm/cook/b/f1": {
+   "x_imprint": 0,
+   "x_hair_face": 0,
+   "lampeye_on_eye": 0
+  },
+  "saltgrain/farmer/a/f2": {
+   "x_imprint": 0,
+   "x_hair_face": 0,
+   "lampeye_on_eye": 0
+  },
+  "lowsong/medic/b/f0": {
+   "x_imprint": 0,
+   "x_hair_face": 0,
+   "lampeye_on_eye": 0
+  },
+  "weedhand/kid/a/f1": {
+   "x_imprint": 0,
+   "x_hair_face": 0,
+   "lampeye_on_eye": 0
+  },
+  "stripehand/engineer/b/f0": {
+   "x_imprint": 0,
+   "x_hair_face": 0,
+   "lampeye_on_eye": 0
+  }
+ },
+ "lineage_x_imprint_total": 0,
+ "lineage_x_hair_face_total": 0
+}
