@@ -359,24 +359,57 @@ def _blender(only):
             for v in [e for e in r["geom"] if isinstance(e, bmesh.types.BMVert)]:
                 v.co.z += 0.02
             obj_from_bm(name, bm, m)
-        if cat == "food":          # 그릇 + 김 세 줄
-            flat("g", [(-0.16, 0.0), (0.16, 0.0), (0.1, -0.1), (-0.1, -0.1)])
-            for k in (-0.08, 0, 0.08):
-                flat(f"s{k}", [(k - 0.015, 0.03), (k + 0.015, 0.03), (k + 0.015, 0.14), (k - 0.015, 0.14)])
-        elif cat == "drink":       # 병
-            flat("g", [(-0.06, -0.14), (0.06, -0.14), (0.06, 0.04), (0.025, 0.08), (0.025, 0.15), (-0.025, 0.15), (-0.025, 0.08), (-0.06, 0.04)])
-        elif cat == "medical":     # 십자
-            flat("g1", [(-0.04, -0.14), (0.04, -0.14), (0.04, 0.14), (-0.04, 0.14)]); flat("g2", [(-0.14, -0.04), (0.14, -0.04), (0.14, 0.04), (-0.14, 0.04)])
+        def rot(pts, ang, ox=0.0, oy=0.0):
+            c, sn = math.cos(ang), math.sin(ang)
+            return [(ox + x * c - y * sn, oy + x * sn + y * c) for x, y in pts]
+        def band(line, w, w1=None):
+            """폴리라인 → 두께 있는 띠 다각형(왼쪽 + 뒤집은 오른쪽)"""
+            w1 = w if w1 is None else w1; Lp, Rp = [], []; n = len(line)
+            for i, (x, y) in enumerate(line):
+                ax, ay = line[max(0, i - 1)]; bx, by = line[min(n - 1, i + 1)]
+                dx, dy = bx - ax, by - ay; d = math.hypot(dx, dy) or 1; nx, ny = -dy / d, dx / d
+                ww = (w + (w1 - w) * i / max(1, n - 1)) / 2
+                Lp.append((x + nx * ww, y + ny * ww)); Rp.append((x - nx * ww, y - ny * ww))
+            return Lp + Rp[::-1]
+        def drop(cx, cy, r):
+            """물방울: 아래는 둥글고 위는 뾰족"""
+            pts = [(cx + r * math.cos(a_), cy + r * math.sin(a_)) for a_ in [math.pi * (1.15 + 0.7 * k / 8) for k in range(9)]]
+            return pts + [(cx + r * 0.5, cy + r * 0.9), (cx, cy + r * 2.0), (cx - r * 0.5, cy + r * 0.9)]
+        if cat == "food":          # 이삭 세 줄(부채꼴로 벌어진 줄기 + 낟알 잎)
+            for k, ang in enumerate((0.38, 0.0, -0.38)):
+                flat(f"stem{k}", rot([(-0.012, -0.17), (0.012, -0.17), (0.012, -0.01), (-0.012, -0.01)], ang, 0, -0.0))
+                for j in range(3):          # 낟알 셋(위로 갈수록 작다)
+                    yy = 0.0 + j * 0.058; r_ = 0.03 - j * 0.005
+                    flat(f"grain{k}{j}", rot([(0, yy - r_ * 1.6), (r_, yy), (0, yy + r_ * 1.6), (-r_, yy)], ang, 0, -0.0))
+        elif cat == "drink":       # 물방울 셋
+            for k, (cx, cy, r_) in enumerate([(-0.07, -0.08, 0.045), (0.07, -0.06, 0.04), (0.0, 0.03, 0.05)]):
+                flat(f"drop{k}", drop(cx, cy, r_))
+        elif cat == "medical":     # 엇갈린 띠 둘(X자, 십자가 아님)
+            bar = [(-0.03, -0.16), (0.03, -0.16), (0.03, 0.16), (-0.03, 0.16)]
+            flat("g1", rot(bar, 0.6)); flat("g2", rot(bar, -0.6), z=top_z + 0.012)
         elif cat == "electronics": # 번개
             flat("g", [(0.02, 0.15), (-0.09, -0.01), (-0.01, -0.01), (-0.04, -0.15), (0.09, 0.03), (0.01, 0.03)])
-        elif cat == "stationery":  # 연필(사선)
-            flat("g", [(-0.14, -0.1), (-0.1, -0.14), (0.1, 0.06), (0.14, 0.14), (0.06, 0.1)])
-        elif cat == "book":        # 펼친 책
-            flat("g1", [(-0.15, -0.08), (-0.01, -0.12), (-0.01, 0.1), (-0.15, 0.13)]); flat("g2", [(0.01, -0.12), (0.15, -0.08), (0.15, 0.13), (0.01, 0.1)])
-        elif cat == "apparel":     # 윗옷
-            flat("g", [(-0.06, -0.14), (0.06, -0.14), (0.06, 0.03), (0.13, 0.0), (0.15, 0.07), (0.05, 0.13), (-0.05, 0.13), (-0.15, 0.07), (-0.13, 0.0), (-0.06, 0.03)])
-        elif cat == "tobacco":     # 잎
-            flat("g", [(0, -0.15), (0.09, -0.04), (0.08, 0.07), (0, 0.15), (-0.08, 0.07), (-0.09, -0.04)])
+        elif cat == "stationery":  # 깃 하나(비스듬한 깃펜)
+            vane = [(0.0, -0.06), (0.03, -0.02), (0.042, 0.06), (0.018, 0.075), (0.04, 0.1), (0.03, 0.17), (0.0, 0.23),
+                    (-0.018, 0.15), (-0.03, 0.08), (-0.012, 0.06), (-0.028, 0.02)]                  # 길고 좁은 깃 + 갈라진 홈 둘
+            flat("vane", rot(vane, -0.6))
+            flat("shaft", rot(band([(0, -0.2), (0, 0.0), (0.002, 0.2)], 0.014, 0.006), -0.6), z=top_z + 0.012)
+        elif cat == "book":        # 겹친 장 — 얇은 판 넷이 조금씩 어긋나 포개짐
+            for k in range(4):
+                ox, oy = -0.03 + k * 0.02, -0.09 + k * 0.05
+                flat(f"sheet{k}", [(ox - 0.12, oy - 0.012), (ox + 0.12, oy - 0.012), (ox + 0.12, oy + 0.012), (ox - 0.12, oy + 0.012)])
+        elif cat == "apparel":     # 실타래 — 둥근 테 + 안쪽에 같은 방향으로 감긴 곡선 실 셋 + 풀린 꼬리
+            ring("ball", 0.115, 0.14)
+            for k, R_ in enumerate((0.16, 0.21, 0.26)):
+                arc = [(-0.19 + R_ * math.cos(t), 0.19 + R_ * math.sin(t)) for t in [-math.pi / 2 + (math.pi / 2) * i / 24 for i in range(25)]]
+                arc = [q for q in arc if math.hypot(*q) < 0.1]
+                if len(arc) > 2:
+                    flat(f"wrap{k}", band(arc, 0.018))
+            flat("tail", band([(0.12, -0.07), (0.17, -0.1), (0.15, -0.15), (0.2, -0.17)], 0.018))
+        elif cat == "tobacco":     # 연기 세 가닥(위로 피어오른다)
+            for k, ox in enumerate((-0.07, 0.0, 0.07)):
+                line = [(ox + 0.025 * math.sin(t * 5.5 + k), -0.15 + t * 0.3) for t in [i / 8 for i in range(9)]]
+                flat(f"wisp{k}", band(line, 0.024, 0.008))
         else:                      # 빈 원(튜토리얼)
             ring("g", 0.09, 0.14)
 
@@ -389,11 +422,13 @@ def _blender(only):
         box("lock", (0.12, 0.05, 0.12), (0, -0.28, 0.3), m_("brass"))
         glyph(cat, 0.49, glyph_m)
 
+    PAT = dict(food="이삭", drink="물방울", medical="엇갈린 띠", electronics="번개", stationery="깃", book="겹친 장",
+               apparel="실타래", tobacco="연기", blank="빈 원(튜토리얼)")
     for c in CATS + ["blank"]:
         def mk(c=c):
             sealed_box(c)
         A[f"sealed_box_{c}"] = (mk, dict(id=f"sealed_box_{c}", footprint_m=[1, 1], tags=["sealed_box", "pickup", c],
-                                          note="봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). " + ("빈 원 = 튜토리얼 상자" if c == "blank" else f"갈래 {c}")))
+                                          note="봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. " + PAT[c]))
 
     # ── 표지들 ──
     @asset("beacon_spot", [1, 1], ["marker", "spot", "light"], "스팟 표지 등대: 말뚝 + 따뜻한 등(점광원 포함)")

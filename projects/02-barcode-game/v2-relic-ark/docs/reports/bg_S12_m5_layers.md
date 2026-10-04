@@ -196,14 +196,14 @@ python tools/blender_iso_sea.py sheet       # 접촉 시트 + manifest
 
 | 갈래 | 무늬 |
 |---|---|
-| food | 그릇과 김 |
-| drink | 병 |
-| medical | 십자 |
+| food | 이삭 세 줄 |
+| drink | 물방울 셋 |
+| medical | 엇갈린 띠(X, 십자 아님) |
 | electronics | 번개 |
-| stationery | 연필 |
-| book | 펼친 책 |
-| apparel | 윗옷 |
-| tobacco | 잎 |
+| stationery | 깃 하나(비스듬한 깃펜) |
+| book | 겹친 장(얇은 판 넷) |
+| apparel | 실타래(감긴 실 + 꼬리) |
+| tobacco | 연기 세 가닥 |
 | blank | 빈 원 |
 
 실제 기호나 상표가 아닌 단순 실루엣이다. 무늬판은 크림색에 살짝 빛나게 했다. **기획·시나리오가 정식 이름과 무늬를 정하면 `glyph()` 한 곳만 바꾸면 된다.**
@@ -238,3 +238,6 @@ python tools/blender_iso_sea.py sheet       # 접촉 시트 + manifest
 ## 요청
 - **개발**: `static/world3d.js` 물속판에서 `static/art/iso_sea/manifest.json`을 읽어 배치해 달라. 땅 타일은 6 m 격자, 가장자리는 회전해서 쓴다. 안개는 `scene_hint`를 쓰면 된다.
 - **기획·시나리오**: 봉인 상자 갈래 무늬의 정식 이름과 그림을 확정해 달라(지금은 위 표의 임시 그림 글자).
+
+
+> **S15-E 수정(2026-10-04, PM)**: 갈래 무늬를 `data/expedition_text.json`의 정본 이름에 맞춰 다시 그렸다(위 표 갱신). `sealed_box_*` 9개만 다시 내보냈고, 나머지 GLB 22개는 md5가 같다(바이트 동일). 접촉 시트와 manifest(상자 항목)를 갱신했다. GLB 합계 405KB.

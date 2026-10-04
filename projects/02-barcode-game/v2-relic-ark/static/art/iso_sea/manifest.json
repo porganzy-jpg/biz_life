@@ -536,9 +536,9 @@
     "pickup",
     "food"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 food",
-   "tris": 108,
-   "size_kb": 9.2,
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 이삭",
+   "tris": 204,
+   "size_kb": 14.3,
    "bbox_m": [
     [
      -0.37,
@@ -564,9 +564,9 @@
     "pickup",
     "drink"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 drink",
-   "tris": 88,
-   "size_kb": 8.0,
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 물방울",
+   "tris": 192,
+   "size_kb": 12.5,
    "bbox_m": [
     [
      -0.37,
@@ -592,7 +592,7 @@
     "pickup",
     "medical"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 medical",
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 엇갈린 띠",
    "tris": 84,
    "size_kb": 8.0,
    "bbox_m": [
@@ -604,7 +604,7 @@
     [
      0.37,
      0.28,
-     0.51
+     0.52
     ]
    ]
   },
@@ -620,7 +620,7 @@
     "pickup",
     "electronics"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 electronics",
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 번개",
    "tris": 80,
    "size_kb": 7.7,
    "bbox_m": [
@@ -648,9 +648,9 @@
     "pickup",
     "stationery"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 stationery",
-   "tris": 76,
-   "size_kb": 7.5,
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 깃",
+   "tris": 120,
+   "size_kb": 9.4,
    "bbox_m": [
     [
      -0.37,
@@ -660,7 +660,7 @@
     [
      0.37,
      0.28,
-     0.51
+     0.52
     ]
    ]
   },
@@ -676,9 +676,9 @@
     "pickup",
     "book"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 book",
-   "tris": 84,
-   "size_kb": 7.9,
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 겹친 장",
+   "tris": 108,
+   "size_kb": 9.2,
    "bbox_m": [
     [
      -0.37,
@@ -704,9 +704,9 @@
     "pickup",
     "apparel"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 apparel",
-   "tris": 96,
-   "size_kb": 8.3,
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 실타래",
+   "tris": 368,
+   "size_kb": 19.8,
    "bbox_m": [
     [
      -0.37,
@@ -732,9 +732,9 @@
     "pickup",
     "tobacco"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 갈래 tobacco",
-   "tris": 80,
-   "size_kb": 7.6,
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 연기",
+   "tris": 264,
+   "size_kb": 15.5,
    "bbox_m": [
     [
      -0.37,
@@ -760,7 +760,7 @@
     "pickup",
     "blank"
    ],
-   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 빈 원 = 튜토리얼 상자",
+   "note": "봉인 상자 — 뚜껑에 갈래 무늬(살짝 빛남). 무늬 이름 정본 = data/expedition_text.json. 빈 원(튜토리얼)",
    "tris": 172,
    "size_kb": 11.3,
    "bbox_m": [
@@ -888,5 +888,5 @@
    ]
   }
  ],
- "total_kb": 372.7
+ "total_kb": 404.9
 }
