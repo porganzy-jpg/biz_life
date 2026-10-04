@@ -59,3 +59,26 @@
 - **「꿰맨 손」**(이음매가 뜯겨 다침): 손끝에 바늘 자국이 남는다. 대가: 남의 잠수복을 먼저 손보느라 자기 일이 늦다.
 
 채택하면 `imprints.json`의 내용과 `imprint_lines.json` 줄을 쓰겠다. 효과 수치는 기획이 정한다.
+
+## F2. 귀환 일지·잠수복 수선 키 (2026-10-04, S15-F2)
+서버가 임시 문장으로 짓던 `expedition_return.line`을 이 키들로 바꿔 조립하면 된다. 일지는 짧은 서술체다(관리실 방송이 아니다). 자리표시자 바로 뒤에 조사를 두지 않았다(자동 검사 0건).
+
+| 조각 | 키 | 자리표시자 |
+|---|---|---|
+| 머리 | `expedition.log.head` | {name} {dest} {length}(=`lengths.*.label`) |
+| 가져온 양 | `expedition.log.haul` / 빈손 `expedition.log.haul_empty` | {materials} {boxes} {shards} |
+| 두고 온 것 | `expedition.log.left_behind` | {n} |
+| 상자 찾음 | `expedition.log.box_found` / 선반이 차서 바닥에 `expedition.log.box_on_floor` | {pattern} |
+| 유물 조각을 선반에 | `expedition.log.shard_on_shelf` | {item} |
+| 위험 넘김/못 넘김 | `expedition.log.danger.{air,beast,seam,lost}.{pass,fail}` — **서버 kind 이름 그대로** | — |
+| 각인 생김 | `expedition.log.imprint_gained` | {name} {imprint} |
+| 스팟 발견 / 못 찾음 | `expedition.log.spot_found` / `expedition.log.spot_not_found` | {spot} |
+| 단서 얻음 | `expedition.log.clue_gained` | {spot} |
+| 구조 | `expedition.log.rescue` / 자리 없음 `expedition.log.rescue_no_room` | {guest} |
+| 불러들임 | `expedition.log.recall` | — |
+| 튜토리얼 귀환 | `expedition.log.tutorial` (이것 한 줄만) | — |
+| 잠수복 수선 | `entrance.suit_repair.label`(버튼「잠수복 손보기」)·`worn`(마모 한계)·`done`(수선 완료)·`lacking`(재료 부족) | — |
+
+조립 순서 제안: head → haul(또는 haul_empty) → left_behind → box_found → shard_on_shelf → danger → imprint_gained → spot/clue → rescue → recall. 같은 내용이 `expedition.log._for_dev`에도 있다.
+
+**키 이름 맞춤(TASKS 요청함, 3D 개발)**: 새로 만든 `log.danger`는 서버 이름(`air·beast·seam·lost`)을 쓴다. 기존 S15-F 키(`danger.kinds.air_leak/big_one`, `lengths.overnight`, `destinations.doorstep/known`)는 아직 바꾸지 않았다. 지금 `expedition3d.js TEXT_KEY` 대응표가 그 이름을 읽고 있어서, 이름을 바꾸면 화면이 깨진다. 서버 이름으로 통일할지 PM이 정해 주면 데이터 쪽 키를 한 번에 바꾸고, 개발은 대응표를 지우면 된다.
