@@ -266,9 +266,10 @@ body{
 .quota{margin:10px 0 0; font-size:11px; color:var(--dim)}
 
 /* ── 카드: 한 장이 뒤집힌다 ───────────────────────── */
-.rcard{width:min(250px,64vw); aspect-ratio:5/7; margin:4px auto 12px; perspective:900px}
-.rc-in{position:relative; width:100%; height:100%; transform-style:preserve-3d;
-  transition:transform .8s cubic-bezier(.3,.7,.2,1)}
+.rcard{position:relative; width:min(250px,64vw); aspect-ratio:5/7; margin:4px auto 12px; perspective:900px; touch-action:manipulation}
+/* S16: 뒤집기는 base_cards.js 가 Web Animations(transform)로 돌린다. 여기엔 끝 상태만 */
+.rc-tilt{position:relative; z-index:1; width:100%; height:100%; transform-style:preserve-3d; transition:transform .25s ease-out}
+.rc-in{position:relative; width:100%; height:100%; transform-style:preserve-3d}
 .rcard.flip .rc-in{transform:rotateY(180deg)}
 .rc-face{position:absolute; inset:0; border-radius:10px; backface-visibility:hidden; -webkit-backface-visibility:hidden;
   border:3px solid #14110c; overflow:hidden}
@@ -401,6 +402,12 @@ body{
   .scan{padding:6px}
   .scan-in{width:min(560px,100%); max-height:100%}
   .rcard{width:min(170px,40vh)}
+  /* S16: 폰 가로 — 카드는 왼쪽에 크게, 얻은 것·단추는 오른쪽 */
+  #scanCard:not([hidden]){display:grid; grid-template-columns:auto 1fr; grid-template-rows:1fr auto; column-gap:16px; align-items:center}
+  #scanCard .rcard{grid-row:1 / 3; width:min(230px, calc((100vh - 84px) * 5 / 7)); margin:0}
+  .scan-in{padding:12px 16px 10px}
+  #scanCard .rgain{text-align:left; align-self:center}
+  #scanCard .shelfbtn{margin-top:6px}
 }
 
 /* ── 폰 세로 안내: 가로로 돌려 주세요(닫으면 세로로 계속) ─────────── */
@@ -639,3 +646,113 @@ body{
 .kv .dim{opacity:.6}
 @media (max-height:500px){ .xpbtn{height:28px; font-size:11.5px; max-width:150px} }
 .watchback{display:inline-flex; align-items:center; min-height:40px; padding:0 14px; font-size:12.5px; color:var(--ink); background:#151a17; border:1px solid #2a2419; border-radius:5px; text-decoration:none}
+
+/* ══ S16-B 유물 카드 — 틀·박·바다 무늬·개봉 연출 ══════════════════════
+   그림 경로는 base_cards.js 가 cards_meta.json 에서 읽어 --rk-* 변수로 꽂는다(html.rk-art).
+   그림이 없으면 아래 CSS 대체 틀로 돈다. 움직임은 transform·opacity 만. */
+.rc-face{border-radius:5.5%/3.93%}
+.rk-art .rc-back{background:var(--rk-back) 0 0/100% 100% no-repeat; border:0}
+.rk-art .rc-back span, .rk-art .rc-back em{display:none}
+.rc-front.rkhost{display:block; background:#2a2016; border:0}
+/* 차오름 · 빛살 · 번쩍 */
+.rc-charge, .rc-rays{position:absolute; left:-50%; top:-21.43%; width:200%; height:142.86%; opacity:0; pointer-events:none; z-index:0; will-change:transform,opacity}
+.rc-charge{background:radial-gradient(closest-side, var(--rk-tint,#f0b055) 0%, rgba(240,176,85,0) 75%)}
+.rk-art .rc-charge{background:var(--rk-tint,#f0b055); -webkit-mask:var(--rk-glow) center/contain no-repeat; mask:var(--rk-glow) center/contain no-repeat}
+.rc-rays{background:repeating-conic-gradient(from 0deg, var(--rk-tint,#f0b055) 0deg 5deg, rgba(0,0,0,0) 5deg 20deg);
+  -webkit-mask:radial-gradient(closest-side, #000 22%, rgba(0,0,0,0) 100%); mask:radial-gradient(closest-side, #000 22%, rgba(0,0,0,0) 100%)}
+.rc-flash{position:absolute; inset:0; z-index:3; pointer-events:none; opacity:0;
+  background:radial-gradient(circle at 50% 42%, #fff6dc 0%, var(--lamp) 30%, rgba(240,176,85,0) 72%)}
+.rgain{opacity:0; transition:opacity .25s ease-out} .rgain.show{opacity:1}
+/* 카드 한 장(400×560 설계, 자리는 % — base_cards.js face) */
+.rk{position:absolute; inset:0; container-type:inline-size; overflow:hidden; border-radius:5.5%/3.93%; color:#1C1712;
+  background:#6b4b2a; box-shadow:inset 0 0 0 3px #14110c}
+.rk.uncommon{background:#8a6538} .rk.rare{background:#b8892e} .rk.epic{background:linear-gradient(#b8892e,#2f7f86 50%,#b8892e)} .rk.legendary{background:linear-gradient(135deg,#efeaf7,#cfc6e6 40%,#f6f1ff 60%,#cdd9e6)}
+.rk-art .rk{background:#1C1712; box-shadow:none}
+.rk-win{position:absolute; overflow:hidden; border-radius:3%/3.8%; background:linear-gradient(#2a4e51,#173033)}
+.rk-art .rk-win{background:var(--rk-artbg) 0 0/100% 100% no-repeat}
+.rk-prop{position:absolute; left:0; right:0; margin:0 auto; image-rendering:pixelated; image-rendering:crisp-edges}
+.rk-frame{position:absolute; inset:0; pointer-events:none}
+.rk-art .rk.common .rk-frame{background:var(--rk-frame-common) 0 0/100% 100%}
+.rk-art .rk.uncommon .rk-frame{background:var(--rk-frame-uncommon) 0 0/100% 100%}
+.rk-art .rk.rare .rk-frame{background:var(--rk-frame-rare) 0 0/100% 100%}
+.rk-art .rk.epic .rk-frame{background:var(--rk-frame-epic) 0 0/100% 100%}
+.rk-art .rk.legendary .rk-frame{background:var(--rk-frame-legendary) 0 0/100% 100%}
+.rk-pips{position:absolute; left:0; right:0; bottom:1.2%; text-align:center; font-size:3.4cqw; letter-spacing:.3em; color:#ffe2a8; text-shadow:0 1px 0 #14110c}
+.rk-art .rk-pips{display:none}
+html:not(.rk-art) .rk-name, html:not(.rk-art) .rk-info{background:#e6d7b0; border:2px solid #14110c; border-radius:4px}
+html:not(.rk-art) .rk-cat{background:#1C1712}
+.rk-cat{position:absolute; border-radius:50%}
+.rk-num{position:absolute}
+.rk-name{position:absolute; display:flex; align-items:center; justify-content:center; text-align:center; padding:0 2%;
+  font-size:6.2cqw; font-weight:700; line-height:1.12; overflow:hidden}
+.rk-name span{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.rk-info{position:absolute; padding:1.5% 2.5%; font-size:4.25cqw; line-height:1.38; color:#2E261E; overflow:hidden}
+.rk-info p{margin:0} .rk-rar{font-weight:700; color:#1C1712}
+.rk-info .rk-desc{margin-top:.2em; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+/* 박(귀함 이상) — 마스크(L)에 움직이는 그라데이션을 곱해 screen 으로 얹는다 */
+.rk-foil, .rk-sea{position:absolute; inset:0; overflow:hidden; pointer-events:none; mix-blend-mode:screen}
+.rk-foil i, .rk-sea i{position:absolute; left:-50%; top:-50%; width:200%; height:200%; will-change:transform}
+.rk-foil i{background:linear-gradient(115deg, rgba(0,0,0,0) 30%, rgba(255,226,160,.85) 40%, rgba(160,240,230,.75) 47%, rgba(214,186,255,.75) 54%, rgba(0,0,0,0) 64%);
+  animation:rkFoil 6s ease-in-out infinite alternate}
+.rk-foil b, .rk-sea b{position:absolute; inset:0; mix-blend-mode:multiply}
+.rk-art .rk.rare .rk-foil b, .rk-art .rk.epic .rk-foil b{background:var(--rk-foil-rare) 0 0/100% 100%}
+.rk-art .rk.legendary .rk-foil b{background:var(--rk-foil-legendary) 0 0/100% 100%}
+html:not(.rk-art) .rk-foil{opacity:.4}
+.rk.legendary .rk-foil i{animation-duration:4.5s}
+@keyframes rkFoil{from{transform:translate3d(-22%,-12%,0)}to{transform:translate3d(22%,12%,0)}}
+/* 바다 무늬 — 청록 물결이 천천히 흐른다 */
+.rk-sea i{background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2224%22%3E%3Cpath d=%22M0 12 Q20 2 40 12 T80 12%22 fill=%22none%22 stroke=%22%2378dcd7%22 stroke-width=%223%22 stroke-opacity=%22.8%22/%3E%3C/svg%3E") 0 0/40px 12px repeat;
+  animation:rkSea 9s linear infinite}
+.rk-art .rk-sea b{background:var(--rk-foil-sea) 0 0/100% 100%}
+html:not(.rk-art) .rk-sea{opacity:.5}
+@keyframes rkSea{from{transform:translate3d(0,0,0)}to{transform:translate3d(25%,6%,0)}}
+.rk.manual .rk-foil i, .rk.manual .rk-sea i{animation:none; transition:transform .12s linear}
+/* 닦기 — 빛 한 줄 + 도장 */
+.rk-shine{position:absolute; inset:0; overflow:hidden; pointer-events:none}
+.rk-shine i{position:absolute; top:-10%; bottom:-10%; left:0; width:45%; transform:translate3d(-130%,0,0);
+  background:linear-gradient(90deg, rgba(255,250,230,0), rgba(255,250,230,.8), rgba(255,250,230,0))}
+.rk-stamp{position:absolute; right:5%; top:15%; padding:.25em .6em; font-size:5cqw; font-weight:700; color:#1a150e; background:#ffe9b0;
+  border:2px solid #5a4320; border-radius:4px; transform:rotate(-8deg); box-shadow:0 2px 0 #14110c}
+.rk-stamp[hidden]{display:none}
+/* 찍기로 열린 상자 — 뚜껑이 들리고 「열림」이 톡 */
+.boxpop{position:relative; display:inline-block; width:18px; height:13px; margin:0 7px 0 2px; vertical-align:-1px; background:#5a3f22; border:1.5px solid #14110c; border-radius:2px}
+.boxpop s{position:absolute; left:-2px; right:-2px; top:-6px; height:5px; background:#7a5630; border:1.5px solid #14110c; border-radius:1px; transform-origin:0 100%}
+.boxpop em{position:absolute; left:50%; bottom:130%; font-style:normal; font-size:10px; font-weight:700; line-height:1.5; color:#1a150e; background:#ffe2a8;
+  border-radius:3px; padding:0 4px; white-space:nowrap; opacity:0; transform:translate3d(-50%,4px,0) scale(.3)}
+.rgain.show .boxpop s{animation:lidOpen .45s .15s cubic-bezier(.3,1.5,.5,1) forwards}
+.rgain.show .boxpop em{animation:boxPop .5s .3s cubic-bezier(.3,1.6,.5,1) forwards}
+@keyframes lidOpen{to{transform:rotate(-38deg) translate3d(0,-1px,0)}}
+@keyframes boxPop{to{opacity:1; transform:translate3d(-50%,-2px,0) scale(1)}}
+.rgain .boxline{margin-top:14px}
+/* 도감 칸 — 희귀도 틀 색(이름표 글자 rmk 가 같이 있다: 색만으로 말하지 않는다) */
+.cx.on{cursor:pointer; border-width:2px}
+.cx.common{border-color:#7a5630} .cx.uncommon{border-color:#c09a5a} .cx.rare{border-color:#e0b050}
+.cx.epic{border-color:#e0b050; box-shadow:inset 0 0 0 2px #2f7f86} .cx.legendary{border-color:#efeaf7; box-shadow:inset 0 0 10px rgba(244,238,255,.4)}
+.cxfoil{position:absolute; inset:0; overflow:hidden; pointer-events:none; mix-blend-mode:screen}
+.cxfoil::before{content:""; position:absolute; top:0; left:-100%; width:100%; height:100%; will-change:transform;
+  background:linear-gradient(110deg, rgba(0,0,0,0), rgba(255,226,160,.4), rgba(160,240,230,.35), rgba(0,0,0,0)); animation:cxFoil 5s ease-in-out infinite}
+@keyframes cxFoil{0%,45%{transform:translate3d(0,0,0)}100%{transform:translate3d(200%,0,0)}}
+/* 선반·도감에서 누른 유물 */
+.relpeek{position:fixed; inset:0; z-index:28; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px 16px; background:rgba(1,6,10,.74)}
+.relpeek[hidden]{display:none}
+.pk-card{position:relative; width:min(240px, 64vw, calc((100vh - 150px) * 5 / 7)); aspect-ratio:5/7; perspective:900px}
+.pk-line{margin:0; max-width:340px; font-size:13px; line-height:1.6; color:var(--cream); text-align:center}
+.relpeek button{min-height:44px; padding:0 18px; font-size:13px; font-weight:700; cursor:pointer; color:#1a150e; background:var(--ochre); border:0; border-radius:5px}
+.pk-hint{margin:0; font-size:11px; color:var(--dim)}
+/* ★ 개발 전용 시험대(?cardtest=1 + RELIC_DEV) */
+.cardtest{position:fixed; left:6px; bottom:6px; z-index:40; display:flex; flex-wrap:wrap; gap:4px; align-items:center; padding:4px 6px; font-size:11px; color:#ffe2a8; background:rgba(0,0,0,.72); border-radius:5px}
+.cardtest button{min-height:30px; padding:0 8px; font-size:11px; cursor:pointer; color:var(--ink); background:#151a17; border:1px solid #5a4320; border-radius:4px}
+@media (prefers-reduced-motion:reduce){
+  .rk-foil i, .rk-sea i, .cxfoil::before{animation:none}
+  .rc-tilt, .rgain, .shelfbtn{transition:none}
+  .rgain.show .boxpop s, .rgain.show .boxpop em{animation:none}
+  .boxpop s{transform:rotate(-38deg)} .boxpop em{opacity:1; transform:translate3d(-50%,-2px,0)}
+}
+@media (min-width:561px) and (max-height:500px){
+  /* 누른 유물: 카드는 왼쪽에 높이 가득, 글·단추는 오른쪽 */
+  .relpeek{display:grid; grid-template-columns:auto minmax(0,300px); grid-template-rows:1fr auto auto auto 1fr; justify-content:center; column-gap:18px; row-gap:8px}
+  .relpeek .pk-card{grid-row:1 / 6; grid-column:1; align-self:center; width:min(240px, calc((100vh - 36px) * 5 / 7))}
+  .relpeek .pk-line{grid-column:2; grid-row:2; text-align:left}
+  .relpeek button{grid-column:2; grid-row:3; justify-self:start}
+  .relpeek .pk-hint{grid-column:2; grid-row:4}
+}

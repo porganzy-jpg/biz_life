@@ -70,6 +70,16 @@
     body.innerHTML = h;
     body.querySelectorAll('button[data-tab]').forEach(b => b.addEventListener('click', () => openCodex(b.dataset.tab)));
     body.querySelectorAll('.cx.off[data-hint]').forEach(el => el.addEventListener('click', () => announce(el.dataset.hint)));
+    body.querySelectorAll('.cx.on[data-card]').forEach(el => {
+      const open = () => {
+        const CR = K.ext.cards; if (!CR) return;
+        let o = {}; try { o = JSON.parse(el.dataset.card); } catch (e) { return; }
+        o.prop_id = K.propForCategory ? K.propForCategory(o.category) : null;
+        CR.peek(o, o.count ? '도감 · ' + o.count + '번 찍음' : '도감');
+      };
+      el.addEventListener('click', open);
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    });
     const nb = body.querySelector('#octname');
     if (nb) nb.addEventListener('click', nameOctopus);
     // 다 모은 갈래·가문이 새로 생겼으면 한 번만 축하(완성의 순간)
@@ -95,8 +105,10 @@
         const it = items[i] || { known: false };
         if (it.known) {
           const r = it.rarity_best || it.rarity || '';
-          h += '<div class="cx on ' + esc(r) + (it.variant_seen ? ' sea' : '') + '" title="' + esc(it.name || it.stem) + (RAR_KO[r] ? ' · ' + RAR_KO[r] : '') + (it.count ? ' · ' + it.count + '번' : '') + '">' +
+          // S16: 아는 칸은 희귀도 틀 색 + (귀함 이상) 박이 천천히 지나간다. 누르면 그 유물 카드
+          h += '<div class="cx on ' + esc(r) + (it.variant_seen ? ' sea' : '') + '" role="button" tabindex="0" data-card="' + esc(JSON.stringify({ rarity: r, sea: !!it.variant_seen, name: it.name || it.stem || '', category: x.category, count: it.count || 0 })) + '" title="' + esc(it.name || it.stem) + (RAR_KO[r] ? ' · ' + RAR_KO[r] : '') + (it.count ? ' · ' + it.count + '번' : '') + '">' +
                (img ? '<img alt="" src="' + img + '">' : '') + '<span>' + esc(it.stem || it.name) + '</span>' +
+               (['rare', 'epic', 'legendary'].indexOf(r) >= 0 ? '<i class="cxfoil" aria-hidden="true"></i>' : '') +
                (RAR_KO[r] ? '<i class="rmk">' + esc(RAR_KO[r]) + '</i>' : '') + (it.count > 1 ? '<i class="cnt">×' + it.count + '</i>' : '') + '</div>';
         } else {
           const hint = it.hint_ko || T('codex.unknown', { hint: T('codex.category_hints.' + x.category, {}, '') }, '') || T('codex.unknown_no_hint', {}, '');

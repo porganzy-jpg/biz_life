@@ -99,6 +99,7 @@
 
   <!-- 찍기 화면: 카메라 → 카드가 뒤집힌다 → 선반에 놓는다 (PLAYER_JOURNEY J5) -->
   <div class="scan" id="scan" hidden>
+    <div class="rc-flash" id="rcFlash" aria-hidden="true"></div>
     <div class="scan-in">
       <button class="close" id="scanClose" aria-label="닫기">×</button>
       <div id="scanCam">
@@ -115,10 +116,13 @@
         <p class="quota" id="quota"></p>
       </div>
       <div id="scanCard" hidden>
-        <div class="rcard" id="rcard"><div class="rc-in">
-          <div class="rc-face rc-back"><span>RELIC</span><em>바다가 보관한 것</em></div>
-          <div class="rc-face rc-front" id="rcFront"></div>
-        </div></div>
+        <div class="rcard" id="rcard">
+          <div class="rc-charge" aria-hidden="true"></div><div class="rc-rays" aria-hidden="true"></div>
+          <div class="rc-tilt"><div class="rc-in">
+            <div class="rc-face rc-back"><span>RELIC</span><em>바다가 보관한 것</em></div>
+            <div class="rc-face rc-front" id="rcFront"></div>
+          </div></div>
+        </div>
         <div class="rgain" id="rgain"></div>
         <button class="shelfbtn" id="shelfBtn">선반에 두기</button>
       </div>
@@ -139,6 +143,7 @@
 <script src="/static/movement.js"></script>
 <script src="/static/m5map.js"></script>
 <script src="/static/base.js"></script>
+<script src="/static/base_cards.js"></script>
 <script src="/static/base_collect.js"></script>
 <script src="/static/base_expedition.js"></script>
 </body>

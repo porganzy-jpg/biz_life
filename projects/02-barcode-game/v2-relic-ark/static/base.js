@@ -2351,7 +2351,7 @@
   const SAMPLES = [['8801043015097', '식품'], ['9791162241905', '도서'], ['8806011000013', '의약'],
                    ['8809000111110', '문구'], ['4901234567894', '미지 가문'], ['8801044007770', '패턴']];
   let stream = null, detector = null, scanning = false, lastCode = '', lastAt = 0, scanBusy = false;
-  let pendingCode = null, lastScan = null;
+  let pendingCode = null, lastScan = null, K_cardTest = null;
   function openScan() {
     if (!ark) return;
     closePanel(); setCarry(null);
@@ -2365,7 +2365,7 @@
     if (dev) sm.innerHTML = SAMPLES.map(([c, l]) => '<button data-c="' + c + '">' + esc(l) + ' ' + c + '</button>').join('');
     startCam();
   }
-  function closeScan() { stopCam(); $('#scan').hidden = true; }
+  function closeScan() { stopCam(); if (K.ext.cards) K.ext.cards.stop(); $('#scan').hidden = true; }
   async function startCam() {
     const st = $('#camstatus'), box = $('#cam');
     box.classList.remove('off');
@@ -2427,6 +2427,20 @@
       (pk.categories || []).map(c => '<button data-cat="' + esc(c) + '">' + esc(CAT_KO[c] || c) + '</button>').join('') +
       '<button data-cat="">모름</button>';
   }
+  // S16: 선반 물건 → 카드 한 장의 재료
+  function shelfCardOf(it) {
+    const lv = it.polish | 0;
+    const when = it.scanned_at ? whenKo(it.scanned_at) + ' 찍은 것' : '';
+    const pl = lv > 1 ? (it.polish_label || POLISH_KO[lv] || '') : '';
+    return { rarity: it.rarity, sea: it.variant === 'sea', name: it.relic_name || it.name || propSpec(it.prop_id).name || '물건', category: it.category,
+             prop_id: it.prop_id, lines: [[pl, when].filter(Boolean).join(' · ')].filter(Boolean) };
+  }
+  // 닦기 도장 글: 오늘 센 것만 「닦였습니다」(세지 않은 재스캔에 '닦았다'고 찍으면 거짓 문장이 된다 — 서버 polish 와 같은 규칙)
+  function polishStamp(pol) {
+    if (!pol) return '';
+    if (!pol.counted_today) return pol.max && pol.level >= pol.max ? (pol.label || '윤이 남') : '오늘은 이미 닦음';
+    return '닦였습니다' + (pol.leveled_up && pol.label ? ' · ' + pol.label : '');
+  }
   function showReveal(r) {
     lastScan = r;
     const c = r.card || {};
@@ -2435,16 +2449,24 @@
     const item = slot != null ? shelf.find(x => (x.slot | 0) === slot) : null;
     const pid = (item && item.prop_id) || propForCategory(c.category);
     const sp = propSpec(pid);
+    const sea = !!((r.variant && r.variant.shiny) || c.sea_variant || (item && item.variant === 'sea'));
     const front = $('#rcFront');
-    front.className = 'rc-face rc-front ' + (RAR_KO[c.rarity] ? c.rarity : 'common') + ((r.variant && r.variant.shiny) || c.sea_variant ? ' sea' : '');
-    front.innerHTML = '<div class="rr">' + esc(RAR_KO[c.rarity] || c.rarity || '') + (r.first_time ? ' · 처음 보는 것' : '') + '</div>' +
-      '<h3>' + esc(c.name || '이름 없는 것') + '</h3>' +
-      '<div class="art">' + (pid && PROP_ID_OK.test(pid)
-        ? '<img alt="" width="' + sp.w * 3 + '" height="' + sp.h * 3 + '" src="/static/art/props/x4/' + pid + '.png">' : '') + '</div>' +
-      (c.flavor ? '<p class="fl">"' + esc(c.flavor) + '"</p>' : '') +
-      '<div class="meta"><span>' + esc(CAT_KO[c.category] || c.category || '') + '</span>' +
-        (c.family_name ? '<span>' + esc(c.family_name) + '</span>' : '') +
-        (c.tags || []).filter(t => t !== '미확인').slice(0, 3).map(t => '<span>#' + esc(t) + '</span>').join('') + '</div>';
+    const CR = K.ext.cards;
+    if (CR) {                                           // S16: 틀·그림 창·갈래 무늬·희귀도 이름이 있는 카드 한 장
+      front.className = 'rc-face rc-front rkhost';
+      front.innerHTML = CR.face({ rarity: c.rarity, sea, name: c.name, category: c.category, flavor: c.flavor,
+                                   prop_id: pid && PROP_ID_OK.test(pid) ? pid : null });
+    } else {
+      front.className = 'rc-face rc-front ' + (RAR_KO[c.rarity] ? c.rarity : 'common') + (sea ? ' sea' : '');
+      front.innerHTML = '<div class="rr">' + esc(RAR_KO[c.rarity] || c.rarity || '') + (r.first_time ? ' · 처음 보는 것' : '') + '</div>' +
+        '<h3>' + esc(c.name || '이름 없는 것') + '</h3>' +
+        '<div class="art">' + (pid && PROP_ID_OK.test(pid)
+          ? '<img alt="" width="' + sp.w * 3 + '" height="' + sp.h * 3 + '" src="/static/art/props/x4/' + pid + '.png">' : '') + '</div>' +
+        (c.flavor ? '<p class="fl">"' + esc(c.flavor) + '"</p>' : '') +
+        '<div class="meta"><span>' + esc(CAT_KO[c.category] || c.category || '') + '</span>' +
+          (c.family_name ? '<span>' + esc(c.family_name) + '</span>' : '') +
+          (c.tags || []).filter(t => t !== '미확인').slice(0, 3).map(t => '<span>#' + esc(t) + '</span>').join('') + '</div>';
+    }
     const g = Object.entries(r.gained || {}).map(([k, v]) => '<b>' + esc(RES_KO[k] || k) + ' +' + esc(v) + '</b>').join(' · ');
     // S13: 이미 선반에 있는 바코드면 새 칸을 먹지 않고 「닦였습니다」(polish). 서버가 준 문장이 이긴다
     const pol = r.polish || null, again = pol && r.shelf_new === false;
@@ -2458,23 +2480,50 @@
       (r.first_meet || []).map(m => '<span class="meetline">' + esc(plain(m.line || '')) + '</span>').join('') +
       (r.family_set && r.family_set.ko ? '<span class="famline' + (r.family_set.just_completed ? ' done' : '') + '">' + esc(plain(r.family_set.ko)) + '</span>' : '') +
       (r.wishes_done || []).map(w => '<span class="wishline">' + esc(plain(w.line || '')) + '</span>').join('') +
-      (r.box_opened && K.ext.boxOpenedLine ? '<span class="boxline">' + esc(K.ext.boxOpenedLine(r)) + '</span>' : '');
-    $('#rgain').innerHTML = (r.first_time ? '<span class="first">도감에 처음 적힌 유물</span><br>' : '') +
+      // S16: 찍기로 열린 상자 — 문장은 그대로, 앞에 작은 상자가 「열림」 하고 튄다
+      (r.box_opened && K.ext.boxOpenedLine ? '<span class="boxline"><i class="boxpop" aria-hidden="true"><s></s><em>열림</em></i>' + esc(K.ext.boxOpenedLine(r)) + '</span>' : '');
+    const rg = $('#rgain');
+    rg.innerHTML = (r.first_time ? '<span class="first">도감에 처음 적힌 유물</span><br>' : '') +
       (g || '<span>이미 읽은 성문이라 새로 얻은 건 없습니다</span>') +
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
       shelfNote + extra +
       ((r.voice && r.voice.text) ? '<span class="voice">' + esc(r.voice.who_ko || '') + (r.voice.who_ko ? ': ' : '') + esc(r.voice.text) + '</span>' : '');
     const btn = $('#shelfBtn');
     btn.textContent = slot != null ? (again ? '선반 보기' : '선반에 두기') : '닫기';
-    if (r.family_set && r.family_set.just_completed && K.ext.celebrate) setTimeout(() => K.ext.celebrate(plain(r.family_set.ko)), 1600);
     btn.classList.remove('on');
     $('#scanCam').hidden = true; $('#scanCard').hidden = false;
     const card = $('#rcard'); card.classList.remove('flip');
+    const rare = ['rare', 'epic', 'legendary'].indexOf(c.rarity) >= 0;
+    const after = () => {
+      rg.classList.add('show'); btn.classList.add('on');
+      if (r.family_set && r.family_set.just_completed && K.ext.celebrate) setTimeout(() => K.ext.celebrate(plain(r.family_set.ko)), 700);
+    };
+    if (CR) {
+      rg.classList.remove('show');
+      CR.reveal({ rarity: c.rarity, again, stamp: polishStamp(pol),
+                  onFlip: () => { if (navigator.vibrate && rare && !again) navigator.vibrate([40, 60, 80]); },
+                  onDone: after });
+      return;
+    }
+    rg.classList.add('show');
     void card.offsetWidth;                              // 다시 찍어도 뒤집기가 처음부터
     setTimeout(() => card.classList.add('flip'), 380);
-    setTimeout(() => btn.classList.add('on'), 1150);
-    if (navigator.vibrate && ['rare', 'epic', 'legendary'].indexOf(c.rarity) >= 0) setTimeout(() => navigator.vibrate([40, 60, 80]), 900);
+    setTimeout(after, 1150);
+    if (navigator.vibrate && rare) setTimeout(() => navigator.vibrate([40, 60, 80]), 900);
   }
+  // ★ S16 개발 전용 시험대(?cardtest=1 — RELIC_DEV 서버에서만 base_cards.js 가 단추를 띄운다). 서버를 부르지 않고 가짜 응답으로 연출만 본다
+  K_cardTest = (rar, sea, again, box) => {
+    const it = shelf[0] || null;
+    const cats = ['food', 'drink', 'medical', 'electronics', 'stationery'];
+    const cat = again && it ? it.category : (cats[['common', 'uncommon', 'rare', 'epic', 'legendary'].indexOf(rar)] || 'food');
+    closePanel(); closeCard(); $('#scan').hidden = false;
+    showReveal({ card: { rarity: rar, name: '시험 카드 ' + (RAR_KO[rar] || rar), category: cat, flavor: '입구만 남은 병이다. 귀에 대면 바깥 소리가 들린다.', family_name: '붉은 실 가문', sea_variant: sea },
+                 gained: again ? {} : { food: 3, morale: 1 }, rescan_multiplier: again ? 0.5 : 1, first_time: !again,
+                 shelf_slot: it ? it.slot : null, shelf_new: !again,
+                 variant: sea ? { shiny: true, ko: '관리실에서 알려 드립니다. 이번 물건에는 바다 무늬가 들어 있습니다.' } : { shiny: false },
+                 polish: again ? { level: 2, prev_level: 1, leveled_up: true, counted_today: true, max: 3, label: '한 번 닦음', ko: '' } : null,
+                 box_opened: box ? { cat, gained: { parts: 2 } } : null });
+  };
   function toShelf() {
     const r = lastScan; closeScan();
     if (r && typeof r.shelf_slot === 'number') focusShelf(r.shelf_slot, r.polish && r.shelf_new === false ? r.polish : null);
@@ -3035,7 +3084,13 @@
     const bb = hitAt(px, py, 'bubble');
     if (bb) { collectBubble(bb); return; }
     const sh = hitAt(px, py, 'shelf');
-    if (sh) { toast(shelfLine(sh.item)); closePanel(); openCard({ slot: s != null ? s : shelfRoomSlot() }); return; }
+    if (sh) {                                  // S16: 선반 물건을 누르면 그 유물 카드(틀·희귀도 이름). 창고 카드는 카드 아래 단추로
+      closePanel();
+      const rs = s != null ? s : shelfRoomSlot();
+      if (K.ext.cards) { closeCard(); K.ext.cards.peek(shelfCardOf(sh.item), '', { label: '창고 보기', fn: () => openCard({ slot: rs }) }); }
+      else { toast(shelfLine(sh.item)); openCard({ slot: rs }); }
+      return;
+    }
     if (s != null) { closePanel(); openCard({ slot: s }); return; }
     if (hitAt(px, py, 'hall')) { closePanel(); openCard({ hall: true }); return; }
     const sc = hitAt(px, py, 'sealed');
@@ -3067,6 +3122,8 @@
     const b = e.target.closest('button[data-cat]'); if (b && pendingCode) handleCode(pendingCode, b.dataset.cat || null);
   });
   $('#shelfBtn').addEventListener('click', toShelf);
+  // S16: 개봉 중에 카드 화면 아무 데나 누르면 바로 앞면(건너뛰기)
+  $('#scanCard').addEventListener('pointerdown', (e) => { if (K.ext.cards && K.ext.cards.running() && !e.target.closest('#shelfBtn')) { e.preventDefault(); K.ext.cards.skip(); } });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#scan').hidden) closeScan(); });
   let lastPortrait = null;
   window.addEventListener('resize', () => {
@@ -3089,7 +3146,8 @@
   // S13-B: base_collect.js 가 쓰는 안쪽 손잡이(화면 모듈끼리만). 상태는 읽기만 하고, 바꾸는 길은 api → apply 하나다
   const K = {
     api, toast, play, esc, plain, uid, fill: fillText,
-    get ark() { return ark; }, get cb() { return cb; }, get catalog() { return catalog; }, RES_KO,
+    get ark() { return ark; }, get cb() { return cb; }, get catalog() { return catalog; }, RES_KO, RAR_KO,
+    propSpec: (id) => propSpec(id), propForCategory: (c) => propForCategory(c),
     apply: (st) => apply(st), reload: () => load(false),
     onApply: (f) => applyHooks.push(f), onLoad: (f) => loadHooks.push(f),
     panel(html) { closeCard(); closePops(); sel = null; $('#panelBody').innerHTML = html; $('#panel').hidden = false; placePanel(); return $('#panelBody'); },
@@ -3099,6 +3157,7 @@
     ext: {},                                           // base_collect.js 가 채운다(방 카드·그리기에 끼우는 자리)
   };
   K.ext.drawSealedBox = drawSealedBox;
+  K.ext.cardTestReveal = (...a) => K_cardTest && K_cardTest(...a);   // ★ S16 시험대
   window.ARKBASE = {
     _k: K,
     reload: () => load(false), refreshRaid, fit, uid,
