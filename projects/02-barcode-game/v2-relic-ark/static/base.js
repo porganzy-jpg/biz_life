@@ -301,15 +301,34 @@
   // 키 1.6 m = 원본 44 px × 2 = 88 px. 그 아래(×1)는 44 px 로 판독 하한에 못 미친다
   const READ_Z = (1.5 * 27.5) / TARGET_PPM + 0.005;
   function fit() {
-    const L = MAP(), d = L.dome;
-    cam.z = Math.max(zMin(), Math.min(ZMAX, READ_Z));
-    cam.x = L.glass ? L.glass.cx : d.x + d.w / 2;
-    // 돔 꼭대기가 HUD 바로 아래에 오게 — 그 아래로 홀과 1층이 이어진다
-    const ins = uiInset();
-    cam.y = (d.y - 30) + (view.h / 2 - ins.top) / cam.z;
-    if (isPortrait()) cam.y = d.floor_y + 120;
+    const L = MAP(), d = L.dome, E = L.entrance, ins = uiInset();
+    if (isPortrait()) {
+      cam.z = Math.max(zMin(), Math.min(ZMAX, READ_Z));
+      cam.x = L.glass ? L.glass.cx : d.x + d.w / 2; cam.y = d.floor_y + 120; clampCam(); return;
+    }
+    // S15-0: 처음 보는 사람이 볼 것 = 입구 포드의 식구들 + 돔(PC) / 포드 + 식량창고와 그 안내(폰).
+    // 그 상자가 여백까지 다 들어오는 줌(판독 하한 READ_Z 를 넘지 않게)으로 맞추고 상자 가운데에 둔다
+    const box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    const add = (x0, y0, x1, y1) => { box.x0 = Math.min(box.x0, x0); box.y0 = Math.min(box.y0, y0); box.x1 = Math.max(box.x1, x1); box.y1 = Math.max(box.y1, y1); };
+    const phone = view.h <= 500;
+    if (E && E.pod) add(E.pod.x0 - 30, E.pod.y0 - 20, E.pod.x1 + 40, E.pod.y1 + 10);
+    if (phone) {
+      const r = rectOf(DOME_FLOOR * floorSlots);             // 시작 방(식량창고) + 그 아래 「한 분만」 안내
+      if (r) add(r.x + r.w * 0.2, r.y - 10, r.x + r.w, r.y + r.h + 46);
+    } else {
+      const h = hallRect();
+      add(h.x, d.y + 40, h.x + h.w, h.y + h.h + 40);
+      const r = rectOf(DOME_FLOOR * floorSlots);
+      if (r) add(r.x, r.y, r.x + r.w, r.y + r.h + 46);
+    }
+    if (!isFinite(box.x0)) { add(d.x, d.y, d.x + d.w, d.floor_y + 400); }
+    const availW = view.w - 24, availH = view.h - ins.top - 74;    // 아래 74 = 찍기·≡ 줄
+    cam.z = Math.max(zMin(), Math.min(ZMAX, READ_Z, availW / (box.x1 - box.x0), availH / (box.y1 - box.y0)));
+    cam.x = (box.x0 + box.x1) / 2;
+    cam.y = (box.y0 + box.y1) / 2 + ((ins.top - 74) / 2) / cam.z * -1;
     clampCam();
   }
+
   // 습격 예고가 열리면 노려지는 방과 그 오른쪽 심연이 한 화면에 들어오게 천천히 옮긴다(줌은 그대로)
   let raidPanned = null;
   function raidPan(raid) {

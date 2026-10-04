@@ -616,3 +616,7 @@ body{
 .rccontrib .pos{border-color:#4b6b3e; color:#c8f0b0} .rccontrib .neg{border-color:#6b3b33; color:#ffd2c0}
 .rcmult{font-weight:700; color:var(--cream)} .rcmult.pos{color:#8fbf7a} .rcmult.neg{color:#d08a72}
 .bstat.neg{color:#d08a72}
+/* S15-0: PC 줌 단추는 ≡ 바로 위에 세로로 — 세계의 중요한 자리(포드·심연)를 덮지 않는다 */
+.zoomctl{top:auto; bottom:76px; right:18px; transform:none; gap:4px}
+.zoomctl button{width:40px; height:36px; opacity:.6}
+.zoomctl:hover button{opacity:.95}
