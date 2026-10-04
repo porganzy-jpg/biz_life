@@ -547,6 +547,9 @@ def t_d2_values():
     st["guests"] = []
     for k in range(need + 2):
         S.make_guest(st, uid, f"lidg{k}", "knock")
+    base_r = st["residents_list"][0]
+    while len(st["residents_list"]) < need - 1:
+        st["residents_list"].append(dict(base_r, id=f"pad-{len(st['residents_list'])}"))
     st["residents_list"] = st["residents_list"][:need - 1]
     S.save_state(uid, st)
     seen = {}
