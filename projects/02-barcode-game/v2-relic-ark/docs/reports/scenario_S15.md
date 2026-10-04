@@ -82,3 +82,21 @@
 조립 순서 제안: head → haul(또는 haul_empty) → left_behind → box_found → shard_on_shelf → danger → imprint_gained → spot/clue → rescue → recall. 같은 내용이 `expedition.log._for_dev`에도 있다.
 
 **키 이름 맞춤(TASKS 요청함, 3D 개발)**: 새로 만든 `log.danger`는 서버 이름(`air·beast·seam·lost`)을 쓴다. 기존 S15-F 키(`danger.kinds.air_leak/big_one`, `lengths.overnight`, `destinations.doorstep/known`)는 아직 바꾸지 않았다. 지금 `expedition3d.js TEXT_KEY` 대응표가 그 이름을 읽고 있어서, 이름을 바꾸면 화면이 깨진다. 서버 이름으로 통일할지 PM이 정해 주면 데이터 쪽 키를 한 번에 바꾸고, 개발은 대응표를 지우면 된다.
+
+## F3. 키 이름을 서버 정본으로 통일 (2026-10-04, PM 결정)
+`docs/API_EXPEDITION.md` §1·§5·§8의 id를 그대로 따랐다. 3D 개발은 `expedition3d.js TEXT_KEY` 대응표를 지우면 된다.
+
+| 옛 키 | 새 키 |
+|---|---|
+| `expedition.lengths.overnight` | `expedition.lengths.long` |
+| `expedition.destinations.doorstep` | `expedition.destinations.door` |
+| `expedition.destinations.known` | `expedition.destinations.spot` |
+| `expedition.destinations.clue` · `.unknown` | 그대로 |
+| `expedition.lengths.short` · `.half` | 그대로 |
+| `expedition.danger.kinds.air_leak` | `expedition.danger.kinds.air` |
+| `expedition.danger.kinds.big_one` | `expedition.danger.kinds.beast` |
+| `expedition.danger.kinds.seam` · `.lost` | 그대로 |
+| `sealed_box.blank` | `sealed_box.patterns.blank` (상자 갈래 아홉이 한곳에 모였다: food·drink·medical·electronics·stationery·book·apparel·tobacco·blank) |
+| `expedition.log.danger.*` (F2) | 처음부터 서버 이름이었다 |
+
+문장 내용은 바꾸지 않았다. 파일은 들여쓰기 2칸으로 다시 저장했다(섹션 사이 빈 줄이 없어졌을 뿐이다).
