@@ -40,7 +40,12 @@
   "carry_side",
   "work_34",
   "carry_34",
-  "idle_glance"
+  "idle_glance",
+  "swim_side",
+  "swim_idle",
+  "hatch_exit",
+  "return_tired",
+  "carry_box_swim"
  ],
  "frames": {
   "idle": 2,
@@ -68,7 +73,12 @@
   "carry_side": 2,
   "work_34": 3,
   "carry_34": 2,
-  "idle_glance": 3
+  "idle_glance": 3,
+  "swim_side": 3,
+  "swim_idle": 2,
+  "hatch_exit": 3,
+  "return_tired": 2,
+  "carry_box_swim": 2
  },
  "rows": {
   "idle": 0,
@@ -96,7 +106,12 @@
   "carry_side": 22,
   "work_34": 23,
   "carry_34": 24,
-  "idle_glance": 25
+  "idle_glance": 25,
+  "swim_side": 26,
+  "swim_idle": 27,
+  "hatch_exit": 28,
+  "return_tired": 29,
+  "carry_box_swim": 30
  },
  "anim_seconds": {
   "idle": 2.8,
@@ -124,7 +139,12 @@
   "carry_side": 1.0,
   "work_34": 1.4,
   "carry_34": 1.0,
-  "idle_glance": 2.4
+  "idle_glance": 2.4,
+  "swim_side": 1.4,
+  "swim_idle": 2.6,
+  "hatch_exit": 1.5,
+  "return_tired": 2.6,
+  "carry_box_swim": 1.6
  },
  "sheet": "static/art/chars/front/p2/<role>.png  (체형 A, x4, 셀 256, 발 기준선 240)",
  "sheet_b": "static/art/chars/front/p2/<role>_b.png  (체형 B, 같은 규약)",
@@ -671,9 +691,9 @@
  "combo_check_result": {
   "combo_face_patches": 160,
   "combos_tested": 288,
-  "cells_per_combo": 67,
+  "cells_per_combo": 79,
   "mismatch_with_rule": 0,
-  "mismatch_cells_without_rule_ref": 1224
+  "mismatch_cells_without_rule_ref": 1480
  },
  "elevator": {
   "sequence": [
@@ -1698,6 +1718,134 @@
    "trader_b": "check/turnlit_trader_b.png",
    "kid_b": "check/turnlit_kid_b.png"
   }
+ },
+ "s15_rows": {
+  "swim_side": {
+   "row": 26,
+   "frames": 3,
+   "where": "바깥(해저)",
+   "what": "무게추로 바닥을 디디며 오른쪽으로 떠간다 — 디딤 → 뜸(두 발이 바닥에서 3px) → 디딤. 팔은 앞으로 균형",
+   "hands": "가까운 손에 역할 도구",
+   "seconds": 1.4,
+   "facing": "right",
+   "stride_src_px_per_loop": {
+    "adult": 16,
+    "kid": 12
+   }
+  },
+  "swim_idle": {
+   "row": 27,
+   "frames": 2,
+   "where": "바깥(해저)",
+   "what": "바닥에 서서 물살에 흔들린다(헤엄치지 않는다)",
+   "hands": "오른손 도구",
+   "seconds": 2.6,
+   "facing": "front",
+   "stride_src_px_per_loop": null
+  },
+  "hatch_exit": {
+   "row": 28,
+   "frames": 3,
+   "where": "문간 → 바깥",
+   "what": "문 아래 사다리를 내려와(높이 8 → 4 → 0) 바닥을 디딘다. 사다리는 셀 오른쪽에 함께 찍혀 있다",
+   "hands": "두 손 사다리 · 도구는 허리 앞",
+   "seconds": 1.5,
+   "facing": "right",
+   "stride_src_px_per_loop": null
+  },
+  "return_tired": {
+   "row": 29,
+   "frames": 2,
+   "where": "문간(돌아옴)",
+   "what": "돌아와서 어깨를 늘어뜨리고 반쯤 감은 눈 → 눈을 감고 웃으며 숨을 내쉰다(다친 게 아니라 지친 것)",
+   "hands": "오른손 도구",
+   "seconds": 2.6,
+   "facing": "front",
+   "stride_src_px_per_loop": null
+  },
+  "carry_box_swim": {
+   "row": 30,
+   "frames": 2,
+   "where": "바깥(해저)",
+   "what": "봉인 상자(갈래 무늬 + 끈)를 안고 떠가는 걸음 두 칸",
+   "hands": "두 손 · 도구는 상자에",
+   "seconds": 1.6,
+   "facing": "right",
+   "stride_src_px_per_loop": {
+    "adult": 12,
+    "kid": 8
+   }
+  }
+ },
+ "s15_bible_note": "이 행들은 헤엄이 아니다 — DECISIONS 2026-09-22 「주민은 헤엄치지 않고 무게추로 해저를 걷는다」에 따라 swim_side 는 무게추로 바닥을 디디며 한 걸음마다 잠깐 뜨는 걸음, swim_idle 은 바닥에 서서 물살에 흔들리는 것이다. 자유 유영이 필요하면 결정 로그를 먼저 고친다(요청함).",
+ "suit_layer": "static/art/chars/front/p2/suit/<role>_<body>.png (x1) · <role>_<body>_x4.png — 전 행. 원정 나갈 때만 얹는다.",
+ "suit_rule": "겹치는 순서: 기본 시트 → hair/<hair>.png → 얼굴(combo_patch_rule 대로 <face>.png 또는 <hair>_<face>.png) → **suit** → 각인. 잠수복 겹은 머리 6종·얼굴 18조합·각인 12종의 어느 픽셀과도 겹치지 않는다(생성기 전수 검사) — 그래서 얼굴(눈·눈썹·입)은 면갑 유리 너머로 그대로 보이고 조합 규칙도 그대로다. 겹은 ①면갑 유리 가장자리 + 반짝임 ②투구 등불(스스로 빛남 — 틴트 금지) ③발목 납 띠 ④거품(빈 칸에만). 옆모습 행을 좌우 반전할 때 겹도 같이 반전한다.",
+ "suit_check_result": {
+  "suit_sheets": 16,
+  "cells": 1264,
+  "suit_x_hair_face_imprint_px": 0,
+  "suit_covers_combo_change_px": 0
+ },
+ "combo_check_result_s15": {
+  "all_rows_including_s15": true,
+  "mismatch_with_rule": 0
+ },
+ "billboard_3d": {
+  "note": "원정 3D 화면(아이소 45°, EXPEDITION §3-6)에서 빌보드로 쓸 때: 걷는 방향을 화면 좌표로 바꿔 넷 중 하나를 고른다. 화면 아래로 = 정면(walk 1 / 물속 swim_idle 23+ 서기), 화면 위로 = 뒷모습(back_walk 6), 화면 오른쪽 = 옆(walk_side 21 / 물속 swim_side), 왼쪽 = 옆 좌우 반전. 대각선은 가로 성분이 크면 옆, 아니면 정면·뒤. 물속은 옆모습만으로도 충분하다(정면 걸음 대신 swim_side + 반전, 멈추면 swim_idle). 빌보드 발 원점 = 셀 발 기준선(원화 y 60, ×4 시트 240) · 셀 가운데 x. 1.6m = 44 원화 px.",
+  "dirs": {
+   "down": [
+    "walk",
+    "swim_idle"
+   ],
+   "up": [
+    "back_walk"
+   ],
+   "right": [
+    "walk_side",
+    "swim_side"
+   ],
+   "left": [
+    "walk_side(반전)",
+    "swim_side(반전)"
+   ]
+  },
+  "camera": "아이소 45°/45° 가정(DECISIONS 2026-09-23). 실제 카메라 각을 요청함으로 물었다"
+ },
+ "s15_lit_strips": {
+  "cells": [
+   "swim_side f0",
+   "swim_side f1",
+   "swim_side f2",
+   "swim_idle f0",
+   "swim_idle f1",
+   "hatch_exit f0",
+   "hatch_exit f1",
+   "hatch_exit f2",
+   "return_tired f0",
+   "return_tired f1",
+   "carry_box_swim f0",
+   "carry_box_swim f1"
+  ],
+  "scale": 3,
+  "strips": {
+   "scout": "check/explit_scout.png",
+   "cook": "check/explit_cook.png",
+   "medic": "check/explit_medic.png",
+   "engineer": "check/explit_engineer.png",
+   "farmer": "check/explit_farmer.png",
+   "scholar": "check/explit_scholar.png",
+   "trader": "check/explit_trader.png",
+   "kid": "check/explit_kid.png",
+   "scout_b": "check/explit_scout_b.png",
+   "cook_b": "check/explit_cook_b.png",
+   "medic_b": "check/explit_medic_b.png",
+   "engineer_b": "check/explit_engineer_b.png",
+   "farmer_b": "check/explit_farmer_b.png",
+   "scholar_b": "check/explit_scholar_b.png",
+   "trader_b": "check/explit_trader_b.png",
+   "kid_b": "check/explit_kid_b.png"
+  },
+  "note": "잠수복 겹을 얹은 판"
  },
  "rules_2_5d": {
   "1_integer_scale": "정수 배율 + NEAREST(image-rendering: pixelated). 소수 배율 금지",

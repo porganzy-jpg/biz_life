@@ -80,6 +80,82 @@
 <body>
 <div class="wrap">
 
+<!-- ══════════════ §원정 — 잠수복 겹 · 바깥 동작 (스프린트 15-D) ══════════════ -->
+<style>
+  .sea{position:relative;height:250px;overflow:hidden;border-radius:12px;border:1px solid #1d3a40;
+       background:linear-gradient(180deg,#06161b 0%,#0c2a31 62%,#28322a 70.4%,#1c241e 100%)}
+  .sea .lane{position:absolute;left:0;top:30px;width:192px;height:192px}
+  .sea .who{position:absolute;left:0;top:0;width:192px;height:192px;image-rendering:pixelated;background-repeat:no-repeat}
+  @keyframes xs3{from{background-position-x:0}to{background-position-x:-576px}}
+  @keyframes xb2{from{background-position-x:-2112px}to{background-position-x:-2304px}}
+  .xgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px;margin-top:12px}
+  .xcard{background:#0e2228;border:1px solid #1d3a40;border-radius:12px;padding:6px 0 10px;min-width:0}
+  .xcard .who{position:relative;width:192px;height:192px;margin:0 auto;image-rendering:pixelated;background-repeat:no-repeat}
+  .xcard h3{font-size:14px;margin:4px 12px 0}
+  .paused3 .who,.paused3 .lane{animation-play-state:paused !important}
+</style>
+<section id="expedition">
+  <h1>§원정 — 잠수복을 입고 문 밖으로<span class="badge">신규 S15</span></h1>
+  <p class="sub">2026-10-04 · 원정(EXPEDITION.md)용 행 다섯(26~30행)과 <b>잠수복 겹</b>을 더했다. 0~25행은 한 픽셀도 바뀌지 않았다(448시트 해시 대조).
+     <b>헤엄이 아니다</b> — 결정 로그(2026-09-22) 「주민은 헤엄치지 않고 무게추로 해저를 걷는다」를 따라,
+     <code>swim_side</code> 는 무게추로 바닥을 디디며 한 걸음마다 잠깐 뜨는 걸음이고 <code>swim_idle</code> 은 바닥에 서서 물살에 흔들린다.</p>
+  <div class="rules">
+    <b>잠수복 겹(<code>suit/&lt;role&gt;_&lt;body&gt;.png</code>)</b> — ①면갑 유리 가장자리 + 반짝임 ②투구 등불 ③발목 납 띠 ④거품.
+    겹치는 순서: <b>기본 → 머리 → 얼굴(조합 규칙) → 잠수복 → 각인</b>.
+    겹은 머리 6종·얼굴 18조합·각인 12종의 어느 픽셀과도 겹치지 않는다 — <b>얼굴(눈·눈썹·입)은 유리 너머로 그대로 보인다</b>(생성기 전수 검사 0칸).
+    <table class="conv" id="exptable"><tr><th>행</th><th>클립</th><th>무엇을 하나</th><th>보는 쪽</th><th>프레임 · 초</th></tr></table>
+  </div>
+  <div class="bar" style="padding:12px 0 0"><button id="xtoggle">전부 정지 ■</button>
+    <span class="meta" style="padding:0">아래 그림은 전부 잠수복 겹을 얹은 판(×3)</span></div>
+  <h2 style="margin-top:14px">1. 해저 — 디디며 떠가는 걸음 · 봉인 상자 나르기</h2>
+  <div class="sea" id="xsea"></div>
+  <h2 style="margin-top:22px">2. 문을 나서고, 돌아온다</h2>
+  <div class="xgrid" id="xgrid"></div>
+  <p class="cap">관련 그림:
+     <a href="art/chars/front/p2/check/expedition.png" style="color:var(--accent)">원정 12칸 × 8역할</a> ·
+     <a href="art/chars/front/p2/check/suit70.png" style="color:var(--accent)">잠수복 70px · 실루엣</a> ·
+     <a href="art/chars/front/p2/check/suit_faces.png" style="color:var(--accent)">유리 너머 얼굴(확대)</a></p>
+</section>
+<script>
+(function(){
+  const ROLE_KO = {scout:'정찰병',cook:'요리사',medic:'의무병',engineer:'기술자',farmer:'농부',scholar:'학자',trader:'교섭가',kid:'아이'};
+  const root = 'art/chars/front/p2/';
+  fetch(root + 'meta.json').then(r => r.json()).then(meta => {
+    const tb = document.getElementById('exptable');
+    Object.entries(meta.s15_rows).forEach(([c, r]) => tb.insertAdjacentHTML('beforeend',
+      `<tr><td>${r.row}</td><td><code>${c}</code></td><td>${r.what}</td><td>${r.facing === 'right' ? '오른쪽(원본) · 왼쪽 = 반전' : '정면'}</td><td>${r.frames} · ${r.seconds}s</td></tr>`));
+    const st = meta.s15_lit_strips.strips, cells = meta.s15_lit_strips.cells.length;
+    const sea = document.getElementById('xsea');
+    const W = Math.max(260, sea.clientWidth - 150);
+    [['engineer','a',0],['scout','b',0],['kid','a',0],['trader','b',1],['farmer','a',1]].forEach(([r, b, box], k) => {
+      const nm = b === 'a' ? r : r + '_b';
+      const speed = box ? 30 : 34;                       // 떠가는 걸음 — 걷기보다 느리다
+      const loop = (W / speed * 2).toFixed(1);
+      const anim = box ? 'xb2 1.6s steps(2) infinite' : 'xs3 1.4s steps(3) infinite';
+      sea.insertAdjacentHTML('beforeend', `<div class="lane" style="--far:${W}px;top:${28 + k * 5}px;animation:pace ${loop}s linear infinite;animation-delay:-${(k * 4.3).toFixed(1)}s">
+        <div class="who" title="${ROLE_KO[r]}" style="background-image:url('${root}${st[nm]}');background-size:${192 * cells}px 192px;
+          animation:${anim},face ${loop}s step-end infinite;animation-delay:0s,-${(k * 4.3).toFixed(1)}s"></div></div>`);
+    });
+    const xg = document.getElementById('xgrid');
+    const off = {swim_idle: 3, hatch_exit: 5, return_tired: 8};
+    [['hatch_exit','scout_b',3,1.5],['hatch_exit','kid',3,1.5],['swim_idle','medic',2,2.6],
+     ['return_tired','cook_b',2,2.6],['return_tired','scholar',2,2.6],['swim_idle','trader_b',2,2.6]].forEach(([clip, nm, n, sec], i) => {
+      const x0 = off[clip] * 192, x1 = (off[clip] + n) * 192;
+      const kf = `xk${i}`;
+      xg.insertAdjacentHTML('beforeend', `<style>@keyframes ${kf}{from{background-position-x:-${x0}px}to{background-position-x:-${x1}px}}</style>
+        <div class="xcard"><div class="who" style="background-image:url('${root}${st[nm]}');background-size:${192 * cells}px 192px;
+        animation:${kf} ${sec}s steps(${n}) infinite"></div><h3><code>${clip}</code></h3>
+        <div class="sig">${ROLE_KO[nm.replace('_b','')]} · ${meta.s15_rows[clip].what}</div></div>`);
+    });
+  }).catch(e => { document.getElementById('xsea').textContent = 'meta.json 을 읽지 못했다: ' + e; });
+  const t = document.getElementById('xtoggle');
+  t.addEventListener('click', () => {
+    const on = document.getElementById('expedition').classList.toggle('paused3');
+    t.textContent = on ? '전부 재생 ▶' : '전부 정지 ■';
+  });
+})();
+</script>
+
 <!-- ══════════════ §walk_side — 옆모습 걷기 · 일하는 쪽을 보기 (스프린트 12-C) ══════════════ -->
 <style>
   .floor{position:relative;height:250px;overflow:hidden;border-radius:12px;border:1px solid var(--line);
