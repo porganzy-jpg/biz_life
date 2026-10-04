@@ -223,7 +223,8 @@
     const names = namesOf(expedition);
     if (window.ARKBASE.hatchCycle) window.ARKBASE.hatchCycle(2200);
     K.play('sfx_airlock_cycle.ogg', 0.5);
-    announce(TT('expedition.send_off', { name: names, dest: expedition && expedition.dest_ko, return_at: clock(expedition && expedition.returns_at) },
+    announce(TT('expedition.send_off', { name: names, dest: ((expedition && expedition.dest_ko) || '').replace(/\s*쪽$/, ''),   // 「모르는 쪽 쪽으로」 방지
+                return_at: clock(expedition && expedition.returns_at) },
                 '관리실에서 알려 드립니다. ' + names + ' 님이 나가십니다.'));
     X.log.push('start ' + (expedition && expedition.id));
     // 따라 나가기 / 보내 두기
@@ -331,7 +332,7 @@
     try { boxes = await K.api('/api/boxes?uid=' + encodeURIComponent(K.uid)) || []; } catch (e) { boxes = []; }
   }
   // 아는 갈래 여덟만 무늬 이름. 그 밖(blank·any·unknown·처음 보는 값)은 전부 「빈 원」 — 원시 id 를 화면에 내지 않는다
-  const boxName = (b) => (!b.any && PAT_FB[b.cat]) ? TT('sealed_box.patterns.' + b.cat + '.name', {}, PAT_FB[b.cat])
+  const boxName = (b) => b.pattern ? b.pattern : (!b.any && PAT_FB[b.cat]) ? TT('sealed_box.patterns.' + b.cat + '.name', {}, PAT_FB[b.cat])
     : TT('sealed_box.patterns.blank.name', {}, '빈 원');
   // 문장 묶음이 아직 안 올 때의 무늬 이름(시나리오 expedition_text.json 과 같은 이름)
   const PAT_FB = { food: '이삭 무늬', drink: '물방울 무늬', medical: '엇갈린 띠 무늬', electronics: '번개 무늬', stationery: '깃 무늬',
