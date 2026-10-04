@@ -191,3 +191,11 @@
 - 공용 잠수복 마모가 한계(5)에 닿으면 `POST /api/entrance/suit_repair {uid}` — 재료 `gear.repair_cost`.
 - 스캔 한 번이 연 상자는 같은 응답의 `box_opened` 로만 알린다. 상자 목록은 `/api/ark.boxes` 또는 `/api/boxes`.
 - 개발 훅 `POST /api/dev/advance {uid, minutes}` 는 RELIC_DEV=1 에서만 있다. 그 방주의 저장된 시각(생성·틱·원정·습격·상자)을 뒤로 민다 → 날짜도 넘어간다.
+
+### §14-A2 (2026-10-04 수정)
+- **미리 보기 행동 수**: `actions` 는 화면에 보일 **정수**(숨 보정 값의 내림 = 보장되는 수, 최소 1)이고, `actions_expected` 는 시뮬레이션용 기댓값(소수)이다. 실제 수는 출발 때 시드로 `actions` 또는 `actions+1` 이 된다.
+- **상자 갈래**는 정본 아홉 가운데 하나만 간다: `food · drink · medical · electronics · stationery · book · apparel · tobacco · blank`. 튜토리얼 빈 원 상자가 `blank` 이고, 어떤 스캔으로도 열린다. 갈래를 모르는 목적지(문 앞·모르는 쪽)의 상자는 만들 때 최근 7일에 찍은 갈래 중 하나로 정한다. 그런 기록이 없으면 여덟 갈래 중 하나다. 옛 저장의 `any` 는 `blank` 로, `unknown` 은 시드로 정한 갈래로 옮긴다. `/api/boxes` 와 `/api/ark.boxes` 의 각 항목에 `pattern`(무늬 이름, `sealed_box.patterns.<cat>.name`)이 붙는다.
+- **`/api/ark.entrance`** 는 `GET /api/entrance` 와 같은 모양이다(더 이상 null 이 아니다).
+- **`expedition_return.recalled`** 는 불러들인 원정이면 늘 `true` 다.
+- **`expedition_return.line`** 은 시나리오 조각 `expedition.log.*`(F2)을 head → haul → left_behind → box_found → shard_on_shelf → danger → imprint_gained → spot/clue → rescue → recall 순서로 이어 붙인 것이다. 튜토리얼은 `tutorial` 한 줄이다. 조각이 없을 때만 서버 임시 문장으로 돌아간다.
+- **`GET /api/text/moments`** 는 `ui_moments.json` 에 `expedition_text.json` 의 최상위 묶음(`entrance · guest · expedition · sealed_box · spot`, 파일에 실제로 있는 것)을 덧붙여 돌려준다.

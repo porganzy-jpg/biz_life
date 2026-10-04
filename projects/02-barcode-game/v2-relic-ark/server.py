@@ -9,6 +9,7 @@ FastAPI + SQLite. 단일 테스터 그룹용(uid는 클라이언트가 생성해
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import random
@@ -1354,6 +1355,8 @@ def ensure_raid(st: dict, uid: str, force: str | None = None, reset: bool = Fals
         return None if cur.get("none") else cur
     # S15: outside 는 이제 **원정대**다. 하루를 넘겨도 비우지 않는다(밤 넘기기가 날을 넘긴다).
     grade = int(grade_force) if grade_force else grade_of(st)
+    # 덮개 보류 해제 문턱(threats.json min_grade_override)의 주민 수 = residents_list 전원.
+    # 들이지 않은 손님(st["guests"])은 빠지고, 원정 나간 사람은 주민이라 센다(PM 2026-10-04)
     cre = combat.pick_creature(uid, day, grade, force=force,
                                residents=len(st.get("residents_list") or []))
     if not cre:
@@ -1599,6 +1602,7 @@ def public_state(st: dict, uid: str) -> dict:
         "guests": len(st.get("guests") or []),
         "boxes": boxes_public(st),
         "beds": beds_state(st),
+        "entrance": entrance_public(st),                    # /api/entrance 와 같은 모양(S15-A2)
         "spots_found": list(st.get("spots_found") or []),
         # S14 드래그 미리보기 — 서버가 미리 계산한다(화면은 게임 숫자를 계산하지 않는다, D2)
         "move_preview": move_preview(st),
@@ -2787,7 +2791,9 @@ def exp_preview(st: dict, uid: str, members: list, dest: dict, length: str) -> d
         last = (st.get("spot_visits") or {}).get(sp["id"])
         if last is None or day_of(st) - int(last) >= int(EX.g("destinations.spot.visit_bonus_cooldown_days", 3)):
             vb = (next((x for x in SPOTS if x.get("id") == sp["id"]), {}).get("resource") or {}).get("gain")
-    out.update({"actions": round(max(1, x), 2), "carry": carry, "air_cost": cost,
+    out.update({"actions": max(int(EX.g("stats.breath.min_actions", 1)), int(x)),   # 화면용: 보장되는 수(내림)
+                "actions_expected": round(max(1.0, x), 3),                            # 시뮬용 기댓값(소수)
+                "carry": carry, "air_cost": cost,
                 "air_after": round(air_state(st)["value"] - cost, 3),
                 "returns_at": now_ts() + int(L.get("minutes", 30)) * 60,
                 "danger": {"p": round(max(0.0, min(0.95, p)), 4),
@@ -2818,9 +2824,9 @@ def exp_start(st: dict, uid: str, members: list, dest: dict, length: str) -> dic
                   recent_cats=recent_categories(uid, day_of(st)), kinds_weights=sp.get("kinds"),
                   rescue_p=nums["rescue_p"], clue_p=nums["clue_p"], discover_p=nums["discover_p"],
                   tutorial=tutorial, deep=bool(sp.get("deep") or sp["kind"] == "unknown"))
-    # 갈림길 자동 = 오늘 가장 모자란 쪽(재료 재고가 상자 대기보다 적으면 불빛). 출발 때 정해 둔다(D6)
-    mats = sum(int(st["resources"].get(k, 0)) for k in EX.eight_materials())
-    auto_fork = "lit" if mats < len(st.get("boxes") or []) else "dark"
+    # 갈림길 자동(expedition.json scene.fork, S15-D2): 상자 대기가 auto_box_backlog 이상이거나
+    # auto_low_materials 중 가장 적은 재고가 auto_low_stock 미만이면 불빛(재료), 아니면 어둠(상자). 출발 때 정해 둔다(D6)
+    auto_fork = auto_fork_for(st)
     cost = int(L.get("tank", 2)) * len(ppl)
     st.setdefault("air", {})["value"] = round(air_state(st)["value"] - cost, 3)
     t = now_ts()
@@ -2845,6 +2851,18 @@ def exp_start(st: dict, uid: str, members: list, dest: dict, length: str) -> dic
     log(uid, "expedition_start", {"id": eid, "members": ex["members"], "dest": ex["dest"], "length": length,
                                   "air": cost, "lingering": nums["lingering"]})
     return ex
+
+
+def auto_fork_for(st: dict) -> str:
+    F = EX.g("scene.fork") or {}
+    backlog = int(F.get("auto_box_backlog", 3))
+    lows = [m for m in (F.get("auto_low_materials") or []) if isinstance(m, str)]
+    low_stock = int(F.get("auto_low_stock", 3))
+    if len(st.get("boxes") or []) >= backlog:
+        return "lit"
+    if lows and min(int(st["resources"].get(m, 0)) for m in lows) < low_stock:
+        return "lit"
+    return "dark"
 
 
 def exp_progress(ex: dict, t: float | None = None) -> float:
@@ -3023,8 +3041,21 @@ def make_guest(st: dict, uid: str, seed: str, src: str, rescued_by: list | None 
     return g
 
 
+BOX_CATS = tuple(EX.CATS) + ("blank",)
+
+
+def box_cat(cat: str | None, seed: str) -> str:
+    """상자 갈래는 정본 여덟(food…tobacco) + blank(튜토리얼 빈 원)만. 옛 'any' → blank,
+    'unknown'·그 밖 → 시드로 여덟 중 하나(만들 때 정한다 — 화면에 날 이름이 나가지 않게)."""
+    if cat in BOX_CATS:
+        return cat
+    if cat == "any":
+        return "blank"
+    return EX.CATS[int(hashlib.sha256(f"boxcat|{seed}".encode()).hexdigest()[:8], 16) % len(EX.CATS)]
+
+
 def box_new(st: dict, cat: str, frm: str | None, seed: str) -> dict:
-    b = {"id": f"box-{seed}", "cat": cat, "found_day": day_of(st), "found_ts": now_ts(), "from": frm}
+    b = {"id": f"box-{seed}", "cat": box_cat(cat, seed), "found_day": day_of(st), "found_ts": now_ts(), "from": frm}
     st.setdefault("boxes", []).append(b)
     return b
 
@@ -3033,6 +3064,94 @@ def relic_to_shelf(st: dict, cat: str, rarity: str, seed: str) -> int | None:
     card = {"category": cat if cat in EX.CATS else "unknown", "rarity": rarity, "id": f"shard-{seed}",
             "name": None, "family_name": None, "barcode": None, "_day": day_of(st)}
     return shelf_place(st, card)
+
+
+_EXP_TEXT: dict = {"mtime": "unset", "data": {}}
+
+
+def exp_text() -> dict:
+    p = ROOT / "data" / "expedition_text.json"
+    try:
+        mt = p.stat().st_mtime
+    except OSError:
+        mt = None
+    if mt != _EXP_TEXT["mtime"]:
+        data = _EXP_TEXT.get("data") or {}
+        if mt is not None:
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"[expedition_text] 무시: {e}")
+        _EXP_TEXT.update({"mtime": mt, "data": data})
+    return _EXP_TEXT["data"]
+
+
+def xt(path: str, **vars) -> str | None:
+    cur = exp_text()
+    for k in path.split("."):
+        if isinstance(cur, dict) and k in cur:
+            cur = cur[k]
+        else:
+            return None
+    if isinstance(cur, list):
+        cur = cur[0] if cur else None
+    if not isinstance(cur, str):
+        return None
+    for k, v in vars.items():
+        cur = cur.replace("{" + k + "}", str(v))
+    return cur
+
+
+def box_pattern(cat: str) -> str | None:
+    # 시나리오가 아홉 갈래를 sealed_box.patterns 아래로 모았다(blank 포함). 옛 자리(sealed_box.blank)도 받아 준다
+    return xt(f"sealed_box.patterns.{cat}.name") or (xt("sealed_box.blank.name") if cat == "blank" else None)
+
+
+TEXT_LEN_KEY = {"short": "short", "half": "half", "long": "overnight"}     # 시나리오 키 이름 맞춤표
+
+
+def exp_log_line(ex: dict, names: list, haul: dict, left: dict, out: dict, imps: list, discovered, clue,
+                 newcomer, no_room, st: dict) -> str | None:
+    """시나리오 조각(expedition.log.*)으로 일지 한 줄을 조립한다(scenario_S15 F2 순서). 조각이 없으면 None."""
+    if ex.get("tutorial") and xt("expedition.log.tutorial"):
+        return xt("expedition.log.tutorial")
+    head = xt("expedition.log.head", name="·".join(names), dest=ex.get("dest_ko") or "",
+              length=(xt(f"expedition.lengths.{ex['length']}.label")
+                      or xt(f"expedition.lengths.{TEXT_LEN_KEY.get(ex['length'], ex['length'])}.label") or ex["length"]))
+    if not head:
+        return None
+    bits = [head]
+    nm, nb, ns = sum(haul["materials"].values()), len(haul["boxes"]), len(haul["relics"])
+    bits.append(xt("expedition.log.haul", materials=nm, boxes=nb, shards=ns) if (nm or nb or ns)
+                else xt("expedition.log.haul_empty"))
+    nl = sum(left["materials"].values()) + left["boxes"] + left["relics"]
+    if nl:
+        bits.append(xt("expedition.log.left_behind", n=nl))
+    for b in haul["boxes"]:
+        bits.append(xt("expedition.log.box_found", pattern=box_pattern(b["cat"]) or ""))
+    shelf = {int(it.get("slot", -1)): it for it in st.get("shelf") or []}
+    for r in haul["relics"]:
+        it = shelf.get(r.get("shelf_slot") if r.get("shelf_slot") is not None else -2)
+        if it and it.get("name"):
+            bits.append(xt("expedition.log.shard_on_shelf", item=it["name"]))
+    d = out.get("danger")
+    if d and d.get("ok") is not None:
+        bits.append(xt(f"expedition.log.danger.{d['kind']}.{'pass' if d['ok'] else 'fail'}"))
+    for im in imps or []:
+        bits.append(xt("expedition.log.imprint_gained", name=im.get("resident"), imprint=(im.get("imprint") or {}).get("name")))
+    if discovered:
+        bits.append(xt("expedition.log.spot_found", spot=discovered.get("name")))
+    elif ex["dest"].get("kind") == "clue" and not out.get("turned_back") and not ex.get("recalled_at"):
+        bits.append(xt("expedition.log.spot_not_found"))
+    if clue:
+        bits.append(xt("expedition.log.clue_gained", spot=clue.get("name")))
+    if newcomer:
+        bits.append(xt("expedition.log.rescue", guest=newcomer.get("name")))
+    elif no_room:
+        bits.append(xt("expedition.log.rescue_no_room"))
+    if ex.get("recalled_at"):
+        bits.append(xt("expedition.log.recall"))
+    return " ".join(b for b in bits if b)
 
 
 def exp_settle(st: dict, uid: str) -> dict | None:
@@ -3170,13 +3289,14 @@ def exp_settle(st: dict, uid: str) -> dict | None:
             f"재료 {sum(haul['materials'].values())} · 상자 {len(haul['boxes'])} · 유물 {len(haul['relics'])}"
             + (f", 두고 온 것 {sum(left['materials'].values()) + left['boxes'] + left['relics']}" if out["left"] else "")
             + (f". {((EX.g('danger.kinds') or {}).get(dk) or {}).get('ko')}" if dk else "") + ".")
+    line = exp_log_line(ex, names, haul, left, out, imps, discovered, clue, newcomer, no_room, st) or line
     ret = {"id": ex["id"], "members": list(ex["members"]), "member_names": names, "dest": ex["dest"],
            "dest_ko": ex.get("dest_ko"), "length": ex["length"], "returned_at": now_ts(),
            "haul": haul, "left_behind": left,
            "danger": ({**out["danger"], "ko": ((EX.g("danger.kinds") or {}).get(dk) or {}).get("ko")} if out["danger"] else None),
            "injured": injured, "imprints": imps, "newcomer": newcomer, "rescued_but_no_room": no_room,
            "clue": clue, "discovered": discovered, "visit_bonus": visit, "breath_grew": grew,
-           "greeted_by": greeted, "line": line, "recalled": bool(ex.get("recalled_at")),
+           "greeted_by": greeted, "line": line, "recalled": bool(ex.get("recalled") or ex.get("recalled_at")),
            "tutorial": bool(ex.get("tutorial")), "value": out["value"]}
     st.setdefault("exp_log", []).append({k: ret[k] for k in ("id", "members", "dest", "length", "haul", "left_behind",
                                                              "danger", "injured", "newcomer", "recalled")}
@@ -3200,6 +3320,7 @@ def exp_recall(st: dict, uid: str, immediate: bool = False) -> dict:
     frac = exp_progress(ex, t)
     ex["recall_keep"] = int(ex["result"]["actions"] * frac)
     ex["recalled_at"] = t
+    ex["recalled"] = True
     R = EX.g("raid_link.recall.arrive_minutes") or {}
     mins = 0 if immediate else (int(R.get("airlock_lv3", 0)) if room_level_of(st, "airlock") >= 3 else int(R.get("default", 20)))
     ex["returns_at"] = min(float(ex["returns_at"]), t + mins * 60)
@@ -3266,17 +3387,15 @@ def entrance_public(st: dict) -> dict:
 def boxes_public(st: dict) -> list[dict]:
     day = day_of(st)
     after = int(EX.g("boxes.pry.after_days", 7))
-    return [{"id": b["id"], "cat": b["cat"], "cat_ko": CAT_KO.get(b["cat"], "아무 갈래" if b["cat"] == "any" else b["cat"]),
-             "any": b["cat"] == "any", "found_day": b["found_day"], "age_days": day - int(b["found_day"]),
+    return [{"id": b["id"], "cat": b["cat"], "pattern": box_pattern(b["cat"]),
+             "any": b["cat"] == "blank", "blank": b["cat"] == "blank", "found_day": b["found_day"], "age_days": day - int(b["found_day"]),
              "from": b.get("from"), "pry_ok": day - int(b["found_day"]) >= after,
              "pry_in_days": max(0, after - (day - int(b["found_day"])))} for b in st.get("boxes") or []]
 
 
 def box_open(st: dict, b: dict, mul: float, seed: str) -> dict:
     units = int(round(float(EX.g("boxes.value.units", 4)) * mul))
-    mat = EX.main_material(b["cat"]) if b["cat"] != "any" else "scrap"
-    if b["cat"] == "any":
-        mat = "food"                                         # 튜토리얼 빈 원 상자 — 첫날 가장 쓸모 있는 것
+    mat = EX.main_material(b["cat"]) if b["cat"] != "blank" else "food"   # 빈 원 상자 — 첫날 가장 쓸모 있는 것
     st["resources"][mat] = int(st["resources"].get(mat, 0)) + units
     rng = random.Random(f"box|{seed}|{b['id']}")
     relic = None
@@ -3293,7 +3412,7 @@ def box_try_scan(st: dict, uid: str, code: str, cat: str) -> dict | None:
     keys = st.setdefault("box_keys", {})
     if int(keys.get(code, 0)) == day:
         return None
-    cand = [b for b in st.get("boxes") or [] if b["cat"] == cat or b["cat"] == "any"]
+    cand = [b for b in st.get("boxes") or [] if b["cat"] == cat or b["cat"] == "blank"]
     if not cand:
         return None
     b = min(cand, key=lambda x: (float(x.get("found_ts") or 0), x["id"]))
@@ -3321,6 +3440,10 @@ def migrate_s15(st: dict) -> bool:
             st[key] = type(dflt)(); changed = True
     if "expedition" not in st:
         st["expedition"] = None; changed = True
+    for b in st["boxes"]:                                   # S15-A2: 옛 'any'·'unknown' 상자 갈래를 정본으로
+        nc = box_cat(b.get("cat"), b.get("id", ""))
+        if nc != b.get("cat"):
+            b["cat"] = nc; changed = True
     if not st.get("s15_spots_migrated"):
         # 이전 저장: 스캔 문턱을 넘어 이미 '찾은' 1막 스팟은 발견한 것으로 옮긴다(진행이 뒤로 가지 않게)
         for sid in st.get("rumors_seen") or []:
@@ -4496,8 +4619,13 @@ def collection(uid: str):
 
 @app.get("/api/text/moments")
 def text_moments():
-    """S13 화면 순간 문장(data/ui_moments.json, 시나리오 소유). /data 는 내보내지 않으므로 읽기 전용으로 연다."""
-    return moments()
+    """S13 화면 순간 문장(data/ui_moments.json) + S15 원정 문장(data/expedition_text.json 의 최상위 묶음
+    entrance·guest·expedition·sealed_box·spot — 파일에 실제로 있는 것). 둘 다 시나리오 소유, 읽기 전용."""
+    out = dict(moments())
+    for k, v in exp_text().items():
+        if not str(k).startswith("_"):
+            out[k] = v
+    return out
 
 
 @app.get("/api/wishes")

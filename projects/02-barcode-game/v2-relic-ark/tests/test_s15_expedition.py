@@ -105,7 +105,7 @@ def t_full_loop():
     ok(scout["id"] in S.load_state(uid)["outside"], "출발하면 outside = 원정대")
     for i in range(3):
         sc = post("/api/expedition/scene", {"uid": uid, "action": "pick", "i": i})
-    ok(sc["head"]["picks"][2]["item"] == {"kind": "box", "cat": "any", "i": 2}, "셋째 줍기 = 빈 원 상자(아무 갈래)")
+    ok(sc["head"]["picks"][2]["item"] == {"kind": "box", "cat": "blank", "i": 2}, "셋째 줍기 = 빈 원 상자(아무 갈래)")
     post("/api/expedition/scene", {"uid": uid, "action": "done"})
     a = get(f"/api/ark?uid={uid}")
     ret = a["expedition_return"]
@@ -117,7 +117,7 @@ def t_full_loop():
     # 첫 스캔이 상자를 연다
     food0 = S.load_state(uid)["resources"]["food"]
     sc = post("/api/scan", {"uid": uid, "barcode": ean("490123400001"), "user_category": "drink"})
-    ok(sc["box_opened"] and sc["box_opened"]["cat"] == "any", f"첫 스캔이 빈 원 상자를 연다 {sc['box_opened']}")
+    ok(sc["box_opened"] and sc["box_opened"]["cat"] == "blank", f"첫 스캔이 빈 원 상자를 연다 {sc['box_opened']}")
     # 반나절 문 앞 — 실제 시간
     sup_before = get(f"/api/ark?uid={uid}")["air"]["value"]
     st = post("/api/expedition/start", {"uid": uid, "members": [scout["id"]], "dest": {"kind": "door"}, "length": "half"})
@@ -140,10 +140,17 @@ def t_full_loop():
     ent = get(f"/api/entrance?uid={uid}")
     ok(a["day"] >= 3 and a["knock"] and len(ent["guests"]) == 1, f"{a['day']}일차 첫 두드림: {a['knock']}")
     gid = ent["guests"][0]["id"]
-    ok(ent["beds"]["free"] == 0, f"거주실 없음 → 잠자리 {ent['beds']}")
+    beds0 = int((EX.g("newcomers.beds_by_quarters_level") or {}).get("0", 3))
+    ok(ent["beds"]["total"] == beds0, f"거주실 없음 → 잠자리 {ent['beds']} (데이터 {beds0})")
+    st_ = S.load_state(uid)
+    keep = list(st_["residents_list"])
+    while len(st_["residents_list"]) < beds0:                 # 잠자리를 꽉 채워 '빈 잠자리 없음'을 만든다
+        st_["residents_list"].append(dict(keep[0], id=f"filler-{len(st_['residents_list'])}"))
+    S.save_state(uid, st_)
     r = C.post("/api/entrance/guest", json={"uid": uid, "guest_id": gid, "accept": True})
     ok(r.status_code == 400, "빈 잠자리가 없으면 들일 수 없다")
     st_ = S.load_state(uid)
+    st_["residents_list"] = keep
     st_["rooms"].append({"id": "quarters", "slot": 4, "built": time.time(), "level": 1})
     S.save_state(uid, st_)
     j = post("/api/entrance/guest", {"uid": uid, "guest_id": gid, "accept": True})
@@ -413,6 +420,8 @@ def t_spots_clue_found():
 
 def t_lid_override():
     """덮개 보류 해제는 데이터(threats.json min_grade_override). 키가 없으면 지금처럼 보류."""
+    saved = dict(CB.THR.get("min_grade_override") or {})
+    CB.THR["min_grade_override"] = {}
     base = CB.min_grade("lid", residents=10)
     ok(base == CB.min_grade("lid"), f"override 없음 → 주민 수와 무관 (lid {base})")
     CB.THR.setdefault("min_grade_override", {})["lid"] = {"residents_at_least": 5, "min_grade": 4}
@@ -422,7 +431,12 @@ def t_lid_override():
         hits = sum(1 for d in range(1, 300) if (CB.pick_creature(f"u{d}", d, 4, residents=6) or {}).get("id") == "lid")
         ok(hits > 0, f"주민 6명·등급 4 → 덮개가 나온다({hits}/299)")
     finally:
-        CB.THR["min_grade_override"].pop("lid", None)
+        CB.THR["min_grade_override"] = saved
+    ov = saved.get("lid")
+    if ov:
+        ok(CB.min_grade("lid", residents=ov["residents_at_least"] - 1) > 5 and
+           CB.min_grade("lid", residents=ov["residents_at_least"]) == ov["min_grade"],
+           f"threats.json 실제 값: 주민 {ov['residents_at_least']}명부터 덮개 등급 {ov['min_grade']}")
 
 
 def t_never():
@@ -454,8 +468,105 @@ def t_never():
        f"60번: 주민 {n0} 그대로, 방 그대로, 잠수복 둘 그대로, 모두 돌아옴 (부상 {inj})")
 
 
+def t_a2_fixes():
+    """S15-A2: 문장 묶음·recalled·상자 정본 갈래·actions 정수/기댓값·ark.entrance·options 500 회귀."""
+    m = get("/api/text/moments")
+    groups = [k for k in ("entrance", "guest", "expedition", "sealed_box", "spot") if k in m]
+    ok(len(groups) == 5 and "shelf" in m, f"/api/text/moments 에 원정 문장 묶음 {groups} + 기존 ui_moments")
+    # options 500(L.get) 회귀: expedition.json 의 '_' 주석 키가 규칙에 섞이지 않는다
+    uid = "dev_s15_a2"
+    new_ark(uid, rooms=(("airlock", 3, 1),))
+    opt = get(f"/api/expedition/options?uid={uid}")
+    ok(all(isinstance(v, dict) and v.get("minutes") for v in opt["lengths"].values()) and set(opt["lengths"]) == {"short", "half", "long"},
+       f"options 200 · lengths 키 {sorted(opt['lengths'])} (주석 키 없음)")
+    ok(all(not str(k).startswith("_") for k in (EX.g("lengths") or {})), "엔진이 읽는 표에 '_' 키 없음")
+    a = get(f"/api/ark?uid={uid}")
+    ok(isinstance(a.get("entrance"), dict) and a["entrance"].keys() == get(f"/api/entrance?uid={uid}").keys(),
+       "/api/ark entrance = /api/entrance 와 같은 모양")
+    st = S.load_state(uid)
+    st["exp_count"] = 2
+    S.save_state(uid, st)
+    sc_ = who(uid, "scout")
+    pv = post("/api/expedition/preview", {"uid": uid, "members": [sc_["id"]], "dest": {"kind": "door"}, "length": "half"})
+    ok(isinstance(pv["actions"], int) and isinstance(pv["actions_expected"], float) and pv["actions"] <= pv["actions_expected"],
+       f"preview actions {pv['actions']}(정수, 보장) · actions_expected {pv['actions_expected']}")
+    # recalled
+    post("/api/expedition/start", {"uid": uid, "members": [sc_["id"]], "dest": {"kind": "door"}, "length": "half"})
+    adv(uid, 60)
+    post("/api/expedition/recall", {"uid": uid})
+    adv(uid, 21)
+    ret = get(f"/api/ark?uid={uid}")["expedition_return"]
+    ok(ret and ret["recalled"] is True, f"불러들인 원정 결과 recalled: {ret and ret['recalled']}")
+    ok(ret and ret["line"] and "{" not in ret["line"] and (S.xt("expedition.log.recall") or "") in ret["line"],
+       f"일지 한 줄 = 시나리오 조각: {ret and ret['line']}")
+    # 상자 갈래: 정본 여덟 + blank 만(문 앞·모르는 쪽도)
+    cats = set()
+    for k in range(400):
+        res = EX.roll(f"bc|{k}", members=[{"id": "a", "stats": {"hand": 5, "eye": 9, "breath": 9, "nerve": 5}}],
+                      dest={"kind": "door"}, dest_cat="unknown", length="half", danger_mul=0.5, lingering=None,
+                      learning=True, recent_cats=[], kinds_weights=None, rescue_p=0, clue_p=0, discover_p=0)
+        for i in range(res["actions"]):
+            it = EX.item_at(res, i, "dark")
+            if it["kind"] == "box":
+                cats.add(it["cat"])
+    ok(cats and cats <= set(S.BOX_CATS), f"문 앞 상자 갈래 {sorted(cats)} ⊂ 정본")
+    st = S.load_state(uid)
+    st["boxes"] = [{"id": "box-old1", "cat": "any", "found_day": 1, "found_ts": 1, "from": "door"},
+                   {"id": "box-old2", "cat": "unknown", "found_day": 1, "found_ts": 2, "from": "door"}]
+    S.save_state(uid, st)
+    bx = get(f"/api/boxes?uid={uid}")
+    ok({b["cat"] for b in bx} <= set(S.BOX_CATS) and any(b["cat"] == "blank" for b in bx) and all(b["pattern"] for b in bx),
+       f"옛 저장 상자 any/unknown → {[(b['cat'], b['pattern']) for b in bx]}")
+
+
+def t_d2_values():
+    """S15-D2: 잠자리 기본 4(거주실 없이 3일차 손님을 들인다) · 자동 갈림길 새 규칙 · 덮개 문턱 주민 수."""
+    uid = "dev_s15_d2"
+    new_ark(uid)
+    adv(uid, 60 * 24 * 2)
+    a = get(f"/api/ark?uid={uid}")
+    ent = get(f"/api/entrance?uid={uid}")
+    ok(a["day"] >= 3 and ent["guests"] and ent["beds"]["free"] >= 1, f"3일차 손님 + 거주실 없이 잠자리 {ent['beds']}")
+    j = post("/api/entrance/guest", {"uid": uid, "guest_id": ent["guests"][0]["id"], "accept": True})
+    ok(j["accepted"] and len(j["state"]["residents_list"]) == 4, "거주실 없이 첫 손님을 들인다 → 주민 4")
+    F = EX.g("scene.fork")
+    st = S.load_state(uid)
+    st["boxes"] = []
+    for m in F["auto_low_materials"]:
+        st["resources"][m] = F["auto_low_stock"]
+    ok(S.auto_fork_for(st) == "dark", "상자 대기 적고 재료 넉넉 → 어둠(상자)")
+    st["resources"][F["auto_low_materials"][0]] = F["auto_low_stock"] - 1
+    ok(S.auto_fork_for(st) == "lit", f"{F['auto_low_materials'][0]} < {F['auto_low_stock']} → 불빛(재료)")
+    st["resources"][F["auto_low_materials"][0]] = 99
+    st["boxes"] = [{"id": f"b{i}", "cat": "food", "found_day": 1} for i in range(F["auto_box_backlog"])]
+    ok(S.auto_fork_for(st) == "lit", f"상자 대기 {F['auto_box_backlog']} → 불빛")
+    # 덮개 문턱: 손님(들이지 않은)은 빼고, 원정 나간 주민은 센다
+    ov = (CB.THR.get("min_grade_override") or {}).get("lid") or {}
+    need = int(ov.get("residents_at_least", 6))
+    st = S.load_state(uid)
+    st["guests"] = []
+    for k in range(need + 2):
+        S.make_guest(st, uid, f"lidg{k}", "knock")
+    st["residents_list"] = st["residents_list"][:need - 1]
+    S.save_state(uid, st)
+    seen = {}
+    orig = CB.pick_creature
+    def spy(uid_, day_, grade_, force=None, residents=None):
+        seen["r"] = residents
+        return orig(uid_, day_, grade_, force=force, residents=residents)
+    CB.pick_creature = spy
+    try:
+        st = S.load_state(uid)
+        st["expedition"] = {"members": [st["residents_list"][0]["id"]]}
+        st["outside"] = [st["residents_list"][0]["id"]]
+        S.ensure_raid(st, uid, reset=True)
+    finally:
+        CB.pick_creature = orig
+    ok(seen.get("r") == need - 1, f"덮개 문턱에 넘긴 주민 수 {seen.get('r')} = 주민 {need - 1}(원정 1명 포함, 손님 {len(st['guests'])} 제외)")
+
+
 TESTS = [t_full_loop, t_guests_never_leave, t_overnight, t_raid_absent, t_ev_equal, t_box_pry_and_scan_rules,
-         t_air_suits, t_spots_clue_found, t_lid_override, t_never]
+         t_air_suits, t_spots_clue_found, t_lid_override, t_never, t_a2_fixes, t_d2_values]
 
 if __name__ == "__main__":
     for t in TESTS:

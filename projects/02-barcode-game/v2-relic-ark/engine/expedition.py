@@ -189,7 +189,7 @@ def item_at(res: dict, i: int, branch: str | None) -> dict:
     """i 번째 행동이 줍는 것. 갈림길(branch)은 HEAD 번째 행동부터 문턱만 옮긴다(난수는 그대로)."""
     a = res["acts"][i]
     if res.get("tutorial_box_at") == i:
-        return {"kind": "box", "cat": "any", "i": i}
+        return {"kind": "box", "cat": "blank", "i": i}         # 튜토리얼 빈 원 상자(아무 성문이나 맞는다)
     probs = find_probs(res["eye"], branch if i >= head_n() else None)
     kind = kind_of(a["u"], probs)
     if kind == "material":
@@ -202,12 +202,14 @@ def item_at(res: dict, i: int, branch: str | None) -> dict:
     if kind == "box":
         pick = g("boxes.category_pick") or {"destination": 0.5}
         recent = res.get("recent_cats") or []
-        if res["dest_cat"] == "*":
-            cat = CATS[int(a["u3"] * len(CATS)) % len(CATS)]
-        elif a["u2"] < float(pick.get("destination", 0.5)) or not recent:
+        dest_known = res["dest_cat"] in CATS
+        if dest_known and (a["u2"] < float(pick.get("destination", 0.5)) or not recent):
             cat = res["dest_cat"]
-        else:
+        elif recent:
             cat = recent[int(a["u3"] * len(recent)) % len(recent)]
+        else:
+            cat = CATS[int(a["u3"] * len(CATS)) % len(CATS)]
+        # 갈래를 모르는 목적지(문 앞·모르는 쪽)는 최근 찍은 갈래, 그것도 없으면 여덟 중 하나 — 상자에는 늘 정본 갈래가 찍힌다
         return {"kind": "box", "cat": cat, "i": i}
     if kind == "relic":
         return {"kind": "relic", "rarity": rarity_of(a["u2"], a["u3"], res.get("deep")), "i": i}
