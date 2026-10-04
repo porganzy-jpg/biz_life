@@ -649,11 +649,13 @@ def load_state(uid: str) -> dict:
         changed = migrate_residents(st, uid)      # 각인·신뢰·스탯이 없는 구버전 주민 보강
         changed = migrate_state(st) or changed    # 소문·사건 이력 필드 보강
         changed = migrate_s13(st, uid) or changed  # S13 선반 바코드·닦기·중복 칸 정리·카테고리 고정
+        changed = migrate_s15(st) or changed       # S15 원정·상자·손님·스팟 발견 분리
         if changed:
             save_state(uid, st)
         return st
     st = new_state(uid)
     migrate_s13(st, uid)
+    migrate_s15(st)
     save_state(uid, st)
     log(uid, "ark_created")
     return st
@@ -1014,6 +1016,7 @@ def tick_production(st: dict) -> dict:
     if not st.get("power_on", True):
         # 전원을 내려 둔 채로 시간이 흘렀다. 조용한 대신 아무것도 만들지 못한다
         st["last_tick"] += ticks * PRODUCTION_TICK_SEC
+        air_refill(st, ticks)                        # S15 공기는 전원과 무관하게 찬다(손 펌프·바깥 물)
         if not staff_snapshot_active(st):
             st.pop("staff_snapshot", None)
         st["dark_note"] = {"kind": "blackout", "ticks": ticks,
@@ -1083,6 +1086,7 @@ def tick_production(st: dict) -> dict:
             res["injured"] = False; heal -= 1
     st["injured"] = sum(1 for x in st.get("residents_list", []) if x.get("injured"))
     st["last_tick"] += ticks * PRODUCTION_TICK_SEC
+    air_refill(st, ticks)                        # S15 하루 공기: 틱마다 공급의 1/3, 상한 = 하루 공급
     if not staff_snapshot_active(st):
         st.pop("staff_snapshot", None)           # 접촉한 틱이 정산됐다(또는 지난 것이다)
     return produced
@@ -1106,7 +1110,6 @@ DEPTH_PER_FLOOR = 60        # 층 하나 = 60 m. static/base.js 의 같은 상�
 # 깊이 구역 경계(m). **해구 문턱은 180 m 다** — 밸런스 threats.json grade_source.map 의 등급 4 깊이와
 # 같은 값이어야 한다(등급을 깊이로 판정하므로). S10-C 에서 150 → 180 으로 통일했다.
 DEPTH_ZONES = ((0, "무광층"), (180, "해구 문턱"), (210, "해구"))   # static/base.js ZONES 와 같은 경계(m)
-AIR_FIXED = 0.82            # ★ 원정(공기 소모)이 생기면 실제 값으로 바뀐다. 지금은 UI 자리만
 
 
 def depth_zone(m: int) -> str:
@@ -1124,8 +1127,8 @@ def gauges_of(st: dict) -> dict:
     depth_max = (SLOTS // FLOOR_SLOTS - 1 - DOME_FLOOR) * DEPTH_PER_FLOOR
     return {
         # value 는 0~1. 클라이언트는 이 값을 **띠의 길이**로만 쓴다(숫자로 찍지 않는다)
-        "air":   {"ko": "공기", "value": AIR_FIXED, "fixed": True,
-                  "note": "원정 시스템 전까지 고정 — UI 자리만"},
+        "air":   {"ko": "공기", "value": air_state(st)["band"], "fixed": False,
+                  "note": "남은 공기 / 하루 공급(S15). 숫자가 아니라 띠"},
         "depth": {"ko": "깊이", "value": (depth_m / depth_max) if depth_max else 0.0, "fixed": False,
                   "m": depth_m, "max_m": depth_max, "floors": floors, "zone": depth_zone(depth_m)},
         # 「먼 울음」 간격(초). PM 2026-09-26 커브: 90초에서 시작해 한 층 내려갈 때마다 5초씩, 하한 40초.
@@ -1334,17 +1337,6 @@ def raid_ctx(st: dict, raid: dict, consumables: list | None = None) -> dict:
     }
 
 
-def send_outside(st: dict, uid: str, day: int) -> list:
-    """손톱 무리가 오는 날, 하필 밖에 나가 있던 사람. 홀에 있던 사람부터(일하러 나간 것이다).
-    원정 시스템이 생기면 이 함수만 '진짜 나가 있는 사람'으로 바뀐다 — 호출부는 그대로다."""
-    pool = [r["id"] for r in hall_of(st)] or [r["id"] for r in st.get("residents_list", [])]
-    if not pool:
-        return []
-    n = 1 if len(pool) < 3 else 2
-    rng = combat.raid_rng(uid, day, "outside")
-    return sorted(rng.sample(sorted(pool), min(n, len(pool))))
-
-
 def archive_raid(st: dict, raid: dict) -> None:
     rows = st.setdefault("raid_log", [])
     rows.append({k: raid.get(k) for k in
@@ -1360,9 +1352,10 @@ def ensure_raid(st: dict, uid: str, force: str | None = None, reset: bool = Fals
     cur = st.get("raid")
     if cur and cur.get("day") == day and not (reset or force or grade_force):
         return None if cur.get("none") else cur
-    st["outside"] = []                   # 어제 밖에 있던 사람은 밤새 들어왔다. 밖은 하루를 넘기지 않는다
+    # S15: outside 는 이제 **원정대**다. 하루를 넘겨도 비우지 않는다(밤 넘기기가 날을 넘긴다).
     grade = int(grade_force) if grade_force else grade_of(st)
-    cre = combat.pick_creature(uid, day, grade, force=force)
+    cre = combat.pick_creature(uid, day, grade, force=force,
+                               residents=len(st.get("residents_list") or []))
     if not cre:
         st["raid"] = {"day": day, "none": True, "grade": grade}
         return None
@@ -1380,8 +1373,7 @@ def ensure_raid(st: dict, uid: str, force: str | None = None, reset: bool = Fals
         "outside_sent": [], "acts": [], "moves": 0,
     }
     if cre["gate"] == "all_inside":
-        raid["outside_sent"] = send_outside(st, uid, day)
-        st["outside"] = list(raid["outside_sent"])      # 그 사람들은 지금 밖에 있다
+        raid["outside_sent"] = list(st.get("outside") or [])   # S15: 무작위 차출 폐지 — 원정 나간 사람만 밖에 있다
     st["raid"] = raid
     return raid
 
@@ -1600,6 +1592,14 @@ def public_state(st: dict, uid: str) -> dict:
                        # S14 정본 방→능력치 표(stakes stat_production.room_stat). 화면 ROOM_STAT 사본을 대신한다
                        "room_stat": {rid: room_stat_of(rid) for rid in ROOMS if room_stat_of(rid)},
                        "stat_production": stat_production_params()},
+        # S15 원정·문간(docs/API_EXPEDITION.md)
+        "expedition": exp_public(st, st.get("expedition")),
+        "expedition_return": st.get("exp_unseen"),
+        "air": air_state(st),
+        "guests": len(st.get("guests") or []),
+        "boxes": boxes_public(st),
+        "beds": beds_state(st),
+        "spots_found": list(st.get("spots_found") or []),
         # S14 드래그 미리보기 — 서버가 미리 계산한다(화면은 게임 숫자를 계산하지 않는다, D2)
         "move_preview": move_preview(st),
         # ── S13 이해관계·수집 (docs/API_S13.md) ─────────────────────
@@ -2462,8 +2462,11 @@ def far_call_note(st: dict) -> None:
 
 
 def day_tick(st: dict, uid: str, force_night: bool = False) -> dict:
-    """상태를 읽는 요청마다 한 번. 밤 판정 → 문어 → 바람 → 울음 기록. 모두 멱등이다."""
+    """상태를 읽는 요청마다 한 번. 원정 귀환·두드림(S15) → 밤 판정 → 문어 → 바람 → 울음 기록. 모두 멱등이다.
+    원정 귀환을 먼저 정산한다 — 돌아온 사람은 밤 판정에서 집에 있는 사람이다(아직 밖이면 없는 사람)."""
+    s15 = s15_tick(st, uid)
     out = {"night_judge": night_judge(st, uid, force=force_night)}
+    out.update(s15)
     out["octopus"] = octopus_tick(st, uid)
     out["wishes_new"] = wishes_tick(st, uid)
     far_call_note(st)
@@ -2517,6 +2520,841 @@ def migrate_s13(st: dict, uid: str) -> bool:
         if not isinstance(st.get(key), dict):
             st[key] = {}; changed = True
     return changed
+
+
+# ─────────────────────────────────────────────────────────────
+# S15 원정·문간 (docs/EXPEDITION.md · 계약 docs/API_EXPEDITION.md)
+#   수치 정본: data/balance/expedition.json (기획). 결과 굴림: engine/expedition.py (순수 함수, 시드 uid|exp_id)
+#   여기서는 상태를 읽어 엔진에 넘기고, 펼친 결과를 상태에 쓴다.
+# ─────────────────────────────────────────────────────────────
+import math  # noqa: E402
+import expedition as EX  # noqa: E402
+
+DEEP_SPOT_IDS = [x["id"] for x in SPOTS if x.get("_src") == "spots_deep.json"]
+LEN_ORDER = ("short", "half", "long")
+
+
+def now_ts() -> float:
+    return time.time()
+
+
+# ── 스팟: 단서와 발견을 나눈다(DECISIONS 2026-10-03 ④) ─────────────
+def spot_clue(st: dict, uid: str, sid: str) -> bool:
+    """스캔 문턱을 넘었거나(소문) 모르는 쪽 원정에서 우연히 얻은 단서."""
+    if sid in (st.get("clues_extra") or []):
+        return True
+    gate = spot_gate(sid, next((x for x in SPOTS if x.get("id") == sid), None))
+    if not gate:
+        return False
+    counts = scan_counts(uid)
+    return sum(counts.get(c, 0) for c in gate["categories"]) >= gate["need"]
+
+
+def spot_state(st: dict, uid: str, sid: str) -> str:
+    if sid in (st.get("spots_found") or []):
+        return "found"
+    return "clue" if spot_clue(st, uid, sid) else "none"
+
+
+# ── 공기 ──────────────────────────────────────────────────────
+def entrance_people(st: dict) -> list[dict]:
+    """문간(=홀)에 있는 사람. 다친 사람은 문간에 오지 않는다(눕는다)."""
+    return [r for r in hall_of(st) if not r.get("injured")]
+
+
+def top_stat(r: dict) -> str:
+    s = r.get("stats") or {}
+    order = ("hand", "eye", "breath", "nerve")                       # 동률이면 손 > 눈 > 숨 > 담
+    return max(order, key=lambda k: (int(s.get(k, 0)), -order.index(k)))
+
+
+def entrance_activities(st: dict) -> tuple[dict, list[dict]]:
+    """활동마다 덤은 한 사람 몫. 밖에 나간 사람과 신뢰가 가장 높은 사람은 문을 보고 기다린다(효과 없음)."""
+    ppl = entrance_people(st)
+    out_ids = list(st.get("outside") or [])
+    waiting = None
+    if out_ids and ppl:
+        waiting = max(ppl, key=lambda r: (max([int((r.get("trust") or {}).get(o, 0)) for o in out_ids] or [0]), r["id"]))
+    acts: dict = {}
+    rows = []
+    for r in ppl:
+        if waiting is not None and r["id"] == waiting["id"]:
+            rows.append({"id": r["id"], "name": r["name"], "activity": "waiting", "waiting_for": out_ids[0]})
+            continue
+        if r.get("role") == "kid":
+            rows.append({"id": r["id"], "name": r["name"], "activity": "kid"})
+            continue
+        a = top_stat(r)
+        acts.setdefault(a, r["id"])
+        rows.append({"id": r["id"], "name": r["name"], "activity": a,
+                     "activity_ko": ((EX.g(f"entrance.idle.activities.{a}") or {}).get("ko"))})
+    return acts, rows
+
+
+def air_supply(st: dict) -> float:
+    base = float(EX.g("air.daily_supply_base", 8))
+    gh = room_level_of(st, "greenhouse")
+    base += float((EX.g("air.greenhouse_bonus") or {}).get(str(gh), 0)) if gh else 0
+    acts, _ = entrance_activities(st)
+    if "breath" in acts:
+        base += float(((EX.g("entrance.idle.activities.breath") or {}).get("effect") or {}).get("air_per_day", 0))
+    al = room_level_of(st, "airlock")
+    mul = 1.0
+    for lv, m in (EX.g("air.airlock_mul") or {}).items():
+        if al >= int(lv):
+            mul = max(mul, float(m))
+    return round(base * mul, 3)
+
+
+def air_state(st: dict) -> dict:
+    a = st.setdefault("air", {})
+    sup = air_supply(st)
+    if not isinstance(a.get("value"), (int, float)):
+        a["value"] = sup
+    a["value"] = round(min(float(a["value"]), sup), 3)
+    return {"value": a["value"], "supply": sup, "band": round(a["value"] / sup, 4) if sup else 0.0}
+
+
+def air_refill(st: dict, ticks: int) -> None:
+    """생산 틱마다 하루 공급의 1/3. 하루치 이상 쌓이지 않는다(expedition.json air.refill)."""
+    if ticks <= 0:
+        return
+    sup = air_supply(st)
+    a = st.setdefault("air", {})
+    v = float(a.get("value", sup))
+    a["value"] = round(min(sup, v + ticks * sup / 3.0), 3)
+
+
+# ── 잠수복 ────────────────────────────────────────────────────
+def suits_state(st: dict) -> dict:
+    n = int(EX.g("entrance.shared_suits", 1)) + (1 if room_level_of(st, "airlock") >= 1 else 0)
+    s = st.setdefault("suits", {"shared_wear": []})
+    wear = list(s.get("shared_wear") or [])
+    wear = (wear + [0] * n)[:n]
+    s["shared_wear"] = wear
+    lim = int(EX.g("gear.shared_suit_wear_limit", 5))
+    usable = sum(1 for w in wear if w < lim)
+    return {"total": n, "usable": usable, "wear": wear, "wear_limit": lim, "pair_ok": usable >= 2,
+            "repair_cost": dict(EX.g("gear.repair_cost") or {})}
+
+
+# ── 목적지 ────────────────────────────────────────────────────
+def dest_spec(st: dict, uid: str, dest: dict) -> dict:
+    """목적지 하나의 사양과 갈 수 있는지. why 가 있으면 못 간다."""
+    kind = (dest or {}).get("kind")
+    D = EX.g("destinations") or {}
+    lens_all = list((EX.g("lengths") or {}).keys()) or list(LEN_ORDER)
+    if kind == "door":
+        d = D.get("door") or {}
+        return {"kind": "door", "ko": d.get("ko", "문 앞 바닥"), "lengths": d.get("lengths") or ["short", "half"],
+                "cat": "unknown", "danger_mul": float(d.get("danger_mul", 0.5)), "kinds": None, "why": None}
+    if kind == "unknown":
+        d = D.get("unknown") or {}
+        return {"kind": "unknown", "ko": d.get("ko", "모르는 쪽"), "lengths": d.get("lengths") or ["half", "long"],
+                "cat": "*", "danger_mul": float(d.get("danger_mul", 1.3)), "kinds": None, "why": None}
+    if kind in ("spot", "clue"):
+        sid = (dest or {}).get("id")
+        sp = (D.get("spots") or {}).get(sid)
+        if not sp:
+            return {"kind": kind, "why": "없는 곳입니다", "lengths": []}
+        minl = sp.get("min_length", "half")
+        lens = lens_all[lens_all.index(minl):] if minl in lens_all else lens_all
+        name = next((x.get("name") for x in SPOTS if x.get("id") == sid), sid)
+        state = spot_state(st, uid, sid)
+        why = None
+        if kind == "spot" and state != "found":
+            why = "아직 찾지 못한 곳입니다"
+        if kind == "clue" and state != "clue":
+            why = "이미 찾은 곳입니다" if state == "found" else "아직 단서가 없습니다"
+        if depth_of(st) < int(sp.get("min_base_depth_m", 0)):
+            why = f"거점이 {int(sp.get('min_base_depth_m', 0))}m 까지 내려와야 갈 수 있습니다"
+        prefix = "단서를 따라 · " if kind == "clue" else ""
+        return {"kind": kind, "id": sid, "ko": prefix + str(name), "lengths": lens, "cat": sp.get("category", "unknown"),
+                "danger_mul": float(sp.get("danger_mul", 1.0)), "kinds": sp.get("kinds"), "why": why,
+                "deep": int(sp.get("depth_m", 0)) >= 120, "first_visit_imprint": sp.get("first_visit_imprint")}
+    return {"kind": kind, "why": "없는 목적지입니다", "lengths": []}
+
+
+def lingering_now(st: dict) -> str | None:
+    """오늘 습격이 접촉 전이면 그 생물은 바깥에 있다."""
+    r = st.get("raid")
+    if r and not r.get("none") and not r.get("resolved") and r.get("day") == day_of(st):
+        return r.get("creature")
+    return None
+
+
+def exp_errors(st: dict, uid: str, members: list, dest: dict, length: str) -> tuple[list, dict | None, list]:
+    errs = []
+    ex = st.get("expedition")
+    if ex:
+        errs.append("이미 나가 있는 조가 있습니다. 문은 하나입니다")
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    ppl = []
+    if not members or len(members) > int(EX.g("party.max", 2)) or len(set(members)) != len(members):
+        errs.append(f"1~{int(EX.g('party.max', 2))}명을 골라 주세요")
+    for m in members or []:
+        r = by.get(m)
+        if not r:
+            errs.append("없는 사람입니다")
+            continue
+        if r.get("injured"):
+            errs.append(f"{r['name']} 님은 다쳐서 누워 있습니다")
+        if m in (st.get("outside") or []):
+            errs.append(f"{r['name']} 님은 이미 밖에 있습니다")
+        ppl.append(r)
+    sp = dest_spec(st, uid, dest)
+    if sp.get("why"):
+        errs.append(sp["why"])
+    L = (EX.g("lengths") or {}).get(length)
+    if not L:
+        errs.append("없는 길이입니다")
+    elif length not in (sp.get("lengths") or []):
+        errs.append(f"{sp.get('ko', '그곳')}에는 {L.get('ko', length)}로 갈 수 없습니다")
+    elif length == "long" and room_level_of(st, "airlock") < 1:
+        errs.append("밤 넘기기는 에어락 Lv1 이 필요합니다")
+    su = suits_state(st)
+    if len(members or []) > su["usable"]:
+        errs.append("입을 잠수복이 모자랍니다" + (" — 마모된 잠수복을 먼저 고쳐 주세요" if su["usable"] < su["total"] else ""))
+    if L:
+        cost = int(L.get("tank", 2)) * max(1, len(members or []))
+        if air_state(st)["value"] + 1e-9 < cost:
+            errs.append(f"공기가 모자랍니다(필요 {cost})")
+    return errs, sp, ppl
+
+
+def exp_numbers(st: dict, uid: str, ppl: list, sp: dict, length: str) -> dict:
+    """미리 보기와 출발이 같은 값을 쓴다(D2)."""
+    eye = max(int((p.get("stats") or {}).get("eye", 5)) for p in ppl)
+    ling = lingering_now(st)
+    learning = int(st.get("exp_count") or 0) < int(EX.g("danger.learning_trips_without_danger", 2))
+    kind = sp["kind"]
+    R = EX.g("newcomers.rescue.chance") or {}
+    if kind == "unknown":
+        rp = float(R.get(f"unknown_{length}", 0))
+    else:
+        rp = float(R.get(kind, 0))
+    if rp > 0:
+        rp += float(EX.g("newcomers.rescue.per_eye_above_5", 0.01)) * max(0, eye - 5)
+    if kind == "unknown" and EX.g("newcomers.rescue.first_unknown_guaranteed") and not st.get("unknown_done"):
+        rp = 1.0
+    cp = 0.0
+    if kind == "unknown":
+        cs = EX.g("destinations.unknown.clue_stumble") or {}
+        cp = float(cs.get(length, 0)) + float(cs.get("per_eye_above_5", 0.01)) * max(0, eye - 5)
+    dp = 0.0
+    if kind == "clue":
+        dd = EX.g("stats.eye.discovery") or {}
+        tries = int((st.get("clue_tries") or {}).get(sp.get("id"), 0))
+        dp = float(dd.get("base", 0.4)) + float(dd.get("per_point", 0.06)) * (eye - 5) + \
+            float(EX.g("destinations.clue.fail_memory", 0.15)) * tries
+        dp = max(float(dd.get("min", 0.2)), min(float(dd.get("max", 0.9)), dp))
+    return {"lingering": ling, "learning": learning, "rescue_p": round(min(1.0, rp), 4),
+            "clue_p": round(cp, 4), "discover_p": round(dp, 4), "eye": eye}
+
+
+def recent_categories(uid: str, day: int) -> list[str]:
+    with db() as con:
+        rows = con.execute("SELECT DISTINCT category FROM scans WHERE uid=? AND day>? ORDER BY category",
+                           (uid, day - 7)).fetchall()
+    return [r["category"] for r in rows if r["category"] in EX.CATS]
+
+
+def exp_preview(st: dict, uid: str, members: list, dest: dict, length: str) -> dict:
+    errs, sp, ppl = exp_errors(st, uid, members, dest, length)
+    out: dict = {"ok": not errs, "errors": errs, "warnings": []}
+    if not ppl or not sp or sp.get("why") or length not in (EX.g("lengths") or {}):
+        return out
+    L = EX.g("lengths")[length]
+    nums = exp_numbers(st, uid, ppl, sp, length)
+    breath = min(int((p.get("stats") or {}).get("breath", 5)) for p in ppl)
+    x = int(L.get("tank", 2)) * (1 + float(EX.g("stats.breath.per_point", 0.1)) * (breath - 5))
+    carry = sum(EX.carry_slots(int((p.get("stats") or {}).get("hand", 5))) for p in ppl)
+    p = 0.0 if nums["learning"] else float(L.get("danger", 0)) * sp["danger_mul"] + \
+        float((EX.g("raid_link.lingering_add") or {}).get(nums["lingering"] or "", 0))
+    w = dict(sp.get("kinds") or EX.g("danger.default_kind_weights") or {})
+    tot = sum(w.values()) or 1
+    kinds = []
+    for k, v in w.items():
+        stat = ((EX.g("danger.kinds") or {}).get(k) or {}).get("check", "breath")
+        best = max(int((pp.get("stats") or {}).get(stat, 5)) for pp in ppl)
+        kinds.append({"kind": k, "ko": ((EX.g("danger.kinds") or {}).get(k) or {}).get("ko"), "stat": stat,
+                      "weight": round(v / tot, 3), "p_pass": round(EX.check_p(best, len(ppl) > 1), 3)})
+    cost = int(L.get("tank", 2)) * len(ppl)
+    if nums["lingering"] == "claws":
+        out["warnings"].append("손톱 무리가 바깥에 있다 — 접촉 때 밖에 사람이 있으면 관문이 깨진다")
+    vb = None
+    if sp["kind"] == "spot":
+        last = (st.get("spot_visits") or {}).get(sp["id"])
+        if last is None or day_of(st) - int(last) >= int(EX.g("destinations.spot.visit_bonus_cooldown_days", 3)):
+            vb = (next((x for x in SPOTS if x.get("id") == sp["id"]), {}).get("resource") or {}).get("gain")
+    out.update({"actions": round(max(1, x), 2), "carry": carry, "air_cost": cost,
+                "air_after": round(air_state(st)["value"] - cost, 3),
+                "returns_at": now_ts() + int(L.get("minutes", 30)) * 60,
+                "danger": {"p": round(max(0.0, min(0.95, p)), 4),
+                           "lingering_add": float((EX.g("raid_link.lingering_add") or {}).get(nums["lingering"] or "", 0)),
+                           "learning": nums["learning"], "kinds": kinds},
+                "rescue_p": nums["rescue_p"], "clue_p": nums["clue_p"], "discover_p": nums["discover_p"],
+                "visit_bonus": vb, "finds_p": {k: round(v, 4) for k, v in EX.find_probs(nums["eye"]).items()}})
+    return out
+
+
+# ── 출발 ──────────────────────────────────────────────────────
+def exp_start(st: dict, uid: str, members: list, dest: dict, length: str) -> dict:
+    tutorial = int(st.get("exp_count") or 0) == 0
+    if tutorial:
+        dest, length = {"kind": "door"}, "short"                     # 첫 원정 = 튜토리얼(문 앞, 짧게, 위험 없음)
+        members = list(members or [])[:1]
+    errs, sp, ppl = exp_errors(st, uid, members, dest, length)
+    if errs:
+        raise HTTPException(400, " · ".join(errs))
+    L = EX.g("lengths")[length]
+    nums = exp_numbers(st, uid, ppl, sp, length)
+    n_exp = int(st.get("exp_count") or 0) + 1
+    eid = f"exp-{day_of(st)}-{n_exp}"
+    res = EX.roll(f"{uid}|{eid}",
+                  members=[{"id": p["id"], "stats": p.get("stats") or {}} for p in ppl],
+                  dest=dest, dest_cat=sp["cat"], length=length, danger_mul=sp["danger_mul"],
+                  lingering=nums["lingering"], learning=nums["learning"],
+                  recent_cats=recent_categories(uid, day_of(st)), kinds_weights=sp.get("kinds"),
+                  rescue_p=nums["rescue_p"], clue_p=nums["clue_p"], discover_p=nums["discover_p"],
+                  tutorial=tutorial, deep=bool(sp.get("deep") or sp["kind"] == "unknown"))
+    # 갈림길 자동 = 오늘 가장 모자란 쪽(재료 재고가 상자 대기보다 적으면 불빛). 출발 때 정해 둔다(D6)
+    mats = sum(int(st["resources"].get(k, 0)) for k in EX.eight_materials())
+    auto_fork = "lit" if mats < len(st.get("boxes") or []) else "dark"
+    cost = int(L.get("tank", 2)) * len(ppl)
+    st.setdefault("air", {})["value"] = round(air_state(st)["value"] - cost, 3)
+    t = now_ts()
+    dur = int(L.get("minutes", 30)) * 60
+    # 잠수복: 마모 적은 것부터
+    su = suits_state(st)
+    order = sorted(range(su["total"]), key=lambda i: su["wear"][i])
+    suit_idx = [i for i in order if su["wear"][i] < su["wear_limit"]][:len(ppl)]
+    ex = {"id": eid, "members": [p["id"] for p in ppl], "dest": {k: v for k, v in dest.items() if k in ("kind", "id")},
+          "dest_ko": sp.get("ko"), "length": length, "started": t,
+          "returns_at": t + (30 * 60 if tutorial else dur), "duration": dur, "air_used": cost,
+          "lingering": nums["lingering"], "seed": f"{uid}|{eid}", "result": res, "auto_fork": auto_fork,
+          "tutorial": tutorial, "suits": suit_idx, "recalled_at": None, "recall_keep": None,
+          "first_visit_imprint": sp.get("first_visit_imprint"),
+          "stations": {p["id"]: station_slot(st, p["id"]) for p in ppl},
+          "scene": {"picked": [], "fork": None, "danger": None, "dropped": [], "committed": False}}
+    st["expedition"] = ex
+    st["exp_count"] = n_exp
+    st["outside"] = list(ex["members"])
+    if sp["kind"] == "unknown":
+        st["unknown_done"] = True
+    log(uid, "expedition_start", {"id": eid, "members": ex["members"], "dest": ex["dest"], "length": length,
+                                  "air": cost, "lingering": nums["lingering"]})
+    return ex
+
+
+def exp_progress(ex: dict, t: float | None = None) -> float:
+    t = now_ts() if t is None else t
+    span = max(1.0, float(ex["returns_at"]) - float(ex["started"]))
+    return round(max(0.0, min(1.0, (t - float(ex["started"])) / span)), 4)
+
+
+def scene_open(ex: dict, t: float | None = None) -> bool:
+    if ex["scene"].get("committed"):
+        return False
+    if ex.get("tutorial"):
+        return True
+    t = now_ts() if t is None else t
+    win = min(float(ex.get("duration") or 1800) * 0.1, 30 * 60)
+    return t - float(ex["started"]) <= win
+
+
+def exp_public(st: dict, ex: dict | None) -> dict | None:
+    if not ex:
+        return None
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    return {"id": ex["id"], "members": list(ex["members"]),
+            "member_names": [by.get(m, {}).get("name") for m in ex["members"]],
+            "dest": ex["dest"], "dest_ko": ex.get("dest_ko"), "length": ex["length"],
+            "started": ex["started"], "returns_at": ex["returns_at"], "now": now_ts(),
+            "progress": exp_progress(ex), "air_used": ex.get("air_used"), "lingering": ex.get("lingering"),
+            "recalled": bool(ex.get("recalled_at")), "tutorial": bool(ex.get("tutorial")),
+            "scene": {"open": scene_open(ex), "committed": bool(ex["scene"].get("committed"))}}
+
+
+# ── 따라 나가기 장면 ────────────────────────────────────────────
+def scene_geometry(ex: dict) -> dict:
+    rng = random.Random(f"scene|{ex['seed']}")
+    radius = {"short": 18, "half": 36, "long": 60}.get(ex["length"], 30)
+    n = 9
+    pts = [{"x": 0.0, "z": 0.0}]
+    for i in range(1, n):
+        a = (i / n) * math.pi * 1.2 - 0.2 + rng.uniform(-0.15, 0.15)
+        r = radius * math.sin(math.pi * i / n) + rng.uniform(-2, 2)
+        pts.append({"x": round(max(2.0, r * math.cos(a) + 3), 2), "z": round(r * math.sin(a), 2)})
+    pts.append({"x": 0.0, "z": 0.0})
+    return {"waypoints": pts}
+
+
+def scene_next(ex: dict) -> str:
+    res, sc = ex["result"], ex["scene"]
+    if sc.get("committed"):
+        return "done"
+    k = len(sc.get("picked") or [])
+    d = res.get("danger")
+    H = min(EX.head_n(), res["actions"])
+    if d and d["at"] < H and sc.get("danger") is None and k >= d["at"]:
+        return "danger"
+    if sc.get("danger") == "turn_back":
+        return "done"
+    if sc.get("need_drop"):
+        return "drop"
+    if k < H:
+        return f"pick:{k}"
+    if res["actions"] > H and sc.get("fork") is None:
+        return "fork"
+    return "done"
+
+
+def scene_public(st: dict, ex: dict) -> dict:
+    res, sc = ex["result"], ex["scene"]
+    geo = scene_geometry(ex)
+    wp = geo["waypoints"]
+    H = min(EX.head_n(), res["actions"])
+    picks = []
+    picked = {int(p["i"]): p for p in sc.get("picked") or []}
+    for i in range(H):
+        row = {"i": i, "pos": wp[min(i + 1, len(wp) - 1)], "state": "picked" if i in picked else "sparkle"}
+        if i in picked:
+            row["item"] = picked[i]["item"]
+        picks.append(row)
+    d = res.get("danger")
+    danger = None
+    if d and d["at"] < H:
+        danger = {"before_pick": d["at"], "kind": d["kind"],
+                  "ko": ((EX.g("danger.kinds") or {}).get(d["kind"]) or {}).get("ko"),
+                  "stat": d["stat"], "p_hide": d["p_pass"], "options": ["hide", "turn_back"],
+                  "auto": EX.danger_auto(d), "chosen": sc.get("danger")}
+    fork = None
+    if res["actions"] > H:
+        F = EX.g("scene.fork") or {}
+        fork = {"after": H, "pos": wp[min(H + 1, len(wp) - 1)],
+                "options": [{"id": "lit", "ko": "불빛 쪽", "shift": F.get("lit")},
+                            {"id": "dark", "ko": "어둠 쪽", "shift": F.get("dark")}],
+                "auto": ex.get("auto_fork"), "chosen": sc.get("fork")}
+    items = [p["item"] for p in sc.get("picked") or [] if p["item"]["kind"] != "empty"
+             and int(p["i"]) not in set(sc.get("dropped") or [])]
+    disc = None
+    if ex["dest"].get("kind") == "clue" and res["u_discover"] < res["discover_p"]:
+        disc = {"spot_id": ex["dest"].get("id"), "pos": max(wp, key=lambda p: p["x"] ** 2 + p["z"] ** 2)}
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    spent = len(sc.get("picked") or [])
+    return {"exp_id": ex["id"], "terrain_seed": f"{ex['seed'].split('|')[0]}|{ex['dest'].get('id') or ex['dest'].get('kind')}",
+            "dest": ex["dest"], "dest_ko": ex.get("dest_ko"), "started": ex["started"], "returns_at": ex["returns_at"],
+            "now": now_ts(), "progress": exp_progress(ex),
+            "members": [{"id": m, "name": by.get(m, {}).get("name"), "role": by.get(m, {}).get("role"),
+                         "stats": by.get(m, {}).get("stats"), "imprints": by.get(m, {}).get("imprints")}
+                        for m in ex["members"]],
+            "lantern_radius_m": 8, "waypoints": wp,
+            "head": {"picks": picks, "fork": fork, "danger": danger},
+            "carry": {"slots": res["carry"], "used": sum(EX.slots_of(it) for it in items), "items": items},
+            "air_band": round(max(0.0, 1.0 - spent / max(1, res["actions"])), 4),
+            "open": scene_open(ex), "committed": bool(sc.get("committed")), "next": scene_next(ex),
+            "discovers": disc, "tutorial": bool(ex.get("tutorial")),
+            "auto_rules": {"fork": "오늘 가장 모자란 쪽", "danger": "판정 확률 ≥ 0.55 면 숨는다",
+                           "drop": "상자 > 유물 > 재료"}}
+
+
+def scene_act(st: dict, ex: dict, action: str, i=None, choice=None, keep=None) -> None:
+    res, sc = ex["result"], ex["scene"]
+    if not scene_open(ex):
+        raise HTTPException(400, "따라 나가기는 이미 끝났습니다. 지금은 보기만 할 수 있습니다")
+    nxt = scene_next(ex)
+    if action == "done":
+        sc["committed"] = True
+        if ex.get("tutorial"):
+            ex["returns_at"] = now_ts()                    # 튜토리얼은 장면이 끝나면 바로 돌아온다
+        return
+    if action == "danger":
+        if nxt != "danger" or choice not in ("hide", "turn_back"):
+            raise HTTPException(400, f"지금은 그 선택을 할 차례가 아닙니다(다음: {nxt})")
+        sc["danger"] = choice
+        if choice == "turn_back":
+            d = res["danger"]
+            ex["returns_at"] = float(ex["started"]) + (float(ex["returns_at"]) - float(ex["started"])) * \
+                (d["at"] / max(1, res["actions"]))
+        return
+    if action == "pick":
+        if nxt != f"pick:{i}":
+            raise HTTPException(400, f"그 칸은 지금 주울 수 없습니다(다음: {nxt})")
+        item = EX.item_at(res, int(i), None)
+        sc.setdefault("picked", []).append({"i": int(i), "item": item})
+        held = [p["item"] for p in sc["picked"] if p["item"]["kind"] != "empty"
+                and int(p["i"]) not in set(sc.get("dropped") or [])]
+        if sum(EX.slots_of(it) for it in held) > res["carry"]:
+            sc["need_drop"] = True
+        return
+    if action == "drop":
+        if nxt != "drop" or not isinstance(keep, list):
+            raise HTTPException(400, f"지금은 내려놓을 차례가 아닙니다(다음: {nxt})")
+        held = [p["item"] for p in sc["picked"] if p["item"]["kind"] != "empty"]
+        ks = {int(x) for x in keep}
+        kept = [it for it in held if it["i"] in ks]
+        if sum(EX.slots_of(it) for it in kept) > res["carry"] or not ks <= {it["i"] for it in held}:
+            raise HTTPException(400, "그만큼은 들 수 없습니다")
+        sc["dropped"] = sorted({it["i"] for it in held} - ks)
+        sc["need_drop"] = False
+        return
+    if action == "fork":
+        if nxt != "fork" or choice not in ("lit", "dark"):
+            raise HTTPException(400, f"지금은 갈림길이 아닙니다(다음: {nxt})")
+        sc["fork"] = choice
+        return
+    raise HTTPException(400, "없는 행동입니다")
+
+
+# ── 귀환 정산 ──────────────────────────────────────────────────
+def make_guest(st: dict, uid: str, seed: str, src: str, rescued_by: list | None = None) -> dict | None:
+    if len(st.get("guests") or []) >= int(EX.g("entrance.guest_spots", 2)):
+        return None
+    rng = random.Random(f"guest|{seed}")
+    have = {r["role"] for r in (st.get("residents_list") or []) + (st.get("guests") or [])}
+    pool = [r for r in ROLE_IDS if r not in have] or ROLE_IDS
+    taken = {r["name"] for r in (st.get("residents_list") or []) + (st.get("guests") or [])}
+    g = make_resident(rng.choice(sorted(pool)), rng, taken, uid)
+    ensure_stats(uid, g)
+    g.update({"guest_id": "g-" + g["id"], "arrived": now_ts(), "src": src, "rescued_by": list(rescued_by or [])})
+    st.setdefault("guests", []).append(g)
+    log(uid, "guest_arrived", {"src": src, "role": g["role"]})
+    return g
+
+
+def box_new(st: dict, cat: str, frm: str | None, seed: str) -> dict:
+    b = {"id": f"box-{seed}", "cat": cat, "found_day": day_of(st), "found_ts": now_ts(), "from": frm}
+    st.setdefault("boxes", []).append(b)
+    return b
+
+
+def relic_to_shelf(st: dict, cat: str, rarity: str, seed: str) -> int | None:
+    card = {"category": cat if cat in EX.CATS else "unknown", "rarity": rarity, "id": f"shard-{seed}",
+            "name": None, "family_name": None, "barcode": None, "_day": day_of(st)}
+    return shelf_place(st, card)
+
+
+def exp_settle(st: dict, uid: str) -> dict | None:
+    """돌아올 시각이 지났으면 한 번 정산한다(멱등 — 정산하면 expedition 이 비워진다)."""
+    ex = st.get("expedition")
+    if not ex or now_ts() < float(ex["returns_at"]):
+        return None
+    res, sc = ex["result"], ex["scene"]
+    fork = sc.get("fork") or ex.get("auto_fork") or "dark"
+    out = EX.settle(res, fork=fork, danger_choice=sc.get("danger"), dropped=sc.get("dropped"),
+                    recall_keep=ex.get("recall_keep"))
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    mem = [by[m] for m in ex["members"] if m in by]
+    names = [m["name"] for m in mem]
+    haul = {"materials": {}, "boxes": [], "relics": []}
+    cat = res["dest_cat"]
+    for it in out["kept"]:
+        sd = f"{ex['id']}-{it['i']}"
+        if it["kind"] == "material":
+            st["resources"][it["res"]] = int(st["resources"].get(it["res"], 0)) + int(EX.g("finds.material_amount", 1))
+            haul["materials"][it["res"]] = haul["materials"].get(it["res"], 0) + 1
+        elif it["kind"] == "box":
+            b = box_new(st, it["cat"], ex["dest"].get("id") or ex["dest"].get("kind"), sd)
+            haul["boxes"].append({"id": b["id"], "cat": b["cat"]})
+        elif it["kind"] == "relic":
+            rc = cat if cat in EX.CATS else EX.CATS[int(res["acts"][it["i"]]["u3"] * 8) % 8]
+            haul["relics"].append({"rarity": it["rarity"], "shelf_slot": relic_to_shelf(st, rc, it["rarity"], sd)})
+    left = {"materials": {}, "boxes": 0, "relics": 0}
+    for it in out["left"]:
+        if it["kind"] == "material":
+            left["materials"][it["res"]] = left["materials"].get(it["res"], 0) + 1
+        elif it["kind"] == "box":
+            left["boxes"] += 1
+        elif it["kind"] == "relic":
+            left["relics"] += 1
+    # 위험의 결과(죽음·못 돌아옴·장비 소멸·방 상실은 규칙상 0)
+    injured = None
+    if out["injure"] and mem:
+        stat = (res.get("danger") or {}).get("stat", "hand")
+        who = min(mem, key=lambda r: (int((r.get("stats") or {}).get(stat, 5)), r["id"]))
+        who["injured"] = True
+        injured = who["name"]
+        st["injured"] = sum(1 for x in st.get("residents_list", []) if x.get("injured"))
+    su = suits_state(st)
+    for i in ex.get("suits") or []:
+        if i < len(su["wear"]):
+            su["wear"][i] += int(EX.g("gear.wear_per_trip", 1)) + int(out["wear_extra"])
+    st["suits"]["shared_wear"] = su["wear"]
+    flags = list(out["flags"])
+    discovered = clue = visit = None
+    reached = not out["turned_back"] and not ex.get("recalled_at")
+    kind = ex["dest"].get("kind")
+    if kind == "clue" and reached:
+        sid = ex["dest"].get("id")
+        if res["u_discover"] < res["discover_p"]:
+            st.setdefault("spots_found", [])
+            if sid not in st["spots_found"]:
+                st["spots_found"].append(sid)
+            spot = next((x for x in SPOTS if x.get("id") == sid), {})
+            discovered = {"spot_id": sid, "name": spot.get("name"), "discovery_text": spot.get("discovery_text")}
+            flags.append("healing_spot_found")
+            day_note(st, "spot", spot.get("name") or sid)
+        else:
+            st.setdefault("clue_tries", {})[sid] = int(st.get("clue_tries", {}).get(sid, 0)) + 1
+    if kind == "spot" and reached:
+        sid = ex["dest"].get("id")
+        last = (st.get("spot_visits") or {}).get(sid)
+        if last is None or day_of(st) - int(last) >= int(EX.g("destinations.spot.visit_bonus_cooldown_days", 3)):
+            gain = (next((x for x in SPOTS if x.get("id") == sid), {}).get("resource") or {}).get("gain") or {}
+            visit = {}
+            for k, v in gain.items():
+                if k in st["resources"] and isinstance(v, (int, float)):
+                    st["resources"][k] = int(st["resources"].get(k, 0)) + int(v)
+                    visit[k] = int(v)
+            st.setdefault("spot_visits", {})[sid] = day_of(st)
+        first = sid not in (st.get("spots_visited") or [])
+        st.setdefault("spots_visited", [])
+        if first:
+            st["spots_visited"].append(sid)
+            if ex.get("first_visit_imprint") == "depth_mark":
+                flags.append("deep_descent")
+    if kind == "unknown" and reached and res["u_clue"] < res["clue_p"]:
+        cand = [s for s in DEEP_SPOT_IDS if spot_state(st, uid, s) == "none"]
+        if cand:
+            sid = cand[int(res["u_clue_pick"] * len(cand)) % len(cand)]
+            st.setdefault("clues_extra", []).append(sid)
+            clue = {"spot_id": sid, "name": next((x.get("name") for x in SPOTS if x.get("id") == sid), sid)}
+    newcomer, no_room = None, False
+    if reached and res["u_rescue"] < res["rescue_p"]:
+        g = make_guest(st, uid, ex["seed"], "rescue", ex["members"])
+        if g:
+            newcomer = {"guest_id": g["guest_id"], "name": g["name"], "role": g["role"]}
+        else:
+            no_room = True
+            st["resources"]["morale"] = int(st["resources"].get("morale", 0)) + 1
+    imps = grant_imprints(st, None, flags, mem) if flags else []
+    # 신뢰: 둘이 가면 +3, 위험을 함께 넘기면 +10. 마중(담) 덤
+    T = EX.g("trust") or {}
+    if len(mem) == 2:
+        a, b = mem
+        dlt = int(T.get("pair_trip", 3)) + (int(T.get("shared_danger", 10)) if (out["danger"] or {}).get("ok") else 0)
+        for x, y in ((a, b), (b, a)):
+            x.setdefault("trust", {})[y["id"]] = min(TRUST_MAX, int(x["trust"].get(y["id"], 0)) + dlt)
+    acts, _ = entrance_activities({**st, "outside": []})
+    greeted = None
+    if "nerve" in acts and acts["nerve"] not in ex["members"] and acts["nerve"] in by:
+        gr = by[acts["nerve"]]
+        eff = ((EX.g("entrance.idle.activities.nerve") or {}).get("effect") or {})
+        st["resources"]["morale"] = int(st["resources"].get("morale", 0)) + int(eff.get("return_morale", 1))
+        for m in mem:
+            for x, y in ((gr, m), (m, gr)):
+                x.setdefault("trust", {})[y["id"]] = min(TRUST_MAX, int(x["trust"].get(y["id"], 0)) + int(eff.get("return_trust", 2)))
+        greeted = {"id": gr["id"], "name": gr["name"]}
+    # 숨은 원정으로 아주 천천히 자란다(점수 8마다 +1, 태어난 값 +2 까지)
+    grew = []
+    pts = float((EX.g("stats.growth.trip_points") or {}).get(ex["length"], 0))
+    for m in mem:
+        s = m.setdefault("stats", {})
+        m.setdefault("born_breath", int(s.get("breath", 5)))
+        before = float(m.get("trip_pts") or 0)
+        m["trip_pts"] = before + pts
+        if int(m["trip_pts"] // 8) > int(before // 8) and int(s.get("breath", 5)) < int(m["born_breath"]) + 2:
+            s["breath"] = int(s.get("breath", 5)) + 1
+            grew.append({"id": m["id"], "to": s["breath"]})
+    # 사람은 돌아와 원래 자리로(정원이 찼으면 문간)
+    st["outside"] = [o for o in (st.get("outside") or []) if o not in ex["members"]]
+    for m in ex["members"]:
+        slot = (ex.get("stations") or {}).get(m)
+        r = room_at(st, slot) if slot is not None else None
+        if r is None or r.get("flooded") or len([p for p in stations_map(st).get(int(slot), []) if p["id"] != m]) >= room_cap_of(r):
+            set_station(st, m, None)
+    L = (EX.g("lengths") or {}).get(ex["length"]) or {}
+    dk = (out["danger"] or {}).get("kind")
+    line = (f"{'·'.join(names)} — {ex.get('dest_ko')}, {L.get('ko', ex['length'])}. "
+            f"재료 {sum(haul['materials'].values())} · 상자 {len(haul['boxes'])} · 유물 {len(haul['relics'])}"
+            + (f", 두고 온 것 {sum(left['materials'].values()) + left['boxes'] + left['relics']}" if out["left"] else "")
+            + (f". {((EX.g('danger.kinds') or {}).get(dk) or {}).get('ko')}" if dk else "") + ".")
+    ret = {"id": ex["id"], "members": list(ex["members"]), "member_names": names, "dest": ex["dest"],
+           "dest_ko": ex.get("dest_ko"), "length": ex["length"], "returned_at": now_ts(),
+           "haul": haul, "left_behind": left,
+           "danger": ({**out["danger"], "ko": ((EX.g("danger.kinds") or {}).get(dk) or {}).get("ko")} if out["danger"] else None),
+           "injured": injured, "imprints": imps, "newcomer": newcomer, "rescued_but_no_room": no_room,
+           "clue": clue, "discovered": discovered, "visit_bonus": visit, "breath_grew": grew,
+           "greeted_by": greeted, "line": line, "recalled": bool(ex.get("recalled_at")),
+           "tutorial": bool(ex.get("tutorial")), "value": out["value"]}
+    st.setdefault("exp_log", []).append({k: ret[k] for k in ("id", "members", "dest", "length", "haul", "left_behind",
+                                                             "danger", "injured", "newcomer", "recalled")}
+                                        | {"day": day_of(st)})
+    del st["exp_log"][:-60]
+    st["exp_unseen"] = ret
+    st["expedition"] = None
+    day_note(st, "expedition", ret["line"])
+    log(uid, "expedition_return", {"id": ex["id"], "value": out["value"], "danger": out["danger"],
+                                   "newcomer": bool(newcomer), "discovered": bool(discovered)})
+    return ret
+
+
+def exp_recall(st: dict, uid: str, immediate: bool = False) -> dict:
+    ex = st.get("expedition")
+    if not ex:
+        raise HTTPException(400, "밖에 나간 사람이 없습니다")
+    if ex.get("recalled_at"):
+        return ex
+    t = now_ts()
+    frac = exp_progress(ex, t)
+    ex["recall_keep"] = int(ex["result"]["actions"] * frac)
+    ex["recalled_at"] = t
+    R = EX.g("raid_link.recall.arrive_minutes") or {}
+    mins = 0 if immediate else (int(R.get("airlock_lv3", 0)) if room_level_of(st, "airlock") >= 3 else int(R.get("default", 20)))
+    ex["returns_at"] = min(float(ex["returns_at"]), t + mins * 60)
+    ex["scene"]["committed"] = True
+    log(uid, "expedition_recall", {"id": ex["id"], "keep": ex["recall_keep"], "minutes": mins})
+    return ex
+
+
+# ── 문 두드림 · 공용 잠수복 수선 · 하루 덤 ──────────────────────
+def knock_tick(st: dict, uid: str) -> dict | None:
+    day = day_of(st)
+    if int(st.get("knock_checked_day") or 0) >= day:
+        return None
+    st["knock_checked_day"] = day
+    K = EX.g("newcomers.knock") or {}
+    first = int(K.get("first_knock_day", 3))
+    if day < first:
+        return None
+    if len(st.get("guests") or []) >= int(EX.g("entrance.guest_spots", 2)):
+        return None
+    hit = not st.get("first_knock_done")
+    if not hit and random.Random(f"{uid}|{day}|knock").random() < float(K.get("daily_chance", 0.08)):
+        hit = True
+    if not hit:
+        return None
+    st["first_knock_done"] = True
+    g = make_guest(st, uid, f"{uid}|{day}|knock", "knock")
+    if g:
+        day_note(st, "knock", g["name"])
+    return g
+
+
+def entrance_daily(st: dict) -> None:
+    """손 활동(수선)은 하루 한 번 가장 닳은 공용 잠수복 마모 −1."""
+    day = day_of(st)
+    if int(st.get("mend_day") or 0) >= day:
+        return
+    st["mend_day"] = day
+    acts, _ = entrance_activities(st)
+    if "hand" in acts:
+        su = suits_state(st)
+        if su["wear"] and max(su["wear"]) > 0:
+            i = su["wear"].index(max(su["wear"]))
+            su["wear"][i] -= 1
+            st["suits"]["shared_wear"] = su["wear"]
+
+
+def beds_state(st: dict) -> dict:
+    lv = room_level_of(st, "quarters")
+    total = int((EX.g("newcomers.beds_by_quarters_level") or {}).get(str(lv), 3))
+    used = len(st.get("residents_list") or [])
+    return {"total": total, "used": used, "free": max(0, total - used)}
+
+
+def entrance_public(st: dict) -> dict:
+    acts, rows = entrance_activities(st)
+    gs = [{"id": g["guest_id"], "name": g["name"], "role": g["role"], "role_ko": g.get("role_ko"),
+           "stats": g.get("stats"), "quirk": g.get("quirk"), "trait": g.get("trait"), "src": g.get("src"),
+           "rescued_by": g.get("rescued_by"), "arrived": g.get("arrived")} for g in st.get("guests") or []]
+    return {"people": rows, "activities": acts, "guests": gs, "guest_spots": int(EX.g("entrance.guest_spots", 2)),
+            "beds": beds_state(st), "suits": suits_state(st), "air": air_state(st)}
+
+
+def boxes_public(st: dict) -> list[dict]:
+    day = day_of(st)
+    after = int(EX.g("boxes.pry.after_days", 7))
+    return [{"id": b["id"], "cat": b["cat"], "cat_ko": CAT_KO.get(b["cat"], "아무 갈래" if b["cat"] == "any" else b["cat"]),
+             "any": b["cat"] == "any", "found_day": b["found_day"], "age_days": day - int(b["found_day"]),
+             "from": b.get("from"), "pry_ok": day - int(b["found_day"]) >= after,
+             "pry_in_days": max(0, after - (day - int(b["found_day"])))} for b in st.get("boxes") or []]
+
+
+def box_open(st: dict, b: dict, mul: float, seed: str) -> dict:
+    units = int(round(float(EX.g("boxes.value.units", 4)) * mul))
+    mat = EX.main_material(b["cat"]) if b["cat"] != "any" else "scrap"
+    if b["cat"] == "any":
+        mat = "food"                                         # 튜토리얼 빈 원 상자 — 첫날 가장 쓸모 있는 것
+    st["resources"][mat] = int(st["resources"].get(mat, 0)) + units
+    rng = random.Random(f"box|{seed}|{b['id']}")
+    relic = None
+    if rng.random() < float(EX.g("boxes.value.relic_chance", 0.25)) * mul:
+        rar = EX.rarity_of(rng.random(), rng.random(), False)
+        relic = {"rarity": rar, "shelf_slot": relic_to_shelf(st, b["cat"] if b["cat"] in EX.CATS else "unknown", rar, b["id"])}
+    st["boxes"] = [x for x in st.get("boxes") or [] if x["id"] != b["id"]]
+    return {"id": b["id"], "cat": b["cat"], "gained": {mat: units}, "relic": relic}
+
+
+def box_try_scan(st: dict, uid: str, code: str, cat: str) -> dict | None:
+    """유효 스캔 하나가 같은 갈래 상자 하나를 연다(가장 오래된 것). 같은 바코드는 하루 한 상자. 감쇠와 무관."""
+    day = day_of(st)
+    keys = st.setdefault("box_keys", {})
+    if int(keys.get(code, 0)) == day:
+        return None
+    cand = [b for b in st.get("boxes") or [] if b["cat"] == cat or b["cat"] == "any"]
+    if not cand:
+        return None
+    b = min(cand, key=lambda x: (float(x.get("found_ts") or 0), x["id"]))
+    keys[code] = day
+    for k in [k for k, v in keys.items() if int(v) < day - 1]:
+        keys.pop(k, None)
+    out = box_open(st, b, 1.0, f"{uid}|{code}")
+    log(uid, "box_open", {"box": b["id"], "cat": b["cat"], "by": "scan"})
+    return out
+
+
+def s15_tick(st: dict, uid: str) -> dict:
+    """상태를 읽는 요청마다(day_tick 안). 귀환 정산 → 두드림 → 문간 수선. 모두 멱등."""
+    ret = exp_settle(st, uid)
+    knock = knock_tick(st, uid)
+    entrance_daily(st)
+    return {"expedition_return": ret, "knock": knock}
+
+
+def migrate_s15(st: dict) -> bool:
+    changed = False
+    for key, dflt in (("boxes", []), ("guests", []), ("exp_log", []), ("spots_found", []), ("clues_extra", []),
+                      ("spots_visited", []), ("clue_tries", {}), ("spot_visits", {}), ("box_keys", {})):
+        if not isinstance(st.get(key), type(dflt)):
+            st[key] = type(dflt)(); changed = True
+    if "expedition" not in st:
+        st["expedition"] = None; changed = True
+    if not st.get("s15_spots_migrated"):
+        # 이전 저장: 스캔 문턱을 넘어 이미 '찾은' 1막 스팟은 발견한 것으로 옮긴다(진행이 뒤로 가지 않게)
+        for sid in st.get("rumors_seen") or []:
+            if sid in DEEP_SPOT_IDS and sid not in st["spots_found"]:
+                st["spots_found"].append(sid)
+        st["s15_spots_migrated"] = True; changed = True
+    # 옛 습격 차출로 밖에 남은 사람(원정이 아닌 outside)은 들어온다 — 이제 outside 는 원정대만이다
+    ex = st.get("expedition")
+    keep = set((ex or {}).get("members") or [])
+    if any(o not in keep for o in st.get("outside") or []):
+        st["outside"] = [o for o in st.get("outside") or [] if o in keep]; changed = True
+    return changed
+
+
+def dev_advance(st: dict, sec: float) -> None:
+    """★ 개발 전용: 이 방주의 시계를 sec 만큼 앞으로(저장된 시각을 뒤로 민다)."""
+    st["created"] -= sec
+    st["last_tick"] -= sec
+    ex = st.get("expedition")
+    if ex:
+        for k in ("started", "returns_at", "recalled_at"):
+            if isinstance(ex.get(k), (int, float)):
+                ex[k] -= sec
+    r = st.get("raid")
+    if r and isinstance(r.get("started"), (int, float)):
+        r["started"] -= sec
+    snap = st.get("staff_snapshot")
+    if isinstance(snap, dict):
+        for k in ("tick_start", "at"):
+            if isinstance(snap.get(k), (int, float)):
+                snap[k] -= sec
+    for b in st.get("boxes") or []:
+        if isinstance(b.get("found_ts"), (int, float)):
+            b["found_ts"] -= sec
 
 
 # ─────────────────────────────────────────────────────────────
@@ -2625,6 +3463,8 @@ def scan(inp: ScanIn):
                     (inp.uid, code, card.category.value, card.rarity.value, mult, time.time(), day))
     # S13 첫 만남(가문 먼저) · 가문 세트(서로 다른 바코드 수, 방금 넣은 스캔 포함) · 바람
     first_meet = first_meet_lines(st, card.category.value, card.family_code)
+    # S15 봉인 상자: 같은 갈래 바코드가 열쇠다(값 0 인 재스캔도). 가장 오래된 것 하나, 같은 바코드는 하루 한 상자
+    box_opened = box_try_scan(st, inp.uid, code, card.category.value)
     fam_set = family_set_check(st, inp.uid, card.family_code)
     wishes_new = wishes_tick(st, inp.uid)
     save_state(inp.uid, st)
@@ -2640,6 +3480,7 @@ def scan(inp: ScanIn):
             "shelf_slot": shelf_slot, "shelf_new": shelf_new,
             "category_locked": locked, "variant": var, "polish": polish,
             "first_meet": first_meet, "family_set": fam_set, "wishes_done": wishes_new,
+            "box_opened": box_opened,
             "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice}
 
 
@@ -2718,6 +3559,8 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     out = public_state(st, uid)
     out["produced_while_away"] = produced
     out["night_judge"]["report"] = ticked["night_judge"]
+    out["knock"] = ({"guest_id": ticked["knock"]["guest_id"], "name": ticked["knock"]["name"],
+                     "role": ticked["knock"]["role"]} if ticked.get("knock") else None)
     out["wishes_new"] = ticked["wishes_new"]
     if (ticked.get("octopus") or {}).get("arrival"):
         out["octopus"]["arrival"] = ticked["octopus"]["arrival"]
@@ -2738,6 +3581,10 @@ class BuildIn(BaseModel):
 
 
 def spot_found(st: dict, uid: str, sid: str) -> bool:
+    """S15(DECISIONS 2026-10-03 ④): 1막 스팟은 **원정으로 가서 찾아야** 발견이다. 스캔 문턱은 단서(spot_clue)다.
+    지상(3막) 스팟은 원정이 아직 없어 예전 규칙(스캔 문턱 = 발견)을 그대로 쓴다."""
+    if sid in DEEP_SPOT_IDS:
+        return sid in (st.get("spots_found") or [])
     if sid in (st.get("rumors_seen") or []):
         return True
     gate = spot_gate(sid, next((x for x in SPOTS if x.get("id") == sid), None))
@@ -2980,13 +3827,19 @@ class UidIn(BaseModel):
 
 @app.post("/api/ark/recall")
 def recall(inp: UidIn):
-    """밖에 있는 사람을 들인다. 에어락은 한 번에 한 사람이지만, 급할 때는 한 번에 센다."""
+    """밖에 있는 사람을 들인다. S15: 원정이 있으면 원정 불러들이기(20분, 에어락 Lv3 즉시)와 같다."""
     st = load_state(inp.uid)
     had = list(st.get("outside") or [])
-    st["outside"] = []
+    arrives = None
+    if st.get("expedition"):
+        ex = exp_recall(st, inp.uid)
+        arrives = ex["returns_at"]
+        exp_settle(st, inp.uid)                  # 즉시 귀환(에어락 Lv3)이면 그 자리에서 정산
+    else:
+        st["outside"] = []
     save_state(inp.uid, st)
     log(inp.uid, "recall", {"count": len(had)})
-    return {"recalled": had, "state": public_state(st, inp.uid)}
+    return {"recalled": had, "arrives_at": arrives, "state": public_state(st, inp.uid)}
 
 
 class CraftIn(BaseModel):
@@ -3130,7 +3983,11 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list,
     # ① 소모품의 '쓰는 즉시' 효과를 **판정 전에** 적용한다. 귀환 신호기는 부르는 물건이지 점수가 아니다
     for t in use:
         if combat.TOOLS[t].get("recalls") and st.get("outside"):
-            st["outside"] = []
+            if st.get("expedition"):
+                exp_recall(st, uid, immediate=True)     # 신호기는 즉시 부른다(지난 만큼만 들고)
+                exp_settle(st, uid)
+            else:
+                st["outside"] = []
     ctx = raid_ctx(st, raid, use)
     take_staff_snapshot(st)                         # S13 staffing.measure: 접촉 순간 배치가 이번 틱 생산을 정한다
     ev = combat.evaluate(cre, ctx)
@@ -3471,7 +4328,7 @@ def rumors(uid: str):
         if unlocked and sid not in seen:
             seen.append(sid); changed = is_new = True
             if (1 if spot.get("_src") == "spots_deep.json" else 3) == int(st.get("act") or 1):
-                day_note(st, "spot", spot.get("name") or sid)     # 하루 마감에는 지금 막의 스팟만(1막에 지상 이름이 새지 않게)
+                day_note(st, "clue" if sid in DEEP_SPOT_IDS else "spot", spot.get("name") or sid)   # S15: 1막은 단서. 발견은 원정이
             log(uid, "rumor_unlocked", {"spot": sid, "have": have, "categories": rule["categories"]})
         pick = None
         if unlocked:
@@ -3489,6 +4346,7 @@ def rumors(uid: str):
             "clue_text": (pick or {}).get("text") or (spot.get("clue_text") if unlocked else None),
             "who": (pick or {}).get("who"),
             "unlocked": unlocked, "is_new": is_new,
+            "state": spot_state(st, uid, sid) if sid in DEEP_SPOT_IDS else ("found" if unlocked else "none"),
             "progress": {"have": min(have, need), "need": need},
             "categories": rule["categories"],
             "categories_ko": "·".join(CAT_KO.get(c, c) for c in rule["categories"]),
@@ -3512,7 +4370,8 @@ def spots(uid: str | None = None):
       · `clue_text` 는 /api/spots 가 내지 않는다 — 같은 문장을 두 곳에서 고르면 시드가 갈라진다(D6).
     uid 를 주면 그 방주 기준 해금 여부·진행도가 함께 온다. 없으면 잠긴 상태로 본다."""
     counts = scan_counts(uid) if uid else {}
-    seen = set(load_state(uid).get("rumors_seen") or []) if uid else set()
+    _st_sp = load_state(uid) if uid else {}
+    seen = set(_st_sp.get("rumors_seen") or []) if uid else set()
     out = []
     for spot in SPOTS:
         sid = spot["id"]
@@ -3529,6 +4388,8 @@ def spots(uid: str | None = None):
             "pos": {"x": x, "y": y}, "has_pos": pos is not None,
             "act": 1 if spot.get("_src") == "spots_deep.json" else 3,
             "unlocked": unlocked, "rumor_seen": sid in seen,
+            "state": ((spot_state(_st_sp, uid, sid) if sid in DEEP_SPOT_IDS else ("found" if unlocked else "none"))
+                      if uid else "none"),
             "progress": ({"have": min(have, gate["need"]), "need": gate["need"]} if gate else None),
             "gate": ({"categories": gate["categories"],
                       "categories_ko": "·".join(CAT_KO.get(c, c) for c in gate["categories"]),
@@ -3806,6 +4667,229 @@ def stats(all: bool = False):
     users = [dict(r) for r in per_user if keep(r["uid"])]
     return {"events": events, "users": users,
             "excluded_uids": 0 if all else len({r["uid"] for r in per_user if not keep(r["uid"])})}
+
+
+# ─────────────────────────────────────────────────────────────
+# S15 원정·문간 API (docs/API_EXPEDITION.md)
+# ─────────────────────────────────────────────────────────────
+def _s15_load(uid: str) -> dict:
+    st = load_state(uid)
+    tick_production(st)
+    s15_tick(st, uid)
+    return st
+
+
+@app.get("/api/entrance")
+def entrance(uid: str):
+    st = _s15_load(uid)
+    save_state(uid, st)
+    return entrance_public(st)
+
+
+class GuestIn(BaseModel):
+    uid: str
+    guest_id: str
+    accept: bool
+
+
+@app.post("/api/entrance/guest")
+def entrance_guest(inp: GuestIn):
+    """들인다(빈 잠자리 필요) / 다른 돔 쪽으로 안내한다(벌도 보상도 없다). 손님은 스스로 떠나지 않는다."""
+    st = _s15_load(inp.uid)
+    g = next((x for x in st.get("guests") or [] if x.get("guest_id") == inp.guest_id), None)
+    if not g:
+        raise HTTPException(400, "그런 손님은 없습니다")
+    if inp.accept:
+        if beds_state(st)["free"] <= 0:
+            raise HTTPException(400, "빈 잠자리가 없습니다. 거주실을 올리면 잠자리가 늘어납니다")
+        r = {k: v for k, v in g.items() if k not in ("guest_id", "arrived", "src", "rescued_by")}
+        r["joined"] = now_ts()
+        r.setdefault("trust", {})
+        st.setdefault("residents_list", []).append(r)
+        tr = int(EX.g("newcomers.rescue.rescuer_trust", 20))
+        for rid in g.get("rescued_by") or []:
+            res = next((x for x in st["residents_list"] if x["id"] == rid), None)
+            if res:
+                res.setdefault("trust", {})[r["id"]] = max(int(res["trust"].get(r["id"], 0)), tr)
+                r["trust"][rid] = max(int(r["trust"].get(rid, 0)), tr)
+        st["residents"] = len(st["residents_list"])
+        day_note(st, "newcomer", r["name"])
+    st["guests"] = [x for x in st.get("guests") or [] if x.get("guest_id") != inp.guest_id]
+    save_state(inp.uid, st)
+    log(inp.uid, "guest_" + ("accept" if inp.accept else "decline"), {"role": g.get("role"), "src": g.get("src")})
+    return {"ok": True, "accepted": inp.accept, "resident_id": g["id"] if inp.accept else None,
+            "entrance": entrance_public(st), "state": public_state(st, inp.uid)}
+
+
+@app.post("/api/entrance/suit_repair")
+def suit_repair(inp: UidIn):
+    st = _s15_load(inp.uid)
+    su = suits_state(st)
+    worn = [i for i, w in enumerate(su["wear"]) if w >= su["wear_limit"]]
+    if not worn:
+        raise HTTPException(400, "고칠 잠수복이 없습니다")
+    cost = {k: int(v) for k, v in (su["repair_cost"] or {}).items()}
+    lack = {k: v - int(st["resources"].get(k, 0)) for k, v in cost.items() if int(st["resources"].get(k, 0)) < v}
+    if lack:
+        raise HTTPException(400, "모자랍니다: " + " · ".join(f"{RES_KO_SRV.get(k, k)} {v}" for k, v in lack.items()))
+    for k, v in cost.items():
+        st["resources"][k] -= v
+    su["wear"][worn[0]] = 0
+    st["suits"]["shared_wear"] = su["wear"]
+    save_state(inp.uid, st)
+    return {"ok": True, "paid": cost, "suits": suits_state(st), "state": public_state(st, inp.uid)}
+
+
+@app.get("/api/expedition/options")
+def expedition_options(uid: str):
+    st = _s15_load(uid)
+    save_state(uid, st)
+    out_ids = set(st.get("outside") or [])
+    ling = lingering_now(st)
+    dests = [{"kind": "door"}] + [{"kind": "spot", "id": s} for s in DEEP_SPOT_IDS if spot_state(st, uid, s) == "found"] + \
+            [{"kind": "clue", "id": s} for s in DEEP_SPOT_IDS if spot_state(st, uid, s) == "clue"] + [{"kind": "unknown"}]
+    drows = []
+    for d in dests:
+        sp = dest_spec(st, uid, d)
+        drows.append({"dest": d, "ko": sp.get("ko"), "lengths": sp.get("lengths"), "can": not sp.get("why"),
+                      "why": sp.get("why"), "category": sp.get("cat")})
+    lens = {}
+    for k, L in (EX.g("lengths") or {}).items():
+        why = "밤 넘기기는 에어락 Lv1 이 필요합니다" if (k == "long" and room_level_of(st, "airlock") < 1) else None
+        lens[k] = {"ko": L.get("ko"), "minutes": L.get("minutes"), "tank": L.get("tank"), "can": not why, "why": why,
+                   "returns_at": now_ts() + int(L.get("minutes", 30)) * 60}
+    return {"air": air_state(st), "suits": suits_state(st), "out": exp_public(st, st.get("expedition")),
+            "lingering": ({"creature": ling, "name": (combat.CREATURES.get(ling) or {}).get("name"),
+                           "add": float((EX.g("raid_link.lingering_add") or {}).get(ling, 0))} if ling else None),
+            "residents": [{"id": r["id"], "name": r["name"], "stats": r.get("stats"),
+                           "can": not r.get("injured") and r["id"] not in out_ids,
+                           "why": ("다쳤다" if r.get("injured") else "밖에 있다" if r["id"] in out_ids else None)}
+                          for r in st.get("residents_list") or []],
+            "dests": drows, "lengths": lens, "tutorial": int(st.get("exp_count") or 0) == 0}
+
+
+class ExpIn(BaseModel):
+    uid: str
+    members: list[str]
+    dest: dict
+    length: str
+
+
+@app.post("/api/expedition/preview")
+def expedition_preview(inp: ExpIn):
+    st = _s15_load(inp.uid)
+    return exp_preview(st, inp.uid, inp.members, inp.dest, inp.length)
+
+
+@app.post("/api/expedition/start")
+def expedition_start(inp: ExpIn):
+    st = _s15_load(inp.uid)
+    ex = exp_start(st, inp.uid, inp.members, inp.dest, inp.length)
+    save_state(inp.uid, st)
+    return {"ok": True, "expedition": exp_public(st, ex), "state": public_state(st, inp.uid)}
+
+
+@app.get("/api/expedition")
+def expedition_poll(uid: str):
+    st = _s15_load(uid)
+    save_state(uid, st)
+    return {"expedition": exp_public(st, st.get("expedition")), "expedition_return": st.get("exp_unseen")}
+
+
+@app.post("/api/expedition/recall")
+def expedition_recall(inp: UidIn):
+    st = _s15_load(inp.uid)
+    ex = exp_recall(st, inp.uid)
+    save_state(inp.uid, st)
+    return {"ok": True, "arrives_at": ex["returns_at"], "kept_actions": ex["recall_keep"],
+            "expedition": exp_public(st, ex), "state": public_state(st, inp.uid)}
+
+
+@app.post("/api/expedition/seen")
+def expedition_seen(inp: UidIn):
+    st = load_state(inp.uid)
+    st["exp_unseen"] = None
+    save_state(inp.uid, st)
+    return {"ok": True}
+
+
+@app.get("/api/expedition/scene")
+def expedition_scene(uid: str):
+    st = _s15_load(uid)
+    save_state(uid, st)
+    ex = st.get("expedition")
+    if not ex:
+        raise HTTPException(404, "밖에 나간 사람이 없습니다")
+    return scene_public(st, ex)
+
+
+class SceneIn(BaseModel):
+    uid: str
+    action: str
+    i: int | None = None
+    choice: str | None = None
+    keep: list[int] | None = None
+
+
+@app.post("/api/expedition/scene")
+def expedition_scene_act(inp: SceneIn):
+    st = load_state(inp.uid)
+    tick_production(st)
+    ex = st.get("expedition")
+    if not ex:
+        raise HTTPException(400, "밖에 나간 사람이 없습니다")
+    scene_act(st, ex, inp.action, i=inp.i, choice=inp.choice, keep=inp.keep)
+    save_state(inp.uid, st)
+    return scene_public(st, ex)
+
+
+@app.get("/api/boxes")
+def boxes(uid: str):
+    st = _s15_load(uid)
+    save_state(uid, st)
+    return boxes_public(st)
+
+
+class PryIn(BaseModel):
+    uid: str
+    box_id: str
+
+
+@app.post("/api/box/pry")
+def box_pry(inp: PryIn):
+    """7일 동안 열쇠를 못 찾은 상자를 손이 가장 좋은 주민이 억지로 연다(절반)."""
+    st = _s15_load(inp.uid)
+    b = next((x for x in st.get("boxes") or [] if x["id"] == inp.box_id), None)
+    if not b:
+        raise HTTPException(400, "그런 상자는 없습니다")
+    after = int(EX.g("boxes.pry.after_days", 7))
+    if day_of(st) - int(b["found_day"]) < after:
+        raise HTTPException(400, f"{after - (day_of(st) - int(b['found_day']))}일 더 열쇠를 찾아볼 수 있습니다")
+    inside = [r for r in st.get("residents_list") or [] if r["id"] not in (st.get("outside") or []) and not r.get("injured")]
+    if not inside:
+        raise HTTPException(400, "열 사람이 없습니다")
+    who = max(inside, key=lambda r: (int((r.get("stats") or {}).get("hand", 0)), r["id"]))
+    out = box_open(st, b, float(EX.g("boxes.pry.value_mul", 0.5)), f"{inp.uid}|pry")
+    out["by"] = {"id": who["id"], "name": who["name"]}
+    save_state(inp.uid, st)
+    log(inp.uid, "box_open", {"box": b["id"], "cat": b["cat"], "by": "pry"})
+    return {"ok": True, "box_opened": out, "state": public_state(st, inp.uid)}
+
+
+class DevAdvIn(BaseModel):
+    uid: str
+    minutes: float
+
+
+@app.post("/api/dev/advance")
+def dev_advance_api(inp: DevAdvIn):
+    """★ 개발 전용(RELIC_DEV=1): 그 방주의 시계를 minutes 만큼 앞으로. 배포에는 없는 것과 같다(404)."""
+    if not DEV_MODE:
+        raise HTTPException(404, "없는 경로입니다")
+    st = load_state(inp.uid)
+    dev_advance(st, float(inp.minutes) * 60)
+    save_state(inp.uid, st)
+    return {"ok": True, "day": day_of(st)}
 
 
 # ─────────────────────────────────────────────────────────────

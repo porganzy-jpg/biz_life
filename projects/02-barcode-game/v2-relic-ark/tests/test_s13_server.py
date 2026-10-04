@@ -413,7 +413,9 @@ def t_spot_distinct():
     vent = next((x for x in ru if x["spot_id"] == "spot_vent_garden"), None)
     ok(vent and vent["progress"]["have"] == 2 and vent["unlocked"], f"서로 다른 둘 → 열수구 {vent and vent['progress']}")
     de = C.get(f"/api/day_end?uid={uid}").json()
-    ok(any(l_["id"] == "spot_found" for l_ in de["lines"]), "스팟 연 날 → 하루 마감에 spot_found 줄")
+    # S15(DECISIONS 2026-10-03 ④): 1막 스캔 문턱은 '단서'다 — 발견(하루 마감 spot_found)은 원정이 만든다
+    ok(vent["state"] == "clue" and not any(l_["id"] == "spot_found" for l_ in de["lines"]),
+       f"스캔 문턱 → 단서(state={vent['state']}), 하루 마감 spot_found 줄 없음")
 
 
 def t_codex():

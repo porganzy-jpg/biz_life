@@ -406,12 +406,19 @@ def raid_chance(grade: int) -> float:
     return _num(grade_conf(grade), "raid_chance", RAID_CHANCE_FALLBACK)
 
 
-def min_grade(cid: str) -> int:
+def min_grade(cid: str, residents: int | None = None) -> int:
+    """그 생물이 처음 나올 수 있는 등급. S15: threats.json `min_grade_override` 가 있으면
+    주민 수(residents)가 문턱을 넘을 때 다른 등급을 쓴다(예: 덮개 — 손님으로 주민이 늘면 보류를 푼다).
+    residents 를 주지 않으면 예전과 같다."""
     v = (THR.get("min_grade") or {}).get(cid)
-    return int(v) if isinstance(v, (int, float)) else 1
+    base = int(v) if isinstance(v, (int, float)) else 1
+    ov = (THR.get("min_grade_override") or {}).get(cid)
+    if residents is not None and isinstance(ov, dict) and isinstance(ov.get("min_grade"), (int, float))             and int(residents) >= int(ov.get("residents_at_least") or 0):
+        return int(ov["min_grade"])
+    return base
 
 
-def creature_weights(grade: int) -> dict:
+def creature_weights(grade: int, residents: int | None = None) -> dict:
     """그 등급에서 각 생물이 뽑힐 가중치.
 
     기존 넷·문어의 값은 threats.json 의 표 그대로 쓰고, **신규 일곱은 min_grade 가 열린 등급부터
@@ -423,7 +430,7 @@ def creature_weights(grade: int) -> dict:
     base = {k: v for k, v in (conf.get("weights") or {}).items() if isinstance(v, (int, float))}
     threat: dict[str, float] = {}
     for cid, c in CREATURES.items():
-        if not c["threat"] or min_grade(cid) > grade:
+        if not c["threat"] or min_grade(cid, residents) > grade:
             continue
         w = base.get(cid)
         threat[cid] = float(w) if isinstance(w, (int, float)) else float(NEW_CREATURE_WEIGHT)
@@ -440,7 +447,7 @@ def creature_weights(grade: int) -> dict:
         q_total = float(base.get("octopus") or 3)
     else:
         q_total = t_sum * (1.0 - share) / share
-    avail = {k: v for k, v in QUIET_SPLIT.items() if min_grade(k) <= grade}
+    avail = {k: v for k, v in QUIET_SPLIT.items() if min_grade(k, residents) <= grade}
     a_sum = sum(avail.values()) or 1.0
     out = dict(threat)
     for cid, frac in avail.items():
@@ -461,14 +468,15 @@ def raid_rng(uid: str, day: int, purpose: str = "") -> random.Random:
     return random.Random(f"{uid}|{day}|raid{('|' + purpose) if purpose else ''}")
 
 
-def pick_creature(uid: str, day: int, grade: int = 1, force: str | None = None) -> dict | None:
+def pick_creature(uid: str, day: int, grade: int = 1, force: str | None = None,
+                  residents: int | None = None) -> dict | None:
     if force:
         return CREATURES.get(force)
     if day < RAID_FIRST_DAY:
         return None
     if raid_rng(uid, day, "roll").random() >= raid_chance(grade):
         return None
-    w = creature_weights(grade)
+    w = creature_weights(grade, residents)
     ids = sorted(w)
     pick = raid_rng(uid, day, f"who|g{grade}").choices(ids, weights=[w[i] for i in ids], k=1)[0]
     return CREATURES[pick]
