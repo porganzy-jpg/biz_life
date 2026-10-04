@@ -401,7 +401,7 @@ def threat_today(rng: random.Random, grade: int) -> str | None:
     return rng.choices(list(w), weights=list(w.values()))[0]
 
 
-def run_day_sim(profile, days: int, seed: int, expedition: bool = True, raid_policy: str = "water_first",
+def run_day_sim(profile, days: int, seed: int, expedition: bool = True, raid_policy: str = "water_first", bonus_guests: dict | None = None,
                 dest_policy: str = "mixed", skip_rate: float = 0.0) -> dict:
     name, scans_per_day, pool, sessions = profile
     rng = random.Random(seed)
@@ -571,8 +571,15 @@ def run_day_sim(profile, days: int, seed: int, expedition: bool = True, raid_pol
         if raid_pending:
             stats["raid_days"] += 1
 
-        # 문 두드림 (아침)
-        if len(guests) < EXP["entrance"]["guest_spots"]:
+        # 신인류(sim_newhumans): 공명 다음 날 문간에 온다. 손님 자리와 무관하게 기다린다(사라지지 않는다).
+        #   그날은 그것이 '두드림'이다 — 보통 두드림을 굴리지 않는다
+        nh = (bonus_guests or {}).get(day, 0)
+        for _ in range(nh):
+            guests.insert(0, {"day": day, "src": "newhuman"})
+            stats["newhumans"] = stats.get("newhumans", 0) + 1
+        if nh:
+            pass
+        elif len(guests) < EXP["entrance"]["guest_spots"]:
             if day == NEWC["knock"]["first_knock_day"] or (day > NEWC["knock"]["first_knock_day"]
                                                            and rng.random() < NEWC["knock"]["daily_chance"]):
                 guests.append({"day": day, "src": "knock"})
