@@ -393,6 +393,7 @@ def t_spots_clue_found():
     for k in range(6):
         pv = post("/api/expedition/preview", {"uid": uid, "members": [sc_["id"]], "dest": {"kind": "clue", "id": "spot_jelly_bloom"}, "length": "half"})
         post("/api/expedition/start", {"uid": uid, "members": [sc_["id"]], "dest": {"kind": "clue", "id": "spot_jelly_bloom"}, "length": "half"})
+        scn = get(f"/api/expedition/scene?uid={uid}")
         adv(uid, 60 * 13)
         ret = get(f"/api/ark?uid={uid}")["expedition_return"]
         st = S.load_state(uid)
@@ -401,6 +402,9 @@ def t_spots_clue_found():
         S.save_state(uid, st)
         if ret and ret["discovered"]:
             found = True
+            ok(ret["discovered"].get("pos") == (scn["discovers"] or {}).get("pos")
+               and ret["discovered"]["pos"] in scn["waypoints"] and ret["discovered"]["pos"] != {"x": 0.0, "z": 0.0},
+               f"discovered.pos {ret['discovered'].get('pos')} = 장면 discovers.pos (같은 좌표계, 경로 위)")
             break
     ok(found and S.spot_found(S.load_state(uid), uid, "spot_jelly_bloom"), f"단서 원정 {k + 1}번째에 발견(발견 확률 {pv['discover_p']})")
     sp = {x["id"]: x for x in get(f"/api/spots?uid={uid}")}

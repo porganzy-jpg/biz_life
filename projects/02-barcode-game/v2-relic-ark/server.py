@@ -2908,6 +2908,12 @@ def scene_geometry(ex: dict) -> dict:
     return {"waypoints": pts}
 
 
+def discover_pos(ex: dict) -> dict:
+    """발견 연출 자리 = 장면 경로에서 문(원점)에서 가장 먼 점. scene GET 과 같은 좌표계(m, 문 원점)."""
+    wp = scene_geometry(ex)["waypoints"]
+    return dict(max(wp, key=lambda p: p["x"] ** 2 + p["z"] ** 2))
+
+
 def scene_next(ex: dict) -> str:
     res, sc = ex["result"], ex["scene"]
     if sc.get("committed"):
@@ -2958,7 +2964,7 @@ def scene_public(st: dict, ex: dict) -> dict:
              and int(p["i"]) not in set(sc.get("dropped") or [])]
     disc = None
     if ex["dest"].get("kind") == "clue" and res["u_discover"] < res["discover_p"]:
-        disc = {"spot_id": ex["dest"].get("id"), "pos": max(wp, key=lambda p: p["x"] ** 2 + p["z"] ** 2)}
+        disc = {"spot_id": ex["dest"].get("id"), "pos": discover_pos(ex)}
     by = {r["id"]: r for r in st.get("residents_list") or []}
     spent = len(sc.get("picked") or [])
     return {"exp_id": ex["id"], "terrain_seed": f"{ex['seed'].split('|')[0]}|{ex['dest'].get('id') or ex['dest'].get('kind')}",
@@ -3211,7 +3217,8 @@ def exp_settle(st: dict, uid: str) -> dict | None:
             if sid not in st["spots_found"]:
                 st["spots_found"].append(sid)
             spot = next((x for x in SPOTS if x.get("id") == sid), {})
-            discovered = {"spot_id": sid, "name": spot.get("name"), "discovery_text": spot.get("discovery_text")}
+            discovered = {"spot_id": sid, "name": spot.get("name"), "discovery_text": spot.get("discovery_text"),
+                          "pos": discover_pos(ex)}         # 3D 가 발견 연출을 그 자리에서 튼다(scene 좌표계)
             flags.append("healing_spot_found")
             day_note(st, "spot", spot.get("name") or sid)
         else:
