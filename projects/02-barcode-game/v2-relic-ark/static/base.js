@@ -244,7 +244,11 @@
                doorGap: (s.w / 2) / PX_PER_M + 0.3 })) };            // 승강로 바로 바깥에 줄을 선다
     },
     nodeOf(where, i, n) {                            // where: slot 번호 | 'hall' | 'out'
-      if (where === 'out') { const o = outsideRect(); return { floor: 0, x: (o.x + o.w * (i + 1) / (n + 1)) / PX_PER_M }; }
+      if (where === 'out') {                           // S15: 밖 = 원정. 입구 해치까지 걸어 나간다
+        const E = MAP().entrance;
+        if (E && E.hatch) return { floor: HALL_FLOOR, x: (E.hatch.x - 20 - i * 30) / PX_PER_M };
+        const o = outsideRect(); return { floor: 0, x: (o.x + o.w * (i + 1) / (n + 1)) / PX_PER_M };
+      }
       if (where === 'hall') { const h = hallRect(); return { floor: HALL_FLOOR, x: (h.x + h.w * (i + 1) / (n + 1)) / PX_PER_M }; }
       if (typeof where === 'string' && where.indexOf('pod:') === 0) {
         const sp = podSpot(+where.slice(4)); if (sp) return { floor: HALL_FLOOR, x: sp.x / PX_PER_M };
@@ -1094,17 +1098,51 @@
       const p = byId[id], sp = podSpot(podSeat[id]);
       if (!p || !sp || movingNow[id] || (dragging && dragging.id === id)) return;
       let pose = POD_POSE[sp.pose] || 'idle', room = null, opt = { mirror: sp.face > 0 };
+      // S15 문간 활동: 수선(손)=장비 손질 · 망보기(눈)=창 · 공기 펌프(숨)=일 · 마중(담)=문 앞. 밖의 친구를 기다리는 사람은 창
+      const act = K.ext.podAct && K.ext.podAct(id);
+      if (act) pose = { hand: 'work', eye: 'lounge', breath: 'work', nerve: 'idle', waiting: 'lounge', kid: 'idle' }[act] || pose;
       if (pose === 'work') room = 'gear';                // work_34 로 떨어진다(방 행 없음)
-      if (sp.pose === 'lean_wall' && glanceAt(id, t)) { pose = 'glance'; opt.frame = glanceFrame(id, t); }
+      if ((sp.pose === 'lean_wall' || act === 'nerve') && glanceAt(id, t)) { pose = 'glance'; opt.frame = glanceFrame(id, t); }
       const fy = sy(sp.floor_y), px = sx(sp.x);
       const box = drawPerson(p, px, fy, t, i, 1, lit, pose, room, opt);
       podPoseLog[sp.pose] = (podPoseLog[sp.pose] || 0) + 1;
+      if (act && K.ext.podLabel && cam.z > 0.3) {          // 작은 이름표(활동) — 눌러야 설명
+        const lb = K.ext.podLabel(act);
+        if (lb) { ctx.font = 'bold 11px "Noto Sans KR",sans-serif'; const tw = ctx.measureText(lb).width + 10;
+          ctx.fillStyle = act === 'waiting' ? 'rgba(40,52,60,0.9)' : 'rgba(20,17,12,0.82)'; ctx.fillRect(px - tw / 2, fy + 4, tw, 16);
+          ctx.fillStyle = act === 'waiting' ? '#bfe0e6' : '#e6d7b0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lb, px, fy + 12);
+          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+      }
       if (carry && carry.id === id) {
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
         ctx.strokeRect(px - box.w / 2 - 3, fy - box.h - 6, box.w + 6, box.h + 10);
       }
       hits.push({ kind: 'person', id, name: p.name, role: p.role, from: null,
                   x: px - box.w / 2 - 6, y: fy - box.h - 8, w: box.w + 12, h: box.h + 14 });
+    });
+    // S15 손님: 비어 있는 포드 자리(없으면 해치 옆)에 앉아 기다린다. 누르면 손님 카드
+    const guests = (K.ext.guests && K.ext.guests()) || [];
+    if (guests.length) {
+      const used = new Set(Object.values(podSeat)), spots = E.spots || [];
+      const free = spots.map((sp, k) => k).filter(k => !used.has(k)).reverse();
+      guests.forEach((g, gi) => {
+        const sp = free[gi] != null ? spots[free[gi]] : { x: (E.hatch ? E.hatch.x - 60 : wa.x + wa.w - 40) - gi * 50, floor_y: wa.floor_y || wa.y + wa.h };
+        const fy = sy(sp.floor_y), px = sx(sp.x);
+        const box = drawPerson({ id: g.id, role: g.role || 'trader', name: g.name }, px, fy, t, 7 + gi, 1, lit, gi === 0 && glanceAt(g.id, t) ? 'glance' : 'idle', null,
+                               { frame: glanceFrame(g.id, t) });
+        ctx.font = 'bold 11px "Noto Sans KR",sans-serif'; const lb = '손님'; const tw = ctx.measureText(lb).width + 10;
+        ctx.fillStyle = 'rgba(70,52,20,0.92)'; ctx.fillRect(px - tw / 2, fy + 4, tw, 16);
+        ctx.fillStyle = '#ffe2a8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lb, px, fy + 12);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        hits.push({ kind: 'guest', id: g.id, x: px - box.w / 2 - 6, y: fy - box.h - 8, w: box.w + 12, h: box.h + 30 });
+      });
+    }
+    // S15 봉인 상자(선반이 찼거나 아직 선반 밖): 문간 바닥 왼쪽에 무늬 찍힌 작은 상자. 누르면 상자 카드
+    const boxes = (K.ext.floorBoxes && K.ext.floorBoxes()) || [];
+    boxes.forEach((b, bi) => {
+      const bw = Math.max(18, 40 * cam.z), bx = sx(wa.x - 80 - bi * 50), by = sy((wa.floor_y || wa.y + wa.h)) - bw * 0.78;   // 안쪽 문 바로 밖 홀 바닥(사람과 겹치지 않게)
+      drawSealedBox(bx, by, bw, b, t);
+      hits.push({ kind: 'box', id: b.id, x: bx - 4, y: by - 4, w: Math.max(18, 40 * cam.z) + 8, h: Math.max(18, 40 * cam.z) * 0.8 + 8 });
     });
     // S13: 문어 선물 — 하루 한 번 포드 위에 작은 방울(누르면 방송, base_collect.js)
     const gift = K.ext.gift;
@@ -1120,6 +1158,30 @@
     if (wa) hits.push({ kind: 'hall', x: sx(wa.x), y: sy(wa.y), w: wa.w * cam.z, h: wa.h * cam.z });   // 포드 = 홀의 일부
   }
   const podPoseLog = {};
+  // 봉인 상자 한 개: 나무 상자 + 뚜껑에 갈래 무늬(이삭·물방울·엇갈린 띠·번개·깃·겹친 장·실타래·연기, 빈 원)
+  function drawSealedBox(x, y, w, b, t) {
+    const h = w * 0.78;
+    ctx.fillStyle = '#5a3f22'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#7a5630'; ctx.fillRect(x, y, w, h * 0.28);
+    ctx.strokeStyle = '#14110c'; ctx.lineWidth = Math.max(1, w / 20); ctx.strokeRect(x, y, w, h);
+    const cx = x + w / 2, cy = y + h * 0.62, r = w * 0.22;
+    ctx.strokeStyle = b.pry_ok ? '#ffd59a' : '#e6d7b0'; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = Math.max(1, w / 16);
+    ctx.beginPath();
+    switch (b.any ? 'blank' : b.cat) {
+      case 'food': for (let k = -1; k <= 1; k++) { ctx.moveTo(cx + k * r * 0.7, cy + r); ctx.lineTo(cx + k * r * 0.7, cy - r); } break;
+      case 'drink': ctx.arc(cx, cy + r * 0.2, r * 0.6, 0, Math.PI); ctx.moveTo(cx - r * 0.6, cy + r * 0.2); ctx.lineTo(cx, cy - r); ctx.lineTo(cx + r * 0.6, cy + r * 0.2); break;
+      case 'medical': ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r); break;
+      case 'electronics': ctx.moveTo(cx - r * 0.3, cy - r); ctx.lineTo(cx + r * 0.2, cy); ctx.lineTo(cx - r * 0.2, cy); ctx.lineTo(cx + r * 0.3, cy + r); break;
+      case 'stationery': ctx.moveTo(cx - r, cy + r); ctx.lineTo(cx + r, cy - r); ctx.moveTo(cx, cy); ctx.lineTo(cx + r * 0.5, cy + r * 0.3); break;
+      case 'book': for (let k = 0; k < 3; k++) { ctx.moveTo(cx - r, cy - r * 0.6 + k * r * 0.6); ctx.lineTo(cx + r, cy - r * 0.6 + k * r * 0.6); } break;
+      case 'apparel': ctx.arc(cx, cy, r * 0.8, 0, 6.2832); ctx.moveTo(cx + r * 0.4, cy); ctx.arc(cx, cy, r * 0.4, 0, 6.2832); break;
+      case 'tobacco': for (let k = -1; k <= 1; k++) { ctx.moveTo(cx + k * r * 0.6, cy + r); ctx.quadraticCurveTo(cx + k * r * 0.6 + r * 0.4, cy, cx + k * r * 0.6, cy - r); } break;
+      default: ctx.arc(cx, cy, r * 0.8, 0, 6.2832);
+    }
+    ctx.stroke();
+    if (b.pry_ok) { ctx.fillStyle = 'rgba(255,213,154,' + (0.25 + 0.2 * Math.sin(t / 400)).toFixed(3) + ')'; ctx.fillRect(x, y, w, h); }
+  }
+
   // 해치: 기본은 닫힘. hatchCycle() 이 약 2초 열고 물방울을 띄운 뒤 닫기(탐사대·도착 체계가 부를 자리)
   let hatchOpenUntil = 0, hatchT0 = 0;
   const hatchImgs = {};
@@ -1151,7 +1213,9 @@
   }
   function drawOutside(t) {
     // 밖에 나가 있는 사람(탑 오른 외벽 바깥, 심연 쪽). 손톱 무리의 날에만 보이고, 들이면 사라진다
-    const ids = (cb && cb.outside) || [];
+    // S15: 원정 나간 사람은 그리지 않는다(바깥에 있다 — 위 한 줄의 원정 표시가 대신한다)
+    const away = (K.ext.expMembers && K.ext.expMembers()) || [];
+    const ids = ((cb && cb.outside) || []).filter(id => away.indexOf(id) < 0);
     if (!ids.length) return;
     const o = outsideRect();
     const x = sx(o.x), y = sy(o.y), w = o.w * cam.z, hh = o.h * cam.z;
@@ -1205,9 +1269,11 @@
     const now = t / 1000, ids = Object.keys(movingNow);
     if (!ids.length) return;
     const byId = {}; (ark.residents_list || []).forEach(p => { byId[p.id] = p; });
+    const away = (K.ext.expMembers && K.ext.expMembers()) || [];
     ids.forEach((id, i) => {
       const p = byId[id], m = traffic.at(id, now);
       if (!p || !m || (dragging && dragging.id === id)) return;
+      if (away.indexOf(id) >= 0 && m.done) return;
       const w = MOVE_ADAPTER.toWorld(m.floor, m.x);
       const st = moverState[id] || (moverState[id] = { face: 1, pose: null, since: t });
       if (m.facing) st.face = m.facing;
@@ -2391,7 +2457,8 @@
     const extra = (vr ? '<span class="variantline">' + esc(plain(vr.ko || '')) + '</span>' : '') +
       (r.first_meet || []).map(m => '<span class="meetline">' + esc(plain(m.line || '')) + '</span>').join('') +
       (r.family_set && r.family_set.ko ? '<span class="famline' + (r.family_set.just_completed ? ' done' : '') + '">' + esc(plain(r.family_set.ko)) + '</span>' : '') +
-      (r.wishes_done || []).map(w => '<span class="wishline">' + esc(plain(w.line || '')) + '</span>').join('');
+      (r.wishes_done || []).map(w => '<span class="wishline">' + esc(plain(w.line || '')) + '</span>').join('') +
+      (r.box_opened && K.ext.boxOpenedLine ? '<span class="boxline">' + esc(K.ext.boxOpenedLine(r)) + '</span>' : '');
     $('#rgain').innerHTML = (r.first_time ? '<span class="first">도감에 처음 적힌 유물</span><br>' : '') +
       (g || '<span>이미 읽은 성문이라 새로 얻은 건 없습니다</span>') +
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
@@ -2589,7 +2656,7 @@
     if (c.hall) {
       const n = (ark.residents_list || []).filter(r => cb.stations[r.id] === undefined && cb.outside.indexOf(r.id) < 0).length;
       h = '<h4>홀<small>Lv' + esc(ark.hall_level || 1) + '</small></h4><div class="rcmeta">자리 안 정한 분 ' + n + '명</div>' +
-          '<div class="rcbtns"><button data-c="more">자세히</button></div>';
+          '<div class="rcbtns">' + (K.ext.openSendOff ? '<button data-c="send" class="on">내보내기</button>' : '') + '<button data-c="more">자세히</button></div>';
     } else if (c.sealed) {
       const deep = (c.sealed.depth_m || 0) >= TRENCH_M && c.sealed.kind !== 'rock';
       const bl = towerLore && towerLore.below_limit && towerLore.below_limit.line;
@@ -2637,6 +2704,7 @@
       if (k === 'more') { const cc = card; closeCard(); if (cc.hall) openHallPanel(); else openPanel(cc.slot); }
       else if (k === 'build') { const sl = card.slot; closeCard(); openPanel(sl); }   // 빈 칸·물 찬 칸 모두 같은 짓기 흐름
       else if (k === 'repair') { const sl = card.slot; repairRoom(sl); }
+      else if (k === 'send') { closeCard(); K.ext.openSendOff && K.ext.openSendOff(); }
       else if (k === 'light') { const sl = card.slot; setLight(sl, !lightOf(sl)).then(() => { if (card && card.slot === sl) openCard({ slot: sl }); }); }
     }));
     placeCard();
@@ -2957,10 +3025,13 @@
     if (d.person) {                            // 탭 1: 사람을 집는다 — 그 사람의 카드도 함께 연다
       setCarry({ id: d.person.id, name: d.person.name, role: d.person.role });
       closeCard(); closePops();
-      toast(d.person.name + ' 님, 옮겨 갈 방을 눌러 주세요');
+      const cap = d.person.from == null && K.ext.podCaption ? K.ext.podCaption(d.person.id) : '';
+      toast((cap ? cap + ' ' : '') + d.person.name + ' 님, 옮겨 갈 방을 눌러 주세요');
       return;
     }
     if (hitAt(px, py, 'gift') && K.ext.onGift) { K.ext.onGift(); return; }
+    const gh = hitAt(px, py, 'guest'); if (gh && K.ext.onGuest) { K.ext.onGuest(gh.id); return; }
+    const bh = hitAt(px, py, 'box'); if (bh && K.ext.onBox) { K.ext.onBox(bh.id); return; }
     const bb = hitAt(px, py, 'bubble');
     if (bb) { collectBubble(bb); return; }
     const sh = hitAt(px, py, 'shelf');
@@ -3027,6 +3098,7 @@
     flyToSlot: (s) => flyToSlot(s), openCard: (c) => openCard(c), floatWord: (slot, t, c) => floatWord(slot, t, c),
     ext: {},                                           // base_collect.js 가 채운다(방 카드·그리기에 끼우는 자리)
   };
+  K.ext.drawSealedBox = drawSealedBox;
   window.ARKBASE = {
     _k: K,
     reload: () => load(false), refreshRaid, fit, uid,

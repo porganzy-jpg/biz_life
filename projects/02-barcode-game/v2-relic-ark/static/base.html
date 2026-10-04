@@ -26,6 +26,8 @@
     <!-- 공기·깊이: 작은 아이콘 하나. 누르면 띠가 펼쳐진다 -->
     <!-- S13-B: 오늘의 쪽지(사건). 있을 때만 뜬다. 누르면 작은 카드 -->
     <button class="evbtn" id="evbtn" hidden title="오늘의 쪽지"><i>✉</i><span id="evline">쪽지</span></button>
+    <!-- S15: 원정 나가 있는 동안 — 누가·몇 시 귀환. 누르면 상태 카드 -->
+    <button class="xpbtn" id="xpbtn" hidden title="바깥에 나간 분"><i>⇢</i><span id="xpline">바깥</span></button>
     <button class="gaugebtn" id="gaugebtn" title="공기 · 깊이" aria-expanded="false"><span class="gmini" id="gmini"></span></button>
   </header>
   <div class="gaugepop" id="gaugepop" hidden>
@@ -70,6 +72,7 @@
       <button id="codexbtn" class="sw" title="도감">도감</button>
       <button id="rumorbtn" class="sw" title="소문">소문</button>
       <button id="dayendbtn" class="sw" title="오늘 마감">오늘 마감</button>
+      <button id="sendbtn" class="sw" title="바깥으로 내보내기">내보내기</button>
     </div>
   </div>
 
@@ -137,5 +140,6 @@
 <script src="/static/m5map.js"></script>
 <script src="/static/base.js"></script>
 <script src="/static/base_collect.js"></script>
+<script src="/static/base_expedition.js"></script>
 </body>
 </html>

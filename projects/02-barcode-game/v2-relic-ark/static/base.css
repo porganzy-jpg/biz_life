@@ -620,3 +620,21 @@ body{
 .zoomctl{top:auto; bottom:76px; right:18px; transform:none; gap:4px}
 .zoomctl button{width:40px; height:36px; opacity:.6}
 .zoomctl:hover button{opacity:.95}
+/* ══ S15-B 원정·문간 ══ */
+.xpbtn{flex:0 0 auto; position:relative; overflow:hidden; display:flex; align-items:center; gap:6px; height:32px; padding:0 12px 0 8px; border-radius:16px; cursor:pointer;
+  color:#cfe8ec; font-size:12.5px; font-weight:700; background:rgba(12,40,48,.92); border:1px solid #2f6670; max-width:240px}
+.xpbtn::after{content:""; position:absolute; left:0; bottom:0; height:3px; width:var(--p,0%); background:#6fc9c4}
+.xpbtn i{font-style:normal} .xpbtn span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.airbar{position:relative; height:10px; margin:2px 0 8px; background:#0b0e0c; border:1px solid #2a2419; border-radius:5px; overflow:visible}
+.airbar i{display:block; height:100%; background:linear-gradient(90deg,#6fc9c4,#cfe8ec); border-radius:5px}
+.airbar b{position:absolute; top:-3px; width:2px; height:16px; background:#d08a72}
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px}
+.chip{min-height:40px; padding:0 12px; font-size:12.5px; cursor:pointer; color:var(--ink); background:#151a17; border:1px solid #2a2419; border-radius:20px}
+.chip.on{color:#1a150e; background:var(--lamp); border-color:#5a4320; font-weight:700}
+.chip:disabled{opacity:.4; cursor:not-allowed}
+.chip small{font-weight:400; opacity:.8}
+.bopt.pick.on{border-left-color:#6fc9c4; background:#14231f}
+.xpkv b{color:var(--cream)} .xpdanger{margin:3px 0; font-size:12px; color:#b9ae94}
+.rgain .boxline, .boxline{display:block; margin-top:4px; color:#e8c98a}
+.kv .dim{opacity:.6}
+@media (max-height:500px){ .xpbtn{height:28px; font-size:11.5px; max-width:150px} }
