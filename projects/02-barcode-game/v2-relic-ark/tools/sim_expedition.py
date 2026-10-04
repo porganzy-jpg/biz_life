@@ -429,11 +429,11 @@ def run_day_sim(profile, days: int, seed: int, expedition: bool = True, raid_pol
              "boxes_pried": 0, "relics": 0, "injuries": 0, "imprints": 0, "imprints_30": 0, "late": 0,
              "dangers": 0, "danger_fail": 0, "newcomers_knock": 0, "newcomers_rescue": 0, "rescue_turned": 0,
              "discoveries": 0, "out_at_raid": 0, "raid_days": 0, "lingering_trips": 0, "left": 0,
-             "recalled": 0, "per_day": []}
+             "recalled": 0, "fork_lit": 0, "fork_n": 0, "per_day": []}
     skipped = 0
 
     def beds():
-        return {0: 3, 1: 6, 2: 9, 3: 12}[ark.rooms.get("quarters", 0)]
+        return int(NEWC["beds_by_quarters_level"][str(ark.rooms.get("quarters", 0))])
 
     def suits():
         return EXP["entrance"]["shared_suits"] + (1 if ark.rooms.get("airlock", 0) >= 1 else 0)
@@ -657,6 +657,10 @@ def run_day_sim(profile, days: int, seed: int, expedition: bool = True, raid_pol
                 if raid_pending and raid_policy == "road_first":
                     linger = creature
                     stats["lingering_trips"] += 1
+                fk = EXP["scene"]["fork"]
+                low = min(ark.res.get(k, 0) for k in fk["auto_low_materials"])
+                stats["fork_lit"] += (len(boxes) >= fk["auto_box_backlog"] or low < fk["auto_low_stock"])
+                stats["fork_n"] += 1
                 trip = run_trip(rng, party, length, dest, recent_cats(), lingering=linger,
                                 learning=trips_done < DANGER["learning_trips_without_danger"])
                 if raid_pending and raid_policy == "road_first" and creature == "claws":
@@ -883,6 +887,8 @@ def cost_table(days: int, allruns: dict):
               f"{mean(r['imprints'] for r in runs):<11.1f}{mean(r['imprints_30'] for r in runs) / (min(days, 30) / 7):<14.2f}"
               f"{mean(r['newcomers_knock'] for r in runs):.1f}/{mean(r['newcomers_rescue'] for r in runs):.1f}")
     print("  죽음 0, 돌아오지 못함 0, 장비 소멸 0 — 규칙상 0 이라 칸이 없다.")
+    print("  X10 갈림길 자동 규칙(expedition.json scene.fork.auto)이 불빛을 고른 비율: " + " · ".join(
+        f"{name} {mean(r['fork_lit'] / max(1, r['fork_n']) for r in runs):.0%}" for name, runs in allruns.items()))
     print(f"  기준: 부상 ≤ 1.0/주, 원정 각인 ≤ 1.0/주(첫 30일).")
 
 

@@ -180,7 +180,7 @@ def sim_ark(uid: str, policy: str, on: bool, days: int = 30):
                 res = C.SCARRED
         elif policy == "lazy_spread":
             if g == "all_inside":
-                st["outside"] = S.send_outside(st, uid, day)
+                st["outside"] = []        # S15: 무작위 차출 폐지 — 밖에 있는 사람은 원정대뿐(이 sim 에는 원정이 없다)
             res = judge(st, cre, slot, sev, grade, [], 0)["result"]
         else:
             # 성실: 관문 행동을 하고, 옮길 사람의 부분집합을 고른다
@@ -228,7 +228,7 @@ def sim_ark(uid: str, policy: str, on: bool, days: int = 30):
                 chosen = pick[2]
                 if g == "stand_still":
                     lid["revealed_moves_before"] += 1
-            if policy == "smart" and on and res == C.BREACHED:
+            if policy == "smart" and on and res == C.BREACHED and STK["night_judge"]["worst_result"] == "scarred":
                 res = C.SCARRED          # 미리보기가 '상실'이면 누르지 않고 21시 판정(최악 금)에 맡긴다
                 out["미룸"] += 1
             if on:
@@ -300,8 +300,9 @@ def combat_tables():
             print(f"{names[pol]:<34}{'후' if on else '전':<4}" + "".join(f"{o[k] / tot:<7.0%}" for k in (C.HELD, C.PASSED, C.SCARRED, C.BREACHED))
                   + f"{o['무판정'] / tot:<8.0%}{statistics.mean(r['lost'] for r in rs):<9.2f}{statistics.mean(r['cracked'] for r in rs):<11.2f}"
                   f"{statistics.mean(r['prod'] for r in rs):<11.0f}{rep:<8.1f}")
-    print("  '누르지 않기'는 전에는 아무 일도 없었다(무판정 100%). 후에는 21시에 서 있는 배치로 판정되고 최악이 '금'이다.")
-    print("  '성실 + 미룸'(후에만 존재): 미리보기가 상실이면 누르지 않는다 → 방 상실 0. 상실이 '동의한 결과'만 남는다(§3 판단).")
+    print(f"  '누르지 않기'는 전에는 아무 일도 없었다(무판정 100%). 후에는 21시에 서 있는 배치로 판정된다(최악 = {STK['night_judge']['worst_result']}).")
+    print("  2026-10-03 사용자 결정: 밤 판정은 누른 것과 같다(상한 없음). 대신 잃은 방은 물 찬 칸으로 남아 다시 되찾는다.")
+    print("  '성실 + 미룸': 상한이 있을 때만 의미가 있다(상한 없음 결정 뒤에는 성실과 같은 줄이 나와야 맞다).")
     print("  게으름(누르기만)의 방 상실은 이 묶음이 고치지 않는다 — 접촉을 직접 누른 판정에는 상한이 없다(§6 질문).")
 
     hr("T4. 덮개 — 대상 방 공개 전/후 (성실 정책)")
