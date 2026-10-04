@@ -119,7 +119,7 @@
   //  2. 원정 보내기 — /api/expedition/options → preview → start
   // ══════════════════════════════════════════════════════════════
   let opts = null, sel = { members: [], dest: null, length: null }, preview = null;
-  const LEN_KEY = { short: 'short', half: 'half', long: 'overnight' };
+  const LEN_KEY = { short: 'short', half: 'half', long: 'long' };   // 텍스트 키 = 서버 id(scenario_S15 §F3)
   async function openSendOff(preset) {
     K.closeMenu();
     const body = K.panel('<h2>' + esc(TT('expedition.send_title', {}, '내보내기')) + '</h2><p class="sub">불러오는 중입니다</p>');
@@ -199,7 +199,9 @@
       (preview.discover_p ? '<span>찾을 확률 <b>' + pct(preview.discover_p) + '</b></span>' : '') +
       (preview.rescue_p ? '<span>사람을 만날 확률 <b>' + pct(preview.rescue_p) + '</b></span>' : '') +
       '<span>돌아오는 시각 <b>' + esc(clock(preview.returns_at)) + '</b></span></div>' +
-      (d.kinds || []).slice(0, 4).map(k => '<p class="xpdanger">' + esc(k.ko) + ' · ' + esc(((K.ark.stats_meta || {}).ko || {})[k.stat] || k.stat) + '으로 넘길 확률 ' + pct(k.p_pass) + '</p>').join('') +
+      (!d.p ? '<p class="xpdanger calm">' + esc(TT(opts && opts.tutorial ? 'expedition.preview_labels.safe_tutorial' : 'expedition.preview_labels.safe',
+            {}, opts && opts.tutorial ? '첫 원정은 문 앞까지만 다녀옵니다. 위험한 일은 없습니다.' : '이번 길에는 위험한 일이 없습니다.')) + '</p>' : '') +
+      (!d.p ? [] : (d.kinds || [])).slice(0, 4).map(k => '<p class="xpdanger">' + esc(k.ko) + ' · ' + esc(((K.ark.stats_meta || {}).ko || {})[k.stat] || k.stat) + '으로 넘길 확률 ' + pct(k.p_pass) + '</p>').join('') +
       (preview.warnings || []).map(w => '<p class="rno">' + esc(K.plain(w)) + '</p>').join('') +
       (preview.errors || []).map(w => '<p class="lost">' + esc(K.plain(w)) + '</p>').join('');
   }
@@ -297,7 +299,7 @@
     h += rows.length ? '<div class="kv">' + rows.join('') + '</div>' : '<p class="desc">' + esc(TT('expedition.summary.empty', {}, '이번에는 빈손입니다.')) + '</p>';
     (hv.boxes || []).forEach(b => { h += '<p class="boxline">' + esc(TT('sealed_box.on_shelf', { pattern: boxName(b) }, '「' + boxName(b) + '」 상자를 문간에 두었습니다. 같은 갈래 물건을 찍으시면 열립니다.')) + '</p>'; });
     if (ret.danger) {
-      const dk = { air: 'air_leak', beast: 'big_one', seam: 'seam', lost: 'lost' }[ret.danger.kind] || ret.danger.kind;
+      const dk = ret.danger.kind;                     // 텍스트 키 = 서버 id(air·beast·seam·lost)
       h += '<h3>바깥에서</h3><p class="desc">' + esc(TT('expedition.danger.kinds.' + dk + '.prompt', {}, ret.danger.ko || '')) + ' ' +
         esc(TT('expedition.danger.kinds.' + dk + '.' + (ret.danger.ok ? 'pass' : 'fail'), {}, '')) + '</p>';
     }
@@ -328,8 +330,9 @@
     boxAt = performance.now();
     try { boxes = await K.api('/api/boxes?uid=' + encodeURIComponent(K.uid)) || []; } catch (e) { boxes = []; }
   }
-  const boxName = (b) => (b.any || b.cat === 'any') ? TT('sealed_box.blank.name', {}, '빈 원')
-    : TT('sealed_box.patterns.' + b.cat + '.name', {}, PAT_FB[b.cat] || '알 수 없는 무늬');
+  // 아는 갈래 여덟만 무늬 이름. 그 밖(blank·any·unknown·처음 보는 값)은 전부 「빈 원」 — 원시 id 를 화면에 내지 않는다
+  const boxName = (b) => (!b.any && PAT_FB[b.cat]) ? TT('sealed_box.patterns.' + b.cat + '.name', {}, PAT_FB[b.cat])
+    : TT('sealed_box.patterns.blank.name', {}, '빈 원');
   // 문장 묶음이 아직 안 올 때의 무늬 이름(시나리오 expedition_text.json 과 같은 이름)
   const PAT_FB = { food: '이삭 무늬', drink: '물방울 무늬', medical: '엇갈린 띠 무늬', electronics: '번개 무늬', stationery: '깃 무늬',
                    book: '겹친 장 무늬', apparel: '실타래 무늬', tobacco: '연기 무늬' };
@@ -337,8 +340,8 @@
   K.ext.onBox = (id) => {
     const b = boxes.find(x => x.id === id); if (!b) return;
     const pn = boxName(b);
-    const body = K.panel('<h2>' + esc(pn) + ' 상자</h2><p class="sub">' + esc(b.cat_ko || CAT_KO[b.cat] || '') + ' · ' + esc(b.found_day) + '일째에 가져옴 · ' + esc(b.age_days) + '일 지남</p>' +
-      '<p class="desc">' + esc(b.any ? TT('sealed_box.blank.desc', {}, '') : TT('sealed_box.patterns.' + b.cat + '.desc', {}, '')) + '</p>' +
+    const body = K.panel('<h2>' + esc(pn) + ' 상자</h2><p class="sub">' + esc(PAT_FB[b.cat] && !b.any ? (b.cat_ko || CAT_KO[b.cat]) : '아무 갈래') + ' · ' + esc(b.found_day) + '일째에 가져옴 · ' + esc(b.age_days) + '일 지남</p>' +
+      '<p class="desc">' + esc((!b.any && PAT_FB[b.cat]) ? TT('sealed_box.patterns.' + b.cat + '.desc', {}, '') : TT('sealed_box.patterns.blank.desc', {}, '')) + '</p>' +
       '<p class="reclaim">' + esc(TT('sealed_box.on_shelf', { pattern: pn }, '같은 갈래 물건을 찍으시면 열립니다.')) + '</p>' +
       '<div class="rowbtns"><button id="bxPry"' + (b.pry_ok ? ' class="on"' : ' disabled') + '>억지로 열기' + (b.pry_ok ? '' : ' · ' + b.pry_in_days + '일 뒤') + '</button></div>');
     body.querySelector('#bxPry').addEventListener('click', async () => {

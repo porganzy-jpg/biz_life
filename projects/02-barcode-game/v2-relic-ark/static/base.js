@@ -1167,7 +1167,7 @@
     const cx = x + w / 2, cy = y + h * 0.62, r = w * 0.22;
     ctx.strokeStyle = b.pry_ok ? '#ffd59a' : '#e6d7b0'; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = Math.max(1, w / 16);
     ctx.beginPath();
-    switch (b.any ? 'blank' : b.cat) {
+    switch (b.any ? 'blank' : b.cat) {                // 모르는 갈래는 default = 빈 원
       case 'food': for (let k = -1; k <= 1; k++) { ctx.moveTo(cx + k * r * 0.7, cy + r); ctx.lineTo(cx + k * r * 0.7, cy - r); } break;
       case 'drink': ctx.arc(cx, cy + r * 0.2, r * 0.6, 0, Math.PI); ctx.moveTo(cx - r * 0.6, cy + r * 0.2); ctx.lineTo(cx, cy - r); ctx.lineTo(cx + r * 0.6, cy + r * 0.2); break;
       case 'medical': ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r); ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r); break;
