@@ -241,3 +241,38 @@ python tools/blender_iso_sea.py sheet       # 접촉 시트 + manifest
 
 
 > **S15-E 수정(2026-10-04, PM)**: 갈래 무늬를 `data/expedition_text.json`의 정본 이름에 맞춰 다시 그렸다(위 표 갱신). `sealed_box_*` 9개만 다시 내보냈고, 나머지 GLB 22개는 md5가 같다(바이트 동일). 접촉 시트와 manifest(상자 항목)를 갱신했다. GLB 합계 405KB.
+
+---
+
+# §S16-A — 유물 카드 아트 (2026-10-04)
+- **생성기**: `tools/gen_cards.py`(PIL+numpy, 생성 AI 없음).
+- **산출**: `static/art/cards/`(합계 1.18MB, 목표 1.5MB 이하).
+  - `frame_{common,uncommon,rare,epic,legendary}.png`
+  - `card_back.png`, `art_bg.png`
+  - `foil_rare.png` / `foil_legendary.png` / `foil_sea.png` (L 마스크)
+  - `charge_glow.png`
+  - `cards_meta.json`
+- **접촉 시트**: `docs/reports/s16a_cards_sheet.png`
+- **희귀도 다섯**: 서버 id는 `engine/relic_generator.Rarity` 기준 다섯이다. 요청은 넷이었지만 epic이 있어서 다섯 단계로 만들었다.
+
+| 희귀도 | 모양 | 등 | 점 |
+|---|---|---|---|
+| common | 닳은 나무·바랜 놋쇠 | 없음 | 1 |
+| uncommon | 윤낸 나무·놋쇠 귀퉁이·리벳 | 없음 | 2 |
+| rare | 금박 | 넷 | 3 |
+| epic | 금박 + 청록 에나멜 | 여섯 | 4 |
+| legendary | 자개 + 은빛 줄 + 진주 넷 | 넷 | 5 |
+
+  색만이 아니라 점 개수로도 갈린다.
+- **배치(`cards_meta.json`)**:
+  - 카드 400×560(5:7, 2배 설계).
+  - 그림 창 (36,70) 328×264. 유물 그림 바닥선 shelf_y 291, 정수 배율·NEAREST.
+  - 번호 띠(위), 갈래 무늬 원 홈 (326,24) 34×34, 이름 띠 (36,344)–(364,392), 설명 띠 (36,400)–(364,512).
+  - 9분할(nine-patch)은 쓰지 않는다.
+- **반짝이**:
+  - foil_rare는 rare·epic에 쓴다(사선 결 + 반짝 점, 테에 강하게).
+  - foil_legendary는 자개 동심 물결 + 별.
+  - foil_sea는 물결선 덧씌움(특별판).
+  - 클라이언트가 움직이는 그라데이션을 마스크로 곱해 얹는다.
+- **등장 빛**: charge_glow는 흰 빛이다. meta의 `charge_tint`로 물들인다.
+- **확신 없음**: 테의 등이 작게 보여 폰 크기에서는 리벳과 비슷하다. 희귀도는 점과 재질로 충분히 갈린다고 봤다. 자개 테는 밝아서 카드 목록에서 가장 튄다. 의도한 것이다.

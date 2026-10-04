@@ -1,0 +1,127 @@
+{
+ "_note": "S16-A 유물 카드. 좌표는 카드 px(2배 설계, 폰에서 200×280 CSS). 생성 tools/gen_cards.py. 생성 AI 없음",
+ "card": {
+  "w": 400,
+  "h": 560,
+  "radius": 22,
+  "ratio": "5:7"
+ },
+ "draw_order": [
+  "art_bg.png → art_window 위치",
+  "유물 그림(static/art/props, 정수 배율·NEAREST, 창 가운데·바닥 선반선 정렬)",
+  "frame_<rarity>.png",
+  "foil(희귀 이상): 마스크로 움직이는 그라데이션을 곱해 얹기(screen/lighter)",
+  "글자"
+ ],
+ "art_window": {
+  "x": 36,
+  "y": 70,
+  "w": 328,
+  "h": 264,
+  "radius": 10,
+  "shelf_y": 291,
+  "prop_scale_rule": "scale = floor(min(280 / w, 200 / h)), 1 이상 정수. 그림 바닥을 shelf_y 에 맞춘다"
+ },
+ "text": {
+  "number": {
+   "x": 48,
+   "y": 22,
+   "w": 270,
+   "h": 38,
+   "align": "left",
+   "size": 20,
+   "color": "#1C1712",
+   "note": "No. 0123"
+  },
+  "category_slot": {
+   "x": 326,
+   "y": 24,
+   "w": 34,
+   "h": 34,
+   "note": "갈래 무늬(상자 무늬와 같은 그림)를 원 홈에"
+  },
+  "name": {
+   "x": 48,
+   "y": 344,
+   "w": 304,
+   "h": 48,
+   "align": "center",
+   "size": 26,
+   "weight": "bold",
+   "color": "#1C1712"
+  },
+  "info": {
+   "x": 50,
+   "y": 408,
+   "w": 300,
+   "h": 96,
+   "align": "left",
+   "size": 17,
+   "color": "#2E261E",
+   "note": "첫 줄 갈래·희귀도, 그 아래 설명 2~3줄"
+  },
+  "pips": {
+   "y": 536,
+   "note": "희귀도 점은 프레임에 그려져 있다(1~5개)"
+  }
+ },
+ "nine_patch": null,
+ "nine_patch_note": "쓰지 않는다. 카드는 고정 크기 한 장 그림이다(작게 쓸 땐 통째로 줄인다)",
+ "rarities": {
+  "common": {
+   "frame": "frame_common.png",
+   "pips": 1,
+   "look": "닳은 나무·바랜 놋쇠",
+   "charge_tint": "#C8A878",
+   "foil": null,
+   "foil_sea_ok": false
+  },
+  "uncommon": {
+   "frame": "frame_uncommon.png",
+   "pips": 2,
+   "look": "윤낸 나무·놋쇠 귀퉁이·리벳",
+   "charge_tint": "#F0C070",
+   "foil": null,
+   "foil_sea_ok": true
+  },
+  "rare": {
+   "frame": "frame_rare.png",
+   "pips": 3,
+   "look": "금박 테·작은 등 넷",
+   "charge_tint": "#FFD27A",
+   "foil": "foil_rare.png",
+   "foil_sea_ok": true
+  },
+  "epic": {
+   "frame": "frame_epic.png",
+   "pips": 4,
+   "look": "금박 테·청록 에나멜 상감·등 여섯",
+   "charge_tint": "#7FE0D8",
+   "foil": "foil_rare.png",
+   "foil_sea_ok": true
+  },
+  "legendary": {
+   "frame": "frame_legendary.png",
+   "pips": 5,
+   "look": "자개 테·은빛 줄·진주 넷·등 넷",
+   "charge_tint": "#F4EEFF",
+   "foil": "foil_legendary.png",
+   "foil_sea_ok": true
+  }
+ },
+ "files": {
+  "card_back": "card_back.png",
+  "art_bg": "art_bg.png",
+  "foil": {
+   "rare": "foil_rare.png",
+   "legendary": "foil_legendary.png",
+   "sea": "foil_sea.png",
+   "note": "L(회색조) 마스크. 흰 곳만 빛이 지나간다. 바다 무늬(foil_sea)는 특별판·이벤트용 덧씌움"
+  },
+  "charge_glow": {
+   "file": "charge_glow.png",
+   "size": 512,
+   "note": "흰 빛(알파). charge_tint 로 물들여 카드 뒤에서 0→1.3배로 키우며 뒤집기 직전에 터뜨린다"
+  }
+ }
+}
