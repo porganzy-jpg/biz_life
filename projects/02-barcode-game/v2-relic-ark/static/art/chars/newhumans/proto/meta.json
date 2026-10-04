@@ -1,0 +1,74 @@
+{
+ "_comment": "심해 계승자 시제품 — 등불눈·물결팔. 손으로 찍은 도트(생성 AI 없음), 정수 배율만",
+ "hi": {
+  "cell": 96,
+  "baseline": 90,
+  "note": "P2 64·60 의 1.5배 밀도. 방 배율 ×3 화면에서는 ×2 로 그린다(= 같은 화면 크기)"
+ },
+ "std": {
+  "cell": 64,
+  "baseline": 60,
+  "note": "카메라를 멀리 뺐을 때(×1·×2) 같은 디자인의 표준 셀"
+ },
+ "portrait": {
+  "size": [
+   160,
+   224
+  ],
+  "frames": 4,
+  "seconds": 2.6,
+  "note": "카드 공개·주민 카드. 4프레임 숨 반짝임"
+ },
+ "clips": {
+  "idle": {
+   "row": 0,
+   "frames": 4,
+   "seconds": 2.6
+  },
+  "walk_side": {
+   "row": 1,
+   "frames": 6,
+   "seconds": 0.9
+  },
+  "work_34": {
+   "row": 2,
+   "frames": 3,
+   "seconds": 1.4
+  }
+ },
+ "facing": {
+  "idle": "front",
+  "walk_side": "right(원본) · 왼쪽 = 반전",
+  "work_34": "q34_left(원본)"
+ },
+ "lineages": {
+  "lampeye": {
+   "ko": "등불눈",
+   "role": "보는 사람",
+   "sig": "등불 왕관(가운데 등 + 양쪽 빛살) · 눈동자 금빛 고리",
+   "base": "남빛 · 진주",
+   "accent": "금빛",
+   "portrait_colors_a": 24,
+   "portrait_colors_b": 24
+  },
+  "wavearm": {
+   "ko": "물결팔",
+   "role": "물살을 타는 사람",
+   "sig": "팔뚝에서 흘러나와 뒤로 끌리는 물결 리본 · 물마루 앞머리",
+   "base": "청록 · 물거품 흰빛",
+   "accent": "물빛",
+   "portrait_colors_a": 24,
+   "portrait_colors_b": 24
+  }
+ },
+ "card_tier": {
+  "id": "heir",
+  "ko": "계승자",
+  "above": "legendary",
+  "frame": "frame_heir_f0~3.png (200×280, 4프레임 빛 순환)"
+ },
+ "face_check": {
+  "cells": 120,
+  "missing": []
+ }
+}
