@@ -236,9 +236,10 @@
     body.querySelector('#xpLeave').addEventListener('click', () => { K.closePanel(); announce(TT('expedition.leave_it_line', { name: names }, names + ' 님께 맡겨 두겠습니다.')); });
     renderChip();
   }
+  const expUrl = (id) => '/static/expedition.html?uid=' + encodeURIComponent(K.uid) + '&exp=' + encodeURIComponent(id);
   function followOut() {
     if (!expedition) return;
-    location.href = '/static/expedition.html?uid=' + encodeURIComponent(K.uid) + '&exp=' + encodeURIComponent(expedition.id);
+    location.href = expUrl(expedition.id);
   }
   const namesOf = (e) => ((e && e.member_names) || []).join(' 님과 ');
   K.ext.openSendOff = openSendOff;
@@ -313,6 +314,7 @@
     if (ret.injured) h += '<p class="lost">' + esc(ret.injured) + ' 님이 다치셨습니다.</p>';
     (ret.imprints || []).forEach(n => { h += '<div class="who"><b>' + esc(n.resident) + ' 님</b><em>' + esc((n.imprint || {}).name || '') + '</em></div><p class="desc">' + esc(n.line || '') + '</p>'; });
     if (ret.line) h += '<p class="dayline">' + esc(K.plain(ret.line)) + '</p>';
+    h += '<div class="rowbtns"><a class="watchback" href="' + esc(expUrl(ret.id)) + '">돌아오는 모습 보기</a></div>';   // 3D 장면(선택)
     setTimeout(() => {
       K.panel(h);
       K.api('/api/expedition/seen', {}).catch(() => {});

@@ -638,3 +638,4 @@ body{
 .rgain .boxline, .boxline{display:block; margin-top:4px; color:#e8c98a}
 .kv .dim{opacity:.6}
 @media (max-height:500px){ .xpbtn{height:28px; font-size:11.5px; max-width:150px} }
+.watchback{display:inline-flex; align-items:center; min-height:40px; padding:0 14px; font-size:12.5px; color:var(--ink); background:#151a17; border:1px solid #2a2419; border-radius:5px; text-decoration:none}

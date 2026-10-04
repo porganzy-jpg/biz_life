@@ -805,6 +805,7 @@ async function discoverBeat(ret) {
   $('#discP').textContent = d.discovery_text || spot.discovery_text || '';
   $('#discA').textContent = T('spot.discovery_after', v);
   $('#disc').classList.add('show');
+  { const lb = T('spot.discovery_close_label'), b = $('#discOk'); b.textContent = lb || '▸'; b.classList.toggle('icon', !lb); }   // 키가 없으면 기호
   await new Promise(res => { $('#discOk').onclick = res; });
   $('#disc').classList.remove('show');
   tweenCam(toWorldV(0, 0), defaultFrustum(), 1.4);
@@ -842,7 +843,7 @@ function showReturnCard(ret) {
   card.innerHTML = lines.filter(l => l[1]).map(l => `<p class="pa ${l[0] === 'out' ? 'out' : ''}">${esc(l[1])}</p>`).join('')
     + `<h3>${esc(T('expedition.summary.title'))}</h3>`
     + (chips.length ? `<div class="chips">${chips.join('')}</div>` : `<p class="pa out">${esc(T('expedition.summary.empty'))}</p>`)
-    + `<div class="foot"><button class="key icon" id="cHome" aria-label="home">⌂</button></div>`;
+    + `<div class="foot"><button class="key${T('expedition.return.close_label') ? '' : ' icon'}" id="cHome" aria-label="home">${esc(T('expedition.return.close_label') || '⌂')}</button></div>`;
   $('#ret').classList.add('show');
   card.querySelectorAll('.pa').forEach((p, i) => setTimeout(() => p.classList.add('on'), 300 + i * 900));
   card.querySelector('#cHome').onclick = async () => {
