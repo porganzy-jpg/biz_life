@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>잔해 방주 · 바깥</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230E3440'/%3E%3Ccircle cx='8' cy='8' r='3.4' fill='%23FFC870'/%3E%3C/svg%3E">
+<style>
+  /* S15-C 원정 물속판. 색은 iso_sea/manifest.json scene_hint(물 #0E3440, 등불 #FFC870)와 거점(base.css) 톤을 따른다 */
+  :root{
+    --ink:#E6E0CF; --deep:#06161b; --water:#0E3440; --panel:rgba(6,22,27,.78); --line:#2f5a62;
+    --lantern:#FFC870; --teal:#7fd3cf; --danger:#d9603f; --glass:#9fd8d8;
+  }
+  html,body{margin:0;height:100%;background:var(--deep);color:var(--ink);
+    font-family:"Noto Sans KR",system-ui,sans-serif;overflow:hidden;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  #c{display:block;width:100%;height:100%;touch-action:none}
+  /* 랜턴 밖은 어둡다 — 화면 가장자리 비네트(그림이 아니라 빛의 모양) */
+  #vig{position:fixed;inset:0;pointer-events:none;z-index:2;
+    background:radial-gradient(ellipse 62% 70% at 50% 55%,rgba(0,0,0,0) 55%,rgba(2,10,13,.55) 85%,rgba(2,10,13,.85) 100%)}
+  #rotate{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:var(--deep);font-size:2.4rem;color:var(--teal)}
+  @media (orientation:portrait) and (max-width:900px){ #rotate{display:grid} }
+
+  /* ── 위 한 줄: 나간 사람 · 공기 띠 · 손(들고 있는 것) ─────────── */
+  #hud{position:fixed;left:12px;top:10px;z-index:6;display:flex;gap:10px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);padding:7px 12px;border-radius:3px}
+  #who{font-family:"Noto Serif KR",serif;color:var(--lantern);font-size:.92rem;white-space:nowrap}
+  #air{display:flex;align-items:center;gap:6px}
+  #air i{width:14px;height:14px;border-radius:50%;border:2px solid var(--glass);box-sizing:border-box;
+    background:radial-gradient(circle at 35% 35%,#fff 0 18%,transparent 22%)}
+  #airBar{position:relative;width:120px;height:10px;background:#0a2a32;border:1px solid #3d7480}
+  #airFill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#6fc7c9,#b9eeee);transition:width .6s ease}
+  #airTicks{position:absolute;inset:0;display:flex}
+  #airTicks span{flex:1;border-right:1px solid rgba(6,22,27,.9)}
+  #airTicks span:last-child{border-right:0}
+  #hands{display:flex;gap:3px}
+  #hands b{width:14px;height:14px;border:1px solid #4f7c84;background:#0a2228;display:block}
+  #hands b.on{background:#c9a35a;border-color:#ffd892}
+  #hands b.box{background:#8a6a3c;border-color:#ffd892}
+  #clock{font-size:.74rem;color:#9fc4c2;white-space:nowrap}
+  #clock:empty{display:none}
+
+  /* ── 오른쪽 위: 보내 두기 ─────────────────────────────────── */
+  #tr{position:fixed;right:12px;top:10px;z-index:6;display:flex;gap:6px}
+  button{background:#123842;color:var(--ink);border:1px solid #4f8c94;padding:0 14px;min-height:44px;
+    cursor:pointer;font-size:.86rem;font-family:inherit;border-radius:3px;white-space:nowrap}
+  button:hover{background:#1b4a55}
+  button.key{background:#4a3a18;border-color:var(--lantern);color:#FFE2A8;font-weight:700}
+  button.icon{min-width:44px;padding:0 10px;font-size:1.1rem}
+  button[hidden]{display:none}
+
+  /* ── 짧은 서술(바깥 화면 문장은 방송체가 아니다) ───────────── */
+  #narr{position:fixed;left:50%;bottom:20px;transform:translate(-50%,8px);z-index:5;max-width:min(720px,84vw);
+    font-family:"Noto Serif KR",serif;font-size:.98rem;line-height:1.8;color:#dfeeed;text-align:center;
+    text-shadow:0 1px 3px #000,0 0 12px rgba(0,0,0,.8);opacity:0;transition:opacity .8s,transform .8s;pointer-events:none}
+  #narr.show{opacity:1;transform:translate(-50%,0)}
+  body.choosing #narr{bottom:auto;top:64px}
+  /* 관리실 방송(문 안에서만 들린다): 문턱에서 끊긴다 */
+  #pa{position:fixed;left:50%;top:16%;transform:translateX(-50%);z-index:7;max-width:min(680px,82vw);
+    background:rgba(20,19,17,.86);border-left:3px solid var(--lantern);padding:10px 16px;
+    font-size:.9rem;line-height:1.75;opacity:0;transition:opacity .5s;pointer-events:none}
+  #pa.show{opacity:1}
+  #pa.cut{animation:cut .5s steps(4) forwards}
+  @keyframes cut{0%{opacity:1;filter:none}40%{opacity:.6;transform:translateX(-50%) skewX(-6deg)}70%{opacity:.8;transform:translateX(-49%)}100%{opacity:0;transform:translateX(-50%)}}
+
+  /* ── 고르기 카드(따라 나가기 / 갈림길 / 위험 / 손이 찼다) ─────── */
+  #choice{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:8;display:none;
+    background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--glass);padding:12px 14px;
+    max-width:min(640px,92vw);border-radius:3px}
+  #choice.show{display:block}
+  #choice.danger{border-top-color:var(--danger)}
+  #choice p{margin:0 0 10px;font-family:"Noto Serif KR",serif;font-size:.95rem;line-height:1.7;text-align:center}
+  #choice .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  #choice .opt{display:flex;flex-direction:column;align-items:stretch;gap:3px;min-width:150px;flex:1}
+  #choice .opt small{font-size:.72rem;color:#a9c7c5;text-align:center;line-height:1.4}
+  #choice .pct{color:var(--lantern);margin-left:6px;font-weight:700}
+  #choice .item{min-width:0;flex:0 0 auto}
+  #choice .item.off{opacity:.45;text-decoration:line-through}
+
+  /* ── 귀환: 관리실 방송 카드 ─────────────────────────────── */
+  #ret{position:fixed;inset:0;z-index:9;display:none;place-items:center;
+    background:radial-gradient(ellipse at 50% 60%,rgba(40,28,12,.25),rgba(4,10,12,.72));pointer-events:auto}
+  #ret.show{display:grid}
+  #ret .card{width:min(680px,90vw);max-height:84vh;overflow:auto;background:rgba(20,19,17,.92);
+    border:1px solid #5a4a2c;border-left:4px solid var(--lantern);padding:16px 18px;box-sizing:border-box}
+  #ret .pa{margin:0 0 9px;font-size:.92rem;line-height:1.8;opacity:0;transform:translateY(4px);transition:opacity .6s,transform .6s}
+  #ret .pa.on{opacity:1;transform:none}
+  #ret .pa.out{font-family:"Noto Serif KR",serif;color:#bcd6d4;font-size:.84rem}
+  #ret h3{margin:12px 0 6px;font-size:.8rem;color:var(--lantern);letter-spacing:.12em;font-weight:500}
+  #ret .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  #ret .chip{display:flex;align-items:center;gap:6px;background:#262019;border:1px solid #5a4a2c;padding:5px 9px;font-size:.8rem}
+  #ret .chip i{width:12px;height:12px;display:inline-block;border:1px solid #ffd892}
+  #ret .foot{display:flex;justify-content:flex-end;margin-top:6px}
+
+  /* ── 발견(스팟) ─────────────────────────────────────────── */
+  #disc{position:fixed;inset:0;z-index:8;display:none;place-items:end center;padding-bottom:8vh;pointer-events:none}
+  #disc.show{display:grid}
+  #disc .box{max-width:min(720px,86vw);text-align:center;pointer-events:auto;
+    background:linear-gradient(180deg,rgba(6,30,34,.2),rgba(6,30,34,.88));
+    border-top:1px solid rgba(127,211,207,.5);border-bottom:1px solid rgba(127,211,207,.5);padding:18px 22px}
+  #disc h2{margin:0 0 8px;font-family:"Noto Serif KR",serif;font-weight:500;color:var(--teal);font-size:1.4rem;letter-spacing:.12em}
+  #disc p{margin:0 0 10px;font-size:.86rem;line-height:1.95;color:#DCE9E6;text-align:left}
+
+  #fade{position:fixed;inset:0;z-index:20;background:#000;opacity:1;transition:opacity 1.4s;pointer-events:none}
+  #fade.off{opacity:0}
+  #log{position:fixed;left:10px;bottom:70px;z-index:3;font-family:ui-monospace,monospace;font-size:.62rem;
+    color:#8fb3b0;max-width:46vw;white-space:pre-wrap;display:none;pointer-events:none}
+  body.debug #log{display:block}
+  #fps{position:fixed;right:12px;bottom:6px;z-index:3;font-size:.6rem;color:#5d8582;display:none}
+  body.debug #fps{display:block}
+
+  /* ── 폰 가로(844×390) ─────────────────────────────────── */
+  @media (max-height:460px){
+    #hud{padding:5px 9px;gap:8px;top:6px;left:8px}
+    #who{font-size:.8rem}
+    #airBar{width:84px}
+    #hands b{width:11px;height:11px}
+    #tr{top:6px;right:8px}
+    button{font-size:.78rem;padding:0 10px}
+    #narr{font-size:.84rem;bottom:10px;line-height:1.6}
+    #choice{padding:8px 10px;bottom:8px}
+    #choice p{font-size:.82rem;margin-bottom:7px}
+    #choice .opt{min-width:120px}
+    #ret .pa{font-size:.8rem;line-height:1.65;margin-bottom:6px}
+    #ret .card{padding:10px 12px;max-height:90vh}
+    #disc .box{padding:10px 14px}
+    #disc p{font-size:.76rem;line-height:1.75}
+    #disc h2{font-size:1.1rem}
+    #pa{top:12%;font-size:.8rem}
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig"></div>
+<div id="rotate">⟲</div>
+
+<div id="hud">
+  <span id="who"></span>
+  <span id="air"><i></i><span id="airBar"><span id="airFill" style="width:100%"></span><span id="airTicks"></span></span></span>
+  <span id="hands"></span>
+  <span id="clock"></span>
+</div>
+<div id="tr">
+  <button id="btnLeave" class="key" hidden></button>
+</div>
+
+<div id="pa"></div>
+<div id="narr"></div>
+<div id="choice"></div>
+<div id="disc"><div class="box"><h2 id="discT"></h2><p id="discP"></p><p id="discA"></p><button id="discOk" class="icon" aria-label="ok">▸</button></div></div>
+<div id="ret"><div class="card" id="retCard"></div></div>
+<div id="fade"></div>
+<div id="log"></div>
+<div id="fps"></div>
+
+<script type="module" src="/static/expedition3d.js"></script>
+</body>
+</html>
