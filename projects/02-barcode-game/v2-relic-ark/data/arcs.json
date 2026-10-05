@@ -14,7 +14,7 @@
           "step": 1,
           "size": "small",
           "trigger": {
-            "days_since_join": 3,
+            "days_since_join": 0,
             "give": {
               "category": "food",
               "to": "self"
@@ -95,7 +95,7 @@
           "step": 1,
           "size": "small",
           "trigger": {
-            "days_since_join": 3,
+            "days_since_join": 1,
             "night_event": true
           },
           "announce": "{name} 님이 밤새 벽 쪽으로 누워 계셨는데, 아침에 보니 벽에 손톱으로 금을 세 개 그어 두셨습니다. 무엇을 세신 건지는 말씀이 없으십니다.",
@@ -183,7 +183,7 @@
           "step": 1,
           "size": "small",
           "trigger": {
-            "days_since_join": 2,
+            "days_since_join": 0,
             "give": {
               "category": "food",
               "subtype": [
@@ -497,5 +497,6 @@
         "line": "{name}의 무릎에 반짝이는 봉지 조각이 덧대어 있다. 앉을 때마다 바스락 소리가 나서 다들 웃는다."
       }
     }
-  ]
+  ],
+  "_stagger": "S19 첫 매듭 날짜 엇갈림(days_since_join, 합류한 날 기준): 요리사 0(1일째), 정찰병 1(2일째), 농부 0(합류한 날, 3일째 손님이면 3일째), 기술자 3(4일째), 의무병 2·아이 1·학자 2·교섭가 3(합류 뒤 1~3일). min_days_after_prev 는 그대로."
 }

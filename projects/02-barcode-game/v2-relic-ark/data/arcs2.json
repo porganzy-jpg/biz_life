@@ -95,7 +95,7 @@
           "step": 1,
           "size": "small",
           "trigger": {
-            "days_since_join": 2,
+            "days_since_join": 3,
             "give": {
               "category": "apparel",
               "subtype": [
@@ -366,5 +366,6 @@
         "line": "{name}의 오른손등에 흙이 묻은 반창고가 붙어 있다. 잎을 딸 때 긁힌 자리인데, 아무도 다친 줄 몰랐다."
       }
     }
-  ]
+  ],
+  "_stagger": "S19 첫 매듭 날짜 엇갈림(days_since_join, 합류한 날 기준): 요리사 0(1일째), 정찰병 1(2일째), 농부 0(합류한 날, 3일째 손님이면 3일째), 기술자 3(4일째), 의무병 2·아이 1·학자 2·교섭가 3(합류 뒤 1~3일). min_days_after_prev 는 그대로."
 }
