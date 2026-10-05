@@ -1942,7 +1942,7 @@
       '<div class="who"><b>' + esc(n.resident) + '</b><em>' + esc(n.imprint.name) + '</em></div>' +
       '<p class="desc">' + esc(n.line) + '</p>').join('');
     body.innerHTML = '<h2>' + esc(r.result_ko) + '</h2>' +
-      '<p class="sub">' + esc(cb.raid ? cb.raid.creature.name : '') + ' · 점수 ' + r.score + ' / 필요 ' + r.need + '</p>' +
+      '<p class="sub">' + esc(cb.raid ? cb.raid.creature.name : '') + (r.need != null ? ' · 점수 ' + r.score + ' / 필요 ' + r.need : '') + '</p>' +
       '<p class="desc">' + esc(r.line) + '</p>' +
       (r.lost_room ? '<p class="lost">' + esc(r.lost_room) + ' 쪽이 물에 잠겼습니다. 격벽은 다시 열리지 않습니다.</p>' : '') +
       (r.injured ? '<p class="lost">' + esc(r.injured) + ' 님이 다치셨습니다.</p>' : '') +
@@ -1976,8 +1976,8 @@
     for (let i = 0; i < steps.length; i++) steps[i].classList.toggle('on', i <= raid.stage_no);
     $('#rtext').textContent = plain(raid.stage === 'sound' ? raid.creature.sound
       : raid.stage === 'silhouette' ? raid.creature.silhouette
-      : (raid.line || raid.creature.contact));
-    $('#rhow').textContent = plain(raid.creature.threat ? '막는 법: ' + raid.creature.how : '걱정 안 하셔도 됩니다. 우리 식구입니다.');
+      : (raid.line || raid.creature.contact) || '');
+    $('#rhow').textContent = plain(raid.creature.threat ? (raid.creature.how ? '막는 법: ' + raid.creature.how : (raid.habit ? '버릇: ' + raid.habit : '')) : '걱정 안 하셔도 됩니다. 우리 식구입니다.');   // 단서 모드는 how 가 없다
     let eyeEl = $('#reye');
     if (!eyeEl) { eyeEl = document.createElement('p'); eyeEl.id = 'reye'; eyeEl.className = 'eye-early';
                   $('#rhow').after(eyeEl); }
@@ -1986,8 +1986,9 @@
     const g = $('#rgate'), wd = $('#rwould');
     if (raid.ready && raid.creature.threat && raid.stage !== 'done') {
       g.hidden = false; wd.hidden = false;
-      g.classList.toggle('ok', !!raid.ready.gate.ok);
-      g.innerHTML = '<b>' + (raid.ready.gate.ok ? '준비 끝' : '아직') + '</b><span>' + esc(raid.ready.gate.ko) + '</span>';
+      const gt = raid.ready.gate || {};                 // 단서 모드: gate·need 가 빠져 온다
+      g.classList.toggle('ok', !!gt.ok);
+      g.innerHTML = '<b>' + (gt.ok ? '준비 끝' : '아직') + '</b>' + (gt.ko ? '<span>' + esc(gt.ko) + '</span>' : '');
       wd.classList.toggle('bad', raid.ready.would !== 'held');
       wd.innerHTML = '지금 맞서시면 <b>' + esc((K.ext.T && K.ext.T('raid_preview.' + raid.ready.would, {}, '')) || raid.ready.would_ko) + '</b>';   // S18 TSV: 미리 보기는 미래형
     } else { g.hidden = true; wd.hidden = true; }
@@ -3054,26 +3055,8 @@
   // S18: 끄는 동안 숫자는 **하나** — 「방주 전체 생산 ±n%」(플레이테스트: 방마다 ±%는 어디로 옮겨도 이득처럼 읽혔다).
   //      서버가 칸마다 ark_delta_pct 를 주면 그것을, 없으면 같은 서버 미리보기(room/from_delta_pct)에 방마다의
   //      기준 산출(목록 생산량 + 역할 보탬) × 배율 × 불을 곱해 방주 전체로 합친다. 꽉 찬 방·일손 없음은 글자로 함께
-  function roomBaseOut(slot) {
-    const pr = (ark.production || {})[String(slot)];
-    const room = (ark.rooms || []).find(r => r.slot === slot);
-    if (!pr || !room) return 0;
-    const spec = catalog[room.id] || {}, prod = spec.produces || {}, rb = pr.role_bonus || {};
-    let tot = 0;
-    Object.keys(prod).forEach(k => { const v = prod[k]; if (typeof v === 'number' && k !== 'power_supply' && k !== 'craft_slots') tot += v + (rb[k] || 0); });
-    const m = typeof pr.now_mult === 'number' ? pr.now_mult : (typeof pr.mult === 'number' ? pr.mult : 1);
-    return tot * m * (lightOf(slot) ? 1 : 0.5);
-  }
-  function arkDeltaPct(pv, tgt, from) {
-    if (!pv) return null;
-    if (typeof pv.ark_delta_pct === 'number') return pv.ark_delta_pct;
-    let all = 0; Object.keys(ark.production || {}).forEach(k => { all += roomBaseOut(+k); });
-    if (all <= 0) return null;
-    let d = 0;
-    if (tgt != null && typeof pv.room_delta_pct === 'number') d += roomBaseOut(tgt) * pv.room_delta_pct / 100;
-    if (from != null && typeof pv.from_delta_pct === 'number') d += roomBaseOut(from) * pv.from_delta_pct / 100;
-    return d / all * 100;
-  }
+  // S18-B2: 방주 전체 변화는 서버 값(move_preview[사람][칸].ark_delta_pct)만 쓴다. 화면 근사는 지웠다(방 하나 +120% 를 전체 +72% 로 서버가 잰다)
+  function arkDeltaPct(pv) { return pv && typeof pv.ark_delta_pct === 'number' ? pv.ark_delta_pct : null; }
   const carryLog = [];
   function drawCarryNumbers() {
     const who = dragging || (carry && (ark.residents_list || []).find(r => r.id === carry.id));
@@ -3084,7 +3067,7 @@
     const pv = movePreview(who.id, hover);
     const bx = Math.min(view.w - 120, pointer.x + 110), by = Math.max(60, pointer.y - 74);   // 손끝 오른쪽 위 — 사람 그림 밖
     if (pv && pv.can === false) { pill(bx, by, '꽉 참', 'off', true); return; }
-    const dp = arkDeltaPct(pv, hover, here != null ? here : null);
+    const dp = arkDeltaPct(pv);
     const r1 = dp == null ? null : Math.round(dp);
     const txt = '방주 전체 생산 ' + (r1 == null ? '변화 없음' : (r1 > 0 ? '+' : (r1 < 0 ? '−' : '±')) + Math.abs(r1) + '%');
     pill(bx, by, txt, r1 == null || r1 === 0 ? 'flat' : (r1 > 0 ? 'up' : 'down'), true);

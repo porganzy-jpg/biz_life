@@ -105,3 +105,7 @@
 - **서버**: `/api/ark`에 `day_ends_at`(요청함에 올림). 선택: `move_preview` 칸마다 `ark_delta_pct`.
 - **시나리오**: `zero.wish_hint`·`zero.octopus_mood`·`zero.polish_progress`·`zero.box_key_hint` 문장. 「오늘 이미 닦아 두었습니다」 대체 문장을 다듬을 키(예: `shelf.rescan_same_day`).
 - **PM**: 하루 마감을 「하루의 끝」에 열 기준(지금 3시간 창)을 확인해 달라.
+
+## S18-B2 (2026-10-05)
+- `static/base.js`: 끌기 숫자는 서버 `move_preview[사람][칸].ark_delta_pct`만 쓴다(화면 근사 `roomBaseOut` 삭제). 단서 모드에서 `creature.how`·`ready.gate`·`action`·결과 `need`가 빠져 와도 깨지지 않게 막았다(「막는 법: undefined」·`gate.ok` 오류 방지). 하루 마감은 서버 `day_ends_at` 3시간 안쪽에서 한 번(기존 코드 그대로 동작 확인).
+- 검증(8041, 1280·844): 하루 끝 2시간 전으로 당긴 뒤 열자 `day_end 2 auto` 한 번, 다시 열면 0번. 끌기 「방주 전체 생산 +230%」 = 서버 ark_delta_pct 230. 단서 모드 how/action/gate null → 화면은 버릇 한 줄과 미래형 미리보기, 'undefined' 0. 콘솔 0, 4xx 0, 중괄호 0. API 차집합 그대로. 스크린샷 `dev_S18_b2_dayend_1280`·`dev_S18_b2_drag_1280`·`dev_S18_b2_clue_844`.
