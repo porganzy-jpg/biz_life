@@ -2,7 +2,6 @@
   "_doc": "S19-S 초안. 주민 사슬 여섯(3~4매듭). 매듭은 '건네기(give)'나 '놓기(place)'로 열린다. 근거: fun_panel_narrative_20261005.md 사슬 A·B(건네기 중심으로 고쳤다)·M1·M2·M5. 기존 wishes.json 의 line_before/line_after/beast_beat 를 그대로 잇는다(이룸 매듭의 입말 = line_after). 라이브 데이터 아님.",
   "_for_design": "trigger 키: give={category,subtype?,to:'self'|'any'} 그 주민에게 건넴 · give_distinct={category, n} 그 주민에게 건넨 서로 다른 줄기 n개째 · place={room, category?, decor?} 방에 놓음 · days_since_join · min_days_after_prev(앞 매듭 다음 날부터 며칠 뒤에 열 수 있나 — 사슬마다 다르게 해서 매듭이 서로 다른 날에 떨어지게 했다) · octopus_with:'self'(문어가 그날 그 주민 곁) · session:'evening' · night_event(밤 판정·지나간 손님) · ask(플레이어가 고르는 것 하나, 안 골라도 default 로 간다). size=small|big(감독이 big 은 하루 1개). 실패·타이머 없음 — 조건이 찰 때까지 기다린다.",
   "_for_dev": "{name}=그 주민, {item}=건넨/고른 유물, {kid}=아이 이름(없으면 그 줄 대신 alt). 자리표시자 바로 뒤에 조사 없음. announce=관리실 방송, line=주민 입말, beat=문어 행동 서술(따옴표 없음), log=관리실 일지(M8).",
-
   "arcs": [
     {
       "id": "arc_cook_seat",
@@ -12,38 +11,79 @@
       "pace": "빠름, 매듭 사이 하루",
       "beats": [
         {
-          "step": 1, "size": "small",
-          "trigger": {"days_since_join": 3, "give": {"category": "food", "to": "self"}},
+          "step": 1,
+          "size": "small",
+          "trigger": {
+            "days_since_join": 3,
+            "give": {
+              "category": "food",
+              "to": "self"
+            }
+          },
           "announce": "관리실에서 알려 드립니다. 식량창고 앞에 의자가 하나 나와 있습니다. {name} 님이 내놓으셨는데, 아직 앉으신 분은 없습니다.",
           "line": "의자는 그냥 꺼내 둔 거예요. 치우기 귀찮아서요. 언젠가 누가 앉겠지요.",
           "set_prop": "chair_1"
         },
         {
-          "step": 2, "size": "small",
-          "trigger": {"min_days_after_prev": 1, "give_distinct": {"category": "food", "n": 2}},
+          "step": 2,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 1,
+            "give_distinct": {
+              "category": "food",
+              "n": 2
+            }
+          },
           "announce": "{name} 님이 오늘 그릇을 하나 더 꺼내셨습니다. 몇 개를 꺼내야 하는지 세시다가 그만두셨습니다.",
           "line": "그릇은 사람 수대로 꺼내는 건데, 여긴 사람 수가 자꾸 바뀌어서요. 늘어나는 쪽이라 다행이긴 해요.",
-          "ask": {"kind": "place", "room": "pantry", "category": "food", "label": "상에 올릴 것", "default": "most_polished"},
+          "ask": {
+            "kind": "place",
+            "room": "pantry",
+            "category": "food",
+            "label": "상에 올릴 것",
+            "default": "most_polished"
+          },
           "after_ask": "「{item}」, 상 가운데 두었습니다. 드시라고 둔 건 아니고, 보시라고 둔 겁니다."
         },
         {
-          "step": 3, "size": "small",
-          "trigger": {"min_days_after_prev": 1, "octopus_with": "self"},
+          "step": 3,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 1,
+            "octopus_with": "self"
+          },
           "beat": "문어가 그 의자에 먼저 올라앉았다. {name} 님은 의자를 빼지 않고, 옆에 의자를 하나 더 놓았다.",
           "line": "너는 이런 거 안 먹지. 그래도 놔둘게.",
           "announce_next_morning": "식량창고 앞 의자가 둘로 늘었습니다. 하나는 이미 주인이 있는 것 같습니다."
         },
         {
-          "step": 4, "size": "big",
-          "trigger": {"min_days_after_prev": 1, "give_distinct": {"category": "food", "n": 3}, "session": "evening"},
+          "step": 4,
+          "size": "big",
+          "trigger": {
+            "min_days_after_prev": 1,
+            "give_distinct": {
+              "category": "food",
+              "n": 3
+            },
+            "session": "evening"
+          },
           "announce": "관리실에서 안내 말씀 드립니다. 오늘 저녁은 식량창고 앞에서 드시겠습니다. 의자가 모자라는 분은 서서 드셔도 됩니다. 요리사분은 앉아 계십니다.",
           "line": "오늘은 앉아서 먹었습니다. 누구 덕인지는 굳이 안 따지겠습니다.",
           "log": "{name} 님, 처음으로 앉아서 드셨습니다. 앉아 계신 시간은 재지 않았습니다. 재면 일어나실 것 같아서요.",
-          "after": {"pose": "seated_evening"}
+          "after": {
+            "pose": "seated_evening"
+          }
         }
-      ]
+      ],
+      "imprint_on_done": {
+        "id": "seated_supper",
+        "name": "앉은 저녁",
+        "ability_ko": "저녁에 함께 있는 사람들의 기분이 조금 더 빨리 풀린다",
+        "cost_ko": "저녁마다 앉아 있느라 설거지가 한 박자 늦다",
+        "mark_ko": "왼쪽 어깨에 늘 행주 한 장을 걸치고 다닌다",
+        "line": "{name}의 왼쪽 어깨에 행주 한 장이 걸려 있다. 저녁이 되면 그 행주를 의자 등받이에 먼저 걸어 둔다."
+      }
     },
-
     {
       "id": "arc_scout_window",
       "role": "scout",
@@ -52,36 +92,86 @@
       "pace": "느림, 매듭 사이 이틀",
       "beats": [
         {
-          "step": 1, "size": "small",
-          "trigger": {"days_since_join": 3, "night_event": true},
+          "step": 1,
+          "size": "small",
+          "trigger": {
+            "days_since_join": 3,
+            "night_event": true
+          },
           "announce": "{name} 님이 밤새 벽 쪽으로 누워 계셨는데, 아침에 보니 벽에 손톱으로 금을 세 개 그어 두셨습니다. 무엇을 세신 건지는 말씀이 없으십니다.",
           "line": "소리만 셌어요. 보지는 않았고요. 벽은 아무것도 안 보여 줘서 편하거든요."
         },
         {
-          "step": 2, "size": "small",
-          "trigger": {"min_days_after_prev": 2, "give": {"category": "electronics", "subtype": ["light", "audio"], "to": "self"}},
+          "step": 2,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 2,
+            "give": {
+              "category": "electronics",
+              "subtype": [
+                "light",
+                "audio"
+              ],
+              "to": "self"
+            }
+          },
           "announce": "{name} 님이 「{item}」 들고 트인 쪽 복도에 한참 서 계셨습니다. 창밖으로 뭐가 지나갈 때마다 손가락을 하나씩 접으셨습니다.",
           "line": "셋까지는 접었어요. 넷째는 너무 커서, 접을 손가락이 모자랐어요.",
-          "ask": {"kind": "choice", "label": "오늘 밤 문간 망보기를 맡길까요?", "options": ["맡기기", "그냥 두기"], "default": "그냥 두기"}
+          "ask": {
+            "kind": "choice",
+            "label": "오늘 밤 문간 망보기를 맡길까요?",
+            "options": [
+              "맡기기",
+              "그냥 두기"
+            ],
+            "default": "그냥 두기"
+          }
         },
         {
-          "step": 3, "size": "small",
-          "trigger": {"min_days_after_prev": 2, "octopus_with": "self"},
+          "step": 3,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 2,
+            "octopus_with": "self"
+          },
           "beat": "문어가 밤새 {name} 님 머리맡 유리에 붙어 있었다. 바깥으로 팔 하나를 펴 둔 채였다. {name} 님은 그날 밤 벽 쪽으로 돌아눕지 않았다.",
           "line": "너도 저거 세고 있었냐.",
           "announce_next_morning": "간밤에 {name} 님 쪽 벽에는 새 금이 없습니다. 대신 유리에 빨판 자국이 하나 남았습니다. 닦지 않고 두겠습니다."
         },
         {
-          "step": 4, "size": "big",
-          "trigger": {"min_days_after_prev": 2, "any_of": [{"place": {"room": "lounge", "resident": "self"}}, {"choice": "bed_to_open_side"}]},
+          "step": 4,
+          "size": "big",
+          "trigger": {
+            "min_days_after_prev": 2,
+            "any_of": [
+              {
+                "place": {
+                  "room": "lounge",
+                  "resident": "self"
+                }
+              },
+              {
+                "choice": "bed_to_open_side"
+              }
+            ]
+          },
           "announce": "관리실에서 알려 드립니다. 오늘부터 {name} 님 잠자리를 트인 쪽 창가로 옮겼습니다. 밤에 지나가는 손님 수는 {name} 님이 세어서 아침에 알려 주신답니다.",
           "line": "창 쪽으로 돌아누웠습니다. 고맙다는 말은 안 하겠습니다. 대신 밤에 뭐가 지나가는지 세어 두겠습니다.",
           "log": "{name} 님, 창 쪽으로 주무시기 시작했습니다. 벽에 그어 둔 금은 모두 아홉 개였습니다. 지우지 않았습니다.",
-          "after": {"morning_line": "{name} 님 집계입니다. 간밤에 창 앞을 지나간 것 {n}, 그중 하나는 아주 느렸답니다."}
+          "after": {
+            "morning_line": "{name} 님 집계입니다. 간밤에 창 앞을 지나간 것 {n}, 그중 하나는 아주 느렸답니다."
+          }
         }
-      ]
+      ],
+      "imprint_on_done": {
+        "id": "window_sleeper",
+        "name": "창가에서 자는 자",
+        "ability_ko": "아침 집계로 다음 손님을 한 줄 귀띔한다",
+        "cost_ko": "창이 흐린 밤에는 잠을 설친다",
+        "mark_ko": "왼쪽 관자놀이 위 머리에 작은 유리 조각을 핀처럼 꽂았다",
+        "line": "{name}의 머리에 작은 유리 조각 하나가 꽂혀 있다. 밤마다 그 조각에 창밖 불빛이 한 번씩 비친다."
+      }
     },
-
     {
       "id": "arc_farmer_color",
       "role": "farmer",
@@ -90,29 +180,85 @@
       "pace": "아주 느림, 매듭 사이 사흘",
       "beats": [
         {
-          "step": 1, "size": "small",
-          "trigger": {"days_since_join": 2, "give": {"category": "food", "subtype": ["grain"], "to": "self"}},
+          "step": 1,
+          "size": "small",
+          "trigger": {
+            "days_since_join": 2,
+            "give": {
+              "category": "food",
+              "subtype": [
+                "grain"
+              ],
+              "to": "self"
+            }
+          },
           "announce": "{name} 님이 「{item}」 알갱이 몇 개를 젖은 천에 싸서 온실 창가에 두셨습니다. 무엇을 기다리시는지는 말씀이 없으십니다.",
           "line": "심으면 자란다고 들었어요. 해 본 사람은 아직 없대요. 조금만 두고 볼게요."
         },
         {
-          "step": 2, "size": "small",
-          "trigger": {"min_days_after_prev": 3, "place": {"room": "greenhouse", "decor": "growing"}},
+          "step": 2,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 3,
+            "place": {
+              "room": "greenhouse",
+              "decor": "growing"
+            }
+          },
           "announce": "온실 창가 젖은 천을 {name} 님이 아침마다 들춰 보십니다. 오늘도 아무것도 안 나왔답니다. 내일도 들춰 보실 겁니다.",
           "line": "아직이에요. 아직이라는 건 나쁜 말이 아니에요.",
-          "ask": {"kind": "give", "category": "book", "subtype": ["field_guide", "story"], "label": "그림 있는 책 한 권 드리기", "default": "skip"}
+          "ask": {
+            "kind": "give",
+            "category": "book",
+            "subtype": [
+              "field_guide",
+              "story"
+            ],
+            "label": "그림 있는 책 한 권 드리기",
+            "default": "skip"
+          }
         },
         {
-          "step": 3, "size": "big",
-          "trigger": {"min_days_after_prev": 3, "any_of": [{"octopus_find": "oct_color_chip"}, {"spot": "spot_kelp_ceiling"}, {"give": {"category": "book", "subtype": ["field_guide"], "to": "self"}}]},
+          "step": 3,
+          "size": "big",
+          "trigger": {
+            "min_days_after_prev": 3,
+            "any_of": [
+              {
+                "octopus_find": "oct_color_chip"
+              },
+              {
+                "spot": "spot_kelp_ceiling"
+              },
+              {
+                "give": {
+                  "category": "book",
+                  "subtype": [
+                    "field_guide"
+                  ],
+                  "to": "self"
+                }
+              }
+            ]
+          },
           "announce": "관리실에서 알려 드립니다. 온실 젖은 천 사이로 아주 작은 싹 하나가 올라왔습니다. 색은 다들 처음 보는 색입니다. {name} 님이 이름을 붙이실 겁니다.",
           "line": "이게 초록이군요. 생각보다 조용한 색입니다. 누가 가져왔는지는 이미 압니다.",
           "log": "{name} 님 창가에 싹이 하나 났습니다. 키는 손톱만 합니다. 내일부터 재겠습니다.",
-          "after": {"prop": "sprout_on_sill", "morning_line": "{name} 님 창가의 싹, 오늘 아침에도 그대로 있습니다."}
+          "after": {
+            "prop": "sprout_on_sill",
+            "morning_line": "{name} 님 창가의 싹, 오늘 아침에도 그대로 있습니다."
+          }
         }
-      ]
+      ],
+      "imprint_on_done": {
+        "id": "nameless_color",
+        "name": "이름 없는 색을 본 자",
+        "ability_ko": "온실에서 나오는 것이 조금 늘어난다",
+        "cost_ko": "창가를 떠나면 자꾸 뒤를 돌아본다",
+        "mark_ko": "손톱 끝이 옅은 초록으로 물들었다",
+        "line": "{name}의 손톱 끝이 옅게 물들었다. 씻어도 빠지지 않고, 본인은 빼고 싶어 하지 않는다."
+      }
     },
-
     {
       "id": "arc_medic_seal",
       "role": "medic",
@@ -121,28 +267,61 @@
       "pace": "보통, 매듭 사이 이틀",
       "beats": [
         {
-          "step": 1, "size": "small",
-          "trigger": {"days_since_join": 2, "give": {"category": "medical", "to": "self"}},
+          "step": 1,
+          "size": "small",
+          "trigger": {
+            "days_since_join": 2,
+            "give": {
+              "category": "medical",
+              "to": "self"
+            }
+          },
           "announce": "{name} 님이 의무실 서랍을 전부 꺼내 바닥에 늘어놓으셨습니다. 봉인이 남은 게 있는지 하나씩 보고 계십니다.",
           "line": "전부 한 번씩 열린 것들입니다. 열린 건 언제 열렸는지 알 수가 없어요."
         },
         {
-          "step": 2, "size": "small",
-          "trigger": {"min_days_after_prev": 2, "place": {"room": "infirmary", "category": "medical"}},
+          "step": 2,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 2,
+            "place": {
+              "room": "infirmary",
+              "category": "medical"
+            }
+          },
           "announce": "의무실 선반에 「{item}」 놓아 두었습니다. {name} 님이 그 칸만 따로 천으로 덮어 두셨습니다.",
           "line": "먼지 앉지 말라고요. 쓰려고 덮은 건 아닙니다.",
           "beat": "문어가 그 천 위에 올라가 앉았다. {name} 님은 문어를 내려놓지 않았다."
         },
         {
-          "step": 3, "size": "big",
-          "trigger": {"min_days_after_prev": 2, "give": {"category": "medical", "subtype": ["pill", "tonic"], "rarity_min": "rare", "to": "self"}},
+          "step": 3,
+          "size": "big",
+          "trigger": {
+            "min_days_after_prev": 2,
+            "give": {
+              "category": "medical",
+              "subtype": [
+                "pill",
+                "tonic"
+              ],
+              "rarity_min": "rare",
+              "to": "self"
+            }
+          },
           "announce": "관리실에서 알려 드립니다. 오늘 들어온 「{item}」, 봉인이 그대로입니다. {name} 님께 드렸더니 바로 의무실 맨 위 칸에 올려 두셨습니다.",
           "line": "봉인된 게 하나 생겼습니다. 안 뜯을 겁니다. 그쪽 덕이라고 적어 두긴 했습니다. 장부에만요.",
           "log": "{name} 님 맨 위 칸, 봉인 하나. 열린 날짜를 적는 칸에는 아무것도 안 적으셨습니다."
         }
-      ]
+      ],
+      "imprint_on_done": {
+        "id": "kept_seal",
+        "name": "봉인을 지킨 손",
+        "ability_ko": "다친 사람을 돌보는 손이 조금 더 믿음직해진다",
+        "cost_ko": "봉인된 약은 끝까지 아껴서 잘 꺼내 쓰지 않는다",
+        "mark_ko": "가슴 오른쪽에 붉은 봉인 딱지 하나를 붙이고 다닌다",
+        "line": "{name}의 가슴께에 붉은 봉인 딱지가 하나 붙어 있다. 뜯지 않은 상자에서 떼어 온 것이 아니라, 새로 붙인 것이다."
+      }
     },
-
     {
       "id": "arc_engineer_warm",
       "role": "engineer",
@@ -151,35 +330,86 @@
       "pace": "고르지 않음, 하루, 이틀, 하루",
       "beats": [
         {
-          "step": 1, "size": "small",
-          "trigger": {"days_since_join": 3, "give": {"category": "electronics", "subtype": ["part", "cable"], "to": "self"}},
+          "step": 1,
+          "size": "small",
+          "trigger": {
+            "days_since_join": 3,
+            "give": {
+              "category": "electronics",
+              "subtype": [
+                "part",
+                "cable"
+              ],
+              "to": "self"
+            }
+          },
           "announce": "{name} 님이 공방 구석에서 「{item}」 들고 뭔가를 감고 계십니다. 무엇을 만드시는지는 아직 비밀이랍니다.",
           "line": "만드는 거 아닙니다. 고치는 겁니다. 다 고치면 말하겠습니다."
         },
         {
-          "step": 2, "size": "small",
-          "trigger": {"min_days_after_prev": 1, "give_distinct": {"category": "electronics", "n": 2}},
+          "step": 2,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 1,
+            "give_distinct": {
+              "category": "electronics",
+              "n": 2
+            }
+          },
           "announce": "공방에서 낡은 대야 하나가 나왔습니다. {name} 님이 대야 밑에 줄을 감고 계십니다.",
           "line": "물을 데우는 겁니다. 전기를 조금 먹습니다. 조금입니다.",
-          "ask": {"kind": "choice", "label": "오늘 밤 발전실 전기를 대야에 조금 돌릴까요?", "options": ["돌리기", "아껴 두기"], "default": "아껴 두기"}
+          "ask": {
+            "kind": "choice",
+            "label": "오늘 밤 발전실 전기를 대야에 조금 돌릴까요?",
+            "options": [
+              "돌리기",
+              "아껴 두기"
+            ],
+            "default": "아껴 두기"
+          }
         },
         {
-          "step": 3, "size": "small",
-          "trigger": {"min_days_after_prev": 2, "octopus_with": "self"},
+          "step": 3,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 2,
+            "octopus_with": "self"
+          },
           "beat": "문어가 미지근한 대야에 팔 하나를 먼저 담갔다. {name} 님은 손을 넣으려다 말고 문어를 한참 보았다.",
           "line": "야. 너도 따뜻하냐."
         },
         {
-          "step": 4, "size": "big",
-          "trigger": {"min_days_after_prev": 1, "any_of": [{"choice": "돌리기"}, {"spot": "spot_vent_garden"}], "session": "evening"},
+          "step": 4,
+          "size": "big",
+          "trigger": {
+            "min_days_after_prev": 1,
+            "any_of": [
+              {
+                "choice": "돌리기"
+              },
+              {
+                "spot": "spot_vent_garden"
+              }
+            ],
+            "session": "evening"
+          },
           "announce": "관리실에서 안내 말씀 드립니다. 공방 대야에 따뜻한 물이 찼습니다. 줄 서실 필요는 없습니다. {name} 님이 오늘은 마지막에 하시겠답니다.",
           "line": "오늘은 손가락이 다 펴집니다. 고맙다고 하면 어색하니까 안 하겠습니다.",
           "log": "{name} 님, 따뜻한 물에 손을 담그셨습니다. 물은 금방 식었습니다. 손은 저녁 내내 펴져 있었습니다.",
-          "after": {"prop": "warm_basin"}
+          "after": {
+            "prop": "warm_basin"
+          }
         }
-      ]
+      ],
+      "imprint_on_done": {
+        "id": "opened_hands",
+        "name": "펴진 손",
+        "ability_ko": "고치고 짓는 데 드는 것이 조금 준다",
+        "cost_ko": "따뜻한 물이 생각나면 밤 작업을 일찍 접는다",
+        "mark_ko": "두 소매를 팔꿈치까지 걷어 올렸다. 팔뚝이 늘 조금 붉다",
+        "line": "{name}의 소매가 팔꿈치까지 걷혀 있다. 대야 물에 담갔던 팔뚝이 아직 따뜻하고, 손가락이 끝까지 펴진다."
+      }
     },
-
     {
       "id": "arc_kid_sweet",
       "role": "kid",
@@ -188,28 +418,84 @@
       "pace": "빠르다가 멈춤, 하루, 사흘",
       "beats": [
         {
-          "step": 1, "size": "small",
-          "trigger": {"days_since_join": 1, "give": {"category": "food", "subtype": ["sweet", "snack"], "to": "self"}},
+          "step": 1,
+          "size": "small",
+          "trigger": {
+            "days_since_join": 1,
+            "give": {
+              "category": "food",
+              "subtype": [
+                "sweet",
+                "snack"
+              ],
+              "to": "self"
+            }
+          },
           "announce": "아이가 「{item}」 받아 들고 냄새만 맡더니, 베개 밑에 넣었습니다.",
           "line": "아직 안 먹을래. 단 게 뭔지 모르니까, 아껴 둘래."
         },
         {
-          "step": 2, "size": "small",
-          "trigger": {"min_days_after_prev": 1, "give": {"category": "stationery", "subtype": ["paper", "pen"], "to": "self"}},
+          "step": 2,
+          "size": "small",
+          "trigger": {
+            "min_days_after_prev": 1,
+            "give": {
+              "category": "stationery",
+              "subtype": [
+                "paper",
+                "pen"
+              ],
+              "to": "self"
+            }
+          },
           "announce": "아이가 「{item}」 들고 주민분들께 하나씩 물어보고 다닙니다. 단맛이 무슨 맛이냐고요. 대답이 다 달랐답니다.",
           "line": "요리사는 따뜻하대. 농부는 조용하대. 기술자는 모른대. 다 적었어.",
-          "ask": {"kind": "choice", "label": "아이 쪽지에 관리실도 한 줄 적을까요?", "options": ["적기", "그냥 두기"], "default": "그냥 두기"},
+          "ask": {
+            "kind": "choice",
+            "label": "아이 쪽지에 관리실도 한 줄 적을까요?",
+            "options": [
+              "적기",
+              "그냥 두기"
+            ],
+            "default": "그냥 두기"
+          },
           "after_ask": "관리실은 이렇게 적었습니다. 단맛은 값을 매기기 어려운 맛입니다."
         },
         {
-          "step": 3, "size": "big",
-          "trigger": {"min_days_after_prev": 3, "any_of": [{"give_distinct": {"category": "food", "subtype": ["sweet"], "n": 2}}, {"family_set_complete": "8801062"}], "session": "evening"},
+          "step": 3,
+          "size": "big",
+          "trigger": {
+            "min_days_after_prev": 3,
+            "any_of": [
+              {
+                "give_distinct": {
+                  "category": "food",
+                  "subtype": [
+                    "sweet"
+                  ],
+                  "n": 2
+                }
+              },
+              {
+                "family_set_complete": "8801062"
+              }
+            ],
+            "session": "evening"
+          },
           "announce": "관리실에서 알려 드립니다. 오늘 저녁, 아이가 베개 밑에 아껴 둔 걸 꺼냈습니다. 다들 한 조각씩 받으셨습니다. 아이 몫이 제일 작았습니다.",
           "line": "단 건 오래 남는 맛이구나. 고맙습니다… 이렇게 말하는 거 맞지?",
           "beat": "아이가 마지막 조각을 문어 쪽으로 밀어 두었다. 문어는 먹지 않고 팔로 감싸 쥐었다.",
           "log": "아이가 단것을 처음 먹었습니다. 나눠 준 조각 수는 세지 않았습니다. 아이가 세지 말라고 했습니다."
         }
-      ]
+      ],
+      "imprint_on_done": {
+        "id": "shared_sweet",
+        "name": "나눠 먹은 아이",
+        "ability_ko": "곁에 있는 사람들의 기분이 조금 더 빨리 풀린다",
+        "cost_ko": "자기 몫을 먼저 나눠 줘서 배가 자주 고프다",
+        "mark_ko": "바지 무릎에 단것 봉지 조각으로 덧댄 천이 붙어 있다",
+        "line": "{name}의 무릎에 반짝이는 봉지 조각이 덧대어 있다. 앉을 때마다 바스락 소리가 나서 다들 웃는다."
+      }
     }
   ]
 }

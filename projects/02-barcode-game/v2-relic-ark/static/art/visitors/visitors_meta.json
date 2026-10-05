@@ -1,0 +1,247 @@
+{
+ "_comment": "꾸밈 손님 여덟(S19-C). 손으로 찍은 도트(생성 AI 없음), P2 원화 배율. 정수 배율 + image-rendering:pixelated",
+ "scale_rule": "원화(x1) 셀은 P2 사람 셀(64, 맨머리 44px)과 같은 배율이다. 방 화면 ×3 이면 손님도 ×3 으로 그린다(_x3.png 가 그 판).",
+ "anchor_rule": "inside = 발(바닥 줄) 가운데 [x, y] — 방 바닥 floor_y 에 이 점을 맞춘다. window = 몸 가운데 — 방 유리 바깥 자리에 맞춘다.",
+ "visitors": [
+  {
+   "id": "blanket_crab",
+   "ko": "담요게",
+   "file": "static/art/visitors/blanket_crab.png",
+   "file_x3": "static/art/visitors/blanket_crab_x3.png",
+   "where": "inside",
+   "indoor": true,
+   "size": [
+    28,
+    20
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 2,
+     "fps": 1.5
+    },
+    "tuck_in": {
+     "row": 1,
+     "frames": 4,
+     "fps": 3
+    }
+   },
+   "anchor": [
+    14,
+    19
+   ],
+   "look": "손바닥만 한 게. 등딱지에 실밥이 한 가닥 걸려 있다. 천 더미 속에 반쯤 파묻혀 잔다."
+  },
+  {
+   "id": "lantern_fish_pair",
+   "ko": "등불고기 한 쌍",
+   "file": "static/art/visitors/lantern_fish_pair.png",
+   "file_x3": "static/art/visitors/lantern_fish_pair_x3.png",
+   "where": "window",
+   "indoor": false,
+   "size": [
+    36,
+    24
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 4,
+     "fps": 4
+    },
+    "circle": {
+     "row": 1,
+     "frames": 4,
+     "fps": 5
+    }
+   },
+   "anchor": [
+    18,
+    12
+   ],
+   "look": "엄지만 한 물고기 둘. 턱 밑에 작은 불이 하나씩 달려 있고, 둘이 같은 박자로 깜빡인다."
+  },
+  {
+   "id": "hermit_trader",
+   "ko": "소라게 장수",
+   "file": "static/art/visitors/hermit_trader.png",
+   "file_x3": "static/art/visitors/hermit_trader_x3.png",
+   "where": "inside",
+   "indoor": true,
+   "size": [
+    36,
+    22
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 2,
+     "fps": 2
+    },
+    "show_stall": {
+     "row": 1,
+     "frames": 4,
+     "fps": 3
+    }
+   },
+   "anchor": [
+    18,
+    21
+   ],
+   "look": "빈 병뚜껑을 집처럼 지고 다니는 소라게. 집게에 늘 뭔가 하나를 쥐고 있다."
+  },
+  {
+   "id": "page_shrimp",
+   "ko": "책장새우",
+   "file": "static/art/visitors/page_shrimp.png",
+   "file_x3": "static/art/visitors/page_shrimp_x3.png",
+   "where": "window",
+   "indoor": false,
+   "size": [
+    48,
+    16
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 2,
+     "fps": 3
+    },
+    "march": {
+     "row": 1,
+     "frames": 4,
+     "fps": 4
+    }
+   },
+   "anchor": [
+    24,
+    8
+   ],
+   "look": "투명한 몸에 가는 줄무늬가 있는 새우 몇 마리. 창 유리 위에서 한 줄로 늘어선다."
+  },
+  {
+   "id": "steam_eel",
+   "ko": "김 따라온 꼬마 장어",
+   "file": "static/art/visitors/steam_eel.png",
+   "file_x3": "static/art/visitors/steam_eel_x3.png",
+   "where": "window",
+   "indoor": false,
+   "size": [
+    36,
+    16
+   ],
+   "cols": 3,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 2,
+     "fps": 3
+    },
+    "nose_press": {
+     "row": 1,
+     "frames": 3,
+     "fps": 3
+    }
+   },
+   "anchor": [
+    18,
+    8
+   ],
+   "look": "손가락 굵기의 장어. 김 서린 창에 코끝을 대고 동그란 자국을 남긴다."
+  },
+  {
+   "id": "baby_jelly_drift",
+   "ko": "아기 해파리 떼",
+   "file": "static/art/visitors/baby_jelly_drift.png",
+   "file_x3": "static/art/visitors/baby_jelly_drift_x3.png",
+   "where": "window",
+   "indoor": false,
+   "size": [
+    40,
+    26
+   ],
+   "cols": 3,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 3,
+     "fps": 3
+    },
+    "bump": {
+     "row": 1,
+     "frames": 3,
+     "fps": 4
+    }
+   },
+   "anchor": [
+    20,
+    13
+   ],
+   "look": "콩알만 한 해파리 여럿이 창가 그릇의 물빛을 따라 둥둥 떠다닌다. 서로 부딪히면 잠깐 밝아진다."
+  },
+  {
+   "id": "glass_star",
+   "ko": "유리닦이 불가사리",
+   "file": "static/art/visitors/glass_star.png",
+   "file_x3": "static/art/visitors/glass_star_x3.png",
+   "where": "window",
+   "indoor": false,
+   "size": [
+    28,
+    28
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 2,
+     "fps": 2
+    },
+    "wipe": {
+     "row": 1,
+     "frames": 4,
+     "fps": 2
+    }
+   },
+   "anchor": [
+    14,
+    14
+   ],
+   "look": "작은 불가사리. 창 바깥 유리에 붙어 천천히 돌며 이끼를 먹는다. 지나간 자리가 동그랗게 맑아진다."
+  },
+  {
+   "id": "screw_crab",
+   "ko": "나사집게",
+   "file": "static/art/visitors/screw_crab.png",
+   "file_x3": "static/art/visitors/screw_crab_x3.png",
+   "where": "inside",
+   "indoor": true,
+   "size": [
+    30,
+    18
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 2,
+     "fps": 2
+    },
+    "carry": {
+     "row": 1,
+     "frames": 4,
+     "fps": 4
+    }
+   },
+   "anchor": [
+    15,
+    17
+   ],
+   "look": "집게 하나가 유난히 큰 작은 게. 큰 집게에 늘 나사나 고리 같은 것을 끼우고 다닌다."
+  }
+ ]
+}
