@@ -2697,14 +2697,21 @@
     return '<span class="zeroline">' + esc(plain(t || '이미 읽은 성문이라 새로 얻은 건 없습니다')) + '</span>';
   }
   // S19 후속: 둘째 찍기부터 카드 아래 글은 이야기 두 줄까지. *_short 문장(시나리오)이 있으면 그것, 없으면 첫 문장만. 누르면 전부
-  const GAIN_ORDER = ['.boxline', '.famline.done', '.variantline', '.meetline', '.wishline', '.famline', '.polished', '.where', '.zeroline', '.voice'];
+  // 순서는 ui_moments.scan_card.priority(시나리오): 가문 한 벌 → 첫 만남(가문 → 갈래) → 가문 하나 남음 → 가문 진척 → 선반 자리 → 정원사.
+  //  그 밖(상자·바다 무늬·바람·값낮음)은 뒤로. 각 줄은 *_short 판, 없으면 첫 문장
+  const GAIN_ORDER = ['.famline.done', '.meetline[data-kind=family]', '.meetline[data-kind=category]', '.meetline', '.famline', '.where', '.voice', '.boxline', '.variantline', '.wishline', '.zeroline'];
+  function firstSentence(t) { t = String(t || '').trim(); const m = t.match(/^.+?[.?!。](?=\s|$)/); return m ? m[0] : t; }
   function shortOf(el, r) {
-    const map = { boxline: r.box_opened && r.box_opened.ko_short, variantline: r.variant && r.variant.ko_short, famline: r.family_set && r.family_set.ko_short,
-                  voice: r.voice && r.voice.text_short, where: r.polish && r.polish.ko_short };
-    const k = Object.keys(map).find(c => el.classList.contains(c));
-    if (k && map[k]) return plain(map[k]);
-    const t = el.textContent.trim(), m = t.match(/^.+?[.?!。](?=\s|$)/);
-    return m ? m[0] : t;
+    const T = K.ext.T || ((k, v, f) => f);
+    if (el.classList.contains('meetline')) { const m = (r.first_meet || [])[+el.dataset.i] || {}; if (m.line_short) return plain(m.line_short); }
+    if (el.classList.contains('famline') && r.family_set && !r.family_set.just_completed) {
+      const fs = r.family_set, left = (fs.total || 0) - (fs.have || 0);
+      const t = left === 1 ? T('family_set.one_left_short', { family: fs.name }, '') : T('family_set.progress_short', { family: fs.name, n: fs.have, total: fs.total }, '');
+      if (t) return plain(t);
+    }
+    if (el.classList.contains('voice') && r.voice && r.voice.text_short) return (r.voice.who_ko ? r.voice.who_ko + ': ' : '') + plain(r.voice.text_short);
+    if (el.classList.contains('famline') && r.family_set && r.family_set.just_completed) return el.textContent.trim();
+    return firstSentence(el.textContent);
   }
   function trimGain(rg, r) {
     const spans = [], seen = new Set();
@@ -2758,7 +2765,7 @@
           : (has ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : '')));
     const vr = r.variant && r.variant.shiny ? r.variant : null;
     const extra = (vr ? '<span class="variantline">' + esc(plain(vr.ko || '')) + '</span>' : '') +
-      (r.first_meet || []).map(m => '<span class="meetline">' + esc(plain(m.line || '')) + '</span>').join('') +
+      (r.first_meet || []).map((m, i) => '<span class="meetline" data-kind="' + esc(m.kind || '') + '" data-i="' + i + '">' + esc(plain(m.line || '')) + '</span>').join('') +
       (r.family_set && r.family_set.ko ? '<span class="famline' + (r.family_set.just_completed ? ' done' : '') + '">' + esc(plain(r.family_set.ko)) + '</span>' : '') +
       (r.wishes_done || []).map(w => '<span class="wishline">' + esc(plain(w.line || '')) + '</span>').join('') +
       // S16: 찍기로 열린 상자 — 문장은 그대로, 앞에 작은 상자가 「열림」 하고 튄다
@@ -2769,7 +2776,7 @@
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
       shelfNote + extra +
       ((r.voice && r.voice.text) ? '<span class="voice">' + esc(r.voice.who_ko || '') + (r.voice.who_ko ? ': ' : '') + esc(r.voice.text) + '</span>' : '');
-    if ((r.where && r.where.compact) || (r.scans_today || 1) > 1) trimGain(rg, r);
+    if ((r.where && r.where.compact) || (r.scans_today || 1) > 1 || (ark && ark.day >= 2)) trimGain(rg, r);   // scan_card: 2일째부터·둘째 찍기부터 두 줄
     const btn = $('#shelfBtn');
     btn.textContent = slot != null ? (again ? '선반 보기' : '선반에 두기') : '닫기';
     btn.classList.remove('on');

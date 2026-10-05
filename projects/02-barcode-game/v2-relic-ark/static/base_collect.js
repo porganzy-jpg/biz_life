@@ -317,6 +317,10 @@
     if (k === 'needs') return '';                                  // S19: 오늘 필요는 아래 얼굴 줄(needs_today)로
     if (k === 'visit') return s(d.line || d.ko);
     if (k === 'overflow') return s(d.ko);
+    if (k === 'keepsake' && d.name && d.item) {                  // ui_moments keepsake.by_time — 저녁에 열어도 「오늘 아침에도」라 하던 것
+      const hr = new Date().getHours(), band = hr >= 5 && hr < 11 ? 'morning' : hr < 17 ? 'day' : hr < 21 ? 'evening' : 'night';
+      return s(T('keepsake.by_time.' + band, { name: d.name, item: d.item }, '') || d.line);
+    }
     if (k === 'arc' || k === 'beat') return s(d.announce || d.line || d.ko);
     return s(d.ko || d.line);
   }
