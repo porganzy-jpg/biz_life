@@ -82,11 +82,36 @@
     const r = (typeof cb !== 'undefined' && cb && cb.raid) || null;
     return { room: r && r.target_room, creature: r && r.creature && r.creature.name };
   }
+  // S18: 조사 고르기(플레이테스트 버그 9 「식량창고을」). 앞말 마지막 글자의 받침으로 을/를·이/가·은/는·과/와·으로/로·이나/나·아/야·이랑/랑.
+  //      숫자는 읽는 소리로(1 일·3 삼·6 육·7 칠·8 팔·0 영), 닫는 따옴표·괄호는 건너뛰고 본다. 「으로」는 ㄹ 받침이면 「로」
+  const JOSA = { '을': ['을', '를'], '를': ['을', '를'], '이': ['이', '가'], '가': ['이', '가'], '은': ['은', '는'], '는': ['은', '는'],
+                 '과': ['과', '와'], '와': ['과', '와'], '으로': ['으로', '로'], '로': ['으로', '로'], '이나': ['이나', '나'], '나': ['이나', '나'],
+                 '아': ['아', '야'], '야': ['아', '야'], '이랑': ['이랑', '랑'], '랑': ['이랑', '랑'] };
+  function jongOf(word) {                             // 0 받침 없음 · 1 받침 · 2 ㄹ 받침
+    const w = String(word == null ? '' : word).replace(/[\s'"」』〉》)\]>.,!?·…]+$/, '');
+    const ch = w.charAt(w.length - 1); if (!ch) return 0;
+    const c = ch.charCodeAt(0);
+    if (c >= 0xAC00 && c <= 0xD7A3) { const j = (c - 0xAC00) % 28; return j === 0 ? 0 : (j === 8 ? 2 : 1); }
+    if (ch >= '0' && ch <= '9') return [1, 2, 0, 1, 0, 0, 1, 2, 2, 0][+ch];
+    if (/[lr]/i.test(ch)) return 2;
+    if (/[mnk]/i.test(ch)) return 1;
+    return 0;
+  }
+  function josa(word, p) {
+    const pair = JOSA[p], w = String(word == null ? '' : word);
+    if (!pair) return w + (p || '');
+    const j = jongOf(w);
+    return w + (pair[0] === '으로' ? (j === 1 ? '으로' : '로') : (j ? pair[0] : pair[1]));
+  }
+  // 자리표시 바로 뒤에 붙은 조사는 채운 말에 맞춰 바꾼다({room}을 → 「식량창고를」이 아니라 받침에 따라). 말이 비면 조사도 뺀다
+  const PH_JOSA = /\{([a-z_]+)\}(으로|이랑|이나|을|를|이|가|은|는|과|와|로|랑|나|아|야)(?=[\s,.!?·…」』)'"]|$)/g;
   function fillText(str, vars) {
     const t = String(str == null ? '' : str);
     if (t.indexOf('{') < 0) return t;
     const d = phDefaults();
-    return t.replace(PH, (m, k) => { const v = vars && vars[k] != null ? vars[k] : d[k]; return v == null ? '' : String(v); })
+    const val = (k) => { const v = vars && vars[k] != null ? vars[k] : d[k]; return v == null ? '' : String(v); };
+    return t.replace(PH_JOSA, (m, k, pt) => { const v = val(k); return v ? josa(v, pt) : ''; })
+            .replace(PH, (m, k) => val(k))
             .replace(/\s{2,}/g, ' ').replace(/ ([,.])/g, '$1');
   }
   const esc = (s) => fillText(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -109,6 +134,47 @@
       return ft.call(this, t, ...a);
     };
   })();
+  // S18: 화면 줄(큐). 밤사이 → 귀환 → 만남 → 하루 마감 같은 큰 창은 하나씩, 그동안의 방송(say)은 뒤로 미룬다.
+  //      show(done) 는 창을 띄우고 닫힐 때 done() 을 부른다. 사용자가 누른 일의 토스트(toast)는 미루지 않는다
+  const modalQ = [], heldSay = [];
+  let modalBusy = null, qReady = false;
+  function enqueue(tag, show, first) {             // first: 줄 맨 앞(「밤사이」는 언제나 먼저)
+    if (modalBusy && modalBusy.tag === tag) return;
+    if (modalQ.some(x => x.tag === tag)) return;
+    if (first) modalQ.unshift({ tag, show }); else modalQ.push({ tag, show });
+    setTimeout(pumpQ, 0);                              // 같은 순간에 들어온 것끼리는 「first」가 앞에 서게 한 박자 늦춘다
+  }
+  let pumpT = 0;
+  function pumpQ() {
+    if (modalBusy || !qReady) return;
+    // 찍기 창·끌기 중에는 다음 창을 띄우지 않는다(만남 카드가 찍기 위에 덮이던 것) — 닫힌 뒤에
+    if ((modalQ.length || heldSay.length) && (!$('#scan').hidden || dragging)) { clearTimeout(pumpT); pumpT = setTimeout(pumpQ, 1200); return; }
+    const it = modalQ.shift();
+    if (!it) { flushSay(); return; }
+    let done = false;
+    modalBusy = it;
+    const fin = () => { if (done) return; done = true; modalBusy = null; qLog.push('done ' + it.tag); setTimeout(pumpQ, 450); };
+    qLog.push('show ' + it.tag);
+    try { it.show(fin); } catch (e) { fin(); }
+  }
+  function flushSay() {
+    if (!heldSay.length) return;
+    const l = heldSay.shift(); toast(l);
+    if (heldSay.length) setTimeout(() => { if (!modalBusy) flushSay(); }, 3200);
+  }
+  function say(m) {                                   // 관리실 방송 한 줄 — 큰 창이 떠 있으면 닫힌 뒤에
+    if (!m) return;
+    if (modalBusy || modalQ.length || !qReady) { if (heldSay.indexOf(m) < 0) heldSay.push(m); return; }
+    toast(m);
+  }
+  const qLog = [];
+  // 패널이 닫히거나(숨김) 다른 내용으로 바뀌면 그 창은 끝난 것
+  function whenPanelGone(cb) {
+    const pn = $('#panel'), pb = $('#panelBody'), first = pb.firstChild;
+    const mo = new MutationObserver(() => { if (pn.hidden || !first || !pb.contains(first)) { mo.disconnect(); cb(); } });
+    mo.observe(pn, { attributes: true, attributeFilter: ['hidden'] });
+    mo.observe(pb, { childList: true });
+  }
   function toast(m) {
     m = fillText(m);
     if (String(m).indexOf('{') >= 0) { braceLog.toasts++; braceLog.samples.push(m); }
@@ -1672,7 +1738,7 @@
           return '<button class="bopt' + (lack.length ? ' lack' : '') + '" data-room="' + esc(id) + '"' +
             (lack.length ? ' disabled' : '') + '><b>' + esc(catalog[id].name || id) +
             (cap ? ' · 정원 ' + cap : '') + '</b>' +
-            '<small>' + esc(lack.length ? '부족: ' + lack.join(' · ') : costLine(id)) + '</small></button>';
+            '<small>' + esc(lack.length ? '부족: ' + lack.join(' · ') : costLine(id)) + '</small>' + (o && lack.length ? srcHint(o.lacking) : '') + '</button>';
         }).join('') + '</div>';
       body.querySelectorAll('.bopt[data-room]').forEach(b => {
         b.addEventListener('click', () => build(b.dataset.room, slot));
@@ -1834,7 +1900,7 @@
       const lack = Object.entries(o.lacking || {}).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).concat((o.cond_missing || []).map(plain));
       return '<button class="bopt' + (lack.length ? ' lack' : '') + '" data-room="' + esc(id) + '"' + (lack.length ? ' disabled' : '') + '><b>' +
         esc(catalog[id].name || id) + (id === fc.was_id ? ' · 예전 그 방' : '') + '</b><small>' +
-        esc(lack.length ? '모자람: ' + lack.join(' · ') : costLine(id)) + '</small></button>';
+        esc(lack.length ? '모자람: ' + lack.join(' · ') : costLine(id)) + '</small>' + (lack.length ? srcHint(o.lacking) : '') + '</button>';
     }).join('') + '</div>';
   }
   async function build(roomId, slot) {
@@ -1923,9 +1989,10 @@
       g.classList.toggle('ok', !!raid.ready.gate.ok);
       g.innerHTML = '<b>' + (raid.ready.gate.ok ? '준비 끝' : '아직') + '</b><span>' + esc(raid.ready.gate.ko) + '</span>';
       wd.classList.toggle('bad', raid.ready.would !== 'held');
-      wd.innerHTML = '지금 맞서시면 <b>' + esc(raid.ready.would_ko) + '</b>';
+      wd.innerHTML = '지금 맞서시면 <b>' + esc((K.ext.T && K.ext.T('raid_preview.' + raid.ready.would, {}, '')) || raid.ready.would_ko) + '</b>';   // S18 TSV: 미리 보기는 미래형
     } else { g.hidden = true; wd.hidden = true; }
     renderGate(raid);
+    clueMode(raid);
     const btn = $('#radv');
     if (raid.stage === 'sound') { btn.hidden = false; btn.textContent = '귀 기울이기'; }
     else if (raid.stage === 'silhouette') { btn.hidden = false; btn.textContent = '맞서기'; }
@@ -1947,6 +2014,71 @@
     }
   }
 
+  // S18 「답 대신 단서」: 처음 두 번 만나는 손님은 막는 법·관문·반전을 숨기고 **버릇 한 줄 + 할 수 있는 일(동사)** 만 보인다.
+  //      동사를 고르면 그때 미리 보기(지금 맞서시면 …)가 열리고, 맞서기 전까지 몇 번이든 바꿀 수 있다.
+  //      두 번 겪은 손님(서버 answer_known / encounters, 없으면 도감 /api/collection 의 times)은 예전처럼 답을 보여 준다
+  const RAID_VERBS = [['light', '불'], ['power', '전원'], ['move', '자리'], ['tool', '도구']];
+  const verbPick = {};                                  // 습격 id → 고른 동사
+  const metTimes = {};                                  // 생물 id → 겪은 횟수(도감)
+  let metAt = 0;
+  async function loadMet() {
+    if (performance.now() - metAt < 60000) return; metAt = performance.now();
+    try { const c = await api('/api/collection?uid=' + encodeURIComponent(uid)); (c.creatures || []).forEach(x => { if (x.id) metTimes[x.id] = x.times || 0; }); renderRaid(); }
+    catch (e) { /* 도감이 없으면 단서 모드 그대로 */ }
+  }
+  function answerKnown(raid) {
+    if (raid.card_mode) return raid.card_mode !== 'clue';             // 서버 S18(stakes raid_card)
+    if (typeof raid.answer_known === 'boolean') return raid.answer_known;
+    const need = raid.answer_after != null ? raid.answer_after : 2;
+    const n = raid.encounters != null ? raid.encounters : (raid.creature.encounters != null ? raid.creature.encounters : metTimes[raid.creature.id]);
+    if (n == null) { loadMet(); return false; }
+    return n >= need;
+  }
+  const actPick = {};                                  // 습격 id → 「행동」 안에서 고른 것(화면 몫 — 누르기 전까지 서버는 모른다)
+  async function pickVerb(raid, verb) {
+    verbPick[raid.id] = verb;
+    try { const r = await api('/api/raid/verb', { verb }); if (r.state) apply(r.state); }   // 서버가 그 동사의 미리보기를 연다
+    catch (e) { /* 옛 서버: 화면만 바꾼다 */ }
+    renderRaid();
+  }
+  function clueMode(raid) {
+    let vb = $('#rverbs');
+    const on = !!(raid.creature.threat && raid.stage !== 'done' && !raid.resolved && !answerKnown(raid));
+    $('#raidbar').classList.toggle('clue', on);
+    if (!on) { if (vb) vb.hidden = true; return; }
+    if (!vb) {
+      vb = document.createElement('div'); vb.id = 'rverbs'; vb.className = 'rverbs'; $('#rhow').after(vb);
+      vb.addEventListener('click', (e) => {
+        const r = cb.raid; if (!r) return;
+        const b = e.target.closest('button[data-verb]'), o = e.target.closest('button[data-opt]'), go = e.target.closest('button[data-try]');
+        if (b) { pickVerb(r, b.dataset.verb); return; }
+        if (o) { actPick[r.id] = o.dataset.opt; renderRaid(); return; }
+        if (go) { go.disabled = true; doAct(go.dataset.try, r.id); }
+      });
+    }
+    vb.hidden = false;
+    const habit = raid.habit || (raid.creature && raid.creature.habit);
+    $('#rhow').textContent = plain(habit ? '버릇: ' + habit : '처음 보는 손님입니다. 무엇을 해 볼지 골라 보세요.');
+    const verbs = (raid.verbs && raid.verbs.length) ? raid.verbs : RAID_VERBS.filter(v => v[0] !== 'tool' || raid.action).map(v => ({ id: v[0], ko: v[1] }));
+    const pick = raid.verb || verbPick[raid.id], pv = verbs.find(v => v.id === pick) || null;
+    const how = { light: '방마다 불을 켜고 끄면서 아래 미리 보기를 보세요.', power: '≡ 메뉴의 전원으로 집 전체 불을 켜고 끌 수 있습니다.',
+                  move: '사람을 끌어다 다른 방으로 옮겨 보세요. 맞서기 전까지는 몇 번이든 됩니다.', station: '사람을 끌어다 다른 방으로 옮겨 보세요. 맞서기 전까지는 몇 번이든 됩니다.',
+                  tool: '방의 「자세히」에서 도구를 붙이거나 뗄 수 있습니다.', act: '해 볼 일을 하나 고르세요. 대가는 누를 때 냅니다.' };
+    let sub = '';
+    const ap = actPick[raid.id];
+    if (pick === 'act' && pv && pv.options) {
+      sub = '<div class="rvb sub">' + pv.options.map(o => '<button data-opt="' + esc(o.id) + '"' + (ap === o.id ? ' class="on"' : '') + '>' + esc(plain(o.ko)) + '</button>').join('') + '</div>';
+      const o = ap && pv.options.find(x => x.id === ap);
+      const done = (raid.acts || []).indexOf(ap) >= 0;
+      if (o) sub += '<p class="rvhow">대가: ' + esc(plain(o.cost_ko || '')) + '</p>' +
+        (done ? '<p class="rvhow">이미 해 두었습니다.</p>' : '<div class="rowbtns"><button class="on" data-try="' + esc(o.id) + '">이걸로 해 보기</button></div>');
+    }
+    vb.innerHTML = '<div class="rvb">' + verbs.map(v => '<button data-verb="' + esc(v.id) + '"' + (pick === v.id ? ' class="on"' : '') + '>' + esc(v.ko) + '</button>').join('') + '</div>' +
+      (pick ? '<p class="rvhow">' + esc(how[pick] || '') + '</p>' + sub : '<p class="rvhow">고르시면 그때 「지금 맞서시면 …」이 보입니다.</p>');
+    $('#rgate').hidden = true; $('#rflip').hidden = true;     // 관문·반전 문장은 답이다
+    $('#rwould').hidden = !pick || !raid.ready;
+    $('#ract').hidden = true;                                 // 단서 모드에서는 맞는 행동 하나를 콕 집지 않는다(서버 action:null)
+  }
   async function refreshRaid() {
     try {
       const r = await api('/api/raid/today?uid=' + encodeURIComponent(uid));
@@ -2012,6 +2144,7 @@
     ark = st;
     cb = st.combat || cb;
     if (Array.isArray(st.shelf)) shelf = st.shelf.filter(x => x && typeof x.slot === 'number');
+    if (Array.isArray(st.stored)) stored = st.stored.filter(x => x && x.id);      // S18: 선반에 못 놓인 유물(창고 상자)
     if (st.rooms_catalog) catalog = st.rooms_catalog;
     slots = st.slots || slots;
     floorSlots = st.floor_slots || floorSlots;
@@ -2048,9 +2181,10 @@
       await refreshRaid();
       if (first) fit();                 // 습격 막대가 뜬 뒤의 여백으로 다시 맞춘다
       const hint = cb && cb.next_raid_hint;
-      if (first && hint && hint.ko && (!cb.raid || cb.raid.stage === 'done')) toast(hint.ko);
+      if (first && hint && hint.ko && (!cb.raid || cb.raid.stage === 'done')) say(hint.ko);
       if (first) loadHooks.forEach(f => { try { f(st); } catch (e) { console.error('첫 로드 훅 실패', e); } });
-    } catch (e) { toast('방주를 불러오지 못했습니다: ' + (e.message || '')); }
+      if (first) { qReady = true; setTimeout(pumpQ, 0); }   // S18: 첫 로드의 창들(밤사이·만남·귀환)이 다 모인 뒤에 순서대로
+    } catch (e) { qReady = true; toast('방주를 불러오지 못했습니다: ' + (e.message || '')); }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -2091,7 +2225,7 @@
   const RAR_KO = { common: '흔함', uncommon: '쓸만함', rare: '귀함', epic: '진귀함', legendary: '전설' };  // ROOMS_AND_ITEMS §1
   const CAT_FILL = { food: '#c08a33', drink: '#d8c9a3', medical: '#e6d7b0', electronics: '#39312a',
                      stationery: '#b03a24', book: '#8d8f4a', apparel: '#96703f', tobacco: '#dc7728', unknown: '#7e8d8c' };
-  let shelf = [], propsMeta = {}, shelfFlash = null;
+  let shelf = [], propsMeta = {}, shelfFlash = null, stored = [];
   fetch('/static/art/props/props_meta.json').then(r => (r.ok ? r.json() : null))
     .then(j => { propsMeta = (j && j.props) || {}; }).catch(() => { propsMeta = {}; });
   const propImgs = {};
@@ -2254,14 +2388,47 @@
       (rows.length ? rows.map(it => '<span' + ((it.slot | 0) === fresh ? ' class="new"' : '') + '>' +
           esc(it.name || propSpec(it.prop_id).name || it.prop_id) + ' · ' + esc(whenKo(it.scanned_at)) +
           ((it.polish | 0) > 1 ? ' · ' + esc(it.polish_label || POLISH_KO[it.polish] || '') : '') + (it.variant === 'sea' ? ' · 바다 무늬' : '') + '</span>').join('')
-        : '<span>비어 있습니다. 찍은 물건이 여기 놓입니다</span>') + '</div>';
+        : '<span>비어 있습니다. 찍은 물건이 여기 놓입니다</span>') + '</div>' + storedSection();
+  }
+  // S18: 창고 상자 — 선반이 찬 뒤 들어온 유물도 사라지지 않고 여기 보인다. 빈 칸이 있으면 「선반에 올리기」
+  function shelfFree() {
+    const used = new Set(); shelf.forEach(it => { for (let k = 0; k < propSpec(it.prop_id).slots; k++) used.add((it.slot | 0) + k); });
+    return Math.max(0, shelfCap() - used.size);
+  }
+  function storedSection() {
+    if (!stored.length) return '';
+    const free = shelfFree();
+    return '<h3>' + esc(STO()) + ' · ' + stored.length + '점</h3><p class="desc">선반에 자리가 없어서 넣어 둔 것들입니다. 도감에는 그대로 남아 있습니다.' + (free ? ' 선반에 빈 칸이 ' + free + '칸 있습니다.' : '') + '</p>' +
+      '<div class="storedlist">' + stored.slice().reverse().slice(0, 12).map(it =>
+        '<div class="sto"><span><b>' + esc(it.relic_name || it.name || '물건') + '</b> · ' + esc(RAR_KO[it.rarity] || '') + ' · ' + esc(whenKo(it.scanned_at)) + '</span>' +
+        (free ? '<button data-unstore="' + esc(it.id) + '">선반에 올리기</button>' : '') + '</div>').join('') + '</div>';
+  }
+  function storedLine(slot) {
+    if (slot !== shelfRoomSlot() || !stored.length) return '';
+    return '<p class="rcline stoline">선반 ' + shelf.length + '점 / ' + shelfCap() + '칸 <button class="stochip" data-c="stored">' + esc(STO()) + ' ' + stored.length + '</button></p>';
+  }
+  // 창고 상자 ↔ 선반(POST /api/shelf/swap). slot 을 주면 그 칸 물건과 바꾼다
+  async function shelfSwap(storedId, slot) {
+    try {
+      const r = await api('/api/shelf/swap', slot == null ? { stored_id: storedId } : { stored_id: storedId, slot });
+      if (r.state) apply(r.state);
+      const it = shelf.find(x => (x.slot | 0) === r.slot);
+      if (r.ko || r.down_ko) toast(plain([r.ko, r.down_ko].filter(Boolean).join(' ')));   // 서버 S18 문장(shelf.full.placed·moved)
+      else toast(r.down ? plain(TT('shelf.full.moved', { item: r.down }, josa('\'' + r.down + '\'', '은') + ' ' + STO() + '에 넣어 두었습니다.'))
+                   : ((it ? '\'' + (it.relic_name || it.name) + '\', ' : '') + '선반 ' + (r.slot + 1) + '번째 칸에 올렸습니다.'));
+      if (typeof r.slot === 'number') { shelfFlash = { slot: r.slot, until: performance.now() + 9000 }; }
+      return r;
+    } catch (e) { toast(e.message || '바꾸지 못했습니다'); return null; }
   }
   // 같은 날 다시 찍으면 서버 polish.ko 가 비어 온다 → ui_moments 의 shelf.rescan(최대면 rescan_max) 문장으로
   function rescanLine(pol, it) {
     if (pol && pol.ko) return plain(pol.ko);
     const item = (it && (it.name || propSpec(it.prop_id).name)) || '';
     const T = K.ext.T;
-    const key = pol && pol.max && pol.level >= pol.max ? 'shelf.rescan_max' : 'shelf.rescan';
+    const atMax = pol && pol.max && pol.level >= pol.max;
+    // S18: 오늘 세지 않은 재스캔에 「한 번 더 닦아 두었습니다」를 쓰면 거짓 문장이다(서버도 그때 ko 를 비운다)
+    if (pol && pol.counted_today === false && !atMax) return '「' + item + '」은 오늘 이미 닦아 두었습니다. 다른 날 다시 찍으시면 한 번 더 닦입니다.'.replace('」은', jongOf(item) ? '」은' : '」는');
+    const key = atMax ? 'shelf.rescan_max' : 'shelf.rescan';
     return T ? T(key, { item }, '') : '';
   }
   function focusShelf(slot, pol) {
@@ -2328,7 +2495,7 @@
         (a.done ? '완료 · ' : '') + esc(plain(a.ko)) + '</button>' +
       (a.done ? '' : '<div class="rcost' + (lack ? ' lack' : '') + '">대가: ' + esc(plain(a.cost_ko)) + '</div>' +
                      (no ? '' : '<div class="rwhy">' + esc(plain(a.why)) + '</div>')) +
-      (no ? '<div class="rno">' + esc(no) + '</div>' : '') +
+      (no ? '<div class="rno">' + esc(no) + '</div>' + (lack ? srcHint(a.lacking, true).replace(/small/g, 'div') : '') : '') +
       (paid ? '<div class="rpaid">' + esc(paid) + '</div>' : '');
     const b = box.querySelector('.ractbtn');
     if (b && a.can) b.addEventListener('click', () => doAct(a.id, raid.id));
@@ -2436,10 +2603,46 @@
              prop_id: it.prop_id, lines: [[pl, when].filter(Boolean).join(' · ')].filter(Boolean) };
   }
   // 닦기 도장 글: 오늘 센 것만 「닦였습니다」(세지 않은 재스캔에 '닦았다'고 찍으면 거짓 문장이 된다 — 서버 polish 와 같은 규칙)
+  // S18: 선반이 꽉 찼다 — 방금 것은 창고 상자에 들어갔고, 덜 닦인 것과 바꿀지 묻는다(누르지 않으면 상자에 그대로)
+  const TT = (k, v, fb) => (K.ext.T ? K.ext.T(k, v || {}, '') : '') || fb;   // 시나리오 문장(ui_moments) 먼저
+  const STO = () => TT('shelf.full.storage_label', {}, '창고 상자');
+  function swapOffer(so, item) {
+    const c = (so.candidates || []).slice(0, 3);
+    return '<span class="where swapq">' + esc(plain(TT('shelf.full.prompt', { item }, so.ko || '선반이 꽉 차서 ' + STO() + '에 넣어 두었습니다. 선반의 물건과 바꾸시겠습니까?'))) + '</span>' +
+      (c.length ? '<span class="swapbtns">' + c.map(x => '<button data-swap="' + esc(so.stored_id) + '" data-slot="' + esc(x.slot) + '">' +
+        esc('「' + (x.relic_name || x.name || '물건') + '」') + '<small>' + esc(TT('shelf.full.swap_label', {}, '바꿔 놓기')) + (POLISH_KO[x.polish] ? ' · ' + esc(POLISH_KO[x.polish]) : '') + '</small></button>').join('') +
+        '<button data-keep="1">' + esc(TT('shelf.full.keep_label', {}, '그대로 두기')) + '</button></span>' : '');
+  }
   function polishStamp(pol) {
     if (!pol) return '';
     if (!pol.counted_today) return pol.max && pol.level >= pol.max ? (pol.label || '윤이 남') : '오늘은 이미 닦음';
     return '닦였습니다' + (pol.leveled_up && pol.label ? ' · ' + pol.label : '');
+  }
+  // S18: 값 0 재스캔(같은 날 같은 물건 등)에도 작은 반응. 서버 zero_note(있으면) → 시나리오 문장(ui_moments rescan_zero) → 기존 문장.
+  //      카드는 뒤집힌 뒤 고개를 한 번 갸웃한다(.zero)
+  // 카드 위에 작게 톡 — 「닦기가 하나 쌓였습니다」「문어가 좋아합니다」 같은 한 줄(서버 zero_reaction.ko). 3.6초 뒤 사라짐
+  function zeroPop(z) {
+    const host = $('#rcard'); if (!host) return;
+    const old = host.querySelector('.zpop'); if (old) old.remove();
+    const el = document.createElement('div'); el.className = 'zpop zp-' + (z.kind || 'x');
+    const FB = { box_key_hint: '이 성문을 기다리는 상자가 문간에 있습니다.', polish_progress: '닦은 횟수가 하나 쌓였습니다.',
+                 wish_hint: (z.resident ? z.resident + ' 님이 ' : '') + '이런 물건을 반가워하십니다.', octopus_mood: '문어가 좋아합니다.' };
+    const t = z.ko || (K.ext.T ? K.ext.T('zero.' + z.kind, { name: z.resident || '' }, '') : '') || FB[z.kind] || '';
+    if (!t) return;
+    el.innerHTML = '<i aria-hidden="true"></i><span>' + esc(plain(t)) + '</span>';
+    host.appendChild(el);
+    setTimeout(() => el.classList.add('off'), 3600); setTimeout(() => el.remove(), 4200);
+  }
+  function zeroLine(r) {
+    const zn = r.zero_note || r.rescan_zero || null;
+    let t = zn && (zn.ko || zn.line || (typeof zn === 'string' ? zn : ''));
+    if (!t && K.ext.T) {
+      const c = r.card || {}, item = c.name || '';
+      const arr = K.ext.Tarr ? (K.ext.Tarr('shelf.rescan_zero') || K.ext.Tarr('rescan_zero.lines')) : null;
+      if (arr && arr.length) { let h = 0; String(c.barcode || c.id || item).split('').forEach(ch => { h = (h * 31 + ch.charCodeAt(0)) >>> 0; }); t = fillText(arr[h % arr.length], { item }); }
+      else t = K.ext.T('rescan_zero.line', { item }, '');
+    }
+    return '<span class="zeroline">' + esc(plain(t || '이미 읽은 성문이라 새로 얻은 건 없습니다')) + '</span>';
   }
   function showReveal(r) {
     lastScan = r;
@@ -2474,7 +2677,8 @@
       ? '<span class="where polished">' + esc(rescanLine(pol, item)) + (pol.label ? ' <b class="plv lv' + esc(pol.level) + '">' + esc(pol.label) + '</b>' : '') + '</span>'
       : (slot != null
         ? '<span class="where">' + esc((item && item.name) || sp.name || '물건') + ', 선반 ' + (slot + 1) + '번째 칸에 두겠습니다</span>'
-        : (has ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : ''));
+        : (r.swap_offer && r.swap_offer.stored_id ? swapOffer(r.swap_offer, c.name || '')
+          : (has ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : '')));
     const vr = r.variant && r.variant.shiny ? r.variant : null;
     const extra = (vr ? '<span class="variantline">' + esc(plain(vr.ko || '')) + '</span>' : '') +
       (r.first_meet || []).map(m => '<span class="meetline">' + esc(plain(m.line || '')) + '</span>').join('') +
@@ -2484,7 +2688,7 @@
       (r.box_opened && K.ext.boxOpenedLine ? '<span class="boxline"><i class="boxpop" aria-hidden="true"><s></s><em>열림</em></i>' + esc(K.ext.boxOpenedLine(r)) + '</span>' : '');
     const rg = $('#rgain');
     rg.innerHTML = (r.first_time ? '<span class="first">도감에 처음 적힌 유물</span><br>' : '') +
-      (g || '<span>이미 읽은 성문이라 새로 얻은 건 없습니다</span>') +
+      (g || zeroLine(r)) +
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
       shelfNote + extra +
       ((r.voice && r.voice.text) ? '<span class="voice">' + esc(r.voice.who_ko || '') + (r.voice.who_ko ? ': ' : '') + esc(r.voice.text) + '</span>' : '');
@@ -2494,8 +2698,12 @@
     $('#scanCam').hidden = true; $('#scanCard').hidden = false;
     const card = $('#rcard'); card.classList.remove('flip');
     const rare = ['rare', 'epic', 'legendary'].indexOf(c.rarity) >= 0;
+    const zero = !Object.keys(r.gained || {}).length;
     const after = () => {
       rg.classList.add('show'); btn.classList.add('on');
+      if (r.zero_reaction) zeroPop(r.zero_reaction);
+      if (zero && card.animate && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches))
+        card.animate([{ transform: 'none' }, { transform: 'rotate(-3deg)' }, { transform: 'rotate(2deg)' }, { transform: 'none' }], { duration: 520, easing: 'ease-in-out' });
       if (r.family_set && r.family_set.just_completed && K.ext.celebrate) setTimeout(() => K.ext.celebrate(plain(r.family_set.ko)), 700);
     };
     if (CR) {
@@ -2530,6 +2738,23 @@
   }
 
   // ── 레벨업(서버 S10 upgrades·hall_upgrade). 숫자가 아니라 '새로 할 수 있는 것'을 먼저 말한다 ──
+  // S18: 「모자랍니다: X」 옆에 X 가 어디서 나오는지(서버 material_sources + 시나리오 ui_moments material_hint).
+  //      버튼 안에는 짧게(「직물: 의류 찍기 · 위를 보는 숲(원정)」), 패널 문단에는 시나리오 문장 그대로
+  function srcShort(k) {
+    const ms = (ark.material_sources || {})[k];
+    if (!ms) return '';
+    const parts = [ms.scan ? ms.scan + ' 찍기' : ''].concat((ms.other || []).slice(0, 2)).filter(Boolean);
+    return parts.length ? (RES_KO[k] || k) + ': ' + parts.join(' · ') : '';
+  }
+  function srcLine(k) {
+    const t = K.ext.T ? K.ext.T('material_hint.' + k, {}, '') : '';
+    return t || srcShort(k);
+  }
+  function srcHint(lackObj, long) {
+    const ks = Object.keys(lackObj || {}).filter(k => (ark.material_sources || {})[k] || (K.ext.T && K.ext.T('material_hint.' + k, {}, '')));
+    if (!ks.length) return '';
+    return ks.slice(0, 2).map(k => '<small class="srchint">' + esc(long ? srcLine(k) : srcShort(k) || srcLine(k)) + '</small>').join('');
+  }
   function upgradeSection(opt, key) {
     if (!opt) return '';
     const cost = Object.entries(opt.cost || {}).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).join(' · ');
@@ -2539,7 +2764,7 @@
       '" data-up="' + esc(key) + '"' + (opt.can ? '' : ' disabled') + '><b>' + esc(plain(opt.opens) || ('Lv' + opt.to)) + '</b>' +
       '<small>' + esc(cost) + (opt.cond ? ' · 조건: ' + esc(plain(opt.cond)) : '') + '</small>' +
       (miss ? '<small>아직: ' + esc(miss) + '</small>' : (lack ? '<small>모자람: ' + esc(lack) + '</small>' : '')) +
-      '</button></div>';
+      '</button></div>' + (miss ? '' : srcHint(opt.lacking, true).replace(/<small class="srchint">/g, '<p class="srchint">').replace(/<\/small>/g, '</p>'));
   }
   function bindUpgrade(body) {
     body.querySelectorAll('.bopt[data-up]').forEach(b => b.addEventListener('click', async () => {
@@ -2548,7 +2773,7 @@
         const st = await api('/api/ark/upgrade', k === 'hall' ? { room_id: 'hall' } : { slot: parseInt(k, 10) });
         apply(st);
         const u = st.upgraded || {};
-        toast((u.name || '') + ' Lv' + (u.level || '') + '로 올렸습니다.' + (u.opens ? ' ' + plain(u.opens) : ''));
+        toast(josa((u.name || '') + ' Lv' + (u.level || ''), '으로') + ' 올렸습니다.' + (u.opens ? ' ' + plain(u.opens) : ''));
         play('sfx_tool_install.ogg', 0.5);
         if (k === 'hall') openHallPanel(); else { animStart(parseInt(k, 10), 'level'); openPanel(parseInt(k, 10)); }
       } catch (e) { toast(e.message || '올리지 못했습니다'); }
@@ -2735,7 +2960,7 @@
             (prod && prod.label ? '<i class="rctag">' + esc(prod.label) + '</i>' : '') + '</h4>' +
             (crk ? '<p class="rcline">' + esc(K.ext.T ? K.ext.T('crack.still_cracked', { room: spec.name || room.id }, '') : '') + '</p>' : '') +
             (prod && prod.ko && !crk ? '<p class="rcline">' + esc(plain(prod.ko)) + '</p>' : '') +
-            contribLine(prod) +
+            contribLine(prod) + storedLine(slot) +
             '<div class="rcmeta"><span>' + n + '/' + cap + '명</span>' +
             (prod && typeof prod.mult === 'number' ? '<span class="rcmult' + (prod.mult < 1 ? ' neg' : (prod.mult > 1 ? ' pos' : '')) + '">생산 ×' + (Math.round(prod.mult * 100) / 100) + '</span>' : '') +
             st.map(k => '<span class="rcstat" title="이 방에 유리한 능력치">' + esc(ko[k] || k) + '</span>').join('') + '</div>' +
@@ -2744,7 +2969,7 @@
                   (rp.have_patch ? '' : (rcost ? '<small>' + esc(rcost) + '</small>' : '')) + (rp.have_patch ? '<small>봉합 패치 ' + rp.have_patch + '</small>' : '') +
                   '</button><button data-c="more">자세히</button></div>'
               : '<div class="rcbtns"><button data-c="light" class="' + (lit ? 'on' : '') + (worst ? ' worst' : '') + '">' +
-                  (lit ? (worst ? '끄지 마세요' : '불 끄기') : '불 켜기') + '</button><button data-c="more">자세히</button></div>');
+                  (lit ? (worst ? '끄지 마세요' : '불 끄기') : '불 켜기') + '</button>' + (room.id === 'workshop' ? '<button data-c="trade">바꾸기</button>' : '') + '<button data-c="more">자세히</button></div>');
       }
     }
     el.innerHTML = h; el.hidden = false;
@@ -2754,11 +2979,39 @@
       else if (k === 'build') { const sl = card.slot; closeCard(); openPanel(sl); }   // 빈 칸·물 찬 칸 모두 같은 짓기 흐름
       else if (k === 'repair') { const sl = card.slot; repairRoom(sl); }
       else if (k === 'send') { closeCard(); K.ext.openSendOff && K.ext.openSendOff(); }
+      else if (k === 'trade') { const sl = card.slot; closeCard(); openTrade(sl); }
+      else if (k === 'stored') { const sl = card.slot; closeCard(); openPanel(sl); setTimeout(() => { const h = $('#panelBody .storedlist'); if (h) h.scrollIntoView({ block: 'center' }); }, 60); }
       else if (k === 'light') { const sl = card.slot; setLight(sl, !lightOf(sl)).then(() => { if (card && card.slot === sl) openCard({ slot: sl }); }); }
     }));
     placeCard();
   }
 
+  // S18 공방 바꾸기(POST /api/workshop/trade): 남는 식량·물 4개 → 막힌 재료 1개, 하루 2개까지(서버가 판정, 화면은 고르기만)
+  const tradeLeft = {};                                 // 날 → 오늘 남은 개수(서버 응답 left_today)
+  function openTrade(slot) {
+    const give = ['food', 'water'], get = ['cloth', 'parts', 'scrap'];
+    const left = tradeLeft[ark.day];
+    const pick = openTrade.pick || (openTrade.pick = { give: 'food', get: 'cloth' });
+    const res = ark.resources || {};
+    const body = K.panel('<h2>공방 바꾸기</h2><p class="sub">남는 식량·물 4개를 막힌 재료 1개로 바꿉니다. 하루 2개까지' + (left != null ? ' · 오늘 ' + left + '개 남음' : '') + '</p>' +
+      '<h3>내는 것</h3><div class="chips">' + give.map(k => '<button class="chip' + (pick.give === k ? ' on' : '') + '" data-give="' + k + '">' + esc(RES_KO[k] || k) + ' 4 <small>(지금 ' + (res[k] || 0) + ')</small></button>').join('') + '</div>' +
+      '<h3>받는 것</h3><div class="chips">' + get.map(k => '<button class="chip' + (pick.get === k ? ' on' : '') + '" data-get="' + k + '">' + esc(RES_KO[k] || k) + ' 1 <small>(지금 ' + (res[k] || 0) + ')</small></button>').join('') + '</div>' +
+      '<p class="srchint">' + esc(srcLine(pick.get)) + '</p>' +
+      '<div class="rowbtns"><button class="on" id="tradeGo"' + (left === 0 ? ' disabled' : '') + '>' + esc(RES_KO[pick.give]) + ' 4 → ' + esc(RES_KO[pick.get]) + ' 1</button></div>');
+    body.querySelectorAll('[data-give]').forEach(b => b.addEventListener('click', () => { pick.give = b.dataset.give; openTrade(slot); }));
+    body.querySelectorAll('[data-get]').forEach(b => b.addEventListener('click', () => { pick.get = b.dataset.get; openTrade(slot); }));
+    body.querySelector('#tradeGo').addEventListener('click', async (e) => {
+      e.target.disabled = true;
+      try {
+        const r = await api('/api/workshop/trade', { give: pick.give, get: pick.get, n: 1 });
+        if (r.state) apply(r.state);
+        if (typeof r.left_today === 'number') tradeLeft[ark.day] = r.left_today;
+        toast(josa(RES_KO[pick.give] + ' ' + ((r.paid || {})[pick.give] || 4) + '개', '을') + ' 내고 ' + josa(RES_KO[pick.get] + ' ' + ((r.got || {})[pick.get] || 1) + '개', '을') + ' 받았습니다.');
+        play('sfx_tool_install.ogg', 0.5);
+      } catch (err) { toast(err.message || '바꾸지 못했습니다'); if (/까지만|0개/.test(err.message || '')) tradeLeft[ark.day] = 0; }
+      openTrade(slot);
+    });
+  }
   // S14: 누가 이 방 산출을 얼마나 올리고 내리는지(production[slot].per_person, 서버 계산). 셋까지만
   function contribLine(prod) {
     const pp = (prod && prod.per_person) || [];
@@ -2798,56 +3051,53 @@
     ctx.fillStyle = C[2]; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x, y + 1);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   }
+  // S18: 끄는 동안 숫자는 **하나** — 「방주 전체 생산 ±n%」(플레이테스트: 방마다 ±%는 어디로 옮겨도 이득처럼 읽혔다).
+  //      서버가 칸마다 ark_delta_pct 를 주면 그것을, 없으면 같은 서버 미리보기(room/from_delta_pct)에 방마다의
+  //      기준 산출(목록 생산량 + 역할 보탬) × 배율 × 불을 곱해 방주 전체로 합친다. 꽉 찬 방·일손 없음은 글자로 함께
+  function roomBaseOut(slot) {
+    const pr = (ark.production || {})[String(slot)];
+    const room = (ark.rooms || []).find(r => r.slot === slot);
+    if (!pr || !room) return 0;
+    const spec = catalog[room.id] || {}, prod = spec.produces || {}, rb = pr.role_bonus || {};
+    let tot = 0;
+    Object.keys(prod).forEach(k => { const v = prod[k]; if (typeof v === 'number' && k !== 'power_supply' && k !== 'craft_slots') tot += v + (rb[k] || 0); });
+    const m = typeof pr.now_mult === 'number' ? pr.now_mult : (typeof pr.mult === 'number' ? pr.mult : 1);
+    return tot * m * (lightOf(slot) ? 1 : 0.5);
+  }
+  function arkDeltaPct(pv, tgt, from) {
+    if (!pv) return null;
+    if (typeof pv.ark_delta_pct === 'number') return pv.ark_delta_pct;
+    let all = 0; Object.keys(ark.production || {}).forEach(k => { all += roomBaseOut(+k); });
+    if (all <= 0) return null;
+    let d = 0;
+    if (tgt != null && typeof pv.room_delta_pct === 'number') d += roomBaseOut(tgt) * pv.room_delta_pct / 100;
+    if (from != null && typeof pv.from_delta_pct === 'number') d += roomBaseOut(from) * pv.from_delta_pct / 100;
+    return d / all * 100;
+  }
+  const carryLog = [];
   function drawCarryNumbers() {
     const who = dragging || (carry && (ark.residents_list || []).find(r => r.id === carry.id));
     if (!who) return;
     const here = cb.stations[who.id];
     const hover = dragging ? slotAt(pointer.x, pointer.y) : null;
-    // 방마다 알약 하나 — 방의 오른쪽 위 모서리(끌고 있는 사람 그림은 손끝 아래에 매달리므로 가리지 않는다).
-    // 손끝 아래 방은 같은 값을 손끝 오른쪽 위에 크게 한 번 더(가장 중요한 숫자)
-    const pillOf = (slot) => {
-      const pv = movePreview(who.id, slot);
-      if (pv && pv.can === false) return ['꽉 참', 'off'];
-      const t = pv && pctKo(pv.room_delta_pct);
-      if (t) return [t, pv.room_delta_pct > 0 ? 'up' : (pv.room_delta_pct < 0 ? 'down' : 'flat')];
-      // 쌓이는 산출이 없는 방(공방·발전실·창고…): 그 방에 맞는 능력치 숫자 하나
-      const room = (ark.rooms || []).find(r => r.slot === slot), ks = room ? goodStats(slot) : [];
-      return ks.length && who.stats ? [((ark.stats_meta || {}).ko || STAT_KO_DEF)[ks[0]] + ' ' + (who.stats[ks[0]] || 0), 'flat'] : null;
-    };
-    (ark.rooms || []).forEach(room => {
-      if (room.flooded || room.slot === here) return;
-      const r = rectOf(room.slot); if (!r) return;
-      const xr = sx(r.x + r.w) - 10, y = sy(r.y) + 22;
-      if (xr < -60 || xr > view.w + 160 || y < -40 || y > view.h + 40) return;
-      const pl = pillOf(room.slot); if (pl) pill(xr, y, pl[0], pl[1], false, true);
-    });
-    if (hover != null && hover !== here) {
-      const pl = pillOf(hover);
-      if (pl) {
-        const bx = Math.min(view.w - 70, pointer.x + 70), by = Math.max(60, pointer.y - 70);   // 손끝 오른쪽 위 — 사람 그림 밖
-        pill(bx, by, pl[0], pl[1], true);
+    if (hover == null || hover === here) return;           // 손끝이 방 위에 있을 때만, 그 방으로 옮기면 어떻게 되는지
+    const pv = movePreview(who.id, hover);
+    const bx = Math.min(view.w - 120, pointer.x + 110), by = Math.max(60, pointer.y - 74);   // 손끝 오른쪽 위 — 사람 그림 밖
+    if (pv && pv.can === false) { pill(bx, by, '꽉 참', 'off', true); return; }
+    const dp = arkDeltaPct(pv, hover, here != null ? here : null);
+    const r1 = dp == null ? null : Math.round(dp);
+    const txt = '방주 전체 생산 ' + (r1 == null ? '변화 없음' : (r1 > 0 ? '+' : (r1 < 0 ? '−' : '±')) + Math.abs(r1) + '%');
+    pill(bx, by, txt, r1 == null || r1 === 0 ? 'flat' : (r1 > 0 ? 'up' : 'down'), true);
+    // 떠나는 방이 비게 되면 한 줄(숫자가 아니라 글자)
+    const pr = here != null ? (ark.production || {})[String(here)] : null;
+    if (pr) {
+      const left = Math.max(0, (pr.staff != null ? pr.staff : (peopleBySlot()[here] || []).length) - 1);
+      if (left === 0) {
+        const nm = ((ark.rooms || []).find(r => r.slot === here) || {}).id;
+        pill(bx, by + 34, (catalog[nm] || {}).name ? (catalog[nm].name + ' ' + (K.ext.T ? K.ext.T('staffing.label', {}, '일손 없음') : '일손 없음')) : '일손 없음', 'down', false);
       }
     }
-    // 지금 서 있는 방: 빠지면 그 방 산출이 얼마나 주는지(손끝 아래 칸의 from_delta_pct, 없으면 홀로 갈 때 값)
-    const from = here;
-    if (from !== undefined) {
-      const r = rectOf(from), pr = (ark.production || {})[String(from)];
-      const tgt = dragging ? slotAt(pointer.x, pointer.y) : null;
-      const pv = movePreview(who.id, tgt != null && tgt !== from ? tgt : null);
-      const fp = pv && pctKo(pv.from_delta_pct);
-      if (r && fp) { pill(sx(r.x + r.w / 2), sy(r.y + r.h) - 26, '▼ ' + fp, 'down'); }
-      else if (r && pr) {
-        const left = Math.max(0, (pr.staff != null ? pr.staff : (peopleBySlot()[from] || []).length) - 1);
-        const lbl = left === 0 ? (K.ext.T ? K.ext.T('staffing.label', {}, '일손 없음') : '일손 없음') : '일손 −1';
-        const x = sx(r.x + r.w / 2), y = sy(r.y + r.h) - 26;
-        ctx.font = 'bold 14px "Noto Sans KR",sans-serif';
-        const tw = ctx.measureText('▼ ' + lbl).width + 16;
-        ctx.fillStyle = 'rgba(60,24,18,0.92)'; ctx.fillRect(x - tw / 2, y - 12, tw, 24);
-        ctx.strokeStyle = '#d08a72'; ctx.lineWidth = 1.5; ctx.strokeRect(x - tw / 2, y - 12, tw, 24);
-        ctx.fillStyle = '#ffd2c0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('▼ ' + lbl, x, y);
-        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      }
-    }
+    if (carryLog[carryLog.length - 1] !== txt) { carryLog.push(txt); if (carryLog.length > 40) carryLog.shift(); }
   }
 
   // ── 생산 방울 ── 서버는 생산을 시간에 맞춰 이미 더한다(tick_production, 8시간마다). 새 API 를 만들지 않았다:
@@ -3122,6 +3372,23 @@
     const b = e.target.closest('button[data-cat]'); if (b && pendingCode) handleCode(pendingCode, b.dataset.cat || null);
   });
   $('#shelfBtn').addEventListener('click', toShelf);
+  $('#rgain').addEventListener('click', async (e) => {
+    const kb = e.target.closest('button[data-keep]');
+    if (kb) { const box = $('#rgain .swapbtns'); if (box) box.remove(); const q = $('#rgain .swapq');
+      if (q) q.textContent = plain(((lastScan || {}).swap_offer || {}).kept_ko || TT('shelf.full.kept', { item: ((lastScan || {}).card || {}).name || '' }, STO() + '에 넣어 두었습니다.')); return; }
+    const b = e.target.closest('button[data-swap]'); if (!b) return;
+    e.stopPropagation(); b.disabled = true;
+    const r = await shelfSwap(b.dataset.swap, parseInt(b.dataset.slot, 10));
+    if (r && lastScan) { lastScan.shelf_slot = r.slot; lastScan.swapped = true; const box = $('#rgain .swapbtns'); if (box) box.remove();
+      const q = $('#rgain .swapq'); if (q) q.textContent = plain(r.ko || TT('shelf.full.placed', { item: ((lastScan || {}).card || {}).name || '' }, '선반 ' + (r.slot + 1) + '번째 칸에 올렸습니다.'));
+      $('#shelfBtn').textContent = '선반 보기'; }
+  });
+  $('#panelBody').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-unstore]'); if (!b) return;
+    b.disabled = true;
+    const r = await shelfSwap(b.dataset.unstore, null);
+    if (r && sel) openPanel(sel.slot);
+  });
   // S16: 개봉 중에 카드 화면 아무 데나 누르면 바로 앞면(건너뛰기)
   $('#scanCard').addEventListener('pointerdown', (e) => { if (K.ext.cards && K.ext.cards.running() && !e.target.closest('#shelfBtn')) { e.preventDefault(); K.ext.cards.skip(); } });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#scan').hidden) closeScan(); });
@@ -3145,7 +3412,7 @@
   // slotBox·peopleHits 는 자동 검수(Playwright)가 캔버스를 정확히 누르기 위한 읽기 전용 창이다.
   // S13-B: base_collect.js 가 쓰는 안쪽 손잡이(화면 모듈끼리만). 상태는 읽기만 하고, 바꾸는 길은 api → apply 하나다
   const K = {
-    api, toast, play, esc, plain, uid, fill: fillText,
+    api, toast, play, esc, plain, uid, fill: fillText, josa, say, enqueue, whenPanelGone, qLog,
     get ark() { return ark; }, get cb() { return cb; }, get catalog() { return catalog; }, RES_KO, RAR_KO,
     propSpec: (id) => propSpec(id), propForCategory: (c) => propForCategory(c),
     apply: (st) => apply(st), reload: () => load(false),
@@ -3194,7 +3461,10 @@
     hatchOpen: () => performance.now() < hatchOpenUntil,
     pod: () => Object.keys(podSeat).map(id => ({ id, seat: podSeat[id], pose: (podSpot(podSeat[id]) || {}).pose })),   // ★ 검수용
     podPoses: () => Object.assign({}, podPoseLog),     // ★ 검수용           // ★ S12-B3 검수용: 반전해 그린 클립 수
-    moveLog: () => moveLog.slice(),                    // 엘리베이터 배차 기록(시각은 performance.now 초)
+    moveLog: () => moveLog.slice(),
+    carryLog: () => carryLog.slice(), queue: () => ({ busy: modalBusy && modalBusy.tag, wait: modalQ.map(x => x.tag), held: heldSay.slice(), log: qLog.slice() }),   // ★ S18 검수용
+    josa: (w, p) => josa(w, p),
+    openTrade: (sl) => openTrade(sl),                  // ★ S18 검수용                    // 엘리베이터 배차 기록(시각은 performance.now 초)
   };
 
   // 맵(layout.json)이 먼저, 상태가 나중. 맵 파일이 없어도 잠정 배치로 바로 돈다(m5map.js)

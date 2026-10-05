@@ -17,7 +17,7 @@
     get(k, d) { try { const v = localStorage.getItem('ark_' + K.uid + '_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem('ark_' + K.uid + '_' + k, JSON.stringify(v)); } catch (e) { /* 화면은 돈다 */ } },
   };
-  const announce = (l) => { if (l) K.toast(l); };
+  const announce = (l) => { if (l) (K.say ? K.say(l) : K.toast(l)); };   // S18: 큰 창 뒤로
   const pick = (arr, seed) => (Array.isArray(arr) ? arr[Math.abs(hash(String(seed))) % arr.length] : arr) || '';
   function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
 
@@ -148,13 +148,13 @@
       (preview && preview.air_after != null ? '<b style="left:' + Math.round(100 * Math.max(0, preview.air_after) / Math.max(1, air.supply || 1)) + '%"></b>' : '') + '</div>';
     const su = opts.suits || {};
     if ((su.wear || []).some(w => w >= (su.wear_limit || 5)))          // 마모가 한계인 공용 잠수복 — 고쳐야 나간다
-      h += '<p class="rno">잠수복 하나가 많이 닳았습니다.' + (su.repair_cost ? ' 고치는 데 ' + Object.entries(su.repair_cost).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).join(', ') + '이 듭니다.' : '') +
+      h += '<p class="rno">잠수복 하나가 많이 닳았습니다.' + (su.repair_cost ? ' 고치는 데 ' + Object.entries(su.repair_cost).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).join(', ') + ' 정도 듭니다.' : '') +
            ' <button id="xpSuit" class="chip">잠수복 고치기</button></p>';
     h += '<h3>누가 (1~2분)</h3><div class="blist">' + (opts.residents || []).map(r => {
       const on = sel.members.indexOf(r.id) >= 0, st = r.stats || {}, def = stationOf(r.id);
       return '<button class="bopt pick' + (on ? ' on' : '') + (r.can ? '' : ' lack') + '" data-mem="' + esc(r.id) + '"' + (r.can ? '' : ' disabled') + '><b>' + esc(r.name) + ' 님' +
         '<span class="bstat">' + ['breath', 'eye', 'nerve', 'hand'].map(k => esc(ko[k]) + ' ' + (st[k] || 0)).join(' · ') + '</span></b>' +
-        '<small>' + esc(r.can ? (def ? def + '을 지키고 계십니다' + (raid ? ' — 나가면 이 방은 그만큼 약해집니다' : '') : '자리 없음 · 문간') : (r.why || '나갈 수 없습니다')) + '</small></button>';
+        '<small>' + esc(r.can ? (def ? def + ' 쪽을 지키고 계십니다' + (raid ? '. 나가시면 그 방이 그만큼 약해집니다' : '') : '자리 없음 · 문간') : (r.why || '나갈 수 없습니다')) + '</small></button>';
     }).join('') + '</div>';
     h += '<h3>어디로</h3><div class="chips">' + (opts.dests || []).map((d, i) =>
       '<button class="chip' + (JSON.stringify(d.dest) === JSON.stringify(sel.dest) ? ' on' : '') + '" data-dest="' + i + '"' + (d.can ? '' : ' disabled title="' + esc(d.why || '') + '"') + '>' + esc(d.ko) + '</button>').join('') + '</div>';
@@ -201,7 +201,7 @@
       '<span>돌아오는 시각 <b>' + esc(clock(preview.returns_at)) + '</b></span></div>' +
       (!d.p ? '<p class="xpdanger calm">' + esc(TT(opts && opts.tutorial ? 'expedition.preview_labels.safe_tutorial' : 'expedition.preview_labels.safe',
             {}, opts && opts.tutorial ? '첫 원정은 문 앞까지만 다녀옵니다. 위험한 일은 없습니다.' : '이번 길에는 위험한 일이 없습니다.')) + '</p>' : '') +
-      (!d.p ? [] : (d.kinds || [])).slice(0, 4).map(k => '<p class="xpdanger">' + esc(k.ko) + ' · ' + esc(((K.ark.stats_meta || {}).ko || {})[k.stat] || k.stat) + '으로 넘길 확률 ' + pct(k.p_pass) + '</p>').join('') +
+      (!d.p ? [] : (d.kinds || [])).slice(0, 4).map(k => '<p class="xpdanger">' + esc(k.ko) + ' · ' + esc(K.josa(((K.ark.stats_meta || {}).ko || {})[k.stat] || k.stat, '으로')) + ' 넘길 확률 ' + pct(k.p_pass) + '</p>').join('') +
       (preview.warnings || []).map(w => '<p class="rno">' + esc(K.plain(w)) + '</p>').join('') +
       (preview.errors || []).map(w => '<p class="lost">' + esc(K.plain(w)) + '</p>').join('');
   }
@@ -288,7 +288,7 @@
     const key = ret.recalled ? 'expedition.return.recalled' : ret.injured ? 'expedition.return.injured'
       : ret.discovered ? 'expedition.return.found_spot' : (ret.danger && ret.danger.ok === false && ret.danger.choice === 'turn_back') ? 'expedition.return.early' : 'expedition.return.normal';
     const line = TT(key, { name: names, spot: ret.discovered && ret.discovered.name }, '관리실에서 알려 드립니다. ' + names + ' 님 돌아오셨습니다.');
-    setTimeout(() => announce(line), 900);
+    // S18: 귀환 방송은 따로 띄우지 않는다 — 같은 문장이 귀환 카드 첫 줄에 있다(아침 겹침 줄이기)
     const hv = ret.haul || {}, mats = hv.materials || {}, nMat = Object.values(mats).reduce((a, b) => a + b, 0);
     const lb = ret.left_behind || {}, nLeft = Object.values(lb.materials || {}).reduce((a, b) => a + b, 0) + (lb.boxes || 0) + (lb.relics || 0);
     let h = '<h2>' + esc(TT('expedition.summary.title', {}, '가져온 것')) + '</h2><p class="sub">' + esc(TT('expedition.summary.log', { name: names, dest: ret.dest_ko }, names + ' 님, ' + (ret.dest_ko || '') + '에 다녀옴.')) + '</p>' +
@@ -314,13 +314,24 @@
     if (ret.injured) h += '<p class="lost">' + esc(ret.injured) + ' 님이 다치셨습니다.</p>';
     (ret.imprints || []).forEach(n => { h += '<div class="who"><b>' + esc(n.resident) + ' 님</b><em>' + esc((n.imprint || {}).name || '') + '</em></div><p class="desc">' + esc(n.line || '') + '</p>'; });
     if (ret.line) h += '<p class="dayline">' + esc(K.plain(ret.line)) + '</p>';
-    h += '<div class="rowbtns"><a class="watchback" href="' + esc(expUrl(ret.id)) + '">돌아오는 모습 보기</a></div>';   // 3D 장면(선택)
-    setTimeout(() => {
-      K.panel(h);
-      K.api('/api/expedition/seen', {}).catch(() => {});
+    // S18: 처음 찾은 곳이 있는 귀환(보내 둔 원정 포함)은 **발견을 반드시 보여 준다**(플레이테스트 버그 7).
+    //      seen 을 저절로 부르지 않는다 — 3D 발견 장면(원정 화면이 거기서 seen) 또는 이 카드의 「다 봤습니다」에서만.
+    //      그냥 닫으면 다음에 열 때 다시 나온다
+    const found = !!ret.discovered;
+    h += found
+      ? '<div class="rowbtns"><a class="watchback found" href="' + esc(expUrl(ret.id)) + '">' + esc(TT('spot.watch_discovery_label', {}, '찾은 곳 보러 가기')) + '</a>' +
+          '<button class="xpseen">' + esc(TT('spot.discovery_seen_label', {}, '다 봤습니다')) + '</button></div>'
+      : '<div class="rowbtns"><a class="watchback" href="' + esc(expUrl(ret.id)) + '">돌아오는 모습 보기</a></div>';   // 3D 장면(선택)
+    K.enqueue('return:' + ret.id, (done) => setTimeout(() => {
+      const body = K.panel(h);
+      if (found) {
+        const b = body.querySelector('.xpseen');
+        if (b) b.addEventListener('click', () => { K.api('/api/expedition/seen', {}).catch(() => {}); X.log.push('seen ' + ret.id); K.closePanel(); });
+      } else { K.api('/api/expedition/seen', {}).catch(() => {}); X.log.push('seen ' + ret.id); }
       if (ret.newcomer) loadEntrance(true);
-    }, 2400);
-    X.log.push('return ' + ret.id);
+      K.whenPanelGone(done);
+    }, 2400));
+    X.log.push('return ' + ret.id + (found ? ' found' : ''));
   }
 
   // ══════════════════════════════════════════════════════════════

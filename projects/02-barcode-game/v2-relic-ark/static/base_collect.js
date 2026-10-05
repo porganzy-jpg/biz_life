@@ -19,7 +19,7 @@
     get(k, d) { try { const v = localStorage.getItem('ark_' + K.uid + '_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem('ark_' + K.uid + '_' + k, JSON.stringify(v)); } catch (e) { /* 이 기계에 못 적어도 화면은 돈다 */ } },
   };
-  const announce = (line) => K.toast(line);
+  const announce = (line) => (K.say ? K.say(line) : K.toast(line));   // S18: 큰 창이 떠 있으면 닫힌 뒤에
   const C = window.ARKCOLLECT = { log: [] };          // ★ 검수용 읽기 창
 
   // ══════════════════════════════════════════════════════════════
@@ -40,6 +40,8 @@
   }
   K.ext.T = T;
   C.T = T;
+  // 배열 문장(시나리오가 여러 줄을 주면 하나를 고른다)
+  K.ext.Tarr = (key) => { let o = MOM; key.split('.').forEach(k => { o = o == null ? o : o[k]; }); return Array.isArray(o) ? o.filter(x => typeof x === 'string') : null; };
 
   // ══════════════════════════════════════════════════════════════
   //  1. 도감 — 물건 · 가문 · 손님(생물) · 문어 선물. 못 본 칸은 실루엣(눌러 보면 그림자 한 줄)
@@ -267,33 +269,85 @@
   // ══════════════════════════════════════════════════════════════
   //  아침 방송 — 밤사이 들어온 것 · 밀린 각인 연출 · (S13) 밤사이 판정
   // ══════════════════════════════════════════════════════════════
-  function morning(st) {
-    const day = st.day;
-    if (store.get('morning_day', null) === day && !(st.morning_lines || []).length && !(st.night_judge && st.night_judge.report)) return;
-    store.set('morning_day', day);
-    const lines = [];
+  // S18: 아침은 「밤사이」 **한 장**(플레이테스트 최악 2·명확성 3 — 마감·만남·귀환·방송 넷이 한꺼번에 겹쳤다).
+  //      서버 요약(st.overnight: {day, lines:[{kind, ko}]})이 오면 그것을, 아직 없으면 지금 있는 조각
+  //      (밤사이 생산·밀린 각인 연출·밤 판정·귀환 한 줄·문어)을 모아 한 장으로. 같은 종류의 같은 문장은 한 번만.
+  //      이 창이 닫힌 뒤에 귀환 카드·만남 카드·방송이 차례로 나온다(base.js enqueue)
+  let morningShown = null;
+  function overnightLines(st) {
+    const ov = st.overnight;
+    const out = [];
+    const prS = st.produced_while_away || {};
+    const gotS = Object.entries(prS).filter(([, v]) => v > 0).map(([k, v]) => (K.RES_KO[k] || k) + ' ' + v);
+    if (ov && (ov.items || ov.lines)) {                      // 서버 S18 요약: {items:[{kind, data}]}
+      if (gotS.length) out.push({ kind: 'production', text: '밤사이 ' + gotS.join(', ') + ' 들어왔습니다.' });
+      (ov.items || ov.lines).forEach(x => { const t = overnightText(x); if (t) out.push({ kind: x.kind || '', text: t }); });
+      const seen = new Set();
+      return out.filter(x => (seen.has(x.text) ? false : (seen.add(x.text), true)));
+    }
     const pr = st.produced_while_away || {};
     const got = Object.entries(pr).filter(([, v]) => v > 0).map(([k, v]) => (K.RES_KO[k] || k) + ' ' + v);
-    if (got.length) lines.push('좋은 아침입니다, 관리실입니다. 밤사이 ' + got.join(', ') + ' 들어왔습니다.');
-    (st.morning_lines || []).forEach(m => { const t = m.line || m.ko || m.text; if (t) lines.push(K.plain(t)); });
+    if (got.length) out.push({ kind: 'production', text: '밤사이 ' + got.join(', ') + ' 들어왔습니다.' });
     const nr = st.night_judge && st.night_judge.report;      // S13: 밤사이 자동 판정(한 번만 온다)
-    if (nr && nr.ko) lines.push(K.plain(nr.ko));
+    if (nr && nr.ko) out.push({ kind: 'night_judge', text: K.plain(nr.ko) });
+    const ret = st.expedition_return;
+    if (ret && !ret.seen) {
+      const nm = (ret.member_names || []).join(' 님과 ');
+      if (nm) out.push({ kind: 'return', text: nm + ' 님이 밤사이 돌아오셨습니다.' + (ret.discovered ? ' 찾은 곳이 있습니다.' : '') });
+    }
+    (st.morning_lines || []).forEach(m => { const t = m.line || m.ko || m.text; if (t) out.push({ kind: m.kind || 'imprint', text: K.plain(t) }); });
+    const o = st.octopus || {};
+    if (o.gift_today && store.get('gift_day', null) !== st.day) out.push({ kind: 'octopus', text: K.josa(o.name || '문어', '가') + ' 입구에 무언가를 두고 갔습니다.' });
+    const seen = new Set();
+    return out.filter(x => { const k = x.text.replace(/\S+ 님/g, '님'); if (seen.has(x.kind + k)) return false; seen.add(x.kind + k); return true; });
+  }
+  function overnightText(x) {
+    const d = x.data || x, k = x.kind;
+    const s = (v) => (v ? K.plain(String(v)) : '');
+    if (x.ko || x.line || x.text) return s(x.ko || x.line || x.text);
+    if (k === 'night_judge') return s(d.ko || (d.report && d.report.ko));
+    if (k === 'expedition_return') { const nm = (d.member_names || []).join(' 님과 ');
+      return s(d.line) || (nm ? nm + ' 님이 돌아오셨습니다.' + (d.discovered ? ' 찾은 곳이 있습니다.' : '') : ''); }
+    if (k === 'depth') return s(d.ko) || (d.m ? '이 집이 ' + d.m + 'm까지 내려왔습니다.' : '');
+    if (k === 'imprint') return s(d.line) || (d.imprint_name ? (d.residents || []).join(', ') + ' 님에게 ' + K.josa('「' + d.imprint_name + '」', '이') + ' 남았습니다.' : '');
+    if (k === 'octopus') return s(d.line) || (d.name ? '문어가 ' + K.josa('「' + d.name + '」', '을') + ' 두고 갔습니다.' : '');
+    if (k === 'knock') return d.name ? '밤사이 문간 유리를 누가 두드렸습니다. ' + d.name + ' 님이 문간에서 기다리십니다.' : '';
+    if (k === 'wish') return s(d.line || d.ko);
+    return s(d.ko || d.line);
+  }
+  function morning(st) {
+    const day = st.day;
+    const ov = st.overnight;
+    if (ov && ov.items && ov.items.length) { if (morningShown === ov.items.length) return; }       // 서버 요약은 seen 할 때까지 남는다 — 이 세션에서 한 번
+    else if (store.get('morning_day', null) === day && !(st.morning_lines || []).length && !(st.night_judge && st.night_judge.report)) return;
+    if (ov && ov.items) morningShown = ov.items.length;
+    const lines = overnightLines(st);
+    store.set('morning_day', day);
     if (!lines.length) return;
-    lines.forEach((l, i) => setTimeout(() => announce(l), 1500 + i * 3200));
-    C.log.push('morning ' + lines.length);
+    K.enqueue('overnight', (done) => {
+      const body = K.panel('<h2>' + esc((ov && ov.title) || T('morning.title', {}, '밤사이')) + '</h2><p class="sub">' + esc(day) + '일째 아침</p>' +
+        '<p class="desc">' + esc(K.plain((ov && ov.open) || T('morning.open', {}, '좋은 아침입니다, 관리실입니다.'))) + '</p>' +
+        lines.map(l => '<p class="dayline ov-' + esc(l.kind) + '">' + esc(l.text) + '</p>').join('') +
+        '<p class="desc">' + esc(K.plain((ov && ov.close) || T('morning.close', {}, ''))) + '</p>' +
+        '<div class="rowbtns"><button class="ovok">' + esc(T('overnight.ok', {}, '확인')) + '</button></div>');
+      body.querySelector('.ovok').addEventListener('click', () => K.closePanel());
+      K.whenPanelGone(() => { if (ov && ov.items) K.api('/api/overnight/seen', {}).catch(() => {}); done(); });
+    }, true);
+    C.log.push('overnight ' + lines.length);
   }
 
   // ══════════════════════════════════════════════════════════════
   //  4. (S13 계약) 첫 만남 · 문어 선물 · 바람 · 하루 마감 — 서버가 주면 그린다
   // ══════════════════════════════════════════════════════════════
-  function firstMeet(m) {
+  function firstMeet(m) { K.enqueue('meet:' + ((m.resident || {}).name || ''), (done) => showMeet(m, done)); }
+  function showMeet(m, done) {
     const p = m.resident || {}, line = m.line || m.ko || '';
     const el = document.createElement('div'); el.className = 'meet';
     el.innerHTML = '<div class="meet-in"><p class="sub">' + esc(m.title || '새 식구') + '</p><h2>' + esc(p.name || '') + '</h2>' +
       '<p class="desc">' + esc(K.plain(line || (p.name ? p.name + ' 님이 해치로 들어왔습니다. 자리는 입구 의자에 마련해 두었습니다.' : ''))) + '</p>' +
       '<button>반갑습니다</button></div>';
     document.body.appendChild(el);
-    el.querySelector('button').addEventListener('click', () => el.remove());
+    el.querySelector('button').addEventListener('click', () => { el.remove(); done && done(); });
     if (window.ARKBASE.hatchCycle) window.ARKBASE.hatchCycle(2000);
     C.log.push('first_meet ' + (p.name || ''));
   }
@@ -349,21 +403,32 @@
       (d.closing ? '<p class="desc">' + esc(K.plain(d.closing)) + '</p>' : '') +
       '<p class="desc">' + esc(K.plain(d.close || T('day_end.close', {}, ''))) + '</p>');
     store.set('dayend_day', d.day);
-    C.log.push('day_end ' + lines.length);
+    C.log.push('day_end ' + lines.length + (auto ? ' auto' : ''));
   }
   const deb = $('#dayendbtn'); if (deb) deb.addEventListener('click', () => openDayEnd(false));
-  // 밤에 처음 열면 한 번. 단, 첫 세션·1일째에는 열지 않는다(새 사람의 첫 화면이 마감 패널이면 안 된다).
-  // 2일째부터, 또는 마감에 실제로 적을 것이 있을 때만 연다
+  // S18: 하루 마감은 **그 사람의 하루가 끝날 때만** 저절로 연다(플레이테스트 버그 1 — 게임 날은 방주를 만든 시각에 바뀌는데
+  //      실제 밤 21시로 열어서, 저녁에 시작한 사람은 매일 아침(방금 시작한 날)에 「N일째 마감」을 봤다).
+  //      서버가 날이 끝나는 시각(day_ends_at, 초)을 주면 끝나기 3시간 안쪽의 세션에서 한 번. 그 값이 없으면 저절로 열지 않는다
+  //      (≡ 메뉴 「오늘 마감」은 언제나). 첫 세션에는 열지 않는다
+  const DAYEND_WINDOW_S = 3 * 3600;
   const sessionStart = !store.get('seen_before', false);
   store.set('seen_before', true);
+  function dayEndsAt(st) {
+    const v = st.day_ends_at != null ? st.day_ends_at : (st.clock && st.clock.day_ends_at != null ? st.clock.day_ends_at : (st.day_end && st.day_end.ends_at));
+    return typeof v === 'number' ? v : null;
+  }
   async function nightCheck(st) {
-    if (!st.is_night || store.get('dayend_day', null) === st.day) return;
-    if (sessionStart || (st.day || 1) < 2) return;
+    if (store.get('dayend_day', null) === st.day || sessionStart) return;
+    const end = dayEndsAt(st);
+    if (end == null) return;
+    const left = end - Date.now() / 1000;
+    if (!(left > 0 && left <= DAYEND_WINDOW_S)) return;
     let d;
     try { d = await K.api('/api/day_end?uid=' + encodeURIComponent(K.uid)); } catch (e) { return; }
     if (!(d.lines || []).length) return;                      // 적을 것이 없으면 조용히
-    setTimeout(() => openDayEnd(true), 4000);
+    K.enqueue('day_end', (done) => { openDayEnd(true).then(() => K.whenPanelGone(done)).catch(done); });
   }
+  C.dayEndsAt = dayEndsAt;
   // 이뤄진 바람(한 번만 온다)
   function wishNews(st) { (st.wishes_new || []).forEach(w => announce(K.plain(w.line || ''))); if ((st.wishes_new || []).length) loadWishes(true); }
 
@@ -382,18 +447,50 @@
     if (store.get('nudge_day', null) === st.day) return;
     store.set('nudge_day', st.day);
     const nm = (K.catalog[idle[1].room_id] || {}).name || '식량창고';
-    const c = nm.charCodeAt(nm.length - 1), jong = c >= 0xAC00 && c <= 0xD7A3 ? (c - 0xAC00) % 28 : 0;
-    const ro = jong === 0 || jong === 8 ? '로' : '으로';                       // 받침 없거나 ㄹ 이면 「로」
-    setTimeout(() => announce('관리실에서 알려 드립니다. ' + nm + '에 일하시는 분이 안 계셔서 반만 돌아가고 있습니다. 입구에 계신 분 한 분만 ' + nm + ro + ' 모셔 주세요.'), 2500);
+    setTimeout(() => announce('관리실에서 알려 드립니다. ' + nm + '에 일하시는 분이 안 계셔서 반만 돌아가고 있습니다. 입구에 계신 분 한 분만 ' + K.josa(nm, '으로') + ' 모셔 주세요.'), 2500);
     C.log.push('nudge ' + slot);
   }
-  K.onLoad((st) => { morning(st); loadEvent(); rumorAnnounce(); loadWishes(true); nightCheck(st); firstDayNudge(st); });
+  // S18: 깊이 문턱(60·120·180 m)을 처음 넘으면 화면 가운데 큰 표시 + 방송 한 줄(플레이테스트 명확성 4 — 4일째 180 m 에 닿았는데 아무 연출이 없었다).
+  //      서버가 depth_threshold({m, ko, title}) 를 주면 그것을, 없으면 깊이 띠(gauges.depth.m)가 문턱을 처음 넘는 순간을 이 기기에서 잰다.
+  //      문장은 시나리오(ui_moments depth_threshold.<m>.{title,line}); 아직 없으면 짧은 대체 문장
+  const DEPTH_MARKS = [60, 120, 180];
+  function depthCheck(st, first) {
+    const g = (st.gauges || {}).depth || {};
+    const m = typeof g.m === 'number' ? g.m : null;
+    if (m == null) return;
+    const seenMax = store.get('depth_max', null);
+    store.set('depth_max', Math.max(m, seenMax == null ? 0 : seenMax));
+    let hit = (st.depth_crossed && st.depth_crossed.length) ? st.depth_crossed[st.depth_crossed.length - 1]
+      : (st.depth_threshold && st.depth_threshold.m ? st.depth_threshold : null);
+    if (!hit) {
+      if (seenMax == null) return;                            // 이 기기에서 처음 보는 방주 — 지난 문턱을 소급해 울리지 않는다
+      const crossed = DEPTH_MARKS.filter(x => seenMax < x && m >= x);
+      if (!crossed.length) return;
+      hit = { m: crossed[crossed.length - 1] };
+    }
+    if (store.get('depth_said_' + hit.m, false)) return;
+    store.set('depth_said_' + hit.m, true);
+    const zone = g.zone || '';
+    const title = K.plain(hit.title || T('depth.cross_title.' + hit.m, { m: hit.m, zone }, '깊이 ' + hit.m + 'm'));
+    const line = K.plain(hit.ko || T('depth.first_' + hit.m, { m: hit.m, zone }, '') || T('depth.cross.' + hit.m, { m: hit.m, zone }, '관리실에서 알려 드립니다. 이 집이 이제 ' + hit.m + 'm까지 내려왔습니다.' + (zone ? ' 여기부터는 ' + zone + '입니다.' : '')));
+    K.enqueue('depth:' + hit.m, (done) => {
+      const el = document.createElement('div'); el.className = 'depthmark' + (hit.m >= 180 ? ' trench' : '');
+      el.innerHTML = '<b>' + esc(title) + '</b><span>' + esc(line) + '</span>';
+      document.body.appendChild(el);
+      K.play(hit.m >= 180 ? 'cue_spot_found.ogg' : 'sfx_note_arrive.ogg', 0.5);
+      const off = () => { if (!el.parentNode) return; el.remove(); done(); };
+      el.addEventListener('click', off); setTimeout(off, 5200);
+    });
+    C.log.push('depth ' + hit.m);
+  }
+  C.depthCheck = depthCheck;
+  K.onLoad((st) => { morning(st); loadEvent(); rumorAnnounce(); loadWishes(true); nightCheck(st); firstDayNudge(st); depthCheck(st, true); });
   let lastDay = null;
   K.onApply((st) => {
     const first = lastDay === null;
     if (!first && st.day !== lastDay) loadEvent();
     lastDay = st.day;
-    giftCheck(st); lidCheck(st); wishNews(st); loadWishes(false);
+    giftCheck(st); lidCheck(st); wishNews(st); loadWishes(false); if (!first) { depthCheck(st, false); nightCheck(st); }
     if (!first && st.night_judge && st.night_judge.report) morning(st);   // 첫 로드의 아침은 onLoad 가 한다
   });
 })();
