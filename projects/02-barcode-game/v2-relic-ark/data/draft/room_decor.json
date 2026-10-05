@@ -1,0 +1,107 @@
+{
+  "_doc": "S19-S 초안. 방에 유물을 놓으면(place) 방에 장식 꼬리표(décor tag)가 붙는다. 꼬리표마다 어떤 갈래·하위 종류가 채우는지, 방이 어떻게 달라 보이는지 한 줄, 그 꼬리표가 부르는 방문자 종류. 수치(몇 개면 붙나·효과·방문 확률)는 기획이 정한다. 라이브 데이터 아님.",
+  "_for_dev": "feeds 의 매칭은 relic_templates.json 의 category/subtype. look=방이 달라지는 모습(배경·캐릭터 담당에게도 그림 지시), announce=꼬리표가 처음 붙을 때 관리실 방송({room}). 방문자 visitor 종류: octopus(문어가 그 방에 자주 온다) · residents(배치 안 된 주민이 그 방에 모인다) · guest(문간 손님이 그 방을 보고 머물고 싶어 한다) · newhuman(신인류 공명 — LORE_NEWHUMANS) · small_fish(창밖 작은 물고기 떼) · gardener(창밖 은빛 떼가 잠깐 머문다, 정원사의 말). 자리표시자 뒤 조사 없음.",
+
+  "tags": [
+    {
+      "id": "warm_kitchen",
+      "ko": "따뜻한 부엌",
+      "feeds": [
+        {"category": "food", "subtype": ["noodle", "sauce", "canned", "grain"]},
+        {"category": "drink", "subtype": ["tea", "coffee"]}
+      ],
+      "best_rooms": ["pantry", "quarters"],
+      "look": "선반에 병과 봉지가 키 순서로 늘어서고, 등불 아래 김이 한 줄 오른다.",
+      "announce": "{room}에서 냄새가 나기 시작했습니다. 지나가시던 분들이 한 번씩 멈추십니다.",
+      "visitors": ["residents", "octopus"]
+    },
+    {
+      "id": "book_smell",
+      "ko": "책 냄새",
+      "feeds": [
+        {"category": "book"},
+        {"category": "stationery", "subtype": ["paper", "pen"]}
+      ],
+      "best_rooms": ["decoder", "quarters", "lounge"],
+      "look": "벽에 책이 비스듬히 기대 서고, 바닥에 펼친 채 엎어 둔 책이 하나 있다.",
+      "announce": "{room}에 종이 냄새가 뱄습니다. 조용히 하실 분들이 이리로 오십니다.",
+      "visitors": ["residents", "newhuman"]
+    },
+    {
+      "id": "shiny_things",
+      "ko": "반짝이는 것들",
+      "feeds": [
+        {"category": "electronics", "subtype": ["light", "device"]},
+        {"category": "tobacco", "subtype": ["liquor"]},
+        {"category": "drink", "subtype": ["soda"]}
+      ],
+      "best_rooms": ["lounge", "storage"],
+      "look": "유리병과 판들이 등불을 받아 벽에 작은 빛 조각을 흩뿌린다.",
+      "announce": "{room} 벽에 빛 조각이 여기저기 떨어져 있습니다. 문어가 그걸 잡으려고 합니다.",
+      "visitors": ["octopus", "small_fish"]
+    },
+    {
+      "id": "soft_corner",
+      "ko": "포근한 구석",
+      "feeds": [
+        {"category": "apparel", "subtype": ["small", "shirt", "coat"]},
+        {"category": "stationery", "subtype": ["toy"]}
+      ],
+      "best_rooms": ["quarters", "bath"],
+      "look": "구석에 천이 겹겹이 쌓이고, 담요 끝이 바닥까지 늘어진다. 인형 하나가 그 위에 앉아 있다.",
+      "announce": "{room} 구석이 푹신해졌습니다. 낮잠 주무실 분은 조용히 들어가 주세요.",
+      "visitors": ["residents", "guest"]
+    },
+    {
+      "id": "workbench",
+      "ko": "손때 묻은 작업대",
+      "feeds": [
+        {"category": "electronics", "subtype": ["part", "cable", "battery"]},
+        {"category": "book", "subtype": ["manual"]},
+        {"category": "stationery", "subtype": ["tape", "tool"]}
+      ],
+      "best_rooms": ["workshop", "generator"],
+      "look": "작업대 위에 반쯤 뜯은 기계와 줄 묶음, 벽에 공구 그림자가 줄지어 걸린다.",
+      "announce": "{room} 작업대가 제법 어수선해졌습니다. 좋은 뜻으로요.",
+      "visitors": ["residents"]
+    },
+    {
+      "id": "growing",
+      "ko": "자라는 창가",
+      "feeds": [
+        {"category": "food", "subtype": ["grain"]},
+        {"category": "drink", "subtype": ["tea", "water"]},
+        {"category": "book", "subtype": ["field_guide"]}
+      ],
+      "best_rooms": ["greenhouse", "well"],
+      "look": "창가에 젖은 천과 작은 그릇이 줄지어 놓이고, 물방울이 유리를 타고 내려간다.",
+      "announce": "{room} 창가에 그릇이 늘었습니다. 무엇을 기르는 중인지는 기르시는 분만 아십니다.",
+      "visitors": ["gardener", "small_fish"]
+    },
+    {
+      "id": "clean_shelf",
+      "ko": "말끔한 약장",
+      "feeds": [
+        {"category": "medical"},
+        {"category": "drink", "subtype": ["water", "milk"]}
+      ],
+      "best_rooms": ["infirmary", "bath"],
+      "look": "하얀 상자와 병이 칸마다 하나씩, 이름표를 앞으로 돌린 채 놓인다.",
+      "announce": "{room} 약장이 말끔해졌습니다. 어디에 뭐가 있는지 이제 다들 아십니다.",
+      "visitors": ["guest", "residents"]
+    },
+    {
+      "id": "trade_corner",
+      "ko": "흥정 자리",
+      "feeds": [
+        {"category": "tobacco"},
+        {"category": "apparel", "subtype": ["bag", "label"]},
+        {"category": "food", "subtype": ["sweet"]}
+      ],
+      "best_rooms": ["storage", "lounge"],
+      "look": "낮은 상 위에 물건이 하나씩 이름표를 달고 놓이고, 방석 둘이 서로 마주 본다.",
+      "announce": "{room}에 흥정 자리가 하나 생겼습니다. 아직 값을 부르신 분은 없습니다.",
+      "visitors": ["guest", "newhuman"]
+    }
+  ]
+}
