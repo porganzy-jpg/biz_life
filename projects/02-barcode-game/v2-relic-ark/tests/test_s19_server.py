@@ -637,6 +637,13 @@ def t_api_roundtrip():
         ok(g["state"]["core"]["residents"][rid]["given_today"] == 1, "core.given_today 1")
         ok(not any(x.get("card_id") == j["card"]["id"] for x in g["state"]["shelf"]), "준 물건은 선반에서 그 사람에게 갔다")
     a = ark(uid)
+    j2 = post("/api/scan", {"uid": uid, "barcode": ean("880104301547")})
+    a = ark(uid)
+    row = next((x for x in a["shelf"] if x.get("card_id") == j2["card"]["id"]), None)
+    ok(row and row["category"] == j2["card"]["category"] and row["subtype"] == j2["card"]["subtype"],
+       f"shelf[] 에 card_id·category·subtype {row and (row['card_id'], row['category'], row['subtype'])}")
+    g2 = post("/api/give", {"uid": uid, "relic_id": row["card_id"], "target": "shelf"}) if row else {}
+    ok(g2.get("ok"), "shelf card_id 로 /api/give relic_id 동작")
     for k in ("core", "needs_today", "room_decor", "visits", "beat_today", "next_visit", "session", "arc_events", "entrance_airlock"):
         ok(k in a, f"/api/ark.{k}")
 

@@ -1847,12 +1847,27 @@ def shelf_public(st: dict) -> list[dict]:
         if int(it.get("slot", 0)) + prop_width(it.get("prop_id", "")) > cap:
             continue
         row = {k: it.get(k) for k in keys}
+        row["card_id"] = it.get("card_id")             # S19-A2: 선반 물건을 고를 때(arc.ask relic·/api/give relic_id)
+        row["subtype"] = shelf_subtype(it)
         lv = polish_level(it)
         row["polish"] = lv
         row["polish_label"] = moment(f"shelf.levels.{lv}.label")
         row["polish_value_mult"] = polish_value_mult(lv)
         out.append(row)
     return out
+
+
+def shelf_subtype(it: dict) -> str | None:
+    """선반 물건의 줄기 종류. 바코드가 있으면 같은 유물을 다시 만들어 읽는다(D6). 없으면 None."""
+    if it.get("subtype"):
+        return it["subtype"]
+    bc = it.get("barcode")
+    if not bc:
+        return None
+    try:
+        return GEN.generate(bc, user_category=it.get("category")).subtype or None
+    except ValueError:
+        return None
 
 
 def shelf_place(st: dict, card: dict) -> int | None:
