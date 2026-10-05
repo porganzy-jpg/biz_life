@@ -414,8 +414,75 @@ def t_small():
     ok(r["ko"], f"수리 응답 문장: {r['ko']}")
 
 
+def t_a2_fields():
+    """S18-A2: day_ends_at · move_preview ark_delta_pct · 단서 모드 답 새지 않음."""
+    uid = "dev_s18_a2"
+    new_ark(uid, rooms=(("greenhouse", 3, 1),))
+    a = get(f"/api/ark?uid={uid}")
+    st = S.load_state(uid)
+    ok(abs(a["day_ends_at"] - (st["created"] + a["day"] * 86400)) < 1e-6 and a["day_ends_at"] > time.time(),
+       f"day_ends_at = 생성 + {a['day']}×24h, 앞으로 {round((a['day_ends_at'] - time.time()) / 3600, 1)}시간")
+    adv(uid, 60 * 30)
+    a2 = get(f"/api/ark?uid={uid}")
+    st2_ = S.load_state(uid)
+    ok(a2["day"] == 2 and abs(a2["day_ends_at"] - (st2_["created"] + 2 * 86400)) < 1e-6
+       and 0 < a2["day_ends_at"] - time.time() <= 86400, "날이 바뀌면 그 날의 끝(생성 + 2×24h)")
+    rid = st["residents_list"][0]["id"]
+    cell = a2["move_preview"][rid]["3"]
+    base = sum(S.room_output(S.load_state(uid), r, S.staff_people(S.load_state(uid), r["slot"]))
+               for r in S.live_rooms(S.load_state(uid)) if S.room_produces(r))
+    r = post("/api/ark/station", {"uid": uid, "resident_id": rid, "slot": 3})
+    st2 = S.load_state(uid)
+    after = sum(S.room_output(st2, rr, S.staff_people(st2, rr["slot"])) for rr in S.live_rooms(st2) if S.room_produces(rr))
+    want = round((after - base) / base * 100, 1)
+    ok(cell["ark_delta_pct"] == want and abs(cell["ark_delta_pct"]) < abs(cell["room_delta_pct"]),
+       f"홀→온실 방주 전체 {cell['ark_delta_pct']}% = 실제 {want}% (방만 보면 {cell['room_delta_pct']}%)")
+    mp = r["move_preview"][rid]
+    ok(all("ark_delta_pct" in c for c in mp.values()) and mp["hall"]["ark_delta_pct"] < 0, f"온실→홀 방주 전체 {mp['hall']['ark_delta_pct']}%")
+    # 단서 모드: 답이 새지 않는다
+    get(f"/api/raid/today?uid={uid}&debug_raid=longneck&debug_reset=1&debug_grade=1")
+    post("/api/raid/advance", {"uid": uid})
+    post("/api/raid/verb", {"uid": uid, "verb": "light"})
+    j = get(f"/api/raid/today?uid={uid}")
+    rd, cre = j["raid"], j["state"]["combat"]["creatures"]["longneck"]
+    import json as _j
+    blob = _j.dumps({"raid": rd, "creatures": j["state"]["combat"]["creatures"]}, ensure_ascii=False)
+    how = CB.CREATURES["longneck"]["how"]
+    gate_ko = CB.GATE_KO["lights_off"]
+    ok(rd["card_mode"] == "clue" and rd["creature"]["how"] is None and set(rd["ready"]["gate"]) == {"ok", "ko"}
+       and cre["how"] is None and cre["gate"] is None and how not in blob and gate_ko not in blob and "lights_off" not in blob,
+       "단서 모드 습격·생물 사전 어디에도 막는 법(how·관문 문장·관문 종류) 없음")
+    st = S.load_state(uid)
+    st["raid_log"] = [{"creature": "longneck", "result": "held"}] * 2
+    S.save_state(uid, st)
+    j = get(f"/api/raid/today?uid={uid}")
+    ok(j["raid"]["creature"]["how"] == how and j["state"]["combat"]["creatures"]["longneck"]["gate_ko"] == gate_ko,
+       "두 번 만난 뒤엔 답(how·관문)이 보인다")
+
+    # 문장 키(ui_moments raid_card.*, zero.*) — 서버가 하드코딩하지 않는다
+    st = S.load_state(uid)
+    st["lights"] = {"3": False}
+    st["last_tick"] -= S.PRODUCTION_TICK_SEC + 5
+    S.tick_production(st)
+    ok(st.get("dark_note", {}).get("ko") == S.moment("raid_card.dark_rooms", rooms=st["dark_note"]["rooms"][0]),
+       f"불 꺼 둔 방 문장 = raid_card.dark_rooms: {st['dark_note']['ko']}")
+    st = S.load_state(uid)
+    st["raid"] = None
+    for r_ in st["residents_list"]:
+        r_["stats"]["eye"] = 9
+    S.save_state(uid, st)
+    j = get(f"/api/raid/today?uid={uid}&debug_raid=swarm&debug_reset=1&debug_grade=1")
+    ee = (j["raid"] or {}).get("eye_early")
+    ok(ee and ee["ko"] == S.moment("raid_card.eye_early", name=ee["name"]), f"눈 밝은 사람 문장 = raid_card.eye_early: {ee and ee['ko']}")
+    code = ean("490123600001")
+    for _ in range(3):
+        z = post("/api/scan", {"uid": uid, "barcode": code, "user_category": "food"})
+    zr = z["zero_reaction"]
+    ok(zr and zr["ko"] and "{" not in zr["ko"], f"zero_reaction.ko 채움({zr and zr['kind']}): {zr and zr['ko']}")
+
+
 TESTS = [t_event_gates, t_voice_claims, t_day_end_facts, t_imprint_merge_and_parts, t_rumor_act, t_shelf_growth,
-         t_first_week, t_rescan_zero_trade_cap, t_relic_names, t_depth_announce_overnight, t_raid_card, t_small]
+         t_first_week, t_rescan_zero_trade_cap, t_relic_names, t_depth_announce_overnight, t_raid_card, t_small, t_a2_fields]
 
 if __name__ == "__main__":
     for t in TESTS:

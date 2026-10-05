@@ -1092,7 +1092,8 @@ def tick_production(st: dict) -> dict:
                     produced[k] = produced.get(k, 0) + amt
     if dark_rooms:
         st["dark_note"] = {"kind": "dark", "rooms": sorted(set(dark_rooms)),
-                           "ko": "불을 꺼 둔 방은 절반만 일했다 — " + " · ".join(sorted(set(dark_rooms)))}
+                           "ko": moment("raid_card.dark_rooms", rooms=" · ".join(sorted(set(dark_rooms))))
+                                 or ("불을 꺼 둔 방은 절반만 일했다 — " + " · ".join(sorted(set(dark_rooms))))}
     # 부상 회복: 틱마다 1명 (의무병 있으면 2명) + 의무실·물 끓이는 방의 회복(heal) 값
     heal = int(round((eff["heal_rate"] + heal_extra) * ticks))
     # 숨이 긴 사람이 먼저 일어난다(RESIDENT_STATS §4 "부상 회복 = 숨 + 의무실 등급")
@@ -1466,7 +1467,8 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
         "action": None if quiet else gate_action_public(st, raid, cre),
         # 접촉 전 미리보기(실루엣 단계부터). 숫자보다 "무엇이 모자란지"를 먼저 말한다
         "eye_early": ({"name": eye_who["name"], "eye": eye,
-                       "ko": eye_who["name"] + "의 눈이 밝다 — 소리만 듣고 어느 창인지 안다."} if early else None),
+                       "ko": moment("raid_card.eye_early", name=eye_who["name"])
+                             or (eye_who["name"] + "의 눈이 밝다 — 소리만 듣고 어느 창인지 안다.")} if early else None),
         "ready": None if quiet else {
             "gate": preview["gate"], "score": preview["score"], "need": preview["need"],
             # 미리보기는 미래형(ui_moments raid_preview) — 결과용 과거형(RESULT_KO)을 쓰지 않는다(플레이테스트 버그 10)
@@ -1521,13 +1523,16 @@ def raid_card_apply(st: dict, raid: dict, cre: dict, out: dict) -> dict:
         return out
     out["verbs"] = raid_verbs(st, raid)
     out["action"] = None                         # 그 생물의 맞는 행동 하나를 콕 집어 보이지 않는다
+    if isinstance(out.get("creature"), dict):
+        out["creature"] = dict(out["creature"], how=None)   # how = 「불을 꺼 주세요」 — 답이다
+    # eye_early(「눈이 밝다 — 어느 창인지 안다」)는 **어느 방**을 알려 주는 단서라 남긴다(막는 법은 말하지 않는다)
     if out.get("ready"):
         if not raid.get("verb"):
             out["ready"] = None                  # 동사를 고르기 전에는 미리보기가 닫혀 있다
         else:
-            g = dict(out["ready"].get("gate") or {})
-            g["ko"] = None                       # 관문 문장은 곧 답이다 — 단서 모드에서는 결과·대가만
-            out["ready"] = dict(out["ready"], gate=g)
+            g = out["ready"].get("gate") or {}
+            # 관문의 종류·행동 id·필요 수는 곧 답이다 — 단서 모드에서는 '통했나(ok)'와 결과·대가만
+            out["ready"] = dict(out["ready"], gate={"ok": bool(g.get("ok")), "ko": None})
     return out
 
 
@@ -1645,9 +1650,13 @@ def combat_public(st: dict) -> dict:
         "next_raid_hint": st.get("next_raid_hint"),
         "workshop": tool_public(st),
         "grade": grade_of(st),
-        "creatures": {c["id"]: {"name": c["name"], "how": c["how"], "threat": c["threat"],
-                                "gate": c.get("gate", "none"),
-                                "gate_ko": combat.GATE_KO.get(c.get("gate", "none"), "")}
+        # 단서 모드인 생물(아직 두 번 못 만난 위협)은 막는 법(how·관문)을 이 사전에서도 숨긴다 — 답이 새지 않게
+        "creatures": {c["id"]: ({"name": c["name"], "how": c["how"], "threat": c["threat"],
+                                 "gate": c.get("gate", "none"),
+                                 "gate_ko": combat.GATE_KO.get(c.get("gate", "none"), ""), "card_mode": "answer"}
+                                if raid_card_mode(st, c) == "answer" else
+                                {"name": c["name"], "how": None, "threat": c["threat"], "gate": None, "gate_ko": None,
+                                 "habit": c.get("habit"), "card_mode": "clue"})
                       for c in combat.CREATURES.values()},
     }
 
@@ -1693,6 +1702,8 @@ def public_state(st: dict, uid: str) -> dict:
                        # S14 정본 방→능력치 표(stakes stat_production.room_stat). 화면 ROOM_STAT 사본을 대신한다
                        "room_stat": {rid: room_stat_of(rid) for rid in ROOMS if room_stat_of(rid)},
                        "stat_production": stat_production_params()},
+        # S18-A2 게임 하루가 끝나는 시각(방주 생성 기준 날 경계). 화면은 이 시각 3시간 안에 하루 마감을 연다
+        "day_ends_at": float(st["created"]) + day_of(st) * 86400,
         # S15 원정·문간(docs/API_EXPEDITION.md)
         "expedition": exp_public(st, st.get("expedition")),
         "expedition_return": st.get("exp_unseen"),
@@ -2152,6 +2163,7 @@ def move_preview(st: dict) -> dict:
     all_here = {r["slot"]: list(stations_map(st).get(int(r["slot"]), [])) for r in rooms}
     base_out = {r["slot"]: room_output(st, r, base_ppl[r["slot"]]) for r in rooms if prod[r["slot"]]}
     inj_ok = bool(stat_production_params()["injured_counts"])
+    base_total = sum(base_out.values())
 
     def pct(new, old):
         if old <= 0:
@@ -2167,9 +2179,11 @@ def move_preview(st: dict) -> dict:
         row: dict = {}
         from_room = next((r for r in rooms if r["slot"] == cur), None) if cur is not None else None
         from_delta = None
+        from_new = None
         if from_room is not None and prod[cur]:
             left = [x for x in base_ppl[cur] if x["id"] != p["id"]]
-            from_delta = pct(room_output(st, from_room, left), base_out[cur]) if counts else 0.0
+            from_new = room_output(st, from_room, left) if counts else base_out[cur]
+            from_delta = pct(from_new, base_out[cur]) if counts else 0.0
         for r in rooms + [None]:
             slot = r["slot"] if r else None
             key = "hall" if slot is None else str(slot)
@@ -2182,7 +2196,15 @@ def move_preview(st: dict) -> dict:
                     cell["can"] = False
                 if prod[slot]:
                     newp = base_ppl[slot] + ([p] if counts else [])
-                    cell["room_delta_pct"] = pct(room_output(st, r, newp), base_out[slot])
+                    to_new = room_output(st, r, newp)
+                    cell["room_delta_pct"] = pct(to_new, base_out[slot])
+            # S18-A2 방주 전체 산출 변화(떠난 방 + 옮겨 간 방, 나머지는 그대로). 화면은 이 한 숫자를 크게 쓴다
+            new_total = base_total
+            if from_new is not None:
+                new_total += from_new - base_out[cur]
+            if r is not None and prod[slot]:
+                new_total += to_new - base_out[slot]
+            cell["ark_delta_pct"] = pct(new_total, base_total) if base_total > 0 else None
             row[key] = cell
         out[p["id"]] = row
     return out
