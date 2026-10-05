@@ -251,15 +251,16 @@
       peekEl = document.createElement('div'); peekEl.className = 'relpeek'; peekEl.hidden = true;
       peekEl.addEventListener('click', (e) => {
         const b = e.target.closest('button[data-act]');
-        if (b && peekEl._act) { const f = peekEl._act; closePeek(); f(); return; }
+        if (b && peekEl._acts) { const f = peekEl._acts[+b.dataset.act]; closePeek(); if (f) f(); return; }
         closePeek();
       });
       ($('#app') || document.body).appendChild(peekEl);
     }
-    peekEl._act = act ? act.fn : null;
+    const acts = act ? [].concat(act) : [];
+    peekEl._acts = acts.map(a => a.fn);
     peekEl.innerHTML = '<div class="pk-card"><div class="rc-tilt">' + face(o) + '</div></div>' +
       (line ? '<p class="pk-line">' + esc(line) + '</p>' : '') +
-      (act ? '<button data-act="1">' + esc(act.label) + '</button>' : '') +
+      (acts.length ? '<div class="pk-acts">' + acts.map((a, i) => '<button data-act="' + i + '">' + esc(a.label) + '</button>').join('') + '</div>' : '') +
       '<p class="pk-hint">아무 데나 누르면 닫힙니다</p>';
     peekEl.hidden = false;
     const c = peekEl.querySelector('.pk-card');

@@ -142,7 +142,7 @@
       "airlock":    {"ko": "에어락", "cap": 2, "produces": {}, "build": {"parts": 9, "cloth": 6},
                      "lv2": {"cost": {"parts": 9, "cloth": 8}, "opens": "2명 함께 출입"},
                      "lv3": {"cost": {"parts": 14, "knowledge": 6}, "opens": "급히 돌아오기"}},
-      "workshop":   {"ko": "공방", "cap": 4, "produces": {"craft_slots": 1}, "build": {"parts": 8, "scrap": 6, "knowledge": 3}, "cond": "기술자 1명",
+      "workshop":   {"ko": "공방", "cap": 4, "produces": {"craft_slots": 1}, "build": {"parts": 8, "scrap": 3, "knowledge": 3}, "_build_20261005": "잔해 6 → 3(S20, core_a.s19_server_numbers.workshop_build_scrap). 서버 WORKSHOP_SCRAP_MULT 는 1.0 으로", "cond": "기술자 1명",
                      "lv2": {"cost": {"parts": 9, "knowledge": 4}, "opens": "2건 함께 만들기", "produces_after": {"craft_slots": 2}},
                      "lv3": {"cost": {"parts": 16, "knowledge": 6}, "opens": "3단계 장비 만들기", "produces_after": {"craft_slots": 3}}},
       "decoder":    {"ko": "해독실", "cap": 2, "produces": {"knowledge": 1}, "build": {"knowledge": 9, "parts": 4}, "cond": "학자 1명",

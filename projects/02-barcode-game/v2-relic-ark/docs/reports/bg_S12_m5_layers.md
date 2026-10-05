@@ -303,3 +303,20 @@ python tools/blender_iso_sea.py sheet       # 접촉 시트 + manifest
 - **확신 없음**:
   - pantry·decoder·lounge·bath·well은 플레이트가 없어서 비슷한 방(quarters·storage·infirmary·greenhouse)으로 미리 봤다. meta의 `plate_name_map`에 적었다.
   - 부엌 김은 정지 그림이다. 움직이게 하려면 따로 떼어야 한다.
+
+---
+
+# §S20-L — 「질랜디아 / ZEALANDIA」 로고 (2026-10-05)
+- **생성기**: `tools/gen_logo_zealandia.py`(생성 AI 없음). **글꼴을 쓰지 않았다.** 한글·영문 모두 획을 직접 지었다(살짝 흔들리는 둥근 획). 글꼴 라이선스 문제가 없다.
+- **방향 셋**: `docs/reports/s20_logo_options.png`
+  - A: 가라앉은 대륙의 창. 둥근 두 봉우리 단면 중 오른쪽 꼭대기만 물 위, 몸 안에 불 켜진 아치 창 하나. 글자 아랫부분이 물에 잠긴다.
+  - B: 물결 아래 기운 탑, 창 하나만 불.
+  - C: 비탈 위 유리 돔과 등불.
+- **추천과 확정: A.** "약 94%가 물에 잠긴 대륙"이라는 제목의 뜻과 "검은 물속의 따뜻한 불빛 하나"(§1-1)가 한 그림에 들어간다. 48px에서도 물결선·봉우리·불빛 점이 남는다. B는 건물이라 도시 실루엣 쪽으로 기울고, C는 흔한 돔 그림이다.
+- **확정본** `static/art/brand/zealandia/`(472KB):
+  - `wordmark_ko_{dark,light}` · `wordmark_en_{dark,light}`
+  - `lockup_horizontal_{dark,light}` · `lockup_stacked_{dark,light}`(투명 배경)
+  - `icon_512` / `icon_192` / `icon_48`
+  - 미리보기: `docs/reports/s20_logo_final.png`
+- **피한 것**: 고사리·새 모티프, 웰링턴 보호구역의 글자체, 실제 뉴질랜드 지형. 땅은 추상 두 봉우리다. 무섭지 않게 빛은 따뜻한 창 하나만 두었다.
+- **리스크**: 상표(게임 분류) 확인은 출시 전에 따로 해야 한다(PM 메모 그대로).

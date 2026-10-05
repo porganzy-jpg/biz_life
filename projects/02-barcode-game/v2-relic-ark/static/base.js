@@ -2696,6 +2696,31 @@
     }
     return '<span class="zeroline">' + esc(plain(t || '이미 읽은 성문이라 새로 얻은 건 없습니다')) + '</span>';
   }
+  // S19 후속: 둘째 찍기부터 카드 아래 글은 이야기 두 줄까지. *_short 문장(시나리오)이 있으면 그것, 없으면 첫 문장만. 누르면 전부
+  const GAIN_ORDER = ['.boxline', '.famline.done', '.variantline', '.meetline', '.wishline', '.famline', '.polished', '.where', '.zeroline', '.voice'];
+  function shortOf(el, r) {
+    const map = { boxline: r.box_opened && r.box_opened.ko_short, variantline: r.variant && r.variant.ko_short, famline: r.family_set && r.family_set.ko_short,
+                  voice: r.voice && r.voice.text_short, where: r.polish && r.polish.ko_short };
+    const k = Object.keys(map).find(c => el.classList.contains(c));
+    if (k && map[k]) return plain(map[k]);
+    const t = el.textContent.trim(), m = t.match(/^.+?[.?!。](?=\s|$)/);
+    return m ? m[0] : t;
+  }
+  function trimGain(rg, r) {
+    const spans = [], seen = new Set();
+    GAIN_ORDER.forEach(sel => rg.querySelectorAll(':scope > span' + sel).forEach(el => { if (!seen.has(el)) { seen.add(el); spans.push(el); } }));
+    rg.querySelectorAll(':scope > span').forEach(el => { if (!seen.has(el) && el.className && el.className !== 'first') { seen.add(el); spans.push(el); } });
+    if (spans.length <= 2 && !spans.some(el => shortOf(el, r) !== el.textContent.trim())) return;
+    spans.forEach((el, i) => {
+      el.dataset.full = el.innerHTML;
+      if (i < 2) { if (!el.querySelector('button')) el.textContent = shortOf(el, r); }
+      else el.classList.add('folded');
+    });
+    const more = document.createElement('button'); more.className = 'gmore'; more.textContent = '더 보기';
+    rg.appendChild(more);
+    rg.classList.add('trim');
+    more.addEventListener('click', (e) => { e.stopPropagation(); rg.classList.remove('trim'); spans.forEach(el => { el.innerHTML = el.dataset.full; el.classList.remove('folded'); }); more.remove(); });
+  }
   function showReveal(r) {
     lastScan = r;
     const c = r.card || {};
@@ -2744,6 +2769,7 @@
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
       shelfNote + extra +
       ((r.voice && r.voice.text) ? '<span class="voice">' + esc(r.voice.who_ko || '') + (r.voice.who_ko ? ': ' : '') + esc(r.voice.text) + '</span>' : '');
+    if ((r.where && r.where.compact) || (r.scans_today || 1) > 1) trimGain(rg, r);
     const btn = $('#shelfBtn');
     btn.textContent = slot != null ? (again ? '선반 보기' : '선반에 두기') : '닫기';
     btn.classList.remove('on');
@@ -3373,7 +3399,9 @@
     if (sh) {                                  // S16: 선반 물건을 누르면 그 유물 카드(틀·희귀도 이름). 창고 카드는 카드 아래 단추로
       closePanel();
       const rs = s != null ? s : shelfRoomSlot();
-      if (K.ext.cards) { closeCard(); K.ext.cards.peek(shelfCardOf(sh.item), '', { label: '창고 보기', fn: () => openCard({ slot: rs }) }); }
+      const acts = [{ label: '창고 보기', fn: () => openCard({ slot: rs }) }];
+      if (sh.item.card_id && K.ext.core && K.ext.core.regift) acts.unshift({ label: '건네기', fn: () => K.ext.core.regift(sh.item) });   // S19: 찍지 않고 다시 주기
+      if (K.ext.cards) { closeCard(); K.ext.cards.peek(shelfCardOf(sh.item), '', acts); }
       else { toast(shelfLine(sh.item)); openCard({ slot: rs }); }
       return;
     }

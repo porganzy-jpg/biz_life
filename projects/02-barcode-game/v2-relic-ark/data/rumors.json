@@ -262,7 +262,7 @@
   {
     "id": "rumor_vent_warm_arms",
     "spot_id": "spot_vent_garden",
-    "text": "문어가 돌아와 아이 손목을 감았는데 평소보다 미지근했다. 그 방향에서 돌아온 날만 그렇다.",
+    "text": "문어가 돌아와 누군가의 손목을 감았는데 평소보다 미지근했다. 그 방향에서 돌아온 날만 그렇다.",
     "source": "octopus",
     "unlock": {
       "category": "electronics",

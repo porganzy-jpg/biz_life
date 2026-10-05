@@ -533,7 +533,29 @@
   // ══════════════════════════════════════════════════════════════
   //  연결
   // ══════════════════════════════════════════════════════════════
-  K.ext.core = { afterReveal, morningExtra, hasMorning, queueBeat, leaveCard };
+  // 찍기 창이 열리면 매듭 카드를 접어 둔다(겹침 방지) — 닫히면 다시 편다
+  new MutationObserver(() => {
+    const open = !$('#scan').hidden;
+    document.querySelectorAll('.beatcard, .ppop').forEach(el => el.classList.toggle('folded', open));
+  }).observe($('#scan'), { attributes: true, attributeFilter: ['hidden'] });
+  // 선반 물건 다시 주기(API_S19 §2 relic_id): 사람 + 꾸밈 칸이 남은 방 중에서 고른다
+  function regift(it) {
+    const a = K.ark || {}, rd = a.room_decor || {};
+    const rooms = Object.keys(rd).filter(k => (rd[k].items || []).filter(x => !x.boxed).length < (rd[k].cap || 0)).map(k => +k);
+    const body = K.panel('<h2>' + esc(it.relic_name || it.name || '물건') + ' 건네기</h2><p class="sub">누구에게, 어디에 둘까요?</p>' +
+      '<div class="gopts regift">' + people().map(p => '<button class="gopt" data-rid="' + esc(p.id) + '">' + face(p, 34) + '<span class="gname"><b>' + esc(p.name) + '</b>' +
+        (normTaste(p).need ? '<small>오늘 ' + esc(normTaste(p).need.ko) + '</small>' : '') + '</span></button>').join('') +
+      rooms.map(s => '<button class="gopt" data-slot="' + s + '"><i class="roomico" aria-hidden="true"></i><span class="gname"><b>' + esc(roomName(s)) + '</b><small>꾸밈 칸</small></span></button>').join('') + '</div>');
+    body.addEventListener('click', async (e) => {
+      const b = e.target.closest('button.gopt'); if (!b) return;
+      const target = b.dataset.rid ? { resident_id: b.dataset.rid } : { slot: +b.dataset.slot };
+      b.disabled = true;
+      try { const res = await call(API.give, { relic_id: it.card_id || it.id, target }); if (res.state) K.apply(res.state); K.closePanel();
+        react(res, { rid: b.dataset.rid || null, slot: b.dataset.slot != null ? +b.dataset.slot : null, reason: res.tier || 'like' }); D.log.push('regift ' + (b.dataset.rid || 'room' + b.dataset.slot)); }
+      catch (err) { b.disabled = false; K.toast(err.message || '건네지 못했습니다'); }
+    });
+  }
+  K.ext.core = { afterReveal, morningExtra, hasMorning, queueBeat, leaveCard, regift };
   K.onApply((st) => {
     if (D.mock) D.mock.decorate(st);                        // ★ 시험대: 서버 모양을 먼저 입힌다
     renderNext(st);
