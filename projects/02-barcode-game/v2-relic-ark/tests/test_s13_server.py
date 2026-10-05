@@ -295,7 +295,9 @@ def _raid(uid, cre, grade=None, reset=True):
         q += f"&debug_grade={grade}"
     r = C.get(q)
     assert r.status_code == 200, r.text
-    return r.json()
+    # S18 raid_card(단서 먼저): 미리보기는 동사를 고른 뒤 열린다 — 이 테스트들은 미리보기 엔진을 보므로 하나 고른다
+    v = C.post("/api/raid/verb", json={"uid": uid, "verb": "station"})
+    return v.json()["state"] and r.json() if v.status_code == 200 else r.json()
 
 
 def t_night_judge():
@@ -457,7 +459,7 @@ def t_octopus_wishes_dayend():
     de = C.get(f"/api/day_end?uid={uid}").json()
     ids = [x["id"] for x in de["lines"]]
     ok("octopus_brought" in ids and len(ids) <= 3 and all("{" not in x["text"] for x in de["lines"]), f"하루 마감 줄 {ids}")
-    ok(de["open"] and de["close"] and de["facts"]["floors"] >= 1, "마감 머리·꼬리 문장")
+    ok(de["open"] and de["close"] and de["facts"]["floors"] == 0, "마감 머리·꼬리 문장(되찾은 층 0 — S18: 지은 층이 아니라 되찾은 수)")
     col = C.get(f"/api/collection?uid={uid}").json()
     ok(sum(1 for f in col["octopus_finds"] if f["known"]) == 1 and len(col["octopus_finds"]) == 20, "문어 선물 도감 1/20")
     uq = "dev_s13_quiet"

@@ -44,7 +44,8 @@ ROOMS.pop("_comment", None)
 #   ② data/balance/economy.json rooms.list (**수치**: 건설비·정원·생산·레벨업 재료와 조건)
 #   ③ data/rooms.json (시나리오 소유: **이름·설명·등불색**과 숫자가 아닌 생산물 counter_card·blueprint_progress)
 # 기존 다섯 id 는 그대로 남는다(저장 호환). pantry·library 는 economy 표에 없어서 rooms.json 값으로 돈다.
-_ECON = (combat._balance("economy").get("rooms") or {})
+_ECON_ALL = combat._balance("economy")
+_ECON = (_ECON_ALL.get("rooms") or {})
 ECON_ROOMS = {k: v for k, v in (_ECON.get("list") or {}).items() if isinstance(v, dict)}
 ROOM_TEXT_DEFAULT = {
     "hall":       ("홀", "#E6D7B0", "층을 잇는 척추. 배치되지 않은 사람이 여기 모인다."),
@@ -189,7 +190,7 @@ for _row in (_LINES.get("lines") or []):
         _imp["visual"]["line"] = _row["line"]
 # 생물·도구의 **문장**은 시나리오가 가진다(data/combat_schema.json 의 계약). 파일이 오면 코드 초안을 덮어쓴다.
 # 수치(need·power·cost·gate)는 밸런스라 개발이 들고 있고 파일이 바꾸지 못한다 — DECISIONS 2026-09-20 과 같은 분담.
-_CRE_TEXT = ("name", "zone", "how", "sound", "silhouette", "contact")
+_CRE_TEXT = ("name", "zone", "how", "sound", "silhouette", "contact", "habit")
 # 명단의 정본은 `data/creatures.json` 하나다(시나리오 2026-10-01 요청). 옛 이름도 받아 준다.
 _CRE_FILES = ("creatures.json", "creatures_deep.json")
 _CRE_SEEN: set = set()
@@ -229,7 +230,7 @@ for _who in ("reader", "gardener"):
             _raw = _line.get("acts")
             _acts = sorted({int(a) for a in _raw if isinstance(a, (int, float)) and int(a) in (1, 2, 3)})                 if isinstance(_raw, list) else None
             VOICE_LINES.setdefault(_line["when"], []).append(
-                {"who": _who, "text": _line["text"], "acts": _acts or [1, 2, 3]})
+                {"who": _who, "text": _line["text"], "acts": _acts or [1, 2, 3], "req": _line.get("requires")})
 VOICE_KO = {"reader": "리더", "gardener": "정원사"}
 VOICE_WEIGHT = {"reader": 2, "gardener": 1}    # 방주 안에서는 리더가 더 자주 들린다(정원사는 바깥·물가에서)
 # 스캔 대사 태그는 카테고리에서 바로 만든다(scan_medical 등을 시나리오가 채우면 코드 수정 없이 붙는다).
@@ -653,6 +654,7 @@ def load_state(uid: str) -> dict:
         changed = migrate_s15(st) or changed       # S15 원정·상자·손님·스팟 발견 분리
         if changed:
             save_state(uid, st)
+        st["_loaded_res"] = dict(st.get("resources") or {})   # S18-D 저장 상한: 이번 요청에서 늘어난 분만 자른다
         return st
     st = new_state(uid)
     migrate_s13(st, uid)
@@ -663,9 +665,15 @@ def load_state(uid: str) -> dict:
 
 
 def save_state(uid: str, st: dict):
+    before = st.pop("_loaded_res", None)
+    if before is not None:
+        apply_storage_cap(st, before)
+    _rest = dict(st.get("resources") or {})
     with db() as con:
         con.execute("INSERT OR REPLACE INTO arks(uid,state) VALUES(?,?)",
                     (uid, json.dumps(st, ensure_ascii=False)))
+    if before is not None:
+        st["_loaded_res"] = _rest                    # 같은 요청 안의 다음 저장도 '늘어난 분만' 자르게
 
 
 def migrate_residents(st: dict, uid: str = "") -> bool:
@@ -725,11 +733,16 @@ def migrate_state(st: dict) -> bool:
 # ─────────────────────────────────────────────────────────────
 # 두 AI의 목소리 (data/dialogue.json 의 when 태그)
 # ─────────────────────────────────────────────────────────────
-def voice_for(tag: str, seed: str, who: str | None = None, act: int | None = None) -> dict | None:
+def voice_for(tag: str, seed: str, who: str | None = None, act: int | None = None,
+              facts: set | None = None) -> dict | None:
     """상황 태그에 맞는 한 줄. 같은 입력이면 같은 줄(D6: 시드 결정성).
     act 를 주면 그 막에서 할 수 있는 말만 남긴다. acts 가 없는 줄은 전 막 공용이므로
     시나리오가 값을 채우기 전에도 지금과 똑같이 동작한다(줄이 갑자기 사라지지 않는다)."""
     pool = [ln for ln in VOICE_LINES.get(tag, []) if who is None or ln["who"] == who]
+    # S18: 줄이 전제하는 사실(예: 「상자 하나 열어 두었습니다」→ 상자를 실제로 열었다)이 없으면 그 줄은 쓰지 않는다
+    fx = set(facts or ())
+    pool = [ln for ln in pool
+            if line_requires({"requires": ln["req"]} if ln.get("req") else ln["text"]) <= fx]
     if act in (1, 2, 3):
         in_act = [ln for ln in pool if act in ln.get("acts", [1, 2, 3])]
         pool = in_act or []        # 그 막에서 할 말이 없으면 **말하지 않는다**(엉뚱한 막의 대사보다 침묵이 낫다)
@@ -812,7 +825,8 @@ def imprint_for(ev: dict | None, flags: list[str] | None = None) -> dict | None:
     return best
 
 
-def grant_imprints(st: dict, ev: dict | None, flags: list[str], targets: list[dict]) -> list[dict]:
+def grant_imprints(st: dict, ev: dict | None, flags: list[str], targets: list[dict],
+                   src: str | None = None) -> list[dict]:
     """살아남은 주민 중 그 위기 종류가 '처음'인 사람에게 각인을 준다.
     반환: [{resident, imprint, line, evolved}] — /api/event/resolve 의 new_imprints."""
     imp = imprint_for(ev, flags)
@@ -827,7 +841,8 @@ def grant_imprints(st: dict, ev: dict | None, flags: list[str], targets: list[di
         if imp["id"] in r["imprints"] or len(r["imprints"]) >= MAX_IMPRINTS:
             continue                                   # 같은 각인은 한 번, 최대 3개
         r["imprints"].append(imp["id"])
-        day_note(st, "imprint", r["name"])
+        # 하루 마감이 사실만 말하게 — 어디서 생긴 각인인지 함께 적는다(event·raid·expedition)
+        day_note(st, "imprint", {"name": r["name"], "src": src or ("event" if ev else "raid"), "imprint": imp["id"]})
         evolved = False
         if len(r["imprints"]) >= EVOLVE_AT and not r.get("role_evolved"):
             r["role_evolved"] = True
@@ -1359,22 +1374,45 @@ def ensure_raid(st: dict, uid: str, force: str | None = None, reset: bool = Fals
     # 들이지 않은 손님(st["guests"])은 빠지고, 원정 나간 사람은 주민이라 센다(PM 2026-10-04)
     cre = combat.pick_creature(uid, day, grade, force=force,
                                residents=len(st.get("residents_list") or []))
+    # S18 첫 주 위협 보장(threats.json first_week_guarantee): by_day 까지 위협이 한 번도 안 왔으면 그날(을 넘겼으면
+    # until_day 안의 첫 방문 날) 하나를 보낸다. 무엇이 오는지는 그 등급 가중치대로(시드 uid|day|guarantee)
+    fg = first_week_guarantee()
+    guaranteed = False
+    if (not force and not grade_force and not int(st.get("threat_raids") or 0)
+            and fg["by_day"] <= day <= fg["until_day"] and not (cre and cre.get("threat"))):
+        if fg.get("creature") in combat.CREATURES:
+            cre = combat.CREATURES[fg["creature"]]
+        else:
+            w = {k: v for k, v in combat.creature_weights(grade, len(st.get("residents_list") or [])).items()
+                 if combat.CREATURES[k]["threat"]}
+            if w:
+                ids = sorted(w)
+                cre = combat.CREATURES[combat.raid_rng(uid, day, "guarantee").choices(ids, weights=[w[i] for i in ids], k=1)[0]]
+        guaranteed = bool(cre)
     if not cre:
         st["raid"] = {"day": day, "none": True, "grade": grade}
         return None
     slot = combat.pick_target(uid, day, cre, live_rooms(st), st.get("room_tools") or {})
+    if guaranteed and fg.get("target") == "occupied_room":
+        occ = sorted(int(k) for k, v in stations_map(st).items() if v and room_at(st, k) and not room_at(st, k).get("flooded"))
+        if occ:
+            slot = combat.raid_rng(uid, day, "guarantee_target").choice(occ)
     if slot is None:
         # 갈 방이 없다(전부 침수거나 전부 유인 등불). 긴목은 다른 불빛을 따라 간다
         st["raid"] = {"day": day, "none": True, "diverted": cre["id"], "grade": grade}
         return None
     sev = combat.severity(uid, day, grade)
+    if guaranteed and isinstance(fg.get("severity"), (int, float)):
+        sev = int(fg["severity"])
     sev += int(st.pop("severity_debt", 0) or 0)      # 윗물 아이를 올려 보낸 값(금기를 어겼다)
     raid = {
         "id": f"raid-{day}-{cre['id']}", "day": day, "creature": cre["id"], "grade": grade,
         "target_slot": int(slot), "severity": max(0, min(4, sev)),
         "stage": "sound", "started": time.time(), "resolved": False, "result": None,
-        "outside_sent": [], "acts": [], "moves": 0,
+        "outside_sent": [], "acts": [], "moves": 0, "guaranteed": guaranteed,
     }
+    if cre.get("threat"):
+        st["threat_raids"] = int(st.get("threat_raids") or 0) + 1
     if cre["gate"] == "all_inside":
         raid["outside_sent"] = list(st.get("outside") or [])   # S15: 무작위 차출 폐지 — 원정 나간 사람만 밖에 있다
     st["raid"] = raid
@@ -1399,10 +1437,11 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
     eye, eye_who = best_stat(inside, "eye")
     early = bool(eye >= EYE_EARLY and eye_who)
     quiet = raid["stage"] == "sound" and not early    # 보통은 소리 단계에서 어느 방인지 모른다(§3-1·3-2)
+    out_ = None
     revealed = lid_revealed(raid, cre)                # S13 덮개: stakes lid.reveal_from_stage 부터 대상 방을 연다
     if revealed:
         quiet = False
-    return {
+    out_ = {
         "id": raid["id"], "day": raid["day"], "stage": raid["stage"],
         "stage_ko": combat.STAGE_KO.get(raid["stage"], raid["stage"]),
         "stage_no": list(combat.STAGES).index(raid["stage"]) if raid["stage"] in combat.STAGES else 0,
@@ -1419,6 +1458,8 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
         "moves": int(raid.get("moves") or 0),
         "acts": list(raid.get("acts") or []),
         "lid_revealed": revealed,
+        # S18: raid_card(단서 먼저 — 사용자 승인 대기) 대비 버릇 한 줄 자리. 생물 문장(creatures.json)의 habit, 없으면 null
+        "habit": (cre.get("lines") or {}).get("habit") or cre.get("habit"),
         "reveal_ko": moment("lid.target_revealed", room=room_name or "") if revealed else None,
         "auto": bool(raid.get("auto")), "capped": bool(raid.get("capped")),
         # 그 생물을 막는 **행동 버튼**(관문이 토글로 안 되는 일곱). 대가와 낼 수 있는지까지 서버가 판단한다
@@ -1428,10 +1469,66 @@ def raid_public(st: dict, raid: dict | None) -> dict | None:
                        "ko": eye_who["name"] + "의 눈이 밝다 — 소리만 듣고 어느 창인지 안다."} if early else None),
         "ready": None if quiet else {
             "gate": preview["gate"], "score": preview["score"], "need": preview["need"],
-            "would": preview["result"], "would_ko": combat.RESULT_KO[preview["result"]],
-            "parts": preview["parts"], "shielded": preview.get("shielded"),
+            # 미리보기는 미래형(ui_moments raid_preview) — 결과용 과거형(RESULT_KO)을 쓰지 않는다(플레이테스트 버그 10)
+            "would": preview["result"],
+            "would_ko": moment(f"raid_preview.{preview['result']}") or combat.RESULT_KO[preview["result"]],
+            "parts": parts_display(preview["parts"]), "shielded": preview.get("shielded"),
         },
     }
+    return raid_card_apply(st, raid, cre, out_)
+
+
+def encounters_of(st: dict) -> dict:
+    """생물별로 '만나 본' 횟수(접촉까지 간 습격 — 누름·밤 판정 모두). raid_log 에서 센다."""
+    out: dict = {}
+    for r in st.get("raid_log") or []:
+        c = r.get("creature")
+        if c and r.get("result"):
+            out[c] = out.get(c, 0) + 1
+    return out
+
+
+def raid_card_mode(st: dict, cre: dict) -> str:
+    """stakes raid_card(사용자 승인 2026-10-04): clue_first 면, 같은 생물을 answer_after_encounters 번 만나기 전까지
+    답(관문 문장·맞는 행동) 대신 버릇 한 줄과 동사 목록만 보여 준다. 그 뒤는 예전처럼 답을 보여 준다."""
+    rc = stk("raid_card") or {}
+    if not isinstance(rc, dict) or rc.get("mode") != "clue_first" or not cre.get("threat"):
+        return "answer"
+    n = encounters_of(st).get(cre["id"], 0)
+    return "clue" if n < int(rc.get("answer_after_encounters", 2)) else "answer"
+
+
+VERBS = ("light", "power", "station", "tool", "act")
+
+
+def raid_verbs(st: dict, raid: dict) -> list:
+    """고를 수 있는 동사(불·전원·자리·도구·행동). 행동은 **모든** 관문 행동을 대가와 함께 늘어놓는다 — 답을 가리지 않게."""
+    sev = int(raid.get("severity", 0))
+    acts = []
+    for aid, spec in combat.GATE_ACTIONS.items():
+        acts.append({"id": aid, "ko": spec.get("ko"), "cost": combat.action_cost(aid, sev), "cost_ko": spec.get("cost_ko")})
+    return [{"id": "light", "ko": "불"}, {"id": "power", "ko": "전원"}, {"id": "station", "ko": "자리"},
+            {"id": "tool", "ko": "도구"}, {"id": "act", "ko": "행동", "options": acts}]
+
+
+def raid_card_apply(st: dict, raid: dict, cre: dict, out: dict) -> dict:
+    mode = raid_card_mode(st, cre)
+    enc = encounters_of(st).get(cre["id"], 0)
+    out["card_mode"] = mode
+    out["encounters"] = enc
+    out["verb"] = raid.get("verb")
+    if mode != "clue":
+        return out
+    out["verbs"] = raid_verbs(st, raid)
+    out["action"] = None                         # 그 생물의 맞는 행동 하나를 콕 집어 보이지 않는다
+    if out.get("ready"):
+        if not raid.get("verb"):
+            out["ready"] = None                  # 동사를 고르기 전에는 미리보기가 닫혀 있다
+        else:
+            g = dict(out["ready"].get("gate") or {})
+            g["ko"] = None                       # 관문 문장은 곧 답이다 — 단서 모드에서는 결과·대가만
+            out["ready"] = dict(out["ready"], gate=g)
+    return out
 
 
 def lid_revealed(raid: dict, cre: dict) -> bool:
@@ -1544,6 +1641,7 @@ def combat_public(st: dict) -> dict:
         "power_on": bool(st.get("power_on", True)),
         "raid": raid_public(st, st.get("raid")),
         "raid_log": list(st.get("raid_log") or [])[-8:],
+        "encounters": encounters_of(st),                    # S18 생물별 만난 횟수(raid_card 답 공개 기준)
         "next_raid_hint": st.get("next_raid_hint"),
         "workshop": tool_public(st),
         "grade": grade_of(st),
@@ -1603,6 +1701,9 @@ def public_state(st: dict, uid: str) -> dict:
         "boxes": boxes_public(st),
         "beds": beds_state(st),
         "entrance": entrance_public(st),                    # /api/entrance 와 같은 모양(S15-A2)
+        "stored": stored_public(st),                        # S18: 선반에 못 놓인 유물(창고 상자)
+        "storage": storage_public(st),                      # S18-D 재료당 저장 상한·가득 찬 것
+        "material_sources": MATERIAL_SOURCES,               # S18-D 「모자랍니다」 옆 출처 한 줄(economy.json)
         "spots_found": list(st.get("spots_found") or []),
         # S14 드래그 미리보기 — 서버가 미리 계산한다(화면은 게임 숫자를 계산하지 않는다, D2)
         "move_preview": move_preview(st),
@@ -1669,8 +1770,21 @@ def shelf_room(st: dict) -> dict | None:
 
 
 def shelf_capacity(st: dict) -> int:
+    """S18: 선반이 **자란다**(economy.json `shelf`, 기획 S18-D) —
+    식량창고 바탕 base_pantry + 창고 방마다 per_storage_level[레벨](큰 것부터 max_storage_rooms_counted 개)
+    + 되찾은 층마다 per_floor_reclaimed. 표가 없으면 예전 규칙(칸이 가장 많은 방 하나)."""
     r = shelf_room(st)
-    return shelves_of(r) if r else 0
+    if not r:
+        return 0
+    sh = (_ECON_ALL.get("shelf") or {}) if isinstance(_ECON_ALL.get("shelf"), dict) else {}
+    if not sh.get("per_storage_level"):
+        return shelves_of(r)
+    total = int(sh.get("base_pantry", 6)) if any(x["id"] == "pantry" for x in live_rooms(st)) else 0
+    lv = sorted((int((sh["per_storage_level"] or {}).get(str(room_level(x)), 0))
+                 for x in live_rooms(st) if x["id"] == "storage"), reverse=True)
+    total += sum(lv[:int(sh.get("max_storage_rooms_counted", 2))])
+    total += int(sh.get("per_floor_reclaimed", 0)) * int(st.get("reclaimed_total") or 0)
+    return total
 
 
 def shelf_public(st: dict) -> list[dict]:
@@ -2149,7 +2263,8 @@ def polish_threshold(lv: int) -> int | None:
 
 
 def shelf_item_for(st: dict, code: str) -> dict | None:
-    return next((it for it in (st.get("shelf") or []) if it.get("barcode") == code), None)
+    """선반 또는 창고 상자에 이미 있는 그 바코드(있으면 새로 놓지 않고 닦는다)."""
+    return next((it for it in (st.get("shelf") or []) + (st.get("stored") or []) if it.get("barcode") == code), None)
 
 
 def polish_item(st: dict, it: dict, card_name: str) -> dict:
@@ -2255,8 +2370,16 @@ def first_meet_lines(st: dict, cat: str, fam: str) -> list[dict]:
 
 
 # ── 도감 메타(줄기별 희귀도·변형) ─────────────────────────────
+def codex_pool(cat: str) -> list:
+    """도감 칸 = relic_templates 줄기 + 시나리오 추가 줄기(relic_stems.json). 추가 줄기는 이름이 겹치지 않는 것만."""
+    base = list(TEMPLATES.get(cat) or [])
+    names = {t["name"] for t in base}
+    more = ((GEN.extra().get("categories") or {}).get(cat)) or []
+    return base + [t for t in more if isinstance(t, dict) and t.get("name") and t["name"] not in names]
+
+
 def stem_of(cat: str, name: str) -> str | None:
-    for t in (TEMPLATES.get(cat) or []):
+    for t in codex_pool(cat):
         s = t["name"].replace("{adj} ", "")
         if name.endswith(s):
             return s
@@ -2471,8 +2594,23 @@ def day_tick(st: dict, uid: str, force_night: bool = False) -> dict:
     s15 = s15_tick(st, uid)
     out = {"night_judge": night_judge(st, uid, force=force_night)}
     out.update(s15)
+    out["depth_crossed"] = depth_check(st)
+    # S18 아침 「밤사이」 한 장: 이번에 생긴 것을 모은다(화면은 overnight 하나만 열면 된다)
+    if out["night_judge"]:
+        overnight_add(st, "night_judge", out["night_judge"])
+    if s15.get("expedition_return"):
+        r_ = s15["expedition_return"]
+        overnight_add(st, "expedition_return", {"id": r_["id"], "line": r_.get("line"), "member_names": r_.get("member_names"),
+                                                "discovered": r_.get("discovered"), "newcomer": r_.get("newcomer")})
+    if s15.get("knock"):
+        overnight_add(st, "knock", {"guest_id": s15["knock"]["guest_id"], "name": s15["knock"]["name"]})
     out["octopus"] = octopus_tick(st, uid)
+    if (out["octopus"] or {}).get("gift"):
+        g_ = out["octopus"]["gift"]
+        overnight_add(st, "octopus", {"id": g_["id"], "name": g_["name"], "line": g_.get("line")})
     out["wishes_new"] = wishes_tick(st, uid)
+    for w_ in out["wishes_new"]:
+        overnight_add(st, "wish", w_)
     far_call_note(st)
     return out
 
@@ -2520,6 +2658,15 @@ def migrate_s13(st: dict, uid: str) -> bool:
     for r in st.get("rooms") or []:                      # 옛 '잃은 방'(flooded) → 무엇이었는지 기억하는 물 찬 칸
         if r.get("flooded") and not isinstance(r.get("flooded_from"), dict):
             r["flooded_from"] = {"id": r.get("id"), "level": room_level(r)}; changed = True
+    if not isinstance(st.get("depth_marks"), list):        # S18: 이미 넘은 깊이는 조용히 넘긴 것으로
+        st["depth_marks"] = [m for m in (stk("depth_announce.thresholds") or []) if depth_of(st) >= int(m)]; changed = True
+    if not isinstance(st.get("stored"), list):
+        st["stored"] = []; changed = True
+    if not isinstance(st.get("event_days"), dict):
+        st["event_days"] = {}; changed = True
+    if "threat_raids" not in st:
+        st["threat_raids"] = sum(1 for r in st.get("raid_log") or []
+                                 if (combat.CREATURES.get(r.get("creature")) or {}).get("threat")); changed = True
     for key in ("family_sets", "wishes_done", "day_log", "far_call_log"):
         if not isinstance(st.get(key), dict):
             st[key] = {}; changed = True
@@ -2791,6 +2938,8 @@ def exp_preview(st: dict, uid: str, members: list, dest: dict, length: str) -> d
         last = (st.get("spot_visits") or {}).get(sp["id"])
         if last is None or day_of(st) - int(last) >= int(EX.g("destinations.spot.visit_bonus_cooldown_days", 3)):
             vb = (next((x for x in SPOTS if x.get("id") == sp["id"]), {}).get("resource") or {}).get("gain")
+    if int(st.get("exp_count") or 0) == 0:
+        x = float(EX.head_n())                       # 튜토리얼은 줍기 3번(문서와 같게 — 플레이테스트 버그 13)
     out.update({"actions": max(int(EX.g("stats.breath.min_actions", 1)), int(x)),   # 화면용: 보장되는 수(내림)
                 "actions_expected": round(max(1.0, x), 3),                            # 시뮬용 기댓값(소수)
                 "carry": carry, "air_cost": cost,
@@ -3069,7 +3218,10 @@ def box_new(st: dict, cat: str, frm: str | None, seed: str) -> dict:
 def relic_to_shelf(st: dict, cat: str, rarity: str, seed: str) -> int | None:
     card = {"category": cat if cat in EX.CATS else "unknown", "rarity": rarity, "id": f"shard-{seed}",
             "name": None, "family_name": None, "barcode": None, "_day": day_of(st)}
-    return shelf_place(st, card)
+    slot = shelf_place(st, card)
+    if slot is None and shelf_capacity(st):
+        store_overflow(st, card)                     # S18: 자리가 없으면 창고 상자로(사라지지 않는다)
+    return slot
 
 
 _EXP_TEXT: dict = {"mtime": "unset", "data": {}}
@@ -3254,7 +3406,7 @@ def exp_settle(st: dict, uid: str) -> dict | None:
         else:
             no_room = True
             st["resources"]["morale"] = int(st["resources"].get("morale", 0)) + 1
-    imps = grant_imprints(st, None, flags, mem) if flags else []
+    imps = grant_imprints(st, None, flags, mem, src="expedition") if flags else []
     # 신뢰: 둘이 가면 +3, 위험을 함께 넘기면 +10. 마중(담) 덤
     T = EX.g("trust") or {}
     if len(mem) == 2:
@@ -3488,6 +3640,339 @@ def dev_advance(st: dict, sec: float) -> None:
 
 
 # ─────────────────────────────────────────────────────────────
+# S18 7일 플레이테스트 고침 (docs/reports/playtest_7day_20261004.md §5·§6)
+#   수치: stakes.json(기획 S18-D) — 키가 없으면 아래 안전값. 문장: 시나리오(S18-S) 키 — 없으면 조용히 생략.
+# ─────────────────────────────────────────────────────────────
+_STAKES_SAFE.update({
+    "events": {"no_repeat_days": 3},                         # TODO(기획): 같은 쪽지가 다시 나오기까지 최소 날
+    "shelf": {"additive": True, "stored_max": 60},           # TODO(기획): 창고 선반이 식량창고 선반에 더해진다
+    "depth_announce": {"thresholds": [60, 120, 180]},
+})
+
+
+# ── 사실 확인 문장 고르기 ───────────────────────────────────────
+# 문장이 전제하는 사실(돌아왔다·아이가 있다·상자를 열었다)을 상태에서 확인한 뒤에만 쓴다.
+# 정본은 줄에 붙은 `requires`(시나리오가 dict 줄로 적을 때). 문자열 줄은 아래 표로 전제를 읽는다(임시 안전망).
+TEXT_PRESUMES = (("상자 하나 열어", "box_opened"), ("돌아온 뒤", "returned"), ("돌아왔", "returned"),
+                 ("아이 손목", "kid"), ("아이가", "kid"), ("아이만", "kid"))
+
+
+def line_requires(line) -> set:
+    if isinstance(line, dict):
+        r = line.get("requires")
+        return set(r if isinstance(r, list) else [r] if isinstance(r, str) else [])
+    text = str(line or "")
+    return {need for frag, need in TEXT_PRESUMES if frag in text}
+
+
+def line_text(line) -> str:
+    return line.get("text", "") if isinstance(line, dict) else str(line or "")
+
+
+def pick_fact_line(lines: list, facts: set, seed: str) -> str | None:
+    ok_ = [ln for ln in lines or [] if line_requires(ln) <= facts]
+    if not ok_:
+        return None
+    return line_text(random.Random(seed).choice(ok_))
+
+
+def ark_facts(st: dict) -> set:
+    f = set()
+    if any(r.get("role") == "kid" for r in st.get("residents_list") or []):
+        f.add("kid")
+    return f
+
+
+# ── 각인 표시: 날 id 대신 이름 ───────────────────────────────────
+def parts_display(parts: list | None) -> list:
+    out = []
+    for p in parts or []:
+        q = dict(p)
+        ko = str(q.get("ko") or "")
+        if "刻 " in ko:
+            head, iid = ko.rsplit("刻 ", 1)
+            imp = IMPRINTS.get(iid.strip())
+            q["ko"] = head + "각인 「" + (imp["name"] if imp else "각인") + "」"
+        out.append(q)
+    return out
+
+
+# ── 같은 각인 아침 문장 묶기 ─────────────────────────────────────
+def merge_morning(items: list) -> list:
+    """같은 날 같은 각인을 받은 사람들은 한 줄로(이름을 잇는다). 줄은 각인 문장 틀에 이름을 다시 넣는다."""
+    out, idx = [], {}
+    for p in items or []:
+        key = (p.get("day"), p.get("imprint_id"))
+        if key in idx and p.get("imprint_id"):
+            row = out[idx[key]]
+            row["residents"].append(p.get("resident"))
+            row["resident_ids"].append(p.get("resident_id"))
+            imp = IMPRINTS.get(p.get("imprint_id")) or {}
+            tpl = ((imp.get("visual") or {}).get("line")) or ""
+            row["resident"] = "·".join(row["residents"])
+            row["line"] = tpl.replace("{name}", row["resident"]) if tpl else row["line"]
+            row["evolved"] = bool(row.get("evolved") or p.get("evolved"))
+            continue
+        q = dict(p)
+        q["residents"] = [p.get("resident")]
+        q["resident_ids"] = [p.get("resident_id")]
+        idx[key] = len(out)
+        out.append(q)
+    return out
+
+
+# ── 쪽지 반복 금지 창 ───────────────────────────────────────────
+def recent_event_ids(st: dict) -> set:
+    win = int(stk("events.no_repeat_days") or 0)
+    day = day_of(st)
+    return {eid for eid, d in (st.get("event_days") or {}).items() if day - int(d) < win}
+
+
+# ── 선반이 자란다 · 넘치면 창고 상자 ─────────────────────────────
+def stored_item(st: dict, card: dict) -> dict:
+    cat = card.get("category") or "unknown"
+    pool = _PROPS.get(cat) or _PROPS.get("unknown") or [{}]
+    prop = pool[0] if pool else {}
+    return {"id": card.get("id") or f"st-{int(time.time() * 1000)}", "prop_id": prop.get("id"), "name": prop.get("name"),
+            "category": cat, "rarity": card.get("rarity"), "family": card.get("family_name") or None,
+            "scanned_at": time.time(), "card_id": card.get("id"), "barcode": card.get("barcode"),
+            "relic_name": card.get("name"), "polish": 1, "polish_scans": 0, "placed_day": day_of(st),
+            "variant": "sea" if card.get("sea_variant") else None}
+
+
+def store_overflow(st: dict, card: dict) -> dict:
+    """선반에 자리가 없으면 창고 상자(목록)에 넣는다 — 사라지지 않고 보인다(플레이테스트 최악 1)."""
+    rows = st.setdefault("stored", [])
+    it = stored_item(st, card)
+    rows.append(it)
+    del rows[:-int(stk("shelf.stored_max") or 60)]
+    return it
+
+
+def swap_candidates(st: dict, n: int = 3) -> list:
+    """꽉 찼을 때 바꿀 후보 — 가장 덜 닦인 것, 같으면 오래된 것."""
+    rows = sorted(st.get("shelf") or [], key=lambda it: (polish_level(it), float(it.get("scanned_at") or 0)))
+    return [{"slot": it.get("slot"), "name": it.get("name"), "relic_name": it.get("relic_name"),
+             "category": it.get("category"), "rarity": it.get("rarity"), "polish": polish_level(it)} for it in rows[:n]]
+
+
+def stored_public(st: dict) -> list:
+    keys = ("id", "prop_id", "name", "relic_name", "category", "rarity", "family", "barcode", "variant", "scanned_at")
+    return [dict({k: it.get(k) for k in keys}, polish=polish_level(it)) for it in st.get("stored") or []]
+
+
+def shelf_try_put(st: dict, it: dict) -> int | None:
+    """창고 상자 물건 하나를 선반 빈 칸에 놓는다(소품 폭을 지킨다)."""
+    cap = shelf_capacity(st)
+    used = set()
+    for x in st.get("shelf") or []:
+        for c in range(int(x["slot"]), int(x["slot"]) + prop_width(x.get("prop_id", ""))):
+            used.add(c)
+    w = prop_width(it.get("prop_id") or "")
+    for start in range(0, cap - w + 1):
+        if all(c not in used for c in range(start, start + w)):
+            row = dict(it)
+            row["slot"] = start
+            row.pop("id", None)
+            st.setdefault("shelf", []).append(row)
+            return start
+    return None
+
+
+# ── 첫 주 위협 보장 ─────────────────────────────────────────────
+def first_week_guarantee() -> dict:
+    """threats.json first_week_guarantee(기획 S18-D): by_day 까지 위협이 없었으면 creature·severity 로 고정,
+    대상은 사람이 서 있는 방(target=occupied_room). until_day 는 by_day 를 넘겨 들어온 사람도 받게 하는 끝."""
+    g = (combat.THR.get("first_week_guarantee") or {}) if isinstance(combat.THR.get("first_week_guarantee"), dict) else {}
+    return {"by_day": int(g.get("by_day", 4)), "until_day": int(g.get("until_day", 7)),
+            "creature": g.get("creature"), "severity": g.get("severity"), "target": g.get("target")}
+
+
+# ── 깊이 문턱 방송 ─────────────────────────────────────────────
+def depth_check(st: dict) -> list:
+    """거점 깊이가 처음 문턱(60·120·180m)을 넘은 날 한 번. 문장은 시나리오 키(ui_moments depth.cross.<m>)."""
+    marks = st.setdefault("depth_marks", [])
+    d = depth_of(st)
+    out = []
+    for m in sorted(int(x) for x in (stk("depth_announce.thresholds") or [])):
+        if d >= m and m not in marks:
+            marks.append(m)
+            text = moment(f"depth.first_{m}") or moment(f"depth.cross.{m}") or moment("depth.cross", m=m)
+            row = {"m": m, "zone": depth_zone(m), "ko": text, "day": day_of(st)}
+            out.append(row)
+            day_note(st, "depth", m)
+            overnight_add(st, "depth", row)
+    return out
+
+
+# ── 아침 「밤사이」 한 장 ───────────────────────────────────────
+def overnight_add(st: dict, kind: str, payload) -> None:
+    ov = st.setdefault("overnight", {"items": []})
+    items = ov.setdefault("items", [])
+    key = f"{kind}|{json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)[:200]}"
+    if any(it.get("key") == key for it in items):
+        return
+    items.append({"kind": kind, "key": key, "day": day_of(st), "at": time.time(), "data": payload})
+    del items[:-40]
+
+
+def overnight_public(st: dict) -> dict | None:
+    ov = st.get("overnight") or {}
+    items = [{k: v for k, v in it.items() if k != "key"} for it in ov.get("items") or []]
+    if not items:
+        return None
+    order = {"night_judge": 0, "expedition_return": 1, "depth": 2, "imprint": 3, "octopus": 4, "knock": 5, "wish": 6}
+    items.sort(key=lambda it: (order.get(it["kind"], 9), it["at"]))
+    return {"items": items, "title": moment("morning.title"), "open": moment("morning.open"),
+            "close": moment("morning.close"), "count": len(items)}
+
+
+# ── S18-D 재스캔 감쇠 · 자원 저장 상한 · 재료 출처 · 공방 바꾸기 · 값 0 반응 ──────────────
+def rescan_mult(prev: int) -> float:
+    """economy.json scan.rescan_decay.values(기획 S18-D [1, .5, .25, .1]). 표 끝 값이 바닥(네 번째부터 0.1).
+    표가 없으면 엔진의 예전 감쇠."""
+    vals = (((_ECON_ALL.get("scan") or {}).get("rescan_decay") or {}).get("values"))
+    if not isinstance(vals, list) or not vals:
+        return rescan_multiplier(prev)
+    i = max(0, int(prev))
+    return float(vals[i] if i < len(vals) else vals[-1])
+
+
+def rescan_window_days() -> int:
+    v = (((_ECON_ALL.get("scan") or {}).get("rescan_decay") or {}).get("window_days"))
+    return int(v) if isinstance(v, (int, float)) else 7
+
+
+STOCK_KEYS = ("food", "water", "med", "parts", "cloth", "trade", "knowledge", "scrap", "chem", "power")
+
+
+def storage_cap(st: dict) -> int | None:
+    """재료 한 가지당 저장 상한(economy.json rooms.storage_cap). 정본 글: 「창고 선반 수 × 6
+    (창고 없음 4칸 → 24 / Lv1 6 → 36 / Lv2 12 → 72 / Lv3 20 → 120)」. 구조 키(per_shelf·no_storage_shelves)가
+    오면 그것을, 없으면 그 글의 숫자를 쓴다. 표가 아예 없으면 상한 없음."""
+    sc = (_ECON.get("storage_cap") or {}) if isinstance(_ECON.get("storage_cap"), dict) else {}
+    if not sc:
+        return None
+    per = int(sc.get("per_shelf", 6))
+    none_ = int(sc.get("no_storage_shelves", 4))
+    best = max([shelves_of(r) for r in live_rooms(st) if r["id"] == "storage"] or [none_])
+    return per * best
+
+
+def apply_storage_cap(st: dict, before: dict | None) -> dict:
+    """넘치는 분은 들어오지 않는다. 이미 넘쳐 있던 재고는 깎지 않는다(늘지만 않게) — 넘쳐서 버린 양을 돌려준다."""
+    cap = storage_cap(st)
+    lost: dict = {}
+    if cap is None:
+        return lost
+    res = st.get("resources") or {}
+    for k in STOCK_KEYS:
+        v = int(res.get(k, 0) or 0)
+        b = int((before or {}).get(k, 0) or 0)
+        if v > cap and v > b:
+            keep = max(b, cap)
+            lost[k] = v - keep
+            res[k] = keep
+    if lost:
+        st["storage_overflow"] = {"day": day_of(st), "lost": lost}
+    return lost
+
+
+def storage_public(st: dict) -> dict:
+    cap = storage_cap(st)
+    res = st.get("resources") or {}
+    return {"cap": cap, "full": [k for k in STOCK_KEYS if cap is not None and int(res.get(k, 0)) >= cap],
+            "overflow": st.get("storage_overflow") if (st.get("storage_overflow") or {}).get("day") == day_of(st) else None}
+
+
+MATERIAL_SOURCES = {k: v for k, v in (_ECON_ALL.get("material_sources") or {}).items() if not str(k).startswith("_")} \
+    if isinstance(_ECON_ALL.get("material_sources"), dict) else {}
+
+
+def zero_reaction(st: dict, uid: str, code: str, card, mult: float, polish: dict | None) -> dict | None:
+    """값이 낮은 재스캔(감쇠 < 1)에 작은 반응 하나(stakes polish.zero_reaction.order 의 첫 해당). 표시용 — 문어만 사기 +0.1."""
+    if mult >= 1.0:
+        return None
+    zr = (stk("polish.zero_reaction") or {}) if isinstance(stk("polish.zero_reaction"), dict) else {}
+    order = zr.get("order") or ["box_key_hint", "polish_progress", "wish_hint", "octopus_mood"]
+    cat = card.category.value
+    for kind in order:
+        if kind == "box_key_hint":
+            if int((st.get("box_keys") or {}).get(code, 0)) == day_of(st) and \
+                    any(b["cat"] in (cat, "blank") for b in st.get("boxes") or []):
+                return {"kind": kind, "ko": moment("zero.box_key_hint")}
+        elif kind == "polish_progress":
+            if polish and polish.get("counted_today"):
+                return {"kind": kind, "scans": polish.get("scans"), "next_at": polish.get("next_at"),
+                        "ko": moment("zero.polish_progress")}
+        elif kind == "wish_hint":
+            for w in wishes_public(st, uid):
+                h = (next((x for x in WISHES if x["id"] == w["id"]), {}).get("condition") or {}).get("hint") or {}
+                if not w["done"] and cat in (h.get("category"), h.get("props_category")):
+                    return {"kind": kind, "resident": w["name"], "resident_id": w["resident_id"],
+                            "ko": moment("zero.wish_hint", name=w["name"])}
+        elif kind == "octopus_mood":
+            oc = st.get("octopus")
+            if oc:
+                day = day_of(st)
+                if oc.get("mood_day") != day:
+                    oc["mood_day"], oc["mood_n"] = day, 0
+                if int(oc.get("mood_n") or 0) < 3:
+                    oc["mood_n"] = int(oc.get("mood_n") or 0) + 1
+                    frac = float(st.get("morale_frac") or 0) + 0.1
+                    if frac >= 1.0 - 1e-9:
+                        st["resources"]["morale"] = int(st["resources"].get("morale", 0)) + 1
+                        frac -= 1.0
+                    st["morale_frac"] = round(frac, 3)
+                    return {"kind": kind, "ko": moment("zero.octopus_mood")}
+    if mult <= 0.1 + 1e-9:
+        rz = ((moments().get("shelf") or {}).get("rescan_zero")) or []
+        if rz:
+            return {"kind": "rescan_zero", "ko": random.Random(f"{uid}|{code}|{day_of(st)}|rz").choice(rz)}
+    return None
+
+
+class TradeIn(BaseModel):
+    uid: str
+    give: str            # food | water
+    get: str             # cloth | parts | scrap
+    n: int = 1
+
+
+@app.post("/api/workshop/trade")
+def workshop_trade(inp: TradeIn):
+    """공방 바꾸기(economy.json workshop_trade): 식량·물 rate 개 → 막힌 재료 1개. 하루 daily_out_cap 개까지,
+    바꾼 뒤에도 내는 쪽 재고가 keep_reserve 이상이어야 한다. 나쁜 비율이라 찍기를 대신하지 못한다(B5)."""
+    T = _ECON_ALL.get("workshop_trade") or {}
+    if not isinstance(T, dict) or not T:
+        raise HTTPException(400, "바꾸기 표가 없습니다")
+    st = load_state(inp.uid)
+    tick_production(st)
+    if inp.give not in (T.get("from") or []) or inp.get not in (T.get("to") or []):
+        raise HTTPException(400, "그건 바꿀 수 없습니다")
+    if not any(r["id"] == "workshop" for r in live_rooms(st)):
+        raise HTTPException(400, "공방이 있어야 바꿀 수 있습니다")
+    day = day_of(st)
+    if st.get("trade_day") != day:
+        st["trade_day"], st["trade_out"] = day, 0
+    n = max(1, int(inp.n))
+    cap = int(T.get("daily_out_cap", 2))
+    if int(st.get("trade_out") or 0) + n > cap:
+        raise HTTPException(400, f"오늘은 {cap - int(st.get('trade_out') or 0)}개까지만 바꿀 수 있습니다")
+    cost = int(T.get("rate", 4)) * n
+    have = int(st["resources"].get(inp.give, 0))
+    if have - cost < int(T.get("keep_reserve", 12)):
+        raise HTTPException(400, f"{RES_KO_SRV.get(inp.give, inp.give)}을(를) {int(T.get('keep_reserve', 12))}개는 남겨야 합니다")
+    st["resources"][inp.give] = have - cost
+    st["resources"][inp.get] = int(st["resources"].get(inp.get, 0)) + n
+    st["trade_out"] = int(st.get("trade_out") or 0) + n
+    save_state(inp.uid, st)
+    log(inp.uid, "workshop_trade", {"give": inp.give, "get": inp.get, "n": n})
+    return {"ok": True, "paid": {inp.give: cost}, "got": {inp.get: n}, "left_today": cap - st["trade_out"],
+            "state": public_state(st, inp.uid)}
+
+
+# ─────────────────────────────────────────────────────────────
 # API
 # ─────────────────────────────────────────────────────────────
 class ScanIn(BaseModel):
@@ -3527,7 +4012,7 @@ def scan(inp: ScanIn):
     with db() as con:
         today = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND day=?", (inp.uid, day)).fetchone()["c"]
         prev = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND barcode=? AND ts>?",
-                           (inp.uid, code, time.time() - 7 * 86400)).fetchone()["c"]
+                           (inp.uid, code, time.time() - rescan_window_days() * 86400)).fetchone()["c"]
     if today >= DAILY_SCAN_CAP:
         raise HTTPException(429, "오늘의 성문 해독 상한에 도달했습니다 (20회).")
 
@@ -3539,7 +4024,7 @@ def scan(inp: ScanIn):
     card = GEN.generate(code, hour=datetime.now().hour, user_category=pick_cat)
     if card.category != Category.UNKNOWN and not bmeta.get("category"):
         bmeta["category"] = card.category.value       # 정체불명(고르지 않음)은 고정하지 않는다 — 다음에 고를 수 있게
-    mult = rescan_multiplier(prev)
+    mult = rescan_mult(prev)
     gained = {k: int(round(v * mult)) for k, v in card.yields.items() if round(v * mult) >= 1}
     for k, v in gained.items():
         st["resources"][k] = st["resources"].get(k, 0) + v
@@ -3571,6 +4056,7 @@ def scan(inp: ScanIn):
     # E1 — 찍은 물건이 선반에 놓인다. S13: **이미 선반에 있는 바코드면 새 칸을 먹지 않고 닦는다**
     # (감쇠 0.5·0.1 재스캔이 같은 물건을 한 칸 더 놓던 버그의 수정). 값이 0인 재스캔도 닦는다.
     polish = None
+    stored, swap_offer = None, None
     have_it = shelf_item_for(st, code)
     if have_it:
         polish = polish_item(st, have_it, card.name)
@@ -3582,6 +4068,12 @@ def scan(inp: ScanIn):
         shelf_slot = shelf_place(st, card_d) if mult > 0 else None
         card_d.pop("_day", None)
         shelf_new = shelf_slot is not None
+        if shelf_slot is None and mult > 0 and shelf_capacity(st):
+            # S18: 선반이 꽉 찼다 — 사라지지 않고 창고 상자에 들어가고, 바꿀지 묻는다
+            stored = store_overflow(st, card_d)
+            swap_offer = {"stored_id": stored["id"], "candidates": swap_candidates(st),
+                          "ko": moment("shelf.full.prompt", item=card.name),
+                          "kept_ko": moment("shelf.full.kept", item=card.name)}
 
     # 가문 크라우드소싱
     if inp.user_category and card.family_code not in GEN.families:
@@ -3595,6 +4087,7 @@ def scan(inp: ScanIn):
     first_meet = first_meet_lines(st, card.category.value, card.family_code)
     # S15 봉인 상자: 같은 갈래 바코드가 열쇠다(값 0 인 재스캔도). 가장 오래된 것 하나, 같은 바코드는 하루 한 상자
     box_opened = box_try_scan(st, inp.uid, code, card.category.value)
+    zr_ = zero_reaction(st, inp.uid, code, card, mult, polish) if not box_opened else None
     fam_set = family_set_check(st, inp.uid, card.family_code)
     wishes_new = wishes_tick(st, inp.uid)
     save_state(inp.uid, st)
@@ -3611,7 +4104,10 @@ def scan(inp: ScanIn):
             "category_locked": locked, "variant": var, "polish": polish,
             "first_meet": first_meet, "family_set": fam_set, "wishes_done": wishes_new,
             "box_opened": box_opened,
-            "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice}
+            "stored": stored, "swap_offer": swap_offer,
+            "zero_reaction": zr_,
+            "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice,
+            "storage": storage_public(st)}
 
 
 # ── 이어하기 API ──────────────────────────────────────────────
@@ -3679,9 +4175,12 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     ticked = day_tick(st, uid, force_night=bool(debug_night) and DEV_MODE)
     # 각인의 다음 날 아침: 밀린 연출 문장을 한 번만 내려보내고 큐에서 뺀다
     pending = st.get("morning_pending") or []
-    morning = [p for p in pending if p.get("day", 0) <= day]
+    morning = merge_morning([p for p in pending if p.get("day", 0) <= day])   # S18: 같은 각인은 한 줄로
     if morning:
         st["morning_pending"] = [p for p in pending if p.get("day", 0) > day]
+        for m_ in morning:
+            overnight_add(st, "imprint", {"imprint_id": m_.get("imprint_id"), "residents": m_.get("residents"),
+                                          "line": m_.get("line"), "imprint_name": m_.get("imprint_name")})
     first_light = not st.get("greeted")            # 이 방주의 첫 화면 — 리더의 첫 말
     if first_light:
         st["greeted"] = True
@@ -3696,6 +4195,8 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
         out["octopus"]["arrival"] = ticked["octopus"]["arrival"]
     out["rooms_catalog"] = ROOMS
     out["morning_lines"] = morning
+    out["overnight"] = overnight_public(st)
+    out["depth_crossed"] = ticked.get("depth_crossed") or []
     # 목소리: 첫 화면(game_start) > 야간 진입(night). 하루 안에서는 같은 줄(D6)
     out["is_night"] = is_night()
     _act = int(st.get("act") or 1)
@@ -3817,13 +4318,18 @@ def build(inp: BuildIn):
         reclaimed.update({"slot": inp.slot, "day": day_of(st), "flooded_day": flooded.get("flooded_day"),
                           "rebuilt_as": inp.room_id})
         st.setdefault("reclaimed", []).append(reclaimed)
+        st["reclaimed_total"] = int(st.get("reclaimed_total") or 0) + 1
         del st["reclaimed"][:-30]
         day_note(st, "reclaimed", ROOMS.get(inp.room_id, {}).get("name", inp.room_id))
     st["rooms"].append({"id": inp.room_id, "slot": inp.slot, "built": time.time(), "level": 1})
     save_state(inp.uid, st)
     log(inp.uid, "build", {"room": inp.room_id, "slot": inp.slot, "cost": cost, "reclaimed": reclaimed})
+    crossed = depth_check(st)
+    if crossed:
+        save_state(inp.uid, st)
     out = public_state(st, inp.uid)
     out["reclaimed"] = reclaimed
+    out["depth_crossed"] = crossed
     return out
 
 
@@ -4092,7 +4598,7 @@ def gate_act(inp: ActIn):
     if lost:
         bits.append("걷어 낸 것 — " + " · ".join(lost) + " (영영)")
     if gone_card:
-        bits.append(f"「{gone_card}」을(를) 내려보냈다. 도감의 그 칸은 비어 있는 채로 남는다")
+        bits.append(f"「{gone_card}」 하나를 내려보냈다. 도감의 그 칸은 비어 있는 채로 남는다")
     if spec.get("next_severity"):
         bits.append("위로 빛을 비췄다. 다음에 오는 것이 한 단계 세진다")
     return {"ok": True, "action": spec["id"], "paid": paid, "lost_tools": lost,
@@ -4219,7 +4725,7 @@ def resolve_raid(st: dict, uid: str, raid: dict, consumables: list,
             "result_ko": (combat.RESULT_KO[result] if capped else (ev.get("result_ko") or combat.RESULT_KO[result])),
             "line": line, "auto": bool(auto), "capped": capped, "room_name": room_name,
             "score": ev["score"], "need": ev["need"], "margin": ev["margin"],
-            "gate": ev["gate"], "parts": ev["parts"], "used": use, "worn_out": worn,
+            "gate": ev["gate"], "parts": parts_display(ev["parts"]), "used": use, "worn_out": worn,
             "shielded": ev.get("shielded"), "grade": int(raid.get("grade") or 1),
             "gained": gained, "injured": hurt, "lost_room": lost_room,
             "new_imprints": new_imprints, "next_raid_hint": hint,
@@ -4248,6 +4754,25 @@ def raid_today(uid: str,
     return {"raid": out["raid"], "day": day_of(st), "outside": out["outside"],
             "next_raid_hint": out["next_raid_hint"], "night_judge": ticked["night_judge"],
             "state": public_state(st, uid)}
+
+
+class VerbIn(BaseModel):
+    uid: str
+    verb: str | None = None          # light|power|station|tool|act, None 이면 고르지 않은 상태로
+
+
+@app.post("/api/raid/verb")
+def raid_verb(inp: VerbIn):
+    """단서 모드에서 동사 하나를 고른다 → 미리보기가 열린다. 접촉 전까지 몇 번이든 바꿀 수 있다. 시계는 없다."""
+    st = load_state(inp.uid)
+    raid = st.get("raid")
+    if not raid or raid.get("none") or raid.get("resolved") or raid.get("day") != day_of(st):
+        raise HTTPException(400, "지금 맞설 것이 없습니다")
+    if inp.verb is not None and inp.verb not in VERBS:
+        raise HTTPException(400, "없는 동사입니다")
+    raid["verb"] = inp.verb
+    save_state(inp.uid, st)
+    return {"ok": True, "raid": raid_public(st, raid), "state": public_state(st, inp.uid)}
 
 
 class RaidStepIn(BaseModel):
@@ -4329,11 +4854,14 @@ def event_today(uid: str, debug_force_event: str | None = Query(None, descriptio
     elif not te or te["day"] != day:
         # 부족 첫 접촉은 1회 소모: 이미 나온 tribe_* 카드는 후보에서 뺀다(첫 대면의 연출은 한 번뿐이다)
         opener = act_opener(st)
-        ev = EVENTS[opener] if opener else             pick_event(ark_state_obj(st), rng=random.Random(f"{uid}|{day}"),
-                       exclude=seen_once(st) | ALL_OPENERS)    # 여는 카드는 한 번뿐이다. 무작위로 다시 나오지 않는다
+        _ark = ark_state_obj(st)
+        _ark.depth_m = depth_of(st)                    # S18: 깊이 문(180m 전용 카드가 0m 1일째에 나오던 버그)
+        ev = EVENTS[opener] if opener else             pick_event(_ark, rng=random.Random(f"{uid}|{day}"),
+                       exclude=seen_once(st) | ALL_OPENERS | recent_event_ids(st))    # S18: 며칠 안에 본 쪽지는 다시 안 나온다
         te = {"day": day, "event_id": ev["id"], "resolved": False, "countered": None, "shown_at": time.time()}
         st["today_event"] = te
         mark_seen(st, ev["id"])
+        st.setdefault("event_days", {})[ev["id"]] = day
         save_state(uid, st)
         log(uid, "event_shown", {"event": ev["id"], "day": day})
     ev = EVENTS[te["event_id"]]
@@ -4446,8 +4974,11 @@ def rumors(uid: str):
     lines = rumor_lines()
     seen = st.setdefault("rumors_seen", [])
     out, changed = [], False
+    _act_now = int(st.get("act") or 1)
     for spot in SPOTS:
         sid = spot.get("id")
+        if (1 if spot.get("_src") == "spots_deep.json" else 3) != _act_now:
+            continue                                    # S18: 지금 막의 소문만(1막에 지상 스팟 소문이 새던 버그 8)
         rule = spot_gate(sid, spot)
         if not rule:
             continue
@@ -4508,6 +5039,10 @@ def spots(uid: str | None = None):
         gate = spot_gate(sid, spot)
         have = sum(counts.get(c, 0) for c in gate["categories"]) if gate else 0
         unlocked = bool(uid) and bool(gate) and have >= gate["need"]
+        _sp_act = 1 if spot.get("_src") == "spots_deep.json" else 3
+        other_act = bool(uid) and _sp_act != int((_st_sp or {}).get("act") or 1)
+        if other_act:
+            unlocked = False                            # S18: 다른 막의 스팟은 열리지도 '찾음'이 되지도 않는다
         pos = spot_pos_of(sid, spot)
         x, y = pos or (0, 0)
         out.append({
@@ -4518,7 +5053,8 @@ def spots(uid: str | None = None):
             "pos": {"x": x, "y": y}, "has_pos": pos is not None,
             "act": 1 if spot.get("_src") == "spots_deep.json" else 3,
             "unlocked": unlocked, "rumor_seen": sid in seen,
-            "state": ((spot_state(_st_sp, uid, sid) if sid in DEEP_SPOT_IDS else ("found" if unlocked else "none"))
+            "state": ("other_act" if other_act else
+                      (spot_state(_st_sp, uid, sid) if sid in DEEP_SPOT_IDS else ("found" if unlocked else "none"))
                       if uid else "none"),
             "progress": ({"have": min(have, gate["need"]), "need": gate["need"]} if gate else None),
             "gate": ({"categories": gate["categories"],
@@ -4538,9 +5074,10 @@ def codex(uid: str):
         save_state(uid, st)
     meta = st.get("codex_meta") or {}
     out = []
-    for cat, pool in TEMPLATES.items():
+    for cat in TEMPLATES:
         if cat.startswith("_"):
             continue
+        pool = codex_pool(cat)
         found = st["codex"].get(cat, {})
         # 템플릿 이름은 {adj}가 치환되므로 접미 부분으로 매칭
         stems = [t["name"].replace("{adj} ", "") for t in pool]
@@ -4719,9 +5256,15 @@ def day_end(uid: str):
     note = (st.get("day_log") or {}).get(str(day)) or {}
     oc = st.get("octopus") or {}
     fl = st.get("far_call_log") or {}
-    now_sec, prev_sec = fl.get(str(day)), fl.get(str(day - 1))
+    # 울음 간격: 오늘 값은 **지금 상태**에서 읽는다(기록이 낡으면 80/85 가 어긋났다 — 플레이테스트 버그 4c)
+    now_sec, prev_sec = gauges_of(st)["far_call_sec"], fl.get(str(day - 1))
+    imp0 = (note.get("imprint") or [None])[0]
+    imp0 = imp0 if isinstance(imp0, dict) else ({"name": imp0, "src": "event"} if imp0 else None)
+    facts = ark_facts(st)
+    if imp0 and imp0.get("src") == "expedition":
+        facts.add("returned")
     vals = {
-        "imprint": ({"name": note["imprint"][0]} if note.get("imprint") else None),
+        "imprint": ({"name": imp0["name"]} if imp0 else None),
         "room_lost": ({"room": note["room_lost"][0]} if note.get("room_lost") else None),
         "octopus_brought": ({"oct_name": oc.get("name") or "문어", "item": note["octopus"][0]}
                             if note.get("octopus") else None),
@@ -4737,7 +5280,9 @@ def day_end(uid: str):
         v = vals.get(sit.get("id"))
         if v is None or not sit.get("lines"):
             continue
-        t = random.Random(f"{uid}|{day}|day_end|{sit['id']}").choice(sit["lines"])
+        t = pick_fact_line(sit["lines"], facts, f"{uid}|{day}|day_end|{sit['id']}")
+        if t is None:
+            continue                                    # 사실과 맞는 줄이 없으면 그 상황은 말하지 않는다
         for k, x in v.items():
             t = t.replace("{" + k + "}", str(x))
         lines.append({"id": sit["id"], "text": t})
@@ -4745,14 +5290,16 @@ def day_end(uid: str):
     if not lines:
         q = next((x for x in sits if x.get("id") == "quiet"), None)
         if q and q.get("lines"):
-            lines = [{"id": "quiet", "text": random.Random(f"{uid}|{day}|day_end|quiet").choice(q["lines"])}]
+            t = pick_fact_line(q["lines"], facts, f"{uid}|{day}|day_end|quiet")
+            lines = [{"id": "quiet", "text": t}] if t else []
     with db() as con:
         n_scan = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND day=?", (uid, day)).fetchone()["c"]
     blocked = len(note.get("blocked") or [])
-    floors = len({r["slot"] // FLOOR_SLOTS for r in live_rooms(st)})
+    # 「되찾은 층」 = 물 찬 칸을 다시 지은 수(지은 층 수가 아니다 — 버그 4b). 0 이면 말하지 않는다
+    floors = int(st.get("reclaimed_total") or len(st.get("reclaimed") or []))
     facts_ko = [x for x in (moment("day_end.scans", scan_count=n_scan) if n_scan else None,
                             moment("day_end.blocked", blocked=blocked) if blocked else None,
-                            moment("day_end.floors", floors=floors)) if x]
+                            moment("day_end.floors", floors=floors) if floors else None) if x]
     # 맺음 줄(내일의 낚싯바늘)은 **사실일 때만** 쓴다: [0] 내일 아침 볼 것(각인 아침 연출) / [1] 문어가 있다 /
     # [2] 내일 예보된 손님(문어의 다음 습격 예고). 해당 없으면 생략(day_end.json frame — 생략 가능)
     cl = frame.get("closing") or []
@@ -4872,7 +5419,8 @@ def suit_repair(inp: UidIn):
     su["wear"][worn[0]] = 0
     st["suits"]["shared_wear"] = su["wear"]
     save_state(inp.uid, st)
-    return {"ok": True, "paid": cost, "suits": suits_state(st), "state": public_state(st, inp.uid)}
+    return {"ok": True, "paid": cost, "suits": suits_state(st), "ko": xt("entrance.suit_repair.done"),
+            "state": public_state(st, inp.uid)}
 
 
 @app.get("/api/expedition/options")
@@ -5025,6 +5573,55 @@ def dev_advance_api(inp: DevAdvIn):
     dev_advance(st, float(inp.minutes) * 60)
     save_state(inp.uid, st)
     return {"ok": True, "day": day_of(st)}
+
+
+class SwapIn(BaseModel):
+    uid: str
+    stored_id: str
+    slot: int | None = None          # 비우고 그 자리에 놓을 선반 칸. None 이면 빈 칸에만 놓는다
+
+
+@app.post("/api/shelf/swap")
+def shelf_swap(inp: SwapIn):
+    """S18: 창고 상자의 유물을 선반에 올린다. slot 을 주면 그 칸의 물건을 창고 상자로 내린다(바꾸기)."""
+    st = load_state(inp.uid)
+    it = next((x for x in st.get("stored") or [] if x.get("id") == inp.stored_id), None)
+    if not it:
+        raise HTTPException(400, "창고 상자에 그런 물건이 없습니다")
+    shelf_room(st)
+    old = None
+    if inp.slot is not None:
+        old = next((x for x in st.get("shelf") or [] if int(x.get("slot", -1)) == int(inp.slot)), None)
+        if not old:
+            raise HTTPException(400, "그 칸에는 물건이 없습니다")
+        st["shelf"] = [x for x in st["shelf"] if x is not old]
+    put = shelf_try_put(st, it)
+    if put is None:
+        if old:
+            st["shelf"].append(old)
+        raise HTTPException(400, "선반에 놓을 자리가 없습니다")
+    st["stored"] = [x for x in st["stored"] if x.get("id") != inp.stored_id]
+    if old:
+        down = dict(old)
+        down["id"] = old.get("card_id") or f"st-{int(time.time() * 1000)}"
+        down.pop("slot", None)
+        st["stored"].append(down)
+    save_state(inp.uid, st)
+    log(inp.uid, "shelf_swap", {"stored": inp.stored_id, "slot": put, "down": bool(old)})
+    nm = it.get("relic_name") or it.get("name") or ""
+    return {"ok": True, "slot": put, "down": (old or {}).get("relic_name") or (old or {}).get("name"),
+            "ko": moment("shelf.full.placed", item=nm),
+            "down_ko": moment("shelf.full.moved", item=(old or {}).get("relic_name") or (old or {}).get("name") or "") if old else None,
+            "state": public_state(st, inp.uid)}
+
+
+@app.post("/api/overnight/seen")
+def overnight_seen(inp: UidIn):
+    """S18: 아침 「밤사이」 한 장을 봤다 — 모아 둔 것을 비운다."""
+    st = load_state(inp.uid)
+    st["overnight"] = {"items": []}
+    save_state(inp.uid, st)
+    return {"ok": True}
 
 
 # ─────────────────────────────────────────────────────────────

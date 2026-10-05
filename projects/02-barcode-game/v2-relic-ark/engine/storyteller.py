@@ -32,6 +32,7 @@ class ArkState:
     injured: int = 0
     recent_events: list = field(default_factory=list)  # 최근 사건 id (최신이 마지막)
     hardcore: bool = False                             # 결정 #1: 기본 False
+    depth_m: int | None = None                         # S18: 거점 최심부 깊이(m). None 이면 깊이 문을 보지 않는다(예전과 같다)
 
 
 EVENT_REQUIRED = ("id", "name", "faction", "severity", "text", "counter_tags", "counter_room",
@@ -149,6 +150,19 @@ def load_events(files: tuple | list = EVENT_FILES) -> list[dict]:
 #   - 리듬: 3일 연속 위협 뒤에는 반드시 조용한 날을 줄까?
 #   - 하드코어: on이면 severity 2 사건 가중치를 얼마나 더 줄까?
 # ─────────────────────────────────────────────────────────────
+# ── 깊이 문 (S18, 7일 플레이테스트 버그 2) ─────────────────────────
+# 정본은 카드의 `min_depth_m`(data/events_schema.json). 시나리오가 값을 적기 전까지 쓰는 임시표 —
+# 두 장 모두 카드 note 에 "깊이 120m 이후" / "깊이 180m — 해구 문턱에서만" 이라고 적혀 있다. 파일 값이 이긴다.
+MIN_DEPTH_FALLBACK = {"deep_needle_passes": 120, "deep_followed_home": 180}
+
+
+def min_depth_of(event: dict) -> int:
+    v = event.get("min_depth_m")
+    if isinstance(v, (int, float)):
+        return int(v)
+    return int(MIN_DEPTH_FALLBACK.get(event.get("id"), 0))
+
+
 def weight_for(event: dict, ark: ArkState) -> float:
     w = 1.0
 
@@ -195,6 +209,10 @@ def pick_event(ark: ArkState, events: list[dict] | None = None, rng: random.Rand
         events = in_act
     else:
         print(f"[storyteller] {ark.act}막 카드가 0장이라 전체 풀로 되돌아간다")
+    if ark.depth_m is not None:
+        deep_ok = [e for e in events if min_depth_of(e) <= int(ark.depth_m)]
+        if deep_ok:
+            events = deep_ok
     if exclude:
         pool = [e for e in events if e["id"] not in exclude]
         if pool:

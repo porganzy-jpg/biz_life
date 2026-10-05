@@ -212,6 +212,7 @@ def t_raid_absent():
     st["exp_count"] = 2
     S.save_state(uid, st)
     j = get(f"/api/raid/today?uid={uid}&debug_raid=claws&debug_reset=1&debug_grade=2")
+    post("/api/raid/verb", {"uid": uid, "verb": "station"})          # S18 단서 모드: 미리보기를 연다
     tgt = S.load_state(uid)["raid"]["target_slot"]
     for r in S.load_state(uid)["residents_list"]:
         post("/api/ark/station", {"uid": uid, "resident_id": r["id"], "slot": tgt})
@@ -249,6 +250,7 @@ def t_raid_absent():
     st["exp_count"] = 2
     S.save_state(uid2, st)
     get(f"/api/raid/today?uid={uid2}&debug_raid=swarm&debug_reset=1&debug_grade=1")
+    post("/api/raid/verb", {"uid": uid2, "verb": "station"})          # S18 단서 모드: 미리보기를 연다
     tgt = S.load_state(uid2)["raid"]["target_slot"]
     for r in S.load_state(uid2)["residents_list"]:
         post("/api/ark/station", {"uid": uid2, "resident_id": r["id"], "slot": tgt})

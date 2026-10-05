@@ -135,6 +135,52 @@ class RelicGenerator:
         self.family_names_path = data_dir / "family_names.json"
         self._fam_names: dict = {}
         self._fam_names_mtime = None
+        # S18: 시나리오의 추가 이름 줄기(data/relic_stems.json). 없으면 예전과 바이트까지 같다.
+        self.stems_path = data_dir / "relic_stems.json"
+        self._stems: dict = {}
+        self._stems_mtime = "unset"
+
+    def extra(self) -> dict:
+        """relic_stems.json = {"categories": {cat: [템플릿...]}, "family_subtypes": {"8801037": "coffee", ...}}.
+        템플릿 = relic_templates 와 같은 모양 + 선택 필드 `subtypes`(이 줄기가 맞는 물건 종류)·`flavors`(문장 여럿).
+        파일이 바뀌면 재시작 없이 다시 읽는다. 깨지면 직전 값."""
+        try:
+            mt = self.stems_path.stat().st_mtime
+        except OSError:
+            mt = None
+        if mt != self._stems_mtime:
+            data = {} if mt is None else self._stems
+            if mt is not None:
+                try:
+                    data = json.loads(self.stems_path.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, OSError) as e:
+                    print(f"[relic] data/relic_stems.json 무시: {e}")
+            self._stems, self._stems_mtime = (data if isinstance(data, dict) else {}), mt
+        return self._stems
+
+    def pool_for(self, category: "Category", fam_key: str | None = None) -> list:
+        """그 카테고리의 이름 줄기(relic_templates.json _for_dev 의 고르는 법, 시나리오 S18).
+        ① 알려진 가문(_family_subtypes)이면 그 subtype 줄기만 ② 아니면 _family_only[카테고리] 의 subtype 을 뺀다
+        (모르는 음료 가문에 술 문장 금지) ③ 남은 것이 없으면 전부. 모르는 가문은 남은 pool 안에서 시드로 고른다(PM 결정).
+        relic_stems.json(선택)이 있으면 그 줄기를 뒤에 덧붙인다."""
+        base = [t for t in self.templates[category.value] if isinstance(t, dict) and t.get("name")]
+        more = ((self.extra().get("categories") or {}).get(category.value)) or []
+        pool = base + [t for t in more if isinstance(t, dict) and t.get("name")]
+
+        def subs(t):
+            v = t.get("subtypes") if t.get("subtypes") is not None else t.get("subtype")
+            return set(v if isinstance(v, list) else [v] if v else [])
+        fam_subs = (self.templates.get("_family_subtypes") or {}).get(fam_key or "") or             (self.extra().get("family_subtypes") or {}).get(fam_key or "")
+        if isinstance(fam_subs, str):
+            fam_subs = [fam_subs]
+        if fam_subs:
+            pick = [t for t in pool if subs(t) & set(fam_subs)]
+            return pick or pool
+        only = set((self.templates.get("_family_only") or {}).get(category.value) or [])
+        if only:
+            pick = [t for t in pool if not (subs(t) & only)]
+            return pick or pool
+        return pool
 
     def display_family(self, fam_key: str, manufacturer: str) -> str:
         """가문의 화면 표시 이름. family_names.json 이 있으면 그 창작 이름, 없으면 '이름 잃은 가문 NNNN'."""
@@ -252,15 +298,20 @@ class RelicGenerator:
         return r
 
     # ── 5. 이름·플레이버 ───────────────────────────────────
-    def name_and_flavor(self, seed: str, category: Category, rarity: Rarity) -> tuple[str, str, list]:
-        pool = self.templates[category.value]
+    def name_and_flavor(self, seed: str, category: Category, rarity: Rarity,
+                        fam_key: str | None = None) -> tuple[str, str, list]:
+        pool = self.pool_for(category, fam_key)
         # 희귀도가 높으면 템플릿 풀의 뒤쪽(더 신비로운 이름) 편향
         bias = RARITY_ORDER.index(rarity)
         idx = (int(seed[8:12], 16) + bias * 3) % len(pool)
         t = pool[idx]
         adj = self.templates["_adjectives"][int(seed[12:14], 16) % len(self.templates["_adjectives"])]
         name = t["name"].replace("{adj}", adj)
-        return name, t["flavor"], t.get("tags", [])
+        flavor = t.get("flavor", "")
+        fl = [f for f in (t.get("flavors") or []) if isinstance(f, str)]
+        if fl:                                           # 같은 줄기라도 바코드마다 문장이 다르다(결정적)
+            flavor = fl[int(seed[16:20], 16) % len(fl)]
+        return name, flavor, t.get("tags", [])
 
     # ── 6. 조립 ────────────────────────────────────────────
     def generate(self, barcode: str, hour: int = 12, user_category: Optional[str] = None) -> RelicCard:
@@ -278,8 +329,8 @@ class RelicGenerator:
         bonus = extras[int(seed[14:16], 16) % len(extras)]
         yields[bonus] = yields.get(bonus, 0) + 1
 
-        name, flavor, tags = self.name_and_flavor(seed, category, rarity)
         fam_key = parsed["prefix"] + parsed["manufacturer"]
+        name, flavor, tags = self.name_and_flavor(seed, category, rarity, fam_key)
         origin = ORIGIN_MAP.get(parsed["prefix"], "먼 잔해")
 
         return RelicCard(

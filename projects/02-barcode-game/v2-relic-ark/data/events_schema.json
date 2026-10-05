@@ -35,6 +35,7 @@
           "items": {"type": "integer", "enum": [1, 2, 3]},
           "description": "선택(권장). 이 카드가 나올 수 있는 **막**. 1=심해 유리돔(1막) · 2=침수 지하철 터널(2막) · 3=지상 쇼핑몰(3막). 장소를 타지 않는 카드(질병·굶주림·물·불신)는 [1,2,3]. DECISIONS 2026-09-23 — 1막이 심해인데 육상 공룡·부족 카드가 같은 풀에서 나오던 결함의 교정이다. **필드가 없으면** 서버가 임시 분류표(engine/storyteller.py ACT_BY_ID·ACT_BY_PREFIX: deep_*→[1], dino_*·tribe_*→[3])로 판정하고, 표에도 없으면 [1,2,3]로 두고 표준출력에 알린다. 파일에 적으면 **언제나 파일이 이긴다.**"
         },
+        "min_depth_m": {"type": "integer", "minimum": 0, "description": "선택(S18). 거점 최심부 깊이가 이 값(m) 이상일 때만 나온다. 없으면 0(언제나). 예: 해구 문턱 카드 180. 값이 없는 동안은 engine/storyteller.py MIN_DEPTH_FALLBACK 임시표가 쓰인다(deep_needle_passes 120, deep_followed_home 180). **파일에 적으면 파일이 이긴다.**"},
         "severity": {"type": "integer", "minimum": 0, "maximum": 3, "description": "0=위협 아님(긍정·중립), 1=가벼움, 2=심각, 3=재난. storyteller.weight_for() 가 1~3일차와 하드코어에서 이 값을 본다."},
         "text": {"type": "string", "minLength": 10, "maxLength": 160, "description": "쪽지 본문 2~3문장. 실제 종교·경전·인물·지명 금지."},
         "counter_tags": {

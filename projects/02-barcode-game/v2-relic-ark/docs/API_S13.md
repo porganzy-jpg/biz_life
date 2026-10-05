@@ -213,3 +213,46 @@ stat_mult = clamp(1 + per_point × A, min_mult, max_mult),  d_i = 그 사람의 
 ## S14-3. 이번에 안 한 것(후속)
 - 공방 「제작 시간 ÷ stat_mult」: 제작에 시간이 없다(즉시). 손 보정은 이미 재료 ±1(`craft_cost`)로 있다.
 - 발전실 「공급 × stat_mult」: `power_supply` 를 쓰는 전력 예산 시스템이 아직 없다. 생기면 같은 `room_mult` 를 곱하면 된다.
+
+---
+
+# §S18 — 7일 플레이테스트 고침 (S18-A, 2026-10-05)
+
+## 새 엔드포인트
+| 메서드 | 경로 | 하는 일 |
+|---|---|---|
+| POST | `/api/shelf/swap` `{uid, stored_id, slot?}` | 창고 상자의 유물을 선반에 올린다. `slot` 을 주면 그 칸의 물건을 창고 상자로 내린다. 응답에 `ko`(shelf.full.placed)와 `down_ko`(shelf.full.moved)가 온다 |
+| POST | `/api/workshop/trade` `{uid, give: food\|water, get: cloth\|parts\|scrap, n}` | 공방 바꾸기(economy.json `workshop_trade`). 비율은 4:1이다. 하루 상한이 있고, 내는 쪽 재고를 `keep_reserve` 이상 남겨야 한다 |
+| POST | `/api/raid/verb` `{uid, verb: light\|power\|station\|tool\|act\|null}` | 단서 모드 습격 카드에서 동사 하나를 고른다. 고르면 미리보기가 열린다. 접촉 전까지 몇 번이든 바꿀 수 있다 |
+| POST | `/api/overnight/seen` `{uid}` | 아침 「밤사이」 한 장을 봤다 |
+
+## `/api/ark` 덧붙음
+- `stored`: 선반에 못 놓인 유물(창고 상자) `[{id, name, relic_name, category, rarity, barcode, variant, polish}]`
+- `storage`: `{cap, full: [재료], overflow: {day, lost}|null}`. 재료 하나당 저장 상한은 economy.json `rooms.storage_cap` 이다. 상한을 넘는 분은 들어오지 않고, 이미 넘쳐 있던 재고는 깎지 않는다.
+- `material_sources`: economy.json `material_sources` 를 그대로 보낸다(「모자랍니다」 옆 한 줄용).
+- `overnight`: `{title, open, close, count, items: [{kind: night_judge|expedition_return|depth|imprint|octopus|knock|wish, day, at, data}]}` 또는 null. 서버가 모아 두었다가 `seen` 을 부르면 비운다.
+- `depth_crossed`: 이번 요청에서 처음 넘은 깊이 문턱 `[{m, zone, ko}]`. 문장은 ui_moments `depth.first_<m>` 이다. `/api/ark/build` 응답에도 같은 필드가 온다.
+- `morning_lines`: 같은 날 같은 각인은 한 줄로 묶인다(`residents[]`, `resident_ids[]`, 이름은 「가·나」로 이어 줄에 다시 넣는다).
+- `combat.encounters`: 생물별 만난 횟수 `{creature_id: n}`.
+- `shelf_room.capacity`: 이제 **합계**다 = 식량창고 6 + 창고 방 레벨별 칸 8/14/22(큰 것 둘까지) + 되찾은 층마다 4.
+
+## `/api/scan` 덧붙음
+- `stored`, `swap_offer: {stored_id, candidates: [{slot, name, relic_name, polish…}], ko, kept_ko}`: 선반이 찼을 때 온다. 유물은 창고 상자에 들어가 있다.
+- `zero_reaction`: 재스캔 배율이 1보다 작을 때 `{kind: box_key_hint|polish_progress|wish_hint|octopus_mood|rescan_zero, ko, …}` 또는 null. 순서는 stakes `polish.zero_reaction.order` 를 따른다.
+- `rescan_multiplier`: economy.json `scan.rescan_decay.values` 를 따른다([1, .5, .25, .1], 4번째부터 0.1).
+- `storage`: 위와 같다.
+
+## 습격 카드 — 단서 먼저(stakes `raid_card`, 사용자 승인)
+- `raid.card_mode`: `"clue"`(같은 생물을 `answer_after_encounters` 번 만나기 전 위협) 또는 `"answer"`.
+- clue 모드:
+  - `habit` 은 creatures.json 의 버릇 한 줄이다.
+  - `verbs: [{id, ko, options?}]` 를 보낸다. `act` 동사의 options 에는 관문 행동 **전부**와 그 대가가 들어간다.
+  - `action: null` 이다(맞는 행동을 콕 집지 않는다).
+  - `ready` 는 `verb` 를 고르기 전에는 null 이다. 고른 뒤에는 미리보기가 열리고 `ready.gate.ko` 만 null 이 된다.
+- 두 모드 모두: `ready.would_ko` 는 미래형이다(ui_moments `raid_preview.*`). `habit` 필드는 answer 모드에도 온다.
+- 첫 주 보장 습격: 4일째까지 위협이 없었으면 긴목·세기 0이 사람이 서 있는 방으로 온다(threats.json `first_week_guarantee`). `raid.guaranteed: true`.
+
+## 그 밖
+- `/api/rumors` 는 지금 막의 스팟만 보낸다. `/api/spots` 에서 다른 막의 스팟은 `state: "other_act"`, `unlocked: false` 다.
+- `ready.parts` 에는 각인 id 대신 「각인 「이름」」이 들어간다.
+- 쪽지(사건 카드): `min_depth_m` 깊이 문을 따른다(스키마 필드 추가). 같은 쪽지는 stakes `events.no_repeat_days`(기본 3일) 안에 다시 나오지 않는다.
