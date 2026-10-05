@@ -32,6 +32,13 @@ VPAL = {
     'vMus': (216, 172, 84), 'vMusD': (162, 122, 50), 'vMusL': (240, 208, 132),
     'vMetal': (176, 172, 160), 'vMetalD': (116, 112, 104),
     'vMoss': (126, 150, 96), 'vClear': (196, 226, 222),
+    # S19-C2 문어 — 기분 넷(말하지 않는다. 기분은 색으로만: companion_octopus.json moods)
+    'oHid': (170, 150, 118), 'oHidD': (130, 112, 86), 'oHidL': (198, 182, 150),
+    'oWat': (234, 172, 136), 'oWatD': (196, 126, 98), 'oWatL': (248, 206, 176),
+    'oClo': (222, 116, 90), 'oCloD': (170, 78, 60), 'oCloL': (242, 160, 128),
+    'oBon': (222, 96, 112), 'oBonD': (168, 62, 80), 'oBonL': (244, 150, 160),
+    'gSil': (214, 226, 230), 'gSilD': (150, 176, 182), 'gSea': (132, 190, 170), 'gPearl': (246, 240, 226),
+    'sFish': (138, 206, 196), 'sFishD': (86, 156, 150), 'sFishP': (246, 190, 150), 'sFishPD': (204, 140, 104),
 }
 
 
@@ -282,6 +289,104 @@ def screw_crab(clip, f):
     return c
 
 
+OCT_MOODS = [('hidden', 'oHid'), ('watching', 'oWat'), ('close', 'oClo'), ('bonded', 'oBon')]
+
+
+def octopus(clip, f):
+    # 방 안·선반 위 작은 문어. 말하지 않는다 — 기분은 색과 자리, 선물은 팔에 감아 온다.
+    c = Cv(26, 20)
+    if clip.startswith('idle_'):
+        t, g = dict(OCT_MOODS)[clip[5:]], None
+    else:
+        t, g = 'oClo', clip
+    M, D, L = t, t + 'D', t + 'L'
+    cx, by = 13, 19
+    bob = [0, 1, 0, -1][f % 4] if g is None else 0
+    hide = clip == 'idle_hidden'
+    for k, dx in enumerate((-7, -4, -1, 2, 5, 8)):          # 팔 여섯 — 바닥에서 동그랗게 말린다
+        curl = ((k + f) % 3) - 1
+        c.rect(cx + dx - 1, by - 3, cx + dx, by - 1, M)
+        c.set(cx + dx + curl, by, D)
+        if k % 2 == 0:
+            c.set(cx + dx - 1, by - 1, L)
+    if clip == 'idle_bonded':                              # 감음 — 팔 하나를 고리로 감는다
+        G.ring(c, cx + 9, by - 9, 2.2, 1.0, M)
+    c.ell(cx, by - 8 + bob, 7.0, 6.0, M)                   # 둥근 머리
+    c.ell_in(cx - 2, by - 10 + bob, 4.0, 3.0, L, only=(M,))
+    c.ell_in(cx + 5, by - 4 + bob, 2.2, 1.4, D, only=(M,))   # 그늘은 가장자리에만 — 얼굴을 덮지 않게
+    for k in (-3, 0, 3):
+        c.set(cx + k, by - 12 + bob, L)
+    ey = by - 7 + bob
+    if hide:                                               # 숨음 — 반쯤 감은 눈만
+        c.set(cx - 2, ey, 'ink'); c.set(cx + 2, ey, 'ink')
+    else:
+        sl = (clip == 'idle_bonded' and f % 2 == 1)
+        eye_dot(c, cx - 2, ey, sleepy=sl); eye_dot(c, cx + 2, ey, sleepy=sl)
+        smile(c, cx, ey + 2)
+        c.set(cx - 4, ey + 1, 'blush'); c.set(cx + 4, ey + 1, 'blush')
+    if clip == 'idle_watching':                            # 지켜봄 — 팔 하나만 내놓고 따라 돈다
+        c.rect(cx + 7, by - 8 - f % 2, cx + 9, by - 7 - f % 2, M); c.set(cx + 10, by - 9 - f % 2, D)
+    if g == 'gift':                                        # 선물 — 팔에 감아 와서 내려놓고 색이 붉어진다
+        gx = [cx + 10, cx + 9, cx + 8, cx + 8][f]
+        gy = [by - 10, by - 6, by - 2, by - 2][f]
+        c.ell(gx, gy, 1.8, 1.5, 'glass' if f < 3 else 'brassM'); c.set(gx - 1, gy - 1, 'white')
+        if f < 2:
+            c.rect(cx + 6, by - 9 + f * 2, gx - 1, by - 8 + f * 2, M)
+        if f == 3:
+            for (x, y) in list(c.pixels()):
+                if c.own(x, y) == M:
+                    c.set(x, y, 'oBon')
+                elif c.own(x, y) == L:
+                    c.set(x, y, 'oBonL')
+    c.outline('line')
+    return c
+
+
+def small_fish(clip, f):
+    # 작은 물고기 떼 — 둥글고 순한 물고기 다섯이 고리를 그리며 돈다.
+    c = Cv(40, 24)
+    for k in range(5):
+        a = TAU * (f / 4.0 + k / 5.0)
+        x = int(round(20 + 13 * math.cos(a)))
+        y = int(round(12 + 6 * math.sin(a)))
+        face = 1 if math.sin(a) > 0 else -1
+        t = 'sFishP' if k == 2 else 'sFish'
+        c.ell(x, y, 2.6, 1.8, t)
+        c.rect(x - face * 3, y - 1, x - face * 3, y + 1, t + 'D')
+        c.set(x + face, y - 1, 'ink')
+        if k == 2:
+            c.set(x, y + 1, 'blush')
+    c.outline('line')
+    return c
+
+
+def gardener(clip, f):
+    # 정원사 — 바다를 되살린 손. 얼굴이 없다(생물이 아니다). 은빛·바다빛 떼가 해류처럼 흐르다
+    # 한 번 말리고, 방향을 바꾸고, 다시 펼쳐진다(「떼가 창 밖에서 한 번 방향을 바꾼다」). 느리고 부드럽게.
+    c = Cv(64, 40)
+    n = 26
+    for k in range(n):
+        t = k / float(n)
+        if f == 0:
+            x, y = 6 + 52 * t, 22 - 9 * math.sin(math.pi * t) + 2 * math.sin(k * 1.7); face = 1
+        elif f == 1:
+            a = TAU * t * .9
+            x, y = 32 + (8 + 10 * t) * math.cos(a), 20 + (6 + 6 * t) * math.sin(a); face = 1 if math.sin(a) < 0 else -1
+        elif f == 2:
+            a = -TAU * t * .9 + math.pi
+            x, y = 32 + (8 + 10 * t) * math.cos(a), 20 + (6 + 6 * t) * math.sin(a); face = -1 if math.sin(a) < 0 else 1
+        else:
+            x, y = 58 - 52 * t, 20 + 8 * math.sin(math.pi * t) + 2 * math.sin(k * 1.3); face = -1
+        x, y = int(round(x)), int(round(y))
+        tcol = 'gSil' if k % 3 else 'gSea'
+        c.rect(x - 1, y, x + 1, y, tcol)
+        c.set(x + face * 2, y, 'gSilD' if tcol == 'gSil' else 'gSea')
+        c.set(x - face * 2, y, 'gSilD')
+        if k % 5 == 0:
+            c.set(x, y - 1, 'gPearl')
+    return c                                               # 외곽선 없음 — 떼는 물빛에 녹아야 한다
+
+
 VISITORS = [
     # id, 그림 함수, 어디, (idle 프레임, fps), (특기 클립, 프레임, fps), 방(대비 그림용)
     ('blanket_crab', blanket_crab, 'inside', (2, 1.5), ('tuck_in', 4, 3), 'quarters'),
@@ -292,7 +397,21 @@ VISITORS = [
     ('baby_jelly_drift', baby_jelly_drift, 'window', (3, 3), ('bump', 3, 4), 'greenhouse'),
     ('glass_star', glass_star, 'window', (2, 2), ('wipe', 4, 2), 'power'),
     ('screw_crab', screw_crab, 'inside', (2, 2), ('carry', 4, 4), 'workshop'),
+    # S19-C2 — id 는 서버 kind 그대로(core_a.json: octopus · small_fish · gardener, base_core.js 가 ART.vis[v.kind])
+    ('octopus', octopus, 'inside', (4, 2), ('gift', 4, 3), 'quarters'),
+    ('small_fish', small_fish, 'window', (4, 4), None, 'greenhouse'),
+    ('gardener', gardener, 'window', (4, 1), None, 'greenhouse'),
 ]
+ROWS_OVERRIDE = {
+    'octopus': [('idle_' + m, 4, 2) for m, _t in OCT_MOODS] + [('gift', 4, 3)],
+    'small_fish': [('idle', 4, 4)],
+    'gardener': [('idle', 4, 1)],
+}
+ALIASES = {'octopus': ['octopus_small'], 'small_fish': ['fish_school'], 'gardener': []}
+KO_EXTRA = {'octopus': '문어', 'small_fish': '작은 물고기 떼', 'gardener': '정원사'}
+LOOK_EXTRA = {'octopus': '사람 머리만 한 문어. 말하지 않는다 — 기분은 색으로(숨음 선반색 · 지켜봄 살구 · 곁 산호 · 감음 장밋빛), 선물은 팔에 감아 와서 내려놓는다.',
+              'small_fish': '둥글고 순한 물고기 다섯이 창밖에서 고리를 그리며 돈다.',
+              'gardener': '바다를 되살린 손. 얼굴이 없다. 은빛·바다빛 떼가 흐르다 말리고 방향을 한 번 바꾸고 다시 펼쳐진다(정원사의 말 = 떼와 해류).'}
 
 
 def frames_of(fn, idle_n, sig, sig_n):
@@ -315,8 +434,9 @@ def main():
             'anchor_rule': 'inside = 발(바닥 줄) 가운데 [x, y] — 방 바닥 floor_y 에 이 점을 맞춘다. window = 몸 가운데 — 방 유리 바깥 자리에 맞춘다.',
             'visitors': []}
     sheets = {}
-    for vid, fn, where, (idle_n, idle_fps), (sig, sig_n, sig_fps), room in VISITORS:
-        rows = frames_of(fn, idle_n, sig, sig_n)
+    for vid, fn, where, (idle_n, idle_fps), sigspec, room in VISITORS:
+        spec = ROWS_OVERRIDE.get(vid) or [('idle', idle_n, idle_fps), (sigspec[0], sigspec[1], sigspec[2])]
+        rows = [(cn, [fn(cn, f) for f in range(nn)]) for cn, nn, _fp in spec]
         w, h = rows[0][1][0].w, rows[0][1][0].h
         cols = max(len(fr) for _, fr in rows)
         sh = Image.new('RGBA', (w * cols, h * len(rows)), (0, 0, 0, 0))
@@ -330,13 +450,20 @@ def main():
             anchor = [w // 2, h - 1]
         else:
             anchor = [w // 2, h // 2]
-        meta['visitors'].append({
-            'id': vid, 'ko': KO.get(vid, vid), 'file': 'static/art/visitors/%s.png' % vid,
+        ent = {
+            'id': vid, 'ko': KO.get(vid, KO_EXTRA.get(vid, vid)), 'file': 'static/art/visitors/%s.png' % vid,
             'file_x3': 'static/art/visitors/%s_x3.png' % vid, 'where': where,
             'indoor': where == 'inside', 'size': [w, h], 'cols': cols,
-            'clips': {'idle': {'row': 0, 'frames': idle_n, 'fps': idle_fps},
-                      sig: {'row': 1, 'frames': sig_n, 'fps': sig_fps}},
-            'anchor': anchor, 'look': LOOK.get(vid, '')})
+            'clips': {cn: {'row': i_, 'frames': nn, 'fps': fp} for i_, (cn, nn, fp) in enumerate(spec)},
+            'anchor': anchor, 'look': LOOK.get(vid, LOOK_EXTRA.get(vid, ''))}
+        if vid in ALIASES:
+            ent['aliases'] = ALIASES[vid]
+        if vid == 'octopus':
+            ent['default_clip'] = 'idle_close'
+            ent['mood_rule'] = '서버 moods(companion_octopus.json) 단계와 같은 이름의 idle_<mood> 줄을 튼다. 선물(물어 온 것)이 있는 아침에는 gift 를 한 번 틀고 idle 로 돌아간다. 말풍선·글자 금지'
+        if vid == 'gardener':
+            ent['note'] = '얼굴 없음(생물이 아니다). 4프레임을 천천히(1fps) 한 바퀴 — 흐름 → 말림 → 방향 바꿈 → 펼침. 외곽선 없이 물빛 위에'
+        meta['visitors'].append(ent)
     with io.open(os.path.join(OUT, 'visitors_meta.json'), 'w', encoding='utf-8') as fp:
         fp.write(json.dumps(meta, ensure_ascii=False, indent=1))
 
@@ -347,7 +474,9 @@ def main():
             ('engineer', 'a', 'tied', 'f0'), ('farmer', 'a', 'curly', 'f1'), ('kid', 'b', 'short', 'f0'),
             ('trader', 'a', 'scarf', 'f2'), ('scholar', 'b', 'short', 'f0')]
     panels = []
-    for i, (vid, fn, where, (idle_n, _f), (sig, sig_n, _sf), room) in enumerate(VISITORS):
+    for i, (vid, fn, where, (idle_n, _f), sigspec, room) in enumerate(VISITORS):
+        spec = ROWS_OVERRIDE.get(vid) or [('idle', idle_n, 0), (sigspec[0], sigspec[1], 0)]
+        sig, sig_n = spec[-1][0], spec[-1][1]
         pl = Image.open(os.path.join(ROOT, 'static', 'art', 'plates', 'room_plate_%s_lit.png' % room)).convert('RGBA')
         d = ImageDraw.Draw(pl)
         if where == 'window':                              # 방 유리 — 둥근 창, 바깥은 어두운 물
@@ -363,7 +492,7 @@ def main():
             pl.alpha_composite(one, (xc - 96, flY - G.BASE_Y * kk))
         sh, w, h = sheets[vid]
         cell_idle = sh.crop((0, 0, w, h))
-        cell_sig = sh.crop((w * (sig_n - 1), h, w * sig_n, 2 * h))
+        cell_sig = sh.crop((w * (sig_n - 1), h * (len(spec) - 1), w * sig_n, h * len(spec)))
         if where == 'inside':
             for j, (cell, xc) in enumerate(((cell_idle, 410), (cell_sig, 540))):
                 z = G.room_light(G.up(cell, kk))
@@ -373,32 +502,35 @@ def main():
         else:
             z = G.up(cell_idle, kk)
             pl.alpha_composite(z, (470 - z.width // 2, 120 - z.height // 2))
-            z2 = G.up(cell_sig, 2)
-            pl.alpha_composite(z2, (560 - z2.width // 2, 250 - z2.height // 2)) if False else None
+
         d = ImageDraw.Draw(pl)
         d.rectangle([0, 0, pl.width, 26], fill=(16, 11, 9, 230))
         d.text((8, 5), '%s (%s) — %s · ×%d' % (KO.get(vid, vid), vid, '방 안' if where == 'inside' else '창밖', kk),
                font=f14, fill=(244, 216, 160))
         # 아래 띠: 프레임 전부(×3)
-        strip_h = h * 3 + 30
+        strip_h = (h * 3 + 30) * (2 if len(spec) > 2 else 1)
         panel = Image.new('RGBA', (pl.width, pl.height + strip_h), (22, 16, 12, 255))
         panel.alpha_composite(pl, (0, 0))
         dp = ImageDraw.Draw(panel)
         x = 8
-        for r_, (cname, nfr) in enumerate((('idle', idle_n), (sig, sig_n))):
-            dp.text((x, pl.height + 4), cname, font=f12, fill=(220, 196, 150))
-            for fi in range(nfr):
+        for r_, (cname, nfr, _fp) in enumerate(spec):
+            many = len(spec) > 2
+            yb = pl.height + (h * 3 + 30 if many and r_ >= 3 else 0)
+            if many and r_ == 3:
+                x = 8
+            dp.text((x, yb + 4), cname, font=f12, fill=(220, 196, 150))
+            for fi in range(min(nfr, 2) if many else nfr):
                 cell = sh.crop((w * fi, h * r_, w * (fi + 1), h * (r_ + 1)))
                 bgc = Image.new('RGBA', (w * 3, h * 3), (18, 44, 56, 255) if where == 'window' else (60, 44, 32, 255))
                 bgc.alpha_composite(G.up(cell, 3))
                 if x + w * 3 > panel.width:
                     break
-                panel.alpha_composite(bgc, (x, pl.height + 22))
+                panel.alpha_composite(bgc, (x, yb + 22))
                 x += w * 3 + 4
             x += 14
         panels.append(panel)
     pw, ph_ = panels[0].width, max(p.height for p in panels)
-    sheet = Image.new('RGB', (pw * 2 + 30, 60 + 4 * (ph_ + 12)), (14, 10, 8))
+    sheet = Image.new('RGB', (pw * 2 + 30, 60 + ((len(panels) + 1) // 2) * (ph_ + 12)), (14, 10, 8))
     d = ImageDraw.Draw(sheet)
     d.text((12, 10), '꾸밈 손님 여덟 (S19-C) — 방 ×3 · 주민 둘 옆. 손으로 찍은 도트, 생성 AI 없음. 따뜻하고 둥글게, 점 눈 + 웃음 + 홍조',
            font=f16, fill=(244, 222, 170))

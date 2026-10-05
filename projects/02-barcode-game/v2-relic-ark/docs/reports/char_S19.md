@@ -31,3 +31,16 @@
 ## 남은 것
 - 창밖 손님은 둥근 창을 임시로 그려 확인했다. 실제 방 유리 위치·크기는 배경·개발 몫이다.
 - 소라게 장수의 늘어놓은 물건 셋은 ×3에서 작다(손톱만 하다). 더 크게 보여야 하면 키운다.
+
+## S19-C2 추가 — 문어 · 작은 물고기 떼 · 정원사
+id 는 **서버 kind 그대로** 뒀다. `core_a.json` visit_odds(`octopus`·`small_fish`·`gardener`)와 맞췄고, `base_core.js` 가 `ART.vis[v.kind]` 로 찾는다. PM이 적은 이름(`octopus_small`·`fish_school`)은 메타의 `aliases` 에 넣었다.
+
+| id | 어디 | 줄(row) | 메모 |
+|---|---|---|---|
+| octopus 문어 | 방 안·선반 | `idle_hidden`·`idle_watching`·`idle_close`·`idle_bonded`(각 4, 2fps) + `gift` 4 | 기분 넷 = companion_octopus.json moods. 색은 숨음 선반색, 지켜봄 살구, 곁 산호(기본 `default_clip`), 감음 장밋빛. 지켜봄은 팔 하나만 내놓고, 감음은 팔 고리를 만든다. 선물은 팔에 감아 와 내려놓고 색이 한 단 붉어진다. **말·글자 없음** |
+| small_fish 작은 물고기 떼 | 창밖 | `idle` 4(4fps) | 둥근 물고기 다섯이 고리를 그리며 돈다. 하나는 살구색이다 |
+| gardener 정원사 | 창밖 | `idle` 4(1fps) | 성경: 정원사는 떼·해류로만 말하고 돔 밖에서만 온다. 그래서 **얼굴 없이** 은빛·바다빛 떼가 흐름 → 말림 → 방향 바꿈 → 펼침으로 천천히 돈다. 외곽선은 없고, 무섭지 않게 느리고 부드럽게 그렸다 |
+
+- 접촉 시트 `char_S19_visitors.png` 를 갱신했다(11칸: 기존 8 + 셋).
+- 문어 1차 확인에서 오른쪽 아래 그늘이 얼굴을 덮어 점 눈이 묻혔다. 그늘을 가장자리로 줄였다.
+- 개발 참고: 메타가 생기면 `drawOutsideExtra` 의 도형 대체(`!ART.vis[v.kind]`)는 자동으로 꺼진다. 문어는 줄 이름이 `idle_<mood>` 라서, 서버 기분 단계를 읽어 고르면 된다(없으면 `default_clip`).

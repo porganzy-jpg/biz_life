@@ -242,6 +242,111 @@
     17
    ],
    "look": "집게 하나가 유난히 큰 작은 게. 큰 집게에 늘 나사나 고리 같은 것을 끼우고 다닌다."
+  },
+  {
+   "id": "octopus",
+   "ko": "문어",
+   "file": "static/art/visitors/octopus.png",
+   "file_x3": "static/art/visitors/octopus_x3.png",
+   "where": "inside",
+   "indoor": true,
+   "size": [
+    26,
+    20
+   ],
+   "cols": 4,
+   "clips": {
+    "idle_hidden": {
+     "row": 0,
+     "frames": 4,
+     "fps": 2
+    },
+    "idle_watching": {
+     "row": 1,
+     "frames": 4,
+     "fps": 2
+    },
+    "idle_close": {
+     "row": 2,
+     "frames": 4,
+     "fps": 2
+    },
+    "idle_bonded": {
+     "row": 3,
+     "frames": 4,
+     "fps": 2
+    },
+    "gift": {
+     "row": 4,
+     "frames": 4,
+     "fps": 3
+    }
+   },
+   "anchor": [
+    13,
+    19
+   ],
+   "look": "사람 머리만 한 문어. 말하지 않는다 — 기분은 색으로(숨음 선반색 · 지켜봄 살구 · 곁 산호 · 감음 장밋빛), 선물은 팔에 감아 와서 내려놓는다.",
+   "aliases": [
+    "octopus_small"
+   ],
+   "default_clip": "idle_close",
+   "mood_rule": "서버 moods(companion_octopus.json) 단계와 같은 이름의 idle_<mood> 줄을 튼다. 선물(물어 온 것)이 있는 아침에는 gift 를 한 번 틀고 idle 로 돌아간다. 말풍선·글자 금지"
+  },
+  {
+   "id": "small_fish",
+   "ko": "작은 물고기 떼",
+   "file": "static/art/visitors/small_fish.png",
+   "file_x3": "static/art/visitors/small_fish_x3.png",
+   "where": "window",
+   "indoor": false,
+   "size": [
+    40,
+    24
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 4,
+     "fps": 4
+    }
+   },
+   "anchor": [
+    20,
+    12
+   ],
+   "look": "둥글고 순한 물고기 다섯이 창밖에서 고리를 그리며 돈다.",
+   "aliases": [
+    "fish_school"
+   ]
+  },
+  {
+   "id": "gardener",
+   "ko": "정원사",
+   "file": "static/art/visitors/gardener.png",
+   "file_x3": "static/art/visitors/gardener_x3.png",
+   "where": "window",
+   "indoor": false,
+   "size": [
+    64,
+    40
+   ],
+   "cols": 4,
+   "clips": {
+    "idle": {
+     "row": 0,
+     "frames": 4,
+     "fps": 1
+    }
+   },
+   "anchor": [
+    32,
+    20
+   ],
+   "look": "바다를 되살린 손. 얼굴이 없다. 은빛·바다빛 떼가 흐르다 말리고 방향을 한 번 바꾸고 다시 펼쳐진다(정원사의 말 = 떼와 해류).",
+   "aliases": [],
+   "note": "얼굴 없음(생물이 아니다). 4프레임을 천천히(1fps) 한 바퀴 — 흐름 → 말림 → 방향 바꿈 → 펼침. 외곽선 없이 물빛 위에"
   }
  ]
 }
