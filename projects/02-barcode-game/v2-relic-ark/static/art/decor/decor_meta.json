@@ -229,5 +229,288 @@
    ]
   ],
   "note": "칸 좌표, 소품 좌상단. 머리 위 벽(y < 95)이나 가운데 기둥에만"
+ },
+ "window_spot": {
+  "_note": "visitor_world = 손님(물고기·문어·은빛 떼·신인류)이 나타나는 점. glass_world = 그 손님이 비쳐 보이는 외벽 창 가운데. cell_frame 은 칸 좌상단 기준(칸 밖이면 범위를 벗어난다)",
+  "cells": {
+   "0": {
+    "via": "facade_left",
+    "glass_world": [
+     1203,
+     1302
+    ],
+    "visitor_world": [
+     1163,
+     1312
+    ],
+    "cell_frame": [
+     -101,
+     106
+    ],
+    "note": "왼 외벽 창. 바깥은 절벽 틈이라 작은 것(물고기·문어)이 어울린다"
+   },
+   "1": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     1302
+    ],
+    "visitor_world": [
+     3610,
+     1302
+    ],
+    "cell_frame": [
+     1600,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물 (가운데 칸은 자기 외벽이 없어 오른 외벽을 같이 쓴다)"
+   },
+   "2": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     1302
+    ],
+    "visitor_world": [
+     3610,
+     1302
+    ],
+    "cell_frame": [
+     854,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물"
+   },
+   "3": {
+    "via": "facade_left",
+    "glass_world": [
+     1203,
+     1665
+    ],
+    "visitor_world": [
+     1163,
+     1675
+    ],
+    "cell_frame": [
+     -101,
+     106
+    ],
+    "note": "왼 외벽 창. 바깥은 절벽 틈이라 작은 것(물고기·문어)이 어울린다"
+   },
+   "4": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     1665
+    ],
+    "visitor_world": [
+     3610,
+     1665
+    ],
+    "cell_frame": [
+     1600,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물 (가운데 칸은 자기 외벽이 없어 오른 외벽을 같이 쓴다)"
+   },
+   "5": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     1665
+    ],
+    "visitor_world": [
+     3610,
+     1665
+    ],
+    "cell_frame": [
+     854,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물"
+   },
+   "6": {
+    "via": "facade_left",
+    "glass_world": [
+     1203,
+     2028
+    ],
+    "visitor_world": [
+     1163,
+     2038
+    ],
+    "cell_frame": [
+     -101,
+     106
+    ],
+    "note": "왼 외벽 창. 바깥은 절벽 틈이라 작은 것(물고기·문어)이 어울린다"
+   },
+   "7": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     2028
+    ],
+    "visitor_world": [
+     3610,
+     2028
+    ],
+    "cell_frame": [
+     1600,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물 (가운데 칸은 자기 외벽이 없어 오른 외벽을 같이 쓴다)"
+   },
+   "8": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     2028
+    ],
+    "visitor_world": [
+     3610,
+     2028
+    ],
+    "cell_frame": [
+     854,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물"
+   },
+   "9": {
+    "via": "facade_left",
+    "glass_world": [
+     1203,
+     2391
+    ],
+    "visitor_world": [
+     1163,
+     2401
+    ],
+    "cell_frame": [
+     -101,
+     106
+    ],
+    "note": "왼 외벽 창. 바깥은 절벽 틈이라 작은 것(물고기·문어)이 어울린다"
+   },
+   "10": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     2391
+    ],
+    "visitor_world": [
+     3610,
+     2391
+    ],
+    "cell_frame": [
+     1600,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물 (가운데 칸은 자기 외벽이 없어 오른 외벽을 같이 쓴다)"
+   },
+   "11": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     2391
+    ],
+    "visitor_world": [
+     3610,
+     2391
+    ],
+    "cell_frame": [
+     854,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물"
+   },
+   "12": {
+    "via": "facade_left",
+    "glass_world": [
+     1203,
+     2754
+    ],
+    "visitor_world": [
+     1163,
+     2764
+    ],
+    "cell_frame": [
+     -101,
+     106
+    ],
+    "note": "왼 외벽 창. 바깥은 절벽 틈이라 작은 것(물고기·문어)이 어울린다"
+   },
+   "13": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     2754
+    ],
+    "visitor_world": [
+     3610,
+     2754
+    ],
+    "cell_frame": [
+     1600,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물 (가운데 칸은 자기 외벽이 없어 오른 외벽을 같이 쓴다)"
+   },
+   "14": {
+    "via": "facade_right",
+    "glass_world": [
+     3459,
+     2754
+    ],
+    "visitor_world": [
+     3610,
+     2754
+    ],
+    "cell_frame": [
+     854,
+     96
+    ],
+    "note": "오른 외벽 창 + 바로 밖 열린 물"
+   }
+  },
+  "rock_cells": {
+   "r0": {
+    "via": null,
+    "note": "바위 속 칸 — 유리 없음. 손님 연출을 쓰려면 통로 등불(tunnel 가운데 위) 앞에 작은 것만"
+   },
+   "r1": {
+    "via": null,
+    "note": "바위 속 칸 — 유리 없음. 손님 연출을 쓰려면 통로 등불(tunnel 가운데 위) 앞에 작은 것만"
+   },
+   "r2": {
+    "via": null,
+    "note": "바위 속 칸 — 유리 없음. 손님 연출을 쓰려면 통로 등불(tunnel 가운데 위) 앞에 작은 것만"
+   }
+  },
+  "hall": {
+   "via": "dome_glass",
+   "glass_world": [
+    2992,
+    800
+   ],
+   "visitor_world": [
+    3052,
+    740
+   ],
+   "note": "돔 유리 오른쪽 위 바깥"
+  },
+  "entrance": {
+   "via": "porthole",
+   "glass_world": [
+    3708,
+    960
+   ],
+   "visitor_world": [
+    3708,
+    960
+   ],
+   "note": "포드 둥근 창(window 자리 e3) — 손님이 창에 얼굴을 댄다"
+  }
  }
 }

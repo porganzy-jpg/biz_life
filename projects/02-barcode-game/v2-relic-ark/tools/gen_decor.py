@@ -357,6 +357,35 @@ TAGS = [("warm_kitchen", "따뜻한 부엌", warm_kitchen, ["pantry", "quarters"
         ("clean_shelf", "말끔한 약장", clean_shelf, ["infirmary", "bath"], "infirmary"),
         ("trade_corner", "흥정 자리", trade_corner, ["storage", "lounge"], "storage")]
 
+def window_spots():
+    """S19-E 추가: 칸마다 바깥 손님이 유리 너머로 보이는 자리. 탑 칸에는 자기 창이 없으므로(플레이트가 칸을 덮는다)
+    가장 가까운 외벽 창(tower_shell 의 창 격자)을 쓴다. 세계 px + 칸 좌표(칸 밖이면 음수·초과값)."""
+    import sys
+    sys.path.insert(0, HERE); import m5_layout as LY
+    D = LY.build()
+    # tower_shell 외벽 창: 각 층 윗변 ty 에서 창 위·아래 두 줄(ty+34, ty+194, 높이 124), 한 외벽에 두 열(폭 58)
+    L_glass_x = LY.TOWER_X0 + 22 + 14 + 74 + 29          # 왼 외벽 안쪽 열 가운데(바깥 열은 절벽이 덮는다) = 1203
+    R_glass_x = LY.SEC_X1 + 22 + 14 + 74 + 29            # 오른 외벽 바깥 열 가운데 = 3459
+    out = {"_note": "visitor_world = 손님(물고기·문어·은빛 떼·신인류)이 나타나는 점. glass_world = 그 손님이 비쳐 보이는 외벽 창 가운데. cell_frame 은 칸 좌상단 기준(칸 밖이면 범위를 벗어난다)",
+           "cells": {}, "rock_cells": {}, "hall": {}, "entrance": {}}
+    for c in D["cells"]:
+        ty = c["y"]; gy = ty + 34 + 62                    # 위 줄 창 가운데
+        if c["col"] == 0:
+            g = (L_glass_x, gy); v = (L_glass_x - 40, gy + 10); via = "facade_left"
+            note = "왼 외벽 창. 바깥은 절벽 틈이라 작은 것(물고기·문어)이 어울린다"
+        else:
+            g = (R_glass_x, gy); v = (LY.TOWER_X1 + 90, gy); via = "facade_right"
+            note = "오른 외벽 창 + 바로 밖 열린 물" + (" (가운데 칸은 자기 외벽이 없어 오른 외벽을 같이 쓴다)" if c["col"] == 1 else "")
+        out["cells"][str(c["id"])] = dict(via=via, glass_world=list(g), visitor_world=list(v),
+                                         cell_frame=[v[0] - c["x"], v[1] - c["y"]], note=note)
+    for r in D["rock_cells"]:
+        out["rock_cells"][r["id"]] = dict(via=None, note="바위 속 칸 — 유리 없음. 손님 연출을 쓰려면 통로 등불(tunnel 가운데 위) 앞에 작은 것만")
+    out["hall"] = dict(via="dome_glass", glass_world=[LY.DOME_GLASS["cx"] + 700, LY.DOME["y"] + 40], visitor_world=[LY.DOME_GLASS["cx"] + 760, LY.DOME["y"] - 20],
+                       note="돔 유리 오른쪽 위 바깥")
+    out["entrance"] = dict(via="porthole", glass_world=[3708, 960], visitor_world=[3708, 960],
+                           note="포드 둥근 창(window 자리 e3) — 손님이 창에 얼굴을 댄다")
+    return out
+
 
 def main():
     meta = {"_note": "S19-E 방 장식 꼬리표 덧씌움. 칸(564×317, M5 layout.json 의 cell) 좌상단에 1:1로 플레이트 위·사람 아래에 그린다. 생성 tools/gen_decor.py, 생성 AI 없음. 꼬리표 정의는 data/draft/room_decor.json",
@@ -382,6 +411,7 @@ def main():
         meta["slots"].append(dict(id=name, file=f"{name}.png", **info))
     meta["slot_positions_in_cell"] = {"slot_shelf_bracket": [[150, 60], [280, 160]], "slot_hook": [[100, 40], [440, 40]], "slot_stand": [[240, 192]],
                                       "note": "칸 좌표, 소품 좌상단. 머리 위 벽(y < 95)이나 가운데 기둥에만"}
+    meta["window_spot"] = window_spots()
     json.dump(meta, open(os.path.join(DST, "decor_meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
     # 접촉 시트: 꼬리표마다 [플레이트만 | 플레이트+덧씌움+주민 둘]
