@@ -1,0 +1,233 @@
+{
+ "_note": "S19-E 방 장식 꼬리표 덧씌움. 칸(564×317, M5 layout.json 의 cell) 좌상단에 1:1로 플레이트 위·사람 아래에 그린다. 생성 tools/gen_decor.py, 생성 AI 없음. 꼬리표 정의는 data/draft/room_decor.json",
+ "cell": [
+  564,
+  317
+ ],
+ "anchor": [
+  0,
+  0
+ ],
+ "draw": "plate → decor overlay → 사람 → (방 앞 효과)",
+ "clear_zones": {
+  "floor_band_y": 262,
+  "spot_columns_x": [
+   [
+    34,
+    150
+   ],
+   [
+    414,
+    530
+   ]
+  ],
+  "spot_columns_below_y": 95,
+  "lamp_circle": [
+   282,
+   77,
+   34
+  ],
+  "note": "덧씌움은 이 구역을 비운다(사람이 서는 자리 stand_x 84·480, 방 등불)"
+ },
+ "plate_name_map": {
+  "generator": "power",
+  "pantry": "(플레이트 없음 → quarters/storage)",
+  "decoder": "(없음 → quarters)",
+  "lounge": "(없음 → storage)",
+  "bath": "(없음 → infirmary)",
+  "well": "(없음 → greenhouse)"
+ },
+ "tags": [
+  {
+   "id": "warm_kitchen",
+   "ko": "따뜻한 부엌",
+   "file": "decor_warm_kitchen.png",
+   "best_rooms": [
+    "pantry",
+    "quarters"
+   ],
+   "preview_plate": "quarters",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  },
+  {
+   "id": "book_smell",
+   "ko": "책 냄새",
+   "file": "decor_book_smell.png",
+   "best_rooms": [
+    "decoder",
+    "quarters",
+    "lounge"
+   ],
+   "preview_plate": "quarters",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  },
+  {
+   "id": "shiny_things",
+   "ko": "반짝이는 것들",
+   "file": "decor_shiny_things.png",
+   "best_rooms": [
+    "lounge",
+    "storage"
+   ],
+   "preview_plate": "storage",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  },
+  {
+   "id": "soft_corner",
+   "ko": "포근한 구석",
+   "file": "decor_soft_corner.png",
+   "best_rooms": [
+    "quarters",
+    "bath"
+   ],
+   "preview_plate": "quarters",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  },
+  {
+   "id": "workbench",
+   "ko": "손때 묻은 작업대",
+   "file": "decor_workbench.png",
+   "best_rooms": [
+    "workshop",
+    "generator"
+   ],
+   "preview_plate": "workshop",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  },
+  {
+   "id": "growing",
+   "ko": "자라는 창가",
+   "file": "decor_growing.png",
+   "best_rooms": [
+    "greenhouse",
+    "well"
+   ],
+   "preview_plate": "greenhouse",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  },
+  {
+   "id": "clean_shelf",
+   "ko": "말끔한 약장",
+   "file": "decor_clean_shelf.png",
+   "best_rooms": [
+    "infirmary",
+    "bath"
+   ],
+   "preview_plate": "infirmary",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  },
+  {
+   "id": "trade_corner",
+   "ko": "흥정 자리",
+   "file": "decor_trade_corner.png",
+   "best_rooms": [
+    "storage",
+    "lounge"
+   ],
+   "preview_plate": "storage",
+   "anchor": [
+    0,
+    0
+   ],
+   "clear_zone_pixels": 0
+  }
+ ],
+ "slots": [
+  {
+   "id": "slot_shelf_bracket",
+   "file": "slot_shelf_bracket.png",
+   "size": [
+    130,
+    56
+   ],
+   "anchor": [
+    65,
+    10
+   ],
+   "note": "벽 선반. 유물 바닥을 anchor(선반 윗면 가운데)에"
+  },
+  {
+   "id": "slot_hook",
+   "file": "slot_hook.png",
+   "size": [
+    40,
+    60
+   ],
+   "anchor": [
+    20,
+    40
+   ],
+   "note": "벽 고리. 유물 윗가운데를 anchor 에 매단다(옷·가방·줄)"
+  },
+  {
+   "id": "slot_stand",
+   "file": "slot_stand.png",
+   "size": [
+    84,
+    70
+   ],
+   "anchor": [
+    42,
+    10
+   ],
+   "note": "작은 받침대. 바닥에 두지 말고 칸 가운데 기둥(x 150~414)에, 받침 밑면이 바닥 띠(262) 위에 오게"
+  }
+ ],
+ "slot_positions_in_cell": {
+  "slot_shelf_bracket": [
+   [
+    150,
+    60
+   ],
+   [
+    280,
+    160
+   ]
+  ],
+  "slot_hook": [
+   [
+    100,
+    40
+   ],
+   [
+    440,
+    40
+   ]
+  ],
+  "slot_stand": [
+   [
+    240,
+    192
+   ]
+  ],
+  "note": "칸 좌표, 소품 좌상단. 머리 위 벽(y < 95)이나 가운데 기둥에만"
+ }
+}
