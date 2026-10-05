@@ -36,7 +36,16 @@
       "kept": "알겠습니다. 이번에 들어온 「{item}」, 창고 안쪽에 바로 넣어 두겠습니다.",
       "storage_label": "창고 안쪽"
     },
-    "rescan_same_day": "이 물건은 오늘 이미 한 번 찍으셨습니다. 닦는 건 내일 다시 해 드리겠습니다."
+    "rescan_same_day": "이 물건은 오늘 이미 한 번 찍으셨습니다. 닦는 건 내일 다시 해 드리겠습니다.",
+    "rescan_low": [
+      "또 오셨네요. 이번엔 조금만 나왔습니다. 그래도 들어오신 건 들어오신 겁니다.",
+      "익숙한 물건입니다. 관리실 장부에 줄 하나만 더 그었습니다.",
+      "반쯤 아는 얼굴입니다. 반쯤 반갑습니다.",
+      "이 물건은 요즘 자주 뵙습니다. 선반 쪽 친구가 반가워합니다.",
+      "많이 나오진 않았습니다. 손때는 조금 더 묻었습니다.",
+      "또 그 성문입니다. 아이가 이제 무늬를 외워서 따라 그립니다.",
+      "조금 들어왔습니다. 조금씩 쌓이는 게 이 집 방식입니다."
+    ]
   },
   "variant": {
     "label": "바다 무늬",
@@ -139,7 +148,26 @@
     "box_opened": "밤사이 「{pattern}」 상자 하나가 열려 있습니다.",
     "nothing": "밤사이 별일 없었습니다. 다들 잘 주무셨습니다.",
     "close": "오늘도 무사한 하루 보내시기 바랍니다.",
-    "_order": "open → production → raid(night_judge.* 한 줄) → imprint → expedition_back → guest → octopus → box_opened → rumor → close. 해당 없는 줄은 빼고, 아무것도 없으면 open → nothing → close."
+    "_order": "open → production → raid(night_judge.* 한 줄) → imprint → expedition_back → guest → octopus → box_opened → rumor → close. 해당 없는 줄은 빼고, 아무것도 없으면 open → nothing → close.",
+    "by_time": {
+      "_for_dev": "세션 시작 시각으로 고른다. 아침 5~11시, 낮 11~17시, 저녁 17~21시, 밤 21~5시. title 은 패널 제목, open 은 첫 줄(기존 morning.open 대신).",
+      "morning": {
+        "title": "밤사이",
+        "open": "좋은 아침입니다, 관리실입니다. 밤사이 있었던 일을 한꺼번에 알려 드립니다."
+      },
+      "day": {
+        "title": "자리 비우신 사이",
+        "open": "관리실입니다. 자리 비우신 사이 있었던 일을 알려 드립니다."
+      },
+      "evening": {
+        "title": "낮 동안",
+        "open": "좋은 저녁입니다, 관리실입니다. 낮 동안 있었던 일을 한꺼번에 알려 드립니다."
+      },
+      "night": {
+        "title": "그사이",
+        "open": "늦은 시간이네요, 관리실입니다. 그사이 있었던 일을 조용히 알려 드립니다."
+      }
+    }
   },
   "raid_preview": {
     "_for_dev": "습격 미리 보기의 「지금 맞서시면 …」 뒤에 붙는 미래형. 결과 화면의 과거형(combat.RESULT_KO)과 따로 쓴다.",

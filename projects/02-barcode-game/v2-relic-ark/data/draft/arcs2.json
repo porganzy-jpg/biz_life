@@ -1,0 +1,171 @@
+{
+  "_doc": "S19-S 2차 사슬. 형식은 data/draft/arcs.json 과 같다. 학자·교섭가 첫 사슬 + 요리사·정찰병·농부 두 번째 사슬(첫 사슬을 이룬 뒤 시작). 라이브 데이터 아님.",
+  "_for_design": "새 trigger 키: arc_done=<arc id>(그 사슬을 이룬 뒤에만) · flag=<서버 플래그> · decor=<room_decor tag id>(그 방에 꼬리표가 붙어 있음) · other_arc_step={arc, step}(다른 사람 사슬과 엮임). 나머지 키는 arcs.json _for_design 그대로. min_days_after_prev 는 사슬마다 다르게 했다.",
+  "_for_dev": "{name}=그 주민, {item}=건넨/고른 유물, {other}=엮인 다른 주민 이름, {oct_name}=문어 이름(없으면 '문어'). 자리표시자 뒤 조사 없음. announce=관리실 방송, line=입말, beat=문어 행동 서술, log=관리실 일지.",
+
+  "arcs": [
+    {
+      "id": "arc_scholar_page",
+      "role": "scholar",
+      "wish_id": "wish_scholar_letters",
+      "title": "젖지 않은 한 장",
+      "pace": "보통, 매듭 사이 이틀",
+      "beats": [
+        {
+          "step": 1, "size": "small",
+          "trigger": {"days_since_join": 2, "give": {"category": "book", "to": "self"}},
+          "announce": "{name} 님이 「{item}」 펴 놓고 한 장도 넘기지 않으셨습니다. 눌린 자국을 손끝으로 읽는 중이시랍니다.",
+          "line": "여기 있는 건 전부 눌린 자국뿐이에요. 자국은 읽는 게 아니라 짐작하는 거예요."
+        },
+        {
+          "step": 2, "size": "small",
+          "trigger": {"min_days_after_prev": 2, "place": {"room": "decoder", "category": "book"}},
+          "announce": "해독실 책상에 「{item}」 놓아 두었습니다. {name} 님이 그 옆에 등불을 하나 더 가져다 놓으셨습니다.",
+          "line": "불을 하나 더 켜면 자국에 그림자가 생겨요. 그림자는 글자보다 정직해요.",
+          "ask": {"kind": "give", "category": "stationery", "subtype": ["pen", "paper"], "label": "적을 것 하나 드리기", "default": "skip"}
+        },
+        {
+          "step": 3, "size": "small",
+          "trigger": {"min_days_after_prev": 2, "octopus_with": "self"},
+          "beat": "문어가 책장 끝을 팔 하나로 눌러 주었다. {name} 님은 문어가 누른 자리부터 읽기 시작했다.",
+          "line": "그래. 거기 잡고 있어."
+        },
+        {
+          "step": 4, "size": "big",
+          "trigger": {"min_days_after_prev": 2, "give_distinct": {"category": "book", "n": 3}, "session": "evening"},
+          "announce": "관리실에서 안내 말씀 드립니다. 오늘 저녁 해독실에서 {name} 님이 한 장을 소리 내어 읽어 주시겠답니다. 뜻은 모르셔도 됩니다. 순서만 들으시면 됩니다.",
+          "line": "한 장 읽었습니다. 뜻은 몰라도 순서는 압니다. 누가 가져왔는지는 여백에 적어 뒀습니다.",
+          "log": "{name} 님, 처음으로 한 장을 읽어 주셨습니다. 듣던 분들 중 셋이 끝까지 깨어 있었습니다.",
+          "after": {"evening_line": "오늘 저녁에도 해독실에서 {name} 님이 한 줄 읽어 주십니다."}
+        }
+      ]
+    },
+
+    {
+      "id": "arc_trader_unpack",
+      "role": "trader",
+      "wish_id": "wish_trader_first_name",
+      "title": "짐을 푸는 날",
+      "pace": "느리다가 빠름, 사흘·이틀·하루",
+      "beats": [
+        {
+          "step": 1, "size": "small",
+          "trigger": {"days_since_join": 2, "give": {"category": "apparel", "subtype": ["bag"], "to": "self"}},
+          "announce": "{name} 님이 「{item}」에 짐을 꾸려 문간 긴 의자 밑에 두셨습니다. 떠나실 건 아니랍니다. 늘 그렇게 두신답니다.",
+          "line": "같은 자리에 두 밤 머무는 건 손님 무리의 계율에 어긋납니다. 짐이라도 문 쪽에 두면 마음이 편합니다."
+        },
+        {
+          "step": 2, "size": "small",
+          "trigger": {"min_days_after_prev": 3, "give": {"category": "apparel", "subtype": ["label"], "to": "self"}},
+          "announce": "{name} 님이 「{item}」 빈칸을 손가락으로 두드리고 계십니다. 아직 아무 이름도 안 쓰셨습니다.",
+          "line": "이름표군요. 아직 비어 있습니다. 누가 먼저 써 주시면 그때 달겠습니다."
+        },
+        {
+          "step": 3, "size": "small",
+          "trigger": {"min_days_after_prev": 2, "octopus_with": "self"},
+          "beat": "문어가 긴 의자 밑 짐에 팔을 감고 잠들었다. {name} 님은 짐을 꺼내지 않고 그 옆에 앉았다.",
+          "line": "너는 처음부터 이름을 안 물어봤지."
+        },
+        {
+          "step": 4, "size": "big",
+          "trigger": {"min_days_after_prev": 1, "any_of": [{"flag": "survived_together"}, {"other_arc_step": {"arc": "arc_kid_sweet", "step": 2}}]},
+          "announce": "관리실에서 알려 드립니다. 오늘 {other} 님이 이름표에 {name} 님 이름을 먼저 써 드렸습니다. {name} 님이 문간 짐을 풀어 거주실로 옮기셨습니다.",
+          "line": "오늘 누가 제 이름을 먼저 불렀습니다. 값을 매길 수가 없어서 그냥 뒀습니다.",
+          "log": "{name} 님, 짐을 푸셨습니다. 문간 긴 의자 밑이 처음으로 비었습니다.",
+          "after": {"prop": "name_tag_worn"}
+        }
+      ]
+    },
+
+    {
+      "id": "arc_cook_feast",
+      "role": "cook",
+      "requires": {"arc_done": "arc_cook_seat"},
+      "title": "둘이 마주 앉는 잔치",
+      "pace": "보통, 매듭 사이 이틀",
+      "beats": [
+        {
+          "step": 1, "size": "small",
+          "trigger": {"arc_done": "arc_cook_seat", "min_days_after_prev": 2, "give": {"category": "food", "subtype": ["sauce", "canned"], "to": "self"}},
+          "announce": "{name} 님이 「{item}」 들고 처음 보는 요리를 해 보겠다고 하십니다. 이름은 아직 없답니다.",
+          "line": "이름은 다 먹고 나서 붙일게요. 먼저 붙이면 맛이 이름을 따라가요."
+        },
+        {
+          "step": 2, "size": "small",
+          "trigger": {"min_days_after_prev": 2, "decor": "warm_kitchen"},
+          "announce": "식량창고 앞 상이 하나 더 늘었습니다. 의자가 넷이 됐습니다.",
+          "line": "다들 따로 먹으니까 그릇이 따로 놀아요. 한 상에 놓으면 그릇끼리 친해져요.",
+          "ask": {"kind": "pick_residents", "n": 2, "label": "누구 둘을 마주 앉힐까요?", "default": "lowest_trust_pair"}
+        },
+        {
+          "step": 3, "size": "big",
+          "trigger": {"min_days_after_prev": 2, "session": "evening"},
+          "announce": "관리실에서 안내 말씀 드립니다. 오늘 저녁은 잔치입니다. {other} 님과 {name} 님이 마주 앉으셨습니다. 두 분이 처음으로 같은 그릇을 쓰셨습니다.",
+          "line": "말은 별로 안 했어요. 그래도 그릇은 둘 다 비었어요. 그거면 된 거예요.",
+          "log": "첫 잔치였습니다. 마주 앉은 두 분이 나눈 말은 세 마디였습니다. 관리실은 세 마디도 많다고 봅니다."
+        }
+      ]
+    },
+
+    {
+      "id": "arc_scout_names",
+      "role": "scout",
+      "requires": {"arc_done": "arc_scout_window"},
+      "title": "지나간 것에 붙인 이름",
+      "pace": "느림, 매듭 사이 사흘",
+      "beats": [
+        {
+          "step": 1, "size": "small",
+          "trigger": {"arc_done": "arc_scout_window", "min_days_after_prev": 3, "give": {"category": "stationery", "subtype": ["paper", "pen"], "to": "self"}},
+          "announce": "{name} 님이 「{item}」에 밤에 지나간 것을 하나씩 그리기 시작하셨습니다. 크기는 손가락 마디로 적으셨습니다.",
+          "line": "숫자만 적으면 다음 날 헷갈려요. 모양도 같이 적어 두는 거예요."
+        },
+        {
+          "step": 2, "size": "small",
+          "trigger": {"min_days_after_prev": 3, "night_event": "shade"},
+          "announce": "간밤에 그늘이 지나갔습니다. {name} 님이 아침부터 그 그림 옆에 뭔가를 적고 지우기를 반복하고 계십니다.",
+          "line": "이름을 붙여도 되나 모르겠어요. 눈금 무리는 재기만 하고 이름은 안 붙이거든요.",
+          "ask": {"kind": "choice", "label": "이름을 붙여 보자고 할까요?", "options": ["붙여 보기", "재기만 하기"], "default": "재기만 하기"}
+        },
+        {
+          "step": 3, "size": "big",
+          "trigger": {"min_days_after_prev": 3, "any_of": [{"choice": "붙여 보기"}, {"octopus_with": "self"}]},
+          "announce": "관리실에서 알려 드립니다. {name} 님 집계에 오늘부터 이름이 붙습니다. 처음 붙은 이름은 「느린 손님」이랍니다.",
+          "line": "느린 손님이에요. 재 보니까 느렸으니까, 이름도 잰 대로 붙였어요.",
+          "log": "{name} 님, 지나간 것에 처음으로 이름을 붙이셨습니다. 이름도 결국 잰 것이라고 하셨습니다.",
+          "after": {"morning_line": "{name} 님 집계입니다. 간밤에 느린 손님이 한 번 지나갔답니다."}
+        }
+      ]
+    },
+
+    {
+      "id": "arc_farmer_bowl",
+      "role": "farmer",
+      "requires": {"arc_done": "arc_farmer_color"},
+      "title": "작은 그릇 하나만큼",
+      "pace": "아주 느림, 매듭 사이 사흘",
+      "beats": [
+        {
+          "step": 1, "size": "small",
+          "trigger": {"arc_done": "arc_farmer_color", "min_days_after_prev": 3, "give": {"category": "drink", "subtype": ["water"], "to": "self"}},
+          "announce": "{name} 님이 창가 싹에 「{item}」 물을 한 방울씩 나눠 주고 계십니다. 한 번에 주면 놀란다고 하십니다.",
+          "line": "조금씩이요. 한꺼번에 주면 자라기 전에 지쳐요."
+        },
+        {
+          "step": 2, "size": "small",
+          "trigger": {"min_days_after_prev": 3, "decor": "growing"},
+          "announce": "창가 싹이 둘로 늘었습니다. {name} 님이 둘 사이를 손가락 한 마디만큼 벌려 두셨습니다.",
+          "line": "너무 붙으면 서로 그늘이 돼요. 사람도 그렇다고 하던데요.",
+          "beat": "문어가 창가 그릇 옆에 붙어 하루를 보냈다. 싹 쪽으로는 팔을 뻗지 않았다."
+        },
+        {
+          "step": 3, "size": "big",
+          "trigger": {"min_days_after_prev": 3, "session": "evening"},
+          "announce": "관리실에서 안내 말씀 드립니다. 오늘 저녁 상에 아주 작은 그릇 하나가 올라갑니다. {name} 님이 키운 잎 몇 장입니다. 한 분이 한 장씩만 드시면 됩니다.",
+          "line": "맛은 잘 모르겠어요. 그래도 다들 한 장씩 드셨으니까, 그걸로 됐어요.",
+          "log": "{name} 님 잎이 처음 상에 올랐습니다. 잎은 아홉 장이었고, 아홉 분이 한 장씩 드셨습니다."
+        }
+      ]
+    }
+  ]
+}
