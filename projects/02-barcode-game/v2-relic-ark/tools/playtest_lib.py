@@ -79,6 +79,10 @@ def scan(uid, code, cat=None, show=True):
             print(f"     변형: {r['variant'].get('ko')}")
         for w in r.get("wishes_done") or []:
             print(f"     바람이룸: {w.get('line')}")
+        if r.get("zero_reaction"):
+            print(f"     값낮음반응: {json.dumps(r['zero_reaction'], ensure_ascii=False)[:250]}")
+        if r.get("swap_offer"):
+            so = r['swap_offer']; print(f"     선반가득/바꾸기: {so.get('ko')} 후보 {[c.get('name') for c in so.get('candidates') or []][:4]}")
         if r.get("box_opened"):
             print(f"     상자열림: {json.dumps(r['box_opened'], ensure_ascii=False)}")
         if (r.get("voice") or {}).get("text"):
@@ -157,6 +161,21 @@ class Base:
             time.sleep(0.35)
         if shot and not shot_done:
             self.page.screenshot(path=str(SHOTS / shot))
+        # 사람처럼: 밤사이·만남 카드는 「확인」/「반갑습니다」를 눌러 닫는다(뒤에 줄 선 큰 창을 본다)
+        for _ in range(4):
+            try:
+                el = self.page.query_selector('#panel:not([hidden]) button:has-text("확인")') or self.page.query_selector('.meet button')
+                if not el or not el.is_visible():
+                    break
+                el.click(); time.sleep(2.5)
+                for sel in ('.meet', '#panel:not([hidden])', '#toast'):
+                    e2 = self.page.query_selector(sel)
+                    if e2 and e2.is_visible():
+                        t = (e2.inner_text() or '').strip()
+                        if t and (sel, t) not in seen:
+                            seen.append((sel + ' (확인 뒤)', t))
+            except Exception:
+                break
         return seen
 
     def text(self, sel="body"):
@@ -222,7 +241,7 @@ def ui_scan(b: "Base", code: str, cat: str | None, shot: str | None = None):
         q = p.inner_text("#picker").split("\n")[0]
         picked = CAT_BTN.get(cat, "모름")
         p.click(f"#picker button:text-is('{picked}')"); time.sleep(1.2)
-    time.sleep(1.5)
+    time.sleep(3.2)
     front = p.inner_text("#rcFront") if p.is_visible("#scanCard") else ""
     gain = p.inner_text("#rgain") if p.is_visible("#scanCard") else ""
     toast = p.inner_text("#toast")

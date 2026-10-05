@@ -39,6 +39,8 @@ def do_open(b, shot=None):
     b.report(seen, "열자마자")
     st = (b.payloads.get('/api/ark') or [None])[0] or ark(b.uid)
     summary(st)
+    print("   선반칸:", (st.get('shelf_room') or {}).get('capacity'), "창고상자:", len(st.get('stored') or []), "| 저장:", st.get('storage'), "| 밤사이:", json.dumps(st.get('overnight'), ensure_ascii=False)[:600])
+    if st.get('depth_crossed'): print("   [깊이]", st['depth_crossed'])
     for k in ('night_judge', 'knock', 'wishes_new', 'morning_lines', 'produced_while_away', 'expedition_return'):
         v = st.get(k)
         if v and (not isinstance(v, dict) or any(v.values())):
@@ -65,10 +67,11 @@ def do_place(uid):
         if p.get('injured') or p['id'] in (st.get('outside') or []):
             continue
         opts = mp.get(p['id']) or {}
-        best = max(((s, v) for s, v in opts.items() if s != 'hall' and v.get('can') and v.get('room_delta_pct') is not None),
-                   key=lambda x: x[1]['room_delta_pct'] + (x[1].get('from_delta_pct') or 0), default=None)
+        def gain(v):
+            return v.get('ark_delta_pct') if v.get('ark_delta_pct') is not None else (v.get('room_delta_pct') or 0) + (v.get('from_delta_pct') or 0)
+        best = max(((s, v) for s, v in opts.items() if s != 'hall' and v.get('can')), key=lambda x: gain(x[1]) or -999, default=None)
         cur = stn.get(p['id'])
-        if best and (best[1]['room_delta_pct'] + (best[1].get('from_delta_pct') or 0)) > 3:
+        if best and (gain(best[1]) or 0) > 1:
             r = post('/api/ark/station', {'uid': uid, 'resident_id': p['id'], 'slot': int(best[0])})
             print(f"  [배치] {p['name']}({p['role_ko']}) {cur}→{best[0]}  미리보기 {best[1]}")
             st = r if '_status' not in r else st
@@ -153,6 +156,10 @@ def do_raid(uid, policy):
         raid = a.get('raid') or raid
         print("  [실루엣]", (raid.get('creature') or {}).get('silhouette'), "| 노리는 방:", raid.get('target_room'))
         print("   미리보기:", json.dumps(raid.get('ready'), ensure_ascii=False)[:600])
+    if raid.get('card_mode') == 'clue':
+        print("  [단서 모드] 버릇:", raid.get('habit'), "| 동사:", json.dumps(raid.get('verbs'), ensure_ascii=False)[:900], "| 만남:", ((ark(uid).get('combat') or {}).get('encounters')))
+        if policy == 'careful':
+            print("   (단서 모드 — 사람이 판단해서 verb/act 단계로 이어 간다)"); return
     if policy == 'careful':
         gate_fix(uid, raid)
         st = ark(uid)
@@ -342,6 +349,31 @@ def main():
             for r in st['rooms']:
                 if r.get('cracked'):
                     print('  [수리]', json.dumps(post('/api/ark/repair', {'uid': uid, 'slot': r['slot']}), ensure_ascii=False)[:300])
+        elif k == 'verb':
+            r = post('/api/raid/verb', {'uid': uid, 'verb': arg or None}); rd = r.get('raid') or r
+            print('  [동사]', arg, json.dumps(rd.get('ready') if isinstance(rd, dict) else r, ensure_ascii=False)[:700])
+        elif k == 'act':
+            r = post('/api/ark/act', {'uid': uid, 'action': arg}); print('  [행동]', json.dumps({x: r.get(x) for x in ('ok', 'paid', 'ko', 'detail')}, ensure_ascii=False)[:300])
+        elif k == 'light':
+            sl, on = arg.split(','); post('/api/ark/light', {'uid': uid, 'slot': int(sl), 'on': on == 'on'}); print('  [불]', arg)
+        elif k == 'power':
+            post('/api/ark/power', {'uid': uid, 'on': arg == 'on'}); print('  [전원]', arg)
+        elif k == 'gather':
+            st = ark(uid); sl = int(arg); n = 0
+            for p in st['residents_list']:
+                rr = post('/api/ark/station', {'uid': uid, 'resident_id': p['id'], 'slot': sl}, quiet=True)
+                n += '_status' not in rr
+            print('  [모이기]', sl, n, '명')
+        elif k == 'peek':
+            rr = get(f'/api/raid/today?uid={uid}'); show_raid(rr); print('   card_mode', (rr.get('raid') or {}).get('card_mode'), 'verb', (rr.get('raid') or {}).get('verb'))
+        elif k == 'contact':
+            a = post('/api/raid/advance', {'uid': uid}); print("  [접촉]", json.dumps({x: a.get(x) for x in ('stage', 'result', 'result_ko', 'line', 'gained', 'lost_room', 'room_name')}, ensure_ascii=False)[:700])
+        elif k == 'trade':
+            g, t, n = arg.split(','); r = post('/api/workshop/trade', {'uid': uid, 'give': g, 'get': t, 'n': int(n)}); print('  [바꾸기]', json.dumps({x: r.get(x) for x in ('ok', 'ko', 'detail', 'paid', 'got')}, ensure_ascii=False)[:300])
+        elif k == 'swap':
+            st = ark(uid)
+            for it in (st.get('stored') or [])[:int(arg or 1)]:
+                r = post('/api/shelf/swap', {'uid': uid, 'stored_id': it['id']}); print('  [선반올리기]', it.get('relic_name') or it.get('name'), r.get('ko') or r.get('detail'))
         elif k == 'adv':
             print('  [시간]', advance(uid, float(arg)))
         elif k == 'sum':
