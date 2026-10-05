@@ -11,6 +11,8 @@ import sys
 sys.path.insert(0, __file__.rsplit("\\", 1)[0] if "\\" in __file__ else __file__.rsplit("/", 1)[0])
 from playtest_lib import *          # noqa
 from playtest_household import code, cat, name, H   # noqa
+import random
+import playtest_core_a as CA
 
 ROOM_PRI = ["quarters", "storage", "greenhouse", "well", "workshop", "airlock", "generator", "library", "infirmary", "pantry"]
 
@@ -34,11 +36,16 @@ def summary(st):
         print("   물 찬 칸:", st['flooded_cells'])
 
 
+SES = None
+
+
 def do_open(b, shot=None):
     seen = b.open(wait=15, shot=shot, shot_at=7 if shot else None)
     b.report(seen, "열자마자")
     st = (b.payloads.get('/api/ark') or [None])[0] or ark(b.uid)
     summary(st)
+    if SES is not None:
+        SES.on_open(st)
     print("   선반칸:", (st.get('shelf_room') or {}).get('capacity'), "창고상자:", len(st.get('stored') or []), "| 저장:", st.get('storage'), "| 밤사이:", json.dumps(st.get('overnight'), ensure_ascii=False)[:600])
     if st.get('depth_crossed'): print("   [깊이]", st['depth_crossed'])
     for k in ('night_judge', 'knock', 'wishes_new', 'morning_lines', 'produced_while_away', 'expedition_return'):
@@ -290,7 +297,10 @@ def do_boxes(uid):
 
 
 def main():
+    global SES
     persona, uid = sys.argv[1], sys.argv[2]
+    SES = CA.Session(persona, uid)
+    rng = random.Random(f"{uid}|{len(sys.argv)}|{time.time()//60}")
     b = None
     def B():
         nonlocal b
@@ -349,6 +359,24 @@ def main():
             for r in st['rooms']:
                 if r.get('cracked'):
                     print('  [수리]', json.dumps(post('/api/ark/repair', {'uid': uid, 'slot': r['slot']}), ensure_ascii=False)[:300])
+        elif k == 'loop':
+            if SES.d['day'] is None:
+                SES.on_open(ark(uid))
+            CA.do_loop(persona, uid, [x for x in arg.split(',') if x], SES, rng)
+        elif k == 'arcs':
+            CA.do_arcs(persona, uid, SES)
+        elif k == 'decor':
+            CA.do_decor(persona, uid, SES, int(arg or 2))
+        elif k == 'feast':
+            st = ark(uid); ids = [p['id'] for p in st['residents_list']][:2]
+            r = post('/api/feast', {'uid': uid, 'pair': ids}); print('  [잔치]', r.get('ko') or r.get('detail') or json.dumps(r, ensure_ascii=False)[:300])
+            if '_status' not in r: SES.d['decisions'].append('잔치')
+        elif k == 'leave':
+            CA.do_leave(uid, SES)
+        elif k == 'contract':
+            CA.do_contract(SES)
+        elif k == 'report':
+            CA.same_answer_report(uid)
         elif k == 'verb':
             r = post('/api/raid/verb', {'uid': uid, 'verb': arg or None}); rd = r.get('raid') or r
             print('  [동사]', arg, json.dumps(rd.get('ready') if isinstance(rd, dict) else r, ensure_ascii=False)[:700])

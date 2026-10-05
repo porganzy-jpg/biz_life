@@ -18,7 +18,8 @@ warnings.filterwarnings("ignore")
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = "http://127.0.0.1:8002"
+import os
+BASE = os.environ.get("PT_BASE", "http://127.0.0.1:8002")
 SHOTS = ROOT / "docs" / "reports" / "shots"
 SCRATCH = Path(r"C:\Users\user\AppData\Local\Temp\claude\c--Users-user-Desktop-biz-life\696d4b7b-943c-4c45-873f-85f382ee6064\scratchpad")
 ERRLOG = SCRATCH / "playtest_errors.jsonl"
