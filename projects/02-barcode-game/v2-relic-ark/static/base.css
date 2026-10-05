@@ -798,3 +798,85 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .zpop{top:44%; transform:translate3d(-50%,0,0); max-width:92%}
 .zpop.off{transform:translate3d(-50%,-12px,0)}
 @keyframes zpopIn{from{opacity:0; transform:translate3d(-50%,10px,0) scale(.7)}to{opacity:1; transform:translate3d(-50%,0,0) scale(1)}}
+/* ══ S19-B ══ */
+.rshort{display:block; margin-top:3px; font-size:11.5px; color:#e8c98a}
+/* 핵심 루프 A — 「어디로」 */
+.give{margin-top:10px}
+.give .gq{margin:0 0 6px; font-size:12px; color:var(--dim); text-align:center}
+.gopts{display:flex; gap:6px; flex-wrap:wrap; justify-content:center}
+.gopt{flex:1 1 100px; max-width:150px; min-height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:6px 6px 7px; cursor:pointer;
+  color:var(--ink); background:#151a17; border:1px solid #2a2419; border-radius:8px; font-size:12px; line-height:1.3}
+.gopt.top{border-color:var(--lamp); background:#1d1a12; box-shadow:0 0 0 1px rgba(240,176,85,.35)}
+.gopt.keep{flex:0 1 72px; color:#b9ae94}
+.gopt b{color:var(--cream); font-size:13px}
+.gopt small{font-size:10.5px; color:#b9ae94}
+.gname{display:flex; flex-direction:column; align-items:center; gap:1px}
+.give.busy .gopt{opacity:.5; pointer-events:none}
+.give.compact .gopt{min-height:44px; flex-direction:row; max-width:140px; padding:4px 8px; gap:6px}
+.give.compact .gname{align-items:flex-start}
+.give.compact .gq{display:none}
+.face{display:inline-block; flex:0 0 auto; border-radius:50%; background-color:#2a2016; background-repeat:no-repeat; image-rendering:pixelated; box-shadow:0 0 0 2px #14110c, 0 0 0 3px #5a4320}
+.face.blank{width:30px; height:30px}
+.roomico{display:inline-block; width:36px; height:28px; border-radius:4px; background:linear-gradient(#e8c98a 0 30%, #7a5630 30% 34%, #3a2a14 34%); box-shadow:0 0 0 2px #14110c}
+.shelfico{display:inline-block; width:34px; height:24px; background:linear-gradient(#14110c 0 2px, transparent 2px 11px, #96703f 11px 13px, transparent 13px 22px, #96703f 22px 24px)}
+.give.compact .roomico{width:28px; height:22px} .give.compact .shelfico{width:26px; height:20px}
+.why{display:inline-flex; align-items:center; gap:3px; font-style:normal; font-size:10.5px; color:#e8c98a}
+.why i{display:inline-block; width:9px; height:9px}
+.why-need i{background:#6fc9c4; border-radius:50% 50% 50% 0; transform:rotate(-45deg)}
+.why-chain i{border:2px solid #f0b055; border-radius:50%; width:7px; height:7px}
+.why-memory i{background:#ffe2a8; clip-path:polygon(50% 0,61% 38%,100% 38%,69% 61%,80% 100%,50% 76%,20% 100%,31% 61%,0 38%,39% 38%)}
+.why-like i{background:#d08a72; clip-path:path('M4.5 8 L0.6 4.1 A2.2 2.2 0 0 1 4.5 1.3 A2.2 2.2 0 0 1 8.4 4.1 Z')}
+.why-decor i{background:repeating-linear-gradient(45deg,#8fbf7a 0 2px,transparent 2px 4px); border:1px solid #8fbf7a}
+/* 반응 방울 · 꼬리표 */
+.givepop{position:absolute; z-index:14; transform:translate3d(-50%,-100%,0); padding:8px 12px 9px; text-align:center; pointer-events:auto; cursor:pointer;
+  background:#ffe9b0; color:#1a150e; border:2px solid #5a4320; border-radius:12px; box-shadow:0 3px 0 #14110c; animation:gpIn .35s cubic-bezier(.3,1.5,.5,1); transition:opacity .4s}
+.givepop p{margin:2px 0 0; font-size:12.5px; line-height:1.5}
+.givepop .heart{display:block; width:18px; height:16px; margin:-20px auto 2px; background:#d08a72; clip-path:path('M9 16 L1.3 8.2 A4.4 4.4 0 0 1 9 2.6 A4.4 4.4 0 0 1 16.7 8.2 Z'); animation:gpHeart 1.2s ease-in-out infinite}
+.givepop.gk-chain .heart, .givepop.gk-memory .heart{background:#f0b055} .givepop.gk-decor .heart{background:#8fbf7a} .givepop.gk-returned .heart{background:#7e8d8c; animation:none}
+.givepop.off{opacity:0}
+@keyframes gpIn{from{opacity:0; transform:translate3d(-50%,-70%,0) scale(.8)}to{opacity:1; transform:translate3d(-50%,-100%,0) scale(1)}}
+@keyframes gpHeart{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(0,-4px,0) scale(1.12)}}
+.tagpop{position:absolute; z-index:14; transform:translate3d(-50%,0,0); padding:4px 12px; font-size:13px; color:#1a150e; background:#e8c98a; border:2px solid #5a4320; border-radius:14px; animation:gpIn .4s cubic-bezier(.3,1.5,.5,1)}
+/* 주민 작은 카드 · 패널 줄 */
+.ppop{position:absolute; z-index:13; padding:9px 11px; background:#0b0e0c; border:1px solid #2a2419; border-top:3px solid var(--lamp); border-radius:8px; box-shadow:0 4px 0 rgba(0,0,0,.4)}
+.phead{display:flex; align-items:center; gap:8px; margin-bottom:5px}
+.phead b{color:var(--cream); font-size:14px} .phead em{font-style:normal; font-size:11px; color:var(--dim)}
+.phint{margin:5px 0 0; font-size:10.5px; color:var(--dim)}
+.taste{margin:4px 0 6px; font-size:12px; line-height:1.55; color:var(--ink)}
+.taste p{margin:0 0 2px} .taste b{color:#b9ae94; font-weight:700; margin-right:3px}
+.taste i{display:inline-block; width:8px; height:8px; margin-right:4px; vertical-align:0}
+.tneed i{background:#6fc9c4; border-radius:50% 50% 50% 0; transform:rotate(-45deg)} .tneed.met{opacity:.6}
+.tlike i{background:#d08a72; border-radius:50%} .tkeep i{background:#e8c98a}
+.arcdots{display:inline-flex; gap:3px; vertical-align:middle} .arcdots i{width:8px; height:8px; border-radius:50%; border:1.5px solid #f0b055}
+.arcdots i.on{background:#f0b055}
+.taste small{color:var(--dim)}
+.needrow{display:flex; flex-direction:column; gap:5px; margin:2px 0 8px}
+.needchip{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink)} .needchip b{color:var(--cream)}
+/* 매듭 카드 */
+.beatcard{position:absolute; z-index:15; left:12px; bottom:76px; width:min(330px,calc(100% - 24px)); padding:12px 13px; background:#0b0e0c; border:1px solid #2a2419; border-left:4px solid var(--lamp);
+  border-radius:8px; box-shadow:0 4px 0 rgba(0,0,0,.45); animation:gpIn .4s cubic-bezier(.2,.8,.3,1); transform:none; transition:opacity .35s}
+@keyframes beatIn{from{opacity:0; transform:translate3d(0,14px,0)}to{opacity:1; transform:none}}
+.beatcard{animation:beatIn .4s cubic-bezier(.2,.8,.3,1)}
+.beatcard.off{opacity:0}
+.beatcard .bcast{margin:2px 0 6px; font-size:12px; line-height:1.6; color:#b9ae94}
+.beatcard .bline{margin:0 0 6px; font-size:13.5px; line-height:1.6; color:var(--cream)}
+.beatcard .bask{margin:4px 0 0; font-size:12px; color:var(--lamp)}
+/* 방 카드 꾸밈 줄 */
+.decorline{color:#e8c98a} .decorline b{color:#8fbf7a}
+.decorlist{display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 6px}
+.decorlist button{min-height:30px; padding:0 8px; font-size:11px; cursor:pointer; color:var(--ink); background:#151a17; border:1px solid #2a2419; border-radius:12px}
+/* 위 줄 「다음에 켜시면」 · 떠날 때 카드 */
+.nextline{flex:0 1 auto; display:flex; align-items:center; gap:6px; height:30px; max-width:300px; padding:0 10px; cursor:pointer; font-size:11.5px; color:#cfe8ec;
+  background:rgba(12,40,48,.85); border:1px solid #2f6670; border-radius:15px}
+.nextline i{flex:0 0 auto; width:8px; height:8px; border-radius:50%; background:#6fc9c4}
+.nextline span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.leavecard{position:fixed; inset:0; z-index:32; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(1,6,10,.66)}
+.leave-in{width:min(360px,100%); padding:16px 18px; background:#0b0e0c; border:1px solid #2a2419; border-top:3px solid #6fc9c4; border-radius:10px}
+.leave-in .sub{margin:4px 0 4px} .lnext{margin:0 0 6px; font-size:14px; line-height:1.7; color:var(--cream)}
+@media (max-height:500px){ .nextline{max-width:180px; height:26px} .beatcard{bottom:56px} .gopt{min-height:52px} }
+@media (prefers-reduced-motion:reduce){ .givepop, .givepop .heart, .tagpop, .beatcard{animation:none} }
+.gopts{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) 64px; gap:6px}
+.gopt{max-width:none; min-width:0}
+.give.compact .gopts{grid-template-columns:repeat(3,minmax(0,1fr)) 56px}
+.give.compact .gopt{max-width:none}
+.gname b{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

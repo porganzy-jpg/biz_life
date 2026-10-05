@@ -310,9 +310,13 @@
       return s(d.line) || (nm ? nm + ' 님이 돌아오셨습니다.' + (d.discovered ? ' 찾은 곳이 있습니다.' : '') : ''); }
     if (k === 'depth') return s(d.ko) || (d.m ? '이 집이 ' + d.m + 'm까지 내려왔습니다.' : '');
     if (k === 'imprint') return s(d.line) || (d.imprint_name ? (d.residents || []).join(', ') + ' 님에게 ' + K.josa('「' + d.imprint_name + '」', '이') + ' 남았습니다.' : '');
-    if (k === 'octopus') return s(d.line) || (d.name ? '문어가 ' + K.josa('「' + d.name + '」', '을') + ' 두고 갔습니다.' : '');
+    if (k === 'octopus') { const l = s(d.line); const on = ((K.ark || {}).octopus || {}).name || '문어'; return l ? ((l.indexOf('문어') >= 0 || l.indexOf(on) >= 0) ? l : '문어가 물어 온 것: ' + l) : (d.name ? '문어가 ' + K.josa('「' + d.name + '」', '을') + ' 두고 갔습니다.' : ''); }
     if (k === 'knock') return d.name ? '밤사이 문간 유리를 누가 두드렸습니다. ' + d.name + ' 님이 문간에서 기다리십니다.' : '';
     if (k === 'wish') return s(d.line || d.ko);
+    if (k === 'needs') return '';                                  // S19: 오늘 필요는 아래 얼굴 줄(needs_today)로
+    if (k === 'visit') return s(d.line || d.ko);
+    if (k === 'overflow') return s(d.ko);
+    if (k === 'arc' || k === 'beat') return s(d.announce || d.line || d.ko);
     return s(d.ko || d.line);
   }
   function morning(st) {
@@ -323,10 +327,16 @@
     if (ov && ov.items) morningShown = ov.items.length;
     const lines = overnightLines(st);
     store.set('morning_day', day);
-    if (!lines.length) return;
+    const core = K.ext.core;
+    if (!lines.length && !(core && core.hasMorning && core.hasMorning(st))) return;
     K.enqueue('overnight', (done) => {
-      const body = K.panel('<h2>' + esc((ov && ov.title) || T('morning.title', {}, '밤사이')) + '</h2><p class="sub">' + esc(day) + '일째 아침</p>' +
-        '<p class="desc">' + esc(K.plain((ov && ov.open) || T('morning.open', {}, '좋은 아침입니다, 관리실입니다.'))) + '</p>' +
+      const hr = new Date().getHours(), when = hr >= 5 && hr < 11 ? '아침' : hr < 17 ? '낮' : hr < 21 ? '저녁' : '밤';
+      const tk = hr >= 5 && hr < 11 ? 'morning' : hr < 17 ? 'day' : hr < 21 ? 'evening' : 'night';                       // S19: 저녁에 열어도 「아침」이라 하던 것
+      const title = T('morning.by_time.' + tk + '.title', {}, '') || (tk === 'morning' ? ((ov && ov.title) || T('morning.title', {}, '밤사이')) : '그사이');
+      const open0 = T('morning.by_time.' + tk + '.open', {}, '');
+      const body = K.panel('<h2>' + esc(title) + '</h2><p class="sub">' + esc(day) + '일째 ' + when + '</p>' +
+        '<p class="desc">' + esc(K.plain(open0 || (ov && ov.open) || T('morning.open', {}, '좋은 아침입니다, 관리실입니다.'))) + '</p>' +
+        (K.ext.core && K.ext.core.morningExtra ? K.ext.core.morningExtra(st) : '') +   // S19: 오늘 바라는 것·찾아온 이·오늘의 일
         lines.map(l => '<p class="dayline ov-' + esc(l.kind) + '">' + esc(l.text) + '</p>').join('') +
         '<p class="desc">' + esc(K.plain((ov && ov.close) || T('morning.close', {}, ''))) + '</p>' +
         '<div class="rowbtns"><button class="ovok">' + esc(T('overnight.ok', {}, '확인')) + '</button></div>');
@@ -381,7 +391,9 @@
     const g = K.ext.gift; if (!g) return;
     store.set('gift_day', K.ark && K.ark.day); K.ext.gift = null;
     K.play('sfx_card_place.ogg', 0.5);
-    announce(K.plain(g.ko || T('octopus_gift.pop', { item: g.name }, '')));
+    const gl = K.plain(g.ko || T('octopus_gift.pop', { item: g.name }, ''));
+    const on = ((K.ark || {}).octopus || {}).name || '문어';
+    announce((gl.indexOf('문어') >= 0 || gl.indexOf(on) >= 0) ? gl : '문어가 물어 온 것: ' + gl);
     C.log.push('gift ' + g.id);
   };
   // 덮개가 노리는 방이 드러나면 한 번 방송(API_S13 §6 raid.reveal_ko)
@@ -419,6 +431,7 @@
   }
   async function nightCheck(st) {
     if (store.get('dayend_day', null) === st.day || sessionStart) return;
+    if (st.session && st.session.big_left === 0) return;            // S19: 큰 창은 세션에 둘까지(API_S19 §6)
     const end = dayEndsAt(st);
     if (end == null) return;
     const left = end - Date.now() / 1000;
@@ -429,6 +442,7 @@
     K.enqueue('day_end', (done) => { openDayEnd(true).then(() => K.whenPanelGone(done)).catch(done); });
   }
   C.dayEndsAt = dayEndsAt;
+  C.morningTest = () => { morningShown = null; store.set('morning_day', null); morning(K.ark); };   // ★ 검수용
   // 이뤄진 바람(한 번만 온다)
   function wishNews(st) { (st.wishes_new || []).forEach(w => announce(K.plain(w.line || ''))); if ((st.wishes_new || []).length) loadWishes(true); }
 

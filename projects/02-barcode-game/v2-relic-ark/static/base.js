@@ -912,6 +912,7 @@
     drawShelf(slot, ix, iy, iw, ih, lit);
     drawRoomAnim(slot, ix, iy, iw, ih, t);
     drawInstalled(slot, ix, iy, iw, ih);
+    if (K.ext.drawRoomExtra) { try { K.ext.drawRoomExtra(room, slot, ix, iy, iw, ih, t, lit); } catch (e) { /* 꾸밈 층이 실패해도 방은 그린다 */ } }   // S19 꾸밈·방문자
     drawPeople(people, r, t, slot);
 
     if (cam.z > 0.16) {
@@ -1539,6 +1540,7 @@
     drawHall(t);
     drawPod(t);
     drawOutside(t);
+    if (K.ext.drawOutsideExtra) { try { K.ext.drawOutsideExtra(t); } catch (e) { /* 창밖 방문자 */ } }   // S19
     drawMovers(t);
     drawBubbles2(t);                                  //   해치 물방울
     drawLife(t, true);                                //   생물(z≥20)
@@ -1658,7 +1660,8 @@
       (p.injured ? '<em class="hurt">부상</em>' : '') +
       '<span class="mv">' + (carry && carry.id === p.id ? '놓기 취소' : '옮기기') + '</span></div>' +
       statRows(p, slot) +
-      (K.ext.wishFor ? K.ext.wishFor(p) : '');   // S13: 주민의 바람(/api/wishes)
+      (K.ext.wishFor ? K.ext.wishFor(p) : '') +   // S13: 주민의 바람(/api/wishes)
+      (K.ext.tasteFor ? K.ext.tasteFor(p) : '');  // S19: 오늘 필요·좋아함·머리맡·사슬
   }
 
   // 패널이 습격 막대 아래에서 열리게 한다(데스크톱). 둘이 겹치면 둘 다 안 읽힌다
@@ -1990,7 +1993,7 @@
       g.classList.toggle('ok', !!gt.ok);
       g.innerHTML = '<b>' + (gt.ok ? '준비 끝' : '아직') + '</b>' + (gt.ko ? '<span>' + esc(gt.ko) + '</span>' : '');
       wd.classList.toggle('bad', raid.ready.would !== 'held');
-      wd.innerHTML = '지금 맞서시면 <b>' + esc((K.ext.T && K.ext.T('raid_preview.' + raid.ready.would, {}, '')) || raid.ready.would_ko) + '</b>';   // S18 TSV: 미리 보기는 미래형
+      wd.innerHTML = '지금 맞서시면 <b>' + esc((K.ext.T && K.ext.T('raid_preview.' + raid.ready.would, {}, '')) || raid.ready.would_ko) + '</b>' + shortWord(raid);   // S18 TSV: 미리 보기는 미래형
     } else { g.hidden = true; wd.hidden = true; }
     renderGate(raid);
     clueMode(raid);
@@ -2080,6 +2083,18 @@
     $('#rwould').hidden = !pick || !raid.ready;
     $('#ract').hidden = true;                                 // 단서 모드에서는 맞는 행동 하나를 콕 집지 않는다(서버 action:null)
   }
+  // S19(2차 테스트 3): 단서 모드에서 관문은 맞았는데 막지 못하면 「무엇이 모자란지」 한 단어. 서버 short_ko(있으면) → 판정 항목 중 가장 약한 것
+  function shortWord(raid) {
+    const rd = raid.ready || {};
+    if (rd.would === 'held' || !(rd.gate && rd.gate.ok)) return '';
+    const so = (raid.preview || {}).short_of || rd.short_of;   // API_S19 §8: 손|눈|숨|담|도구|불 한 단어
+    const w = so ? (so + (so === '도구' || so === '불' ? '' : '') + josa(so, '이').slice(so.length) + ' 모자랍니다') : (rd.short_ko || rd.lacking_ko || rd.weak_ko);
+    if (w) return '<span class="rshort">' + esc(plain(w)) + '</span>';
+    const parts = (rd.parts || []).filter(p => typeof p.v === 'number' && p.ko);
+    if (!parts.length) return '<span class="rshort">힘이 조금 모자랍니다. 사람이나 도구를 더해 보세요.</span>';
+    const weak = parts.slice().sort((a, b) => a.v - b.v)[0];
+    return '<span class="rshort">' + esc(josa(plain(weak.ko), '이')) + ' 가장 약합니다.</span>';
+  }
   async function refreshRaid() {
     try {
       const r = await api('/api/raid/today?uid=' + encodeURIComponent(uid));
@@ -2146,6 +2161,7 @@
     cb = st.combat || cb;
     if (Array.isArray(st.shelf)) shelf = st.shelf.filter(x => x && typeof x.slot === 'number');
     if (Array.isArray(st.stored)) stored = st.stored.filter(x => x && x.id);      // S18: 선반에 못 놓인 유물(창고 상자)
+    if (stored.length) setTimeout(autoFill, 600);                                   // S19: 칸이 늘면 창고 상자에서 저절로 채운다
     if (st.rooms_catalog) catalog = st.rooms_catalog;
     slots = st.slots || slots;
     floorSlots = st.floor_slots || floorSlots;
@@ -2404,6 +2420,26 @@
         '<div class="sto"><span><b>' + esc(it.relic_name || it.name || '물건') + '</b> · ' + esc(RAR_KO[it.rarity] || '') + ' · ' + esc(whenKo(it.scanned_at)) + '</span>' +
         (free ? '<button data-unstore="' + esc(it.id) + '">선반에 올리기</button>' : '') + '</div>').join('') + '</div>';
   }
+  // S19(2차 테스트 4): 창고를 넓혀도 상자 속 물건이 저절로 안 올라왔다 → 빈 칸에 들어가는 것부터 하나씩 올린다(서버 /api/shelf/swap, 넣을 자리가 있을 때만 부른다)
+  let autoBusy = false;
+  function freeRun() {
+    const used = new Set(); shelf.forEach(it => { for (let k = 0; k < propSpec(it.prop_id).slots; k++) used.add((it.slot | 0) + k); });
+    let best = 0, run = 0; for (let i = 0; i < shelfCap(); i++) { run = used.has(i) ? 0 : run + 1; best = Math.max(best, run); }
+    return best;
+  }
+  async function autoFill() {
+    if (autoBusy || !ark || !stored.length || !$('#scan').hidden) return;
+    const room = freeRun(); if (!room) return;
+    const it = stored.slice().sort((a, b) => (b.polish || 1) - (a.polish || 1) || (b.scanned_at || 0) - (a.scanned_at || 0)).find(x => propSpec(x.prop_id).slots <= room);
+    if (!it) return;
+    autoBusy = true;
+    try {
+      const r = await api('/api/shelf/swap', { stored_id: it.id });
+      if (r.state) apply(r.state);
+      if (typeof r.slot === 'number') { shelfFlash = { slot: r.slot, until: performance.now() + 6000 }; say(plain(r.ko || ('「' + (it.relic_name || it.name) + '」, 선반 빈 칸에 올려 두었습니다.'))); }
+    } catch (e) { /* 다음 상태에서 다시 */ }
+    autoBusy = false;
+  }
   function storedLine(slot) {
     if (slot !== shelfRoomSlot() || !stored.length) return '';
     return '<p class="rcline stoline">선반 ' + shelf.length + '점 / ' + shelfCap() + '칸 <button class="stochip" data-c="stored">' + esc(STO()) + ' ' + stored.length + '</button></p>';
@@ -2533,7 +2569,7 @@
     if (dev) sm.innerHTML = SAMPLES.map(([c, l]) => '<button data-c="' + c + '">' + esc(l) + ' ' + c + '</button>').join('');
     startCam();
   }
-  function closeScan() { stopCam(); if (K.ext.cards) K.ext.cards.stop(); $('#scan').hidden = true; }
+  function closeScan() { stopCam(); if (K.ext.cards) K.ext.cards.stop(); if (K.ext.coreKeep) K.ext.coreKeep(); $('#scan').hidden = true; }   // S19: 「어디로」를 안 고르고 닫으면 선반
   async function startCam() {
     const st = $('#camstatus'), box = $('#cam');
     box.classList.remove('off');
@@ -2608,7 +2644,10 @@
   const TT = (k, v, fb) => (K.ext.T ? K.ext.T(k, v || {}, '') : '') || fb;   // 시나리오 문장(ui_moments) 먼저
   const STO = () => TT('shelf.full.storage_label', {}, '창고 상자');
   function swapOffer(so, item) {
-    const c = (so.candidates || []).slice(0, 3);
+    // S19(2차 테스트 4): 폭이 안 맞으면 바꾸기가 실패했다 → 들어갈 물건보다 좁은 후보는 뺀다
+    const st0 = stored.find(x => x.id === so.stored_id), need = st0 ? propSpec(st0.prop_id).slots : 1;
+    const fits = (x) => { const it = shelf.find(s => (s.slot | 0) === (x.slot | 0)); return !it || propSpec(it.prop_id).slots >= need; };
+    const c = (so.candidates || []).filter(fits).slice(0, 3);
     return '<span class="where swapq">' + esc(plain(TT('shelf.full.prompt', { item }, so.ko || '선반이 꽉 차서 ' + STO() + '에 넣어 두었습니다. 선반의 물건과 바꾸시겠습니까?'))) + '</span>' +
       (c.length ? '<span class="swapbtns">' + c.map(x => '<button data-swap="' + esc(so.stored_id) + '" data-slot="' + esc(x.slot) + '">' +
         esc('「' + (x.relic_name || x.name || '물건') + '」') + '<small>' + esc(TT('shelf.full.swap_label', {}, '바꿔 놓기')) + (POLISH_KO[x.polish] ? ' · ' + esc(POLISH_KO[x.polish]) : '') + '</small></button>').join('') +
@@ -2622,13 +2661,23 @@
   // S18: 값 0 재스캔(같은 날 같은 물건 등)에도 작은 반응. 서버 zero_note(있으면) → 시나리오 문장(ui_moments rescan_zero) → 기존 문장.
   //      카드는 뒤집힌 뒤 고개를 한 번 갸웃한다(.zero)
   // 카드 위에 작게 톡 — 「닦기가 하나 쌓였습니다」「문어가 좋아합니다」 같은 한 줄(서버 zero_reaction.ko). 3.6초 뒤 사라짐
+  // S19(2차 테스트 5): 값낮음 반응이 한 문장만 되풀이됐다 → 최근 세 문장과 같으면 시나리오 목록에서 안 쓴 것으로 바꾼다
+  const recentZero = (() => { try { return JSON.parse(localStorage.getItem('ark_zero_recent') || '[]'); } catch (e) { return []; } })();
+  function freshLine(t, pool) {
+    const used = (x) => recentZero.indexOf(x) >= 0;
+    let out = t;
+    if (!out || used(out)) { const alt = pool.map(x => fillText(x, {})).find(x => !used(x)); if (alt) out = alt; }
+    if (out) { recentZero.push(out); while (recentZero.length > 3) recentZero.shift(); try { localStorage.setItem('ark_zero_recent', JSON.stringify(recentZero)); } catch (e) { /* 못 적어도 된다 */ } }
+    return out;
+  }
   function zeroPop(z) {
     const host = $('#rcard'); if (!host) return;
     const old = host.querySelector('.zpop'); if (old) old.remove();
     const el = document.createElement('div'); el.className = 'zpop zp-' + (z.kind || 'x');
     const FB = { box_key_hint: '이 성문을 기다리는 상자가 문간에 있습니다.', polish_progress: '닦은 횟수가 하나 쌓였습니다.',
                  wish_hint: (z.resident ? z.resident + ' 님이 ' : '') + '이런 물건을 반가워하십니다.', octopus_mood: '문어가 좋아합니다.' };
-    const t = z.ko || (K.ext.T ? K.ext.T('zero.' + z.kind, { name: z.resident || '' }, '') : '') || FB[z.kind] || '';
+    let t = z.ko || (K.ext.T ? K.ext.T('zero.' + z.kind, { name: z.resident || '' }, '') : '') || FB[z.kind] || '';
+    t = freshLine(t, (K.ext.Tarr && K.ext.Tarr('shelf.rescan_zero')) || []);
     if (!t) return;
     el.innerHTML = '<i aria-hidden="true"></i><span>' + esc(plain(t)) + '</span>';
     host.appendChild(el);
@@ -2640,7 +2689,8 @@
     if (!t && K.ext.T) {
       const c = r.card || {}, item = c.name || '';
       const arr = K.ext.Tarr ? (K.ext.Tarr('shelf.rescan_zero') || K.ext.Tarr('rescan_zero.lines')) : null;
-      if (arr && arr.length) { let h = 0; String(c.barcode || c.id || item).split('').forEach(ch => { h = (h * 31 + ch.charCodeAt(0)) >>> 0; }); t = fillText(arr[h % arr.length], { item }); }
+      if (arr && arr.length) { let h = 0; String((c.barcode || c.id || item) + '|' + (ark && ark.day) + '|' + (r.scans_today || 0)).split('').forEach(ch => { h = (h * 31 + ch.charCodeAt(0)) >>> 0; });
+        t = fillText(arr[h % arr.length], { item }); if (r.zero_reaction) t = ''; else t = freshLine(t, arr); }
       else t = K.ext.T('rescan_zero.line', { item }, '');
     }
     return '<span class="zeroline">' + esc(plain(t || '이미 읽은 성문이라 새로 얻은 건 없습니다')) + '</span>';
@@ -2702,6 +2752,7 @@
     const zero = !Object.keys(r.gained || {}).length;
     const after = () => {
       rg.classList.add('show'); btn.classList.add('on');
+      if (K.ext.core && K.ext.core.afterReveal) K.ext.core.afterReveal(r);   // S19 「어디로」
       if (r.zero_reaction) zeroPop(r.zero_reaction);
       if (zero && card.animate && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches))
         card.animate([{ transform: 'none' }, { transform: 'rotate(-3deg)' }, { transform: 'rotate(2deg)' }, { transform: 'none' }], { duration: 520, easing: 'ease-in-out' });
@@ -2961,7 +3012,7 @@
             (prod && prod.label ? '<i class="rctag">' + esc(prod.label) + '</i>' : '') + '</h4>' +
             (crk ? '<p class="rcline">' + esc(K.ext.T ? K.ext.T('crack.still_cracked', { room: spec.name || room.id }, '') : '') + '</p>' : '') +
             (prod && prod.ko && !crk ? '<p class="rcline">' + esc(plain(prod.ko)) + '</p>' : '') +
-            contribLine(prod) + storedLine(slot) +
+            contribLine(prod) + storedLine(slot) + (K.ext.decorFor ? K.ext.decorFor(slot) : '') +
             '<div class="rcmeta"><span>' + n + '/' + cap + '명</span>' +
             (prod && typeof prod.mult === 'number' ? '<span class="rcmult' + (prod.mult < 1 ? ' neg' : (prod.mult > 1 ? ' pos' : '')) + '">생산 ×' + (Math.round(prod.mult * 100) / 100) + '</span>' : '') +
             st.map(k => '<span class="rcstat" title="이 방에 유리한 능력치">' + esc(ko[k] || k) + '</span>').join('') + '</div>' +
@@ -3308,6 +3359,7 @@
       setCarry({ id: d.person.id, name: d.person.name, role: d.person.role });
       closeCard(); closePops();
       const cap = d.person.from == null && K.ext.podCaption ? K.ext.podCaption(d.person.id) : '';
+      if (K.ext.onPersonTap && K.ext.onPersonTap(d.person, cap)) return;   // S19: 그 사람의 작은 카드(오늘 바라는 것·좋아함·사슬)
       toast((cap ? cap + ' ' : '') + d.person.name + ' 님, 옮겨 갈 방을 눌러 주세요');
       return;
     }
@@ -3397,6 +3449,8 @@
   const K = {
     api, toast, play, esc, plain, uid, fill: fillText, josa, say, enqueue, whenPanelGone, qLog,
     get ark() { return ark; }, get cb() { return cb; }, get catalog() { return catalog; }, RES_KO, RAR_KO,
+    get ctx() { return ctx; }, get z() { return cam.z; }, sx: (x) => sx(x), sy: (y) => sy(y), propImg: (id) => propImg(id), propForCategory2: (c) => propForCategory(c),
+    get view() { return view; }, closeScan: () => closeScan(), lightOf: (s) => lightOf(s),
     propSpec: (id) => propSpec(id), propForCategory: (c) => propForCategory(c),
     apply: (st) => apply(st), reload: () => load(false),
     onApply: (f) => applyHooks.push(f), onLoad: (f) => loadHooks.push(f),
