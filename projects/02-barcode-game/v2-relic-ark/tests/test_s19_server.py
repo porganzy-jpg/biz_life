@@ -103,6 +103,8 @@ def t_give_values():
     st = S.load_state(uid)
     cook = resident(st, "cook")
     S.cres(st, cook["id"])["memories_seen"] = [m["id"] for m in TASTES["roles"]["cook"]["memories"]]   # 기억과 겹치지 않게
+    for aid in ("arc_cook_seat", "arc_cook_feast"):                     # 사슬과 겹치지 않게(S20: 요리사 첫 매듭 1일째)
+        S.arc_state(st, cook["id"], aid).update({"done": True})
     nd = S.need_today(uid, cook, S.day_of(st))
     it = item(nd["category"], (nd["subtype"] or [None])[0], "필요한 것")
     tier, _ = S.resident_tier(st, uid, cook, it)
@@ -194,11 +196,11 @@ def t_arcs():
     cook = resident(st, "cook")
     a = S.ARC_BY_ID["arc_cook_seat"]
     food = item("food", "noodle", "면 하나", code="f1")
-    # 1일째: 합류 3일 전이라 안 풀린다
-    out = S.give_apply(st, uid, food, {"resident_id": cook["id"]}, "copy")
-    ok(not out["effects"]["arc"] and S.arc_state(st, cook["id"], a["id"])["step"] == 0, "합류 3일 전에는 매듭 안 풀림")
+    b0 = a["beats"][0]
+    want = S.join_day(st, cook) + int(b0["trigger"].get("days_since_join", 0))
+    ok(S.beat_opens_day(st, cook, S.arc_state(st, cook["id"], a["id"]), b0) == want, f"첫 매듭 여는 날 = 합류 + days_since_join({want})")
     S.save_state(uid, st)
-    adv(uid, 60 * 24 * 3)
+    adv(uid, 60 * 24 * max(0, want - 1))
     a1 = ark(uid)
     nxt = a1["core"]["residents"][cook["id"]]["arc"]["next"]
     ok(nxt["open"] and nxt["step"] == 1 and nxt["hint_ko"], f"4일째 매듭 1 열림: {nxt}")
@@ -447,8 +449,9 @@ def t_round2_fixes():
     S.save_state(uid, st)
     st = S.load_state(uid)
     ov = st["storage_overflow"]
-    ok(st["resources"]["food"] == cap and ov["lost"]["food"] == 12 and ov["converted"].get("morale") == 2
-       and st["resources"]["morale"] == m0 + 2 and ov["ko"], f"넘친 식량 12 → 사기 2: {ov['ko']}")
+    want = min(12 // S.OVERFLOW_RATE["to_morale"], S.OVERFLOW_RATE["morale_day_max"])
+    ok(st["resources"]["food"] == cap and ov["lost"]["food"] == 12 and ov["converted"].get("morale") == want
+       and st["resources"]["morale"] == m0 + want and ov["ko"], f"넘친 식량 12 → 사기 {want}: {ov['ko']}")
     a = ark(uid)
     ok(any(it["kind"] == "overflow" for it in a["overnight"]["items"]) and a["storage"]["overflow"]["converted"], "밤사이에 넘침 한 줄")
     # 밤사이 제목 = 시각대, 다음 날 저절로 비움
@@ -487,7 +490,7 @@ def t_round2_fixes():
     ok(j["entrance_airlock"]["level"] == 2, "문간 에어락 올리기 → Lv2")
     # 공방 잔해
     e = S._ECON_ALL["rooms"]["list"]["workshop"]["build"]["scrap"]
-    ok(S.ROOMS["workshop"]["cost"]["scrap"] == max(1, round(e * 0.5)), f"공방 잔해 {e} → {S.ROOMS['workshop']['cost']['scrap']}")
+    ok(S.ROOMS["workshop"]["cost"]["scrap"] == e, f"공방 잔해 = economy 값 {e}(S20: 서버 할인 없음)")
     # 선반 자동 채움 · 폭 맞는 후보 · 식량창고를 잃어도 선반
     uid2 = "dev_s19_shelf"
     ark(uid2)
