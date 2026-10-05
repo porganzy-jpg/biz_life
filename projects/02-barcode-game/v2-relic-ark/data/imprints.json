@@ -161,7 +161,7 @@
       "crisis_ko": "유리 균열 (방 하나를 닫고 생존)",
       "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": ["deep_glass"], "flags": ["room_sealed"]},
       "visual": {"keyword": "hand_on_glass", "ko": "늘 창을 만지며 지나간다",
-                 "line": "{name}은 이제 창을 만지며 지나간다. 손끝으로 먼저 안다."},
+                 "line": "이제 {name}의 손이 창을 쓸며 지나간다. 손끝으로 먼저 안다."},
       "effect": {"counter_bonus": {"부품": 0.3, "청사진": 0.2}},
       "cost": {"ko": "닫힌 방 앞을 지나지 못해 동선이 길어지고 생산이 조금 준다", "effect": {"production_penalty": 0.05}}
     },
@@ -196,7 +196,7 @@
       "crisis_ko": "길을 비킴 (해마다 오는 길 위에서 지켜 온 것을 스스로 걷음)",
       "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["way_made"]},
       "visual": {"keyword": "half_step_back_at_doorway", "ko": "문간에서 반걸음 먼저 물러선다. 들고 있던 것을 내려놓는 손이 빠르다",
-                 "line": "{name}은 문간에서 반걸음 먼저 물러선다. 걷어 둔 그물을 다시 거는 손만 빠르다."},
+                 "line": "{name}의 걸음이 문간에서 반걸음 먼저 물러선다. 걷어 둔 그물을 다시 거는 손만 빠르다."},
       "effect": {"build_discount": 0.05, "counter_bonus": {"청사진": 0.2}},
       "cost": {"ko": "닫으라는 말을 못 해서 격벽을 내리는 결정이 한 박자 늦다", "effect": {"defense_penalty": 0.1}}
     },
@@ -218,7 +218,7 @@
       "crisis_ko": "윗물 아이를 올려보냄 (위로 빛의 길을 내고 박광층 금기를 깸)",
       "trigger": {"type": "event_survived", "event_ids": [], "factions": [], "counter_tags": [], "id_prefixes": [], "flags": ["guided_up"]},
       "visual": {"keyword": "looks_up_at_ceiling", "ko": "천장을 올려다본다. 등을 켜는 순서를 손가락으로 세는 버릇이 남았다",
-                 "line": "{name}은 자꾸 천장을 올려다본다. 그 밤 위에서 우리도 보였다는 걸 혼자만 마음에 두고 있다."},
+                 "line": "{name}의 고개가 자꾸 천장 쪽으로 들린다. 그 밤 위에서 우리도 보였다는 걸 혼자만 마음에 두고 있다."},
       "effect": {"morale_cap": 2, "counter_bonus": {"조명": 0.3}},
       "cost": {"ko": "그 밤 위에서 우리가 보였다. 천장을 올려다보는 버릇(광층 금기) 때문에 밤마다 사기가 떨어진다", "effect": {"morale_daily": -1}},
       "_contradiction": "1막에서 유일하게 '구하는' 습격의 각인이다. 같은 한 번의 행동이 구원이자 발각이라 보상과 대가가 분리되지 않는다 — 효과의 사기 상한 +2 와 대가의 일일 사기 −1 이 같은 밤에서 나온다. 습격 쪽 대가(다음 습격 세기 +1)는 각인이 아니라 관문의 값이다(defense.json.gates.gate_cost.guide_up)."
