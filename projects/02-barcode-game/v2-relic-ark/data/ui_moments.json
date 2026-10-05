@@ -75,7 +75,9 @@
       "8801100": "불타는 물 가문이 한 벌 모였습니다. 봉인은 그대로 두고, 아이들 손 안 닿는 칸에 올렸습니다.",
       "8801128": "황금 거품 가문이 한 벌 모였습니다. 등불 옆에 두니 같은 색이 납니다."
     },
-    "first_meet_generated": "처음 보는 가문의 성문입니다. 관리실 목록에 「{family}」 가문으로 새로 적어 두었습니다."
+    "first_meet_generated": "처음 보는 가문의 성문입니다. 관리실 목록에 「{family}」 가문으로 새로 적어 두었습니다.",
+    "progress_short": "「{family}」 {n}/{total}",
+    "one_left_short": "「{family}」 하나 남았습니다."
   },
   "codex": {
     "unknown": "아직 못 본 물건입니다. {hint}",
@@ -202,5 +204,34 @@
     "오늘 일이 잘 풀린 데는 {name} 님 「{imprint}」 덕이 있습니다. 본인은 모르는 척하십니다.",
     "{name} 님의 「{imprint}」, 오늘 한몫했습니다. 관리실 장부에 적어 두겠습니다.",
     "방금 그건 「{imprint}」 솜씨였습니다. {name} 님, 수고 많으셨습니다."
-  ]
+  ],
+  "keepsake": {
+    "_for_dev": "머리맡 물건 줄(resident_tastes.personal_twist.keepsake). 시간 구분은 morning.by_time 과 같다.",
+    "by_time": {
+      "morning": "{name} 님 머리맡의 「{item}」, 오늘 아침에도 그 자리에 있습니다.",
+      "day": "{name} 님 머리맡의 「{item}」, 낮에도 그 자리에 잘 있습니다.",
+      "evening": "{name} 님 머리맡의 「{item}」, 저녁 등불을 받아 조금 빛납니다.",
+      "night": "{name} 님은 머리맡 「{item}」 옆에서 벌써 주무십니다."
+    }
+  },
+  "scan_card": {
+    "_for_dev": "스캔 카드 문장 줄이기. 1일째는 전부 보여 줘도 된다. 2일째부터는 아래 순서로 최대 두 줄, 각 줄은 *_short 판을 쓴다. 긴 판은 카드를 눌러 펼칠 때만.",
+    "max_lines_after_day1": 2,
+    "priority": [
+      "family_set.complete.<가문>",
+      "first_meet.families.<가문>.line_short",
+      "first_meet.categories.<갈래>.line_short",
+      "family_set.one_left_short",
+      "family_set.progress_short",
+      "shelf.where",
+      "dialogue.gardener[scan_*].text_short"
+    ],
+    "short_keys": [
+      "first_meet.categories.*.line_short",
+      "first_meet.families.*.line_short",
+      "family_set.progress_short",
+      "family_set.one_left_short",
+      "dialogue.gardener[when=scan_*].text_short"
+    ]
+  }
 }
