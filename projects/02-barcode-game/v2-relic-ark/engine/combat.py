@@ -469,7 +469,8 @@ def raid_rng(uid: str, day: int, purpose: str = "") -> random.Random:
 
 
 def pick_creature(uid: str, day: int, grade: int = 1, force: str | None = None,
-                  residents: int | None = None) -> dict | None:
+                  residents: int | None = None, mult: dict | None = None) -> dict | None:
+    """mult(S19): 생물별 가중 배율(꾸밈의 대가 — 트인 쪽 반짝이는 것에 긴목 ×1.3). None 이면 예전과 바이트까지 같다."""
     if force:
         return CREATURES.get(force)
     if day < RAID_FIRST_DAY:
@@ -477,12 +478,15 @@ def pick_creature(uid: str, day: int, grade: int = 1, force: str | None = None,
     if raid_rng(uid, day, "roll").random() >= raid_chance(grade):
         return None
     w = creature_weights(grade, residents)
+    if mult:
+        w = {k: (v * float(mult.get(k, 1.0))) for k, v in w.items()}
     ids = sorted(w)
     pick = raid_rng(uid, day, f"who|g{grade}").choices(ids, weights=[w[i] for i in ids], k=1)[0]
     return CREATURES[pick]
 
 
-def pick_target(uid: str, day: int, creature: dict, rooms: list[dict], room_tools: dict) -> int | None:
+def pick_target(uid: str, day: int, creature: dict, rooms: list[dict], room_tools: dict,
+                weights: dict | None = None) -> int | None:
     """어느 방으로 오는가. 침수된 방에는 오지 않고(이미 물이다), 유인 등불이 있는 방은 긴목이 지나친다."""
     live = [r for r in rooms if not r.get("flooded")]
     if not live:
@@ -495,6 +499,9 @@ def pick_target(uid: str, day: int, creature: dict, rooms: list[dict], room_tool
     if not cand:
         return None
     slots = sorted(r["slot"] for r in cand)
+    if weights and any(float(weights.get(s_, 1.0)) != 1.0 for s_ in slots):
+        # S19: 아끼는 것(꾸밈·사슬 물건)이 있는 방 가중. 가중이 없으면 아래 옛 추첨 그대로(바이트 동일)
+        return raid_rng(uid, day, "where").choices(slots, weights=[float(weights.get(s_, 1.0)) for s_ in slots], k=1)[0]
     return raid_rng(uid, day, "where").choice(slots)
 
 

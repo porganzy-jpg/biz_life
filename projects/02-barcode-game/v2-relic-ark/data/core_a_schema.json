@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "relic-ark/core_a_schema.json",
+  "title": "S19 핵심 루프 A — 시나리오 데이터 계약(개발 소유)",
+  "description": "서버(server.py S19 섹션)가 읽는 키. resident_tastes.json / arcs.json·arcs2.json / room_decor.json / visitors.json / beats.json / next_visit.json / imprints_arcs.json. 매칭 규칙 = {category, subtype?(문자열|목록), family?(7자리), rarity_min?}.",
+  "$defs": {
+    "match": {"type": "object", "properties": {"category": {"type": "string"}, "subtype": {"type": ["string", "array", "null"]},
+              "family": {"type": "string", "pattern": "^[0-9]{7}$"}, "rarity_min": {"enum": ["common", "uncommon", "rare", "epic", "legendary"]}},
+              "anyOf": [{"required": ["category"]}, {"required": ["family"]}]},
+    "trigger": {"type": "object", "description": "모든 키를 만족해야 풀린다(any_of 는 하나만). 실패·타이머 없음.",
+      "properties": {
+        "days_since_join": {"type": "integer"}, "min_days_after_prev": {"type": "integer"},
+        "give": {"$ref": "#/$defs/match"}, "give_distinct": {"type": "object", "required": ["category", "n"]},
+        "place": {"type": "object", "properties": {"room": {"type": "string"}, "category": {"type": "string"}, "decor": {"type": "string"}, "resident": {"const": "self"}}},
+        "octopus_with": {"const": "self"}, "session": {"const": "evening"}, "night_event": {"type": ["boolean", "string"]},
+        "any_of": {"type": "array", "items": {"$ref": "#/$defs/trigger"}}, "choice": {"type": "string"},
+        "spot": {"type": "string"}, "octopus_find": {"type": "string"}, "family_set_complete": {"type": "string"},
+        "arc_done": {"type": "string"}, "flag": {"type": "string"}, "decor": {"type": "string"},
+        "other_arc_step": {"type": "object", "required": ["arc", "step"]}
+      }, "additionalProperties": false},
+    "beat": {"type": "object", "required": ["step", "trigger"],
+      "properties": {"step": {"type": "integer"}, "size": {"enum": ["small", "big"]}, "trigger": {"$ref": "#/$defs/trigger"},
+                     "announce": {"type": "string"}, "line": {"type": "string"}, "beat": {"type": "string"}, "log": {"type": "string"},
+                     "ask": {"type": "object", "required": ["kind"], "properties": {"kind": {"enum": ["choice", "place", "give", "pick_residents"]}}},
+                     "after_ask": {"type": "string"}, "announce_next_morning": {"type": "string"}, "set_prop": {"type": "string"},
+                     "after": {"type": "object"}}}
+  },
+  "type": "object",
+  "properties": {
+    "arcs": {"type": "array", "items": {"type": "object", "required": ["id", "role", "beats"],
+      "properties": {"id": {"type": "string"}, "role": {"type": "string"}, "wish_id": {"type": "string"}, "title": {"type": "string"},
+                     "requires": {"type": "object"}, "imprint_on_done": {"type": ["object", "string"]},
+                     "beats": {"type": "array", "items": {"$ref": "#/$defs/beat"}, "minItems": 1}}}},
+    "roles": {"type": "object", "additionalProperties": {"type": "object", "required": ["likes", "needs"],
+      "properties": {"likes": {"type": "array", "items": {"$ref": "#/$defs/match"}}, "needs": {"type": "array", "items": {"$ref": "#/$defs/match"}},
+                     "liked_lines": {"type": "array"}, "needed_lines": {"type": "array"}, "not_for_me": {"type": "string"},
+                     "memories": {"type": "array", "items": {"type": "object", "required": ["id", "trigger"]}}}}},
+    "tags": {"type": "array", "items": {"type": "object", "required": ["id", "feeds", "visitors"],
+      "properties": {"feeds": {"type": "array", "items": {"$ref": "#/$defs/match"}}, "best_rooms": {"type": "array"},
+                     "visitors": {"type": "array", "items": {"enum": ["residents", "octopus", "guest", "newhuman", "small_fish", "gardener"]}}}}},
+    "visitors": {"type": "array", "items": {"type": "object", "required": ["id", "tag"]}},
+    "days": {"type": "object", "additionalProperties": {"type": "object", "required": ["beat", "star"]}}
+  }
+}

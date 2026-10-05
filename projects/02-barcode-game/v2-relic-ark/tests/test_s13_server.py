@@ -455,7 +455,9 @@ def t_octopus_wishes_dayend():
     roles = sorted({x["role"] for x in w})
     cook = next(x for x in w if x["role"] == "cook")
     ok(roles == sorted({r["role"] for r in a["residents_list"]}), f"바람은 있는 역할만: {roles}")
-    ok(cook["done"] and cook["line"] and "{name}" not in cook["line"], f"요리사 바람 이룸 → line_after: {cook['line'][:30]}…")
+    # S19(CORE_LOOP_A §4): 바람은 저절로 이뤄지지 않는다 — 선반 식품 셋으로는 안 이뤄지고, 사슬 진척이 보인다
+    ok(not cook["done"] and cook["line"] and "{name}" not in cook["line"] and (cook.get("progress") or {}).get("arc_id"),
+       f"요리사 바람: 저절로 안 이뤄짐, 사슬 진척 {cook.get('progress')}")
     de = C.get(f"/api/day_end?uid={uid}").json()
     ids = [x["id"] for x in de["lines"]]
     ok("octopus_brought" in ids and len(ids) <= 3 and all("{" not in x["text"] for x in de["lines"]), f"하루 마감 줄 {ids}")

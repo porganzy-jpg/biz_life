@@ -110,6 +110,7 @@ class RelicCard:
     variant: str              # 시각 변조 ("night" 등) — 정체에 영향 없음
     seed: str                 # 결정적 시드 (앞 16자)
     tags: list = field(default_factory=list)
+    subtype: str = ""         # S19: 줄기의 물건 종류(relic_templates _subtypes 키). 주민 취향·방 꾸밈 매칭 단위
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -311,7 +312,16 @@ class RelicGenerator:
         fl = [f for f in (t.get("flavors") or []) if isinstance(f, str)]
         if fl:                                           # 같은 줄기라도 바코드마다 문장이 다르다(결정적)
             flavor = fl[int(seed[16:20], 16) % len(fl)]
+        self._last_subtype = self.subtype_of_template(t)
         return name, flavor, t.get("tags", [])
+
+    @staticmethod
+    def subtype_of_template(t: dict) -> str:
+        """S19: 줄기의 첫 물건 종류(subtype 또는 subtypes[0]). 없으면 빈 문자열."""
+        v = t.get("subtype") if t.get("subtype") is not None else t.get("subtypes")
+        if isinstance(v, list):
+            return str(v[0]) if v else ""
+        return str(v or "")
 
     # ── 6. 조립 ────────────────────────────────────────────
     def generate(self, barcode: str, hour: int = 12, user_category: Optional[str] = None) -> RelicCard:
@@ -330,14 +340,16 @@ class RelicGenerator:
         yields[bonus] = yields.get(bonus, 0) + 1
 
         fam_key = parsed["prefix"] + parsed["manufacturer"]
+        self._last_subtype = ""
         name, flavor, tags = self.name_and_flavor(seed, category, rarity, fam_key)
+        subtype = self._last_subtype
         origin = ORIGIN_MAP.get(parsed["prefix"], "먼 잔해")
 
         return RelicCard(
             barcode=code, name=name, flavor=flavor, category=category, card_type=card_type,
             rarity=rarity, yields=yields, family_code=fam_key,
             family_name=self.display_family(fam_key, parsed["manufacturer"]),
-            origin=origin, variant=self.variant_of(hour), seed=seed[:16], tags=tags,
+            origin=origin, variant=self.variant_of(hour), seed=seed[:16], tags=tags, subtype=subtype,
         )
 
 
