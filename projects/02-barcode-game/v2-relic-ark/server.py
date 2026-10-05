@@ -3593,6 +3593,9 @@ def s15_tick(st: dict, uid: str) -> dict:
 
 def migrate_s15(st: dict) -> bool:
     changed = False
+    if not isinstance(st.get("suits"), dict) or not isinstance(st["suits"].get("shared_wear"), list):
+        # 잠수복 마모는 처음부터 저장에 둔다(전에는 suits_state 가 메모리에서만 만들어, 저장 시점에 따라 키가 없었다)
+        st["suits"] = {"shared_wear": []}; changed = True
     for key, dflt in (("boxes", []), ("guests", []), ("exp_log", []), ("spots_found", []), ("clues_extra", []),
                       ("spots_visited", []), ("clue_tries", {}), ("spot_visits", {}), ("box_keys", {})):
         if not isinstance(st.get(key), type(dflt)):

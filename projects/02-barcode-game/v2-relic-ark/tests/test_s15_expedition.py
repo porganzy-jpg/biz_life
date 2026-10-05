@@ -445,8 +445,33 @@ def t_lid_override():
            f"threats.json 실제 값: 주민 {ov['residents_at_least']}명부터 덮개 등급 {ov['min_grade']}")
 
 
+class _FrozenTime:
+    """서버 시계를 고정한다(time.time 만 대신, 나머지는 진짜 time 모듈). 시간은 /api/dev/advance 로만 흐른다."""
+    def __init__(self, t0):
+        import time as _t
+        self._t, self.now = _t, float(t0)
+
+    def time(self):
+        return self.now
+
+    def __getattr__(self, k):
+        return getattr(self._t, k)
+
+
 def t_never():
-    """죽음·못 돌아옴·장비 소멸·방 상실은 0(규칙). 원정 60번."""
+    """죽음·못 돌아옴·장비 소멸·방 상실은 0(규칙). 원정 60번 — 자기 DB·고정 시계로 결정적."""
+    import datetime as _dt
+    saved_db, saved_time = S.DB, S.time
+    S.DB = Path(tempfile.mkdtemp()) / "t15_never.db"
+    S.init_db()
+    S.time = _FrozenTime(_dt.datetime(2026, 10, 1, 10, 0, 0).timestamp())
+    try:
+        _t_never_body()
+    finally:
+        S.DB, S.time = saved_db, saved_time
+
+
+def _t_never_body():
     uid = "dev_s15_never"
     new_ark(uid, rooms=(("airlock", 3, 1),))
     st = S.load_state(uid)
@@ -460,7 +485,7 @@ def t_never():
         for r in st["residents_list"]:
             r["injured"] = False
         st["air"]["value"] = 99
-        st["suits"]["shared_wear"] = [0, 0]
+        st.setdefault("suits", {})["shared_wear"] = [0, 0]
         st["guests"] = []
         S.save_state(uid, st)
         m = st["residents_list"][k % len(st["residents_list"])]["id"]
