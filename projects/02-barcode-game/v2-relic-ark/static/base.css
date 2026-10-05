@@ -880,3 +880,10 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .give.compact .gopts{grid-template-columns:repeat(3,minmax(0,1fr)) 56px}
 .give.compact .gopt{max-width:none}
 .gname b{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.credit{margin:4px 0; padding-left:9px; border-left:2px solid #8fbf7a; font-size:12.5px; line-height:1.6; color:#c8f0b0}
+.tpimp b{color:#8fbf7a}
+.askrelics{display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 2px; max-height:150px; overflow:auto}
+.askrelics button{display:flex; flex-direction:column; align-items:flex-start; min-height:44px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--ink); background:#151a17; border:1px solid #2a2419; border-radius:6px}
+.askrelics button.on{border-color:var(--lamp)} .askrelics small{font-size:10px; color:var(--dim)}
+.askpeople{margin-top:6px} .askpeople .chip{display:inline-flex; align-items:center; gap:4px}
+.beatcard .rowbtns button.on{color:#1a150e; background:var(--lamp); border-color:#5a4320}

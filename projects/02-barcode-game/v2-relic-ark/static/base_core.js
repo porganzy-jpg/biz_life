@@ -65,7 +65,9 @@
     return { need: need && { ko: txt(need), met: (t.given_need_today || false) }, given: t.given_today | 0, likes, dislike: tw.dislike ? txt(tw.dislike) : '',
              keep: keep && { ko: txt(keep) }, items: (t.items || []).length,
              arc: arc && { step: arc.step | 0, total: arc.steps || arc.total || 0, title: txt(arc.title), next: txt(nx.hint_ko || ''), open: !!nx.open, done: !!arc.done },
-             memN: (t.memories_seen || []).length, mem };
+             memN: (t.memories_seen || []).length, mem,
+             pimps: (p.personal_imprints || []).map(id => { const c = ((K.ark || {}).personal_imprints_catalog || {})[id] || {}; return c.name ? c.name : ''; }).filter(Boolean),
+             ask: !!(arc && arc.next && arc.next.ask) };
   }
   const MEMKO = {};                                       // 기억 id → 한 줄(서버가 이름을 안 주면 개수만 보인다)
   // 얼굴: 생활형 도트 시트(셀 256, x4)의 idle 첫 칸에서 머리만 오린다(정수 배율 아님 — 작은 원형 초상은 픽셀화로 맞춘다)
@@ -140,6 +142,10 @@
     const rid = (res.who && res.who.id) || (res.target && res.target.resident_id) || s.rid;
     const slot = (ef.decor && ef.decor.slot != null) ? ef.decor.slot : ((res.target && res.target.slot != null) ? res.target.slot : s.slot);
     if (ef.decor && ef.decor.tag_added) res.decor_tag = ef.decor.tag_added.ko;
+    if (!line && ef.decor) {                                // 방에 놓았는데 대사가 없으면 그 방이 무엇에 다가갔는지
+      const tg = (ef.decor.tags || []).find(t => !t.on && t.have) || null;
+      res._line = (ef.decor.tag_added ? ef.decor.tag_added.announce || '' : '') || ('꾸밈 ' + ef.decor.items + '/' + ef.decor.cap + (tg ? ' · ' + txt(tg) + ' ' + tg.have + '/' + tg.need : ''));
+    }
     if (ef.arc && !ef.arc.deferred) res.beat = Object.assign({ resident_id: rid }, ef.arc);
     void big;
     const p = rid ? personById(rid) : null;
@@ -150,7 +156,7 @@
       if (p) { const h = (window.ARKBASE.peopleHits() || []).find(x => x.id === p.id); if (h) at = { x: h.cx, y: h.cy - 46 }; }
       if (!at && slot != null) { const b = window.ARKBASE.slotBox(slot); if (b) at = { x: b.x + b.w / 2, y: b.y + b.h * 0.35 }; }
       if (!at) at = { x: K.view.w / 2, y: K.view.h / 2 };
-      pop(at, kind, line, (res.prop_id || (pending && pending.card && null)));
+      pop(at, kind, line || plain(res._line || ''), null);
       if (res.decor_tag || res.tag_formed) badgePop(slot, txt(res.decor_tag || res.tag_formed));
       if (res.beat) queueBeat(res.beat);
     }, st != null ? 700 : 80);
@@ -193,6 +199,7 @@
       (t.likes.length ? '<p class="tlike"><i aria-hidden="true"></i><b>좋아함</b> ' + esc(t.likes.slice(0, 3).join(' · ')) + '</p>' : '') +
       (t.keep ? '<p class="tkeep"><i aria-hidden="true"></i><b>머리맡</b> ' + esc(t.keep.ko) + '</p>' : '') +
       (t.arc ? '<p class="tarc"><b>' + esc(t.arc.title || '이야기') + '</b> ' + arcDots(t.arc) + (t.arc.done ? ' <small>다 이뤘습니다</small>' : (t.arc.next ? '<br><small>' + (t.arc.open ? '' : '며칠 뒤 · ') + esc(plain(t.arc.next)) + '</small>' : '')) + '</p>' : '') +
+      (t.pimps.length ? '<p class="tpimp"><b>각인</b> ' + esc(t.pimps.join(' · ')) + '</p>' : '') +
       (t.memN && !small ? '<p class="tmem"><b>열린 기억</b> ' + (t.mem.length ? esc(t.mem.slice(-1)[0]) + (t.memN > 1 ? ' 외 ' + (t.memN - 1) : '') : t.memN + '개') + '</p>' : '') +
       '</div>';
   }
@@ -205,6 +212,7 @@
     if (ppop) ppop.remove();
     ppop = document.createElement('div'); ppop.className = 'ppop';
     ppop.innerHTML = '<div class="phead">' + face(p, 36) + '<b>' + esc(p.name) + '</b><em>' + esc(p.role_ko || '') + '</em></div>' + body +
+      (normTaste(p).ask ? '<div class="rowbtns"><button class="on" data-ask="' + esc(p.id) + '">' + esc(T('arc.ask_label', {}, '물어보실 게 있답니다')) + '</button></div>' : '') +
       '<p class="phint">' + esc((cap ? cap + ' ' : '') + '옮길 방을 누르시면 자리를 옮깁니다') + '</p>';
     $('#base').appendChild(ppop);
     const h = (window.ARKBASE.peopleHits() || []).find(x => x.id === p.id);
@@ -213,6 +221,7 @@
     ppop.style.left = Math.max(12, Math.min(K.view.w - w - 12, x - w / 2)) + 'px';
     ppop.style.top = Math.max(52, y - ppop.offsetHeight) + 'px';
     const me = ppop; setTimeout(() => { if (ppop === me) { me.remove(); ppop = null; } }, 6000);
+    ppop.addEventListener('click', (e) => { const b = e.target.closest('button[data-ask]'); if (b) { me.remove(); ppop = null; openAsk(p); } });
     D.log.push('person ' + p.id);
     return true;
   };
@@ -242,37 +251,82 @@
     if (!$('#scan').hidden || !$('#panel').hidden) { setTimeout(showBeat, 1500); return; }
     const b = beatQ.shift(); beatShown++;
     const p = personById(b.resident_id || b.who || b.rid);
-    const ask = b.ask && ((b.ask.options || b.ask.choices || []).length) ? Object.assign({}, b.ask, { options: b.ask.options || b.ask.choices }) : null;
+    const ask = b.ask || null;
     b.title = b.title ? b.title + (b.step ? ' · ' + b.step + '/' + (b.steps || '') : '') : ''; b.broadcast = b.broadcast || b.announce; b.arc = b.arc || { step: b.step, total: b.steps };
     const el = document.createElement('div'); el.className = 'beatcard' + (b.size === 'big' ? ' big' : '');
     el.innerHTML = '<div class="phead">' + face(p, 40) + '<b>' + esc(txt(b.title) || (p ? p.name : '')) + '</b>' + arcDots(b.arc || (p && normTaste(p).arc)) + '</div>' +
       (b.broadcast ? '<p class="bcast">' + esc(plain(txt(b.broadcast))) + '</p>' : '') +
       (b.line ? '<p class="bline">「' + esc(plain(txt(b.line))) + '」</p>' : '') +
-      (ask ? '<p class="bask">' + esc(plain(txt(ask.label || ask.ko))) + '</p><div class="rowbtns">' + ask.options.map(o => '<button data-opt="' + esc(o.id) + '">' + esc(plain(txt(o))) + '</button>').join('') + '</div>'
-           : '<div class="rowbtns"><button class="ok">' + esc(T('beat.ok', {}, '그렇군요')) + '</button></div>');
+      (ask ? askHTML(ask, p) : '<div class="rowbtns"><button class="ok">' + esc(T('beat.ok', {}, '그렇군요')) + '</button></div>');
     $('#base').appendChild(el);
     const close = () => { el.classList.add('off'); setTimeout(() => el.remove(), 400); };
-    el.addEventListener('click', async (e) => {
-      const o = e.target.closest('button[data-opt]');
-      if (o) {
-        o.disabled = true;
-        const opt = ask.options.find(x => String(x.id) === o.dataset.opt) || {};
-        if (!D.mock) {
-          try { const r = await call(API.ask, { arc_id: b.arc_id, step: b.step, choice: o.dataset.opt }); if (r.state) K.apply(r.state); if (r.after_ask_ko) K.say(plain(r.after_ask_ko)); }
-          catch (err) { if (err.status !== 404) K.toast(err.message || '전하지 못했습니다'); }
-        } else if (opt.reply) K.say(plain(txt(opt.reply)));
-        close(); return;
-      }
-      if (e.target.closest('button.ok')) close();          // 안 고르면 default(타이머 없음 — API §8)
-    });
+    if (ask) bindAsk(el, ask, Object.assign({ arc_id: b.arc_id, step: (ask.step || b.step) }, {}), close);
+    else el.addEventListener('click', (e) => { if (e.target.closest('button.ok')) close(); });
     D.log.push('beat ' + (b.id || ''));
+  }
+
+  // ── 매듭이 묻는 것(ask) — 버튼 / 유물 고르기(place·give) / 두 사람 고르기(pick_residents). 안 고르면 default(타이머 없음)
+  function relicChoices(ask) {
+    const a = K.ark || {}, subs = ask.subtype == null ? null : [].concat(ask.subtype);
+    const ok = (x) => (!ask.category || x.category === ask.category) && (!subs || subs.indexOf(x.subtype) >= 0 || !x.subtype);
+    const sh = (a.shelf || []).map(x => ({ id: x.card_id || x.id, name: x.relic_name || x.name, category: x.category, subtype: x.subtype, polish: x.polish || 1, where: '선반' }));
+    const st = (a.stored || []).map(x => ({ id: x.id, name: x.relic_name || x.name, category: x.category, subtype: x.subtype, polish: x.polish || 1, where: '창고 안쪽' }));
+    return sh.concat(st).filter(x => x.id && ok(x)).sort((m, n) => n.polish - m.polish).slice(0, 8);
+  }
+  function askHTML(ask, p) {
+    const kind = ask.kind || (ask.options ? 'choice' : '');
+    let h = '<p class="bask">' + esc(plain(txt(ask.label || ask.ko))) + '</p>';
+    if (kind === 'choice') {
+      const opts = (ask.options || ask.choices || []).map(o => (typeof o === 'string' ? { id: o, ko: o } : o));
+      h += '<div class="rowbtns">' + opts.map(o => '<button data-ans="' + esc(o.id) + '"' + (o.id === ask.default ? ' class="on"' : '') + '>' + esc(plain(txt(o))) + '</button>').join('') + '</div>';
+    } else if (kind === 'place' || kind === 'give') {
+      const rs = relicChoices(ask);
+      h += rs.length ? '<div class="askrelics">' + rs.map((x, i) => '<button data-relic="' + esc(x.id) + '"' + (i === 0 && ask.default === 'most_polished' ? ' class="on"' : '') + '><b>' + esc(x.name || '') + '</b><small>' + esc(x.where) + '</small></button>').join('') + '</div>'
+                     : '<p class="rvhow">지금 맞는 물건이 선반에 없습니다. 찍어 오시면 그때 다시 물어보겠습니다.</p>';
+      h += '<div class="rowbtns"><button class="ok">나중에</button></div>';
+    } else if (kind === 'pick_residents') {
+      const n = ask.n || 2;
+      h += '<div class="chips askpeople" data-n="' + n + '">' + people().map(q => '<button class="chip" data-who="' + esc(q.id) + '">' + face(q, 22) + ' ' + esc(q.name) + '</button>').join('') + '</div>' +
+           '<div class="rowbtns"><button class="on" data-go="1" disabled>마주 앉히기</button><button class="ok">나중에</button></div>';
+    } else h += '<div class="rowbtns"><button class="ok">그렇군요</button></div>';
+    return h;
+  }
+  function bindAsk(el, ask, ref, close) {
+    const pick = [];
+    const send = async (body) => {
+      if (D.mock) { close(); return; }
+      try { const r = await call(API.ask, Object.assign({ arc_id: ref.arc_id, step: ref.step }, body)); if (r.state) K.apply(r.state);
+        const ap = r.applied || {};
+        if (ap.reaction && (ap.reaction.line || ap.reaction.announce)) K.say(plain(txt(ap.reaction.line || ap.reaction.announce)));
+        if (r.after_ask_ko) K.say(plain(r.after_ask_ko));
+        D.log.push('ask ' + ref.arc_id + ':' + ref.step + ' ok');
+        close();
+      } catch (err) { if (err.status !== 404) K.toast(err.message || '전하지 못했습니다'); el.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
+    };
+    el.addEventListener('click', (e) => {
+      const a = e.target.closest('button[data-ans]'), rl = e.target.closest('button[data-relic]'), w = e.target.closest('button[data-who]'), go = e.target.closest('button[data-go]');
+      if (a) { a.disabled = true; send({ choice: a.dataset.ans }); return; }
+      if (rl) { rl.disabled = true; send({ relic_id: rl.dataset.relic }); return; }
+      if (w) { const n = +(el.querySelector('.askpeople').dataset.n || 2), i = pick.indexOf(w.dataset.who);
+        if (i >= 0) pick.splice(i, 1); else { pick.push(w.dataset.who); if (pick.length > n) pick.shift(); }
+        el.querySelectorAll('[data-who]').forEach(x => x.classList.toggle('on', pick.indexOf(x.dataset.who) >= 0));
+        el.querySelector('[data-go]').disabled = pick.length !== n; return; }
+      if (go) { go.disabled = true; send({ resident_ids: pick.slice() }); return; }
+      if (e.target.closest('button.ok')) close();
+    });
+  }
+  // 사람 카드에서 답하지 않은 ask 를 다시 연다(core.residents[rid].arc.next.ask)
+  function openAsk(p) {
+    const c = coreOf(p), arc = c.arc || {}, ask = arc.next && arc.next.ask; if (!ask) return;
+    beatQ.unshift({ id: 'ask:' + arc.id + ':' + (ask.step || ''), resident_id: p.id, arc_id: arc.id, step: ask.step, steps: arc.steps, title: arc.title, ask });
+    beatShown = 0; showBeat();
   }
 
   // ══════════════════════════════════════════════════════════════
   //  4. 꾸밈·방문자 — 캔버스에 작게(배경 그림은 그대로, 덧그림만)
   // ══════════════════════════════════════════════════════════════
   // 그림: 손님 도트(static/art/visitors/visitors_meta.json)·꼬리표 덧씌움(static/art/decor/decor_meta.json). 없으면 도형으로
-  const ART = { vis: {}, dec: {}, decCell: [564, 317], floorY: 262 };
+  const ART = { vis: {}, dec: {}, decCell: [564, 317], floorY: 262, win: {} };
   const imgOf = {};
   const loadImg = (src) => { let o = imgOf[src]; if (!o) { o = imgOf[src] = { img: new Image(), ok: false }; o.img.onload = () => { o.ok = o.img.naturalWidth > 0; }; o.img.src = src; } return o; };
   fetch('/static/art/visitors/visitors_meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
@@ -282,6 +336,7 @@
     if (!j) return; if (j.cell) ART.decCell = j.cell; if (j.clear_zones && j.clear_zones.floor_band_y) ART.floorY = j.clear_zones.floor_band_y;
     (j.tags || []).forEach(t => { ART.dec[t.id] = t; loadImg('/static/art/decor/' + t.file); });
     if (j.slots) { ART.slots = { list: j.slots, pos: j.slot_positions_in_cell || {} }; spotsCache = null; }
+    const wc = (j.window_spot || {}).cells || {}; Object.keys(wc).forEach(k => { if (wc[k] && wc[k].visitor_world) ART.win[k] = wc[k].visitor_world; });
   }).catch(() => {});
   function decorOf(room) {
     const d = ((K.ark && K.ark.room_decor) || {})[String(room.slot)] || room.decor || {};
@@ -357,7 +412,8 @@
     visitors().filter(v => v.slot === slot).forEach((v, k) => {
       const meta = ART.vis[v.kind];
       const inside = meta ? !!meta.indoor : v.where === 'inside';
-      const x = inside ? ix + iw * (0.30 + 0.16 * k) : ix + iw * (0.62 + 0.14 * (k % 2)), y = inside ? floor : iy + ih * 0.30;
+      const ws = !inside && ART.win[String(slot)];
+      const x = inside ? ix + iw * (0.30 + 0.16 * k) : (ws ? K.sx(ws[0]) + k * 26 * z : ix + iw * (0.62 + 0.14 * (k % 2))), y = inside ? floor : (ws ? K.sy(ws[1]) : iy + ih * 0.30);
       if (!meta || !spriteVisitor(ctx, meta, x, y, z, t, k)) drawVisitor(ctx, v, x, inside ? floor : y, z, t);
     });
   };
@@ -401,8 +457,8 @@
     vs.forEach((v, k) => {
       const slot = v.slot != null ? v.slot : v.room_slot;
       const b = slot != null ? window.ARKBASE.slotBox(slot) : null; if (!b) return;
-      const silver = /gardener/.test(v.kind || v.id || '');
-      const cx = b.x + b.w + 60 * z, cy = b.y + b.h * 0.45, n = silver ? 14 : 7;
+      const silver = /gardener/.test(v.kind || v.id || ''), ws = ART.win[String(slot)];
+      const cx = ws ? K.sx(ws[0]) : b.x + b.w + 60 * z, cy = ws ? K.sy(ws[1]) : b.y + b.h * 0.45, n = silver ? 14 : 7;
       for (let i = 0; i < n; i++) {
         const a = t / (silver ? 2600 : 1700) + i * (6.2832 / n) + k;
         const fx = cx + Math.cos(a) * 46 * z * (1 + (i % 3) * 0.18), fy = cy + Math.sin(a * 1.3) * 22 * z;

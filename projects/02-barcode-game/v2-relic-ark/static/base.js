@@ -1943,7 +1943,8 @@
     const body = $('#panelBody'); sel = null;
     const imp = (r.new_imprints || []).map(n =>
       '<div class="who"><b>' + esc(n.resident) + '</b><em>' + esc(n.imprint.name) + '</em></div>' +
-      '<p class="desc">' + esc(n.line) + '</p>').join('');
+      '<p class="desc">' + esc(n.line) + '</p>').join('') +
+      (r.imprint_credit || []).map(c => '<p class="credit">' + esc(plain(c.ko || '')) + '</p>').join('');   // S19: 각인 덕분 한 줄
     body.innerHTML = '<h2>' + esc(r.result_ko) + '</h2>' +
       '<p class="sub">' + esc(cb.raid ? cb.raid.creature.name : '') + (r.need != null ? ' · 점수 ' + r.score + ' / 필요 ' + r.need : '') + '</p>' +
       '<p class="desc">' + esc(r.line) + '</p>' +

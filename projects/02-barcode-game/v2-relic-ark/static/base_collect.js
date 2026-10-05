@@ -225,6 +225,7 @@
     if (delta.length) h += '<h3>달라진 것</h3><div class="kv">' + delta.map(d => '<span>' + esc(d) + '</span>').join('') + '</div>';
     if (ap.newcomer) h += '<h3>새 식구</h3><p class="desc">' + esc(ap.newcomer.name) + ' 님이 합류했습니다.</p>';
     (r.new_imprints || []).forEach(n => { h += '<div class="who"><b>' + esc(n.resident) + ' 님</b><em>' + esc(n.imprint.name) + '</em></div><p class="desc">' + esc(n.line || '') + '</p>'; });
+    (r.imprint_credit || []).forEach(c => { h += '<p class="credit">' + esc(K.plain(c.ko || '')) + '</p>'; });   // S19: 각인 덕분 한 줄
     K.panel(h);
     if (ap.newcomer) setTimeout(() => firstMeet({ resident: ap.newcomer }), 1200);
     C.log.push('event ' + e.id + ' ' + (ok ? 'countered' : 'failed'));
