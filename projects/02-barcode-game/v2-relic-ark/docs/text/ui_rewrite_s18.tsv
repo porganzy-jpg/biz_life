@@ -4,3 +4,5 @@ static/base_expedition.js	' — 나가면 이 방은 그만큼 약해집니다'	
 static/base_expedition.js	'이 듭니다.'	' 정도 듭니다.'
 server.py	「{gone_card}」을(를) 내려보냈다. 도감의 그 칸은 비어 있는 채로 남는다	「{gone_card}」 하나를 내려보냈다. 도감의 그 칸은 비어 있는 채로 남는다
 server.py(+static/base.js:1926)	raid.ready.would_ko = combat.RESULT_KO[...]	미리 보기에는 ui_moments.json raid_preview.{held,scarred,breached,passed}(미래형)를 쓴다. 결과 화면은 RESULT_KO(과거형) 그대로
+server.py	"ko": eye_who["name"] + "의 눈이 밝다 — 소리만 듣고 어느 창인지 안다."	"ko": moment("raid_card.eye_early", name=eye_who["name"])
+server.py	"불을 꺼 둔 방은 절반만 일했다 — " + " · ".join(sorted(set(dark_rooms)))	moment("raid_card.dark_rooms", rooms=" · ".join(sorted(set(dark_rooms))))
