@@ -78,7 +78,25 @@ class Session:
         if st.get("arc_events"):
             print("  [매듭 사건]", json.dumps(st["arc_events"], ensure_ascii=False)[:900])
         if st.get("next_visit"):
-            print("  [다음에 켜시면(열 때)]", (st["next_visit"] or {}).get("line"))
+            print("  [다음에 켜시면(열 때)]", (st["next_visit"] or {}).get("kind"), (st["next_visit"] or {}).get("line"))
+        nov = st.get("novelty")
+        for it in (st.get("overnight") or {}).get("items") or []:
+            if it.get("kind") == "novelty" and not nov:
+                nov = it.get("data")
+        if nov:
+            self.d["novelty"] = {k: nov.get(k) for k in ("kind", "line", "line_key", "resident_id")}
+            self.d["new"].append("novelty:" + str(nov.get("kind")))
+            print("  [실마리 novelty]", json.dumps(self.d["novelty"], ensure_ascii=False)[:400])
+        tags_on = []
+        for slot, room in (st.get("room_decor") or {}).items():
+            for t in room.get("tags") or []:
+                if t.get("on"):
+                    tags_on.append(f"{room.get('room_id')}:{t.get('ko')}")
+            prog = [f"{t.get('ko')} {t.get('have')}/{t.get('need')}" for t in room.get("tags") or [] if not t.get("on")]
+            print(f"  [꾸밈 칸] {room.get('room_id')}({slot}) {len(room.get('items') or [])}/{room.get('cap')} 붙음 {[t.get('ko') for t in room.get('tags') or [] if t.get('on')]} 진척 {prog}")
+        self.d["tags_on"] = tags_on
+        if st.get("octopus_gift_where"):
+            print("  [문어 조각 어디로]", json.dumps(st["octopus_gift_where"], ensure_ascii=False)[:600])
 
     def save(self):
         p = SCRATCH / f"pt_sessions_{self.uid}.jsonl"
@@ -91,7 +109,11 @@ def choose(persona, where, ses: Session, rng: random.Random):
     if not sug:
         return "shelf", "제안 없음 → 선반", None
     if persona.startswith("B"):
-        if rng.random() < 0.8:
+        # 4차 5일째부터: 무작위 대신 정확히 다섯 번에 한 번 닫는다(1~4일째 무작위가 12번 중 7번 닫아 페르소나 규칙 80%를 벗어났다)
+        cf = SCRATCH / f"pt_bclose_{ses.uid}.txt"
+        n = int(cf.read_text() or 0) + 1 if cf.exists() else 1
+        cf.write_text(str(n))
+        if n % 5 != 0:
             return sug[0]["target"], "첫 제안 그대로", sug[0]
         return "shelf", "그냥 닫음(선반)", None
     best, bs = None, -9
@@ -101,10 +123,14 @@ def choose(persona, where, ses: Session, rng: random.Random):
             sc += 2.5                                        # 꼬리표가 붙는다 → 손님
         rid = (s.get("target") or {}).get("resident_id") if isinstance(s.get("target"), dict) else None
         story = s.get("tier") in ("chain_beat", "memory")   # 이야기는 깎여도 움직인다
-        if rid and ses.given_people[rid] and not story:
-            sc -= 3                                          # 오늘 이미 준 사람(×0.5)
-        if (s.get("mult") or 1) < 1 and not story:
-            sc -= 3                                          # 깎인 값(×0.5·×0.3)이면 선반이 낫다
+        mult = s.get("mult") or 1
+        if not story:
+            if mult <= 0.5:
+                sc -= 3                                      # 크게 깎임 → 선반이 낫다
+            elif mult < 1:
+                sc -= 1.2 if mult >= 0.75 else 1.6           # S21: 같은 세션 ×0.8 · 같은 물건 ×0.6
+            if rid and ses.given_people[rid]:
+                sc -= 0.8                                    # 이번 세션에 이미 준 사람 — 고르게 나누고 싶다
         if sc > bs:
             best, bs = s, sc
     if bs < 2:
@@ -112,7 +138,22 @@ def choose(persona, where, ses: Session, rng: random.Random):
     return best["target"], f"{best.get('tier')}·{best.get('reason_ko')}", best
 
 
+def pending_asks(uid):
+    """답하지 못한 매듭 물음 중 물건이 필요한 것(place/give) — 선반·창고 상자에 맞는 물건이 없으면 목록에 남긴다."""
+    st = ark(uid)
+    out = []
+    for rid, r in ((st.get("core") or {}).get("residents") or {}).items():
+        ask = ((r.get("arc") or {}).get("next") or {}).get("ask")
+        if ask and ask.get("kind") in ("place", "give"):
+            if not [x for x in _items(st) if _match(x[2], ask.get("category"), ask.get("subtype"))]:
+                out.append({"label": ask.get("label"), "category": ask.get("category"), "subtype": ask.get("subtype")})
+    return out
+
+
 def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
+    pend = pending_asks(uid) if persona.startswith("A") else []
+    if pend:
+        print("  [물음에 쓸 물건 찾는 중]", pend)
     for k in keys:
         r = scan(uid, code(k), cat(k))
         if "_status" in r:
@@ -131,6 +172,10 @@ def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
         print("     「어디로」:", " | ".join(f"{s.get('icon')}:{s.get('name')}({s.get('tier')},{s.get('reason_ko')},v{s.get('value')}{',×'+str(s.get('mult')) if (s.get('mult') or 1) != 1 else ''}"
                                          + (f",꼬리표 {s.get('tag_ko')} {s.get('tag_have')}/{s.get('tag_need')}" if s.get('tag') else '') + ")" for s in sug) or "-", "| 선반", "| compact" if w.get("compact") else "")
         tgt, why, picked = choose(persona, w, ses, rng)
+        hit = next((a for a in pend if _match(c, a["category"], a["subtype"])), None)
+        if hit and not (picked and picked.get("tier") in ("chain_beat", "memory")):
+            tgt, why, picked = "shelf", f"매듭 물음 「{hit['label']}」에 쓰려고 선반에", None
+            pend.remove(hit)
         g = post("/api/give", {"uid": uid, "scan_id": w["scan_id"], "target": tgt})
         if "_status" in g:
             continue
@@ -140,8 +185,18 @@ def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
         label = "선반" if tgt == "shelf" else (picked or {}).get("name") or json.dumps(tgt, ensure_ascii=False)
         distinct = len({json.dumps(s.get("target"), sort_keys=True) for s in sug})
         real = distinct >= 2 and persona.startswith("A")
+        eff = [round((s.get("value") or 0) * (s.get("mult") or 1), 2) for s in sug]
         ses.d["gives"].append({"item": name(k), "options": [s.get("name") for s in sug], "chosen": label,
-                               "first": (sug[0].get("name") if sug else "선반"), "tier": g.get("tier"), "real": real})
+                               "first": (sug[0].get("name") if sug else "선반"), "first_tier": (sug[0].get("tier") if sug else None),
+                               "tiers": [s.get("tier") for s in sug], "eff": eff, "mults": [s.get("mult") or 1 for s in sug],
+                               "tier": g.get("tier"), "real": real, "why": why,
+                               "weak_shelf": tgt == "shelf" and why.startswith("제안이 다 약함"),
+                               "rescan_mult": r.get("rescan_multiplier")})
+        rx0 = g.get("reaction") or {}
+        with (SCRATCH / f"pt_lines_{uid}.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"day": ses.d.get("day"), "who": (g.get("who") or {}).get("name") or label, "rid": rid,
+                                "tier": g.get("tier"), "announce": rx0.get("announce"), "line": rx0.get("line"),
+                                "announce_key": rx0.get("announce_key"), "line_key": rx0.get("line_key")}, ensure_ascii=False) + chr(10))
         if real:
             ses.d["decisions"].append("어디로:" + label)
         rx = g.get("reaction") or {}
@@ -231,8 +286,10 @@ def do_decor(persona, uid, ses: Session, max_n=2):
         if free <= 0:
             continue
         have_tags = {t["id"]: t for t in room.get("tags") or []}
-        for tag in DECOR_TAGS:
-            if room.get("room_id") not in (tag.get("best_rooms") or []) or (have_tags.get(tag["id"]) or {}).get("on"):
+        started = [t for t in DECOR_TAGS if (have_tags.get(t["id"]) or {}).get("have", 0) >= 1 and not (have_tags.get(t["id"]) or {}).get("on")]
+        order = started + [t for t in DECOR_TAGS if t not in started and room.get("room_id") in (t.get("best_rooms") or [])]
+        for tag in order:
+            if (have_tags.get(tag["id"]) or {}).get("on"):
                 continue
             cand = [x for x in _items(st) if any(_match(x[2], f.get("category"), f.get("subtype")) for f in tag.get("feeds") or [])]
             for src, rid, it in cand[:free]:
@@ -304,3 +361,91 @@ def same_answer_report(uid):
         mns = ns.most_common(1)[0][1] / sum(ns.values()) if ns else 0
         cs = [sum((s.get("contract") or {}).values()) for s in ss]
         print(f"  Day {day}: 세션 {len(ss)} · 계약 {cs} · 「어디로」 {len(gives)} · 같은 답 {modal:.0%}(선반 빼면 {mns:.0%}) · 고른 곳 {dict(ch)}")
+
+
+def do_octogift(persona, uid, ses: Session, rng: random.Random):
+    """5일째 비트: 문어가 물어 온 색 조각을 「어디로」로 건넨다(S21 octopus_gift_where)."""
+    st = ark(uid)
+    w = st.get("octopus_gift_where")
+    if not w:
+        print("  [문어 조각] octopus_gift_where 없음"); return
+    sug = w.get("suggest") or []
+    print("  [문어 조각 「어디로」]", w.get("name"), " | ".join(f"{s.get('tier')}:{s.get('name')}({s.get('reason_ko')})" for s in sug))
+    tgt, why, picked = choose(persona, w, ses, rng)
+    g = post("/api/give", {"uid": uid, "relic_id": w.get("relic_id"), "target": tgt})
+    if "_status" in g:
+        return
+    rx = g.get("reaction") or {}
+    ef = g.get("effects") or {}
+    label = "선반" if tgt == "shelf" else (picked or {}).get("name")
+    print(f"     → {label} ({why}) tier={g.get('tier')} 「{rx.get('announce')}」 / 「{rx.get('line')}」")
+    for key in ("memory", "arc", "decor"):
+        if ef.get(key):
+            print(f"       {key}: {json.dumps(ef[key], ensure_ascii=False)[:400]}")
+            ses.d["new"].append("octogift:" + key)
+    ses.d["decisions"].append("문어조각:" + str(label))
+    ses.d["gives"].append({"item": "문어 색 조각", "options": [s.get("name") for s in sug], "chosen": label,
+                           "first": (sug[0].get("name") if sug else "선반"), "first_tier": (sug[0].get("tier") if sug else None),
+                           "tiers": [s.get("tier") for s in sug], "tier": g.get("tier"), "real": len(sug) >= 2, "why": why,
+                           "weak_shelf": False, "eff": [], "mults": []})
+
+
+def do_bug1(persona, uid, key, ses: Session):
+    """버그 1 재현: 선반이 찬 뒤 찍은 물건(창고 상자로 간 스캔)을 scan_id 로 사람에게 준다."""
+    st = ark(uid)
+    cap = (st.get("shelf_room") or {}).get("capacity")
+    print(f"  [버그1] 선반 {len(st.get('shelf') or [])} / 칸 {cap}, 창고 상자 {len(st.get('stored') or [])}")
+    r = scan(uid, code(key), cat(key), show=False)
+    w = r.get("where") or {}
+    print(f"  [버그1] 찍음 {name(key)}: shelf_slot={r.get('shelf_slot')} swap_offer={'있음' if r.get('swap_offer') else '없음'} stored={len(r.get('stored') or []) if isinstance(r.get('stored'), list) else r.get('stored')}")
+    sug = [s for s in w.get("suggest") or [] if isinstance(s.get("target"), dict) and s["target"].get("resident_id")]
+    if not sug:
+        print("  [버그1] 사람 제안이 없음 → 재현 불가"); return
+    g = post("/api/give", {"uid": uid, "scan_id": w["scan_id"], "target": sug[0]["target"]})
+    print(f"  [버그1] give → {g.get('_status') or 200} {g.get('detail') or (g.get('reaction') or {}).get('announce')}")
+    ses.d["bug1"] = {"shelf_slot": r.get("shelf_slot"), "swap": bool(r.get("swap_offer")),
+                     "status": g.get("_status") or 200, "detail": g.get("detail")}
+
+
+def lines_report(uid):
+    """반응 문장 반복: 같은 사람·같은 문장이 몇 번 나왔나, announce == line 은 몇 번인가."""
+    p = SCRATCH / f"pt_lines_{uid}.jsonl"
+    if not p.exists():
+        print("  (문장 기록 없음)"); return
+    rows = [json.loads(x) for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
+    same = sum(1 for r in rows if r.get("announce") and r.get("announce") == r.get("line"))
+    print(f"  반응 {len(rows)}번 · announce==line {same}번 · line 없음 {sum(1 for r in rows if not r.get('line'))}번")
+    by = collections.defaultdict(list)
+    for r in rows:
+        if r.get("line"):
+            by[(r.get("who"), r.get("tier"))].append((r.get("day"), r.get("line")))
+    rep = 0
+    for (who, tier), ls in sorted(by.items(), key=lambda x: str(x[0])):
+        cnt = collections.Counter(l for _, l in ls)
+        for l, c in cnt.items():
+            if c > 1:
+                rep += c - 1
+                days = [d for d, x in ls if x == l]
+                print(f"   반복 {who}/{tier} ×{c} (날 {days}): 「{l[:60]}」")
+    ann = collections.Counter(r.get("announce") for r in rows if r.get("announce"))
+    top = [(a[:50], c) for a, c in ann.most_common(6) if c > 1]
+    print(f"  같은 사람·같은 줄 반복 합계 {rep} · 관리실 줄 자주 나온 것 {top}")
+
+
+def first_report(uid):
+    """세션마다 첫 제안이 누구였나(같은 사람이 1순위에 몰리나), 약해서 선반으로 밀린 횟수."""
+    p = SCRATCH / f"pt_sessions_{uid}.jsonl"
+    if not p.exists():
+        return
+    by = collections.defaultdict(list)
+    for line in p.read_text(encoding="utf-8").splitlines():
+        s = json.loads(line); by[s.get("day")].append(s)
+    for day, ss in sorted(by.items(), key=lambda x: x[0] or 0):
+        for i, s in enumerate(ss):
+            gv = s["gives"]
+            firsts = collections.Counter(g.get("first") for g in gv)
+            ff = sum(1 for g in gv if g["chosen"] == g["first"]) / len(gv) if gv else 0
+            weak = sum(1 for g in gv if g.get("weak_shelf"))
+            top = firsts.most_common(1)[0] if firsts else ("-", 0)
+            tiers = dict(collections.Counter(g.get("first_tier") for g in gv))
+            print(f"  Day {day} 세션{i + 1}: 「어디로」 {len(gv)} · 첫 제안 그대로 {ff:.0%} · 1순위 최다 {top[0]} {top[1]}/{len(gv)} · 약해서 선반 {weak} · 1순위 등급 {tiers}")

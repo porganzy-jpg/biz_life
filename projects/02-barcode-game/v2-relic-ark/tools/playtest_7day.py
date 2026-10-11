@@ -379,6 +379,12 @@ def main():
             CA.do_contract(SES)
         elif k == 'report':
             CA.same_answer_report(uid)
+            CA.first_report(uid)
+            CA.lines_report(uid)
+        elif k == 'octogift':
+            CA.do_octogift(persona, uid, SES, rng)
+        elif k == 'bug1':
+            CA.do_bug1(persona, uid, arg or 'kimchi', SES)
         elif k == 'verb':
             r = post('/api/raid/verb', {'uid': uid, 'verb': arg or None}); rd = r.get('raid') or r
             print('  [동사]', arg, json.dumps(rd.get('ready') if isinstance(rd, dict) else r, ensure_ascii=False)[:700])
