@@ -225,6 +225,8 @@ def do_exp(uid, mode, b=None, prefer=None, n=1, shot_mid=None, shot_ret=None):
     if not dsel:
         print("   갈 곳 없음"); return
     L = next((l for l in (['half', 'long', 'short'] if mode != 'quick' else ['short', 'half']) if l in dsel['lengths'] and o['lengths'][l]['can']), None)
+    if L is None:
+        dsel = next((d for d in dests if d['dest']['kind'] == 'unknown'), dsel); L = 'half'
     mem = pick_members(None, o, n)
     pv = post('/api/expedition/preview', {'uid': uid, 'members': mem, 'dest': dsel['dest'], 'length': L})
     print(f"   미리보기 {dsel['ko']} {L} {mem}: {json.dumps({k: pv.get(k) for k in ('actions', 'carry', 'air_cost', 'air_after', 'danger', 'discover_p', 'rescue_p', 'warnings', 'errors')}, ensure_ascii=False)[:700]}")
@@ -402,6 +404,10 @@ def main():
             st = ark(uid)
             for it in (st.get('stored') or [])[:int(arg or 1)]:
                 r = post('/api/shelf/swap', {'uid': uid, 'stored_id': it['id']}); print('  [선반올리기]', it.get('relic_name') or it.get('name'), r.get('ko') or r.get('detail'))
+        elif k == 'next':          # 다음 게임 날 시작 + arg 분(기본 60)
+            st = ark(uid); import time as _T
+            mins = max(1, (st['day_ends_at'] - _T.time()) / 60) + float(arg or 60)
+            print('  [다음 날로]', advance(uid, mins))
         elif k == 'adv':
             print('  [시간]', advance(uid, float(arg)))
         elif k == 'sum':

@@ -19,7 +19,7 @@ from pathlib import Path
 from playtest_lib import ROOT, SCRATCH, get, post, ark, scan
 from playtest_household import code, cat, name
 
-TIER_A = {"chain_beat": 6, "memory": 6, "need": 5, "decor": 3, "like": 3, "plain": 1, "not_for_me": 0}
+TIER_A = {"chain_beat": 6, "memory": 6, "need": 5, "decor": 3, "like": 3, "warm": 2.2, "plain": 1, "not_for_me": 0}
 
 
 def _data(fn):
@@ -100,9 +100,10 @@ def choose(persona, where, ses: Session, rng: random.Random):
         if s.get("tier") == "decor" and (s.get("tag_have", 0) + 1) >= (s.get("tag_need") or 99):
             sc += 2.5                                        # 꼬리표가 붙는다 → 손님
         rid = (s.get("target") or {}).get("resident_id") if isinstance(s.get("target"), dict) else None
-        if rid and ses.given_people[rid]:
+        story = s.get("tier") in ("chain_beat", "memory")   # 이야기는 깎여도 움직인다
+        if rid and ses.given_people[rid] and not story:
             sc -= 3                                          # 오늘 이미 준 사람(×0.5)
-        if (s.get("mult") or 1) < 1:
+        if (s.get("mult") or 1) < 1 and not story:
             sc -= 3                                          # 깎인 값(×0.5·×0.3)이면 선반이 낫다
         if sc > bs:
             best, bs = s, sc
@@ -186,8 +187,9 @@ def do_arcs(persona, uid, ses: Session):
             asks.append((rid, arc.get("id"), nx["ask"], arc.get("title")))
         if arc and not arc.get("done"):
             print(f"  [매듭] {rid} 「{arc.get('title')}」 {arc.get('step')}/{arc.get('steps')} 다음: {nx.get('hint_ko')} open={nx.get('open')} opens_day={nx.get('opens_day')}")
+    seen_arc = {a[1] for a in asks}
     for e in st.get("arc_events") or []:
-        if e.get("ask"):
+        if e.get("ask") and e.get("arc_id") not in seen_arc and e["ask"].get("step") is not None:
             asks.append((None, e.get("arc_id"), e["ask"], e.get("title")))
     if not asks:
         print("  [매듭 물음] 없음"); return
