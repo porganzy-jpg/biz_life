@@ -212,3 +212,39 @@
   - 응답에 `present`(그 자리에 있던 사람들)가 붙는다. `pair` 는 문장에 쓸 두 사람이다.
 - 방문 행 `kind: "visitor"` 에 `effect` 가 붙는다(core_a `visitor_effects`).
 - `/api/scan` 의 짧은 줄: `first_meet[].line_short`, `voice.text_short`(없으면 null).
+
+## 11. S21 바뀐 것 (2026-10-11, 3차 플레이테스트 고침)
+- **감쇠**(`core_a.json give_place.diminish`)
+  - 같은 사람: **같은 세션 안에서만** ×0.8. 아침·저녁은 따로 센다. 세션을 모르면 4시간 간격을 새 세션으로 본다.
+  - 같은 물건 사흘: ×0.6.
+  - 둘이 겹치면 곱하지 않고 **작은 쪽 하나만** 쓴다. 그래서 `diminish` 에는 항목이 하나만 온다.
+  - `kind` 이름은 그대로다(`same_person_today` / `same_item_3days`).
+- **꾸밈**
+  - Lv1 칸은 3이다(`core_a decor.slots_by_level`).
+  - 「어디로」의 방 제안은 그 방에서 **가장 앞선 꼬리표 하나만** 권한다. 그 꼬리표에 맞지 않는 물건은 그 방이 제안에 나오지 않는다.
+  - 방에 놓을 때의 반응(`place_progress`) 꼬리표 이름은 제안한 그 꼬리표다.
+  - 방주에서 첫 꼬리표가 붙으면 **다음 날 그 방 손님이 확정**이다. `next_visit` 의 `visitor_expected` 로 미리 약속할 수 있다.
+- **제안 순서**: warm 이 아닌 제안이 하나라도 있으면 warm 은 1순위에 오지 않는다.
+- **비트**
+  - 3일째: 그날 열린 매듭 물음이 없으면 `beats.json` 의 `star_no_ask` 를 쓴다.
+  - 5일째: 문어 색 조각을 선반에 놓는다. 선반이 차면 창고 상자에 놓는다. `card_id` 는 `oct-<find>-<day>` 이다.
+  - 5일째: `/api/ark.octopus_gift_where` 에 스캔과 같은 모양의 「어디로」가 온다. 추가 키는 `relic_id`·`name` 이다.
+  - 5일째 조각은 `POST /api/give {relic_id, target}` 으로 건넨다.
+- **떠날 때 `arc_beat_ready`**: 그 매듭을 풀 물건이 선반·창고 상자에 있거나, 답하지 않은 물음이 있을 때만 약속한다. 물음이면 `data.ask_step` 이 붙는다.
+- **`POST /api/give` 의 scan_id**: 스캔 기록이 없어도, 그 스캔 물건이 선반·창고 상자에 있으면 받아 준다(`scan_id` = `card_id`). 스캔 기록은 80개까지 넣은 순서대로 둔다.
+- **`/api/ark.novelty`**: 켠 날 4부터 세션마다 한 번 온다. 그 세션에 새것이나 모르는 결과(새 방문자·매듭·밤사이 새 항목)가 없으면 아래 순서로 하나를 만든다.
+  - `kind` 순서: `memory_hint` → `visitor_hint` → `keepsake_hint` → `octopus_hint`.
+  - 필드: `{kind, line, data, resident_id?}`.
+  - 밤사이 `kind: "novelty"` 로도 들어간다. 같은 실마리는 다시 쓰지 않는다.
+  - 다른 새것이 있으면 `null` 이다.
+  - 문장은 `ui_moments.novelty.<kind>[]` 를 종류마다 돌려 쓰고, 응답에 `line_key`(`novelty.<kind>.<n>`)가 붙는다. 배열이 없으면 서버 기본 줄이고 `line_key` 는 null 이다.
+- **`POST /api/arc/ask`**
+  - `skip: true` 를 보내면 물건·사람 고르기를 넘긴다.
+  - 응답에 `answer` 가 붙는다: 고른 선택지, `done`, `skip` 중 하나.
+  - `after_ask_ko` 는 **null 이 아니다**. 고르는 순서: `beat.after_ask` 의 답 키(문자열이면 그대로) → `_default` → 서버 기본 줄.
+- **warm 반응**
+  - 관리실 줄(`announce`)은 `give.soft_thanks` 이다.
+  - 주민 줄(`line`)은 그 역할의 `warm_lines` 이다.
+  - 같은 사람에게 줄을 돌려 쓴다. 8줄이라 7일 안에 같은 줄이 다시 나오지 않는다.
+  - `warm_lines` 가 없으면 `line` 은 null 이다. 같은 문장을 두 번 내지 않는다.
+  - `liked_lines`·`needed_lines` 도 같은 방식으로 돌려 쓴다.

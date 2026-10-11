@@ -259,7 +259,7 @@ def t_reactions():
         g = post("/api/give", {"uid": uid, "scan_id": j["where"]["scan_id"], "target": tgt})
         rc = g["reaction"]
         ok(rc and rc["announce"] and rc["announce_key"] and "{" not in rc["announce"]
-           and (tgt == "shelf" or rc["line"]), f"{tgt} → [{rc['announce_key']}] {rc['announce']}")
+           and rc["line"] != rc["announce"], f"{tgt} → [{rc['announce_key']}] {rc['announce']}")
     st = S.load_state(uid)
     a = S.generic_reaction("shelf", {"name": "x"}, st=st)["announce"]
     b = S.generic_reaction("shelf", {"name": "x"}, st=st)["announce"]

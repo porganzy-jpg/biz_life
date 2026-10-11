@@ -2,7 +2,6 @@
   "_doc": "S19-S 초안. 핵심 전환 'A: 현실에서 찍은 물건이, 바다 밑에서 이 사람들의 삶이 된다'. 찍은 유물을 주민에게 건네거나(give) 방에 놓으면(place) 주민이 반응한다. 근거: docs/reports/fun_panel_narrative_20261005.md M3(물건이 떠올리게 하는 것)·사슬 A/B. 목소리: docs/TEXT_VOICE.md. 라이브 데이터 아님(data/draft).",
   "_for_design": "매칭 단위는 relic_templates.json 의 category / subtype(_subtypes) / 가문 7자리(family). likes 가 맞으면 'liked', needs 가 맞으면 'needed', 둘 다 아니면 'not_for_me'. memories 는 주민×기억마다 한 번만 열린다(세이브 memories_seen). 수치(사기·신뢰·바람 진척)는 기획이 정한다. 자원은 주지 않는 것을 권한다 — 반응은 '들었다'는 표시다(값 0 반응 원칙).",
   "_for_dev": "자리표시자: {name}=주민 이름, {item}=유물 이름, {subtype_ko}=_subtypes 의 한국어. 자리표시자 바로 뒤에 을/를·이/가·은/는을 두지 않았다. announce 는 관리실 방송(화면 알림), line 은 그 주민의 입말(말풍선). 무리 말투(TEXT_VOICE §4)는 역할의 고향 무리를 따랐다: 정찰병=눈금, 기술자=닻, 농부=그물, 교섭가=손님. 요리사·의무병·학자·아이는 자기 말투.",
-
   "announce": {
     "give_liked": "「{item}」, {name} 님께 드렸습니다. 받자마자 표정이 풀리셨습니다.",
     "give_needed": "「{item}」, {name} 님께 드렸습니다. 마침 필요하셨던 물건이랍니다.",
@@ -10,311 +9,760 @@
     "give_not_for_me": "「{item}」, {name} 님께 드렸는데 정중하게 돌려주셨습니다. 선반에 다시 올려 두겠습니다.",
     "memory_open": "관리실에서 알려 드립니다. 「{item}」 보시고 {name} 님이 한동안 말씀이 없으셨습니다."
   },
-
   "roles": {
     "scout": {
       "ko": "정찰병",
       "voice": "눈금 무리. 숫자부터 말하고 짧다",
       "likes": [
-        {"category": "electronics", "subtype": ["light", "audio"]},
-        {"category": "book", "subtype": ["map"]},
-        {"category": "apparel", "subtype": ["shoes"]}
+        {
+          "category": "electronics",
+          "subtype": [
+            "light",
+            "audio"
+          ]
+        },
+        {
+          "category": "book",
+          "subtype": [
+            "map"
+          ]
+        },
+        {
+          "category": "apparel",
+          "subtype": [
+            "shoes"
+          ]
+        }
       ],
       "needs": [
-        {"category": "electronics", "subtype": ["battery"]},
-        {"category": "apparel", "subtype": ["shoes", "small"]}
+        {
+          "category": "electronics",
+          "subtype": [
+            "battery"
+          ]
+        },
+        {
+          "category": "apparel",
+          "subtype": [
+            "shoes",
+            "small"
+          ]
+        }
       ],
       "liked_lines": [
         "둘째예요. 이런 걸 받은 게요. 잘 쓸게요.",
-        "하나, 마음에 듭니다. 숫자로 치면 그래요."
+        "하나, 마음에 듭니다. 숫자로 치면 그래요.",
+        "셋째 줄에 적어 둘게요. 좋은 것 칸이에요.",
+        "무게 재 봤어요. 손에 맞아요.",
+        "하나. 오늘 제일 좋은 거예요.",
+        "창가에 둘게요. 밤에 세다가 보게요."
       ],
       "needed_lines": [
-        "딱 하나 모자랐어요. 이제 셈이 맞습니다."
+        "딱 하나 모자랐어요. 이제 셈이 맞습니다.",
+        "모자란 게 하나 줄었어요. 오늘 셈은 맞아요.",
+        "이거면 밤에 한 번 더 나갈 수 있어요.",
+        "필요한 거였어요. 숫자로 치면 딱 하나."
       ],
       "memories": [
         {
           "id": "scout_map",
-          "trigger": {"category": "book", "subtype": ["map"]},
+          "trigger": {
+            "category": "book",
+            "subtype": [
+              "map"
+            ]
+          },
           "announce": "{name} 님께 「{item}」 드렸더니, 한참 동안 손가락으로 줄을 따라가셨습니다.",
           "line": "셋째 줄이 끊겨요. 여기서부터는 아무도 안 가 본 데예요."
         },
         {
           "id": "scout_light",
-          "trigger": {"category": "electronics", "subtype": ["light"]},
+          "trigger": {
+            "category": "electronics",
+            "subtype": [
+              "light"
+            ]
+          },
           "announce": "{name} 님이 불빛을 손바닥으로 가렸다 뗐다 하고 계십니다.",
           "line": "불빛은 멀리서 보면 하나예요. 가까이 가면 둘이고요. 그걸 세는 게 제 일이었어요."
         }
       ],
-      "not_for_me": "고마워요. 그런데 저는 이걸 어디 둘지 모르겠어요. 필요한 사람한테 가는 게 맞아요."
+      "not_for_me": "마음은 받을게요. 그런데 저는 이걸 어디 둘지 모르겠어요. 필요한 사람한테 가는 게 맞아요.",
+      "warm_lines": [
+        "제 칸은 아니지만, 적어는 둘게요.",
+        "하나 받았어요. 어디 쓸지는 내일 세 볼게요.",
+        "모양이 좋네요. 크기는 손바닥 하나.",
+        "제 거 아닌 것 같은데, 일단 들고 있을게요.",
+        "오늘 받은 것 하나. 그렇게 적어요.",
+        "벽 쪽에 세워 둘게요. 쓰러지지 않게요.",
+        "누가 줬는지 숫자 옆에 적어 둘게요.",
+        "가볍네요. 잘 들고 다닐게요."
+      ]
     },
-
     "cook": {
       "ko": "요리사",
       "voice": "따뜻한 해요체. 먹는 이야기로 돌아온다",
       "likes": [
-        {"category": "food", "subtype": ["noodle", "sauce", "canned"]},
-        {"category": "drink", "subtype": ["tea"]},
-        {"family": "8801043"}
+        {
+          "category": "food",
+          "subtype": [
+            "noodle",
+            "sauce",
+            "canned"
+          ]
+        },
+        {
+          "category": "drink",
+          "subtype": [
+            "tea"
+          ]
+        },
+        {
+          "family": "8801043"
+        }
       ],
       "needs": [
-        {"category": "food", "subtype": ["grain"]},
-        {"category": "drink", "subtype": ["water"]}
+        {
+          "category": "food",
+          "subtype": [
+            "grain"
+          ]
+        },
+        {
+          "category": "drink",
+          "subtype": [
+            "water"
+          ]
+        }
       ],
       "liked_lines": [
         "이건 아껴 써야겠네요. 오늘 저녁에는 냄새만 조금 낼게요.",
-        "어머, 이거 국물에 넣으면 좋겠다. 다들 오늘 저녁 기대하세요."
+        "어머, 이거 국물에 넣으면 좋겠다. 다들 오늘 저녁 기대하세요.",
+        "어머, 이 냄새. 오늘 저녁 국물이 달라지겠네요.",
+        "손에 쥐니까 벌써 배가 고파요.",
+        "아껴 쓸게요. 아끼다 잊지는 않을게요.",
+        "다들 오늘 저녁 일찍 오세요. 좋은 게 들어왔어요."
       ],
       "needed_lines": [
-        "마침 바닥이 보이던 참이었어요. 이번 주는 넉넉하겠네요."
+        "마침 바닥이 보이던 참이었어요. 이번 주는 넉넉하겠네요.",
+        "곳간이 한 칸 숨을 돌렸어요.",
+        "이번 주 걱정 하나 덜었네요.",
+        "딱 이게 없어서 국이 싱거웠어요."
       ],
       "memories": [
         {
           "id": "cook_twist_cap",
-          "trigger": {"category": "drink", "subtype": ["soda", "water"]},
+          "trigger": {
+            "category": "drink",
+            "subtype": [
+              "soda",
+              "water"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 마개를 돌렸다 잠갔다 하고 계십니다.",
           "line": "이런 마개는 돌려 따는 거예요. 돌리는 소리가 나면 다들 고개를 들었어요."
         },
         {
           "id": "cook_one_drop",
-          "trigger": {"category": "food", "subtype": ["sauce"]},
+          "trigger": {
+            "category": "food",
+            "subtype": [
+              "sauce"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 병을 등불에 비춰 보고 계십니다.",
           "line": "한 방울만 넣는 거예요. 옛날 분들도 이건 아껴 쓰셨을 거예요. 병 모양을 보면 알아요."
         }
       ],
-      "not_for_me": "이건 부엌에 둘 물건이 아니네요. 다른 분 드리세요. 마음만 받을게요."
+      "not_for_me": "이건 부엌에 둘 물건이 아니네요. 다른 분 드리세요. 마음만 받을게요.",
+      "warm_lines": [
+        "부엌에 쓸 건 아니지만, 선반 위에 예쁘게 둘게요.",
+        "잘 받아 둘게요. 저녁에 누가 물어보면 자랑할래요.",
+        "이건 그릇 옆에 두면 좋겠다.",
+        "냄새는 안 나도 보기는 좋네요.",
+        "누가 줬는지 알아요. 오늘 국은 그분 그릇에 한 숟갈 더요.",
+        "손이 바쁠 때 보면 좋겠어요. 창가에 둘게요.",
+        "제 거 맞아요? 그럼 부엌 식구로 칠게요.",
+        "이런 건 처음 봐요. 일단 행주로 한 번 닦을게요."
+      ]
     },
-
     "medic": {
       "ko": "의무병",
       "voice": "정중하고 짧은 합쇼체. 몸 이야기를 조용히 한다",
       "likes": [
-        {"category": "medical", "subtype": ["bandage", "pill", "ointment"]},
-        {"category": "apparel", "subtype": ["small"]}
+        {
+          "category": "medical",
+          "subtype": [
+            "bandage",
+            "pill",
+            "ointment"
+          ]
+        },
+        {
+          "category": "apparel",
+          "subtype": [
+            "small"
+          ]
+        }
       ],
       "needs": [
-        {"category": "medical", "subtype": ["disinfect", "bandage"]},
-        {"category": "drink", "subtype": ["water"]}
+        {
+          "category": "medical",
+          "subtype": [
+            "disinfect",
+            "bandage"
+          ]
+        },
+        {
+          "category": "drink",
+          "subtype": [
+            "water"
+          ]
+        }
       ],
       "liked_lines": [
         "잘 쓰겠습니다. 아무도 다치지 않아서 안 쓰게 되면, 그게 제일 좋습니다.",
-        "의무실 서랍에 넣어 두겠습니다. 어느 칸인지는 저만 압니다."
+        "의무실 서랍에 넣어 두겠습니다. 어느 칸인지는 저만 압니다.",
+        "서랍 맨 위 칸에 두겠습니다. 손이 제일 빨리 가는 자리입니다.",
+        "쓰지 않게 되기를 바라면서 받겠습니다.",
+        "상태가 좋습니다. 오래 버틸 겁니다.",
+        "의무실이 조금 든든해졌습니다."
       ],
       "needed_lines": [
-        "모자라던 참이었습니다. 오늘 밤은 조금 덜 걱정하겠습니다."
+        "모자라던 참이었습니다. 오늘 밤은 조금 덜 걱정하겠습니다.",
+        "바닥나기 직전이었습니다. 오늘 밤은 조금 편히 자겠습니다.",
+        "이게 있으면 한 사람은 더 돌볼 수 있습니다.",
+        "마침 필요했습니다. 기록해 두겠습니다."
       ],
       "memories": [
         {
           "id": "medic_seal",
-          "trigger": {"category": "medical", "subtype": ["pill", "tonic"]},
+          "trigger": {
+            "category": "medical",
+            "subtype": [
+              "pill",
+              "tonic"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 봉인을 엄지로 한 번 쓸어 보시고, 뜯지 않으셨습니다.",
           "line": "봉인이 붙어 있습니다. 뜯지 않겠습니다. 뜯지 않은 게 하나쯤은 있어야 합니다."
         },
         {
           "id": "medic_tape",
-          "trigger": {"category": "stationery", "subtype": ["tape"]},
+          "trigger": {
+            "category": "stationery",
+            "subtype": [
+              "tape"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 끝을 손톱으로 찾고 계십니다.",
           "line": "금 간 데 붙이는 건 사람이나 유리나 같습니다. 꼭 눌러 줘야 합니다."
         }
       ],
-      "not_for_me": "제게는 쓸 데가 없는 물건입니다. 다른 분께 가는 게 좋겠습니다."
+      "not_for_me": "제게는 쓸 데가 없는 물건입니다. 다른 분께 가는 게 좋겠습니다.",
+      "warm_lines": [
+        "제 일과는 상관없지만, 잘 받아 두겠습니다.",
+        "깨끗하게 닦아서 의무실 창가에 두겠습니다.",
+        "다친 분이 보시면 기분이 나아질지도 모르겠습니다.",
+        "어디에 쓸지는 모르겠습니다. 버리지는 않겠습니다.",
+        "손에 쥐고 있으니 조금 쉬는 기분입니다.",
+        "받은 날짜를 적어 두겠습니다. 습관입니다.",
+        "의무실이 덜 하얘 보이겠습니다.",
+        "잘 두겠습니다. 누가 아프면 빌려 드리겠습니다."
+      ]
     },
-
     "engineer": {
       "ko": "기술자",
       "voice": "닻 무리. 짧고 손이 먼저 나간다",
       "likes": [
-        {"category": "electronics", "subtype": ["part", "cable", "battery"]},
-        {"category": "book", "subtype": ["manual"]},
-        {"category": "apparel", "subtype": ["coat"]}
+        {
+          "category": "electronics",
+          "subtype": [
+            "part",
+            "cable",
+            "battery"
+          ]
+        },
+        {
+          "category": "book",
+          "subtype": [
+            "manual"
+          ]
+        },
+        {
+          "category": "apparel",
+          "subtype": [
+            "coat"
+          ]
+        }
       ],
       "needs": [
-        {"category": "electronics", "subtype": ["part"]},
-        {"category": "apparel", "subtype": ["small"]}
+        {
+          "category": "electronics",
+          "subtype": [
+            "part"
+          ]
+        },
+        {
+          "category": "apparel",
+          "subtype": [
+            "small"
+          ]
+        }
       ],
       "liked_lines": [
         "좋습니다. 쓸 데가 있습니다.",
-        "뜯어 봐도 됩니까. 다시 붙여 놓겠습니다."
+        "뜯어 봐도 됩니까. 다시 붙여 놓겠습니다.",
+        "좋습니다. 오늘 밤에 뜯어 보겠습니다.",
+        "쓸 데가 셋은 됩니다.",
+        "손에 맞습니다. 오래 쓰겠습니다.",
+        "이거면 막힌 게 하나 더 풀립니다."
       ],
       "needed_lines": [
-        "이거면 됩니다. 막던 게 하나 풀립니다."
+        "이거면 됩니다. 막던 게 하나 풀립니다.",
+        "모자랐습니다. 이제 됩니다.",
+        "딱 이 크기가 없었습니다.",
+        "공방 일이 하루 당겨집니다."
       ],
       "memories": [
         {
           "id": "engineer_battery",
-          "trigger": {"category": "electronics", "subtype": ["battery"]},
+          "trigger": {
+            "category": "electronics",
+            "subtype": [
+              "battery"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 끝을 혀에 대 보셨습니다. 따라 하지 마십시오.",
           "line": "다 쓴 것과 새것이 겉으로는 똑같습니다. 그래서 혀로 봅니다."
         },
         {
           "id": "engineer_warm",
-          "trigger": {"category": "drink", "subtype": ["coffee", "tea"]},
+          "trigger": {
+            "category": "drink",
+            "subtype": [
+              "coffee",
+              "tea"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 들고 한참 손을 녹이셨습니다. 마시지는 않으셨습니다.",
           "line": "뜨거운 물에 타는 거라던데요. 손부터 담가 보고 싶습니다."
         }
       ],
-      "not_for_me": "제 손에는 안 맞습니다. 망가뜨리기 전에 돌려드립니다."
+      "not_for_me": "제 손에는 안 맞습니다. 망가뜨리기 전에 돌려드립니다.",
+      "warm_lines": [
+        "제 쓸모는 아니지만 버리지 않겠습니다.",
+        "작업대 한쪽에 두겠습니다.",
+        "뜯어 보지는 않겠습니다. 아마도요.",
+        "가볍습니다. 들고 다니겠습니다.",
+        "어디 쓸지 생각해 보겠습니다.",
+        "모양이 단단합니다. 좋습니다.",
+        "받았습니다. 공구 옆에 세워 두겠습니다.",
+        "망가지면 제가 고치겠습니다."
+      ]
     },
-
     "farmer": {
       "ko": "농부",
       "voice": "그물 무리. 부드러운 해요체, 권하는 말",
       "likes": [
-        {"category": "food", "subtype": ["grain"]},
-        {"category": "drink", "subtype": ["tea"]},
-        {"category": "book", "subtype": ["field_guide"]}
+        {
+          "category": "food",
+          "subtype": [
+            "grain"
+          ]
+        },
+        {
+          "category": "drink",
+          "subtype": [
+            "tea"
+          ]
+        },
+        {
+          "category": "book",
+          "subtype": [
+            "field_guide"
+          ]
+        }
       ],
       "needs": [
-        {"category": "drink", "subtype": ["water"]},
-        {"category": "food", "subtype": ["grain"]}
+        {
+          "category": "drink",
+          "subtype": [
+            "water"
+          ]
+        },
+        {
+          "category": "food",
+          "subtype": [
+            "grain"
+          ]
+        }
       ],
       "liked_lines": [
-        "고마워요. 온실 창가에 두면 좋겠어요. 조금만 더 두고 볼게요.",
-        "이건 키우는 마음으로 받을게요."
+        "온실 창가에 두면 좋겠어요. 조금만 더 두고 볼게요.",
+        "이건 키우는 마음으로 받을게요.",
+        "창가에 두고 조금만 더 지켜볼게요.",
+        "이런 건 천천히 봐야 해요. 오래 볼게요.",
+        "물 줄 때마다 한 번씩 볼게요.",
+        "온실 식구가 하나 늘었네요."
       ],
       "needed_lines": [
-        "물이 딱 모자랐어요. 오늘은 다 주고 남겠네요."
+        "물이 딱 모자랐어요. 오늘은 다 주고 남겠네요.",
+        "물이 모자라서 걱정했어요. 다행이에요.",
+        "이거면 싹이 하루 더 버텨요.",
+        "온실이 숨을 쉬겠네요."
       ],
       "memories": [
         {
           "id": "farmer_leaf",
-          "trigger": {"category": "drink", "subtype": ["tea"]},
+          "trigger": {
+            "category": "drink",
+            "subtype": [
+              "tea"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 잎을 물에 하나 띄워 놓고 들여다보고 계십니다.",
           "line": "잎이 물속에서 다시 펴지네요. 이렇게 자라는 거였군요. 조금 더 두면 돼요."
         },
         {
           "id": "farmer_picture",
-          "trigger": {"category": "book", "subtype": ["field_guide", "story"]},
+          "trigger": {
+            "category": "book",
+            "subtype": [
+              "field_guide",
+              "story"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 한 장을 오래 펴 두셨습니다.",
           "line": "이 그림, 그 색이에요? 맞죠? 그림으로라도 처음 봐요."
         }
       ],
-      "not_for_me": "이건 제가 기를 수 있는 게 아니네요. 더 잘 쓰실 분께 가면 좋겠어요."
+      "not_for_me": "이건 제가 기를 수 있는 게 아니네요. 더 잘 쓰실 분께 가면 좋겠어요.",
+      "warm_lines": [
+        "온실에 둘 건 아니지만, 보기 좋은 데 둘게요.",
+        "잘 받아 둘게요. 천천히 정들 거예요.",
+        "이건 그냥 옆에 두고 볼게요.",
+        "조금 더 두면 좋아질 것 같아요. 뭐든요.",
+        "어디 둘지 같이 생각해 봐요.",
+        "손에 쥐니까 따뜻하네요.",
+        "물 주러 갈 때 지나가면서 볼게요.",
+        "제 거 아니어도 괜찮아요. 맡아 둘게요."
+      ]
     },
-
     "scholar": {
       "ko": "학자",
       "voice": "조심스러운 해요체. 물건을 읽으려 한다",
       "likes": [
-        {"category": "book"},
-        {"category": "stationery", "subtype": ["pen", "paper"]},
-        {"category": "electronics", "subtype": ["device"]}
+        {
+          "category": "book"
+        },
+        {
+          "category": "stationery",
+          "subtype": [
+            "pen",
+            "paper"
+          ]
+        },
+        {
+          "category": "electronics",
+          "subtype": [
+            "device"
+          ]
+        }
       ],
       "needs": [
-        {"category": "stationery", "subtype": ["paper", "pen"]},
-        {"category": "electronics", "subtype": ["light"]}
+        {
+          "category": "stationery",
+          "subtype": [
+            "paper",
+            "pen"
+          ]
+        },
+        {
+          "category": "electronics",
+          "subtype": [
+            "light"
+          ]
+        }
       ],
       "liked_lines": [
         "아, 이건 한참 걸리겠네요. 좋은 뜻으로요.",
-        "읽을 수 있는 게 하나 늘었어요. 고마워요."
+        "읽을 수 있는 게 하나 늘었어요. 누가 줬는지는 여백에 적어 둘게요.",
+        "여백이 넓어서 좋아요. 적을 데가 많아요.",
+        "자국이 또렷해요. 짐작이 줄겠어요.",
+        "해독실 책상에 펴 둘게요.",
+        "이건 오늘 밤 다 못 읽을 거예요. 좋은 뜻으로요."
       ],
       "needed_lines": [
-        "쓸 데가 없어서 벽에 쓰던 참이었어요. 이제 벽이 쉬겠네요."
+        "쓸 데가 없어서 벽에 쓰던 참이었어요. 이제 벽이 쉬겠네요.",
+        "적을 데가 없어서 손바닥에 쓰던 참이었어요.",
+        "이거면 일지가 한 장 더 늘어요.",
+        "불이 하나 더 있으면 자국이 더 잘 보여요."
       ],
       "memories": [
         {
           "id": "scholar_last_page",
-          "trigger": {"category": "book", "subtype": ["story"]},
+          "trigger": {
+            "category": "book",
+            "subtype": [
+              "story"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 마지막 장을 몇 번이나 넘겨 보셨습니다.",
           "line": "마지막 장이 없네요. 그럼 끝은 우리가 정해도 되는 거죠. 적어 둘게요."
         },
         {
           "id": "scholar_stitched",
-          "trigger": {"category": "apparel", "subtype": ["label", "shirt"]},
+          "trigger": {
+            "category": "apparel",
+            "subtype": [
+              "label",
+              "shirt"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 수놓인 데를 손끝으로 읽고 계십니다.",
           "line": "실로 쓴 성문이네요. 실로 쓴 건 눌린 자국보다 오래 남아요."
         }
       ],
-      "not_for_me": "읽을 게 없는 물건이네요. 그래도 손에 쥐어 보는 건 좋았어요."
+      "not_for_me": "읽을 게 없는 물건이네요. 그래도 손에 쥐어 보는 건 좋았어요.",
+      "warm_lines": [
+        "읽을 건 없지만, 모양을 적어 둘게요.",
+        "누가 쓰던 건지 짐작해 볼게요.",
+        "해독실 구석에 두면 어울리겠어요.",
+        "성문만 한 번 더 읽어 볼게요.",
+        "이것도 기록이에요. 손때가 남았으니까요.",
+        "받은 날을 여백에 적어 둘게요.",
+        "제 일과는 멀지만, 궁금하긴 해요.",
+        "책 사이에 끼워 두면 안 잃어버리겠죠."
+      ]
     },
-
     "trader": {
       "ko": "교섭가",
       "voice": "손님 무리. 안내 방송체 존댓말, 시간과 자리 이야기",
       "likes": [
-        {"category": "tobacco"},
-        {"category": "apparel", "subtype": ["bag", "label"]},
-        {"category": "food", "subtype": ["sweet"]}
+        {
+          "category": "tobacco"
+        },
+        {
+          "category": "apparel",
+          "subtype": [
+            "bag",
+            "label"
+          ]
+        },
+        {
+          "category": "food",
+          "subtype": [
+            "sweet"
+          ]
+        }
       ],
       "needs": [
-        {"category": "apparel", "subtype": ["bag"]},
-        {"category": "tobacco", "subtype": ["smoke"]}
+        {
+          "category": "apparel",
+          "subtype": [
+            "bag"
+          ]
+        },
+        {
+          "category": "tobacco",
+          "subtype": [
+            "smoke"
+          ]
+        }
       ],
       "liked_lines": [
         "좋은 물건입니다. 다음 정거장까지 소중히 모시겠습니다.",
-        "값을 매기지 않겠습니다. 오늘은 그냥 받겠습니다."
+        "값을 매기지 않겠습니다. 오늘은 그냥 받겠습니다.",
+        "다음 정거장까지 무릎 위에 모시겠습니다.",
+        "좋은 물건입니다. 흥정은 하지 않겠습니다.",
+        "짐칸 맨 위에 두겠습니다. 제일 좋은 자리입니다.",
+        "이런 건 값이 아니라 자리로 갚는 겁니다."
       ],
       "needed_lines": [
-        "짐칸이 하나 비어 있던 참입니다. 딱 맞습니다."
+        "짐칸이 하나 비어 있던 참입니다. 딱 맞습니다.",
+        "짐칸이 딱 맞게 찼습니다.",
+        "다음 교역이 한결 수월하겠습니다.",
+        "모자라던 게 채워졌습니다. 일정에 문제없습니다."
       ],
       "memories": [
         {
           "id": "trader_unopened",
-          "trigger": {"category": "tobacco", "subtype": ["liquor"]},
+          "trigger": {
+            "category": "tobacco",
+            "subtype": [
+              "liquor"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 병을 무릎 위에 올려 두고 오래 앉아 계셨습니다.",
           "line": "이 병은 열지 않을 때 값이 더 나갑니다. 다음 정거장까지 이대로 모시겠습니다."
         },
         {
           "id": "trader_name_tag",
-          "trigger": {"category": "apparel", "subtype": ["label"]},
+          "trigger": {
+            "category": "apparel",
+            "subtype": [
+              "label"
+            ]
+          },
           "announce": "{name} 님이 「{item}」 빈칸을 손가락으로 두드리고 계십니다.",
           "line": "이름표군요. 아직 비어 있습니다. 누가 먼저 써 주시면 그때 달겠습니다."
         }
       ],
-      "not_for_me": "제 짐칸에는 맞지 않는 물건입니다. 다른 분 자리로 안내해 드리겠습니다."
+      "not_for_me": "제 짐칸에는 맞지 않는 물건입니다. 다른 분 자리로 안내해 드리겠습니다.",
+      "warm_lines": [
+        "제 짐칸과는 조금 다르지만, 잘 모시겠습니다.",
+        "다음 정거장까지 함께 가겠습니다.",
+        "값은 묻지 않겠습니다. 오늘은요.",
+        "이 물건, 자리 하나는 있습니다.",
+        "잠시 맡아 두겠습니다. 찾으시면 바로 드리겠습니다.",
+        "흥정 자리에 올리지 않고 제 옆에 두겠습니다.",
+        "좋은 여행 친구가 되겠습니다.",
+        "받았습니다. 짐칸 번호를 적어 두겠습니다."
+      ]
     },
-
     "kid": {
       "ko": "아이",
       "voice": "반말 질문. 만져 보고 싶어 한다",
       "likes": [
-        {"category": "food", "subtype": ["sweet", "snack"]},
-        {"category": "stationery", "subtype": ["toy", "paper"]},
-        {"category": "drink", "subtype": ["juice", "soda"]}
+        {
+          "category": "food",
+          "subtype": [
+            "sweet",
+            "snack"
+          ]
+        },
+        {
+          "category": "stationery",
+          "subtype": [
+            "toy",
+            "paper"
+          ]
+        },
+        {
+          "category": "drink",
+          "subtype": [
+            "juice",
+            "soda"
+          ]
+        }
       ],
       "needs": [
-        {"category": "apparel", "subtype": ["small"]},
-        {"category": "drink", "subtype": ["milk"]}
+        {
+          "category": "apparel",
+          "subtype": [
+            "small"
+          ]
+        },
+        {
+          "category": "drink",
+          "subtype": [
+            "milk"
+          ]
+        }
       ],
       "liked_lines": [
         "이거 나 줘? 진짜? 문어한테 자랑할래.",
-        "이거 이름 뭐야? 내가 지어도 돼?"
+        "이거 이름 뭐야? 내가 지어도 돼?",
+        "이거 내 거야? 베개 옆에 둘래.",
+        "문어도 좋아하겠다. 보여 줘야지.",
+        "이거 이름 내가 지었어. 비밀이야.",
+        "와. 오늘 제일 좋은 거다."
       ],
       "needed_lines": [
-        "따뜻하다. 이제 귀 안 시려."
+        "따뜻하다. 이제 귀 안 시려.",
+        "이제 안 추워. 진짜야.",
+        "이거 있으니까 배 안 고파.",
+        "딱 이거 필요했어. 어떻게 알았어?"
       ],
       "memories": [
         {
           "id": "kid_sweet_smell",
-          "trigger": {"category": "food", "subtype": ["sweet"]},
+          "trigger": {
+            "category": "food",
+            "subtype": [
+              "sweet"
+            ]
+          },
           "announce": "아이가 「{item}」 봉지에 코를 대고 한참 있었습니다.",
           "line": "이게 단 거야? 아직 안 먹을래. 오늘은 냄새만."
         },
         {
           "id": "kid_write_name",
-          "trigger": {"category": "stationery", "subtype": ["pen"]},
+          "trigger": {
+            "category": "stationery",
+            "subtype": [
+              "pen"
+            ]
+          },
           "announce": "아이가 「{item}」 들고 벽 앞에 서 있습니다. 어디부터 쓸지 고르는 중입니다.",
           "line": "이거 누르면 글씨 나와? 내 이름 써 줘. 아니, 내가 쓸래."
         }
       ],
-      "not_for_me": "이거 나 말고 어른 거지? 그럼 돌려줄게. 근데 한 번만 더 만져 봐도 돼?"
+      "not_for_me": "이거 나 말고 어른 거지? 그럼 돌려줄게. 근데 한 번만 더 만져 봐도 돼?",
+      "warm_lines": [
+        "이건 뭐에 쓰는 거야? 그냥 갖고 있어도 돼?",
+        "만져 봐도 돼? 살살 만질게.",
+        "문어한테 보여 줄래.",
+        "이거 들고 복도 한 바퀴 돌고 올게.",
+        "어른 건가? 그래도 잠깐만 들고 있을래.",
+        "냄새 맡아 봐도 돼? 아무 냄새도 안 나네.",
+        "베개 밑에 넣어 둘래. 안 잃어버리게.",
+        "이거 반짝이는 쪽이 앞이야?"
+      ]
     }
   },
-
   "personal_twist": {
     "_rule": "사람마다 시드(uid|rid)로 한 가지를 덧붙인다. 같은 역할이어도 다른 사람이 되게. 역할 likes 와 겹치지 않는 subtype 하나를 '좋아함'으로, 하나를 '안 맞음'으로 고른다. 특이점(RESIDENT_STATS)과 따로 센다.",
     "pool": [
-      {"category": "drink", "subtype": "tea"},
-      {"category": "drink", "subtype": "milk"},
-      {"category": "food", "subtype": "sweet"},
-      {"category": "food", "subtype": "canned"},
-      {"category": "stationery", "subtype": "toy"},
-      {"category": "stationery", "subtype": "paper"},
-      {"category": "book", "subtype": "story"},
-      {"category": "apparel", "subtype": "small"},
-      {"category": "electronics", "subtype": "audio"},
-      {"category": "electronics", "subtype": "light"},
-      {"category": "medical", "subtype": "cosmetic"},
-      {"category": "tobacco", "subtype": "fire"}
+      {
+        "category": "drink",
+        "subtype": "tea"
+      },
+      {
+        "category": "drink",
+        "subtype": "milk"
+      },
+      {
+        "category": "food",
+        "subtype": "sweet"
+      },
+      {
+        "category": "food",
+        "subtype": "canned"
+      },
+      {
+        "category": "stationery",
+        "subtype": "toy"
+      },
+      {
+        "category": "stationery",
+        "subtype": "paper"
+      },
+      {
+        "category": "book",
+        "subtype": "story"
+      },
+      {
+        "category": "apparel",
+        "subtype": "small"
+      },
+      {
+        "category": "electronics",
+        "subtype": "audio"
+      },
+      {
+        "category": "electronics",
+        "subtype": "light"
+      },
+      {
+        "category": "medical",
+        "subtype": "cosmetic"
+      },
+      {
+        "category": "tobacco",
+        "subtype": "fire"
+      }
     ],
     "like_line": "{name} 님은 「{subtype_ko}」 쪽 물건만 보면 말씀이 조금 많아지십니다.",
     "dislike_line": "{name} 님은 「{subtype_ko}」 쪽 물건은 한 번 보시고 그냥 내려놓으십니다. 싫어하시는 건 아니랍니다.",
@@ -323,5 +771,6 @@
       "line": "{name} 님은 머리맡에 「{item}」 하나를 두고 주무십니다.",
       "morning": "{name} 님 머리맡의 「{item}」, 오늘 아침에도 그 자리에 있습니다."
     }
-  }
+  },
+  "_warm_lines_rule": "S21: warm_lines 는 같은 갈래라 반가워하는(warm) 반응의 그 주민 입말(역할마다 8줄). 관리실 방송(announce)은 ui_moments give.soft_thanks, 주민 말(line)은 여기서 고른다(announce 와 line 이 같으면 안 된다). 같은 주민에게 같은 줄을 7일 안에 다시 쓰지 않는다. liked_lines 6·needed_lines 4 도 같은 규칙."
 }

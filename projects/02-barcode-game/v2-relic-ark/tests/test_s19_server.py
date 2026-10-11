@@ -128,8 +128,8 @@ def t_give_values():
     m1 = st["resources"]["morale"]
     f1 = float(st.get("morale_frac") or 0)
     out2 = S.give_apply(st, uid, it2, {"resident_id": cook["id"]}, "copy")
-    ok(out2["mult"] == S.DIM_SAME_DAY and abs((st["resources"]["morale"] + float(st.get("morale_frac") or 0)) - (m1 + f1) - 0.5) < 1e-6,
-       f"같은 날 둘째 ×{out2['mult']} → 사기 +0.5 ({out2['tier']})")
+    ok(out2["mult"] == S.DIM_SAME_DAY and abs((st["resources"]["morale"] + float(st.get("morale_frac") or 0)) - (m1 + f1) - 1.0 * S.DIM_SAME_DAY) < 1e-6,
+       f"같은 세션 둘째 ×{out2['mult']} → 사기 +{S.DIM_SAME_DAY} ({out2['tier']})")
     # 다음 날 같은 물건 → ×0.3
     st["created"] -= 86400
     out3 = S.give_apply(st, uid, it2, {"resident_id": cook["id"]}, "copy")
@@ -299,14 +299,16 @@ def t_decor_visitors_raid():
     ark(uid)
     st = S.load_state(uid)
     pantry = S.room_at(st, 2)
-    ok(S.decor_cap(pantry) == S.DECOR_SLOTS[1] == 2, f"Lv1 꾸밈 칸 {S.decor_cap(pantry)}")
+    ok(S.decor_cap(pantry) == S.DECOR_SLOTS[1] == S.CORE_A["decor"]["slots_by_level"]["1"], f"Lv1 꾸밈 칸 {S.decor_cap(pantry)}")
     a = S.give_apply(st, uid, item("food", "noodle", "면", code="d1"), {"slot": 2}, "copy")
     ok(a["tier"] == "decor" and not a["effects"]["decor"]["tag_added"], f"첫 물건 → decor, 꼬리표 아직 {a['effects']['decor']['tags']}")
     b = S.give_apply(st, uid, item("drink", "tea", "차", code="d2"), {"slot": 2}, "copy")
     ta = b["effects"]["decor"]["tag_added"]
     ok(ta and ta["id"] == "warm_kitchen" and ta["announce"] and "{room}" not in ta["announce"], f"둘 → 꼬리표 붙음: {ta and ta['announce']}")
+    for k in range(S.decor_cap(pantry) - 2):          # S21: 칸 수는 데이터(Lv1 3) — 남은 칸을 채운다
+        S.give_apply(st, uid, item("food", "canned", f"통조림{k}", code=f"d3{k}"), {"slot": 2}, "copy")
     try:
-        S.give_apply(st, uid, item("food", "grain", "곡물", code="d3"), {"slot": 2}, "copy")
+        S.give_apply(st, uid, item("food", "sauce", "양념", code="d4"), {"slot": 2}, "copy")
         ok(False, "칸이 차면 400")
     except S.HTTPException as e:
         ok(e.status_code == 400, f"칸이 차면 400 ({e.detail})")
@@ -315,9 +317,10 @@ def t_decor_visitors_raid():
     kinds = {r["kind"] for r in rows}
     allowed = {"visitor", "residents", "octopus", "gardener", "guest_tilt", "newhuman_tilt"}
     ok(kinds <= allowed and rows == S.visit_rows_for(st, uid, 5), f"방문 굴림 결정적, 종류 {kinds}")
-    vis = [r for d in range(1, 30) for r in S.visit_rows_for(st, uid, d) if r["kind"] == "visitor"]
-    ok(vis and all(v["visitor_id"] == "steam_eel" for v in vis) and 0.3 < len(vis) / 29 < 0.75,
-       f"따뜻한 부엌 → 꼬마 장어 {len(vis)}/29일(≈0.5)")
+    gday = (S.core_of(st)["flags"].get("visit_guarantee") or {}).get("day")
+    vis = [r for d in range(1, 101) if d != gday for r in S.visit_rows_for(st, uid, d) if r["kind"] == "visitor"]
+    ok(vis and all(v["visitor_id"] == "steam_eel" for v in vis) and abs(len(vis) / 99 - S.VISITOR_DAILY) < 0.12,
+       f"따뜻한 부엌 → 꼬마 장어 {len(vis)}/99일(≈{S.VISITOR_DAILY}, 확정일 제외)")
     meta = __import__("json").loads((ROOT / "static" / "art" / "visitors" / "visitors_meta.json").read_text(encoding="utf-8"))
     ids = set((meta.get("visitors") or {}).keys()) if isinstance(meta.get("visitors"), dict) else {x["id"] for x in meta["visitors"]}
     ok({v["id"] for v in S.VISITORS_BY_TAG.values()} <= ids, "visitors.json id = visitors_meta.json id")
@@ -338,15 +341,16 @@ def t_decor_visitors_raid():
     # 금 → 상자 → 수리
     m0 = st["resources"]["morale"]
     n = S.decor_on_crack(st, 2)
-    ok(n == 2 and all(it["boxed"] for it in S.decor_items(st, 2)) and not S.room_tags_on(st, 2) and st["resources"]["morale"] <= m0,
+    nd = len(S.decor_items(st, 2))
+    ok(n == nd and all(it["boxed"] for it in S.decor_items(st, 2)) and not S.room_tags_on(st, 2) and st["resources"]["morale"] <= m0,
        "금 → 꾸밈 물건이 상자로, 꼬리표 꺼짐, 사기 −1")
     S.decor_on_repair(st, 2)
     ok(not any(it["boxed"] for it in S.decor_items(st, 2)) and S.room_tags_on(st, 2) == ["warm_kitchen"], "수리 → 제자리")
     # 상실 → 창고 상자 → 되찾기
     S.decor_on_breach(st, 2)
-    ok(not S.decor_items(st, 2) and sum(1 for x in st["stored"] if x.get("from_slot") == 2) == 2, "상실 → 창고 상자(from_slot)")
+    ok(not S.decor_items(st, 2) and sum(1 for x in st["stored"] if x.get("from_slot") == 2) == nd, "상실 → 창고 상자(from_slot)")
     S.decor_on_reclaim(st, 2)
-    ok(len(S.decor_items(st, 2)) == 2 and not any(x.get("from_slot") == 2 for x in st["stored"]), "되찾으면 돌아온다")
+    ok(len(S.decor_items(st, 2)) == nd and not any(x.get("from_slot") == 2 for x in st["stored"]), "되찾으면 돌아온다")
     # 긴목 ×1.3: 첫 주에는 꺼짐
     st["rooms"].append({"id": "generator", "slot": 5, "built": time.time(), "level": 1})
     S.core_of(st)["rooms"]["5"] = {"items": [dict(item("electronics", "light", "등1"), id="e1"), dict(item("electronics", "light", "등2"), id="e2")]}
@@ -358,7 +362,7 @@ def t_decor_visitors_raid():
     S.save_state(uid, st)
     iid = S.decor_items(S.load_state(uid), 2)[0]["id"]
     j = post("/api/decor/remove", {"uid": uid, "slot": 2, "item_id": iid})
-    ok(j["back_to"] in ("shelf", "stored") and len(j["state"]["room_decor"]["2"]["items"]) == 1, f"꾸밈 빼기 → {j['back_to']}")
+    ok(j["back_to"] in ("shelf", "stored") and len(j["state"]["room_decor"]["2"]["items"]) == nd - 1, f"꾸밈 빼기 → {j['back_to']}")
 
 
 def t_guest_tilt():
