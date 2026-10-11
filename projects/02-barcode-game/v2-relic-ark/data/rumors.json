@@ -182,7 +182,7 @@
   {
     "id": "rumor_roof_herb_beak",
     "spot_id": "spot_rooftop_garden",
-    "text": "까마귀 부리에 짓이겨진 잎이 묻어 있었다. 의무병이 냄새를 맡더니 손을 멈췄다. 방주에서 기르지 않는 잎이다.",
+    "text": "까마귀 부리에 짓이겨진 잎이 묻어 있었다. 누군가 냄새를 맡더니 손을 멈췄다. 방주에서 기르지 않는 잎이다.",
     "source": "crow",
     "unlock": {
       "category": "medical",

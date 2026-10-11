@@ -248,3 +248,68 @@
   - 같은 사람에게 줄을 돌려 쓴다. 8줄이라 7일 안에 같은 줄이 다시 나오지 않는다.
   - `warm_lines` 가 없으면 `line` 은 null 이다. 같은 문장을 두 번 내지 않는다.
   - `liked_lines`·`needed_lines` 도 같은 방식으로 돌려 쓴다.
+- **`/api/ark` 의 필요 받음 표시**(S21 후속): `core.residents[rid].given_need_today: bool`, `needs_today[].met: bool`. 오늘 그 사람이 받은 물건 중 오늘의 필요에 맞는 것이 있으면 true 다(사슬·기억 등급이어도). 돌려준 물건은 세지 않는다. 화면 `base_core.js` normTaste 가 「받음」 표시에 이 값을 읽는다.
+
+## 12. S22 바뀐 것 (2026-10-11, 1단계 「약속을 지키는 루프」 앞쪽)
+수치는 `core_a.json` 의 `s22_server_numbers`(기획 확정)에서 읽는다. 문장은 시나리오 데이터에서 읽는다. 필드 이름은 시나리오·클라이언트 에이전트에게 알렸다.
+
+### ① 「이게 뭐예요?」 — 하위 종류는 플레이어가 고른다
+- **묻는 바코드**: 하위 종류가 정해지지 않은 바코드다. 알려진 가문 18곳, 책(978/979), 정체불명은 묻지 않는다.
+- **`/api/scan` 응답 `where.subtype_pick`**: `{needed: true, options: [{id, ko}], suggest: {id, ko, arks}|null, ask_ko, suggest_ko}`
+  - 묻지 않는 바코드면 null 이다.
+  - `options`: 그 갈래 `_subtypes` 앞에서부터 최대 6개다. 가문 전용 종류(음료 alcohol)는 뺀다.
+  - `suggest`: 다른 방주의 이름이다. 서로 다른 방주 3곳 이상이고 같은 답이 60% 이상일 때만 온다. `arks` 는 그 이름으로 부른 방주 수다.
+- **`POST /api/scan/subtype {uid, scan_id, subtype}`**
+  - 그 방주에서 그 바코드의 하위 종류를 **영구 고정**한다. 이미 정했으면 400, 다른 갈래 종류면 400 이다.
+  - 응답: `{ok, card, where, subtype, subtype_ko, done_ko}`. `card` 는 새 이름·종류가 반영된 카드다. `where` 는 다시 계산한 「어디로」다.
+  - 선반·창고 상자 물건의 이름도 바뀐다.
+  - 다시 찍으면 고른 값으로 만든다. 고르지 않은 바코드는 예전과 바이트까지 같은 카드다.
+- **전역 투표**: `subtype_votes` 표에 방주마다 한 표(uid·바코드·갈래·종류·시각)를 넣는다. 화면에는 숫자만 나간다.
+- **카드 필드**: `card.subtype`·`card.subtype_ko` 이고, `card.history: [{day, to_name, resident_id|slot}]` 가 새로 붙는다. history 는 이 방주에서 그 바코드를 전에 누구에게, 어느 방에 줬는지다. 스캔 응답에는 `card.history`, `/api/give` 응답에는 `item.history` 로 온다.
+- **의도**: 그날 필요를 처음 보여 준 시각(첫 `/api/ark`) **뒤에** 찍은 물건으로 그 사람의 필요를 채우면, `/api/give` 응답에 `intent: true` 가 붙는다(같은 사람은 하루 한 번).
+  - tier 가 need 이면 문장이 `resident_tastes.announce.give_intent[]` 와 `roles.<role>.intent_lines[]` 로 바뀐다.
+  - 값 보너스는 없다.
+
+### ② 멈춘 사슬
+- 좁은 조건(하위 종류·희귀도) 매듭이 열린 뒤 **켠 날 2일** 동안 안 풀리면 조건이 넓어진다.
+  - 하위 종류 조건 → 그 갈래 전체.
+  - 희귀도 조건 → 한 단계 아래.
+- 넓어지면 `core.residents[rid].arc.next` 에 `soft: true` 가 붙고, `hint_ko` 도 넓은 말(예: 「전자」)로 바뀐다. `soft_hint` 는 데이터에 그 줄이 있을 때만 온다.
+- `novelty` 의 `memory_hint` 는 이 방주가 실제로 찍은 적 있는 하위 종류만 귀띔한다.
+
+### ③ 꾸밈 → 손님
+- **꼬리표는 방주에 한 번만** 붙는다(`core.tags_formed`). 다른 방이 이미 가진 꼬리표는 그 방에 권하지도 붙이지도 않는다.
+  - `room_decor[slot].tags[].elsewhere: true` 가 그 표시다.
+- 제안한 꼬리표가 실제로 붙는 꼬리표다. 둘이 함께 차면 제안한 쪽을 먼저 말한다.
+- 값이 같은 제안 사이에서는 많이 찬 꼬리표 방이 먼저 온다.
+- **같은 이름 방 구분**: `where.suggest[].name` 에 구분하는 말을 붙인다. 그 방에 선 사람이 있으면 「거주실(소리 님 방)」, 없으면 「거주실(위층)」 꼴이다. 원래 이름은 `name_ko` 로 따로 온다.
+- **첫 꼬리표가 붙으면 다음 세션(30분 이상 뒤)에 그 방 첫 손님이 와 있다.** `visits[]` 의 그 줄에는 `forced: true` 가 붙는다. 그날 못 오면 다음 날 굴림에서 확정이다.
+- **`/api/ark.decor_trace: [{slot, tag, tag_ko, visitor_id, ko, line}]`**: 꼬리표까지 하나 남은 방의 흔적이다(예고). `line` 은 `visitors.json trace[]` 에서 하루에 하나 고른다.
+- **`/api/ark.visitors_book: [{id, ko, tag, count, first_day, souvenir, souvenir_name}]`**: 여덟 칸이고, 아직 안 온 손님은 count 0 이다.
+  - 같은 손님이 세 번 오면 기념품 유물이 선반에 놓인다(`souvenir: {name, relic_id, day}`).
+  - 그때 밤사이에 `kind: "souvenir"` 줄이 들어간다.
+
+### ④ 4차 버그
+- r4-1: 이미 푼 매듭(기록이 남은 번호)은 다시 제안하지도 풀지도 않는다. 같은 조건을 그대로 재현하지 못해 방어로 막았다.
+- r4-2: 선반 물건(`relic_id`)을 건넬 때도 「어디로」의 warm 제안을 지킨다. 그래서 돌려받지 않는다. 문어 조각은 한 번 건네면 `octopus_gift_where` 가 null 이 된다.
+- r4-3: 아직 온 적 없는 손님 약속은 `next_visit.json promises.visitor_expected_first[]` 를 쓴다(「또」가 없는 줄).
+- r4-4: 6일째 구조가 없으면 `beats.json` 의 `star_no_rescue`({name} = 처음 셋 뒤에 온 가장 최근 식구)를 쓴다. 그런 식구도 없으면 `alt` 를 쓴다.
+- r4-5: 넘침 문장이 「식량 21개는 들이지 못했습니다. 대신 사기를 3 올려 두었습니다」 꼴이다. `(은)는` 같은 조사 자리표시가 없다.
+- r4-6: 줄에 `requires_role` 가 붙어 있고 그 역할이 없으면 `<field>_alt` 를 쓴다. 대상은 문어 선물 `line`, 사슬 매듭 announce·line·beat·log, `{text, requires_role, text_alt}` 꼴의 줄이다.
+- r4-7: 매듭의 관리실 줄이 비면 이 순서로 대신한다: `ui_moments.arc_fallback.octopus_with[]`(문어 매듭) → 문어 서술(`beat`) → 입말.
+- 넘침 수치는 기획 확정값을 쓴다: 식량·물 5:1, 사기 하루 3까지, 그 밖 5:1.
+
+### ⑤ 아침 실마리
+- `novelty` 판정에서 매일 되풀이되는 줄과 비트는 새것으로 세지 않는다. 되풀이되는 줄은 머리맡, 사슬 뒷날 줄, 두 번째 이후 방문이다.
+- 진짜 새것은 이것뿐이다: 첫 방문, 매듭, 귀환, 두드림, 바람, 각인, 단서, 기념품.
+
+### ⑥ 두 번째 기회
+- `GET /api/leaving` 과 `/api/ark` 에 `missed_chain: {resident_id, name, kind, line}|null` 이 붙는다.
+  - 그날 「어디로」가 매듭·기억을 제안했는데 닫았거나 다른 데 준 경우에, 그 사람이 아직 못 풀었으면 한 줄 온다.
+  - 문장은 `next_visit.json promises.missed_chain[]` 이다.
+
+### ⑦ 그림용 필드
+- `core.residents[rid].keepsakes_recent: [{relic_id, name, category, subtype, prop, day}]`
+  - 최근 받은 물건 셋이고, 최근 것이 먼저다.
+  - `prop` 을 고르는 순서: `props_meta.json by_subtype[갈래][하위 종류].prop` → 그 갈래의 첫 good → `unknown.any`.
+- `card.history`, `visitors_book` 은 위와 같다. `seat`·`props` 는 그대로다.

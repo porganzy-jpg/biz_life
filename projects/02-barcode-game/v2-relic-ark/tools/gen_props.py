@@ -591,8 +591,14 @@ def main():
                 "file4x": "static/art/props/x4/%s.png" % pid,
             }
             made.append((pid, it["name"], slots, small, big))
-    json.dump(meta, open(os.path.join(OUT_1X, "props_meta.json"), "w", encoding="utf-8"),
-              ensure_ascii=False, indent=1)
+    # S22: 다른 생성기(gen_knot_props.py)가 쓴 블록(knots·subtype_props·by_subtype 등)은 지우지 않는다
+    meta_p = os.path.join(OUT_1X, "props_meta.json")
+    if os.path.exists(meta_p):
+        old = json.load(open(meta_p, encoding="utf-8"))
+        for k, v in old.items():
+            if k not in meta:
+                meta[k] = v
+    json.dump(meta, open(meta_p, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     contact(made)
     print("PROPS", len(made))
 

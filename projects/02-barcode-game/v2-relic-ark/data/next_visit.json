@@ -2,7 +2,6 @@
   "_doc": "S19-S 떠날 때 카드(아이디어 1). 세션을 닫을 때 '이번에 바뀐 것' 두 줄과 '다음에 켜시면' 한 줄. 약속 종류마다 줄 몇 개(무작위 하나). 라이브 데이터 아님.",
   "_rule": "마감 시각·'오늘 안에'를 말하지 않는다. 약속한 것은 다음에 켤 때까지 기다린다. 무엇이 올지는 말하되 무엇인지는 다 말하지 않는다.",
   "_for_dev": "{name}=주민 이름, {return_at}=돌아오는 시각 문자열, {pattern}=상자 무늬 이름, {visitor}=장식 손님 이름(visitors.json ko), {room}=방 이름, {need}=모자란 재료 이름. 자리표시자 뒤 조사 없음. 우선순위 제안: expedition_return > guest_at_door > arc_beat_ready > box_key_hint > visitor_expected > need_tomorrow > nothing.",
-
   "card": {
     "title": "다음에 켜시면",
     "changed_title": "이번에 바뀐 것",
@@ -36,6 +35,15 @@
     "nothing": [
       "다음에 켜시면 밤사이 일을 한꺼번에 알려 드리겠습니다. 편히 쉬십시오.",
       "오늘은 여기까지입니다. 다들 잘 지내고 있겠습니다."
+    ],
+    "visitor_expected_first": [
+      "{room} 창밖으로 처음 보는 손님이 올 것 같습니다.",
+      "{room} 쪽에 누가 서성인 자국이 있습니다. 누군지는 다음에 켜시면 아실 겁니다."
+    ],
+    "missed_chain": [
+      "{name} 님이 아까 뭔가 하실 말씀이 있었던 것 같습니다. 다음에 한 번 보여 드려 보세요.",
+      "{name} 님 쪽 이야기가 하나 기다리고 있습니다. 서두를 일은 아닙니다."
     ]
-  }
+  },
+  "_s22_rule": "visitor_expected 는 다시 오는 손님(「또」), visitor_expected_first 는 아직 온 적 없는 손님. missed_chain 은 놓친 매듭."
 }

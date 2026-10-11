@@ -1,0 +1,249 @@
+{
+  "_doc": "2단계 「되찾기 꾸러미 — 기억 벽」 초안. 기획·밸런스 소유(수치·칸 구성). 문장(뒷이야기·방송)은 시나리오. 짝: docs/BUNDLES_MEMORY_WALL.md, tools/sim_s22.py",
+  "_version": "2026-10-11",
+  "_status": "⚠ 초안(B7). 서버 칸 모델 그대로 — 벽은 이미 있는 방의 속성이다(새 칸 없음).",
+  "rules": {
+    "slots_per_wall": "4~6",
+    "prefill_one": true,
+    "_prefill_basis": "벽이 열릴 때 한 칸은 이미 차 있다(미리 찍힌 쿠폰 34% vs 빈 쿠폰 19% 완주 — Nunes & Drèze 2006). 미리 채우는 칸은 그 벽에서 **집에 가장 드문** 하위 종류 — 막힐 칸을 먼저 치워 준다.",
+    "fill_by": "그 하위 종류로 고른 유물을 그 방에 '놓기'(「어디로」의 방 선택지에 벽 칸이 보인다). 같은 바코드로 두 칸을 채울 수 없다",
+    "memory_object_fill": "기억 속 물건도 칸을 채운다 — 단 **마지막 칸은 진짜로**(실제 스캔만)",
+    "no_buying": "칸은 전부 집에 흔한 하위 종류. 신발·지도·담배처럼 없을 수 있는 것은 넣지 않거나, 넣으면 그 벽에 대체 칸 하나를 둔다",
+    "rewards": "완성하면 ①그 층의 뒷이야기 한 토막(tower_lore reclaim R1~R8 을 잇는다) ②새 손님 하나 **또는** 방 기능 하나. 자원 없음",
+    "no_timer": "벽은 사라지지 않는다. 열린 채 기다린다",
+    "slot_relax_days": 7,
+    "_relax_basis": "벽이 열리고 5일이 지나면 남은 칸은 같은 갈래의 비슷한 것도 받는다(「비슷한 것도 괜찮습니다」 — 매듭 대체와 같은 원리, 사슬 2일보다 길다: 벽은 수집이라 '그것'을 찾는 재미를 더 오래 둔다). sim B1: 없으면 완성 사이 최대 공백 A 11·B 13일 → 있으면 아래 표."
+  },
+  "schedule": {
+    "max_open": 3,
+    "walls_unlocked_by_day": {
+      "1": 1,
+      "3": 2,
+      "7": 4,
+      "14": 7,
+      "21": 9,
+      "30": 12
+    },
+    "_basis": "동시에 열린 벽은 셋까지(초점). 열 수 있는 벽의 누계를 날짜로 묶는다 — 7·14·30일째 새 구역이 '열리는' 날이 된다(검수 ⑥). 15~30일 비트 규칙 '하루 하나 · 주 하나 · 두 주 하나'에서 벽 완성이 '주 하나'를 맡는다.",
+    "climax_day30": "30일째 「밑동 벽」(6칸, 아래 walls 마지막) — 1막 끝(해구 문턱 아래 걸어서)으로 가는 실마리"
+  },
+  "walls": [
+    {
+      "id": "wall_pantry",
+      "room": "pantry",
+      "slots": [
+        "noodle",
+        "grain",
+        "snack",
+        "sauce"
+      ],
+      "prefill": [
+        "sauce",
+        "grain"
+      ],
+      "_first_wall": "첫 벽은 4칸에 둘을 미리 채운다 — Nunes & Drèze 의 원 실험이 '12칸 중 2칸 미리'(10칸 빈 카드보다 완주 34% vs 19%)였다. 1주 안에 첫 완성을 보게(sim B1).",
+      "reward": {
+        "story": "R3 kitchen_marks",
+        "function": "한 상 자리 +1(셋째 사람을 앉힐 수 있다)"
+      }
+    },
+    {
+      "id": "wall_quarters",
+      "room": "quarters",
+      "slots": [
+        "tea",
+        "small",
+        "story",
+        "sweet"
+      ],
+      "prefill": "small",
+      "reward": {
+        "story": "R4 sample_racks",
+        "visitor": "blanket_crab 확정 방문(꼬리표 없이도)"
+      }
+    },
+    {
+      "id": "wall_well",
+      "room": "well",
+      "slots": [
+        "water",
+        "milk",
+        "tea",
+        "soda"
+      ],
+      "prefill": "tea",
+      "reward": {
+        "story": "R1 stairwell_arrow",
+        "function": "아침 필요 방송에 '어느 방이 목마른지' 한 줄"
+      }
+    },
+    {
+      "id": "wall_storage",
+      "room": "storage",
+      "slots": [
+        "battery",
+        "sticky",
+        "pen",
+        "hygiene",
+        "cable"
+      ],
+      "prefill": "sticky",
+      "reward": {
+        "story": "R5 lost_and_found",
+        "function": "창고 상자 안 물건을 다시 「어디로」에 올릴 수 있다"
+      }
+    },
+    {
+      "id": "wall_generator",
+      "room": "generator",
+      "slots": [
+        "battery",
+        "cable",
+        "light",
+        "pen"
+      ],
+      "prefill": "light",
+      "reward": {
+        "story": "R2 office_pens",
+        "visitor": "lantern_fish_pair 확정 방문"
+      }
+    },
+    {
+      "id": "wall_workshop",
+      "room": "workshop",
+      "slots": [
+        "cable",
+        "sticky",
+        "battery",
+        "pen",
+        "light"
+      ],
+      "prefill": "cable",
+      "reward": {
+        "story": "R2 office_pens(뒷면)",
+        "function": "공방 바꾸기 하루 +1"
+      }
+    },
+    {
+      "id": "wall_greenhouse",
+      "room": "greenhouse",
+      "slots": [
+        "grain",
+        "tea",
+        "water",
+        "canned"
+      ],
+      "prefill": "canned",
+      "reward": {
+        "story": "새 토막(온실) — 시나리오",
+        "visitor": "baby_jelly_drift 확정 방문"
+      }
+    },
+    {
+      "id": "wall_decoder",
+      "room": "decoder",
+      "slots": [
+        "story",
+        "pen",
+        "sticky",
+        "tonic",
+        "pill"
+      ],
+      "prefill": "tonic",
+      "reward": {
+        "story": "R7 ledger_room",
+        "function": "전역 이름 표를 볼 수 있다('다른 방주에서는 ○○라고 부릅니다' 목록)"
+      }
+    },
+    {
+      "id": "wall_infirmary",
+      "room": "infirmary",
+      "slots": [
+        "pill",
+        "hygiene",
+        "tonic",
+        "small"
+      ],
+      "prefill": "tonic",
+      "reward": {
+        "story": "R6 sick_room",
+        "function": "부상 회복 +1명/틱"
+      }
+    },
+    {
+      "id": "wall_airlock",
+      "room": "airlock",
+      "slots": [
+        "small",
+        "light",
+        "battery",
+        "water"
+      ],
+      "prefill": "water",
+      "reward": {
+        "story": "새 토막(문) — 시나리오",
+        "function": "원정 부탁 단서 +1"
+      }
+    },
+    {
+      "id": "wall_lounge",
+      "room": "lounge",
+      "slots": [
+        "coffee",
+        "soda",
+        "beer",
+        "sweet",
+        "snack"
+      ],
+      "prefill": "beer",
+      "reward": {
+        "story": "새 토막(쉬는 방) — 시나리오",
+        "visitor": "hermit_trader 확정 방문"
+      }
+    },
+    {
+      "id": "wall_bath",
+      "room": "bath",
+      "slots": [
+        "hygiene",
+        "water",
+        "small",
+        "tonic"
+      ],
+      "prefill": "small",
+      "reward": {
+        "story": "새 토막(물 끓이는 방) — 시나리오",
+        "visitor": "glass_star 확정 방문"
+      }
+    },
+    {
+      "id": "wall_root",
+      "room": "*deepest",
+      "slots": [
+        "noodle",
+        "milk",
+        "battery",
+        "story",
+        "hygiene",
+        "small"
+      ],
+      "prefill": "small",
+      "unlock_day": 30,
+      "reward": {
+        "story": "R8 sealed_stock + 「밑동」 첫 줄",
+        "function": "해구 문턱 아래 걷는 원정 실마리"
+      }
+    }
+  ],
+  "memory_object": {
+    "_rule": "「기억 속 물건」 — 찍을 것이 없는 날을 위해 하루 하나. 그림 목록에서 갈래·하위 종류를 고른다(사람들이 '예전에 그런 게 있었지' 하고 떠올린다).",
+    "per_day": 1,
+    "available": "그날 실제 스캔이 몇 번이든 하루 하나(안 쓰면 이월 없음)",
+    "value_V": 0.5,
+    "give_outcome_mult": 0.75,
+    "bundle": "칸을 채울 수 있다. 마지막 칸은 안 된다",
+    "no_codex": true,
+    "_basis": "실물 스캔(1V)의 절반 — 찍을 물건이 없는 날도 한 가지를 하게 하되, 실물 스캔을 대신하지 않는다(B5). 「어디로」 결과는 ×0.75(사슬·필요는 풀리지만 '정확히 그거예요'(의도 장면)는 없다). 도감·가문 세트는 채우지 않는다 — 바코드의 자리를 지킨다. Monster Rancher DX 가 CD 대신 검색 DB 를 쓴 방식.",
+    "max_per_wall": 1
+  }
+}

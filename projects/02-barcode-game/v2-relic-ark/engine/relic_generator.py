@@ -300,8 +300,17 @@ class RelicGenerator:
 
     # ── 5. 이름·플레이버 ───────────────────────────────────
     def name_and_flavor(self, seed: str, category: Category, rarity: Rarity,
-                        fam_key: str | None = None) -> tuple[str, str, list]:
+                        fam_key: str | None = None, user_subtype: str | None = None) -> tuple[str, str, list]:
         pool = self.pool_for(category, fam_key)
+        if user_subtype:
+            # S22: 플레이어가 고른 물건 종류 — 그 종류의 줄기만(없으면 갈래 전체에서). 고르지 않으면 예전과 바이트까지 같다
+            def subs(t):
+                v = t.get("subtypes") if t.get("subtypes") is not None else t.get("subtype")
+                return set(v if isinstance(v, list) else [v] if v else [])
+            base = [t for t in self.templates[category.value] if isinstance(t, dict) and t.get("name")]
+            more = ((self.extra().get("categories") or {}).get(category.value)) or []
+            allp = base + [t for t in more if isinstance(t, dict) and t.get("name")]
+            pool = [t for t in allp if user_subtype in subs(t)] or pool
         # 희귀도가 높으면 템플릿 풀의 뒤쪽(더 신비로운 이름) 편향
         bias = RARITY_ORDER.index(rarity)
         idx = (int(seed[8:12], 16) + bias * 3) % len(pool)
@@ -324,7 +333,17 @@ class RelicGenerator:
         return str(v or "")
 
     # ── 6. 조립 ────────────────────────────────────────────
-    def generate(self, barcode: str, hour: int = 12, user_category: Optional[str] = None) -> RelicCard:
+    def subtype_fixed(self, code: str, category: "Category") -> bool:
+        """S22: 이 바코드의 물건 종류가 이미 정해져 있나 — 알려진 가문(_family_subtypes)·책(978/979)·정체불명은 고르지 않는다."""
+        parsed = self.parse(code)
+        if parsed["prefix"] in ("978", "979") or category in (Category.BOOK, Category.UNKNOWN):
+            return True
+        fam = parsed["prefix"] + parsed["manufacturer"]
+        return bool((self.templates.get("_family_subtypes") or {}).get(fam) or
+                    (self.extra().get("family_subtypes") or {}).get(fam))
+
+    def generate(self, barcode: str, hour: int = 12, user_category: Optional[str] = None,
+                 user_subtype: Optional[str] = None) -> RelicCard:
         code = self.normalize(barcode)
         parsed = self.parse(code)
         category = self.infer_category(parsed, user_category)
@@ -341,8 +360,8 @@ class RelicGenerator:
 
         fam_key = parsed["prefix"] + parsed["manufacturer"]
         self._last_subtype = ""
-        name, flavor, tags = self.name_and_flavor(seed, category, rarity, fam_key)
-        subtype = self._last_subtype
+        name, flavor, tags = self.name_and_flavor(seed, category, rarity, fam_key, user_subtype=user_subtype)
+        subtype = user_subtype or self._last_subtype
         origin = ORIGIN_MAP.get(parsed["prefix"], "먼 잔해")
 
         return RelicCard(

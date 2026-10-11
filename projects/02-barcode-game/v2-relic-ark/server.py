@@ -414,6 +414,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS scans (id INTEGER PRIMARY KEY, uid TEXT, barcode TEXT, category TEXT,
             rarity TEXT, mult REAL, ts REAL, day INTEGER);
         CREATE TABLE IF NOT EXISTS family_votes (uid TEXT, family_code TEXT, category TEXT, ts REAL);
+        CREATE TABLE IF NOT EXISTS subtype_votes (uid TEXT, barcode TEXT, category TEXT, subtype TEXT, ts REAL,
+                                                  PRIMARY KEY (uid, barcode));
         CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, uid TEXT, kind TEXT, payload TEXT, ts REAL);
         CREATE TABLE IF NOT EXISTS codes (code TEXT PRIMARY KEY, uid TEXT NOT NULL, created REAL, used REAL);
         CREATE INDEX IF NOT EXISTS codes_uid ON codes(uid);
@@ -2545,7 +2547,7 @@ def octopus_public(st: dict) -> dict:
     g = next((f for f in (OCTOPUS.get("finds") or []) if f.get("id") == oc.get("gift_today")), None)
     gift = None
     if g and oc.get("gift_day") == day_of(st):
-        gift = {"id": g["id"], "name": g["name"], "line": g.get("line"), "kind": g.get("kind"),
+        gift = {"id": g["id"], "name": g["name"], "line": role_text(g, "line", st), "kind": g.get("kind"),
                 "spot_hint": g.get("spot_hint"), "label": moment("octopus_gift.label"),
                 "ko": moment("octopus_gift.pop", item=g["name"])}
     return {"arrived": True, "name": oc.get("name"), "arrived_day": oc.get("arrived_day"),
@@ -2691,7 +2693,7 @@ def day_tick(st: dict, uid: str, force_night: bool = False) -> dict:
     if (out["octopus"] or {}).get("gift"):
         g_ = out["octopus"]["gift"]
         oname = (st.get("octopus") or {}).get("name") or "문어"
-        overnight_add(st, "octopus", {"id": g_["id"], "name": g_["name"], "line": g_.get("line"), "who": oname,
+        overnight_add(st, "octopus", {"id": g_["id"], "name": g_["name"], "line": role_text(g_, "line", st), "who": oname,
                                       "label": f"{oname}가 물어 온 것" if oname == "문어" else f"{oname}(문어)가 물어 온 것",
                                       "ko": moment("octopus_gift.pop", item=g_["name"]) or f"문어가 「{g_['name']}」 하나를 물어 왔습니다."})
     out["wishes_new"] = wishes_tick(st, uid)
@@ -4032,10 +4034,11 @@ def apply_storage_cap(st: dict, before: dict | None) -> dict:
                 conv[g] = int(conv.get(g, 0)) + n
                 carry[g] = int(carry.get(g, 0)) - n * rate
         st["overflow_carry"] = carry
-        what = " · ".join(f"{RES_KO_SRV.get(k, k)} {v}" for k, v in tot.items())
+        what = " · ".join(f"{RES_KO_SRV.get(k, k)} {v}개" for k, v in tot.items())
         got = " · ".join(f"{RES_KO_SRV.get(k, k)} {v}" for k, v in conv.items() if v)
+        gotm = " · ".join(f"{RES_KO_SRV.get(k, k)}를 {v}" for k, v in conv.items() if v)
         ko = moment("storage.overflow", what=what, got=got) or \
-            (f"창고가 차서 {what}은(는) 들이지 못했습니다." + (f" 대신 {got}(으)로 바꿔 두었습니다." if got else " 조금 더 모이면 사기·교역품으로 바꿔 두겠습니다."))
+            (f"창고가 차서 {what}는 들이지 못했습니다." + (f" 대신 {gotm} 올려 두었습니다." if gotm else " 조금 더 모이면 사기·교역품으로 바꿔 두겠습니다."))
         st["storage_overflow"] = {"day": day, "lost": tot, "converted": conv, "ko": ko}
         ov = st.setdefault("overnight", {"items": []}).setdefault("items", [])
         ov[:] = [it for it in ov if not (it.get("kind") == "overflow" and it.get("day") == day)]
@@ -4195,7 +4198,8 @@ def scan(inp: ScanIn):
     bmeta = st.setdefault("barcodes", {}).setdefault(code, {})
     locked = bmeta.get("category") if stk("category_lock") else None
     pick_cat = locked or inp.user_category
-    card = GEN.generate(code, hour=datetime.now().hour, user_category=pick_cat)
+    card = GEN.generate(code, hour=datetime.now().hour, user_category=pick_cat,
+                        user_subtype=bmeta.get("subtype"))      # S22: 이 방주가 정한 하위 종류(없으면 예전 그대로)
     if card.category != Category.UNKNOWN and not bmeta.get("category"):
         bmeta["category"] = card.category.value       # 정체불명(고르지 않음)은 고정하지 않는다 — 다음에 고를 수 있게
     mult = rescan_mult(prev)
@@ -4229,6 +4233,7 @@ def scan(inp: ScanIn):
     card_d["id"] = f"{code}-{int(time.time()*1000)}"
     card_d["sea_variant"] = var["shiny"]
     card_d["subtype_ko"] = sub_ko(card_d["category"], card_d.get("subtype")) if card_d.get("subtype") else None
+    card_d["history"] = card_history(st, code)              # S22 ②: 이 바코드를 전에 누구에게 줬나
     usable_tags = [t for t in card.tags if t != "미확인"]
     if mult > 0 and usable_tags and len(st["hand"]) < HAND_LIMIT:
         st["hand"].append(card_d)
@@ -4276,12 +4281,20 @@ def scan(inp: ScanIn):
     if ss_.get("last") and time.time() - float(ss_["last"]) <= SESSION_GAP_SEC:
         ss_["last"] = time.time()                    # S21: 찍는 동안은 같은 세션
     item_ = item_from_card(card_d)
-    cc["scans"][card_d["id"]] = {"item": item_, "day": day, "given": False,
+    cc["scans"][card_d["id"]] = {"item": item_, "day": day, "given": False, "at": time.time(), "barcode": code,
                                  "placed": "shelf" if shelf_new else ("stored" if stored else "copy")}
+    if card_d.get("subtype"):
+        ssub = cc.setdefault("seen_subtypes", {}).setdefault(card_d["category"], [])
+        if card_d["subtype"] not in ssub:
+            ssub.append(card_d["subtype"])
     for k_ in list(cc["scans"])[:-80]:                 # S21: 넣은 순서대로 오래된 것부터(날 정렬은 순서를 섞을 수 있었다)
         cc["scans"].pop(k_, None)
     where = where_for(st, inp.uid, item_, compact=int(ss_.get("scans") or 0) > 1)
     cc["scans"][card_d["id"]]["warm"] = list(where.get("warm_ids") or [])
+    cc["scans"][card_d["id"]]["chain"] = [{"rid": x["target"].get("resident_id"), "name": x.get("name"), "tier": x["tier"]}
+                                          for x in where.get("suggest") or []
+                                          if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
+    where["subtype_pick"] = subtype_pick_for(st, code, card_d, bmeta)
     save_state(inp.uid, st)
     log(inp.uid, "scan", {"barcode": code, "rarity": card.rarity.value, "category": card.category.value, "mult": mult,
                           "locked": bool(locked), "variant": var["id"], "polish": (polish or {}).get("level"),
@@ -4415,6 +4428,9 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     out["arc_events"] = [{k: v for k, v in x.items() if k != "shown"} for x in arc_new]
     out["shelf_autofill"] = core_t.get("autofill") or []
     out["octopus_gift_where"] = octopus_gift_where(st, uid)
+    out["decor_trace"] = decor_trace(st, uid)
+    out["visitors_book"] = visitors_book(st)
+    out["missed_chain"] = missed_chain_of(st, uid)
     out["novelty"] = core_t.get("novelty")
     out["wishes_new"] = list(out.get("wishes_new") or []) + wishes_tick(st, uid)
     save_state(uid, st)
@@ -6253,9 +6269,10 @@ def trig_one(st: dict, uid: str, r: dict, s: dict, k: str, v, ev: dict | None) -
         if not (ev and ev.get("item")):
             return False
         to_ok = ev.get("to") == r["id"] or (isinstance(v, dict) and v.get("to") == "any")
-        return to_ok and match(v, ev["item"])
+        return to_ok and match(soft_rule(s, v), ev["item"])
     if k == "give_distinct":
-        return given_distinct(st, r["id"], {"category": v.get("category"), "subtype": v.get("subtype")}) >= int(v.get("n", 1))
+        rl = soft_rule(s, {"category": v.get("category"), "subtype": v.get("subtype")})
+        return given_distinct(st, r["id"], rl) >= int(v.get("n", 1))
     if k == "place":
         return place_ok(st, r, v or {})
     if k == "octopus_with":
@@ -6313,6 +6330,8 @@ def trig_needs_give(trig: dict) -> bool:
 
 
 def fill_text(t, st: dict, r: dict, item: dict | None = None, other: str | None = None, **kw) -> str | None:
+    if isinstance(t, dict):                            # S22 r4-6: {"text", "requires_role", "text_alt"}
+        t = t.get("text") if role_ok(t, st) else t.get("text_alt")
     if not t:
         return None
     oc = st.get("octopus") or {}
@@ -6349,10 +6368,14 @@ def arc_public_beat(st: dict, r: dict, a: dict, s: dict, beat: dict, item: dict 
     ask = beat.get("ask")
     return {"arc_id": a["id"], "title": a.get("title"), "resident_id": r["id"], "name": r["name"],
             "step": int(beat.get("step", s["step"])), "steps": len(a.get("beats") or []), "size": beat.get("size", "small"),
-            "announce": fill_text(beat.get("announce"), st, r, item, other),
-            "line": fill_text(beat.get("line"), st, r, item, other),
-            "beat": fill_text(beat.get("beat"), st, r, item, other),
-            "log": fill_text(beat.get("log"), st, r, item, other),
+            # S22 r4-7: announce 가 비면(문어 매듭) 문어 서술·입말로 대신한다. r4-6: 없는 역할을 말하는 줄은 _alt
+            "announce": fill_text(role_text(beat, "announce", st), st, r, item, other)
+                        or octo_fallback(st, r, beat)
+                        or fill_text(role_text(beat, "beat", st), st, r, item, other)
+                        or fill_text(role_text(beat, "line", st), st, r, item, other),
+            "line": fill_text(role_text(beat, "line", st), st, r, item, other),
+            "beat": fill_text(role_text(beat, "beat", st), st, r, item, other),
+            "log": fill_text(role_text(beat, "log", st), st, r, item, other),
             "ask": ({k: ask.get(k) for k in ("kind", "label", "options", "default", "category", "subtype", "room", "n")}
                     if isinstance(ask, dict) else None),
             "after_ask": fill_text(beat.get("after_ask"), st, r, item, other)}
@@ -6374,6 +6397,7 @@ def fire_beat(st: dict, uid: str, r: dict, a: dict, s: dict, beat: dict, item: d
         c["big_day"] = day
     other = arc_other(st, r, s, beat)
     row = arc_public_beat(st, r, a, s, beat, item, other)
+    core_of(st)["session"].setdefault("fired", []).append(f"{r['id']}|{a['id']}|{beat.get('step')}")
     s["step"] = int(s["step"]) + 1
     s["last_day"] = day
     s.setdefault("days", {})[str(s["step"])] = day
@@ -6449,7 +6473,8 @@ def arc_tick(st: dict, uid: str) -> list:
         if not beat or not beat_open(st, r, s, beat) or s.get("last_day") == day:
             continue
         trig = beat.get("trigger") or {}
-        if trig_needs_give(trig):
+        soft_check(st, r, s, beat)
+        if trig_needs_give(trig) or beat_already_fired(st, r, a, s, beat):
             continue
         if trig_all(st, uid, r, s, trig, None):
             out.append(fire_beat(st, uid, r, a, s, beat))
@@ -6464,6 +6489,9 @@ def arc_try_give(st: dict, uid: str, r: dict, item: dict, preview: bool = False)
     beat = next_beat(a, s)
     if not beat or not beat_open(st, r, s, beat) or s.get("last_day") == day_of(st):
         return None
+    if beat_already_fired(st, r, a, s, beat):
+        return None                                   # S22 r4-1: 이미 푼 매듭은 다시 제안하지도 풀지도 않는다
+    soft_check(st, r, s, beat)
     trig = beat.get("trigger") or {}
     if "give" not in json.dumps(trig) and "give_distinct" not in json.dumps(trig):
         return None
@@ -6489,11 +6517,13 @@ def arc_status(st: dict, uid: str, r: dict) -> dict | None:
     beat = next_beat(a, s)
     nxt = None
     if beat:
+        soft_check(st, r, s, beat)
         trig = beat.get("trigger") or {}
         hint = None
+        soft = s.get("soft_step") == int(s["step"]) + 1
         for key in ("give", "give_distinct", "place"):
             if key in trig:
-                v = trig[key]
+                v = soft_rule(s, trig[key]) if key != "place" else trig[key]
                 hint = (rule_ko(v) + (f" 서로 다른 것 {v.get('n')}개" if key == "give_distinct" else "")) if key != "place" \
                     else f"{(ROOMS.get(v.get('room')) or {}).get('name', v.get('room'))}에 놓기"
                 break
@@ -6502,6 +6532,7 @@ def arc_status(st: dict, uid: str, r: dict) -> dict | None:
         nxt = {"step": int(beat.get("step", s["step"] + 1)), "open": beat_open(st, r, s, beat),
                "opens_day": beat_opens_day(st, r, s, beat), "hint_ko": hint, "icon": "chain",
                "size": beat.get("size", "small"), "evening": (trig.get("session") == "evening"),
+               "soft": soft, "soft_hint": fill_text(beat.get("soft_hint"), st, r) if soft else None,
                "ask": ({"step": pend, **{k: (prev.get("ask") or {}).get(k) for k in ("kind", "label", "options", "default", "category", "subtype", "room", "n")}}
                        if prev and str(pend) not in (s.get("asks") or {}) else None)}
     return {"id": a["id"], "title": a.get("title"), "step": int(s["step"]), "steps": len(a.get("beats") or []),
@@ -6607,19 +6638,26 @@ def tag_feeds(tag: dict, it: dict) -> bool:
     return any(match(f, it) for f in tag.get("feeds") or [])
 
 
-def decor_tags(st: dict, slot) -> list:
+def decor_tags(st: dict, slot, prefer: str | None = None) -> list:
+    """S22 r4-10: 꼬리표는 방주에 한 번만 붙는다 — 처음 붙은 칸이 그 꼬리표를 가진다(core.tags_formed).
+    prefer 를 주면 같은 진척일 때 그 꼬리표가 먼저 붙는다(r4-9 제안한 꼬리표 = 붙는 꼬리표)."""
     items = [it for it in decor_items(st, slot) if not it.get("boxed")]
+    formed = core_of(st).setdefault("tags_formed", {})
     rows = []
     for t in DECOR_TAGS:
         have = sum(1 for it in items if tag_feeds(t, it))
         if have:
-            rows.append({"id": t["id"], "ko": t.get("ko"), "have": have, "need": ITEMS_TO_TAG, "on": False, "look": t.get("look")})
-    rows.sort(key=lambda x: (-x["have"], [t["id"] for t in DECOR_TAGS].index(x["id"])))
+            owner = formed.get(t["id"])
+            rows.append({"id": t["id"], "ko": t.get("ko"), "have": have, "need": ITEMS_TO_TAG, "on": False, "look": t.get("look"),
+                         "elsewhere": owner is not None and int(owner) != int(slot)})
+    order = [t["id"] for t in DECOR_TAGS]
+    rows.sort(key=lambda x: (x["elsewhere"], -x["have"], x["id"] != prefer, order.index(x["id"])))
     n_on = 0
     for x in rows:
-        if x["have"] >= ITEMS_TO_TAG and n_on < MAX_TAGS_PER_ROOM:
+        if x["have"] >= ITEMS_TO_TAG and n_on < MAX_TAGS_PER_ROOM and not x["elsewhere"]:
             x["on"] = True
             n_on += 1
+            formed.setdefault(x["id"], int(slot))
     return rows
 
 
@@ -6627,7 +6665,7 @@ def leading_tag(st: dict, room: dict) -> str | None:
     """그 방에서 가장 앞선(아직 안 붙은) 꼬리표. 진척(have/need)이 가장 크고, 같으면 물건 수, 같으면 어울리는 방·표 순서.
     아무 꼬리표도 시작하지 않았으면 None(그때는 물건이 먹이는 꼬리표 중 고른다)."""
     on = set(room_tags_on(st, room["slot"]))
-    rows = [x for x in decor_tags(st, room["slot"]) if not x["on"] and x["id"] not in on and x["have"] > 0]
+    rows = [x for x in decor_tags(st, room["slot"]) if not x["on"] and x["id"] not in on and x["have"] > 0 and not x.get("elsewhere")]
     if not rows:
         return None
     order = [t["id"] for t in DECOR_TAGS]
@@ -6651,9 +6689,12 @@ def room_decor_tier(st: dict, uid: str, room: dict, item: dict) -> tuple[str, di
     on = room_tags_on(st, room["slot"])
     lead = leading_tag(st, room)
     best = None
+    formed = core_of(st).setdefault("tags_formed", {})
     for t in DECOR_TAGS:
         if not tag_feeds(t, item) or t["id"] in on:
             continue
+        if formed.get(t["id"]) is not None and int(formed[t["id"]]) != int(room["slot"]):
+            continue                                  # S22: 다른 방이 이미 가진 꼬리표는 권하지 않는다
         if lead and t["id"] != lead:
             continue                                  # S21: 그 방에서 가장 앞선 꼬리표만 권한다(꾸밈 루프가 닫히게)
         have = sum(1 for it in decor_items(st, room["slot"]) if not it.get("boxed") and tag_feeds(t, it))
@@ -6700,7 +6741,8 @@ def where_for(st: dict, uid: str, item: dict, compact: bool = False) -> dict:
         if tier not in TIER_ICON:
             continue
         row = {"kind": "room", "target": {"slot": rm["slot"]}, "room_id": rm["id"],
-               "name": (ROOMS.get(rm["id"]) or {}).get("name", rm["id"]), "tier": tier, "icon": TIER_ICON[tier],
+               "name": room_display_name(st, rm), "name_ko": (ROOMS.get(rm["id"]) or {}).get("name", rm["id"]),
+               "tier": tier, "icon": TIER_ICON[tier],
                "value": give_value(tier), "mult": 1.0,
                "free_slots": decor_cap(rm) - len(decor_items(st, rm["slot"])),
                "reason_ko": (f"{info.get('tag_ko')}까지 하나" if info.get("tag_have", 0) + 1 >= ITEMS_TO_TAG
@@ -6732,7 +6774,8 @@ def where_for(st: dict, uid: str, item: dict, compact: bool = False) -> dict:
                         "fallback": True})
     tie = random.Random(f"{uid}|{day_of(st)}|{item_key(item)}|order")     # 같은 값이면 날·물건마다 순서가 달라진다
     tiek = {id(x): tie.random() for x in sug}
-    sug.sort(key=lambda x: (-round(x["value"] * x["mult"], 4), TIER_ORDER.index(x["tier"]), x["kind"] != "resident", tiek[id(x)]))
+    sug.sort(key=lambda x: (-round(x["value"] * x["mult"], 4), TIER_ORDER.index(x["tier"]), x["kind"] != "resident",
+                            -int(x.get("tag_have") or 0), tiek[id(x)]))     # S22: 같으면 많이 찬 꼬리표 먼저
     if sug and sug[0]["tier"] == "warm":
         nw = next((x for x in sug if x["tier"] != "warm"), None)
         if nw:                                        # S21: 1순위만 누르는 사람(B)에게 warm 이 첫자리면 「잘 받으셨습니다」로 끝난다
@@ -6919,11 +6962,13 @@ def give_apply(st: dict, uid: str, item: dict, target, placed: str | None, warm_
         rec = {k: item.get(k) for k in ("name", "category", "subtype", "family", "rarity", "barcode", "card_id", "prop_id")}
         rec.update({"id": f"dec-{item.get('card_id') or int(time.time() * 1000)}", "day": day, "row": row, "boxed": False})
         c["rooms"].setdefault(str(rm["slot"]), {}).setdefault("items", []).append(rec)
-        after = room_tags_on(st, rm["slot"])
+        after = [x["id"] for x in decor_tags(st, rm["slot"], prefer=sug_tag) if x["on"]]
+        if sug_tag in after:                          # S22 r4-9: 둘이 함께 붙으면 제안한 꼬리표를 먼저 말한다
+            after = [sug_tag] + [x for x in after if x != sug_tag]
         added = None
         rname = (ROOMS.get(rm["id"]) or {}).get("name", rm["id"])
         for tid in after:
-            if tid not in before:
+            if tid not in before and not added:
                 t = DECOR_BY_ID[tid]
                 seen = c["tags_seen"].setdefault(str(rm["slot"]), [])
                 added = {"id": tid, "ko": t.get("ko"), "look": t.get("look"),
@@ -6931,8 +6976,8 @@ def give_apply(st: dict, uid: str, item: dict, target, placed: str | None, warm_
                 if tid not in seen:
                     seen.append(tid)
         if added and first_tag_ever and not c["flags"].get("visit_guarantee_used"):
-            # S21: 첫 꼬리표가 붙은 다음 날 방문자 확정(첫 '도착 선물'이 1주 안에 오게)
-            c["flags"]["visit_guarantee"] = {"day": day + 1, "slot": rm["slot"], "tag": added["id"]}
+            # S22: 첫 꼬리표가 붙으면 다음 세션(30분 이상 뒤)에 첫 손님 확정. 그날 안 오면 다음 날 굴림에서 확정
+            c["flags"]["visit_guarantee"] = {"at": time.time(), "day": day, "slot": rm["slot"], "tag": added["id"], "done": False}
             c["flags"]["visit_guarantee_used"] = True
         arc_row = None
         for r in st.get("residents_list") or []:          # 놓기 매듭은 놓는 순간 판정
@@ -6987,7 +7032,8 @@ def visit_rows_for(st: dict, uid: str, day: int) -> list:
             kinds = list(t.get("visitors") or [])
             v = VISITORS_BY_TAG.get(tid)
             vg = c["flags"].get("visit_guarantee") or {}
-            forced = vg.get("day") == day and vg.get("slot") == rm["slot"] and vg.get("tag") == tid
+            forced = (not vg.get("done") and vg.get("slot") == rm["slot"] and vg.get("tag") == tid
+                      and (day == int(vg.get("day") or 0) + 1 if vg.get("at") else vg.get("day") == day))
             if v and (forced or visit_roll(uid, day, rm["slot"], tid, "visitor") < VISITOR_DAILY):
                 first = v["id"] not in c["visitors_seen"]
                 rows.append({"day": day, "slot": rm["slot"], "room": rname, "tag": tid, "kind": "visitor",
@@ -7025,11 +7071,7 @@ def visit_tick(st: dict, uid: str) -> list:
     c["visits"] = {"day": day, "rows": rows}
     for v in rows:
         if v["kind"] == "visitor":
-            v["effect"] = visitor_apply(st, uid, v)
-            if v["visitor_id"] not in c["visitors_seen"]:
-                c["visitors_seen"].append(v["visitor_id"])
-            overnight_add(st, "visit", {k: v.get(k) for k in ("slot", "room", "visitor_id", "ko", "line", "first", "where")})
-            day_note(st, "visit", v.get("ko"))
+            apply_visit_row(st, uid, v)
         elif v["kind"] in ("octopus", "gardener"):
             overnight_add(st, "visit", {k: v.get(k) for k in ("slot", "room", "kind", "line")})
     return rows
@@ -7135,13 +7177,24 @@ def need_line(r: dict, nd: dict) -> str:
     return f"{r['name']} 님이 오늘 「{nd['ko']}」 쪽 물건을 찾으십니다."
 
 
+def need_met_today(st: dict, uid: str, r: dict, nd: dict | None = None) -> bool:
+    """오늘의 필요를 이미 받았나 — 오늘 그 사람이 받은 물건 중 필요에 맞는 것이 있으면(등급이 사슬·기억이어도) 참.
+    돌려준 물건(안 맞음)은 given 에 남지 않으므로 세지 않는다."""
+    day = day_of(st)
+    nd = nd if nd is not None else need_today(uid, r, day)
+    if not nd:
+        return False
+    return any(int(g.get("day") or 0) == day and match(nd, g) for g in cres(st, r["id"])["given"])
+
+
 def needs_today_public(st: dict, uid: str) -> list:
     day = day_of(st)
     out = []
     for r in st.get("residents_list") or []:
         nd = need_today(uid, r, day)
         if nd:
-            out.append({"resident_id": r["id"], "name": r["name"], "need": nd, "announce": need_line(r, nd)})
+            out.append({"resident_id": r["id"], "name": r["name"], "need": nd, "announce": need_line(r, nd),
+                        "met": need_met_today(st, uid, r, nd)})
     return out
 
 
@@ -7161,9 +7214,12 @@ def core_public(st: dict, uid: str) -> dict:
             "items": [{k: it.get(k) for k in ("name", "category", "subtype", "day")} for it in cr["items"][-8:]],
             "memories_seen": list(cr["memories_seen"]),
             "given_today": sum(1 for g in cr["given"] if int(g.get("day") or 0) == day),
+            # S21 후속: 화면(base_core.js normTaste)이 「받음」 표시에 읽는 값 — 오늘의 필요를 받았으면 true
+            "given_need_today": need_met_today(st, uid, r, nd),
             "arc": arc_status(st, uid, r),
             "seat": cr.get("seat"),
             "arc_line": r.get("arc_line"),
+            "keepsakes_recent": keepsakes_recent(cr),        # S22 ②: 그 사람 곁에 그릴 최근 받은 물건 셋
         }
     return {"residents": res, "props": list(core_of(st)["props"])}
 
@@ -7275,6 +7331,12 @@ def beat_compose(st: dict, uid: str, p: int) -> dict:
         if d.get("beat") == "newhuman_or_family_decor":
             use_alt = True                         # 신인류 그림 보류(DECISIONS 2026-10-04) — 대체 비트
         star = d.get("alt") if use_alt and d.get("alt") else d.get("star")
+        if d.get("beat") == "rescue_second_resident_goal" and not rescue_happened(st):
+            nm = newest_resident_name(st)
+            star = (d.get("star_no_rescue") if nm else None) or d.get("alt") or \
+                "관리실에서 알려 드립니다. 오늘 문간은 조용했습니다. 원정 나가실 분은 모르는 쪽으로 가 보셔도 좋겠습니다."
+            star = star.replace("{name}", nm or "새 식구")
+            use_alt = True
         if d.get("beat") == "first_knock_first_request" and not open_asks(st):
             # S21: 「부탁을 하나 하셨습니다」는 그날 열린 물음이 있을 때만. 없으면 star_no_ask(시나리오) → 서버 대체 줄
             star = d.get("star_no_ask") or "관리실에서 알려 드립니다. 문간 유리를 누가 두 번 두드렸습니다. 오늘은 그게 전부입니다."
@@ -7470,8 +7532,11 @@ def _nv_rows(st: dict, uid: str, pick, card: dict, day: int) -> list:
 
     for v in visit_rows_for(st, uid, day + 1):                # 내일 굴림을 미리 본다(시드 고정 — 지킬 수 있는 약속만)
         if v.get("kind") == "visitor":
+            first_v = v.get("visitor_id") not in core_of(st)["visitors_seen"]
             rows.append({"kind": "visitor_expected", "title": card.get("title"),
-                    "line": pick("visitor_expected", room=v.get("room"), visitor=v.get("ko")),
+                    "line": (pick("visitor_expected_first", room=v.get("room"), visitor=v.get("ko"))
+                             or f"{v.get('room')} 창밖으로 {v.get('ko')} 손님이 처음 올 것 같습니다.") if first_v
+                            else pick("visitor_expected", room=v.get("room"), visitor=v.get("ko")),
                     "data": {"slot": v.get("slot"), "visitor_id": v.get("visitor_id")}})
 
     low = sorted(("food", "water", "parts", "cloth"), key=lambda k: int(st["resources"].get(k, 0)))[0]
@@ -7489,6 +7554,9 @@ def core_tick(st: dict, uid: str) -> dict:
     beat_play_tick(st)
     beat_force_tick(st, uid)
     visits = visit_tick(st, uid)
+    visits = list(visits or []) + force_first_visit(st, uid, ss)
+    if needs_today_public(st, uid) and (core_of(st).get("needs_shown") or {}).get("day") != day_of(st):
+        core_of(st)["needs_shown"] = {"day": day_of(st), "at": time.time()}    # S22 의도: 오늘 필요를 처음 보여 준 시각
     food_all_tick(st)
     arcs = arc_tick(st, uid)
     morning_core(st, uid)
@@ -7573,15 +7641,23 @@ def give(inp: GiveIn):
         placed = "shelf"
     else:
         raise HTTPException(400, "scan_id 나 relic_id 가 필요합니다")
+    warm_ids = (c["scans"].get(inp.scan_id) or {}).get("warm") if inp.scan_id else None
+    if warm_ids is None:
+        warm_ids = list(where_for(st, inp.uid, item).get("warm_ids") or [])   # S22 r4-2: 선반 물건도 「어디로」가 제안한 그대로
     target = inp.target if inp.target not in ("keep",) else "shelf"
-    out = give_apply(st, inp.uid, item, target, placed,
-                     warm_ids=(c["scans"].get(inp.scan_id) or {}).get("warm") if inp.scan_id else None)
+    out = give_apply(st, inp.uid, item, target, placed, warm_ids=warm_ids)
+    out["intent"] = give_intent(st, inp.uid, c["scans"].get(inp.scan_id) if inp.scan_id else None, item, target, out)
+    if out["tier"] != "not_for_me" and target != "shelf":
+        og = (st.get("octopus") or {}).get("gift_relic")
+        if og and og.get("card_id") == item.get("card_id"):
+            og["given"] = True                              # S22 r4-2: 문어 조각은 한 번 건네면 끝
     if inp.scan_id:
         c["scans"][inp.scan_id]["given"] = True
         c["scans"][inp.scan_id]["to"] = target
     save_state(inp.uid, st)
     out["ok"] = True
-    out["item"] = {k: item.get(k) for k in ("name", "category", "subtype")} | {"subtype_ko": sub_ko(item.get("category", ""), item.get("subtype")) if item.get("subtype") else None}
+    out["item"] = {k: item.get(k) for k in ("name", "category", "subtype")} | {"subtype_ko": sub_ko(item.get("category", ""), item.get("subtype")) if item.get("subtype") else None,
+                                                                              "history": card_history(st, item.get("barcode"))}
     out["state"] = public_state(st, inp.uid)
     return out
 
@@ -7739,8 +7815,10 @@ def leaving(uid: str):
         note = (st.get("day_log") or {}).get(str(day_of(st))) or {}
         ch = [f"{k} {', '.join(map(str, v[:2]))}" for k, v in note.items() if isinstance(v, list)][:2]
     card = NEXT_VISIT.get("card") or {}
+    mc = missed_chain_of(st, uid)
+    save_state(uid, st)
     return {"title": card.get("changed_title"), "changed": ch, "next_visit": next_visit_public(st, uid),
-            "close_label": card.get("close_label")}
+            "missed_chain": mc, "close_label": card.get("close_label")}
 
 
 
@@ -8028,7 +8106,7 @@ def octopus_gift_relic(st: dict, find: dict, day: int) -> dict | None:
 def octopus_gift_where(st: dict, uid: str) -> dict | None:
     """비트 5 색 조각이 아직 선반·창고 상자에 있으면 그 「어디로」(스캔과 같은 모양, scan_id = relic_id)."""
     g = (st.get("octopus") or {}).get("gift_relic")
-    if not g:
+    if not g or g.get("given"):
         return None
     row = next((x for x in (st.get("shelf") or []) + (st.get("stored") or [])
                 if x.get("card_id") == g["card_id"] or x.get("id") == g["card_id"]), None)
@@ -8072,8 +8150,9 @@ def novelty_tick(st: dict, uid: str, visits: list, arcs: list) -> dict | None:
     ss = c["session"]
     if play_day(st) < NOVELTY_FROM_DAY or ss.get("novelty_n") == ss.get("n"):
         return ss.get("novelty") if ss.get("novelty_n") == ss.get("n") else None
-    fresh_kinds = {"visit", "arc_morning", "keepsake", "expedition_return", "knock", "wish", "imprint", "clue"}
-    if any(v.get("kind") == "visitor" for v in visits or []) or arcs or \
+    # S22: 아침마다 되풀이되는 줄(머리맡·사슬 뒷날 줄·두 번째 이후 방문)과 비트는 새것으로 세지 않는다
+    fresh_kinds = {"expedition_return", "knock", "wish", "imprint", "clue", "souvenir"}
+    if any(v.get("kind") == "visitor" and v.get("first") for v in visits or []) or arcs or \
             any(it.get("kind") in fresh_kinds and it.get("shown_day") is None for it in (st.get("overnight") or {}).get("items") or []):
         ss["novelty_n"] = ss.get("n")
         ss["novelty"] = None
@@ -8089,6 +8168,8 @@ def novelty_tick(st: dict, uid: str, visits: list, arcs: list) -> dict | None:
             if m.get("id") in cres(st, r["id"])["memories_seen"] or key in seen:
                 continue
             tr = m.get("trigger") or {}
+            if not memory_hint_ok(st, tr):
+                continue                                  # S22: 이 방주가 실제로 찍은 적 있는 하위 종류만 귀띔한다
             ko = rule_ko(tr)
             out = {"kind": "memory_hint", "resident_id": r["id"], "key": key,
                    "line": f"{r['name']} 님이 요즘 「{ko}」 쪽 물건 이야기를 자주 꺼내십니다. 무슨 사연인지는 아직 말씀이 없으십니다.",
@@ -8130,6 +8211,465 @@ def novelty_tick(st: dict, uid: str, visits: list, arcs: list) -> dict | None:
         del seen[:-80]
         overnight_add(st, "novelty", {k: v for k, v in out.items() if k != "key"})
     return out
+
+
+# ── S22 1단계 「약속을 지키는 루프」 앞쪽 (docs/API_S19.md §12) ─────────────────────
+S22N = CORE_A.get("s22_server_numbers") or {}
+_SP = S22N.get("subtype_pick") or {}
+SUBTYPE_OPTIONS_MAX = int(_SP.get("options_max", 6))
+SUBTYPE_VOTE_MIN = int(_SP.get("vote_min_arks", 3))
+SUBTYPE_VOTE_SHARE = float(_SP.get("vote_share_min", 0.6))
+_SOFT = S22N.get("arc_soft") or {}
+SOFT_AFTER_DAYS = int(_SOFT.get("after_days", 2))
+SOFT_PLAYED_ONLY = bool(_SOFT.get("count_played_days_only", False))
+INTENT_ONCE = bool((S22N.get("intent") or {}).get("once_per_resident_per_day", True))
+SOFT_RARITY = dict(_SOFT.get("rarity_relax") or {"rare": "uncommon", "epic": "rare", "legendary": "epic"})
+FIRST_VISIT_GAP = float((S22N.get("visitor_first") or {}).get("gap_minutes", 30)) * 60
+SOUVENIR_VISITS = int((S22N.get("souvenir") or {}).get("visits", 3))
+KEEPSAKES_RECENT_MAX = int(S22N.get("keepsakes_recent_max", 3))
+
+
+def octo_fallback(st: dict, r: dict, beat: dict) -> str | None:
+    """문어가 끼는 매듭(octopus_with)의 관리실 줄이 비었을 때 ui_moments arc_fallback.octopus_with[]."""
+    if "octopus_with" not in json.dumps(beat.get("trigger") or {}):
+        return None
+    lines = (moments().get("arc_fallback") or {}).get("octopus_with") or []
+    if not lines:
+        return None
+    rot = core_of(st)["flags"].setdefault("octo_fb_rot", 0)
+    core_of(st)["flags"]["octo_fb_rot"] = int(rot) + 1
+    return fill_text(lines[int(rot) % len(lines)], st, r)
+
+
+def role_ok(obj, st: dict) -> bool:
+    """줄에 붙은 requires_role(문자열·목록)의 역할이 지금 방주에 모두 있나. 없으면 그 줄을 쓰지 않는다(r4-6)."""
+    if not isinstance(obj, dict):
+        return True
+    req = obj.get("requires_role")
+    if not req:
+        return True
+    need = set(req if isinstance(req, list) else [req])
+    have = {r.get("role") for r in st.get("residents_list") or []}
+    return need <= have
+
+
+def role_text(obj: dict, field: str, st: dict):
+    """obj[field], 역할 요구가 안 맞으면 obj[field + '_alt'](없으면 None)."""
+    if not isinstance(obj, dict):
+        return None
+    return obj.get(field) if role_ok(obj, st) else obj.get(field + "_alt")
+
+
+# ① 「이게 뭐예요?」 ───────────────────────────────────────────────
+def subtype_options(cat: str) -> list:
+    only = set((TEMPLATES.get("_family_only") or {}).get(cat) or [])
+    subs = [(k, v) for k, v in (SUBTYPE_KO.get(cat) or {}).items() if k not in only and k != "any"]
+    return [{"id": k, "ko": v} for k, v in subs[:SUBTYPE_OPTIONS_MAX]]
+
+
+def subtype_vote_suggest(code: str, cat: str) -> dict | None:
+    """다른 방주들이 이 바코드를 뭐라고 불렀나 — 서로 다른 방주 수만 센다(개인 정보 없음)."""
+    with db() as con:
+        rows = con.execute("SELECT subtype, COUNT(DISTINCT uid) n FROM subtype_votes WHERE barcode=? AND category=? GROUP BY subtype",
+                           (code, cat)).fetchall()
+    tot = sum(int(r["n"]) for r in rows)
+    if tot < SUBTYPE_VOTE_MIN or not rows:
+        return None
+    top = max(rows, key=lambda r: (int(r["n"]), r["subtype"]))
+    if int(top["n"]) / tot < SUBTYPE_VOTE_SHARE:
+        return None
+    return {"id": top["subtype"], "ko": sub_ko(cat, top["subtype"]), "arks": int(top["n"])}
+
+
+def subtype_pick_for(st: dict, code: str, card_d: dict, bmeta: dict) -> dict | None:
+    """하위 종류가 정해지지 않은 바코드(알려진 가문 18곳·책·정체불명 밖)를 처음 찍으면 그림 단추 4~6개."""
+    cat = card_d.get("category")
+    try:
+        fixed = GEN.subtype_fixed(code, Category(cat))
+    except ValueError:
+        fixed = True
+    if fixed or bmeta.get("subtype"):
+        return None
+    opts = subtype_options(cat)
+    if len(opts) < 2:
+        return None
+    sug = subtype_vote_suggest(code, cat)
+    asks = (moments().get("scan") or {}).get("subtype_ask")
+    ask = (asks[int(hashlib.sha256(code.encode()).hexdigest()[:4], 16) % len(asks)] if isinstance(asks, list) and asks
+           else asks if isinstance(asks, str) else "이건 뭐라고 부를까요?")
+    sug_tpl = (moments().get("scan") or {}).get("subtype_suggest") or "「{ko}」, 다른 방주 {arks}곳에서는 그렇게 부르더군요."
+    return {"needed": True, "options": opts, "suggest": sug, "ask_ko": ask,
+            "suggest_ko": sug_tpl.replace("{ko}", sug["ko"]).replace("{arks}", str(sug["arks"])) if sug else None}
+
+
+class SubtypeIn(BaseModel):
+    uid: str
+    scan_id: str
+    subtype: str
+
+
+@app.post("/api/scan/subtype")
+def scan_subtype(inp: SubtypeIn):
+    """그 방주에서 그 바코드의 하위 종류를 영구히 정한다 → 카드·「어디로」를 다시 계산해 돌려준다."""
+    st = load_state(inp.uid)
+    c = core_of(st)
+    p = c["scans"].get(inp.scan_id)
+    code = (p or {}).get("barcode") or str(inp.scan_id).split("-")[0]
+    try:
+        code = GEN.normalize(code)
+    except ValueError:
+        raise HTTPException(400, "그 물건을 찾을 수 없습니다")
+    bmeta = st.setdefault("barcodes", {}).setdefault(code, {})
+    cat = bmeta.get("category") or ((p or {}).get("item") or {}).get("category")
+    if not cat or inp.subtype not in [o["id"] for o in subtype_options(cat)]:
+        raise HTTPException(400, "그 갈래에서 고를 수 있는 것이 아닙니다")
+    if bmeta.get("subtype") and bmeta["subtype"] != inp.subtype:
+        raise HTTPException(400, "이 성문은 이미 「" + sub_ko(cat, bmeta["subtype"]) + "」로 적어 두었습니다")
+    bmeta["subtype"] = inp.subtype
+    card = GEN.generate(code, hour=datetime.now().hour, user_category=cat, user_subtype=inp.subtype)
+    cd = card.to_dict()
+    cd["id"] = inp.scan_id
+    cd["subtype_ko"] = sub_ko(cat, inp.subtype)
+    cd["history"] = card_history(st, code)
+    old_name = ((p or {}).get("item") or {}).get("name")
+    for rows in (st.get("shelf") or [], st.get("stored") or []):          # 선반·창고 상자의 그 물건 이름도 새 이름으로
+        for it in rows:
+            if it.get("card_id") == inp.scan_id or it.get("barcode") == code:
+                it["relic_name"] = card.name
+    for h in st.get("hand") or []:
+        if h.get("barcode") == code:
+            h.update({"name": card.name, "subtype": inp.subtype, "flavor": card.flavor})
+    cx = st.setdefault("codex", {}).setdefault(cat, {})
+    if old_name and old_name != card.name and cx.get(old_name):
+        cx[old_name] = int(cx[old_name]) - 1
+        if cx[old_name] <= 0:
+            cx.pop(old_name, None)
+        cx[card.name] = int(cx.get(card.name, 0)) + 1
+    ssub = c.setdefault("seen_subtypes", {}).setdefault(cat, [])
+    if inp.subtype not in ssub:
+        ssub.append(inp.subtype)
+    item = item_from_card(cd)
+    where = None
+    if p is not None:
+        p["item"] = item
+        where = where_for(st, inp.uid, item)
+        p["warm"] = list(where.get("warm_ids") or [])
+        p["chain"] = [{"rid": x["target"].get("resident_id"), "name": x.get("name"), "tier": x["tier"]}
+                      for x in where.get("suggest") or [] if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
+    with db() as con:
+        con.execute("INSERT OR REPLACE INTO subtype_votes VALUES(?,?,?,?,?)", (inp.uid, code, cat, inp.subtype, time.time()))
+    save_state(inp.uid, st)
+    log(inp.uid, "subtype_pick", {"barcode": code, "subtype": inp.subtype})
+    done = (moments().get("scan") or {}).get("subtype_done")
+    return {"ok": True, "card": cd, "where": where, "subtype": inp.subtype, "subtype_ko": cd["subtype_ko"],
+            "done_ko": done.replace("{ko}", cd["subtype_ko"]) if isinstance(done, str) else None}
+
+
+def give_intent(st: dict, uid: str, rec: dict | None, item: dict, target, out: dict) -> bool:
+    """그날 필요를 보여 준 **뒤에** 찍은 물건으로 그 사람의 필요를 채웠나. 그렇다면 전용 문장으로 바꾼다(값 보너스 없음)."""
+    ns = core_of(st).get("needs_shown") or {}
+    if not rec or not isinstance(target, dict) or not target.get("resident_id") or out.get("tier") in ("not_for_me", "keep"):
+        return False
+    if ns.get("day") != day_of(st) or int(rec.get("day") or 0) != day_of(st) or float(rec.get("at") or 0) <= float(ns.get("at") or 0):
+        return False
+    r = next((x for x in st.get("residents_list") or [] if x["id"] == target["resident_id"]), None)
+    nd = need_today(uid, r, day_of(st)) if r else None
+    if not nd or not match(nd, item):
+        return False
+    idays = core_of(st).setdefault("intent_days", {})
+    if INTENT_ONCE and idays.get(r["id"]) == day_of(st):
+        return False                                  # 같은 사람 하루 한 번(기획 S22 intent.once_per_resident_per_day)
+    idays[r["id"]] = day_of(st)
+    if out.get("tier") == "need":
+        rx = out.setdefault("reaction", {})
+        anns = (TASTES.get("announce") or {}).get("give_intent")
+        if isinstance(anns, str):
+            anns = [anns]
+        res = cres(st, r["id"])
+        rot = res.setdefault("line_rot", {})
+        if anns:
+            i = int(rot.get("_give_intent", 0)) % len(anns)
+            rot["_give_intent"] = i + 1
+            rx.update({"announce": fill_text(anns[i], st, r, item), "announce_key": f"resident_tastes.announce.give_intent.{i}"})
+        il = role_taste(r.get("role", "")).get("intent_lines") or []
+        if il:
+            j = int(rot.get("intent_lines", 0)) % len(il)
+            rot["intent_lines"] = j + 1
+            rx.update({"line": fill_text(il[j], st, r, item), "line_key": f"resident_tastes.roles.{r.get('role')}.intent_lines.{j}"})
+    return True
+
+
+# ② 사슬 부드러운 대체 ──────────────────────────────────────────────
+def soft_rule(s: dict, v):
+    """soft_step 이 지금 매듭이면 좁은 조건(하위 종류·희귀도)을 넓힌다: 하위 종류 → 갈래 전체, 희귀도 한 단계 아래."""
+    if not isinstance(v, dict) or s.get("soft_step") != int(s.get("step") or 0) + 1:
+        return v
+    w = {k: x for k, x in v.items() if k != "subtype"}
+    if w.get("rarity_min") in SOFT_RARITY:
+        w["rarity_min"] = SOFT_RARITY[w["rarity_min"]]
+    return w
+
+
+def beat_is_narrow(beat: dict) -> bool:
+    trig = beat.get("trigger") or {}
+    for x in [trig] + [y for y in (trig.get("any_of") or []) if isinstance(y, dict)]:
+        for key in ("give", "give_distinct"):
+            v = x.get(key)
+            if isinstance(v, dict) and (v.get("subtype") or v.get("rarity_min")):
+                return True
+    return False
+
+
+def soft_check(st: dict, r: dict, s: dict, beat: dict) -> bool:
+    """좁은 조건 매듭이 열린 지 SOFT_AFTER_DAYS 일이 지나도 안 풀렸으면 soft_step 을 켠다(되돌리지 않는다)."""
+    step = int(beat.get("step") or (int(s.get("step") or 0) + 1))
+    if s.get("soft_step") == step:
+        return True
+    if not beat_is_narrow(beat):
+        return False
+    od = beat_opens_day(st, r, s, beat)
+    if SOFT_PLAYED_ONLY:                                # 켠 날만 센다(기획 S22): 열린 날 뒤로 실제로 켠 날 수
+        played = {int(d) for d in (core_of(st)["beats"].get("days") or {}).values()}
+        waited = sum(1 for d in played if od < d <= day_of(st))
+    else:
+        waited = day_of(st) - od
+    if waited >= SOFT_AFTER_DAYS:
+        s["soft_step"] = step
+        return True
+    return False
+
+
+def beat_already_fired(st: dict, r: dict, a: dict, s: dict, beat: dict) -> bool:
+    """r4-1 방어: 이 매듭(사람·사슬·번호)이 이미 풀렸던 기록이 있으면 참(s.days 또는 이번 세션 기록)."""
+    step = str(beat.get("step"))
+    if step in (s.get("days") or {}):
+        return True
+    return f"{r['id']}|{a['id']}|{beat.get('step')}" in (core_of(st)["session"].get("fired") or [])
+
+
+def memory_hint_ok(st: dict, tr: dict) -> bool:
+    """기억 실마리는 이 방주가 그 갈래(하위 종류 조건이면 그 하위 종류)를 찍은 적 있을 때만."""
+    cat = tr.get("category")
+    seen = core_of(st).get("seen_subtypes") or {}
+    if tr.get("family"):
+        return tr["family"] in (st.get("seen_families") or [])
+    if not cat or cat not in (st.get("seen_categories") or []) and cat not in seen:
+        return False
+    subs = tr.get("subtype")
+    if not subs:
+        return True
+    subs = subs if isinstance(subs, list) else [subs]
+    return bool(set(subs) & set(seen.get(cat) or []))
+
+
+# ③ 꾸밈 → 손님 ────────────────────────────────────────────────
+def room_display_name(st: dict, rm: dict) -> str:
+    """같은 이름의 방이 둘 이상이면 구분하는 말을 붙인다: 그 방에 선 사람 이름, 없으면 위·아래(r4-8)."""
+    nm = (ROOMS.get(rm["id"]) or {}).get("name", rm["id"])
+    same = sorted([x for x in live_rooms(st) if x["id"] == rm["id"]], key=lambda x: x["slot"])
+    if len(same) < 2:
+        return nm
+    ppl = stations_map(st).get(int(rm["slot"]), [])
+    if ppl:
+        return f"{nm}({ppl[0]['name']} 님 방)"
+    i = [x["slot"] for x in same].index(rm["slot"])
+    word = "위층" if i == 0 else ("아래층" if i == len(same) - 1 else f"가운데 {i}")
+    return f"{nm}({word})"
+
+
+def apply_visit_row(st: dict, uid: str, v: dict) -> None:
+    """손님 한 번 — 효과·도감 셈·세 번째면 기념품·밤사이 줄."""
+    c = core_of(st)
+    v["effect"] = visitor_apply(st, uid, v)
+    if v["visitor_id"] not in c["visitors_seen"]:
+        c["visitors_seen"].append(v["visitor_id"])
+    book = c.setdefault("visitor_book", {}).setdefault(v["visitor_id"], {"count": 0, "first_day": day_of(st), "souvenir": None})
+    book["count"] = int(book.get("count") or 0) + 1
+    overnight_add(st, "visit", {k: v.get(k) for k in ("slot", "room", "visitor_id", "ko", "line", "first", "where")})
+    day_note(st, "visit", v.get("ko"))
+    if book["count"] >= SOUVENIR_VISITS and not book.get("souvenir"):
+        vis = next((x for x in VISITORS_BY_TAG.values() if x["id"] == v["visitor_id"]), {})
+        nm = vis.get("souvenir") or f"{vis.get('ko', '손님')}이 남긴 것"
+        tag = DECOR_BY_ID.get(v.get("tag")) or {}
+        cat = next((f.get("category") for f in tag.get("feeds") or [] if f.get("category") in EX.CATS), "stationery")
+        cid = f"souv-{v['visitor_id']}"
+        card = {"category": cat, "rarity": "uncommon", "id": cid, "name": nm, "family_name": None, "barcode": None,
+                "_day": day_of(st)}
+        if shelf_place(st, card) is None:
+            row = store_overflow(st, card)
+            row["relic_name"] = nm
+        for it in st.get("shelf") or []:
+            if it.get("card_id") == cid:
+                it["relic_name"] = nm
+        book["souvenir"] = {"name": nm, "relic_id": cid, "day": day_of(st)}
+        line = (vis.get("souvenir_line") or "「{item}」 하나가 {room}에 남아 있습니다.").replace("{item}", nm).replace("{room}", v.get("room") or "")
+        overnight_add(st, "souvenir", {"visitor_id": v["visitor_id"], "name": nm, "relic_id": cid, "line": line})
+
+
+def force_first_visit(st: dict, uid: str, ss: dict) -> list:
+    """첫 꼬리표가 붙은 뒤 **다음 세션**(FIRST_VISIT_GAP 이상 지난 새 세션)에 그 방 첫 손님이 와 있다."""
+    c = core_of(st)
+    vg = c["flags"].get("visit_guarantee") or {}
+    if not vg.get("at") or vg.get("done"):
+        if vg and not vg.get("done") and any(r.get("kind") == "visitor" and r.get("slot") == vg.get("slot") and r.get("tag") == vg.get("tag")
+                                             for r in (c["visits"].get("rows") or [])):
+            vg["done"] = True
+        return []
+    if any(r.get("kind") == "visitor" and r.get("slot") == vg.get("slot") and r.get("tag") == vg.get("tag")
+           for r in (c["visits"].get("rows") or []) if c["visits"].get("day") == day_of(st)):
+        vg["done"] = True
+        return []
+    if not ss.get("new") or time.time() - float(vg["at"]) < FIRST_VISIT_GAP:
+        return []
+    rm = room_at(st, vg.get("slot"))
+    v = VISITORS_BY_TAG.get(vg.get("tag"))
+    if not rm or rm.get("flooded") or not v or vg.get("tag") not in room_tags_on(st, rm["slot"]):
+        return []
+    rname = (ROOMS.get(rm["id"]) or {}).get("name", rm["id"])
+    first = v["id"] not in c["visitors_seen"]
+    row = {"day": day_of(st), "slot": rm["slot"], "room": rname, "tag": vg["tag"], "kind": "visitor",
+           "visitor_id": v["id"], "ko": v.get("ko"), "where": v.get("where"), "first": first, "forced": True,
+           "line": (v.get("arrival") if first else v.get("again") or v.get("arrival") or "").replace("{room}", rname),
+           "desc": v.get("desc"), "look": v.get("look")}
+    if c["visits"].get("day") != day_of(st):
+        c["visits"] = {"day": day_of(st), "rows": []}
+    c["visits"].setdefault("rows", []).append(row)
+    apply_visit_row(st, uid, row)
+    vg["done"] = True
+    return [row]
+
+
+def decor_trace(st: dict, uid: str) -> list:
+    """꼬리표까지 하나 남은 방의 흔적(예고) — visitors.json trace[] 중 하루 하나."""
+    out = []
+    for rm in live_rooms(st):
+        rname = (ROOMS.get(rm["id"]) or {}).get("name", rm["id"])
+        for x in decor_tags(st, rm["slot"]):
+            if x["on"] or x.get("elsewhere") or x["have"] != x["need"] - 1:
+                continue
+            v = VISITORS_BY_TAG.get(x["id"])
+            if not v:
+                continue
+            tr = v.get("trace")
+            tr = tr if isinstance(tr, list) else [tr] if tr else []
+            line = random.Random(f"{uid}|{day_of(st)}|trace|{rm['slot']}|{x['id']}").choice(tr).replace("{room}", rname) if tr else None
+            out.append({"slot": rm["slot"], "tag": x["id"], "tag_ko": x["ko"], "visitor_id": v["id"], "ko": v.get("ko"),
+                        "line": line})
+    return out
+
+
+def visitors_book(st: dict) -> list:
+    """꾸밈 손님 도감(빈칸 포함). 세 번 오면 기념품."""
+    book = core_of(st).get("visitor_book") or {}
+    seen = core_of(st).get("visitors_seen") or []
+    out = []
+    for v in VISITORS_BY_TAG.values():
+        b = book.get(v["id"]) or {}
+        cnt = int(b.get("count") or (1 if v["id"] in seen else 0))
+        out.append({"id": v["id"], "ko": v.get("ko"), "tag": v.get("tag"), "count": cnt, "first_day": b.get("first_day"),
+                    "souvenir": b.get("souvenir"), "souvenir_name": v.get("souvenir")})
+    return out
+
+
+# ⑥ 두 번째 기회 · ⑦ 그림용 필드 ─────────────────────────────────────
+def missed_chain_of(st: dict, uid: str) -> dict | None:
+    """오늘 「어디로」가 매듭·기억을 제안했는데 닫았거나 다른 데 준 것 — 그 사람이 아직 그 매듭·기억을 못 풀었으면 한 줄."""
+    c = core_of(st)
+    day = day_of(st)
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    for rec in reversed(list(c["scans"].values())):
+        if int(rec.get("day") or 0) != day:
+            continue
+        for ch in rec.get("chain") or []:
+            rid = ch.get("rid")
+            if rid not in by or (rec.get("given") and isinstance(rec.get("to"), dict) and rec["to"].get("resident_id") == rid):
+                continue
+            r = by[rid]
+            if ch.get("tier") == "chain_beat":
+                a, s = current_arc(st, r)
+                if not a or s.get("last_day") == day:
+                    continue
+            else:
+                if len(cres(st, rid)["memories_seen"]) and rec.get("item") and not memory_match(st, r, rec["item"]):
+                    continue
+            lines = (NEXT_VISIT.get("promises") or {}).get("missed_chain") or []
+            tpl = random.Random(f"{uid}|{day}|missed|{rid}").choice(lines) if lines else \
+                "{name} 님이 아까 뭔가 하실 말씀이 있었던 것 같습니다. 다음에 한 번 보여 드려 보세요."
+            return {"resident_id": rid, "name": r["name"], "kind": ch.get("tier"), "line": tpl.replace("{name}", r["name"])}
+    return None
+
+
+def _props_by_subtype() -> dict:
+    try:
+        m = json.loads((ROOT / "static" / "art" / "props" / "props_meta.json").read_text(encoding="utf-8"))
+        return m.get("by_subtype") or {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+PROPS_BY_SUBTYPE = _props_by_subtype()
+
+
+def prop_for_item(it: dict) -> str | None:
+    """S22 ②: 그 물건을 그릴 소품 — props_meta.json by_subtype[갈래][하위 종류] → 그 갈래 첫 good → unknown.any → 옛 규칙."""
+    cat, sub = it.get("category") or "unknown", it.get("subtype")
+    bc = PROPS_BY_SUBTYPE.get(cat) or {}
+    if sub and isinstance(bc.get(sub), dict) and bc[sub].get("prop"):
+        return bc[sub]["prop"]
+    good = next((v.get("prop") for v in bc.values() if isinstance(v, dict) and v.get("match") == "good" and v.get("prop")), None)
+    if good:
+        return good
+    ua = ((PROPS_BY_SUBTYPE.get("unknown") or {}).get("any") or {}).get("prop")
+    if ua:
+        return ua
+    row = it.get("row") or {}
+    pid = row.get("prop_id") or it.get("prop_id")
+    if pid and pid in _PROPS_META:
+        return pid
+    for p_ in _PROPS.get(it.get("category") or "unknown") or []:
+        if p_.get("id") in _PROPS_META:
+            return p_["id"]
+    return pid
+
+
+def keepsakes_recent(cr: dict) -> list:
+    out = []
+    for it in reversed(cr.get("items") or []):
+        out.append({"relic_id": it.get("card_id"), "name": it.get("name"), "category": it.get("category"),
+                    "subtype": it.get("subtype"), "prop": prop_for_item(it), "day": it.get("day")})
+        if len(out) >= KEEPSAKES_RECENT_MAX:
+            break
+    return out
+
+
+def card_history(st: dict, code: str | None) -> list:
+    """이 방주에서 이 바코드를 누구에게(어느 방에) 줬나 — [{day, to_name}] 날 순."""
+    if not code:
+        return []
+    by = {r["id"]: r["name"] for r in st.get("residents_list") or []}
+    rows = []
+    for rid, cr in (core_of(st).get("res") or {}).items():
+        for g in cr.get("given") or []:
+            if g.get("barcode") == code:
+                rows.append({"day": g.get("day"), "to_name": by.get(rid) or "떠난 분", "resident_id": rid})
+    for slot, room in (core_of(st).get("rooms") or {}).items():
+        rm = room_at(st, int(slot))
+        for it in room.get("items") or []:
+            if it.get("barcode") == code:
+                rows.append({"day": it.get("day"), "to_name": (ROOMS.get((rm or {}).get("id")) or {}).get("name", "방"), "slot": int(slot)})
+    rows.sort(key=lambda x: int(x.get("day") or 0))
+    return rows
+
+
+def rescue_happened(st: dict) -> bool:
+    return bool(core_of(st)["flags"].get("rescue_done") or any(x.get("newcomer") for x in st.get("exp_log") or []))
+
+
+def newest_resident_name(st: dict) -> str | None:
+    """처음 셋 뒤로 들어온 사람 중 가장 최근(두드림·사건으로 온 분). 없으면 None."""
+    start = float(st.get("created") or 0) + 60
+    late = [r for r in st.get("residents_list") or [] if float(r.get("joined") or 0) > start]
+    return max(late, key=lambda r: float(r.get("joined") or 0))["name"] if late else None
 
 
 # ─────────────────────────────────────────────────────────────

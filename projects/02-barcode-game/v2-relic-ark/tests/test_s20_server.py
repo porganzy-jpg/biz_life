@@ -96,8 +96,9 @@ def t_overflow():
     S.save_state(uid, st)
     st = S.load_state(uid)
     conv = st["storage_overflow"]["converted"]
-    ok(conv.get("morale") == 1 and st["resources"]["morale"] == m0 + 1, f"식량 30 넘침 → 사기 +1(하루 상한) {conv}")
-    ok(conv.get("trade") == 2, f"교역 10 넘침 → 교역품 2(5:1) {conv}")
+    wm = min(30 // S.OVERFLOW_RATE["to_morale"], S.OVERFLOW_RATE["morale_day_max"])
+    ok(conv.get("morale") == wm and st["resources"]["morale"] == m0 + wm, f"식량 30 넘침 → 사기 +{wm}(하루 상한, core_a) {conv}")
+    ok(conv.get("trade") == 10 // S.OVERFLOW_RATE["to_trade"], f"교역 10 넘침 → 교역품(core_a 비율) {conv}")
 
 
 def t_octo_guarantee():
@@ -214,8 +215,17 @@ def t_where_two():
     uid = "dev_s20_where"
     ark(uid)
     st = S.load_state(uid)                          # 보통 1주차 집: 주민 넷, 방 넷(대상이 셋이면 최소 33%라 30% 를 못 넘는다)
-    st["residents_list"].append(S.make_resident("medic", random.Random(5), {r["name"] for r in st["residents_list"]}, uid))
-    st["residents_list"][-1]["joined"] = st["created"]
+    # S22: 결정적으로 — 시작 주민은 new_state 가 시각 시드로 만든다(이름·id·덧붙임이 실행마다 달랐다). 시드 고정 명단으로 바꾼다
+    rng_ = random.Random(2020)
+    taken_ = set()
+    st["residents_list"] = []
+    for role_ in ("cook", "engineer", "scout", "medic"):
+        r_ = S.make_resident(role_, rng_, taken_, uid)
+        r_["joined"] = st["created"]
+        S.ensure_stats(uid, r_)
+        st["residents_list"].append(r_)
+    st["stations"] = {}
+    S.now_hour = lambda: 10
     for rid_, slot in (("storage", 3), ("quarters", 4), ("infirmary", 5)):
         st["rooms"].append({"id": rid_, "slot": slot, "built": time.time(), "level": 2})
     S.save_state(uid, st)

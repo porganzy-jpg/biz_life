@@ -124,8 +124,9 @@ def t_decor_loop():
        f"반응 꼬리표 = 제안 꼬리표(책 냄새): {ann}")
     # 첫 꼬리표 → 다음 날 방문 확정
     out = S.give_apply(st, uid, item("drink", "tea", "차", "t1"), {"slot": 2}, "copy")
-    ok(out["effects"]["decor"]["tag_added"] and S.core_of(st)["flags"].get("visit_guarantee", {}).get("day") == S.day_of(st) + 1,
-       "첫 꼬리표 → 다음 날 방문 확정 표시")
+    vg_ = S.core_of(st)["flags"].get("visit_guarantee", {})
+    ok(out["effects"]["decor"]["tag_added"] and vg_.get("day") == S.day_of(st) and vg_.get("at") and not vg_.get("done"),
+       "첫 꼬리표 → 손님 확정 표시(S22: 다음 세션, 못 오면 다음 날)")
     vis = [v for v in S.visit_rows_for(st, uid, S.day_of(st) + 1) if v["kind"] == "visitor"]
     ok(vis and vis[0]["visitor_id"] == "steam_eel", f"다음 날 꼬마 장어 확정 {[v['visitor_id'] for v in vis]}")
     nv = S.next_visit_candidates(st, uid)
@@ -302,7 +303,25 @@ def t_warm_lines():
     ok(len(set(got)) == 7, f"7일 동안 서로 다른 줄 {len(set(got))}/7")
 
 
-TESTS = [t_diminish, t_decor_loop, t_warm_not_first, t_promises, t_bug1_stored, t_novelty, t_after_ask, t_warm_lines]
+def t_need_met():
+    """후속: /api/ark core.residents[rid].given_need_today(화면 「받음」) · needs_today[].met."""
+    uid = "dev_s21_need"
+    a0 = ark(uid)
+    st = S.load_state(uid)
+    sc = resident(st, "scout")
+    ok(a0["core"]["residents"][sc["id"]]["given_need_today"] is False, "받기 전 given_need_today false")
+    nd = S.need_today(uid, sc, S.day_of(st))
+    S.give_apply(st, uid, item(nd["category"], (nd["subtype"] or [None])[0], "필요한 것", "nd1"), {"resident_id": sc["id"]}, "copy")
+    S.save_state(uid, st)
+    a1 = ark(uid)
+    row = next(x for x in a1["needs_today"] if x["resident_id"] == sc["id"])
+    ok(a1["core"]["residents"][sc["id"]]["given_need_today"] is True and row["met"] is True,
+       f"필요({nd['ko']})를 받은 뒤 given_need_today true · needs_today.met true")
+    others = [r for r in a1["residents_list"] if r["id"] != sc["id"]]
+    ok(all(a1["core"]["residents"][r["id"]]["given_need_today"] is False for r in others), "다른 사람은 그대로 false")
+
+
+TESTS = [t_need_met, t_diminish, t_decor_loop, t_warm_not_first, t_promises, t_bug1_stored, t_novelty, t_after_ask, t_warm_lines]
 
 if __name__ == "__main__":
     for t in TESTS:

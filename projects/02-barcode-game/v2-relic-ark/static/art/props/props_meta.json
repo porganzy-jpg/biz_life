@@ -349,5 +349,491 @@
    "file": "static/art/props/prop_unread_lump.png",
    "file4x": "static/art/props/x4/prop_unread_lump.png"
   }
- }
+ },
+ "knots": {
+  "chair_1": {
+   "name": "식량창고 앞 의자",
+   "kind": "knot",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/chair_1.png",
+   "file4x": "static/art/props/x4/chair_1.png",
+   "context": "arcs.json arc 1 step 1 set_prop — 「앉아서 먹는 저녁」. 아직 아무도 앉지 않은 의자"
+  },
+  "sprout_on_sill": {
+   "name": "창가의 싹",
+   "kind": "knot",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/sprout_on_sill.png",
+   "file4x": "static/art/props/x4/sprout_on_sill.png",
+   "context": "arcs.json after.prop — 온실 젖은 천 사이 손톱만 한 싹"
+  },
+  "warm_basin": {
+   "name": "따뜻한 대야",
+   "kind": "knot",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/warm_basin.png",
+   "file4x": "static/art/props/x4/warm_basin.png",
+   "context": "arcs.json after.prop — 공방 대야에 찬 따뜻한 물, 손이 펴진다"
+  },
+  "name_tag_worn": {
+   "name": "닳은 이름표",
+   "kind": "knot",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/name_tag_worn.png",
+   "file4x": "static/art/props/x4/name_tag_worn.png",
+   "context": "arcs2.json after.prop — 남이 먼저 이름을 써 준 이름표"
+  }
+ },
+ "_knots_note": "S22 매듭 소품. tools/gen_knot_props.py 가 이 블록만 쓴다(gen_props.py 를 다시 돌리면 지워지니 그 뒤에 이것도 다시 돌릴 것)",
+ "subtype_props": {
+  "prop_hand_lamp": {
+   "name": "손등불",
+   "category": "electronics",
+   "subtype": "light",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_hand_lamp.png",
+   "file4x": "static/art/props/x4/prop_hand_lamp.png"
+  },
+  "prop_bean_tin": {
+   "name": "검은 콩 깡통",
+   "category": "drink",
+   "subtype": "coffee",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_bean_tin.png",
+   "file4x": "static/art/props/x4/prop_bean_tin.png"
+  },
+  "prop_white_carton": {
+   "name": "흰 물 상자",
+   "category": "drink",
+   "subtype": "milk",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_white_carton.png",
+   "file4x": "static/art/props/x4/prop_white_carton.png"
+  },
+  "prop_fruit_box": {
+   "name": "과일 단물 상자",
+   "category": "drink",
+   "subtype": "juice",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_fruit_box.png",
+   "file4x": "static/art/props/x4/prop_fruit_box.png"
+  },
+  "prop_candy_jar": {
+   "name": "단 알갱이 병",
+   "category": "food",
+   "subtype": "sweet",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_candy_jar.png",
+   "file4x": "static/art/props/x4/prop_candy_jar.png"
+  },
+  "prop_cloth_bag": {
+   "name": "천 가방",
+   "category": "apparel",
+   "subtype": "bag",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_cloth_bag.png",
+   "file4x": "static/art/props/x4/prop_cloth_bag.png"
+  },
+  "prop_knit_hat_glove": {
+   "name": "털모자와 장갑",
+   "category": "apparel",
+   "subtype": "small",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_knit_hat_glove.png",
+   "file4x": "static/art/props/x4/prop_knit_hat_glove.png"
+  },
+  "prop_rolled_map": {
+   "name": "말린 물 깊이 그림",
+   "category": "book",
+   "subtype": "map",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_rolled_map.png",
+   "file4x": "static/art/props/x4/prop_rolled_map.png"
+  },
+  "prop_soap_bottle": {
+   "name": "거품 병과 비누",
+   "category": "medical",
+   "subtype": "hygiene",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_soap_bottle.png",
+   "file4x": "static/art/props/x4/prop_soap_bottle.png"
+  },
+  "prop_sound_shell": {
+   "name": "소리 조개",
+   "category": "electronics",
+   "subtype": "audio",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_sound_shell.png",
+   "file4x": "static/art/props/x4/prop_sound_shell.png"
+  },
+  "prop_eraser_ruler": {
+   "name": "지우개와 자",
+   "category": "stationery",
+   "subtype": "tool",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_eraser_ruler.png",
+   "file4x": "static/art/props/x4/prop_eraser_ruler.png"
+  },
+  "prop_match_box": {
+   "name": "긋는 불 상자",
+   "category": "tobacco",
+   "subtype": "fire",
+   "slots": 1,
+   "w": 34,
+   "h": 30,
+   "file": "static/art/props/prop_match_box.png",
+   "file4x": "static/art/props/x4/prop_match_box.png"
+  }
+ },
+ "by_subtype": {
+  "food": {
+   "noodle": {
+    "prop": "prop_noodle_box",
+    "match": "good",
+    "file": "static/art/props/prop_noodle_box.png",
+    "file4x": "static/art/props/x4/prop_noodle_box.png"
+   },
+   "snack": {
+    "prop": "prop_crisp_bundle",
+    "match": "good",
+    "file": "static/art/props/prop_crisp_bundle.png",
+    "file4x": "static/art/props/x4/prop_crisp_bundle.png"
+   },
+   "canned": {
+    "prop": "prop_dry_jar",
+    "match": "weak",
+    "file": "static/art/props/prop_dry_jar.png",
+    "file4x": "static/art/props/x4/prop_dry_jar.png"
+   },
+   "grain": {
+    "prop": "prop_seed_sack",
+    "match": "good",
+    "file": "static/art/props/prop_seed_sack.png",
+    "file4x": "static/art/props/x4/prop_seed_sack.png"
+   },
+   "sweet": {
+    "prop": "prop_candy_jar",
+    "match": "new",
+    "file": "static/art/props/prop_candy_jar.png",
+    "file4x": "static/art/props/x4/prop_candy_jar.png"
+   },
+   "sauce": {
+    "prop": "prop_long_neck_bottle",
+    "match": "weak",
+    "file": "static/art/props/prop_long_neck_bottle.png",
+    "file4x": "static/art/props/x4/prop_long_neck_bottle.png"
+   }
+  },
+  "drink": {
+   "water": {
+    "prop": "prop_flat_canteen",
+    "match": "good",
+    "file": "static/art/props/prop_flat_canteen.png",
+    "file4x": "static/art/props/x4/prop_flat_canteen.png"
+   },
+   "soda": {
+    "prop": "prop_cap_heap",
+    "match": "good",
+    "file": "static/art/props/prop_cap_heap.png",
+    "file4x": "static/art/props/x4/prop_cap_heap.png"
+   },
+   "coffee": {
+    "prop": "prop_bean_tin",
+    "match": "new",
+    "file": "static/art/props/prop_bean_tin.png",
+    "file4x": "static/art/props/x4/prop_bean_tin.png"
+   },
+   "tea": {
+    "prop": "prop_dry_leaf_box",
+    "match": "weak",
+    "file": "static/art/props/prop_dry_leaf_box.png",
+    "file4x": "static/art/props/x4/prop_dry_leaf_box.png"
+   },
+   "milk": {
+    "prop": "prop_white_carton",
+    "match": "new",
+    "file": "static/art/props/prop_white_carton.png",
+    "file4x": "static/art/props/x4/prop_white_carton.png"
+   },
+   "juice": {
+    "prop": "prop_fruit_box",
+    "match": "new",
+    "file": "static/art/props/prop_fruit_box.png",
+    "file4x": "static/art/props/x4/prop_fruit_box.png"
+   },
+   "alcohol": {
+    "prop": "prop_long_neck_bottle",
+    "match": "good",
+    "file": "static/art/props/prop_long_neck_bottle.png",
+    "file4x": "static/art/props/x4/prop_long_neck_bottle.png"
+   }
+  },
+  "medical": {
+   "pill": {
+    "prop": "prop_twelve_cell_box",
+    "match": "good",
+    "file": "static/art/props/prop_twelve_cell_box.png",
+    "file4x": "static/art/props/x4/prop_twelve_cell_box.png"
+   },
+   "ointment": {
+    "prop": "prop_white_crock",
+    "match": "good",
+    "file": "static/art/props/prop_white_crock.png",
+    "file4x": "static/art/props/x4/prop_white_crock.png"
+   },
+   "disinfect": {
+    "prop": "prop_brown_vial",
+    "match": "weak",
+    "file": "static/art/props/prop_brown_vial.png",
+    "file4x": "static/art/props/x4/prop_brown_vial.png"
+   },
+   "bandage": {
+    "prop": "prop_rolled_strips",
+    "match": "good",
+    "file": "static/art/props/prop_rolled_strips.png",
+    "file4x": "static/art/props/x4/prop_rolled_strips.png"
+   },
+   "cosmetic": {
+    "prop": "prop_white_crock",
+    "match": "weak",
+    "file": "static/art/props/prop_white_crock.png",
+    "file4x": "static/art/props/x4/prop_white_crock.png"
+   },
+   "hygiene": {
+    "prop": "prop_soap_bottle",
+    "match": "new",
+    "file": "static/art/props/prop_soap_bottle.png",
+    "file4x": "static/art/props/x4/prop_soap_bottle.png"
+   },
+   "tonic": {
+    "prop": "prop_brown_vial",
+    "match": "good",
+    "file": "static/art/props/prop_brown_vial.png",
+    "file4x": "static/art/props/x4/prop_brown_vial.png"
+   }
+  },
+  "electronics": {
+   "battery": {
+    "prop": "prop_cell_tin",
+    "match": "good",
+    "file": "static/art/props/prop_cell_tin.png",
+    "file4x": "static/art/props/x4/prop_cell_tin.png"
+   },
+   "cable": {
+    "prop": "prop_tangled_light_thread",
+    "match": "good",
+    "file": "static/art/props/prop_tangled_light_thread.png",
+    "file4x": "static/art/props/x4/prop_tangled_light_thread.png"
+   },
+   "device": {
+    "prop": "prop_black_panel",
+    "match": "good",
+    "file": "static/art/props/prop_black_panel.png",
+    "file4x": "static/art/props/x4/prop_black_panel.png"
+   },
+   "light": {
+    "prop": "prop_hand_lamp",
+    "match": "new",
+    "file": "static/art/props/prop_hand_lamp.png",
+    "file4x": "static/art/props/x4/prop_hand_lamp.png"
+   },
+   "audio": {
+    "prop": "prop_sound_shell",
+    "match": "new",
+    "file": "static/art/props/prop_sound_shell.png",
+    "file4x": "static/art/props/x4/prop_sound_shell.png"
+   },
+   "part": {
+    "prop": "prop_gauge_piece",
+    "match": "good",
+    "file": "static/art/props/prop_gauge_piece.png",
+    "file4x": "static/art/props/x4/prop_gauge_piece.png"
+   }
+  },
+  "stationery": {
+   "pen": {
+    "prop": "prop_stick_bundle",
+    "match": "good",
+    "file": "static/art/props/prop_stick_bundle.png",
+    "file4x": "static/art/props/x4/prop_stick_bundle.png"
+   },
+   "paper": {
+    "prop": "prop_pressed_paper_stack",
+    "match": "good",
+    "file": "static/art/props/prop_pressed_paper_stack.png",
+    "file4x": "static/art/props/x4/prop_pressed_paper_stack.png"
+   },
+   "sticky": {
+    "prop": "prop_color_chip_pile",
+    "match": "good",
+    "file": "static/art/props/prop_color_chip_pile.png",
+    "file4x": "static/art/props/x4/prop_color_chip_pile.png"
+   },
+   "toy": {
+    "prop": "prop_little_person_doll",
+    "match": "good",
+    "file": "static/art/props/prop_little_person_doll.png",
+    "file4x": "static/art/props/x4/prop_little_person_doll.png"
+   },
+   "tape": {
+    "prop": "prop_rolled_strips",
+    "match": "weak",
+    "file": "static/art/props/prop_rolled_strips.png",
+    "file4x": "static/art/props/x4/prop_rolled_strips.png"
+   },
+   "tool": {
+    "prop": "prop_eraser_ruler",
+    "match": "new",
+    "file": "static/art/props/prop_eraser_ruler.png",
+    "file4x": "static/art/props/x4/prop_eraser_ruler.png"
+   },
+   "document": {
+    "prop": "prop_loose_leaf_box",
+    "match": "weak",
+    "file": "static/art/props/prop_loose_leaf_box.png",
+    "file4x": "static/art/props/x4/prop_loose_leaf_box.png"
+   }
+  },
+  "book": {
+   "manual": {
+    "prop": "prop_stacked_books",
+    "match": "good",
+    "file": "static/art/props/prop_stacked_books.png",
+    "file4x": "static/art/props/x4/prop_stacked_books.png"
+   },
+   "field_guide": {
+    "prop": "prop_standing_books",
+    "match": "weak",
+    "file": "static/art/props/prop_standing_books.png",
+    "file4x": "static/art/props/x4/prop_standing_books.png"
+   },
+   "map": {
+    "prop": "prop_rolled_map",
+    "match": "new",
+    "file": "static/art/props/prop_rolled_map.png",
+    "file4x": "static/art/props/x4/prop_rolled_map.png"
+   },
+   "story": {
+    "prop": "prop_standing_books",
+    "match": "good",
+    "file": "static/art/props/prop_standing_books.png",
+    "file4x": "static/art/props/x4/prop_standing_books.png"
+   },
+   "ledger": {
+    "prop": "prop_stacked_books",
+    "match": "weak",
+    "file": "static/art/props/prop_stacked_books.png",
+    "file4x": "static/art/props/x4/prop_stacked_books.png"
+   },
+   "index": {
+    "prop": "prop_fused_block",
+    "match": "weak",
+    "file": "static/art/props/prop_fused_block.png",
+    "file4x": "static/art/props/x4/prop_fused_block.png"
+   }
+  },
+  "apparel": {
+   "shirt": {
+    "prop": "prop_folded_cloth",
+    "match": "good",
+    "file": "static/art/props/prop_folded_cloth.png",
+    "file4x": "static/art/props/x4/prop_folded_cloth.png"
+   },
+   "shoes": {
+    "prop": "prop_single_boot",
+    "match": "good",
+    "file": "static/art/props/prop_single_boot.png",
+    "file4x": "static/art/props/x4/prop_single_boot.png"
+   },
+   "label": {
+    "prop": "prop_name_patch_box",
+    "match": "good",
+    "file": "static/art/props/prop_name_patch_box.png",
+    "file4x": "static/art/props/x4/prop_name_patch_box.png"
+   },
+   "coat": {
+    "prop": "prop_hung_coat",
+    "match": "good",
+    "file": "static/art/props/prop_hung_coat.png",
+    "file4x": "static/art/props/x4/prop_hung_coat.png"
+   },
+   "small": {
+    "prop": "prop_knit_hat_glove",
+    "match": "new",
+    "file": "static/art/props/prop_knit_hat_glove.png",
+    "file4x": "static/art/props/x4/prop_knit_hat_glove.png"
+   },
+   "bag": {
+    "prop": "prop_cloth_bag",
+    "match": "new",
+    "file": "static/art/props/prop_cloth_bag.png",
+    "file4x": "static/art/props/x4/prop_cloth_bag.png"
+   }
+  },
+  "tobacco": {
+   "smoke": {
+    "prop": "prop_thin_paper_box",
+    "match": "good",
+    "file": "static/art/props/prop_thin_paper_box.png",
+    "file4x": "static/art/props/x4/prop_thin_paper_box.png"
+   },
+   "liquor": {
+    "prop": "prop_sealed_flask",
+    "match": "good",
+    "file": "static/art/props/prop_sealed_flask.png",
+    "file4x": "static/art/props/x4/prop_sealed_flask.png"
+   },
+   "beer": {
+    "prop": "prop_empty_bottle_row",
+    "match": "weak",
+    "file": "static/art/props/prop_empty_bottle_row.png",
+    "file4x": "static/art/props/x4/prop_empty_bottle_row.png"
+   },
+   "fire": {
+    "prop": "prop_match_box",
+    "match": "new",
+    "file": "static/art/props/prop_match_box.png",
+    "file4x": "static/art/props/x4/prop_match_box.png"
+   }
+  },
+  "unknown": {
+   "any": {
+    "prop": "prop_nameless_box",
+    "match": "good",
+    "file": "static/art/props/prop_nameless_box.png",
+    "file4x": "static/art/props/x4/prop_nameless_box.png"
+   }
+  }
+ },
+ "_by_subtype_note": "S22 정본: relic_templates.json 의 category → subtype → 선반 소품. match = good/weak/new. 모르는 subtype 이면 by_subtype[category] 의 첫 good 항목, 그것도 없으면 unknown.any. 생성 tools/gen_knot_props.py (gen_props.py 를 다시 돌려도 이 블록은 남는다)"
 }
