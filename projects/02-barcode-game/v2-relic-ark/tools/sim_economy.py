@@ -39,7 +39,8 @@ THREAT = load("threats")
 DEFENSE = load("defense")
 EQUIP = load("equipment")
 STAKES = load("stakes")
-STAFF_MULT = STAKES["staffing"]["staff_mult"]   # 2026-10-03: 0.6+0.4n 대체(stakes.json)
+STAFF_MULT = STAKES["staffing"]["staff_mult"]
+DRAIN_ON = True         # economy.json drain 을 끄고 비교할 때 False   # 2026-10-03: 0.6+0.4n 대체(stakes.json)
 
 MATERIAL_KEYS = ["food", "water", "med", "parts", "cloth", "trade", "knowledge", "scrap", "chem"]
 BUILD_KEYS = ["parts", "cloth", "knowledge", "med", "trade", "scrap"]   # 방을 짓고 올리는 데 쓰는 것
@@ -126,6 +127,7 @@ class Ark:
         self.rng = rng
         self.res = {k: 0.0 for k in MATERIAL_KEYS}
         self.res.update({"food": 4, "water": 4, "parts": 1, "scrap": 2})
+        self.res["power"] = 0.0          # 서버는 전력을 재고로 쌓는다(전자 스캔 2 + 덤). 물 빼기 펌프가 쓴다
         self.morale = 5.0
         self.rooms: dict[str, int] = {}       # id -> level
         self.spec = ECON["rooms"]["list"]
@@ -203,7 +205,15 @@ class Ark:
     def _cost_of(self, rid: str, to_level: int) -> dict:
         s = self.spec[rid]
         if to_level == 1:
-            return {k: v for k, v in s["build"].items()}
+            cost = {k: v for k, v in s["build"].items()}
+            # 2026-10-13: 물 빼기 펌프 비용(economy.json drain). 새 방이 들어갈 층의 깊이로 정한다
+            dr = ECON.get("drain")
+            if DRAIN_ON and dr:
+                floor = max(0, min(3, (len(self.rooms) + 1 - 3 + 2) // 3)) if len(self.rooms) + 1 > 3 else 0
+                for k, v in dr["by_depth_m"][str(floor * 60)].items():
+                    if not k.startswith("_"):
+                        cost[k] = cost.get(k, 0) + v
+            return cost
         return {k: v for k, v in s.get(f"lv{to_level}", {}).get("cost", {}).items()}
 
     def _afford(self, cost: dict, reserve: float = 0.0) -> bool:
