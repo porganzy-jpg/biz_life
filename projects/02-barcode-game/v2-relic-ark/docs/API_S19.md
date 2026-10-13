@@ -449,3 +449,18 @@
   - 그 방주의 시각을 고정한다.
   - 이 시각을 쓰는 곳: 아침·저녁 세션(17~5시), 밤(`is_night`), 21시 자동 판정, 밤 손님, 귀띔·한 상, 밤사이 제목, 카드 시간대 변조.
   - `hour: null` 이면 실제 시계로 돌아간다. 다른 방주에는 영향이 없다(요청마다 contextvar).
+
+## 16. S26 물 빼기 · 하루 소비 (2026-10-13, economy.json `drain`·`daily_consumption_server`)
+- **물 빼기**: 빈 칸에 방을 지으면 방 건설비에 칸 깊이의 펌프 비용이 더해진다.
+  - 깊이별: 0m(돔 층, 칸 0~3) 없음 / 60m(칸 4·5) / 120m(칸 6·7) / 180m(칸 8·9).
+  - 물 찬 칸 되찾기는 ×0.5 올림이다(0 이 아닌 항목은 최소 1).
+  - 문간 에어락(`slot: -1`)은 물 빼기가 없다.
+- **`/api/ark.drain_cells: {slot: {depth_m, drain_cost, reclaim, missing}}`**: 빈 칸·물 찬 칸마다 온다.
+- **`build_options[room].by_slot[slot]: {drain_cost, missing, can}`**: `cost` 는 방 비용 그대로이고, 물 빼기는 따로 온다. `missing` 은 둘을 합친 모자람이다.
+- **`POST /api/ark/build` 가 모자라면** 400 `{detail: "자원이 부족합니다: 전력 2 · …", missing: {…}, missing_ko, cost, drain_cost}` 을 돌려준다. 아무것도 빼지 않는다.
+- **하루 소비**: 주민 1인당 하루 식량 0.6·물 0.6 이다.
+  - 생산 틱(하루 3번)마다 빠지고, 소수는 쌓아 둔다.
+  - 모자라면 0 에서 멈추고 굶은 날만큼 사기가 −1/일 내려간다. 아무도 죽거나 떠나지 않는다.
+  - 전원이 내려가 있어도 먹는다.
+  - `/api/ark.consumption: {food_per_day, water_per_day, on}`, `/api/ark.consumed_while_away: {food, water, morale?}|null`.
+- 옛 스위트 S13·S18 은 무료 짓기·소비 없는 생산 수치를 가정하므로 `DRAIN_ENFORCE`·`CONSUME_ENFORCE` 를 끄고 돈다.

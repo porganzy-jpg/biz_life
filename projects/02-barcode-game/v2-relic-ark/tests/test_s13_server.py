@@ -22,6 +22,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 import server as S  # noqa: E402
 S.CALENDAR_ENFORCE = False   # S25: 이 스위트는 해금 달력 전 기능 자체를 시험한다(달력은 test_s25)
+S.DRAIN_ENFORCE = False      # S26: 이 스위트는 무료 짓기·소비 없는 생산 수치를 가정한다(물 빼기·소비는 test_s26)
+S.CONSUME_ENFORCE = False
 from fastapi.testclient import TestClient  # noqa: E402
 
 TMP = Path(tempfile.mkdtemp()) / "t13.db"

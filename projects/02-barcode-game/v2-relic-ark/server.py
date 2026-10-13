@@ -1051,6 +1051,7 @@ def tick_production(st: dict) -> dict:
     if not st.get("power_on", True):
         # 전원을 내려 둔 채로 시간이 흘렀다. 조용한 대신 아무것도 만들지 못한다
         st["last_tick"] += ticks * PRODUCTION_TICK_SEC
+        consume_tick(st, ticks)                      # S26 사람은 전원과 무관하게 먹는다
         air_refill(st, ticks)                        # S15 공기는 전원과 무관하게 찬다(손 펌프·바깥 물)
         if not staff_snapshot_active(st):
             st.pop("staff_snapshot", None)
@@ -1122,6 +1123,7 @@ def tick_production(st: dict) -> dict:
             res["injured"] = False; heal -= 1
     st["injured"] = sum(1 for x in st.get("residents_list", []) if x.get("injured"))
     st["last_tick"] += ticks * PRODUCTION_TICK_SEC
+    consume_tick(st, ticks)                      # S26 하루 소비(economy.json daily_consumption_server)
     air_refill(st, ticks)                        # S15 하루 공기: 틱마다 공급의 1/3, 상한 = 하루 공급
     if not staff_snapshot_active(st):
         st.pop("staff_snapshot", None)           # 접촉한 틱이 정산됐다(또는 지난 것이다)
@@ -1775,6 +1777,8 @@ def public_state(st: dict, uid: str) -> dict:
         "needs_today": needs_today_public(st, uid),
         "room_decor": room_decor_public(st),
         "entrance_airlock": {"level": int((st.get("entrance_airlock") or {}).get("level") or 0)},
+        "drain_cells": drain_cells(st),                      # S26 빈 칸·물 찬 칸마다 물 빼기 비용
+        "consumption": consumption_public(st),
         "prefs": {"labels_always": bool((st.get("prefs") or {}).get("labels_always"))},
         "personal_imprints_catalog": {k: {"name": v.get("name"), "visual": (v.get("visual") or {}).get("ko"),
                                           "line": (v.get("visual") or {}).get("line"), "ability_ko": v.get("ability_ko"),
@@ -4428,6 +4432,7 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     save_state(uid, st)
     out = public_state(st, uid)
     out["produced_while_away"] = produced
+    out["consumed_while_away"] = st.pop("_consumed_now", None)
     out["night_judge"]["report"] = ticked["night_judge"]
     out["knock"] = ({"guest_id": ticked["knock"]["guest_id"], "name": ticked["knock"]["name"],
                      "role": ticked["knock"]["role"]} if ticked.get("knock") else None)
@@ -4546,6 +4551,15 @@ def build_options(st: dict, uid: str) -> dict:
         miss = cond_check(st, uid, BUILD_COND.get(rid))
         out[rid] = {"cost": cost, "lacking": lack, "cond": (BUILD_COND.get(rid) or {}).get("ko"),
                     "cond_missing": miss, "can": not lack and not miss}
+        # S26 칸마다 물 빼기를 더한 판정(방 비용과 따로 drain_cost, 합친 missing)
+        by = {}
+        for sl, cell in drain_cells(st).items():
+            tot = dict(cost)
+            for k, v in cell["drain_cost"].items():
+                tot[k] = int(tot.get(k, 0)) + int(v)
+            m_ = {k: v - int(st["resources"].get(k, 0)) for k, v in tot.items() if int(st["resources"].get(k, 0)) < v}
+            by[sl] = {"drain_cost": cell["drain_cost"], "missing": m_, "can": not m_ and not miss}
+        out[rid]["by_slot"] = by
     return out
 
 
@@ -4593,9 +4607,17 @@ def build(inp: BuildIn):
     if miss:
         raise HTTPException(400, "아직 지을 수 없습니다: " + " · ".join(miss))
     cost, lacking = priced(st, ROOMS[inp.room_id]["cost"])
-    if lacking:
-        raise HTTPException(400, f"자원이 부족합니다: {lacking}")
-    for k, v in cost.items():
+    drain = drain_cost(st, inp.slot, reclaim=bool(flooded))          # S26 물 빼기(방 건설비에 더한다)
+    total = dict(cost)
+    for k, v in drain.items():
+        total[k] = int(total.get(k, 0)) + int(v)
+    missing = {k: v - int(st["resources"].get(k, 0)) for k, v in total.items() if int(st["resources"].get(k, 0)) < v}
+    if missing:
+        from fastapi.responses import JSONResponse
+        mk = " · ".join(f"{RES_KO_SRV.get(k, k)} {v}" for k, v in missing.items())
+        return JSONResponse(status_code=400, content={"detail": f"자원이 부족합니다: {mk}", "missing": missing, "missing_ko": mk,
+                                                      "cost": cost, "drain_cost": drain})
+    for k, v in total.items():
         st["resources"][k] -= v
     reclaimed = None
     if flooded:
@@ -9747,6 +9769,91 @@ def first_rare_tick(st: dict, card_d: dict) -> bool:
         f["first_rare_day"] = day_of(st)
         return True
     return False
+
+
+# ── S26 물 빼기 · 하루 소비 (economy.json drain · daily_consumption_server) ─────────────
+_DRAIN = _ECON_ALL.get("drain") or {}
+DRAIN_BY_DEPTH = {int(k): {kk: int(vv) for kk, vv in (v or {}).items() if not str(kk).startswith("_")}
+                  for k, v in (_DRAIN.get("by_depth_m") or {}).items() if str(k).isdigit()}
+DRAIN_RECLAIM = float(_DRAIN.get("reclaim_mult", 0.5))
+_DCS = _ECON_ALL.get("daily_consumption_server") or {}
+_CONS = _ECON_ALL.get("consumption") or {}
+CONSUME_ON = bool(_DCS.get("implement", False))
+CONSUME_FOOD = float(_DCS.get("food_per_resident_day", _CONS.get("food_per_resident_day", 0.6)))
+CONSUME_WATER = float(_DCS.get("water_per_resident_day", _CONS.get("water_per_resident_day", 0.6)))
+STARVE_MORALE = float(((_CONS.get("starvation") or {}).get("morale_per_day")) or -1.0)
+DRAIN_ENFORCE = True          # 옛 스위트(무료 짓기 가정)만 끈다
+CONSUME_ENFORCE = True
+
+
+def slot_depth_m(slot: int) -> int:
+    return max(0, int(slot) // FLOOR_SLOTS - DOME_FLOOR) * DEPTH_PER_FLOOR
+
+
+def drain_cost(st: dict, slot, reclaim: bool = False) -> dict:
+    """그 칸의 물 빼기 비용(깊이 0/60/120/180m). 되찾기는 ×0.5 올림(0 이 아닌 항목은 최소 1). 문간(-1)은 없음."""
+    if not DRAIN_ENFORCE or slot is None or int(slot) < 0:
+        return {}
+    d = slot_depth_m(int(slot))
+    base = DRAIN_BY_DEPTH.get(max([k for k in DRAIN_BY_DEPTH if k <= d] or [0]), {})
+    if not reclaim:
+        return dict(base)
+    return {k: max(1, math.ceil(v * DRAIN_RECLAIM)) for k, v in base.items() if v}
+
+
+def drain_cells(st: dict) -> dict:
+    """비어 있거나 물 찬 칸마다 {depth_m, drain_cost, reclaim, missing}."""
+    taken = {r["slot"]: r for r in st.get("rooms") or []}
+    out = {}
+    for sl in range(SLOTS):
+        r = taken.get(sl)
+        if r and not r.get("flooded"):
+            continue
+        rc = bool(r and r.get("flooded"))
+        dc = drain_cost(st, sl, reclaim=rc)
+        out[str(sl)] = {"depth_m": slot_depth_m(sl), "drain_cost": dc, "reclaim": rc,
+                        "missing": {k: v - int(st["resources"].get(k, 0)) for k, v in dc.items() if int(st["resources"].get(k, 0)) < v}}
+    return out
+
+
+def consume_tick(st: dict, ticks: int) -> dict:
+    """주민 1인당 하루 식량 0.6·물 0.6(하루 3틱). 모자라면 0 에서 멈추고, 굶은 날만큼 사기 −1/일. 아무도 죽지 않는다."""
+    if not CONSUME_ON or not CONSUME_ENFORCE or ticks <= 0:
+        return {}
+    n = len(st.get("residents_list") or [])
+    if not n:
+        return {}
+    acc = st.setdefault("consume_acc", {"food": 0.0, "water": 0.0, "hunger": 0.0})
+    res = st["resources"]
+    out = {}
+    short = False
+    for key, per in (("food", CONSUME_FOOD), ("water", CONSUME_WATER)):
+        acc[key] = float(acc.get(key) or 0) + per * n * ticks / 3.0
+        whole = int(acc[key])
+        if whole <= 0:
+            continue
+        have = int(res.get(key, 0))
+        take = min(have, whole)
+        res[key] = have - take
+        out[key] = take
+        if take < whole:
+            short = True
+        acc[key] -= whole
+    if short:
+        acc["hunger"] = float(acc.get("hunger") or 0) + ticks / 3.0
+        days = int(acc["hunger"])
+        if days:
+            morale_add(st, STARVE_MORALE * days)
+            acc["hunger"] -= days
+            out["morale"] = int(STARVE_MORALE * days)
+    st["_consumed_now"] = {k: v for k, v in out.items() if v} or None
+    return out
+
+
+def consumption_public(st: dict) -> dict:
+    n = len(st.get("residents_list") or [])
+    return {"food_per_day": round(CONSUME_FOOD * n, 2), "water_per_day": round(CONSUME_WATER * n, 2),
+            "on": bool(CONSUME_ON and CONSUME_ENFORCE)}
 
 
 # ─────────────────────────────────────────────────────────────
