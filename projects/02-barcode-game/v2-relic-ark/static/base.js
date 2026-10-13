@@ -974,7 +974,7 @@
     drawShelf(slot, ix, iy, iw, ih, lit);
     drawRoomAnim(slot, ix, iy, iw, ih, t);
     drawInstalled(slot, ix, iy, iw, ih);
-    if (K.ext.drawRoomExtra) { try { K.ext.drawRoomExtra(room, slot, ix, iy, iw, ih, t, lit); } catch (e) { /* 꾸밈 층이 실패해도 방은 그린다 */ } }   // S19 꾸밈·방문자
+    if (K.ext.drawRoomExtra) { try { K.ext.drawRoomExtra(room, slot, ix, iy, iw, ih, t, lit, people || []); } catch (e) { /* 꾸밈 층이 실패해도 방은 그린다 */ } }   // S19 꾸밈·방문자
     const gathered = (K.ext.gatheredIn && K.ext.gatheredIn(slot)) || [];
     drawPeople(people, r, t, slot, gathered.length);
     if (gathered.length) drawGathered(slot, r, t, people || [], gathered);
@@ -1752,7 +1752,7 @@
   function personRow(p, slot) {
     return '<div class="who' + (carry && carry.id === p.id ? ' pick' : '') + '" data-pid="' + esc(p.id) + '">' +
       '<i style="background:' + (ROLE_COLOR[p.role] || '#d8c9a3') + '"></i>' +
-      '<b>' + esc(p.name) + '</b><em>' + esc(p.role_ko || p.role) +
+      '<b>' + esc(p.name) + '</b><em>' + esc(p.evolved_ko || p.role_ko || p.role) +
       (p.imprints && p.imprints.length ? ' · 刻 ' + p.imprints.length : '') + '</em>' +
       (p.injured ? '<em class="hurt">부상</em>' : '') +
       '<span class="mv">' + (carry && carry.id === p.id ? '놓기 취소' : '옮기기') + '</span></div>' +
@@ -3169,7 +3169,7 @@
     if (c.hall) {
       const n = (ark.residents_list || []).filter(r => cb.stations[r.id] === undefined && cb.outside.indexOf(r.id) < 0).length;
       h = '<h4>홀<small>Lv' + esc(ark.hall_level || 1) + '</small></h4><div class="rcmeta">자리 안 정한 분 ' + n + '명</div>' +
-          '<div class="rcbtns">' + (K.ext.openSendOff ? '<button data-c="send" class="on">내보내기</button>' : '') + '<button data-c="more">자세히</button></div>';
+          '<div class="rcbtns">' + (K.ext.openSendOff && (!K.ext.unlocked || K.ext.unlocked('expedition')) ? '<button data-c="send" class="on">내보내기</button>' : '') + '<button data-c="more">자세히</button></div>';
     } else if (c.sealed) {
       const deep = (c.sealed.depth_m || 0) >= TRENCH_M && c.sealed.kind !== 'rock';
       const bl = towerLore && towerLore.below_limit && towerLore.below_limit.line;

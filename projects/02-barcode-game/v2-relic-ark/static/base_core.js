@@ -19,6 +19,9 @@
   const D = window.ARKCORE = { log: [] };                  // ★ 검수용 읽기 창
   // 서버 경로(API_S19 이 확정되면 여기만 고친다)
   const API = { give: '/api/give', ask: '/api/arc/ask', leaving: '/api/leaving', decorRemove: '/api/decor/remove', subtype: '/api/scan/subtype', table: '/api/table', prefs: '/api/prefs' };   // docs/API_S19.md
+  // S25 첫 주 해금 달력(/api/ark.unlocked.features). 서버가 그 정보를 안 주면(옛 서버) 다 열린 것으로 본다
+  const unlocked = (f) => { const u = (K.ark || {}).unlocked; return !u || !Array.isArray(u.features) || u.features.indexOf(f) >= 0; };
+  K.ext.unlocked = unlocked;
   const has404 = {};                                      // 서버가 아직 그 경로를 안 열었으면(404) 이 세션에서는 다시 안 부른다
   async function call(path, body) {
     if (has404[path]) throw Object.assign(new Error('아직 준비되지 않았습니다'), { status: 404 });
@@ -51,7 +54,7 @@
                name: s.name || (p && p.name) || (slot != null ? roomName(slot) : ''),
                reason: s.known === false ? 'sign' : (s.icon || ICON_OF[s.tier] || s.reason || 'other'), tier: s.tier, known: s.known !== false,
                hint: txt(s.reason_ko || s.hint_ko || ''), sign: s.known === false ? txt(s.hint_ko || '') : '',
-               tag: s.tag_ko, target: s.target || (rid ? { resident_id: rid } : { slot }) };
+               tag: s.tag_ko, target: s.target || (rid ? { resident_id: rid } : { slot }), srv: { role: s.role || null, name: s.name || null } };
     }).filter(s => s.rid || s.slot != null).slice(0, 3);
   }
   function coreOf(p) { const c = (K.ark && K.ark.core && K.ark.core.residents) || {}; return c[p.id] || p.tastes || {}; }
@@ -68,6 +71,7 @@
              keep: keep && { ko: txt(keep) }, items: (t.items || []).length,
              arc: arc && { step: arc.step | 0, total: arc.steps || arc.total || 0, title: txt(arc.title), next: txt(nx.hint_ko || ''), open: !!nx.open, done: !!arc.done },
              memN: (t.memories_seen || []).length, mem,
+             heir: (coreOf(p) || {}).heirloom || null,
              pimps: (p.personal_imprints || []).map(id => { const c = ((K.ark || {}).personal_imprints_catalog || {})[id] || {}; return c.name ? c.name : ''; }).filter(Boolean),
              ask: !!(arc && arc.next && arc.next.ask) };
   }
@@ -78,7 +82,7 @@
     size = size || 40;
     const sheet = '/static/art/chars/front/p2/' + encodeURIComponent(p.role || 'scout') + (p.body === 'b' ? '_b' : '') + '.png';
     const k = size / 104;
-    return '<i class="face" style="width:' + size + 'px;height:' + size + 'px;background-image:url(' + sheet + ');background-size:' + (768 * k).toFixed(1) + 'px auto;background-position:-' + (76 * k).toFixed(1) + 'px -' + (28 * k).toFixed(1) + 'px" aria-hidden="true"></i>';
+    return '<i class="face" data-role="' + esc(p.role || '') + '" style="width:' + size + 'px;height:' + size + 'px;background-image:url(' + sheet + ');background-size:' + (768 * k).toFixed(1) + 'px auto;background-position:-' + (76 * k).toFixed(1) + 'px -' + (28 * k).toFixed(1) + 'px" aria-hidden="true"></i>';
   }
   const WHY = { chain: '매듭', arc: '매듭', need: '오늘 필요', memory: '기억', like: '좋아함', decor: '꾸밈', warm: '반가움', other: '' };   // S21: warm(0.9V) = 반가움
   const why = (r) => '<em class="why why-' + esc(r) + '"><i aria-hidden="true"></i>' + esc(WHY[r] || '') + '</em>';
@@ -91,7 +95,7 @@
   function stripHTML(sug, compact, keepLabel, labels) {
     const signMode = labels === false;
     return '<p class="gq">' + esc(T('give.ask', {}, '어디로 둘까요?')) + '</p><div class="gopts' + (signMode ? ' signs' : '') + '">' +
-      sug.map((s, i) => '<button class="gopt' + (i === 0 && !signMode ? ' top' : '') + (s.sign ? ' sign' : '') + '" data-i="' + i + '">' +
+      sug.map((s, i) => '<button class="gopt' + (i === 0 && !signMode ? ' top' : '') + (s.sign ? ' sign' : '') + '" data-i="' + i + '"' + (s.rid ? ' data-rid="' + esc(s.rid) + '" data-srole="' + esc(s.srv.role || '') + '"' : '') + '>' +
         (s.p ? face(s.p, (compact || innerHeight <= 500) ? 28 : 40) : '<i class="roomico" aria-hidden="true"></i>') +
         '<span class="gname"><b>' + esc(s.name) + '</b>' + (s.sign ? '' : why(s.reason)) + '</span>' +
         (s.sign ? '<small class="signline">' + esc(plain(s.sign)) + '</small>' : (!compact && s.hint ? '<small>' + esc(plain(s.hint)) + '</small>' : '')) + '</button>').join('') +
@@ -103,12 +107,15 @@
     const old = $('#subPick'); if (old) old.remove();
     const el = document.createElement('div'); el.id = 'subPick'; el.className = 'subpick';
     const sg = sp.suggest && sp.suggest.id;
-    el.innerHTML = '<p class="gq">' + esc(plain(sp.ask_ko || '이게 뭐예요?')) + '</p>' +
+    if (!sp.needed) el.classList.add('later');
+    el.innerHTML = (!sp.needed ? '<button class="sublater">' + esc(T('subtype.later_label', {}, '나중에 이름 붙이기')) + '</button>' : '') +
+      '<p class="gq">' + esc(plain(sp.ask_ko || '이게 뭐예요?')) + '</p>' +
       (sg ? '<p class="subsug">' + esc(plain(sp.suggest_ko || ('다른 방주에서는 「' + sp.suggest.ko + '」(이)라고 부릅니다.'))) + '</p>' : '') +
       '<div class="subopts">' + (sp.options || []).slice(0, 6).map(o => '<button data-sub="' + esc(o.id) + '"' + (o.id === sg ? ' class="on"' : '') + '>' + esc(o.ko) + '</button>').join('') + '</div>';
     const strip = $('#giveStrip'), btn = $('#shelfBtn');
     (strip || btn).parentNode.insertBefore(el, strip || btn);
     el.addEventListener('click', async (e) => {
+      if (e.target.closest('.sublater')) { el.classList.toggle('open'); return; }
       const b = e.target.closest('button[data-sub]'); if (!b || el.classList.contains('busy')) return;
       el.classList.add('busy');
       const sid = (r.where || {}).scan_id || (r.card || {}).id;
@@ -127,6 +134,57 @@
     D.log.push('subpick ' + (sp.options || []).length + (sg ? ' suggest' : ''));
   }
   let lastPick = null;
+  // S25 가보 칸: 「어디로」 아래 작은 줄 「가보로 · ○○」. 이미 가보가 있으면 서버가 바꿀지 묻는다(기본 그대로)
+  function heirloomRow(r) {
+    const hs = (r.where.heirloom || []).slice(0, 4);
+    const old = $('#heirRow'); if (old) old.remove();
+    const el = document.createElement('div'); el.id = 'heirRow'; el.className = 'heirrow';
+    el.innerHTML = '<p class="hq"><i aria-hidden="true"></i>' + esc(T('heirloom.ask', {}, '오래 아낄 물건입니다. 누구의 가보로 둘까요?')) + '</p><div class="hopts">' +
+      hs.map((h, i) => '<button data-h="' + i + '">' + face(personById((h.target || {}).resident_id), 22) + esc(h.label || ('가보로 · ' + h.name)) + (h.swap ? ' <small>바꾸기</small>' : '') + '</button>').join('') + '</div>';
+    const strip = $('#giveStrip'), btn = $('#shelfBtn');
+    const after = strip ? strip.nextSibling : btn;
+    (strip || btn).parentNode.insertBefore(el, after);
+    const send = async (target) => {
+      el.classList.add('busy');
+      let res;
+      try { res = await call(API.give, { scan_id: (r.where || {}).scan_id || (r.card || {}).id, target }); }
+      catch (err) { el.classList.remove('busy'); K.toast(err.message || '드리지 못했습니다'); return; }
+      el.classList.remove('busy');
+      if (res && res.ok === false && res.ask_swap) {                 // 바꿀까요? (기본: 그대로)
+        const a = res.ask_swap;
+        el.innerHTML = '<p class="hq">' + esc(plain(a.line || '')) + '</p><div class="hopts"><button data-swap="1">' + esc(T('heirloom.swap_label', {}, '바꿔 드리기')) + '</button><button class="on" data-keep="1">' + esc(T('heirloom.keep_label', {}, '그대로 두기')) + '</button></div>';
+        el.onclick = (e) => {
+          if (e.target.closest('[data-swap]')) send(Object.assign({}, target, { swap: true }));
+          else if (e.target.closest('[data-keep]')) { el.remove(); D.log.push('heir keep'); }
+        };
+        D.log.push('heir ask_swap'); return;
+      }
+      if (res.state) K.apply(res.state);
+      r._placed = true;
+      const sg = $('#giveStrip'); if (sg) sg.remove();
+      el.remove(); K.closeScan();
+      react(res, { rid: target.resident_id, reason: 'heir', target });
+      heirLines(res.heirloom, target.resident_id);
+      D.log.push('heir give ' + ((res.heirloom || {}).tier || '') + ((res.heirloom || {}).swapped ? ' swapped' : ''));
+    };
+    el.onclick = (e) => { const b = e.target.closest('button[data-h]'); if (b && !el.classList.contains('busy')) send(hs[+b.dataset.h].target); };
+    D.log.push('heirrow ' + hs.length);
+  }
+  // 등급별 줄: 귀함 = 쓰는 모습(방송), 진귀함 = 대사의 주어(방송), 전설 = 세 번째 기억 장면(작은 카드, 세 줄)
+  function heirLines(h, rid) {
+    if (!h) return;
+    const L = h.lines || {};
+    if (L.placed) setTimeout(() => K.say(plain(L.placed)), 400);
+    if (L.swapped) setTimeout(() => K.say(plain(L.swapped)), 600);
+    if (L.use) setTimeout(() => K.say(plain(L.use)), 1200);
+    if (L.speak) setTimeout(() => K.say(plain('「' + L.speak + '」')), 1800);
+    const tm = h.third_memory || L.third_memory;
+    if (tm && (tm.line || tm.announce)) {
+      const p = personById(rid);
+      queueBeat({ id: 'third:' + (tm.id || rid), resident_id: rid, title: T('heirloom.third_title', {}, '세 번째 기억'), broadcast: tm.announce, line: tm.line, size: 'big' });
+      beatShown = 0; setTimeout(showBeat, 2600); void p;
+    }
+  }
   function redrawFront(r) {                                  // 카드 앞면만(뒤집기·연출 없이)
     const c = r.card || {}, f = $('#rcFront'); if (!f || !K.ext.cards) return;
     const pid = K.propForCategory(c.category);
@@ -138,8 +196,10 @@
   }
   function afterReveal(r) {
     const old = $('#giveStrip'); if (old) old.remove();
+    if (r !== lastPick) { const op = $('#subPick'); if (op) op.remove(); }     // 다른 카드의 고르기가 남지 않게
     const sp = r.where && r.where.subtype_pick;
-    if (sp && sp.needed && (sp.options || []).length) setTimeout(() => subtypePick(r, sp), 0);
+    if (sp && (sp.options || []).length && (sp.needed || sp.later_ok)) setTimeout(() => subtypePick(r, sp), 0);
+    if (((r.where || {}).heirloom || []).length) setTimeout(() => heirloomRow(r), 0);
     if (D.mock && !r.suggest) D.mock.suggest(r);
     const sug = normSuggest(r);
     pending = sug.length ? r : null;
@@ -269,13 +329,14 @@
     const t = normTaste(p);
     if (!labelsOn() && (coreOf(p) || {}).notebook) { t.likes = []; t.dislike = ''; }    // 좋아함은 수첩으로만(알아낸 것만)
     const nbh = labelsOn() ? '' : notebookHTML(p, small);
-    if (!t.need && !t.likes.length && !t.keep && !t.arc && !t.memN && !nbh) return '';
+    if (!t.need && !t.likes.length && !t.keep && !t.arc && !t.memN && !nbh && !t.heir) return '';
     return '<div class="taste' + (small ? ' sm' : '') + '">' +
       (t.need ? '<p class="tneed' + (t.need.met ? ' met' : '') + '"><i aria-hidden="true"></i><b>오늘</b> ' + esc(plain(t.need.ko)) + (t.need.met ? ' <em class="metmark">받음</em>' : '') + '</p>' : '') +
       (t.likes.length ? '<p class="tlike"><i aria-hidden="true"></i><b>좋아함</b> ' + esc(t.likes.slice(0, 3).join(' · ')) + '</p>' : '') +
       (t.keep ? '<p class="tkeep"><i aria-hidden="true"></i><b>머리맡</b> ' + esc(t.keep.ko) + '</p>' : '') +
       (t.arc ? '<p class="tarc"><b>' + esc(t.arc.title || '이야기') + '</b> ' + arcDots(t.arc) + (t.arc.done ? ' <small>다 이뤘습니다</small>' : (t.arc.next ? '<br><small>' + (t.arc.open ? '' : '며칠 뒤 · ') + esc(plain(t.arc.next)) + '</small>' : '')) + '</p>' : '') +
-      (t.pimps.length ? '<p class="tpimp"><b>각인</b> ' + esc(t.pimps.join(' · ')) + '</p>' : '') + nbh +
+      (t.pimps.length ? '<p class="tpimp"><b>각인</b> ' + esc(t.pimps.join(' · ')) + '</p>' : '') +
+      (t.heir ? '<p class="their"><i aria-hidden="true"></i><b>가보</b> 「' + esc(t.heir.name || '') + '」 <em class="hr-' + esc(t.heir.tier || '') + '">' + esc(K.RAR_KO[t.heir.tier] || '') + '</em>' + (t.heir.boxed ? ' <small>상자에</small>' : '') + '</p>' : '') + nbh +
       (t.memN && !small ? '<p class="tmem"><b>열린 기억</b> ' + (t.mem.length ? esc(t.mem.slice(-1)[0]) + (t.memN > 1 ? ' 외 ' + (t.memN - 1) : '') : t.memN + '개') + '</p>' : '') +
       '</div>';
   }
@@ -287,7 +348,7 @@
     if (!body) return false;                                // 서버가 아직 취향을 안 보내면 예전 토스트
     if (ppop) ppop.remove();
     ppop = document.createElement('div'); ppop.className = 'ppop';
-    ppop.innerHTML = '<div class="phead">' + face(p, 36) + '<b>' + esc(p.name) + '</b><em>' + esc(p.role_ko || '') + '</em></div>' + body +
+    ppop.innerHTML = '<div class="phead">' + face(p, 36) + '<b>' + esc(p.name) + '</b><em>' + esc(p.evolved_ko || p.role_ko || '') + '</em></div>' + body +
       (normTaste(p).ask ? '<div class="rowbtns"><button class="on" data-ask="' + esc(p.id) + '">' + esc(T('arc.ask_label', {}, '물어보실 게 있답니다')) + '</button></div>' : '') +
       '<p class="phint">' + esc((cap ? cap + ' ' : '') + '옮길 방을 누르시면 자리를 옮깁니다') + '</p>';
     $('#base').appendChild(ppop);
@@ -407,6 +468,7 @@
   const ART = { vis: {}, dec: {}, decCell: [564, 317], floorY: 262, win: {}, knots: {}, traces: null, bySub: null };
   fetch('/static/art/props/props_meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
     if (!j) return; ART.bySub = j.by_subtype || null;
+    if (j.seat_stand) { ART.seat = j.seat_stand; loadImg('/' + j.seat_stand.file.replace(/^\//, '')); }
     Object.entries(j.knots || {}).forEach(([k, v]) => { ART.knots[k] = v; loadImg('/' + v.file.replace(/^\//, '')); });
   }).catch(() => {});
   // 머리맡·작업 자리의 받은 물건(core.residents[rid].keepsakes_recent, 최근 셋) — 그 사람 발치 옆에 작은 소품으로
@@ -415,10 +477,42 @@
     const b = ART.bySub || {}, c = b[k.category] || {};
     return ((c[k.subtype] || {}).prop) || ((Object.values(c).find(x => x.match === 'good') || {}).prop) || ((b.unknown || {}).any || {}).prop || null;
   }
-  const keepLog = {};
+  const keepLog = {}, rareLog = {}, spotLog = {};
+  let spotFrame = -1;
+  D.spots = () => JSON.parse(JSON.stringify(spotLog));
+  // S25 남은 것: 그 방 사람 수만큼 keepsake_spots(침상·작업대·화단 턱·선반) 앞에서부터 — i 번째 사람의 물건 하나.
+  // 끝 매듭(core.residents[rid].seat)을 맺은 사람은 자리 받침(seat_stand) 위에 그 물건. 매듭 소품 넷(own_prop_arcs)은 받침 대신 매듭 소품이 이미 방에 있다
+  const SPOT_PLATE = { quarters: 'quarters', storage: 'storage', pantry: 'storage', workshop: 'workshop', infirmary: 'infirmary',
+                       generator: 'power', power: 'power', greenhouse: 'greenhouse', decoder: 'quarters', lounge: 'storage', bath: 'infirmary', well: 'greenhouse' };
+  function drawSpots(room, slot, ix, iy, iw, ih, t, lit, ppl) {
+    spotFrame = t;
+    const spots = (ART.kspots || {})[SPOT_PLATE[room.id] || room.id]; if (!spots || !ppl || !ppl.length || K.z < 0.25) return;
+    const ctx = K.ctx, kx = iw / ART.decCell[0], ky = ih / ART.decCell[1], cr = ((K.ark || {}).core || {}).residents || {};
+    const own = (ART.seat || {}).own_prop_arcs || {};
+    ppl.slice(0, spots.length).forEach((p, i) => {
+      const c = cr[p.id] || {}, sp = spots[i], seat = c.seat && c.seat.item && !own[c.seat.arc] ? c.seat : null;
+      let it = null;
+      if (seat) it = (c.items || []).slice().reverse().find(x => x.name === seat.item) || null;
+      if (!it && c.heirloom && !c.heirloom.boxed) it = c.heirloom;                 // 가보가 있으면 머리맡에는 가보
+      if (!it) it = (c.keepsakes_recent || [])[0] || null;
+      const pid = it && propIdOf(it); const pi = pid && K.propImg(pid); if (!pi || !pi.ok1) return;
+      const sc = 1.6 * kx, cx = ix + sp.x * kx; let bottom = iy + sp.y * ky, stood = false;
+      ctx.save(); ctx.imageSmoothingEnabled = false; if (lit === false) ctx.globalAlpha = 0.6;
+      if (seat && ART.seat) {
+        const sim = imgOf['/' + ART.seat.file.replace(/^\//, '')];
+        if (sim && sim.ok) { const sw = ART.seat.w * sc, sh = ART.seat.h * sc; ctx.drawImage(sim.img, cx - sw / 2, bottom - sh, sw, sh); bottom = bottom - sh + (ART.seat.item_floor_y || 18) * sc; stood = true; }
+      }
+      const w = pi.x1.naturalWidth * sc, h = pi.x1.naturalHeight * sc;
+      ctx.drawImage(pi.x1, cx - w / 2, bottom - h, w, h);
+      ctx.restore();
+      spotLog[p.id] = { at: t, slot, spot: i, kind: sp.kind, prop: pid, seat: stood, heir: it === c.heirloom };
+    });
+  }
+  D.rare = () => Object.assign({}, rareLog);
   K.ext.drawKeepsakes = (p, px, floorY, box, mirror) => {
     const cr = ((K.ark || {}).core || {}).residents || {}, ks = ((cr[p.id] || {}).keepsakes_recent || []).slice(0, 3);
     if (!ks.length || K.z < 0.3) return;
+    if (spotLog[p.id] && spotLog[p.id].at === spotFrame) return;   // S25: 침상·작업대 자리에 놓였으면 발치에는 그리지 않는다
     const ctx = K.ctx, z = K.z, sc = Math.max(1, Math.round(1.5 * z)), side = mirror ? -1 : 1;
     let x = px + side * (box.w / 2 + 4 * z);
     ks.forEach((k, i) => {
@@ -433,6 +527,19 @@
     keepLog[p.id] = ks.map(k => propIdOf(k));
   };
   D.keepsakes = () => Object.assign({}, keepLog);
+  // ★ S25 자가 검사: 「어디로」 줄의 얼굴·이름·기색이 그 줄 자신의 target.resident_id 에서 왔나(서버 행 role = 얼굴 role = 명부 role)
+  D.selfTest = () => {
+    const bad = [];
+    document.querySelectorAll('button.gopt[data-rid]').forEach(b => {
+      const p = personById(b.dataset.rid), fr = (b.querySelector('.face') || {}).dataset || {};
+      const nm = (b.querySelector('.gname b') || {}).textContent || '';
+      if (!p) { bad.push(b.dataset.rid + ' 명부에 없음'); return; }
+      if (fr.role !== p.role) bad.push(p.name + ' 얼굴 ' + fr.role + '≠' + p.role);
+      if (b.dataset.srole && b.dataset.srole !== p.role) bad.push(p.name + ' 서버행 ' + b.dataset.srole + '≠' + p.role);
+      if (nm && nm !== p.name) bad.push(b.dataset.rid + ' 이름 ' + nm + '≠' + p.name);
+    });
+    return { ok: !bad.length, rows: document.querySelectorAll('button.gopt[data-rid]').length, bad };
+  };
   D.bigReveal = (rv, pid) => bigReveal(rv, personById(pid));   // ★ 검수용
   K.ext.visMeta = (id) => ART.vis[id] || null;
   // 매듭 소품(core.props): 그 매듭이 일어난 방에(식량창고 앞 의자·온실 창가 싹·공방 대야·거주실 이름표). 그림이 없으면 그리지 않는다
@@ -447,6 +554,7 @@
   fetch('/static/art/decor/decor_meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
     if (!j) return; if (j.cell) ART.decCell = j.cell; if (j.clear_zones && j.clear_zones.floor_band_y) ART.floorY = j.clear_zones.floor_band_y;
     (j.tags || []).forEach(t => { ART.dec[t.id] = t; loadImg('/static/art/decor/' + t.file); });
+    if (j.keepsake_spots && j.keepsake_spots.by_plate) ART.kspots = j.keepsake_spots.by_plate;
     if (j.slots) { ART.slots = { list: j.slots, pos: j.slot_positions_in_cell || {} }; spotsCache = null; }
     if (j.traces) { ART.traces = j.traces; (j.traces.items || []).forEach(x => loadImg('/static/art/decor/' + x.file)); }
     const wc = (j.window_spot || {}).cells || {}; Object.keys(wc).forEach(k => { if (wc[k] && wc[k].visitor_world) ART.win[k] = wc[k].visitor_world; });
@@ -492,8 +600,9 @@
     return spotsCache;
   }
   const DEFAULT_SPOTS = [{ file: '', x: 150, y: 60, w: 130, h: 56, ax: 65, ay: 10 }, { file: '', x: 240, y: 192, w: 84, h: 70, ax: 42, ay: 10 }, { file: '', x: 280, y: 160, w: 130, h: 56, ax: 65, ay: 10 }, { file: '', x: 100, y: 40, w: 40, h: 60, ax: 20, ay: 40, hang: true }];
-  K.ext.drawRoomExtra = (room, slot, ix, iy, iw, ih, t, lit) => {
+  K.ext.drawRoomExtra = (room, slot, ix, iy, iw, ih, t, lit, ppl) => {
     const ctx = K.ctx, z = K.z, dc = decorOf(room);
+    try { drawSpots(room, slot, ix, iy, iw, ih, t, lit, ppl); } catch (e) { /* 자리 소품이 실패해도 방은 그린다 */ }
     const kx0 = iw / ART.decCell[0], ky0 = ih / ART.decCell[1];
     // S22 흔적(decor_trace — 꼬리표까지 하나 남은 방): 바닥 가운데 기둥 자리에 반투명 그림
     ((K.ark || {}).decor_trace || []).filter(d => d.slot === slot).slice(0, 1).forEach(d => {
@@ -556,7 +665,9 @@
       const inside = meta ? !!meta.indoor : v.where === 'inside';
       const ws = !inside && ART.win[String(slot)];
       const x = inside ? ix + iw * (0.30 + 0.16 * k) : (ws ? K.sx(ws[0]) + k * 26 * z : ix + iw * (0.62 + 0.14 * (k % 2))), y = inside ? floor : (ws ? K.sy(ws[1]) : iy + ih * 0.30);
+      if (v.form === 'rare') { ctx.save(); ctx.filter = 'hue-rotate(160deg) saturate(1.7) brightness(1.15)'; }
       if (!meta || !spriteVisitor(ctx, meta, x, y, z, t, k)) drawVisitor(ctx, v, x, inside ? floor : y, z, t);
+      if (v.form === 'rare') { ctx.restore(); rareLog[v.kind] = slot; }
     });
   };
   function visitors() { const a = K.ark || {}; return (a.visits || a.visitors || []).filter(v => v.kind !== 'guest_tilt' && v.kind !== 'newhuman_tilt' && v.kind !== 'residents')
@@ -635,6 +746,7 @@
       (changed.length ? '<p class="sub">' + esc((d && d.title) || T('leave.changed_title', {}, '이번에 바뀐 것')) + '</p>' + changed.map(c => '<p class="dayline">' + esc(plain(c)) + '</p>').join('') : '') +
       '<p class="sub">' + esc((nv && nv.title) || '다음에 켜시면') + '</p><p class="lnext">' + esc(plain(nxt)) + '</p>' +
       (((d && d.missed_chain) || st.missed_chain) && txt((d && d.missed_chain) || st.missed_chain) ? '<p class="missed">' + esc(plain(txt((d && d.missed_chain) || st.missed_chain))) + '</p>' : '') +
+      (((d && d.unlock_teaser) || {}).line ? '<p class="teaser' + (d.unlock_teaser.required ? ' req' : '') + '">' + esc(plain(d.unlock_teaser.line)) + '</p>' : '') +
       (((d && d.tomorrow_ask) || st.tomorrow_ask) ? '<p class="tomask">' + face(personById(((d && d.tomorrow_ask) || st.tomorrow_ask).resident_id), 26) + '<span>' + esc(plain(txt(((d && d.tomorrow_ask) || st.tomorrow_ask).line))) + '</span></p>' : '') +
       '<div class="rowbtns"><button class="ok">' + esc((d && d.close_label) || '잠깐 쉬기') + '</button></div></div>';
     document.body.appendChild(el);
@@ -688,10 +800,13 @@
     const open = !$('#scan').hidden;
     document.querySelectorAll('.beatcard, .ppop').forEach(el => el.classList.toggle('folded', open));   // .octwhere 도 .beatcard
   }).observe($('#scan'), { attributes: true, attributeFilter: ['hidden'] });
+  // S25: 큰 창은 한 번에 하나(UI_SIMPLE) — 패널(도감·장부 등)이 열려 있는 동안 문어의 「어디로」 카드는 잠시 숨긴다
+  new MutationObserver(() => { const open = !$('#panel').hidden; document.querySelectorAll('.beatcard.octwhere').forEach(e => { e.hidden = open; }); })
+    .observe($('#panel'), { attributes: true, attributeFilter: ['hidden'] });
   // 선반 물건 다시 주기(API_S19 §2 relic_id): 사람 + 꾸밈 칸이 남은 방 중에서 고른다
   function regift(it) {
     const a = K.ark || {}, rd = a.room_decor || {};
-    const rooms = Object.keys(rd).filter(k => (rd[k].items || []).filter(x => !x.boxed).length < (rd[k].cap || 0)).map(k => +k);
+    const rooms = unlocked('decor_place') ? Object.keys(rd).filter(k => (rd[k].items || []).filter(x => !x.boxed).length < (rd[k].cap || 0)).map(k => +k) : [];
     const body = K.panel('<h2>' + esc(it.relic_name || it.name || '물건') + ' 건네기</h2><p class="sub">누구에게, 어디에 둘까요?</p>' +
       '<div class="gopts regift">' + people().map(p => '<button class="gopt" data-rid="' + esc(p.id) + '">' + face(p, 34) + '<span class="gname"><b>' + esc(p.name) + '</b>' +
         (normTaste(p).need ? '<small>오늘 ' + esc(normTaste(p).need.ko) + '</small>' : '') + '</span></button>').join('') +
@@ -772,6 +887,36 @@
   K.ext.gatheredIn = (slot) => gather.by[slot] || null;
   D.gather = () => JSON.parse(JSON.stringify(gather));
 
+  // S25 해금: 처음 열린 기능의 방송(unlocked.new, 한 번) · 메뉴 단추 숨김 · 5일째 첫 원정 장면(beat_today.first_session_scene)
+  const MENU_GATE = { sendbtn: 'expedition', tablebtn: 'evening_table' };
+  function unlockCheck(st) {
+    Object.entries(MENU_GATE).forEach(([id, f]) => { const b = document.getElementById(id); if (b) b.hidden = !unlocked(f); });
+    const u = st.unlocked; if (!u) return;
+    const said = store.get('unlock_said', []);
+    (u.new || []).forEach(n => {
+      const key = n.feature + '|' + (u.play_day || '');
+      if (!n.line || said.indexOf(key) >= 0) return;
+      said.push(key); store.set('unlock_said', said.slice(-40));
+      setTimeout(() => K.say(plain(n.line)), 1800); D.log.push('unlock ' + n.feature);
+    });
+    const sc = (st.beat_today || {}).first_session_scene;
+    if (sc && (sc.lines || []).length && store.get('scene_day', null) !== (st.beat_today.play_day || st.day)) {
+      store.set('scene_day', st.beat_today.play_day || st.day);
+      setTimeout(() => firstScene(sc.lines), 2200);
+    }
+  }
+  function firstScene(lines) {
+    const q = window.ARKBASE.queue ? window.ARKBASE.queue() : {};
+    if (!$('#scan').hidden || !$('#panel').hidden || $('.beatcard') || q.busy || (q.wait || []).length) { setTimeout(() => firstScene(lines), 1500); return; }
+    const el = document.createElement('div'); el.className = 'beatcard scenecard';
+    el.innerHTML = '<div class="phead"><i class="doorico" aria-hidden="true"></i><b>' + esc(T('expedition.first_scene_title', {}, '문간 문')) + '</b></div>' +
+      lines.map((l, i) => '<p class="sl sl-' + esc(l.who || 'narration') + '" style="--i:' + i + '">' + esc(plain(l.text || '')) + '</p>').join('') +
+      '<div class="rowbtns">' + (K.ext.openSendOff && unlocked('expedition') ? '<button class="on" data-send="1">' + esc(T('expedition.first_scene_go', {}, '내보내기')) + '</button>' : '') + '<button class="ok">그렇군요</button></div>';
+    $('#base').appendChild(el);
+    const close = () => { el.classList.add('off'); setTimeout(() => el.remove(), 400); };
+    el.addEventListener('click', (e) => { if (e.target.closest('[data-send]')) { close(); K.ext.openSendOff(); } else if (e.target.closest('button.ok')) close(); });
+    D.log.push('first_scene ' + lines.length);
+  }
   // S23 저녁 귀띔(notebook_tip) — 그사이 패널에 실렸으면 건너뛰고, 아니면 방송 한 줄(한 번만)
   function tipCheck(st) {
     const tp = st.notebook_tip; if (!tp || !tp.line) return;
@@ -784,7 +929,7 @@
   let tableShown = false;
   function tableCheck(st) {
     const et = st.evening_table;
-    if (!et || !et.open || tableShown) return;
+    if (!et || !et.open || tableShown || !unlocked('evening_table')) return;
     if (store.get('table_day', null) === st.day) return;          // 오늘 닫았으면 다시 띄우지 않는다(≡ 「한 상」으로는 언제나)
     tableShown = true; setTimeout(() => openTable(et), 2500);
   }
@@ -854,8 +999,9 @@
   const lastFull = {};
   K.onApply((st) => {
     if (D.mock) D.mock.decorate(st);                        // ★ 시험대: 서버 모양을 먼저 입힌다
-    ['visits', 'next_visit', 'beat_today', 'session', 'visitors_book', 'decor_trace', 'missed_chain', 'prefs', 'evening_table', 'tomorrow_ask'].forEach(k => { if (st[k] === undefined) { if (lastFull[k] !== undefined) st[k] = lastFull[k]; } else lastFull[k] = st[k]; });
+    ['visits', 'next_visit', 'beat_today', 'session', 'visitors_book', 'decor_trace', 'missed_chain', 'prefs', 'evening_table', 'tomorrow_ask', 'unlocked'].forEach(k => { if (st[k] === undefined) { if (lastFull[k] !== undefined) st[k] = lastFull[k]; } else lastFull[k] = st[k]; });
     computeGather(st);
+    unlockCheck(st);
     noveltyCheck(st);
     tipCheck(st);
     tableCheck(st);

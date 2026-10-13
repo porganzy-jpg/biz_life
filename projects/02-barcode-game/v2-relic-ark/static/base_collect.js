@@ -65,7 +65,8 @@
       if ((col.octopus_finds || []).length || (K.ark && K.ark.octopus && K.ark.octopus.arrived)) tabs.push(['octopus', '문어']);
     }
     const vb = (K.ark && K.ark.visitors_book) || [];
-    if (vb.length) tabs.push(['visitors', '찾아온 이 ' + vb.filter(v => v.count > 0).length + '/' + vb.length]);
+    const vbN = vb.length + vb.filter(v => v.rare).length;
+    if (vb.length) tabs.push(['visitors', '찾아온 이 ' + (vb.filter(v => v.count > 0).length + vb.filter(v => v.rare && v.rare.count > 0).length) + '/' + vbN]);
     let h = '<h2>도감</h2><div class="cxtabs">' + tabs.map(([k, l]) => '<button data-tab="' + k + '"' + (k === cxTab ? ' class="on"' : '') + '>' + esc(l) + '</button>').join('') + '</div>';
     if (cxTab === 'items' || !col) h += itemsTab(cats, col);
     else if (cxTab === 'families') h += familiesTab(col);
@@ -152,11 +153,16 @@
       const m = (K.ext.visMeta && K.ext.visMeta(v.id)) || null, k = 2;
       const sz = m ? 'width:' + m.size[0] * k + 'px;height:' + m.size[1] * k + 'px;background-size:' + (m.cols || 4) * m.size[0] * k + 'px auto;' : '';
       const img = '/static/art/visitors/' + encodeURIComponent(v.id) + '.png';
-      return '<div class="cx vb' + (on ? ' on' : ' off') + '" title="' + esc(on ? v.ko : '아직 못 본 손님') + '">' +
-        '<i class="vbimg" style="' + sz + 'background-image:url(' + img + ')"></i>' +
-        '<span>' + esc(on ? v.ko : '?') + '</span>' + (on ? '<i class="cnt">×' + v.count + '</i>' : '') +
-        (v.souvenir ? '<i class="rmk">기념품</i>' : '') + '</div>';
+      const one = (kind) => {                               // S25: 드문 모습은 같은 그림에 색만 바꿔(새 그림 전까지) 옆 칸에
+        const rare = kind === 'rare', seen = rare ? v.rare.count > 0 : on, nm = rare ? (v.rare.ko || '드문 ' + v.ko) : v.ko, cnt = rare ? v.rare.count : v.count;
+        return '<div class="cx vb' + (seen ? ' on' : ' off') + (rare ? ' rare' : '') + '" title="' + esc(seen ? nm : '아직 못 본 손님') + '">' +
+          '<i class="vbimg" style="' + sz + 'background-image:url(' + img + ')"></i>' +
+          '<span>' + esc(seen ? nm : (rare ? '드문 ?' : '?')) + '</span>' + (seen ? '<i class="cnt">×' + cnt + '</i>' : '') +
+          (!rare && v.souvenir ? '<i class="rmk">기념품</i>' : '') + '</div>';
+      };
+      return one('') + (v.rare ? one('rare') : '');
     }).join('') + '</div>' +
+      vb.filter(v => v.rare && v.rare.count > 0).map(v => '<p class="desc"><b>' + esc(v.rare.ko || '') + '</b> · 드문 모습' + (v.rare.first_day ? ' · ' + v.rare.first_day + '일째 처음' : '') + '</p>').join('') +
       vb.filter(v => v.count > 0).map(v => '<p class="desc"><b>' + esc(v.ko) + '</b> · ' + (v.first_day ? v.first_day + '일째 처음' : '') + (tagKo[v.tag] ? ' · ' + esc(tagKo[v.tag]) : '') +
         (v.souvenir ? ' · 기념품 「' + esc(v.souvenir.name || v.souvenir_name || '') + '」' : (v.souvenir_name ? ' · 세 번 오면 「' + esc(v.souvenir_name) + '」' : '')) + '</p>').join('');
   }
@@ -164,7 +170,7 @@
     const o = (K.ark && K.ark.octopus) || {};
     let h = '<p class="sub">' + (o.name ? '「' + esc(o.name) + '」' : '문어') + (o.mood && o.mood.ko ? ' · ' + esc(o.mood.ko) : '') + '</p>' +
       (o.mood && o.mood.line ? '<p class="desc">' + esc(K.plain(o.mood.line)) + '</p>' : '');
-    if (o.arrived) h += '<div class="keyrow"><input id="octin" maxlength="12" placeholder="문어 이름" value="' + esc(o.name || '') + '"><button id="octname">이름 짓기</button></div>';
+    if (o.arrived && (!K.ext.unlocked || K.ext.unlocked('octopus_name'))) h += '<div class="keyrow"><input id="octin" maxlength="12" placeholder="문어 이름" value="' + esc(o.name || '') + '"><button id="octname">이름 짓기</button></div>';
     h += '<h3>' + esc(T('octopus_gift.label', {}, '문어 선물')) + '</h3><div class="famlist">' + (col.octopus_finds || []).map(f =>
       '<div class="fam' + (f.known ? '' : ' off') + '"><b>' + esc(f.known ? f.name : '아직 못 받은 선물') + '</b>' + (f.count ? '<span>' + f.count + '번</span>' : '') +
       (f.known && f.line ? '<p class="desc">' + esc(K.plain(f.line)) + '</p>' : '') + '</div>').join('') + '</div>';
@@ -341,6 +347,7 @@
     if (k === 'visit') return s(d.line || d.ko);
     if (k === 'overflow') return s(d.ko);
     if (k === 'novelty') return s(d.line);
+    if (k === 'third_memory') return s(d.announce || d.line);
     if (k === 'notebook_tip' || k === 'night_trace' || k === 'night_visitor' || k === 'table') return s(d.line || d.ko);   // S23
     if (k === 'souvenir') return s(d.line) || (d.name ? '손님이 「' + d.name + '」 하나를 선반에 두고 갔습니다.' : '');                       // S21: 새것 실마리(memory·visitor·keepsake·octopus_hint)
     if (k === 'keepsake' && d.name && d.item) {                  // ui_moments keepsake.by_time — 저녁에 열어도 「오늘 아침에도」라 하던 것
