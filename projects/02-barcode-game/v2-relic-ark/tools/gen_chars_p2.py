@@ -2885,8 +2885,12 @@ def main():
                                 fit['moved'].setdefault('%s_%s' % (role, body), {}).setdefault(iid, 0)
                                 fit['moved']['%s_%s' % (role, body)][iid] += 1
             nm = '%s_%s' % (role, body)
-            mask_sheet_of(mcells, 1).save(os.path.join(OUT, 'imprints', 'rolemask', nm + '.png'))
-            mask_sheet_of(mcells, SHEET_K).save(os.path.join(OUT, 'imprints', 'rolemask', nm + '_x4.png'))
+            # 브라우저 destination-out 은 **알파만** 본다 → 흰색 RGBA, 알파 = 가림 칸(S22 2차: L 판은 전부 불투명이라 각인을 다 지웠다)
+            for k_, suf in ((1, ''), (SHEET_K, '_x4')):
+                ms = mask_sheet_of(mcells, k_)
+                rgba = Image.new('RGBA', ms.size, (255, 255, 255, 0))
+                rgba.putalpha(ms)
+                rgba.save(os.path.join(OUT, 'imprints', 'rolemask', nm + suf + '.png'))
             # 덮어쓰기 파일: 옮긴 칸은 옮긴 판, 나머지 칸은 원래 몸 모양 판 그대로(가림판은 똑같이 건다)
             for iid, moved_cells in over.items():
                 d0 = os.path.join(OUT, 'imprints', 'role', nm)
@@ -3843,8 +3847,7 @@ def main():
             ov_p = 'imprints/role/%s_%s/%s.png' % (role, body, iid)
             lay.alpha_composite(fimg(ov_p) if os.path.exists(os.path.join(OUT, ov_p))
                                 else fimg('/'.join(('imprints',) + sub + (iid + '.png',))))
-        mk = fimg('imprints/rolemask/%s_%s.png' % (role, body)).getchannel('L') if False else \
-            Image.open(os.path.join(OUT, 'imprints', 'rolemask', '%s_%s.png' % (role, body))).convert('L')
+        mk = Image.open(os.path.join(OUT, 'imprints', 'rolemask', '%s_%s.png' % (role, body))).convert('RGBA').getchannel('A')   # 브라우저처럼 알파만
         la = lay.getchannel('A')
         la = Image.composite(Image.new('L', im.size, 0), la, mk)        # destination-out
         lay.putalpha(la)

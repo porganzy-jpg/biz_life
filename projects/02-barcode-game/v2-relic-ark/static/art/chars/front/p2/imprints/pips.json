@@ -1,0 +1,19 @@
+{
+ "_comment": "각인 머리 위 표식(S22 2차). 손으로 찍은 도트. 화면 배율이 방 ×3 보다 작을 때(z < 1)만 쓴다",
+ "cell": 9,
+ "order": [
+  "spore_mark",
+  "empty_stomach",
+  "warden",
+  "sun_memory",
+  "empty_seat",
+  "footprint",
+  "debt_paid",
+  "water_memory",
+  "saved_breath",
+  "crack_seen",
+  "depth_mark",
+  "knock_heard"
+ ],
+ "rule": "사람 머리 위(맨머리 꼭대기에서 화면 4px 위)에 가진 각인 1~3개를 가로로 1px 띄워 늘어놓는다. 화면 픽셀 기준 ×2(18px) 고정 — 카메라 배율을 곱하지 않는다. z ≥ 1 에서는 끈다(몸 위 각인 레이어가 보인다). 방 불빛 틴트를 곱하지 않는다. 뒷모습·잠수복이어도 표식은 같다."
+}
