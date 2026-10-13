@@ -1,0 +1,33 @@
+{
+  "_doc": "2단계 초안 — 변하는 사람·주간 물때 카드. docs/PHASE2.md. 기획·밸런스 소유(수치), 문장은 시나리오.",
+  "_version": "2026-10-13",
+  "states": {
+    "daily_chance_per_resident": 0.25,
+    "max_per_resident_per_day": 1,
+    "seed": "uid|resident|day",
+    "hint_guarantee": true,
+    "tendency_after": 3,
+    "outcome_V_when_read": 1.1,
+    "list": [
+      {"id": "sick", "ko": "아픔", "prefer": [{"category": "medical"}, {"adjective": "warm"}]},
+      {"id": "cold", "ko": "추위", "prefer": [{"category": "apparel", "subtype": ["small", "coat"]}, {"adjective": "warm"}]},
+      {"id": "awkward", "ko": "서먹함", "target": "other_resident", "rule": "그 사람이 좋아하는 것을 건네면 둘 사이 신뢰 +3"},
+      {"id": "anniversary", "ko": "기념일", "prefer": [{"memory_trigger": true}], "rule": "대사만, 수치 없음"},
+      {"id": "cheerful", "ko": "들뜸", "rule": "싫어함도 오늘은 받는다"}
+    ],
+    "_basis": "주민 6명이면 하루 1.5명 — 거의 매 세션 후보 중 한 명에게 상태가 있다. 수첩이 다 찬 뒤 라벨대로 건넨 것이 최선인 비율을 ≈100% → 75~80% 로 내려 판단을 남긴다(추정). 벌 없음: 못 읽어도 평소 결과."
+  },
+  "adjectives": ["warm", "cold", "crinkly", "soft", "striped", "round", "small", "long", "noisy", "fragrant", "shiny", "old"],
+  "adjective_judge": {"by": "player", "ask_once_per_barcode": true, "vote_min_arks": 3, "vote_share_min": 0.6},
+  "tide_card": {
+    "seed": "iso_year-week (전 세계 공통)",
+    "starts": "월요일 0시 서버 시각",
+    "condition_count": 2,
+    "tries": "무제한, 칸 7(하루 하나 보여 줄 수 있다)",
+    "share_window": "토·일, 스포일러 없는 칸 그림(희귀도 색, 몇 번째), 상품명·바코드 없음, navigator.share",
+    "reward": "그 주 물때 소품 1(방 장식) + 수첩 한 줄",
+    "late_solve": true,
+    "share_reward": 0,
+    "global_answers_k": 3
+  }
+}

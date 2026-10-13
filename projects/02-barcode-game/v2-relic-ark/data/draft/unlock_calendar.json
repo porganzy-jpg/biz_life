@@ -1,0 +1,22 @@
+{
+  "_doc": "첫 주 해금 달력(제안). docs/FIRST_WEEK_CALENDAR.md. 서버는 day_of(st) 로 기능 깃발을 내려보내고, 화면은 꺼진 기능을 그리지 않는다. 비트 문장은 beats.json(시나리오).",
+  "_version": "2026-10-13",
+  "days": {
+    "1": {"unlocks": ["scan", "give_where_labels", "subtype_pick_when_wanted"], "beat": "first_scan_first_expedition", "teaser_prev_day": null},
+    "2": {"unlocks": ["decor_place", "octopus_name"], "beat": "octopus_arrives", "teaser_prev_day": "방에도 물건을 둘 수 있습니다."},
+    "3": {"unlocks": ["mood_hints", "notebook", "guest_knock", "first_chain_knot"], "beat": "first_knock_first_request", "teaser_prev_day": "내일부터 사람들 얼굴을 보고 건네 보세요.", "teaser_required": true},
+    "4": {"unlocks": ["raids"], "beat": "first_threat_longneck", "teaser_prev_day": "창밖이 조용하지 않을 것 같습니다."},
+    "5": {"unlocks": ["expedition"], "beat": "octopus_story_gift", "teaser_prev_day": "문간 잠수복이 손질되었습니다."},
+    "6": {"unlocks": ["evening_table"], "beat": "rescue_second_resident_goal", "teaser_prev_day": "오늘 저녁엔 상을 차려 봐도 되겠습니다."},
+    "7": {"unlocks": ["memory_wall"], "beat": "weekly_log_shade", "teaser_prev_day": "일지 첫 장이 넘어갑니다."},
+    "8": {"unlocks": ["tide"], "beat": "first_tide_first_spot", "teaser_prev_day": null}
+  },
+  "conditional": {
+    "heirloom": {"when": "first_card_rarity_at_least", "value": "rare", "_note": "날짜가 아니라 첫 귀함 카드가 연다"}
+  },
+  "overrides": {
+    "raid_first_day": 4,
+    "expedition_first_day": 5,
+    "_basis": "RAID_FIRST_DAY 2 → 4(threats.first_week_guarantee.by_day 와 같은 날). 원정 1 → 5. sim_expedition(씨앗 20): 방 14일 10.2 → 9.9, 주민 7일 5.8 → 5.1 — 둘 다 목표에 더 가깝다."
+  }
+}

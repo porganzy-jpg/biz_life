@@ -396,9 +396,10 @@ def t_visual_fields():
     st = S.load_state(uid)
     sc = resident(st, "scout")
     code = ean("880106200011")
+    lk = S.TASTES["roles"]["scout"]["likes"][0]          # 좋아하는 쪽(덧붙임 '안 맞음'에 걸리지 않게 — 데이터가 바뀌어도)
     for i in range(4):
-        S.give_apply(st, uid, item("drink", "milk", f"우유{i}", code if i == 0 else f"m{i}"), {"resident_id": sc["id"]}, "copy",
-                     warm_ids=[sc["id"]])
+        S.give_apply(st, uid, item(lk["category"], (lk.get("subtype") or [None])[0], f"우유{i}", code if i == 0 else f"m{i}"),
+                     {"resident_id": sc["id"]}, "copy", warm_ids=[sc["id"]])
     S.save_state(uid, st)
     a = ark(uid)
     kr = a["core"]["residents"][sc["id"]]["keepsakes_recent"]

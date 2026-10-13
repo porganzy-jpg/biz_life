@@ -629,7 +629,7 @@ def run_day_sim(profile, days: int, seed: int, expedition: bool = True, raid_pol
                 add_mat(CAT_MAT[b["cat"]], BOX["value"]["units"] * BOX["pry"]["value_mul"], "box_b", "box_all")
 
         # 원정 — 접속마다
-        if expedition and played:
+        if expedition and played and day >= EXP_START_DAY:
             for si, h in enumerate(sessions):
                 now = day_h0 + h
                 # 공기 채움(마지막 이후 시간만큼)
@@ -719,6 +719,7 @@ def run_day_sim(profile, days: int, seed: int, expedition: bool = True, raid_pol
 
 
 LEN_ORDER = {"short": 0, "half": 1, "long": 2}
+EXP_START_DAY = 1     # 해금 달력(2026-10-13 제안: 5일째)을 시험할 때 바꾼다
 SEEDS = list(range(20))
 
 

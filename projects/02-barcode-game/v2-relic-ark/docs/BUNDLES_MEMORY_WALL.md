@@ -3,6 +3,7 @@
 > 근거: 기획 검수 `docs/reports/design_review_fun_20261011.md` ⑥ 30일 등뼈. 사용자 결정(DECISIONS 2026-10-11 ③): **꾸러미는 기존 방의 「기억 벽」부터**, 서버 칸 모델 유지.
 > 수치·칸 구성: `data/draft/bundles_memory_wall.json`. 검증: `python tools/sim_s22.py`(표 B1). 문장(뒷이야기·방송)은 시나리오 몫.
 > **초안이다.** 서버·화면은 아직 그대로다.
+> 2단계의 나머지 둘(변하는 사람·주간 물때 카드)은 `docs/PHASE2.md`(2026-10-13).
 
 ## 0. 한 문장
 
