@@ -444,3 +444,8 @@
     - uid 앞머리 `pt`, `r4dry`, `r5dry`, `smoke`, `s22check`, `dev_`, `devS`, `test`, `scn_` 등. 실제 사람 uid 는 `u…` 다.
     - 개발 서버(`RELIC_DEV=1`)에서 만든 방주는 `test_ark` 로 표시된다.
   - ★ `tools/reset_votes.py`: 이미 쌓인 시험 표를 지운다. 기본은 미리 보기이고, `--apply` 로 지운다(지우기 전 사본을 남긴다).
+- **사슬 끝 자리 칸**: `core.residents[rid].seat.slot`. 자리가 생길 때 그 사람이 선 방 칸으로 굳는다. 그런 방이 없으면 사슬 매듭이 가리킨 방(place·ask room), 그것도 없으면 null(홀)이다. 옛 저장은 처음 읽을 때 한 번 정한다. 사람이 방을 옮겨도 자리는 그 방에 남는다.
+- ★ **개발 시계 `POST /api/dev/clock {uid, hour: 0~23 | null}`**(RELIC_DEV 전용, 아니면 404)
+  - 그 방주의 시각을 고정한다.
+  - 이 시각을 쓰는 곳: 아침·저녁 세션(17~5시), 밤(`is_night`), 21시 자동 판정, 밤 손님, 귀띔·한 상, 밤사이 제목, 카드 시간대 변조.
+  - `hour: null` 이면 실제 시계로 돌아간다. 다른 방주에는 영향이 없다(요청마다 contextvar).

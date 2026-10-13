@@ -119,7 +119,68 @@ def t_reset_script():
     ok(any(p.name.startswith("copy.db.bak-") for p in tmp.parent.iterdir()), "지우기 전 사본을 남긴다")
 
 
-TESTS = [t_options_follow_card, t_test_arks_excluded, t_reset_script]
+def t_seat_slot():
+    """클라이언트 요청: 사슬 끝 자리에 방 칸(slot)."""
+    uid = "useat1"
+    C.get(f"/api/ark?uid={uid}")
+    st = S.load_state(uid)
+    cook = next(r for r in st["residents_list"] if r["role"] == "cook")
+    S.set_station(st, cook["id"], 2)
+    a = S.ARC_BY_ID["arc_cook_seat"]
+    s_ = S.arc_state(st, cook["id"], a["id"])
+    s_.update({"step": len(a["beats"]) - 1, "last_day": S.day_of(st) - 3})
+    row = S.fire_beat(st, uid, cook, a, s_, S.next_beat(a, s_), force=True)
+    seat = S.cres(st, cook["id"])["seat"]
+    ok(row["done"] and seat["slot"] == 2, f"자리 = 선 방 칸 {seat}")
+    S.cres(st, cook["id"])["seat"] = {"arc": a["id"], "item": "x", "day": 1}       # 옛 저장
+    S.set_station(st, cook["id"], None)
+    S.save_state(uid, st)
+    j = C.get(f"/api/ark?uid={uid}").json()
+    sl = j["core"]["residents"][cook["id"]]["seat"]["slot"]
+    ok(sl == 2, f"옛 자리는 사슬이 가리킨 방(식량창고 2)으로 {sl}")
+
+
+def t_dev_clock():
+    """★ 개발 시계: RELIC_DEV 에서만, 그 방주의 시각을 고정한다(아침 9시·저녁 19시 세션 플레이테스트용)."""
+    S.now_hour = S._now_hour_impl
+    try:
+        uid = "uclock1"
+        C.get(f"/api/ark?uid={uid}")
+        ok(C.post("/api/dev/clock", json={"uid": uid, "hour": 19}).status_code == 404, "운영 모드 → 404")
+        S.DEV_MODE = True
+        j = post("/api/dev/clock", {"uid": uid, "hour": 19})
+        ok(j["hour"] == 19 and j["evening"] and not j["is_night"], f"19시 → 저녁 세션 {j}")
+        a = C.get(f"/api/ark?uid={uid}").json()
+        ok(a["session"]["evening"] is True and a["overnight"] is None or (a["overnight"] or {}).get("band") == "evening", "/api/ark 저녁(밤사이 제목 band evening)")
+        j = post("/api/dev/clock", {"uid": uid, "hour": 9})
+        a = C.get(f"/api/ark?uid={uid}").json()
+        ok(j["now_hour"] == 9 and a["session"]["evening"] is False and a["is_night"] is False, "9시 → 아침")
+        post("/api/dev/clock", {"uid": uid, "hour": 22})
+        a = C.get(f"/api/ark?uid={uid}").json()
+        ok(a["is_night"] is True, "22시 → 밤")
+        C.get("/api/ark?uid=uclock_other")
+        b = C.get("/api/ark?uid=uclock_other").json()
+        ok(b["is_night"] == S.is_night(__import__("datetime").datetime.now().hour), "다른 방주는 실제 시계")
+        # 21시 자동 판정: 낮에 연 습격이 개발 시계 21시에 판정된다
+        st = S.load_state(uid)
+        st["dev_clock_hour"] = 10
+        st["raid"] = {"id": "r1", "day": S.day_of(st), "creature": "longneck", "grade": 1, "target_slot": 2, "severity": 0,
+                      "stage": "sound", "started": time.time(), "resolved": False, "acts": [], "moves": 0, "outside_sent": []}
+        S.save_state(uid, st)
+        C.get(f"/api/ark?uid={uid}")
+        ok(not S.load_state(uid)["raid"].get("resolved"), "10시: 아직 판정 안 함")
+        post("/api/dev/clock", {"uid": uid, "hour": 21})
+        a = C.get(f"/api/ark?uid={uid}").json()
+        ok(S.load_state(uid)["raid"].get("resolved") and a["night_judge"]["report"], "21시: 자동 판정")
+        j = post("/api/dev/clock", {"uid": uid, "hour": None})
+        ok(j["hour"] is None, "hour=null → 실제 시계로")
+        ok(C.post("/api/dev/clock", json={"uid": uid, "hour": 25}).status_code == 400, "0~23시만")
+    finally:
+        S.DEV_MODE = False
+        S.now_hour = lambda: 10
+
+
+TESTS = [t_dev_clock, t_seat_slot, t_options_follow_card, t_test_arks_excluded, t_reset_script]
 
 if __name__ == "__main__":
     for t in TESTS:

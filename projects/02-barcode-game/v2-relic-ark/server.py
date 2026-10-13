@@ -664,6 +664,7 @@ def load_state(uid: str) -> dict:
         if changed:
             save_state(uid, st)
         st["_loaded_res"] = dict(st.get("resources") or {})   # S18-D 저장 상한: 이번 요청에서 늘어난 분만 자른다
+        _DEV_HOUR.set(st.get("dev_clock_hour") if DEV_MODE else None)   # ★ 개발 시계
         return st
     st = new_state(uid)
     if DEV_MODE:
@@ -767,7 +768,7 @@ def voice_for(tag: str, seed: str, who: str | None = None, act: int | None = Non
 
 
 def is_night(hour: int | None = None) -> bool:
-    h = datetime.now().hour if hour is None else hour
+    h = now_hour() if hour is None else hour
     return h >= NIGHT_START or h < NIGHT_END
 
 
@@ -2655,6 +2656,9 @@ def night_judge(st: dict, uid: str, force: bool = False) -> dict | None:
     if not raid or raid.get("none") or raid.get("resolved"):
         return None
     due = force or raid.get("day") != day_of(st) or time.time() >= night_deadline(float(raid.get("started") or time.time()))
+    if not due and _DEV_HOUR.get() is not None:      # ★ 개발 시계: 그 시각이 판정 시각(21시)을 넘었으면
+        h = now_hour()
+        due = h >= int(stk("night_judge.hour")) or h < NIGHT_END
     if not due:
         return None
     # 상한은 데이터만 정한다. 값이 없거나(null) 엔진 결과 이름이 아니면 상한 없음 = 누른 것과 같은 결과
@@ -4216,7 +4220,7 @@ def scan(inp: ScanIn):
     bmeta = st.setdefault("barcodes", {}).setdefault(code, {})
     locked = bmeta.get("category") if stk("category_lock") else None
     pick_cat = locked or inp.user_category
-    card = GEN.generate(code, hour=datetime.now().hour, user_category=pick_cat,
+    card = GEN.generate(code, hour=now_hour(), user_category=pick_cat,
                         user_subtype=bmeta.get("subtype"))      # S22: 이 방주가 정한 하위 종류(없으면 예전 그대로)
     if card.category != Category.UNKNOWN and not bmeta.get("category"):
         bmeta["category"] = card.category.value       # 정체불명(고르지 않음)은 고정하지 않는다 — 다음에 고를 수 있게
@@ -5958,6 +5962,29 @@ def dev_imprint(inp: DevImprintIn):
             "role_evolved": bool(r.get("role_evolved")), "evolved_ko": r.get("evolved_ko")}
 
 
+class DevClockIn(BaseModel):
+    uid: str
+    hour: int | None = None
+
+
+@app.post("/api/dev/clock")
+def dev_clock(inp: DevClockIn):
+    """★ 개발 전용(RELIC_DEV=1): 이 방주의 시각(시)을 고정한다 — 아침·저녁 세션, 밤, 21시 자동 판정, 밤 손님, 밤사이 제목이
+    모두 이 시각을 쓴다. hour=null 이면 실제 시계로 돌아간다. 배포에는 없는 것과 같다(404, 배포 전 제거 목록)."""
+    if not DEV_MODE:
+        raise HTTPException(404, "없는 경로입니다")
+    if inp.hour is not None and not 0 <= int(inp.hour) <= 23:
+        raise HTTPException(400, "0~23시")
+    st = load_state(inp.uid)
+    if inp.hour is None:
+        st.pop("dev_clock_hour", None)
+    else:
+        st["dev_clock_hour"] = int(inp.hour)
+    save_state(inp.uid, st)
+    _DEV_HOUR.set(st.get("dev_clock_hour"))
+    return {"ok": True, "hour": st.get("dev_clock_hour"), "now_hour": now_hour(), "is_night": is_night(), "evening": is_evening()}
+
+
 class SwapIn(BaseModel):
     uid: str
     stored_id: str
@@ -6083,9 +6110,17 @@ EVENING_START, EVENING_END = (list(S19N.get("evening_hours") or [17, 5]) + [17, 
 ACT_TEXT_DENY = {1: {"relic_cache"}}      # 막 표시는 [1,2,3]인데 문장이 땅(콘크리트·땅을 파다) — 1막에서 뺀다(시나리오 요청함)
 
 
+import contextvars  # noqa: E402
+_DEV_HOUR = contextvars.ContextVar("dev_hour", default=None)   # ★ 개발 전용 방주 시계(요청마다 load_state 가 정한다)
+
+
 def now_hour() -> int:
-    """테스트가 바꿔 끼울 수 있게 한 군데서 읽는다."""
-    return datetime.now().hour
+    """테스트가 바꿔 끼울 수 있게 한 군데서 읽는다. ★ RELIC_DEV 에서는 그 방주의 개발 시계(/api/dev/clock)가 이긴다."""
+    h = _DEV_HOUR.get()
+    return int(h) if h is not None else datetime.now().hour
+
+
+_now_hour_impl = now_hour      # 테스트가 now_hour 를 바꿔 끼운 뒤 되돌릴 때
 
 
 def is_evening(h: int | None = None) -> bool:
@@ -6524,7 +6559,7 @@ def fire_beat(st: dict, uid: str, r: dict, a: dict, s: dict, beat: dict, item: d
         s["done_day"] = day
         # 끝 매듭: 그 사람의 '자리'(물건이 그 방에 영구 장식) + 옛 무리에서 손님 하나(문간에 자리가 있으면)
         seat_item = (item or (cres(st, r["id"])["items"] or [{}])[-1] or {}).get("name")
-        cres(st, r["id"])["seat"] = {"arc": a["id"], "item": seat_item, "day": day}
+        cres(st, r["id"])["seat"] = {"arc": a["id"], "item": seat_item, "day": day, "slot": seat_slot(st, r, a)}
         c["flags"]["arc_guest_due"] = int(c["flags"].get("arc_guest_due") or 0) + 1
         row["imprint"] = grant_personal_imprint(st, r, a)
         if a.get("wish_id"):
@@ -7336,7 +7371,7 @@ def core_public(st: dict, uid: str) -> dict:
             # S21 후속: 화면(base_core.js normTaste)이 「받음」 표시에 읽는 값 — 오늘의 필요를 받았으면 true
             "given_need_today": need_met_today(st, uid, r, nd),
             "arc": arc_status(st, uid, r),
-            "seat": cr.get("seat"),
+            "seat": seat_public(st, r, cr),
             "arc_line": r.get("arc_line"),
             "keepsakes_recent": keepsakes_recent(cr),        # S22 ②: 그 사람 곁에 그릴 최근 받은 물건 셋
             "heirloom": heirloom_public(r),                     # S25 가보 칸
@@ -8378,6 +8413,33 @@ def octo_fallback(st: dict, r: dict, beat: dict) -> str | None:
     return fill_text(lines[int(rot) % len(lines)], st, r)
 
 
+def seat_slot(st: dict, r: dict, a: dict | None) -> int | None:
+    """사슬 끝 「자리」가 놓일 방 칸 — 그 사람이 선 방, 없으면 사슬 매듭이 가리킨 방(place.room), 없으면 None(홀)."""
+    sl = station_slot(st, r["id"])
+    rm = room_at(st, sl) if sl is not None else None
+    if rm and not rm.get("flooded"):
+        return int(sl)
+    for b in reversed((a or {}).get("beats") or []):
+        trig = b.get("trigger") or {}
+        rooms_ = [(x.get("place") or {}).get("room") for x in [trig] + [y for y in (trig.get("any_of") or []) if isinstance(y, dict)]]
+        rooms_.append((b.get("ask") or {}).get("room"))            # 매듭 물음이 가리킨 방(예: 요리사 상 → 식량창고)
+        for room_id in rooms_:
+            hit = next((q for q in live_rooms(st) if q["id"] == room_id), None) if room_id else None
+            if hit:
+                return int(hit["slot"])
+    return None
+
+
+def seat_public(st: dict, r: dict, cr: dict) -> dict | None:
+    """옛 저장의 자리에는 slot 이 없다 — 처음 읽을 때 한 번 정해 굳힌다(그 뒤로 방을 옮겨도 자리는 그 방에)."""
+    seat = cr.get("seat")
+    if not seat:
+        return None
+    if "slot" not in seat:
+        seat["slot"] = seat_slot(st, r, ARC_BY_ID.get(seat.get("arc")))
+    return seat
+
+
 def role_ok(obj, st: dict) -> bool:
     """줄에 붙은 requires_role(문자열·목록)의 역할이 지금 방주에 모두 있나. 없으면 그 줄을 쓰지 않는다(r4-6)."""
     if not isinstance(obj, dict):
@@ -8473,7 +8535,7 @@ def scan_subtype(inp: SubtypeIn):
     if bmeta.get("subtype") and bmeta["subtype"] != inp.subtype:
         raise HTTPException(400, "이 성문은 이미 「" + sub_ko(cat, bmeta["subtype"]) + "」로 적어 두었습니다")
     bmeta["subtype"] = inp.subtype
-    card = GEN.generate(code, hour=datetime.now().hour, user_category=cat, user_subtype=inp.subtype)
+    card = GEN.generate(code, hour=now_hour(), user_category=cat, user_subtype=inp.subtype)
     cd = card.to_dict()
     cd["id"] = inp.scan_id
     cd["subtype_ko"] = sub_ko(cat, inp.subtype)
