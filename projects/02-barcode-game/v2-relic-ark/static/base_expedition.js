@@ -314,6 +314,7 @@
     if (ret.injured) h += '<p class="lost">' + esc(ret.injured) + ' 님이 다치셨습니다.</p>';
     (ret.imprints || []).forEach(n => { h += '<div class="who"><b>' + esc(n.resident) + ' 님</b><em>' + esc((n.imprint || {}).name || '') + '</em></div><p class="desc">' + esc(n.line || '') + '</p>'; });
     if (ret.line) h += '<p class="dayline">' + esc(K.plain(ret.line)) + '</p>';
+    if (ret.request_hint && ret.request_hint.ko) h += '<p class="reqhint">' + esc(K.plain(ret.request_hint.ko)) + '</p>';   // S21: 원정이 알아 온 내일의 부탁(CORE_LOOP_A §5)
     // S18: 처음 찾은 곳이 있는 귀환(보내 둔 원정 포함)은 **발견을 반드시 보여 준다**(플레이테스트 버그 7).
     //      seen 을 저절로 부르지 않는다 — 3D 발견 장면(원정 화면이 거기서 seen) 또는 이 카드의 「다 봤습니다」에서만.
     //      그냥 닫으면 다음에 열 때 다시 나온다

@@ -64,10 +64,13 @@
       tabs.push(['creatures', '손님 ' + (col.creatures || []).filter(c => c.known).length + '/' + (col.creatures || []).length]);
       if ((col.octopus_finds || []).length || (K.ark && K.ark.octopus && K.ark.octopus.arrived)) tabs.push(['octopus', '문어']);
     }
+    const vb = (K.ark && K.ark.visitors_book) || [];
+    if (vb.length) tabs.push(['visitors', '찾아온 이 ' + vb.filter(v => v.count > 0).length + '/' + vb.length]);
     let h = '<h2>도감</h2><div class="cxtabs">' + tabs.map(([k, l]) => '<button data-tab="' + k + '"' + (k === cxTab ? ' class="on"' : '') + '>' + esc(l) + '</button>').join('') + '</div>';
     if (cxTab === 'items' || !col) h += itemsTab(cats, col);
     else if (cxTab === 'families') h += familiesTab(col);
     else if (cxTab === 'creatures') h += creaturesTab(col);
+    else if (cxTab === 'visitors') h += visitorsTab(vb);
     else h += octopusTab(col);
     body.innerHTML = h;
     body.querySelectorAll('button[data-tab]').forEach(b => b.addEventListener('click', () => openCodex(b.dataset.tab)));
@@ -140,6 +143,22 @@
       (c.known ? '<span>' + (c.times || 0) + '번' + (c.last_result ? ' · ' + (RES[c.last_result] || c.last_result) : '') + '</span>' +
                  (c.how ? '<p class="desc">' + esc(K.plain(c.how)) + '</p>' : '')
                : (c.silhouette ? '<p class="desc dim">' + esc(c.silhouette) + '</p>' : '')) + '</div>').join('') + '</div>';
+  }
+  // S22: 꾸밈이 부른 손님(visitors_book). 못 본 손님은 그림자, 세 번 오면 기념품
+  function visitorsTab(vb) {
+    const tagKo = {}; (((K.ark || {}).room_decor) ? Object.values(K.ark.room_decor) : []).forEach(r => (r.tags || []).forEach(t => { tagKo[t.id] = t.ko; }));
+    return '<p class="sub">방을 꾸미면 찾아오는 작은 손님들입니다. 세 번 오면 무언가 하나 두고 갑니다.</p><div class="cxgrid vbook">' + vb.map(v => {
+      const on = v.count > 0;
+      const m = (K.ext.visMeta && K.ext.visMeta(v.id)) || null, k = 2;
+      const sz = m ? 'width:' + m.size[0] * k + 'px;height:' + m.size[1] * k + 'px;background-size:' + (m.cols || 4) * m.size[0] * k + 'px auto;' : '';
+      const img = '/static/art/visitors/' + encodeURIComponent(v.id) + '.png';
+      return '<div class="cx vb' + (on ? ' on' : ' off') + '" title="' + esc(on ? v.ko : '아직 못 본 손님') + '">' +
+        '<i class="vbimg" style="' + sz + 'background-image:url(' + img + ')"></i>' +
+        '<span>' + esc(on ? v.ko : '?') + '</span>' + (on ? '<i class="cnt">×' + v.count + '</i>' : '') +
+        (v.souvenir ? '<i class="rmk">기념품</i>' : '') + '</div>';
+    }).join('') + '</div>' +
+      vb.filter(v => v.count > 0).map(v => '<p class="desc"><b>' + esc(v.ko) + '</b> · ' + (v.first_day ? v.first_day + '일째 처음' : '') + (tagKo[v.tag] ? ' · ' + esc(tagKo[v.tag]) : '') +
+        (v.souvenir ? ' · 기념품 「' + esc(v.souvenir.name || v.souvenir_name || '') + '」' : (v.souvenir_name ? ' · 세 번 오면 「' + esc(v.souvenir_name) + '」' : '')) + '</p>').join('');
   }
   function octopusTab(col) {
     const o = (K.ark && K.ark.octopus) || {};
@@ -282,7 +301,11 @@
     const gotS = Object.entries(prS).filter(([, v]) => v > 0).map(([k, v]) => (K.RES_KO[k] || k) + ' ' + v);
     if (ov && (ov.items || ov.lines)) {                      // 서버 S18 요약: {items:[{kind, data}]}
       if (gotS.length) out.push({ kind: 'production', text: '밤사이 ' + gotS.join(', ') + ' 들어왔습니다.' });
-      (ov.items || ov.lines).forEach(x => { const t = overnightText(x); if (t) out.push({ kind: x.kind || '', text: t }); });
+      (ov.items || ov.lines).forEach(x => {
+        const t = overnightText(x); if (t) out.push({ kind: x.kind || '', text: t });
+        const rh = x.kind === 'expedition_return' && (x.data || {}).request_hint;   // S21: 원정이 알아 온 내일의 부탁(귀환 카드가 뜨면 거기서)
+        if (rh && rh.ko && !st.expedition_return) out.push({ kind: 'request_hint', text: K.plain(rh.ko) });
+      });
       const seen = new Set();
       return out.filter(x => (seen.has(x.text) ? false : (seen.add(x.text), true)));
     }
@@ -317,6 +340,8 @@
     if (k === 'needs') return '';                                  // S19: 오늘 필요는 아래 얼굴 줄(needs_today)로
     if (k === 'visit') return s(d.line || d.ko);
     if (k === 'overflow') return s(d.ko);
+    if (k === 'novelty') return s(d.line);
+    if (k === 'souvenir') return s(d.line) || (d.name ? '손님이 「' + d.name + '」 하나를 선반에 두고 갔습니다.' : '');                       // S21: 새것 실마리(memory·visitor·keepsake·octopus_hint)
     if (k === 'keepsake' && d.name && d.item) {                  // ui_moments keepsake.by_time — 저녁에 열어도 「오늘 아침에도」라 하던 것
       const hr = new Date().getHours(), band = hr >= 5 && hr < 11 ? 'morning' : hr < 17 ? 'day' : hr < 21 ? 'evening' : 'night';
       return s(T('keepsake.by_time.' + band, { name: d.name, item: d.item }, '') || d.line);
@@ -331,6 +356,7 @@
     else if (store.get('morning_day', null) === day && !(st.morning_lines || []).length && !(st.night_judge && st.night_judge.report)) return;
     if (ov && ov.items) morningShown = ov.items.length;
     const lines = overnightLines(st);
+    K.ext.ovShown = (K.ext.ovShown || []).concat(lines.map(l => l.text));
     store.set('morning_day', day);
     const core = K.ext.core;
     if (!lines.length && !(core && core.hasMorning && core.hasMorning(st))) return;

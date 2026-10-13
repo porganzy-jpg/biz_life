@@ -18,7 +18,7 @@
   const T = (k, v, fb) => (K.ext.T ? K.ext.T(k, v || {}, '') : '') || fb || '';
   const D = window.ARKCORE = { log: [] };                  // ★ 검수용 읽기 창
   // 서버 경로(API_S19 이 확정되면 여기만 고친다)
-  const API = { give: '/api/give', ask: '/api/arc/ask', leaving: '/api/leaving', decorRemove: '/api/decor/remove' };   // docs/API_S19.md
+  const API = { give: '/api/give', ask: '/api/arc/ask', leaving: '/api/leaving', decorRemove: '/api/decor/remove', subtype: '/api/scan/subtype' };   // docs/API_S19.md
   const has404 = {};                                      // 서버가 아직 그 경로를 안 열었으면(404) 이 세션에서는 다시 안 부른다
   async function call(path, body) {
     if (has404[path]) throw Object.assign(new Error('아직 준비되지 않았습니다'), { status: 404 });
@@ -38,7 +38,7 @@
   const roomAt = (slot) => ((K.ark && K.ark.rooms) || []).find(r => r.slot === slot) || null;
   const roomName = (slot) => { const r = roomAt(slot); return r ? ((K.catalog[r.id] || {}).name || r.id) : ''; };
   const txt = (x) => (x == null ? '' : typeof x === 'string' ? x : (x.ko || x.line || x.text || x.name || ''));
-  const ICON_OF = { chain_beat: 'chain', memory: 'memory', need: 'need', like: 'like', decor: 'decor' };
+  const ICON_OF = { chain_beat: 'chain', memory: 'memory', need: 'need', like: 'like', decor: 'decor', warm: 'warm' };
   function normSuggest(r) {
     const w = r.where || {};
     const raw = w.suggest || r.suggest || [];
@@ -58,11 +58,12 @@
     const t = coreOf(p);
     const need = (t.needs_today || [])[0] || t.need_today || null;
     const tw = t.twist || {};
-    const likes = (t.likes || []).map(txt).concat(tw.like ? [txt(tw.like)] : []).filter(Boolean);
+    const likes = (tw.like ? [txt(tw.like)] : []).concat((t.likes || []).map(txt)).filter(Boolean);   // 그 사람만의 좋아함을 맨 앞에(셋까지만 보여서 잘리던 것)
     const keep = t.keepsake || null;
     const arc = t.arc || null, nx = (arc && arc.next) || {};
     const mem = (t.memories_seen || t.memories || []).map(x => (typeof x === 'string' ? (MEMKO[x] || '') : txt(x))).filter(Boolean);
-    return { need: need && { ko: txt(need), met: (t.given_need_today || false) }, given: t.given_today | 0, likes, dislike: tw.dislike ? txt(tw.dislike) : '',
+    const nrow = ((K.ark && K.ark.needs_today) || []).find(x => x.resident_id === p.id);
+    return { need: need && { ko: txt(need), met: !!(t.given_need_today || (nrow && nrow.met)) }, given: t.given_today | 0, likes, dislike: tw.dislike ? txt(tw.dislike) : '',
              keep: keep && { ko: txt(keep) }, items: (t.items || []).length,
              arc: arc && { step: arc.step | 0, total: arc.steps || arc.total || 0, title: txt(arc.title), next: txt(nx.hint_ko || ''), open: !!nx.open, done: !!arc.done },
              memN: (t.memories_seen || []).length, mem,
@@ -78,15 +79,64 @@
     const k = size / 104;
     return '<i class="face" style="width:' + size + 'px;height:' + size + 'px;background-image:url(' + sheet + ');background-size:' + (768 * k).toFixed(1) + 'px auto;background-position:-' + (76 * k).toFixed(1) + 'px -' + (28 * k).toFixed(1) + 'px" aria-hidden="true"></i>';
   }
-  const WHY = { chain: '매듭', arc: '매듭', need: '오늘 필요', memory: '기억', like: '좋아함', decor: '꾸밈', other: '' };
+  const WHY = { chain: '매듭', arc: '매듭', need: '오늘 필요', memory: '기억', like: '좋아함', decor: '꾸밈', warm: '반가움', other: '' };   // S21: warm(0.9V) = 반가움
   const why = (r) => '<em class="why why-' + esc(r) + '"><i aria-hidden="true"></i>' + esc(WHY[r] || '') + '</em>';
 
   // ══════════════════════════════════════════════════════════════
   //  1. 「어디로」 — 카드가 뒤집힌 뒤. 한 번 누르면 끝. 둘째 찍기부터는 작게
   // ══════════════════════════════════════════════════════════════
   let pending = null;
+  function stripHTML(sug, compact, keepLabel) {
+    return '<p class="gq">' + esc(T('give.ask', {}, '어디로 둘까요?')) + '</p><div class="gopts">' +
+      sug.map((s, i) => '<button class="gopt' + (i === 0 ? ' top' : '') + '" data-i="' + i + '">' +
+        (s.p ? face(s.p, compact ? 30 : 40) : '<i class="roomico" aria-hidden="true"></i>') +
+        '<span class="gname"><b>' + esc(s.name) + '</b>' + why(s.reason) + '</span>' +
+        (!compact && s.hint ? '<small>' + esc(plain(s.hint)) + '</small>' : '') + '</button>').join('') +
+      '<button class="gopt keep" data-i="keep"><i class="shelfico" aria-hidden="true"></i><span class="gname"><b>' + esc(keepLabel) + '</b></span></button></div>';
+  }
+  // S22 ① 「이게 뭐예요?」 — where.subtype_pick.needed 면 「어디로」 앞에 하위 종류 단추(4~6). 다른 방주의 이름(suggest)은 미리 골라 둔다.
+  //  고르면 POST /api/scan/subtype → 응답 card 로 카드를 다시 그리고 where 로 「어디로」를 다시 그린다. 안 골라도 「어디로」는 쓸 수 있다
+  function subtypePick(r, sp) {
+    const old = $('#subPick'); if (old) old.remove();
+    const el = document.createElement('div'); el.id = 'subPick'; el.className = 'subpick';
+    const sg = sp.suggest && sp.suggest.id;
+    el.innerHTML = '<p class="gq">' + esc(plain(sp.ask_ko || '이게 뭐예요?')) + '</p>' +
+      (sg ? '<p class="subsug">' + esc(plain(sp.suggest_ko || ('다른 방주에서는 「' + sp.suggest.ko + '」(이)라고 부릅니다.'))) + '</p>' : '') +
+      '<div class="subopts">' + (sp.options || []).slice(0, 6).map(o => '<button data-sub="' + esc(o.id) + '"' + (o.id === sg ? ' class="on"' : '') + '>' + esc(o.ko) + '</button>').join('') + '</div>';
+    const strip = $('#giveStrip'), btn = $('#shelfBtn');
+    (strip || btn).parentNode.insertBefore(el, strip || btn);
+    el.addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-sub]'); if (!b || el.classList.contains('busy')) return;
+      el.classList.add('busy');
+      const sid = (r.where || {}).scan_id || (r.card || {}).id;
+      let res;
+      try { res = await call(API.subtype, { scan_id: sid, subtype: b.dataset.sub }); }
+      catch (err) { el.classList.remove('busy'); K.toast(err.message || '적지 못했습니다'); return; }
+      if (res.state) K.apply(res.state);
+      const nr = Object.assign({}, r, { card: Object.assign({}, r.card, res.card || {}), where: Object.assign({}, res.where || r.where, { subtype_pick: null }) });
+      lastPick = nr;
+      redrawFront(nr);
+      el.remove();
+      afterReveal(nr);
+      if (res.done_ko) K.toast(plain(res.done_ko));
+      D.log.push('subtype ' + b.dataset.sub + ' ' + (res.subtype_ko || ''));
+    });
+    D.log.push('subpick ' + (sp.options || []).length + (sg ? ' suggest' : ''));
+  }
+  let lastPick = null;
+  function redrawFront(r) {                                  // 카드 앞면만(뒤집기·연출 없이)
+    const c = r.card || {}, f = $('#rcFront'); if (!f || !K.ext.cards) return;
+    const pid = K.propForCategory(c.category);
+    f.innerHTML = K.ext.cards.face({ rarity: c.rarity, sea: !!(c.sea_variant || (r.variant && r.variant.shiny)), name: c.name, category: c.category,
+                                     subtype_ko: c.subtype_ko, flavor: c.flavor, prop_id: pid });
+    K.ext.cards.settle($('#rcard'));
+    const sh = f.querySelector('.rk-shine i');
+    if (sh && sh.animate && !reduced()) sh.animate([{ transform: 'translate3d(-120%,0,0) skewX(-18deg)' }, { transform: 'translate3d(130%,0,0) skewX(-18deg)' }], { duration: 520 });
+  }
   function afterReveal(r) {
     const old = $('#giveStrip'); if (old) old.remove();
+    const sp = r.where && r.where.subtype_pick;
+    if (sp && sp.needed && (sp.options || []).length) setTimeout(() => subtypePick(r, sp), 0);
     if (D.mock && !r.suggest) D.mock.suggest(r);
     const sug = normSuggest(r);
     pending = sug.length ? r : null;
@@ -94,12 +144,7 @@
     const compact = (r.where && typeof r.where.compact === 'boolean') ? r.where.compact : (r.scans_today || 1) > 1;   // API_S19 §1 where.compact
     const el = document.createElement('div');
     el.id = 'giveStrip'; el.className = 'give' + (compact ? ' compact' : '');
-    el.innerHTML = '<p class="gq">' + esc(T('give.ask', {}, '어디로 둘까요?')) + '</p><div class="gopts">' +
-      sug.map((s, i) => '<button class="gopt' + (i === 0 ? ' top' : '') + '" data-i="' + i + '">' +
-        (s.p ? face(s.p, compact ? 30 : 40) : '<i class="roomico" aria-hidden="true"></i>') +
-        '<span class="gname"><b>' + esc(s.name) + '</b>' + why(s.reason) + '</span>' +
-        (!compact && s.hint ? '<small>' + esc(plain(s.hint)) + '</small>' : '') + '</button>').join('') +
-      '<button class="gopt keep" data-i="keep"><i class="shelfico" aria-hidden="true"></i><span class="gname"><b>' + esc(T('give.keep', {}, '선반')) + '</b></span></button></div>';
+    el.innerHTML = stripHTML(sug, compact, T('give.keep', {}, '선반'));
     const btn = $('#shelfBtn'); btn.parentNode.insertBefore(el, btn);
     btn.hidden = true;                                       // 선반은 줄 안의 「선반」이 대신한다(닫아도 선반으로 간다)
     el.addEventListener('click', (e) => {
@@ -138,6 +183,7 @@
     const line = plain(txt((ef.memory && ef.memory.line) || rc.line || res.line || rc.announce || ''));
     const kind = ef.returned_to_shelf ? 'returned' : (res.tier === 'chain_beat' ? 'chain' : (res.tier || res.kind || s.reason || 'like'));
     if (rc.announce && rc.line) K.say(plain(rc.announce));    // 관리실 방송은 한 줄 뒤에
+    if (res.intent) D.log.push('intent');
     if (ef.keepsake && ef.keepsake.line) setTimeout(() => K.say(plain(ef.keepsake.line)), 600);
     const rid = (res.who && res.who.id) || (res.target && res.target.resident_id) || s.rid;
     const slot = (ef.decor && ef.decor.slot != null) ? ef.decor.slot : ((res.target && res.target.slot != null) ? res.target.slot : s.slot);
@@ -195,7 +241,7 @@
     const t = normTaste(p);
     if (!t.need && !t.likes.length && !t.keep && !t.arc && !t.memN) return '';
     return '<div class="taste' + (small ? ' sm' : '') + '">' +
-      (t.need ? '<p class="tneed' + (t.need.met ? ' met' : '') + '"><i aria-hidden="true"></i><b>오늘</b> ' + esc(plain(t.need.ko)) + (t.need.met ? ' · 받음' : '') + '</p>' : '') +
+      (t.need ? '<p class="tneed' + (t.need.met ? ' met' : '') + '"><i aria-hidden="true"></i><b>오늘</b> ' + esc(plain(t.need.ko)) + (t.need.met ? ' <em class="metmark">받음</em>' : '') + '</p>' : '') +
       (t.likes.length ? '<p class="tlike"><i aria-hidden="true"></i><b>좋아함</b> ' + esc(t.likes.slice(0, 3).join(' · ')) + '</p>' : '') +
       (t.keep ? '<p class="tkeep"><i aria-hidden="true"></i><b>머리맡</b> ' + esc(t.keep.ko) + '</p>' : '') +
       (t.arc ? '<p class="tarc"><b>' + esc(t.arc.title || '이야기') + '</b> ' + arcDots(t.arc) + (t.arc.done ? ' <small>다 이뤘습니다</small>' : (t.arc.next ? '<br><small>' + (t.arc.open ? '' : '며칠 뒤 · ') + esc(plain(t.arc.next)) + '</small>' : '')) + '</p>' : '') +
@@ -234,7 +280,9 @@
     let h = '';
     if (beat && beat.star) h += '<p class="dayline ov-beat">' + esc(plain(beat.star)) + '</p>';
     if (needs.length) h += '<h3>오늘 바라는 것</h3><div class="needrow">' + needs.slice(0, 6).map(n => { const p = personById(n.resident_id);
-      return '<span class="needchip">' + face(p, 26) + '<b>' + esc((p && p.name) || n.name || '') + '</b> ' + esc(plain(txt(n.need))) + '</span>'; }).join('') + '</div>';
+      const met = !!(n.met || (p && normTaste(p).need && normTaste(p).need.met));
+      return '<span class="needchip' + (met ? ' met' : '') + '">' + face(p, 26) + '<b>' + esc((p && p.name) || n.name || '') + '</b> ' + esc(plain(txt(n.need))) +
+        (met ? ' <em class="metmark">받음</em>' : '') + '</span>'; }).join('') + '</div>';
     return h;
   }
   const hasMorning = (st) => !!((st.needs_today && st.needs_today.length) || (st.beat_today && st.beat_today.new && st.beat_today.star));
@@ -326,7 +374,40 @@
   //  4. 꾸밈·방문자 — 캔버스에 작게(배경 그림은 그대로, 덧그림만)
   // ══════════════════════════════════════════════════════════════
   // 그림: 손님 도트(static/art/visitors/visitors_meta.json)·꼬리표 덧씌움(static/art/decor/decor_meta.json). 없으면 도형으로
-  const ART = { vis: {}, dec: {}, decCell: [564, 317], floorY: 262, win: {} };
+  const ART = { vis: {}, dec: {}, decCell: [564, 317], floorY: 262, win: {}, knots: {}, traces: null, bySub: null };
+  fetch('/static/art/props/props_meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
+    if (!j) return; ART.bySub = j.by_subtype || null;
+    Object.entries(j.knots || {}).forEach(([k, v]) => { ART.knots[k] = v; loadImg('/' + v.file.replace(/^\//, '')); });
+  }).catch(() => {});
+  // 머리맡·작업 자리의 받은 물건(core.residents[rid].keepsakes_recent, 최근 셋) — 그 사람 발치 옆에 작은 소품으로
+  function propIdOf(k) {
+    if (k.prop) return k.prop;
+    const b = ART.bySub || {}, c = b[k.category] || {};
+    return ((c[k.subtype] || {}).prop) || ((Object.values(c).find(x => x.match === 'good') || {}).prop) || ((b.unknown || {}).any || {}).prop || null;
+  }
+  const keepLog = {};
+  K.ext.drawKeepsakes = (p, px, floorY, box, mirror) => {
+    const cr = ((K.ark || {}).core || {}).residents || {}, ks = ((cr[p.id] || {}).keepsakes_recent || []).slice(0, 3);
+    if (!ks.length || K.z < 0.3) return;
+    const ctx = K.ctx, z = K.z, sc = Math.max(1, Math.round(1.5 * z)), side = mirror ? -1 : 1;
+    let x = px + side * (box.w / 2 + 4 * z);
+    ks.forEach((k, i) => {
+      const pi = K.propImg(propIdOf(k)); if (!pi || !pi.ok1) return;
+      const w = pi.x1.naturalWidth * sc / 1.0, h = pi.x1.naturalHeight * sc;
+      const ww = w * 0.55, hh = h * 0.55;                       // 사람보다 작게(소품 원화 34px → 발치 크기)
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(pi.x1, side > 0 ? x : x - ww, floorY - hh, ww, hh);
+      ctx.restore();
+      x += side * (ww + 2 * z);
+    });
+    keepLog[p.id] = ks.map(k => propIdOf(k));
+  };
+  D.keepsakes = () => Object.assign({}, keepLog);
+  K.ext.visMeta = (id) => ART.vis[id] || null;
+  // 매듭 소품(core.props): 그 매듭이 일어난 방에(식량창고 앞 의자·온실 창가 싹·공방 대야·거주실 이름표). 그림이 없으면 그리지 않는다
+  const KNOT_ROOM = { chair_1: 'pantry', sprout_on_sill: 'greenhouse', warm_basin: 'workshop', name_tag_worn: 'quarters' };
+  const KNOT_SPOT = { chair_1: [120, 282], sprout_on_sill: [430, 120], warm_basin: [300, 282], name_tag_worn: [455, 150] };
+  const knotLog = {};
   const imgOf = {};
   const loadImg = (src) => { let o = imgOf[src]; if (!o) { o = imgOf[src] = { img: new Image(), ok: false }; o.img.onload = () => { o.ok = o.img.naturalWidth > 0; }; o.img.src = src; } return o; };
   fetch('/static/art/visitors/visitors_meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
@@ -336,8 +417,17 @@
     if (!j) return; if (j.cell) ART.decCell = j.cell; if (j.clear_zones && j.clear_zones.floor_band_y) ART.floorY = j.clear_zones.floor_band_y;
     (j.tags || []).forEach(t => { ART.dec[t.id] = t; loadImg('/static/art/decor/' + t.file); });
     if (j.slots) { ART.slots = { list: j.slots, pos: j.slot_positions_in_cell || {} }; spotsCache = null; }
+    if (j.traces) { ART.traces = j.traces; (j.traces.items || []).forEach(x => loadImg('/static/art/decor/' + x.file)); }
     const wc = (j.window_spot || {}).cells || {}; Object.keys(wc).forEach(k => { if (wc[k] && wc[k].visitor_world) ART.win[k] = wc[k].visitor_world; });
   }).catch(() => {});
+  // 흔적 그림 고르기: visitors.json 손님 → 그 손님이 오는 자리(창=물고기 비늘, 방 안=발자국). 표에 없으면 물무늬
+  const traceLog = {};
+  D.traces = () => Object.assign({}, traceLog); D.knots = () => Object.assign({}, knotLog);
+  function traceFor(vid) {
+    const items = (ART.traces || {}).items || []; if (!items.length) return null;
+    const v = ART.vis[vid] || {}, kind = /octopus/.test(vid || '') ? 'octopus' : /gardener/.test(vid || '') ? 'gardener' : v.indoor ? 'guest' : (v.where === 'window' ? 'small_fish' : 'any');
+    return items.find(x => (x.visitors || []).indexOf(kind) >= 0) || items.find(x => (x.visitors || []).indexOf('any') >= 0) || items[0];
+  }
   function decorOf(room) {
     const d = ((K.ark && K.ark.room_decor) || {})[String(room.slot)] || room.decor || {};
     const items = (d.items || []).filter(x => !x.boxed);
@@ -349,7 +439,8 @@
     const r = roomAt(slot); if (!r) return '';
     const dc = decorOf(r); if (!dc.n) return '';
     const near = (dc.raw.tags || []).filter(t => !t.on && t.have).map(t => t.ko + ' ' + t.have + '/' + t.need);
-    return '<p class="rcline decorline">꾸밈 ' + dc.items.length + '/' + dc.n + (dc.tags.length ? ' · <b>' + esc(dc.tags.map(t => t.ko).join(' · ')) + '</b>' : '') + (near.length ? ' · ' + esc(near[0]) : '') + '</p>' +
+    const trc = ((K.ark || {}).decor_trace || []).find(d => d.slot === slot);
+    return (trc && trc.line ? '<p class="rcline traceline">' + esc(plain(trc.line)) + '</p>' : '') + '<p class="rcline decorline">꾸밈 ' + dc.items.length + '/' + dc.n + (dc.tags.length ? ' · <b>' + esc(dc.tags.map(t => t.ko).join(' · ')) + '</b>' : '') + (near.length ? ' · ' + esc(near[0]) : '') + '</p>' +
       (dc.items.length ? '<div class="decorlist">' + dc.items.map(it => '<button data-decrm="' + esc(it.id) + '" data-slot="' + slot + '" title="선반으로">' + esc(it.name || '') + ' ×</button>').join('') + '</div>' : '');
   };
   document.addEventListener('click', async (e) => {
@@ -372,6 +463,26 @@
   const DEFAULT_SPOTS = [{ file: '', x: 150, y: 60, w: 130, h: 56, ax: 65, ay: 10 }, { file: '', x: 240, y: 192, w: 84, h: 70, ax: 42, ay: 10 }, { file: '', x: 280, y: 160, w: 130, h: 56, ax: 65, ay: 10 }, { file: '', x: 100, y: 40, w: 40, h: 60, ax: 20, ay: 40, hang: true }];
   K.ext.drawRoomExtra = (room, slot, ix, iy, iw, ih, t, lit) => {
     const ctx = K.ctx, z = K.z, dc = decorOf(room);
+    const kx0 = iw / ART.decCell[0], ky0 = ih / ART.decCell[1];
+    // S22 흔적(decor_trace — 꼬리표까지 하나 남은 방): 바닥 가운데 기둥 자리에 반투명 그림
+    ((K.ark || {}).decor_trace || []).filter(d => d.slot === slot).slice(0, 1).forEach(d => {
+      const tr = traceFor(d.visitor_id); if (!tr) return;
+      const im = imgOf['/static/art/decor/' + tr.file]; if (!im || !im.ok) return;
+      const sp = ((ART.traces || {}).corner_spots_in_cell || [[300, 276]])[0];
+      ctx.save(); ctx.globalAlpha = lit === false ? 0.5 : 0.85; ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(im.img, ix + (sp[0] - tr.anchor[0]) * kx0, iy + (sp[1] - tr.anchor[1]) * ky0, tr.w * kx0, tr.h * ky0);
+      ctx.restore(); traceLog[slot] = tr.id;
+    });
+    // S22 매듭 소품
+    (((K.ark || {}).core || {}).props || []).forEach(pk => {
+      if (KNOT_ROOM[pk] !== room.id || knotLog[pk] != null && knotLog[pk] !== slot) return;
+      const kv = ART.knots[pk]; if (!kv) return;
+      const im = imgOf['/' + kv.file.replace(/^\//, '')]; if (!im || !im.ok) return;
+      const [ax, ay] = KNOT_SPOT[pk], sc = 3 * kx0;
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(im.img, ix + ax * kx0 - kv.w * sc / 2, iy + ay * ky0 - kv.h * sc, kv.w * sc, kv.h * sc);
+      ctx.restore(); knotLog[pk] = slot;
+    });
     // 꼬리표가 붙은 방은 덧씌움 한 장(칸 564×317 에 1:1, 플레이트 위·사람 아래). 방이 달라 보이는 것이 보상이다
     dc.tags.forEach(tg => {
       const d = ART.dec[tg.id]; if (!d) return;
@@ -492,6 +603,7 @@
     el.innerHTML = '<div class="leave-in">' +
       (changed.length ? '<p class="sub">' + esc((d && d.title) || T('leave.changed_title', {}, '이번에 바뀐 것')) + '</p>' + changed.map(c => '<p class="dayline">' + esc(plain(c)) + '</p>').join('') : '') +
       '<p class="sub">' + esc((nv && nv.title) || '다음에 켜시면') + '</p><p class="lnext">' + esc(plain(nxt)) + '</p>' +
+      (((d && d.missed_chain) || st.missed_chain) && txt((d && d.missed_chain) || st.missed_chain) ? '<p class="missed">' + esc(plain(txt((d && d.missed_chain) || st.missed_chain))) + '</p>' : '') +
       '<div class="rowbtns"><button class="ok">' + esc((d && d.close_label) || '잠깐 쉬기') + '</button></div></div>';
     document.body.appendChild(el);
     el.addEventListener('click', (e) => { if (e.target.closest('button.ok') || e.target === el) el.remove(); });
@@ -504,11 +616,13 @@
     b.addEventListener('click', () => { K.closeMenu(); leaveCard(true); });
     mb.appendChild(b);
   })();
-  // 잔치(API_S19 §8, 비트 10일째·넘치는 식량의 출구): ≡ → 「잔치」 → 마주 앉힐 두 분 고르기. 판정·대가는 서버(식량 30·물 20, 하루 한 번)
+  // 잔치(API_S19 §10, 켠 날 10부터·7일에 한 번·넘치는 식량의 출구): ≡ → 「잔치」 → 마주 앉힐 두 분 고르기.
+  //  대가·여는 날은 서버가 정한다. 화면은 숫자를 박지 않고, 한 번 연 뒤 응답의 paid 를 기억해 다음부터 보여 준다(못 열면 서버 문장 그대로)
+  const costText = (o) => Object.entries(o || {}).map(([k, v]) => (K.RES_KO[k] || k) + ' ' + v).join(' · ');
   function openFeast() {
     K.closeMenu();
-    const ps = people(), pick = [];
-    const body = K.panel('<h2>잔치</h2><p class="sub">식량 30 · 물 20 · 하루 한 번. 마주 앉으실 두 분을 골라 주세요.</p><div class="chips">' +
+    const ps = people(), pick = [], fc = store.get('feast_cost', null);
+    const body = K.panel('<h2>잔치</h2><p class="sub">' + (fc ? esc(K.josa(costText(fc), '이')) + ' 듭니다. ' : '식량과 물을 넉넉히 씁니다. ') + '마주 앉으실 두 분을 골라 주세요.</p><div class="chips">' +
       ps.map(p => '<button class="chip" data-fp="' + esc(p.id) + '">' + esc(p.name) + '</button>').join('') + '</div><div class="rowbtns"><button class="on" id="feastGo" disabled>상 차리기</button></div>');
     body.addEventListener('click', async (e) => {
       const c = e.target.closest('[data-fp]');
@@ -516,7 +630,11 @@
         body.querySelectorAll('[data-fp]').forEach(x => x.classList.toggle('on', pick.indexOf(x.dataset.fp) >= 0)); body.querySelector('#feastGo').disabled = pick.length !== 2; return; }
       if (e.target.id === 'feastGo') {
         e.target.disabled = true;
-        try { const r = await call('/api/feast', { pair: pick.slice() }); if (r.state) K.apply(r.state); K.closePanel(); K.say(plain(txt(r.ko || r.line || '상을 차렸습니다. 다들 한자리에 앉으셨습니다.'))); }
+        try { const r = await call('/api/feast', { pair: pick.slice() }); if (r.state) K.apply(r.state); K.closePanel();
+          const ln = plain(txt(r.ko || r.line || '상을 차렸습니다. 다들 한자리에 앉으셨습니다.'));
+          if (r.paid) { store.set('feast_cost', r.paid); K.toast(K.josa(costText(r.paid), '으로') + ' 상을 차렸습니다.'); setTimeout(() => K.say(ln), 2800); }
+          else K.say(ln);
+          D.log.push('feast ' + costText(r.paid)); }
         catch (err) { K.toast(err.message || '잔치를 열지 못했습니다'); e.target.disabled = false; }
       }
     });
@@ -536,7 +654,7 @@
   // 찍기 창이 열리면 매듭 카드를 접어 둔다(겹침 방지) — 닫히면 다시 편다
   new MutationObserver(() => {
     const open = !$('#scan').hidden;
-    document.querySelectorAll('.beatcard, .ppop').forEach(el => el.classList.toggle('folded', open));
+    document.querySelectorAll('.beatcard, .ppop').forEach(el => el.classList.toggle('folded', open));   // .octwhere 도 .beatcard
   }).observe($('#scan'), { attributes: true, attributeFilter: ['hidden'] });
   // 선반 물건 다시 주기(API_S19 §2 relic_id): 사람 + 꾸밈 칸이 남은 방 중에서 고른다
   function regift(it) {
@@ -555,9 +673,82 @@
       catch (err) { b.disabled = false; K.toast(err.message || '건네지 못했습니다'); }
     });
   }
+  // ── S21 ① 새것 실마리(/api/ark.novelty, 켠 날 4부터 세션에 한 번) — 그사이 패널에 이미 실렸으면 다시 안 하고, 아니면 방송 한 줄
+  const novSaid = store.get('nov_said', []);
+  function noveltyCheck(st) {
+    const n = st.novelty; if (!n || !n.line) return;
+    const key = (n.line_key || n.kind || '') + '|' + n.line;
+    if (novSaid.indexOf(key) >= 0) return;
+    novSaid.push(key); while (novSaid.length > 20) novSaid.shift(); store.set('nov_said', novSaid);
+    setTimeout(() => {                                       // 그사이 패널(첫 로드)이 줄을 다 모은 뒤에 견준다
+      if ((K.ext.ovShown || []).indexOf(plain(n.line)) >= 0) { D.log.push('novelty in-panel ' + n.kind); return; }
+      K.say(plain(n.line)); D.log.push('novelty say ' + n.kind);
+    }, 2500);
+  }
+  // ── S21 ② 5일째 문어 조각의 「어디로」(/api/ark.octopus_gift_where — 스캔과 같은 모양 + relic_id·name). 작은 카드(큰 창 아님)
+  let octOpen = null;
+  function octWhere(st) {
+    const w = st.octopus_gift_where;
+    if (!w || !w.relic_id || octOpen === w.relic_id || $('.octwhere')) return;
+    const dism = store.get('oct_where_dismissed', {});
+    if ((dism[w.relic_id] || 0) >= 2) return;                // 「선반에 그대로」를 두 번 고르면 더 묻지 않는다(물건은 선반에 남는다)
+    const sug = normSuggest({ where: w }); if (!sug.length) return;
+    octOpen = w.relic_id;
+    const show = () => {
+      const q = window.ARKBASE.queue ? window.ARKBASE.queue() : {};
+      if (!$('#scan').hidden || !$('#panel').hidden || $('.beatcard') || $('.leavecard') || q.busy || (q.wait || []).length) { setTimeout(show, 1500); return; }
+      const nm = w.name || '색 조각';
+      const el = document.createElement('div'); el.className = 'beatcard octwhere';
+      el.innerHTML = '<div class="phead"><i class="octico" aria-hidden="true"></i><b>' + esc(T('octopus_gift.where_title', {}, '문어가 물어 온 것')) + '</b></div>' +
+        '<p class="bline">「' + esc(plain(nm)) + '」</p>' + '<div class="give">' + stripHTML(sug, false, T('octopus_gift.where_keep', {}, '선반에 그대로')) + '</div>';
+      $('#base').appendChild(el);
+      const close = () => { el.classList.add('off'); setTimeout(() => el.remove(), 400); };
+      el.addEventListener('click', async (e) => {
+        const b = e.target.closest('button.gopt'); if (!b || el.classList.contains('busy')) return;
+        if (b.dataset.i === 'keep') { dism[w.relic_id] = (dism[w.relic_id] || 0) + 1; store.set('oct_where_dismissed', dism); close(); D.log.push('octwhere keep'); return; }
+        const s = sug[+b.dataset.i]; el.classList.add('busy');
+        let res;
+        try { res = await call(API.give, { relic_id: w.relic_id, target: s.target }); }
+        catch (err) { el.classList.remove('busy'); K.toast(err.message || '건네지 못했습니다'); return; }
+        if (res.state) K.apply(res.state);
+        close(); react(res, s);
+        D.log.push('octwhere give ' + (s.rid || 'room' + s.slot) + ' ' + (res.tier || ''));
+      });
+      D.log.push('octwhere ' + sug.length);
+    };
+    setTimeout(show, 1200);
+  }
+  // ── S21 ⑧ 꼬리표가 붙은 방에 배치 안 된 주민이 모인다(visits kind:"residents", CORE_LOOP_A §3 「그 방에 모인다(그림)」).
+  //  지금 홀·포드에 있는 사람(일손 아님·바깥 아님)만, 방마다 셋까지. 그림은 base.js(drawGathered)가 그 방 바닥에 그린다
+  let gather = { at: {}, by: {} };
+  function computeGather(st) {
+    const at = {}, by = {}, cbx = st.combat || K.cb || {}, stations = cbx.stations || {}, outside = cbx.outside || [];
+    const rows = (st.visits || []).filter(v => v.kind === 'residents' && v.slot != null &&
+      (st.rooms || []).some(r => r.slot === v.slot && !r.flooded));
+    if (rows.length) {
+      let k = 0;
+      (st.residents_list || []).filter(p => stations[p.id] === undefined && outside.indexOf(p.id) < 0).forEach(p => {
+        const rs = rows.filter(v => (v.resident_ids || []).indexOf(p.id) >= 0 && (by[v.slot] || []).length < 3);
+        if (!rs.length) return;
+        const v = rs[k++ % rs.length];
+        at[p.id] = v.slot; (by[v.slot] = by[v.slot] || []).push(p.id);
+      });
+    }
+    gather = { at, by };
+  }
+  K.ext.gatheredAt = (id) => (gather.at[id] != null ? gather.at[id] : null);
+  K.ext.gatheredIn = (slot) => gather.by[slot] || null;
+  D.gather = () => JSON.parse(JSON.stringify(gather));
+
   K.ext.core = { afterReveal, morningExtra, hasMorning, queueBeat, leaveCard, regift };
+  // /api/ark 에만 오는 키(방문·떠날 때 약속·오늘의 비트·세션)는 다른 응답의 state(public_state)에 없다 — 지난 값을 이어 쓴다
+  const lastFull = {};
   K.onApply((st) => {
     if (D.mock) D.mock.decorate(st);                        // ★ 시험대: 서버 모양을 먼저 입힌다
+    ['visits', 'next_visit', 'beat_today', 'session', 'visitors_book', 'decor_trace', 'missed_chain'].forEach(k => { if (st[k] === undefined) { if (lastFull[k] !== undefined) st[k] = lastFull[k]; } else lastFull[k] = st[k]; });
+    computeGather(st);
+    noveltyCheck(st);
+    octWhere(st);
     renderNext(st);
     (st.arc_events || []).filter(Boolean).forEach(e => queueBeat(Object.assign({ id: (e.arc_id || '') + ':' + (e.step || '') }, e)));
   });

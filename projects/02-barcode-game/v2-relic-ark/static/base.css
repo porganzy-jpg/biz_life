@@ -892,3 +892,28 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .gmore{display:block; margin:4px auto 0; min-height:30px; padding:0 12px; font-size:11.5px; cursor:pointer; color:var(--dim); background:none; border:1px solid #2a2419; border-radius:14px}
 .pk-acts{display:flex; gap:8px}
 .gopts.regift{grid-template-columns:repeat(3,minmax(0,1fr))}
+/* ══ S21 연결 ══ */
+.why-warm i{width:7px; height:7px; border-radius:50%; background:#b9ae94; opacity:.75}    /* 반가움 — 조용한 점 하나 */
+.metmark{font-style:normal; font-size:10.5px; font-weight:700; padding:0 5px; border-radius:3px; color:#1a150e; background:#8fbf7a}
+.needchip.met{opacity:.72}
+.reqhint{margin:6px 0 4px; padding:6px 9px; font-size:12.5px; line-height:1.6; color:#cfe8ec; background:rgba(12,40,48,.55); border-left:3px solid #6fc9c4; border-radius:3px}
+.dayline.ov-request_hint{border-left-color:#6fc9c4; color:#cfe8ec}
+.dayline.ov-novelty{border-left-color:#b9ae94; font-style:italic}
+.octwhere .give{margin-top:4px}
+.octwhere .gopts{grid-template-columns:repeat(3,minmax(0,1fr)) 64px}
+.octico{display:inline-block; width:22px; height:18px; border-radius:50% 50% 40% 40%; background:#d08a72; box-shadow:0 0 0 2px #14110c}
+@media (max-height:500px){ .octwhere{max-height:calc(100% - 70px); overflow:auto} .octwhere .gopt{min-height:46px} }
+.beatcard.octwhere{width:min(430px, calc(100% - 24px))}
+/* ══ S22 ══ */
+.subpick{margin-top:10px; text-align:center}
+.subsug{margin:0 0 6px; font-size:11.5px; color:#8fd8d2}
+.subopts{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
+.subopts button{min-height:40px; padding:0 13px; font-size:12.5px; cursor:pointer; color:var(--ink); background:#151a17; border:1px solid #2a2419; border-radius:18px}
+.subopts button.on{border-color:#6fc9c4; box-shadow:0 0 0 1px rgba(111,201,196,.5)}
+.subpick.busy button{opacity:.5; pointer-events:none}
+.rgain .histline{display:block; margin-top:4px; font-size:11.5px; color:#b9ae94}
+.rcline.traceline{color:#8fd8d2; font-style:italic}
+.leave-in .missed{margin:2px 0 8px; padding-left:9px; border-left:2px solid #e8c98a; font-size:12.5px; line-height:1.6; color:#e8c98a}
+.vbook .vbimg{display:block; max-width:100%; margin-bottom:2px; background-repeat:no-repeat; background-position:0 0; image-rendering:pixelated}
+.vbook .cx{height:auto; min-height:74px}
+.vbook .cx.off .vbimg{filter:brightness(0) opacity(.55)}

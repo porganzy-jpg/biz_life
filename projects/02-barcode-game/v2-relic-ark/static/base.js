@@ -262,6 +262,51 @@
     s.tint[key] = c1;
     return c1;
   }
+  // S22 각인 겉모습(static/art/chars/front/p2/meta.json imprint_compose, docs/reports/char_S22.md §3):
+  //  ① 그 사람의 각인만 한 장에 모은다 — imprints/role/<role>_<body>/<id>.png 가 있으면 그것, 없으면 몸 모양 폴더(어른 A imprints/, 아이 kid/)
+  //  ② imprints/rolemask/<role>_<body>.png 로 그 한 장만 지운다(destination-out) ③ 본체 위에 얹는다(오프셋 0, 반전은 본체와 같이 — 같은 시트라 저절로)
+  //  화면은 체형 A 시트만 쓰므로 body = a. 그림이 없는 각인(개인 각인 등)은 건너뛴다
+  const IMP_DIR = '/static/art/chars/front/p2/imprints/';
+  const impImgs = {};
+  function impImg(src) {
+    let o = impImgs[src];
+    if (!o) { o = impImgs[src] = { img: new Image(), st: 0 }; o.img.onload = () => { o.st = o.img.naturalWidth ? 1 : -1; }; o.img.onerror = () => { o.st = -1; }; o.img.src = src; }
+    return o;
+  }
+  // 그림이 있는 각인(imprints/ 폴더의 위기 각인 12종) · 역할 판 목록(meta.json imprint_fit_result.override_files) — 없는 파일은 부르지 않는다(404 0)
+  const IMP_HAVE = new Set(['crack_seen', 'debt_paid', 'depth_mark', 'empty_seat', 'empty_stomach', 'footprint', 'knock_heard', 'saved_breath',
+                            'spore_mark', 'sun_memory', 'warden', 'water_memory']);
+  let IMP_OVR = new Set();
+  function impLayerFor(role, id) {                    // 역할 판 먼저(없으면 몸 모양 폴더)
+    const shape = role === 'kid' ? 'kid/' : '';
+    if (IMP_OVR.has('imprints/role/' + role + '_a/' + id + '.png')) return impImg(IMP_DIR + 'role/' + role + '_a/' + id + '.png');
+    return impImg(IMP_DIR + shape + id + '.png');
+  }
+  const impSheets = {}, impLog = {};
+  function imprintedSheet(base, p, tint) {
+    const ids = (p.imprints || []).concat(p.personal_imprints || []).filter(x => typeof x === 'string' && IMP_HAVE.has(x)).slice(0, 3);
+    if (!ids.length || !base || !base.width && !base.naturalWidth) return base;
+    const key = p.role + '|' + ids.join(',') + '|' + tint;
+    if (impSheets[key]) return impSheets[key];
+    const mask = impImg(IMP_DIR + 'rolemask/' + p.role + '_a.png');
+    const layers = ids.map(id => impLayerFor(p.role, id));
+    if (mask.st === 0 || layers.some(l => !l || l.st === 0)) return base;          // 다 올 때까지는 본체만
+    const ok = layers.filter(l => l.st === 1);
+    if (!ok.length) { impSheets[key] = base; return base; }
+    const w = base.width || base.naturalWidth, h = base.height || base.naturalHeight;
+    const ci = document.createElement('canvas'); ci.width = w; ci.height = h;
+    const gi = ci.getContext('2d'); gi.imageSmoothingEnabled = false;
+    ok.forEach(l => gi.drawImage(l.img, 0, 0, w, h));
+    if (mask.st === 1) { gi.globalCompositeOperation = 'destination-out'; gi.drawImage(mask.img, 0, 0, w, h); }
+    gi.globalCompositeOperation = 'multiply'; gi.fillStyle = tint; gi.fillRect(0, 0, w, h);   // 각인도 그 방 불빛을 받는다
+    gi.globalCompositeOperation = 'destination-in'; ok.forEach(l => gi.drawImage(l.img, 0, 0, w, h));
+    if (mask.st === 1) { gi.globalCompositeOperation = 'destination-out'; gi.drawImage(mask.img, 0, 0, w, h); }
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(base, 0, 0); g.drawImage(ci, 0, 0);
+    impSheets[key] = c; impLog[p.id] = ids.filter((id, i) => layers[i].st === 1);
+    return c;
+  }
   // 등불색을 30%만 당긴 값(규약 rules_2_5d.2). 꺼진 방은 차가운 쪽으로 가라앉는다.
   const TINT_LIT = '#fae6c8';      // 흰색과 등불(#f0b055)을 7:3
   const TINT_DARK = '#8fa3ad';     // 불 꺼진 방 — 물빛이 남는다
@@ -913,7 +958,9 @@
     drawRoomAnim(slot, ix, iy, iw, ih, t);
     drawInstalled(slot, ix, iy, iw, ih);
     if (K.ext.drawRoomExtra) { try { K.ext.drawRoomExtra(room, slot, ix, iy, iw, ih, t, lit); } catch (e) { /* 꾸밈 층이 실패해도 방은 그린다 */ } }   // S19 꾸밈·방문자
-    drawPeople(people, r, t, slot);
+    const gathered = (K.ext.gatheredIn && K.ext.gatheredIn(slot)) || [];
+    drawPeople(people, r, t, slot, gathered.length);
+    if (gathered.length) drawGathered(slot, r, t, people || [], gathered);
 
     if (cam.z > 0.16) {
       const nm = (catalog[room.id] && catalog[room.id].name) || room.id;
@@ -968,6 +1015,7 @@
   let CLIPS = { rows: { idle: 0 }, frames: { idle: 2 }, anim_seconds: { idle: 1.24 }, room_work: {}, stride: {} };
   fetch('/static/art/chars/front/p2/meta.json').then(r => (r.ok ? r.json() : null)).then(j => {
     if (!j || !j.rows) return;
+    IMP_OVR = new Set(((j.imprint_fit_result || {}).override_files) || []);
     const stride = {};                                  // S12-C: 옆걸음 보폭(원본 px / 한 바퀴) — 발이 미끄러지지 않게
     Object.entries(j.s12_rows || {}).forEach(([k, v]) => { if (v && v.stride_src_px_per_loop) stride[k] = v.stride_src_px_per_loop; });
     CLIPS = { rows: j.rows, frames: j.frames || {}, anim_seconds: j.anim_seconds || {}, room_work: j.room_work || {}, stride };
@@ -1023,7 +1071,8 @@
       // 반전: 옆걸음은 왼쪽으로 갈 때, 작업 행은 설비가 오른쪽에 와야 할 때. 축 = 셀 가운데, 발 기준선 그대로
       const flip = (clip.side && opts.face < 0) || (!clip.side && opts.mirror && /^work_|^carry_34$/.test(clip.name));
       try {
-        const sheet = sp.pixel ? tintedSheet(s, p.role, lit === false ? TINT_DARK : TINT_LIT) : s.img;
+        const tint = lit === false ? TINT_DARK : TINT_LIT;
+        const sheet = sp.pixel ? imprintedSheet(tintedSheet(s, p.role, tint), p, tint) : s.img;
         const sm = ctx.imageSmoothingEnabled;
         if (sp.pixel) ctx.imageSmoothingEnabled = false;
         // 2.5D 조건 ③ — 발밑 접지 그림자. 없으면 떠 있는 것처럼 보인다
@@ -1077,15 +1126,16 @@
     return (L.dx * Math.min(step * 0.3, 48)) / PX_PER_M;
   }
 
-  function drawPeople(people, r, t, slot) {
+  function drawPeople(people, r, t, slot, extra) {
     if (!people || !people.length) return;
     const floorY = sy(r.floorY);                             // 플레이트 발선(floor_in_cell 282)
-    const step = (r.stand[1] - r.stand[0]) * cam.z / (people.length + 1);
+    const n = people.length + (extra || 0);                  // S21: 모인 주민 자리까지 세어 고르게 선다
+    const step = (r.stand[1] - r.stand[0]) * cam.z / (n + 1);
     people.forEach((p, i) => {
       if (dragging && dragging.id === p.id) return;          // 들고 있는 사람은 손끝에 그린다
       if (movingNow[p.id]) return;                           // 아직 오는 중 — 이동 층에서 그린다
       const life = lifeAt(p, slot, t, step);
-      const px = sx(standX(r, i, people.length)) + life.off;
+      const px = sx(standX(r, i, n)) + life.off;
       // 작업 행(7~16)은 설비가 왼쪽인 것이 원본. 방의 오른쪽 절반에 선 사람은 셀째 반전 — 설비가 가까운 벽 쪽에 온다
       const mirror = people.length > 1 && (i + 0.5) / people.length > 0.5;
       const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot), life.pose, life.room, { face: life.face, mirror });
@@ -1095,9 +1145,34 @@
       }
       hits.push({ kind: 'person', id: p.id, name: p.name, role: p.role, from: slot,
                   x: px - box.w / 2 - 6, y: floorY - box.h - 8, w: box.w + 12, h: box.h + 14 });
+      if (K.ext.drawKeepsakes) K.ext.drawKeepsakes(p, px, floorY, box, mirror);      // S22: 받은 물건 셋까지 그 사람 곁에
     });
   }
 
+  // S21: 꼬리표가 붙은 방에 배치 안 된 주민이 모인다(서버 visits kind:"residents" → base_core gatheredIn). 일손으로 세지 않고
+  //      쉬는 자세(앉기·서서 둘러보기)로 일하는 사람 옆에 선다. 누르면 홀 사람처럼 집어 든다(from: null)
+  const gatherAt = (id) => (K.ext.gatheredAt ? K.ext.gatheredAt(id) : null);
+  function drawGathered(slot, r, t, workers, ids) {
+    const byId = {}; (ark.residents_list || []).forEach(p => { byId[p.id] = p; });
+    const floorY = sy(r.floorY), n = workers.length + ids.length;
+    ids.forEach((id, j) => {
+      const p = byId[id];
+      if (!p || movingNow[id] || (dragging && dragging.id === id)) return;
+      const px = sx(standX(r, workers.length + j, n));
+      const glance = glanceAt(id, t);
+      const pose = glance ? 'glance' : (j % 2 ? 'sit' : 'idle');
+      const box = drawPerson(p, px, floorY, t, 20 + j, 1, lightOf(slot), pose, null, { frame: glance ? glanceFrame(id, t) : null, mirror: j % 2 === 1 });
+      if (carry && carry.id === id) {
+        ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
+        ctx.strokeRect(px - box.w / 2 - 3, floorY - box.h - 6, box.w + 6, box.h + 10);
+      }
+      hits.push({ kind: 'person', id, name: p.name, role: p.role, from: null, gathered: slot,
+                  x: px - box.w / 2 - 6, y: floorY - box.h - 8, w: box.w + 12, h: box.h + 14 });
+      gatherLog[id] = slot;
+      if (K.ext.drawKeepsakes) K.ext.drawKeepsakes(p, px, floorY, box, j % 2 === 1);
+    });
+  }
+  const gatherLog = {};
   const KO_N = (n) => (['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'][n] || String(n));
   const labelFont = (base) => Math.max(10.5, Math.min(15, base * cam.z * 2.2));
   function drawHall(t) {
@@ -1105,7 +1180,7 @@
     const h = hallRect();
     const x = sx(h.x), y = sy(h.y), w = h.w * cam.z, hh = h.h * cam.z;
     const list = (ark.residents_list || []).filter(r =>
-      (!cb || cb.stations[r.id] === undefined) && !(cb && cb.outside.indexOf(r.id) >= 0) && podSeat[r.id] == null);
+      (!cb || cb.stations[r.id] === undefined) && !(cb && cb.outside.indexOf(r.id) >= 0) && podSeat[r.id] == null && gatherAt(r.id) == null);
     const picked = carry || dragging;
     // 돔 바닥의 따뜻한 빛(홀 = 공용의 불 하나)
     const lg = ctx.createRadialGradient(x + w / 2, y + hh * 0.4, 0, x + w / 2, y + hh * 0.4, w * 0.6);
@@ -1136,6 +1211,7 @@
       }
       hits.push({ kind: 'person', id: p.id, name: p.name, role: p.role, from: null,
                   x: px - box.w / 2 - 6, y: floorY - box.h - 8, w: box.w + 12, h: box.h + 14 });
+      if (K.ext.drawKeepsakes) K.ext.drawKeepsakes(p, px, floorY, box, false);
     });
     hits.push({ kind: 'hall', x, y, w, h: hh });
   }
@@ -1164,6 +1240,7 @@
     ids.forEach((id, i) => {
       const p = byId[id], sp = podSpot(podSeat[id]);
       if (!p || !sp || movingNow[id] || (dragging && dragging.id === id)) return;
+      if (gatherAt(id) != null) return;                 // S21: 꼬리표 방에 모여 있다 — 그 방에서 그린다
       let pose = POD_POSE[sp.pose] || 'idle', room = null, opt = { mirror: sp.face > 0 };
       // S15 문간 활동: 수선(손)=장비 손질 · 망보기(눈)=창 · 공기 펌프(숨)=일 · 마중(담)=문 앞. 밖의 친구를 기다리는 사람은 창
       const act = K.ext.podAct && K.ext.podAct(id);
@@ -1186,6 +1263,7 @@
       }
       hits.push({ kind: 'person', id, name: p.name, role: p.role, from: null,
                   x: px - box.w / 2 - 6, y: fy - box.h - 8, w: box.w + 12, h: box.h + 14 });
+      if (K.ext.drawKeepsakes) K.ext.drawKeepsakes(p, px, fy, box, !!opt.mirror);   // S22: 문간 자리 곁에도
     });
     // S15 손님: 비어 있는 포드 자리(없으면 해치 옆)에 앉아 기다린다. 누르면 손님 카드
     const guests = (K.ext.guests && K.ext.guests()) || [];
@@ -1731,7 +1809,7 @@
       body.innerHTML =
         '<h2>물이 찬 칸</h2>' +
         '<p class="sub">' + fl + '층 · 깊이 ' + depth + 'm · ' + esc(zoneAt(f)) + '</p>' +
-        '<p class="desc">물을 빼면 이 칸을 되찾습니다. 아래로 내려갈수록 좋은 유물이 나오지만, 그만큼 위험합니다.</p>' +
+        '<p class="desc">관리실에서 알려 드립니다. 물을 빼시면 이 칸을 다시 쓸 수 있습니다. 아래층으로 내려갈수록 창밖 손님이 조금씩 세지니, 그만큼 불과 자리를 한 번 더 챙겨 주세요.</p>' +
         '<h3>물 빼고 쓸 방 고르기</h3><div class="blist">' +
         ids.map(id => {
           const o = bo && bo[id];
@@ -2728,6 +2806,12 @@
     rg.classList.add('trim');
     more.addEventListener('click', (e) => { e.stopPropagation(); rg.classList.remove('trim'); spans.forEach(el => { el.innerHTML = el.dataset.full; el.classList.remove('folded'); }); more.remove(); });
   }
+  // S22: 이 바코드를 전에 누구에게 줬나(card.history / item.history) — 「3일째, 여울 님께」 한 줄(최근 둘)
+  function historyLine(hs) {
+    if (!hs || !hs.length) return '';
+    const t = hs.slice(-2).reverse().map(x => x.day + '일째, ' + (x.to_name ? (x.resident_id ? x.to_name + ' 님께' : x.to_name + '에') : '선반에')).join(' · ');
+    return '<span class="histline">전에: ' + esc(t) + '</span>';
+  }
   function showReveal(r) {
     lastScan = r;
     const c = r.card || {};
@@ -2741,7 +2825,7 @@
     const CR = K.ext.cards;
     if (CR) {                                           // S16: 틀·그림 창·갈래 무늬·희귀도 이름이 있는 카드 한 장
       front.className = 'rc-face rc-front rkhost';
-      front.innerHTML = CR.face({ rarity: c.rarity, sea, name: c.name, category: c.category, flavor: c.flavor,
+      front.innerHTML = CR.face({ rarity: c.rarity, sea, name: c.name, category: c.category, subtype_ko: c.subtype_ko, flavor: c.flavor,
                                    prop_id: pid && PROP_ID_OK.test(pid) ? pid : null });
     } else {
       front.className = 'rc-face rc-front ' + (RAR_KO[c.rarity] ? c.rarity : 'common') + (sea ? ' sea' : '');
@@ -2774,7 +2858,7 @@
     rg.innerHTML = (r.first_time ? '<span class="first">도감에 처음 적힌 유물</span><br>' : '') +
       (g || zeroLine(r)) +
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
-      shelfNote + extra +
+      shelfNote + extra + historyLine(c.history) +
       ((r.voice && r.voice.text) ? '<span class="voice">' + esc(r.voice.who_ko || '') + (r.voice.who_ko ? ': ' : '') + esc(r.voice.text) + '</span>' : '');
     if ((r.where && r.where.compact) || (r.scans_today || 1) > 1 || (ark && ark.day >= 2)) trimGain(rg, r);   // scan_card: 2일째부터·둘째 찍기부터 두 줄
     const btn = $('#shelfBtn');
@@ -3533,7 +3617,10 @@
     hatchCycle: (ms) => hatchCycle(ms),                // 탐사대·도착 체계가 부를 함수(해치 ~2 s 열림 + 물방울)
     hatchOpen: () => performance.now() < hatchOpenUntil,
     pod: () => Object.keys(podSeat).map(id => ({ id, seat: podSeat[id], pose: (podSpot(podSeat[id]) || {}).pose })),   // ★ 검수용
-    podPoses: () => Object.assign({}, podPoseLog),     // ★ 검수용           // ★ S12-B3 검수용: 반전해 그린 클립 수
+    podPoses: () => Object.assign({}, podPoseLog),     // ★ 검수용
+    gathered: () => Object.assign({}, gatherLog),      // ★ S21 검수용: 꼬리표 방에 그려진 모인 주민 id → slot
+    imprints: () => Object.assign({}, impLog),         // ★ S22 검수용: 그려진 각인 겹(사람 id → 각인 id)
+    showReveal: (r) => showReveal(r),                  // ★ S22: 하위 종류를 고른 뒤 카드 다시 그리기           // ★ S12-B3 검수용: 반전해 그린 클립 수
     moveLog: () => moveLog.slice(),
     carryLog: () => carryLog.slice(), queue: () => ({ busy: modalBusy && modalBusy.tag, wait: modalQ.map(x => x.tag), held: heldSay.slice(), log: qLog.slice() }),   // ★ S18 검수용
     josa: (w, p) => josa(w, p),

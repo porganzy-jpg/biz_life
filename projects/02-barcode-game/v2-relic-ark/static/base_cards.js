@@ -88,7 +88,7 @@
     const r = rarOf(o.rarity), sp = (K.propSpec && o.prop_id) ? K.propSpec(o.prop_id) : null;
     const a = L.art, sh = Math.max(0, (a.y + a.h - (a.shelf_y || a.y + a.h)) / a.h * 100);
     const foil = ['rare', 'epic', 'legendary'].indexOf(r) >= 0;
-    const rarLine = (CAT_KO[o.category] || o.category || '') + ' · ' + (RAR_KO[r] || r) + (o.sea ? ' · 바다 무늬' : '');
+    const rarLine = (CAT_KO[o.category] || o.category || '') + (o.subtype_ko ? ' · ' + o.subtype_ko : '') + ' · ' + (RAR_KO[r] || r) + (o.sea ? ' · 바다 무늬' : '');
     const pips = ORDER.indexOf(r) + 1;
     return '<div class="rk ' + r + (o.sea ? ' sea' : '') + '" role="img" aria-label="' + esc((o.name || '') + ', ' + (RAR_KO[r] || r) + (o.sea ? ', 바다 무늬' : '')) + '">' +
       '<div class="rk-win" style="' + pct(a) + '">' +
