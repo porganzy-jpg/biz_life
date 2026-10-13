@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 import server as S  # noqa: E402
+S.CALENDAR_ENFORCE = False   # S25: 이 스위트는 해금 달력 전 기능 자체를 시험한다(달력은 test_s25)
 from fastapi.testclient import TestClient  # noqa: E402
 
 S.DB = Path(tempfile.mkdtemp()) / "t20.db"

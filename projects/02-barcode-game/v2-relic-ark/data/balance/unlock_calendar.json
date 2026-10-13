@@ -1,0 +1,70 @@
+{
+  "_doc": "S25 첫 주 해금 달력 — 날짜와 기능만(문장 없음). 사양 docs/FIRST_WEEK_CALENDAR.md. 날 = 켠 날 차례(비트와 같은 셈). 떠날 때 예고 문장의 정본은 beats.json days[n].teaser(PM 결정 2026-10-13), 처음 열릴 때 방송은 ui_moments.unlock.<기능>.",
+  "_version": "2026-10-13",
+  "days": {
+    "1": {
+      "unlocks": [
+        "scan",
+        "give_where_labels",
+        "subtype_pick_when_wanted"
+      ],
+      "beat": "first_scan"
+    },
+    "2": {
+      "unlocks": [
+        "decor_place",
+        "octopus_name"
+      ],
+      "beat": "octopus_arrives"
+    },
+    "3": {
+      "unlocks": [
+        "mood_hints",
+        "notebook",
+        "guest_knock",
+        "first_chain_knot"
+      ],
+      "beat": "first_knock_first_request"
+    },
+    "4": {
+      "unlocks": [
+        "raids"
+      ],
+      "beat": "first_threat_longneck"
+    },
+    "5": {
+      "unlocks": [
+        "expedition"
+      ],
+      "beat": "octopus_story_gift"
+    },
+    "6": {
+      "unlocks": [
+        "evening_table"
+      ],
+      "beat": "rescue_second_resident_goal"
+    },
+    "7": {
+      "unlocks": [
+        "memory_wall"
+      ],
+      "beat": "weekly_log_shade"
+    },
+    "8": {
+      "unlocks": [
+        "tide"
+      ],
+      "beat": "first_tide_first_spot"
+    }
+  },
+  "conditional": {
+    "heirloom": {
+      "when": "first_card_rarity_at_least",
+      "value": "rare"
+    }
+  },
+  "overrides": {
+    "raid_first_day": 4,
+    "expedition_first_day": 5
+  }
+}

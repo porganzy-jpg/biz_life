@@ -400,3 +400,40 @@
   - 담배·술·붕대 밖 의약은 「어디로」에서 `like`/`memory` 로 권하지 않는다. `warm` 으로 보이고 `unsafe_like: true` 가 붙는다. 우연히 주면 반응은 그대로다.
   - 이런 좋아함 칸은 수첩 `slots` 에 올리지 않는다(칸 번호는 그대로).
   - 기색은 안전 목록 밖 칸을 가리키는 `signs.likes/needs[i]` 줄을 쓰지 않는다.
+
+## 15. S25 첫 주 해금 달력 · 가보 칸 (2026-10-13)
+
+### 해금 달력 (`data/balance/unlock_calendar.json` — 날짜·기능만)
+- 날은 **켠 날 차례**로 센다(비트와 같은 셈). 사흘을 쉬어도 다음 켠 날이 다음 칸이다.
+- 열리는 순서: 1일째 찍기·「어디로」(라벨) → 2일째 꾸밈·문어 이름 → 3일째 기색·수첩·두드림·첫 매듭 → 4일째 습격 → 5일째 원정 → 6일째 한 상 → 7일째 기억 벽(자리만) → 8일째 물때(자리만). 가보는 첫 귀함 이상 카드를 찍으면 열린다.
+- **`/api/ark.unlocked: {play_day, features[], next: {play_day, unlocks[], teaser}, new: [{feature, line}]}`**
+  - `new` 는 처음 열린 기능의 방송이다(`ui_moments.unlock.<기능>`). 한 번만 온다.
+  - 화면은 `features` 에 없는 기능을 그리지 않는다.
+- **열리기 전 거절**
+  - 꾸밈(`give target.slot`)·원정(options/preview/start)·한 상·문어 이름은 403(「아직 열리지 않았습니다」)이다.
+  - 「어디로」에 방 제안이 나오지 않는다.
+  - 습격·두드림·매듭은 생기지 않는다(개발 훅 `debug_raid` 는 예외).
+- **떠날 때**: `GET /api/leaving.unlock_teaser: {play_day, unlocks, line, required}`. 문장 정본은 `beats.json days[오늘].teaser`(+`teaser_required`)다.
+- 5일째 `beat_today.first_session_scene` 은 원정 첫 장면(J3 문턱) 줄들이다.
+- **하위 종류 고르기**: `subtype_pick` 에 `later_ok: true` 가 붙는다. 그 갈래를 바라는 사람(필요·좋아함)이 없으면 `needed: false` 다. 이때 화면은 묻지 않고 「나중에 이름 붙이기」만 보인다.
+
+### 가보 칸 (`core_a.heirloom`, 사양 `docs/HEIRLOOM.md`)
+- **「어디로」 `where.heirloom: [{kind: "heirloom", target: {resident_id, heirloom: true}, name, label, tier, value: 1.2, swap, current}]`**
+  - 귀함 이상(닦기 3단계면 한 등급 위)일 때 붙는다.
+  - 빈 칸이거나 지금 가보보다 낮은 사람만 나온다.
+  - 바코드가 이미 누군가의 가보이거나 안전 목록 밖 물건이면 빈 목록이다.
+- **`POST /api/give {target: {resident_id, heirloom: true}}`**
+  - 가보가 이미 있으면 `{ok: false, ask_swap: {resident_id, current, new, line, default: "keep"}}` 를 돌려주고 아무것도 바꾸지 않는다.
+  - 바꾸려면 `target.swap: true` 로 다시 보낸다. 옛 가보는 선반으로 가고 `heirloom_history` 에 남는다. 열린 세 번째 기억은 닫히지 않는다.
+  - 보통 건네기 판정(필요·좋아함·매듭·수첩)을 함께 하고, `value` 는 1.2 다.
+  - 응답 `heirloom: {resident_id, tier, swapped, lines: {placed, swapped?, fits?, use, speak?, third_memory?}, third_memory, heirloom}`.
+  - 등급별 줄: 귀함은 `use`(쓰는 모습), 진귀함은 `speak`(대사의 주어가 되고 그 사람 `arc_line` 이 이것으로 바뀐다), 전설은 `third_memory`(사람마다 한 번, 밤사이 `kind: "third_memory"`).
+- **닦아 오르기**: 가보 바코드를 서로 다른 날 6번 찍으면 한 등급 위로 오른다(한 번). 스캔 응답에 `heirloom_ascend` 가 붙는다.
+- **`core.residents[rid]`**: `heirloom: {card_id, name, category, subtype, rarity, tier, since_day, boxed, prop, history}`, `third_memory_open` 이 붙는다.
+- **진열 드문 손님**
+  - 꼬리표 방 꾸밈 칸에 진귀함 이상(닦아 오르기 포함)이 있으면 그 꼬리표 손님의 드문 모습이 온다. 하루 확률은 진귀함 0.2, 전설 0.35 다.
+  - `visits[]` 의 `form: "rare"` 가 그 표시이고, `visitors_book[].rare: {count, first_day, ko}` 로 16칸이 된다.
+- **습격**: 가보 가진 사람이 선 방은 가중 ×1.5 다.
+
+### 테스트 메모
+- S13~S24 스위트는 달력 이전 기능을 시험하므로 `S.CALENDAR_ENFORCE = False` 로 돈다. 달력은 `test_s25` 가 시험한다.
