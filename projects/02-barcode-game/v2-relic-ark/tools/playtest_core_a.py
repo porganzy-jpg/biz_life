@@ -133,6 +133,33 @@ class Session:
         print(f"  [수첩] 아는 칸 {sum(v[0] or 0 for v in self.d['notebook'].values())}/{sum(v[1] or 0 for v in self.d['notebook'].values())}")
         et = st.get("evening_table")
         self.d["evening"] = bool(et)
+        # ── S25 해금 달력 ──
+        ul = st.get("unlocked") or {}
+        self.d["unlocked"] = {"play_day": ul.get("play_day"), "features": ul.get("features"),
+                              "new": [n.get("feature") for n in ul.get("new") or []], "next": (ul.get("next") or {}).get("unlocks")}
+        print(f"  [해금] 켠 날 {ul.get('play_day')} · 열린 것 {ul.get('features')} · 새로 {[(n.get('feature'), n.get('line')) for n in ul.get('new') or []]} · 다음 {(ul.get('next') or {}).get('unlocks')} 「{(ul.get('next') or {}).get('teaser')}」")
+        for n in ul.get("new") or []:
+            self.d["new"].append("unlock:" + str(n.get("feature")))
+        # ── S24 안전: 필요·내일의 부탁·사슬 다음 조건에 담배·술·붕대 밖 의약이 있나 ──
+        def unsafe(need):
+            if not need:
+                return False
+            cg, sb = need.get("category"), need.get("subtype") or []
+            sb = sb if isinstance(sb, list) else [sb]
+            return cg == "tobacco" or (cg == "drink" and "alcohol" in sb) or (cg == "medical" and any(x != "bandage" for x in sb or ["?"]))
+        bad = [("need", n.get("name"), n.get("need")) for n in st.get("needs_today") or [] if unsafe(n.get("need"))]
+        if unsafe((st.get("tomorrow_ask") or {}).get("need")):
+            bad.append(("tomorrow_ask", st["tomorrow_ask"].get("name"), st["tomorrow_ask"].get("need")))
+        for rid, r in ((st.get("core") or {}).get("residents") or {}).items():
+            for nd in r.get("needs_today") or []:
+                if unsafe(nd):
+                    bad.append(("core_need", rid, nd))
+            for sl in (r.get("notebook") or {}).get("slots") or []:
+                if sl.get("known") and sl.get("ko") and any(w in sl["ko"] for w in ("담배", "술", "맥주", "불붙이개", "알약", "연고", "소독", "화장품")):
+                    bad.append(("notebook", rid, sl.get("ko")))
+        self.d["safety"] = bad
+        if bad:
+            print("  !! [안전] 위반:", json.dumps(bad, ensure_ascii=False)[:400])
         if et:
             print(f"  [한 상] open={et.get('open')} done={et.get('done')} 「{et.get('open_ko')}」 돌아온 것 {len(et.get('returned') or [])}")
 
@@ -302,6 +329,9 @@ def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
         c = r.get("card") or {}
         w0 = r.get("where") or {}
         sp = w0.get("subtype_pick")
+        if sp and not sp.get("needed") and sp.get("later_ok"):
+            print("     「이게 뭐예요?」 묻지 않음 — 「나중에 이름 붙이기」만")
+            ses.d.setdefault("picks_later", []).append(name(k))
         if sp and sp.get("needed"):
             opts = [o["id"] for o in sp.get("options") or []]
             real = REAL_SUB.get(k)
@@ -344,7 +374,41 @@ def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
         if hit and not (picked and picked.get("tier") in ("chain_beat", "memory")):
             tgt, why, picked = "shelf", f"매듭 물음 「{hit['label']}」에 쓰려고 선반에", None
             pend.remove(hit)
+        # ── S25 가보 칸: 귀함 이상이면 「누구의 가보로?」 ──
+        hl = w.get("heirloom") or []
+        if hl:
+            print("     ◆ 가보 후보:", " | ".join(f"{h.get('name')}({h.get('label')},{h.get('tier')},swap={h.get('swap')},지금={(h.get('current') or {}).get('name') if isinstance(h.get('current'), dict) else h.get('current')})" for h in hl))
+            ses.d.setdefault("heirloom_offers", []).append({"item": name(k), "rarity": c.get("rarity"), "n": len(hl),
+                                                            "options": [(h.get("name"), h.get("tier"), bool(h.get("swap"))) for h in hl]})
+            if persona.startswith("A") and not want:
+                # 가보는 오래 남는다 — 이야기 등급(매듭·기억·필요·좋아함)이 붙은 사람이 있으면 그분, 없으면 아직 가보 없는 분
+                rank = {"chain_beat": 5, "memory": 4, "need": 3, "like": 2}
+                stier = {(x.get("target") or {}).get("resident_id"): x.get("tier") for x in sug if isinstance(x.get("target"), dict)}
+                hpick = max(hl, key=lambda h: (rank.get(stier.get((h.get("target") or {}).get("resident_id")), 0), not h.get("swap"),
+                                               -ses.given_people[(h.get("target") or {}).get("resident_id")]))
+                tgt, why, picked = dict(hpick["target"]), f"가보로: {hpick.get('label')}", hpick
+                ses.d["decisions"].append("가보:" + str(hpick.get("name")))
         g = post("/api/give", {"uid": uid, "scan_id": w["scan_id"], "target": tgt})
+        if g.get("ok") is False and g.get("ask_swap"):
+            asw = g["ask_swap"]
+            # 바꾸기 물음: 새것이 더 높은 등급이고 지금 가보를 받은 지 사흘 넘었으면 바꾼다 — A의 판단
+            cur, new = asw.get("current") or {}, asw.get("new") or {}
+            order = ["common", "uncommon", "rare", "epic", "legendary"]
+            swap = order.index(new.get("rarity", "rare")) > order.index(cur.get("rarity", "rare")) if new.get("rarity") in order and cur.get("rarity") in order else True
+            print(f"     ◆ 바꾸기 물음: 「{asw.get('line')}」 지금 {cur.get('name')}({cur.get('rarity')}) → 새 {new.get('name')}({new.get('rarity')}) ⇒ {'바꾼다' if swap else '그대로 둔다'}")
+            ses.d.setdefault("swap_asks", []).append({"line": asw.get("line"), "swap": swap})
+            ses.d["decisions"].append("가보 바꾸기 물음")
+            if swap:
+                t2 = dict(tgt); t2["swap"] = True
+                g = post("/api/give", {"uid": uid, "scan_id": w["scan_id"], "target": t2})
+            else:
+                tgt, why, picked = "shelf", "가보는 그대로 두고 선반에", None
+                g = post("/api/give", {"uid": uid, "scan_id": w["scan_id"], "target": "shelf"})
+        if g.get("heirloom"):
+            hh = g["heirloom"]
+            print(f"     ◆ 가보 놓음 tier={hh.get('tier')} swapped={hh.get('swapped')} 줄 {json.dumps(hh.get('lines'), ensure_ascii=False)[:400]}")
+            ses.d["new"].append("heirloom")
+            ses.d.setdefault("heirlooms", []).append({"item": name(k), "tier": hh.get("tier"), "swapped": hh.get("swapped"), "lines": hh.get("lines")})
         if "_status" in g:
             continue
         rid = (tgt or {}).get("resident_id") if isinstance(tgt, dict) else None
@@ -505,6 +569,10 @@ def do_leave(uid, ses: Session):
     if lv.get("missed_chain"):
         print(f"  [놓친 매듭] {json.dumps(lv['missed_chain'], ensure_ascii=False)[:300]}")
         ses.d["missed_chain"] = lv["missed_chain"]
+    if lv.get("unlock_teaser"):
+        ut = lv["unlock_teaser"]
+        print(f"  [해금 예고] {ut.get('play_day')}일째 {ut.get('unlocks')} 「{ut.get('line')}」")
+        ses.d["unlock_teaser"] = {k: ut.get(k) for k in ("play_day", "unlocks", "line")}
     ta = lv.get("tomorrow_ask")
     if ta:
         print(f"  [내일의 부탁] {ta.get('name')} 「{(ta.get('need') or {}).get('ko')}」 — 「{ta.get('line')}」")

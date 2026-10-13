@@ -166,7 +166,21 @@ def do_raid(uid, policy):
     if raid.get('card_mode') == 'clue':
         print("  [단서 모드] 버릇:", raid.get('habit'), "| 동사:", json.dumps(raid.get('verbs'), ensure_ascii=False)[:900], "| 만남:", ((ark(uid).get('combat') or {}).get('encounters')))
         if policy == 'careful':
-            print("   (단서 모드 — 사람이 판단해서 verb/act 단계로 이어 간다)"); return
+            hb = raid.get('habit') or ''
+            tslot = raid.get('target_slot')
+            if '불' in hb:
+                post('/api/raid/verb', {'uid': uid, 'verb': 'light'}); post('/api/ark/light', {'uid': uid, 'slot': tslot, 'on': False}); vb = '불(그 방 불 끄기)'
+            else:
+                post('/api/raid/verb', {'uid': uid, 'verb': 'station'}); vb = '자리(그 방에 모이기)'
+                st = ark(uid)
+                for p in st['residents_list']:
+                    post('/api/ark/station', {'uid': uid, 'resident_id': p['id'], 'slot': tslot}, quiet=True)
+            rr = get(f'/api/raid/today?uid={uid}').get('raid') or {}
+            print(f"   버릇을 읽고 → {vb} · 미리보기 {json.dumps((rr.get('ready') or {}).get('would_ko'), ensure_ascii=False)} short_of={(rr.get('preview') or {}).get('short_of') or (rr.get('ready') or {}).get('short_of')}")
+            a = post('/api/raid/advance', {'uid': uid})
+            print("  [접촉 결과]", json.dumps({k: a.get(k) for k in ('result', 'result_ko', 'line', 'gained')}, ensure_ascii=False)[:400])
+            post('/api/ark/light', {'uid': uid, 'slot': tslot, 'on': True}, quiet=True)
+            return
     if policy == 'careful':
         gate_fix(uid, raid)
         st = ark(uid)
@@ -212,6 +226,8 @@ def pick_members(st, opts, n=1):
 
 def do_exp(uid, mode, b=None, prefer=None, n=1, shot_mid=None, shot_ret=None):
     o = get(f'/api/expedition/options?uid={uid}')
+    if o.get('_status'):
+        print("  [원정] 열리지 않음:", o.get('detail')); return
     if o.get('out'):
         print("  [원정] 이미 나가 있음", o['out']); return
     print("  [원정 선택지]", [(d['ko'], d['lengths'], d['can'], d.get('why')) for d in o.get('dests') or []], "| 공기", o.get('air'), "| 잠수복", o.get('suits'))
@@ -382,6 +398,8 @@ def main():
             CA.first_report(uid)
             CA.lines_report(uid)
             CA.s23_report(uid)
+        elif k == 'clock':
+            print('  [개발 시계]', post('/api/dev/clock', {'uid': uid, 'hour': None if arg == 'off' else int(arg)}))
         elif k == 'table':
             CA.do_table(persona, uid, SES)
         elif k == 'labels':
