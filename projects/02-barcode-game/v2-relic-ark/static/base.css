@@ -91,7 +91,7 @@ body{
 .bopt:disabled{cursor:not-allowed; opacity:.45; border-left-color:#3a3a3a}
 .bopt b{display:block; font-size:13.5px; color:var(--cream)}
 .bopt small{display:block; margin-top:3px; font-size:11px; color:var(--dim)}
-.bopt.lack small{color:var(--oxblood)}
+.bopt.lack small{color:#b9ae94}   /* S26: 모자람에 빨간색 없음 */
 
 .toast{position:absolute; left:50%; bottom:76px; transform:translate(-50%,10px); z-index:9;
   background:rgba(10,14,12,.95); border:1px solid #2a2419; border-radius:5px;
@@ -1003,3 +1003,9 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .vbook .cx.vb.rare{border-color:#4a3a68}
 .vbook .cx.vb.rare.on .vbimg{filter:hue-rotate(160deg) saturate(1.7) brightness(1.15)}
 .vbook .cx.vb.rare span{color:#d8c4f2}
+/* ══ S26 물 빼기 비용 ══ 모자란 항목만 흐리게(빨간색·경고 없음) */
+.drainline{margin:4px 0 6px; font-size:12.5px; line-height:1.6; color:#cfe8ec}
+.drainline b{font-weight:600; color:#8fd8d2}
+.ci.dim, .bopt .ci.dim{opacity:.42}
+.shortline{color:#b9ae94 !important; font-size:12px}
+.rcbtns button[disabled]{opacity:.5; cursor:default}

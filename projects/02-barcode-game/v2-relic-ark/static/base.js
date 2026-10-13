@@ -857,12 +857,16 @@
       ctx.font = (11 * Math.min(1.6, cam.z * 2)) + 'px "Noto Sans KR",sans-serif';
       ctx.fillStyle = c.kind === 'rock' ? 'rgba(170,140,100,0.38)' : 'rgba(140,190,195,0.34)';
       ctx.textBaseline = 'middle';
-      ctx.fillText(SEALED_KO[c.kind === 'rock' ? 'rock' : 'tower'], x + 14 * cam.z, y + 24 * cam.z);
+      ctx.fillText(sealedTx(c.kind, 'label'), x + 14 * cam.z, y + 24 * cam.z);
       ctx.textBaseline = 'alphabetic';
     }
     hits.push({ kind: 'sealed', cell: c, x, y, w, h });
   }
-  const SEALED_KO = { tower: '물이 너무 깊게 차 있어서, 지금은 손댈 수 없습니다', rock: '아직 파지 못한 바위' };
+  // 잠긴 칸 문장: ui_moments.sealed.{tower,rock}.{label,line}(시나리오). 못 읽으면 같은 문장의 기본값
+  const SEALED_KO = { tower: { label: '잠긴 칸', line: '이 칸은 문이 안쪽에서 굳게 잠겨 있습니다. 지금은 열 수 없습니다.' },
+                      rock: { label: '아직 파지 못한 바위', line: '아직 파지 못한 바위입니다. 언젠가 이쪽으로도 길을 낼 수 있을 겁니다.' } };
+  const sealedTx = (kind, part) => { const k = kind === 'rock' ? 'rock' : 'tower';
+    return (K.ext && K.ext.T ? K.ext.T('sealed.' + k + '.' + part, {}, '') : '') || SEALED_KO[k][part]; };
   function drawSealedAll(t) {
     const L = MAP(), used = {};
     for (let s = 0; s < slots; s++) { const c = cellOf(s); if (c) used[c.id] = true; }
@@ -1677,6 +1681,31 @@
     const c = (catalog[id] && catalog[id].cost) || {};
     return Object.entries(c).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).join(' · ');
   }
+  // S26 물 빼기(펌프) 비용 — 방 비용과 따로 한 줄. 모자란 항목만 흐리게, 빨간색·경고 없음(design_drain_cost §3)
+  function costHTML(cost, miss) {
+    return Object.entries(cost || {}).filter(([, v]) => v > 0)
+      .map(([k, v]) => '<span class="ci' + ((miss || {})[k] ? ' dim' : '') + '">' + esc((RES_KO[k] || k) + ' ' + v) + '</span>').join(' · ');
+  }
+  function drainInfo(slot) {
+    const dc = (ark.drain_cells || {})[String(slot)];
+    if (!dc || !Object.keys(dc.drain_cost || {}).length) return null;          // 0m 칸·문간은 줄이 없다
+    return dc;
+  }
+  function drainLineHTML(slot, missOverride) {
+    const dc = drainInfo(slot); if (!dc) return '';
+    const miss = missOverride || dc.missing || {};
+    return '<p class="drainline"><b>' + (dc.reclaim ? '다시 물 빼기 · 절반' : '물 빼기') + '</b> · ' + costHTML(dc.drain_cost, miss) + '</p>';
+  }
+  // 「전력이 2 모자랍니다. 전자 물건을 찍으면 모입니다.」 — 첫 모자람 하나만, 줄표 없이
+  function shortLine(miss) {
+    const k = Object.keys(miss || {}).find(x => miss[x] > 0); if (!k) return '';
+    const nm = RES_KO[k] || k, ms = (ark.material_sources || {})[k] || {};
+    const T2 = (key, v) => (K.ext && K.ext.T ? K.ext.T(key, v || {}, '') : '');
+    const head = T2('shortage.line', { res: nm, n: miss[k] }), hint = T2('material_hint.' + k);   // 시나리오 문장(「{res} 쪽이 {n} 모자랍니다.」 + 재료 한 줄)
+    if (head) return head + (hint ? ' ' + hint : '');
+    const scan = String(ms.scan || '').replace(/\s*\(.*?\)\s*/g, '').trim();
+    return josa(nm, '이') + ' ' + miss[k] + ' 모자랍니다.' + (scan ? ' ' + scan + ' 물건을 찍으면 모입니다.' : (ms.other && ms.other[0] ? ' ' + ms.other[0] + '에서 모입니다.' : ''));
+  }
   function lacking(id) {
     const c = (catalog[id] && catalog[id].cost) || {}, have = ark.resources || {};
     return Object.entries(c).filter(([k, v]) => (have[k] || 0) < v).map(([k, v]) => (RES_KO[k] || k) + ' ' + ((have[k] || 0)) + '/' + v);
@@ -1829,17 +1858,9 @@
         '<h2>물이 찬 칸</h2>' +
         '<p class="sub">' + fl + '층 · 깊이 ' + depth + 'm · ' + esc(zoneAt(f)) + '</p>' +
         '<p class="desc">관리실에서 알려 드립니다. 물을 빼시면 이 칸을 다시 쓸 수 있습니다. 아래층으로 내려갈수록 창밖 손님이 조금씩 세지니, 그만큼 불과 자리를 한 번 더 챙겨 주세요.</p>' +
+        drainLineHTML(slot) + (drainInfo(slot) && Object.keys(drainInfo(slot).missing || {}).length ? '<p class="desc shortline">' + esc(shortLine(drainInfo(slot).missing)) + '</p>' : '') +
         '<h3>물 빼고 쓸 방 고르기</h3><div class="blist">' +
-        ids.map(id => {
-          const o = bo && bo[id];
-          const lack = o ? Object.entries(o.lacking || {}).map(([k, v]) => (RES_KO[k] || k) + ' ' + v)
-                              .concat((o.cond_missing || []).map(plain)) : lacking(id);
-          const cap = (ark.room_caps || {})[id];
-          return '<button class="bopt' + (lack.length ? ' lack' : '') + '" data-room="' + esc(id) + '"' +
-            (lack.length ? ' disabled' : '') + '><b>' + esc(catalog[id].name || id) +
-            (cap ? ' · 정원 ' + cap : '') + '</b>' +
-            '<small>' + esc(lack.length ? '부족: ' + lack.join(' · ') : costLine(id)) + '</small>' + (o && lack.length ? srcHint(o.lacking) : '') + '</button>';
-        }).join('') + '</div>';
+        ids.map(id => buildOpt(id, slot, bo && bo[id])).join('') + '</div>';
       body.querySelectorAll('.bopt[data-room]').forEach(b => {
         b.addEventListener('click', () => build(b.dataset.room, slot));
       });
@@ -1995,13 +2016,24 @@
     const fc = (ark.flooded_cells || []).find(f => f.slot === slot); if (!fc) return '';
     const bo = ark.build_options || {};
     const ids = Object.keys(catalog).filter(id => !catalog[id].fixed && bo[id]).sort((a, b) => (b === fc.was_id) - (a === fc.was_id));
-    return '<h3>물을 빼고 다시 짓기 · Lv1</h3><div class="blist">' + ids.map(id => {
-      const o = bo[id];
-      const lack = Object.entries(o.lacking || {}).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).concat((o.cond_missing || []).map(plain));
-      return '<button class="bopt' + (lack.length ? ' lack' : '') + '" data-room="' + esc(id) + '"' + (lack.length ? ' disabled' : '') + '><b>' +
-        esc(catalog[id].name || id) + (id === fc.was_id ? ' · 예전 그 방' : '') + '</b><small>' +
-        esc(lack.length ? '모자람: ' + lack.join(' · ') : costLine(id)) + '</small>' + (lack.length ? srcHint(o.lacking) : '') + '</button>';
-    }).join('') + '</div>';
+    const dc = drainInfo(slot);
+    return drainLineHTML(slot) + (dc && Object.keys(dc.missing || {}).length ? '<p class="desc shortline">' + esc(shortLine(dc.missing)) + '</p>' : '') +
+      '<h3>물을 빼고 다시 짓기 · Lv1</h3><div class="blist">' + ids.map(id => buildOpt(id, slot, bo[id], id === fc.was_id ? ' · 예전 그 방' : '')).join('') + '</div>';
+  }
+  // 방 하나 단추: 방 비용(모자란 항목만 흐리게) — 물 빼기는 위의 한 줄. 눌리지 않을 뿐, 빨간 「부족」 없음
+  function buildOpt(id, slot, o, tail) {
+    const bs = o && o.by_slot ? o.by_slot[String(slot)] : null;
+    const miss = bs ? (bs.missing || {}) : (o ? (o.lacking || {}) : {});
+    const cond = o ? (o.cond_missing || []).map(plain) : [];
+    const can = bs ? bs.can !== false && !cond.length : (o ? !Object.keys(miss).length && !cond.length : !lacking(id).length);
+    const cost = (o && o.cost) || (catalog[id] && catalog[id].cost) || {};
+    const cap = (ark.room_caps || {})[id];
+    const roomMiss = Object.keys(miss).filter(k => cost[k]).length;
+    return '<button class="bopt' + (can ? '' : ' lack') + '" data-room="' + esc(id) + '"' + (can ? '' : ' disabled') + '><b>' + esc(catalog[id].name || id) +
+      (tail || '') + (cap ? ' · 정원 ' + cap : '') + '</b>' +
+      '<small>' + (costHTML(cost, miss) || '들 것 없음') + '</small>' +
+      (cond.length ? '<small class="srchint">' + esc(cond.join(' · ')) + '</small>' : '') +
+      (roomMiss ? '<small class="srchint">' + esc(shortLine(Object.fromEntries(Object.keys(miss).filter(k => cost[k]).map(k => [k, miss[k]])))) + '</small>' : '') + '</button>';
   }
   async function build(roomId, slot) {
     try {
@@ -2298,8 +2330,14 @@
       const hint = cb && cb.next_raid_hint;
       if (first && hint && hint.ko && (!cb.raid || cb.raid.stage === 'done')) say(hint.ko);
       if (first) loadHooks.forEach(f => { try { f(st); } catch (e) { console.error('첫 로드 훅 실패', e); } });
-      if (first) { qReady = true; setTimeout(pumpQ, 0); }   // S18: 첫 로드의 창들(밤사이·만남·귀환)이 다 모인 뒤에 순서대로
-    } catch (e) { qReady = true; toast('방주를 불러오지 못했습니다: ' + (e.message || '')); }
+      if (first) {                      // S18: 첫 로드의 창들(밤사이·만남·귀환)이 다 모인 뒤에 순서대로 — 타이틀(title.js)이 있으면 「눌러서 시작」 뒤에
+        const go = () => { qReady = true; setTimeout(pumpQ, 0); };
+        if (window.ARKTITLE) { try { window.ARKTITLE.arkLoaded(st); } catch (e3) { /* */ } window.ARKTITLE.gate.then(go); } else go();
+      }
+    } catch (e) {
+      if (first && window.ARKTITLE) { try { window.ARKTITLE.arkFailed(e.message || true); } catch (e3) { /* */ } }
+      qReady = true; toast('방주를 불러오지 못했습니다: ' + (e.message || ''));
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -3174,19 +3212,22 @@
       const deep = (c.sealed.depth_m || 0) >= TRENCH_M && c.sealed.kind !== 'rock';
       const bl = towerLore && towerLore.below_limit && towerLore.below_limit.line;
       h = '<h4>' + (c.sealed.kind === 'rock' ? '벽 쪽 바위' : (deep ? '검게 잠긴 칸' : '물이 찬 칸')) + '<small>깊이 ' + esc(c.sealed.depth_m) + 'm</small></h4>' +
-          '<p class="rcline">' + esc(deep && bl ? bl : SEALED_KO[c.sealed.kind === 'rock' ? 'rock' : 'tower']) + '</p>';
+          '<p class="rcline">' + esc(deep && bl ? bl : sealedTx(c.sealed.kind, 'line')) + '</p>';
     } else {
       const slot = c.slot, room = (ark.rooms || []).find(r => r.slot === slot);
       const depth = (floorOf(slot) - DOME_FLOOR) * DEPTH_PER_FLOOR;
       if (!room) {
-        h = '<h4>물이 찬 칸<small>깊이 ' + depth + 'm</small></h4><p class="rcline">물을 빼면 이 칸을 되찾습니다.</p>' +
-            '<div class="rcbtns"><button class="on" data-c="build">물 빼기</button></div>';
+        const dc = drainInfo(slot), dm = dc && Object.keys(dc.missing || {}).length;
+        h = '<h4>물이 찬 칸<small>깊이 ' + depth + 'm</small></h4><p class="rcline">물을 빼면 이 칸을 되찾습니다.</p>' + drainLineHTML(slot) +
+            (dm ? '<p class="rcline shortline">' + esc(shortLine(dc.missing)) + '</p>' : '') +
+            '<div class="rcbtns"><button class="on" data-c="build"' + (dm ? ' disabled' : '') + '>물 빼기</button></div>';
       } else if (room.flooded) {
         const fc = (ark.flooded_cells || []).find(f => f.slot === slot) || {};
         const was = fc.was_name || (catalog[room.id] || {}).name || room.id;
         h = '<h4>' + esc(was) + '<small>물에 잠김</small></h4>' +
-            '<p class="rcline">' + esc(was) + ' 자리가 물에 잠겼습니다. 물을 빼면 처음부터 다시 지을 수 있습니다.</p>' +
-            '<div class="rcbtns"><button class="on" data-c="build">물 빼기</button><button data-c="more">자세히</button></div>';
+            '<p class="rcline">' + esc(was) + ' 자리가 물에 잠겼습니다. 물을 빼면 처음부터 다시 지을 수 있습니다.</p>' + drainLineHTML(slot) +
+            (drainInfo(slot) && Object.keys(drainInfo(slot).missing || {}).length ? '<p class="rcline shortline">' + esc(shortLine(drainInfo(slot).missing)) + '</p>' : '') +
+            '<div class="rcbtns"><button class="on" data-c="build"' + (drainInfo(slot) && Object.keys(drainInfo(slot).missing || {}).length ? ' disabled' : '') + '>물 빼기</button><button data-c="more">자세히</button></div>';
       } else {
         const spec = catalog[room.id] || {}, n = (peopleBySlot()[slot] || []).length, cap = capOf(slot), lit = lightOf(slot);
         const ko = (ark.stats_meta || {}).ko || STAT_KO_DEF, st = goodStats(slot);
@@ -3704,8 +3745,12 @@
   window.ArkMap.ready.then(() => {
     loadLayers(); initLife(); loadCar();
     // 플레이트·덧그림은 미리 받아 둔다 — 물을 뺀 순간 첫 프레임부터 그림으로 보이게
-    new Set(Object.values(PLATE_OF)).forEach(id => { plateImg('room_plate_' + id + '_lit.png'); plateImg('room_plate_' + id + '_dark.png'); });
-    ['damage_crack1.png', 'damage_crack2.png', 'damage_crack3.png', 'room_flood.png'].forEach(plateImg);
+    // 타이틀(title.js)이 있으면 첫 화면에 필요한 것(보이는 방의 플레이트는 그릴 때 부른다)이 다 온 뒤에 — 느린 망에서 첫 화면을 먼저
+    const preload = () => {
+      new Set(Object.values(PLATE_OF)).forEach(id => { plateImg('room_plate_' + id + '_lit.png'); plateImg('room_plate_' + id + '_dark.png'); });
+      ['damage_crack1.png', 'damage_crack2.png', 'damage_crack3.png', 'room_flood.png'].forEach(plateImg);
+    };
+    if (window.ARKTITLE && window.ARKTITLE.afterReady) window.ARKTITLE.afterReady(preload); else preload();
     overlayImg('cell_plan'); overlayImg('cell_flood');
     traffic.setGraph(MOVE_ADAPTER.graph());
     fit(); lastPortrait = isPortrait(); load(true);

@@ -54,7 +54,8 @@
       if (r.foil) root.setProperty('--rk-foil-' + k, url(r.foil));
       if (r.charge_tint) TINT[k] = r.charge_tint;
     });
-    pre.forEach(src => { const im = new Image(); im.src = src; });      // 첫 개봉에 빈 틀이 보이지 않게
+    const preload = () => pre.forEach(src => { const im = new Image(); im.src = src; });      // 첫 개봉에 빈 틀이 보이지 않게(타이틀이 있으면 첫 화면 뒤에)
+    if (window.ARKTITLE && window.ARKTITLE.afterReady) window.ARKTITLE.afterReady(preload); else preload();
     document.documentElement.classList.add('rk-art');
     D.log.push('meta ok ' + pre.length);
   }

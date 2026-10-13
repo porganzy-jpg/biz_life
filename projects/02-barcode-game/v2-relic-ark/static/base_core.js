@@ -486,26 +486,37 @@
                        generator: 'power', power: 'power', greenhouse: 'greenhouse', decoder: 'quarters', lounge: 'storage', bath: 'infirmary', well: 'greenhouse' };
   function drawSpots(room, slot, ix, iy, iw, ih, t, lit, ppl) {
     spotFrame = t;
-    const spots = (ART.kspots || {})[SPOT_PLATE[room.id] || room.id]; if (!spots || !ppl || !ppl.length || K.z < 0.25) return;
+    const spots = (ART.kspots || {})[SPOT_PLATE[room.id] || room.id]; if (!spots || K.z < 0.25) return;
     const ctx = K.ctx, kx = iw / ART.decCell[0], ky = ih / ART.decCell[1], cr = ((K.ark || {}).core || {}).residents || {};
     const own = (ART.seat || {}).own_prop_arcs || {};
-    ppl.slice(0, spots.length).forEach((p, i) => {
-      const c = cr[p.id] || {}, sp = spots[i], seat = c.seat && c.seat.item && !own[c.seat.arc] ? c.seat : null;
+    ppl = ppl || [];
+    // S26: 끝 매듭 자리는 seat.slot(맺은 방)에 고정 — 사람이 옮겨도 남는다. slot 이 없는 옛 값은 그 사람이 선 방
+    const seatOf = (c) => (c.seat && c.seat.item && !own[c.seat.arc] ? c.seat : null);
+    const seatItem = (c, seat) => (c.items || []).slice().reverse().find(x => x.name === seat.item) || { name: seat.item, category: seat.category, subtype: seat.subtype, prop: seat.prop };
+    const rows = [];
+    Object.keys(cr).forEach(rid => { const c = cr[rid], st = seatOf(c); if (st && st.slot === slot) rows.push({ rid, c, seat: st, it: seatItem(c, st) }); });
+    ppl.forEach(p => {
+      if (rows.some(r => r.rid === p.id)) return;                          // 그 사람의 자리가 이 방에 있으면 그것 하나
+      const c = cr[p.id] || {}, st = seatOf(c);
+      if (st && st.slot == null) { rows.push({ rid: p.id, c, seat: st, it: seatItem(c, st) }); return; }
       let it = null;
-      if (seat) it = (c.items || []).slice().reverse().find(x => x.name === seat.item) || null;
-      if (!it && c.heirloom && !c.heirloom.boxed) it = c.heirloom;                 // 가보가 있으면 머리맡에는 가보
+      if (c.heirloom && !c.heirloom.boxed) it = c.heirloom;                // 가보가 있으면 머리맡에는 가보
       if (!it) it = (c.keepsakes_recent || [])[0] || null;
+      if (it) rows.push({ rid: p.id, c, seat: null, it });
+    });
+    rows.slice(0, spots.length).forEach((r, i) => {
+      const sp = spots[i], it = r.it;
       const pid = it && propIdOf(it); const pi = pid && K.propImg(pid); if (!pi || !pi.ok1) return;
       const sc = 1.6 * kx, cx = ix + sp.x * kx; let bottom = iy + sp.y * ky, stood = false;
       ctx.save(); ctx.imageSmoothingEnabled = false; if (lit === false) ctx.globalAlpha = 0.6;
-      if (seat && ART.seat) {
+      if (r.seat && ART.seat) {
         const sim = imgOf['/' + ART.seat.file.replace(/^\//, '')];
         if (sim && sim.ok) { const sw = ART.seat.w * sc, sh = ART.seat.h * sc; ctx.drawImage(sim.img, cx - sw / 2, bottom - sh, sw, sh); bottom = bottom - sh + (ART.seat.item_floor_y || 18) * sc; stood = true; }
       }
       const w = pi.x1.naturalWidth * sc, h = pi.x1.naturalHeight * sc;
       ctx.drawImage(pi.x1, cx - w / 2, bottom - h, w, h);
       ctx.restore();
-      spotLog[p.id] = { at: t, slot, spot: i, kind: sp.kind, prop: pid, seat: stood, heir: it === c.heirloom };
+      spotLog[ppl.some(p => p.id === r.rid) ? r.rid : r.rid + ':seat'] = { at: t, slot, spot: i, kind: sp.kind, prop: pid, seat: stood, heir: it === r.c.heirloom, fixed: !!(r.seat && r.seat.slot != null) };
     });
   }
   D.rare = () => Object.assign({}, rareLog);
