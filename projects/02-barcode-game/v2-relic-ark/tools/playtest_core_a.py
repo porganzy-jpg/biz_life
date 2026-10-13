@@ -97,6 +97,44 @@ class Session:
         self.d["tags_on"] = tags_on
         if st.get("octopus_gift_where"):
             print("  [문어 조각 어디로]", json.dumps(st["octopus_gift_where"], ensure_ascii=False)[:600])
+        # ── S22/S23 기록 ──
+        day = st.get("day")
+        tp = _tomorrow_file(self.uid)
+        if tp.exists():
+            ta = json.loads(tp.read_text(encoding="utf-8"))
+            if ta.get("day") == day and "matched" not in ta:
+                row = next((n for n in st.get("needs_today") or [] if n.get("resident_id") == ta.get("resident_id")), None)
+                ta["matched"] = bool(row) and (row.get("need") or {}).get("category") == (ta.get("need") or {}).get("category") \
+                    and sorted((row.get("need") or {}).get("subtype") or []) == sorted((ta.get("need") or {}).get("subtype") or [])
+                ta["today_need"] = (row or {}).get("need")
+                tp.write_text(json.dumps(ta, ensure_ascii=False), encoding="utf-8")
+                print(f"  [내일의 부탁 확인] 어제 「{ta.get('line')}」 → 오늘 {ta.get('name')} 필요 {((row or {}).get('need') or {}).get('ko')} · 일치 {ta['matched']}")
+                self.d["tomorrow_check"] = {"matched": ta["matched"], "need": ta.get("need"), "today": ta["today_need"]}
+        forced = [v for v in st.get("visits") or [] if v.get("forced")]
+        if forced:
+            print("  [첫 손님(forced)]", json.dumps(forced, ensure_ascii=False)[:400])
+            self.d["new"].append("forced_visitor")
+        nv = [v for v in st.get("visits") or [] if v.get("kind") == "night_visitor"]
+        if nv:
+            print("  [밤 손님]", json.dumps(nv, ensure_ascii=False)[:300])
+        self.d["decor_trace"] = [{k: t.get(k) for k in ("slot", "tag_ko", "ko", "line")} for t in st.get("decor_trace") or []]
+        if self.d["decor_trace"]:
+            print("  [꾸밈 흔적(예고)]", json.dumps(self.d["decor_trace"], ensure_ascii=False)[:400])
+        vb = [(v.get("ko"), v.get("count"), (v.get("souvenir") or {}).get("name")) for v in st.get("visitors_book") or [] if v.get("count")]
+        self.d["visitors_book"] = vb
+        print(f"  [손님 책] {len(vb)}/{len(st.get('visitors_book') or [])} {vb}")
+        if st.get("missed_chain"):
+            print("  [놓친 매듭(열 때)]", json.dumps(st["missed_chain"], ensure_ascii=False)[:300])
+        if st.get("notebook_tip"):
+            self.d["notebook_tip"] = {k: st["notebook_tip"].get(k) for k in ("name", "kind", "ko", "line")}
+            print("  [저녁 귀띔]", st["notebook_tip"].get("line"))
+        self.d["notebook"] = {rid: ((r.get("notebook") or {}).get("known"), (r.get("notebook") or {}).get("total"))
+                              for rid, r in ((st.get("core") or {}).get("residents") or {}).items()}
+        print(f"  [수첩] 아는 칸 {sum(v[0] or 0 for v in self.d['notebook'].values())}/{sum(v[1] or 0 for v in self.d['notebook'].values())}")
+        et = st.get("evening_table")
+        self.d["evening"] = bool(et)
+        if et:
+            print(f"  [한 상] open={et.get('open')} done={et.get('done')} 「{et.get('open_ko')}」 돌아온 것 {len(et.get('returned') or [])}")
 
     def save(self):
         p = SCRATCH / f"pt_sessions_{self.uid}.jsonl"
@@ -104,10 +142,79 @@ class Session:
             f.write(json.dumps(self.d, ensure_ascii=False) + "\n")
 
 
-def choose(persona, where, ses: Session, rng: random.Random):
+# ── S22/S23 (5차 준비) ──────────────────────────────────────────────
+# 「이게 뭐예요?」에서 사람이 고를 현실의 하위 종류(물어볼 때만 쓰인다 — 알려진 가문·책은 서버가 묻지 않는다)
+REAL_SUB = {"jin": "noodle", "rice": "grain", "tofu": "canned", "kimchi": "canned", "milk": "milk",
+            "cable": "cable", "tylenol": "pill", "vitamin": "pill", "socks": "small", "postit": "sticky",
+            "chocopie": "snack", "pepero": "sweet", "granola": "sweet", "gim": "canned", "coke": "soda",
+            "samdasoo": "water", "maxim": "coffee", "tea": "tea", "shampoo": "hygiene", "toothpaste": "hygiene",
+            "battery": "battery", "lightbulb": "light", "monami": "pen", "soju": "liquor", "cass": "beer",
+            "shin": "noodle", "chapa": "noodle", "saewoo": "snack"}
+# 묻지 않는(서버가 정한) 바코드의 실제 하위 종류 — 4차 사전 조사 값. 내일의 부탁을 겨냥할 때 쓴다
+SERVER_SUB = {"shin": "snack", "chapa": "snack", "saewoo": "snack", "pepero": "sweet", "chocopie": "snack",
+              "gim": "sweet", "kimchi": "snack", "granola": "sweet", "coke": "juice", "samdasoo": "water",
+              "maxim": "tea", "tea": "tea", "shampoo": "hygiene", "toothpaste": "pill", "battery": "battery",
+              "lightbulb": "part", "monami": "pen", "soju": "liquor", "cass": "beer",
+              "book1": "story", "book2": "field_guide", "book3": "map"}
+# 기색(hint_ko)을 읽는 사람의 감 — 그 물건의 갈래·하위 종류를 떠올리게 하는 말
+HINT_WORDS = {
+    ("food", None): ["부엌", "꼬르륵", "배", "먹"], ("food", "noodle"): ["면", "국수", "꼬불", "국물", "실"],
+    ("food", "snack"): ["과자", "바삭", "봉지"], ("food", "sweet"): ["단", "달", "사탕"],
+    ("food", "canned"): ["통조림", "절임", "병"], ("food", "grain"): ["쌀", "밥", "곡물", "낟알"], ("food", "sauce"): ["양념", "간을"],
+    ("drink", None): ["컵", "마실", "입술", "목이"], ("drink", "water"): ["물통", "물을", "마실 물"], ("drink", "soda"): ["거품", "톡"],
+    ("drink", "coffee"): ["커피", "졸", "잠"], ("drink", "tea"): ["잎", "찻잔", "차 ", "김만"], ("drink", "milk"): ["우유", "하얀", "고소"],
+    ("drink", "juice"): ["과일", "단물"],
+    ("medical", None): ["의무실", "손등", "아프", "약"], ("medical", "pill"): ["알약", "약"], ("medical", "hygiene"): ["씻", "비누", "냄새"],
+    ("medical", "bandage"): ["긁힌", "상처", "밴드"], ("medical", "disinfect"): ["소독", "상처"],
+    ("electronics", None): ["기계", "작업대", "두드려"], ("electronics", "battery"): ["건전지", "꺼진", "배터리"],
+    ("electronics", "cable"): ["줄", "충전"], ("electronics", "light"): ["불빛", "등", "어두"], ("electronics", "audio"): ["소리", "음악"],
+    ("electronics", "part"): ["부품", "나사"], ("electronics", "device"): ["기계", "기기"],
+    ("stationery", None): ["글씨", "적을", "쓰"], ("stationery", "pen"): ["펜", "글씨"], ("stationery", "paper"): ["종이", "공책"],
+    ("stationery", "sticky"): ["메모", "붙"],
+    ("book", None): ["책", "읽을"], ("apparel", None): ["소매", "옷", "춥", "움츠"], ("apparel", "small"): ["양말", "장갑", "모자", "발", "손"],
+    ("apparel", "shoes"): ["신발", "발"], ("apparel", "bag"): ["가방", "짐"], ("tobacco", None): ["교역", "갑", "담배", "술", "맥주"],
+}
+
+
+def hint_match(hint: str, category, subtype) -> bool:
+    if not hint:
+        return False
+    words = HINT_WORDS.get((category, subtype), []) + HINT_WORDS.get((category, None), [])
+    return any(w in hint for w in words)
+
+
+def choose(persona, where, ses: Session, rng: random.Random, card=None, want_rid=None):
     sug = where.get("suggest") or []
     if not sug:
         return "shelf", "제안 없음 → 선반", None
+    if want_rid and persona.startswith("A"):            # 내일의 부탁을 겨냥해 찍은 물건 — 그 사람에게
+        t = next((s for s in sug if isinstance(s.get("target"), dict) and s["target"].get("resident_id") == want_rid), None)
+        if t:
+            return t["target"], "어제 부탁받은 물건이라 그분께", t
+    if persona.startswith("A") and where.get("labels") is False:
+        # 3일째부터: 라벨이 없는 사람은 기색(hint_ko)을 읽고 고른다
+        best, bs = None, -9
+        for s in sug:
+            rid = (s.get("target") or {}).get("resident_id") if isinstance(s.get("target"), dict) else None
+            if s.get("known") is False:
+                hm = hint_match(s.get("hint_ko"), (card or {}).get("category"), (card or {}).get("subtype"))
+                sc = 2.8 + (2.2 if hm else 0)
+                s["_hint_match"] = hm
+            else:
+                sc = TIER_A.get(s.get("tier"), 2) + (s.get("value") or 0.9)
+                if s.get("tier") == "decor" and (s.get("tag_have", 0) + 1) >= (s.get("tag_need") or 99):
+                    sc += 2.5
+                if (s.get("mult") or 1) < 1 and s.get("tier") not in ("chain_beat", "memory"):
+                    sc -= 1.2
+            if rid and ses.given_people[rid] and s.get("tier") not in ("chain_beat", "memory"):
+                sc -= 0.8
+            if sc > bs:
+                best, bs = s, sc
+        if bs < 2:
+            return "shelf", f"기색이 다 멀다(best {bs:.1f}) → 선반", None
+        if best.get("known") is False:
+            return best["target"], ("기색 읽기(맞는 말)" if best.get("_hint_match") else "기색 읽기(감)") + f": {best.get('hint_ko')}", best
+        return best["target"], f"수첩에 아는 칸·{best.get('tier')}", best
     if persona.startswith("B"):
         # 4차 5일째부터: 무작위 대신 정확히 다섯 번에 한 번 닫는다(1~4일째 무작위가 12번 중 7번 닫아 페르소나 규칙 80%를 벗어났다)
         cf = SCRATCH / f"pt_bclose_{ses.uid}.txt"
@@ -150,15 +257,70 @@ def pending_asks(uid):
     return out
 
 
+def _tomorrow_file(uid):
+    return SCRATCH / f"pt_tomorrow_{uid}.json"
+
+
+def tomorrow_target(uid, day):
+    """어제 떠날 때 받은 「내일의 부탁」 중 오늘 것 → 그 필요에 맞는 집 물건 키."""
+    p = _tomorrow_file(uid)
+    if not p.exists():
+        return None
+    ta = json.loads(p.read_text(encoding="utf-8"))
+    if ta.get("day") != day or ta.get("tried"):
+        return None
+    need = ta.get("need") or {}
+    subs = need.get("subtype") or []
+    subs = subs if isinstance(subs, list) else [subs]
+    for k in REAL_SUB.keys() | SERVER_SUB.keys():
+        if cat(k) != need.get("category") and not (need.get("category") == "book" and k.startswith("book")):
+            continue
+        sub = SERVER_SUB.get(k) or REAL_SUB.get(k)
+        if not subs or sub in subs:
+            return {"key": k, "rid": ta.get("resident_id"), "name": ta.get("name"), "need": need}
+    return {"key": None, "rid": ta.get("resident_id"), "name": ta.get("name"), "need": need}
+
+
 def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
     pend = pending_asks(uid) if persona.startswith("A") else []
     if pend:
         print("  [물음에 쓸 물건 찾는 중]", pend)
+    tt = tomorrow_target(uid, ses.d.get("day")) if persona.startswith("A") else None
+    if tt:
+        ses.d["tomorrow_try"] = {"rid": tt["rid"], "need": tt["need"], "key": tt["key"]}
+        if tt["key"]:
+            keys = [tt["key"]] + [x for x in keys if x != tt["key"]]
+            print(f"  [내일의 부탁 → 오늘] {tt['name']} 님 「{(tt['need'] or {}).get('ko')}」 → 집에서 {name(tt['key'])} 를 찍어 드리기")
+        else:
+            print(f"  [내일의 부탁 → 오늘] {tt['name']} 님 「{(tt['need'] or {}).get('ko')}」 — 집에 맞는 물건이 없음")
+        p = _tomorrow_file(uid); d0 = json.loads(p.read_text(encoding="utf-8")); d0["tried"] = True
+        p.write_text(json.dumps(d0, ensure_ascii=False), encoding="utf-8")
     for k in keys:
         r = scan(uid, code(k), cat(k))
         if "_status" in r:
             continue
         c = r.get("card") or {}
+        w0 = r.get("where") or {}
+        sp = w0.get("subtype_pick")
+        if sp and sp.get("needed"):
+            opts = [o["id"] for o in sp.get("options") or []]
+            real = REAL_SUB.get(k)
+            pick = real if real in opts else (opts[0] if opts else None)
+            abuse = False
+            if persona.startswith("A") and rng.random() < 0.10 and opts:
+                st0 = ark(uid)
+                wanted = {s for n in st0.get("needs_today") or [] if (n.get("need") or {}).get("category") == c.get("category")
+                          for s in ((n.get("need") or {}).get("subtype") or [])}
+                alt = [o for o in opts if o != pick and o in wanted] or [o for o in opts if o != pick]
+                pick, abuse = alt[0], True
+            rr = post("/api/scan/subtype", {"uid": uid, "scan_id": w0.get("scan_id"), "subtype": pick})
+            print(f"     「이게 뭐예요?」 {sp.get('ask_ko')} 보기 {opts} 남들 {sp.get('suggest')} → {pick}{' (일부러 다르게 — 악용 점검)' if abuse else ''} | {rr.get('done_ko') or rr.get('detail')}")
+            ses.d.setdefault("picks", []).append({"item": name(k), "real": real, "pick": pick, "abuse": abuse,
+                                                  "suggest": (sp.get("suggest") or {}).get("id"), "status": rr.get("_status") or 200})
+            if "_status" not in rr:
+                r["where"] = rr.get("where") or w0
+                c = rr.get("card") or c
+                r["card"] = c
         if r.get("first_time") or c.get("rarity") in ("rare", "epic", "legendary") or (r.get("variant") or {}).get("shiny"):
             ses.d["unknown"].append("card:" + str(c.get("rarity")))
         if r.get("first_time") or r.get("first_meet"):
@@ -169,9 +331,15 @@ def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
         if not w:
             print("     !! where 없음(옛 서버?)"); continue
         sug = w.get("suggest") or []
-        print("     「어디로」:", " | ".join(f"{s.get('icon')}:{s.get('name')}({s.get('tier')},{s.get('reason_ko')},v{s.get('value')}{',×'+str(s.get('mult')) if (s.get('mult') or 1) != 1 else ''}"
+        if w.get("labels") is False:
+            print("     「어디로」(수첩·고정 순서):", " | ".join(
+                (f"?:{s.get('name')}「{(s.get('hint_ko') or '')[:44]}」" if s.get("known") is False
+                 else f"{s.get('icon')}:{s.get('name')}({s.get('tier')},{s.get('reason_ko')})") for s in sug) or "-", "| 선반")
+        else:
+          print("     「어디로」:", " | ".join(f"{s.get('icon')}:{s.get('name')}({s.get('tier')},{s.get('reason_ko')},v{s.get('value')}{',×'+str(s.get('mult')) if (s.get('mult') or 1) != 1 else ''}"
                                          + (f",꼬리표 {s.get('tag_ko')} {s.get('tag_have')}/{s.get('tag_need')}" if s.get('tag') else '') + ")" for s in sug) or "-", "| 선반", "| compact" if w.get("compact") else "")
-        tgt, why, picked = choose(persona, w, ses, rng)
+        want = tt["rid"] if (tt and tt.get("key") == k) else None
+        tgt, why, picked = choose(persona, w, ses, rng, card=c, want_rid=want)
         hit = next((a for a in pend if _match(c, a["category"], a["subtype"])), None)
         if hit and not (picked and picked.get("tier") in ("chain_beat", "memory")):
             tgt, why, picked = "shelf", f"매듭 물음 「{hit['label']}」에 쓰려고 선반에", None
@@ -191,7 +359,26 @@ def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
                                "tiers": [s.get("tier") for s in sug], "eff": eff, "mults": [s.get("mult") or 1 for s in sug],
                                "tier": g.get("tier"), "real": real, "why": why,
                                "weak_shelf": tgt == "shelf" and why.startswith("제안이 다 약함"),
-                               "rescan_mult": r.get("rescan_multiplier")})
+                               "rescan_mult": r.get("rescan_multiplier"),
+                               # S23: 라벨 없는 날의 기색 읽기 · 실제 결과 · 의도
+                               "labels": w.get("labels"), "order": w.get("order"),
+                               "picked_known": (picked or {}).get("known"), "hint": (picked or {}).get("hint_ko"),
+                               "hint_match": (picked or {}).get("_hint_match"),
+                               "first_known": (sug[0].get("known") if sug else None),
+                               "revealed": {k2: (g.get("revealed") or {}).get(k2) for k2 in ("kind", "big", "slot", "new")} if g.get("revealed") else None,
+                               "intent": g.get("intent"), "repeat": bool(g.get("repeat")),
+                               "history": len((g.get("item") or {}).get("history") or (c.get("history") or [])),
+                               "want": bool(want)})
+        rv = g.get("revealed") or {}
+        if rv:
+            print(f"       수첩: revealed {rv.get('kind')} big={rv.get('big')} new={rv.get('new')} 「{rv.get('line')}」")
+        if g.get("intent"):
+            print(f"       ★ 의도 충족(intent) — 「{(g.get('reaction') or {}).get('announce')}」")
+            ses.d["new"].append("intent")
+        if g.get("repeat"):
+            print(f"       같은 세션 두 번째: 「{(g.get('repeat') or {}).get('line')}」")
+        if c.get("history"):
+            print(f"       card.history: {json.dumps(c.get('history'), ensure_ascii=False)[:200]}")
         rx0 = g.get("reaction") or {}
         with (SCRATCH / f"pt_lines_{uid}.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps({"day": ses.d.get("day"), "who": (g.get("who") or {}).get("name") or label, "rid": rid,
@@ -315,6 +502,18 @@ def do_leave(uid, ses: Session):
     print(f"  [다음에 켜시면] ({nv.get('kind')}) {nv.get('line')}")
     if nv.get("kind") and nv.get("kind") != "nothing":
         ses.d["return"].append(nv.get("kind"))
+    if lv.get("missed_chain"):
+        print(f"  [놓친 매듭] {json.dumps(lv['missed_chain'], ensure_ascii=False)[:300]}")
+        ses.d["missed_chain"] = lv["missed_chain"]
+    ta = lv.get("tomorrow_ask")
+    if ta:
+        print(f"  [내일의 부탁] {ta.get('name')} 「{(ta.get('need') or {}).get('ko')}」 — 「{ta.get('line')}」")
+        ses.d["tomorrow_ask"] = {k: ta.get(k) for k in ("resident_id", "name", "day", "need", "line")}
+        p = _tomorrow_file(ses.uid)
+        old = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        if old.get("day") != ta.get("day"):
+            p.write_text(json.dumps(ses.d["tomorrow_ask"], ensure_ascii=False), encoding="utf-8")
+        ses.d["return"].append("tomorrow_ask")
     st = ark(uid)
     for r in ((st.get("core") or {}).get("residents") or {}).values():
         nx = (r.get("arc") or {}).get("next") or {}
@@ -449,3 +648,73 @@ def first_report(uid):
             top = firsts.most_common(1)[0] if firsts else ("-", 0)
             tiers = dict(collections.Counter(g.get("first_tier") for g in gv))
             print(f"  Day {day} 세션{i + 1}: 「어디로」 {len(gv)} · 첫 제안 그대로 {ff:.0%} · 1순위 최다 {top[0]} {top[1]}/{len(gv)} · 약해서 선반 {weak} · 1순위 등급 {tiers}")
+
+
+def do_table(persona, uid, ses: Session):
+    """받는 저녁·한 상(S23): 저녁 세션이면 물건 하나와 짝 하나를 골라 상을 차린다(A만)."""
+    st = ark(uid)
+    et = st.get("evening_table")
+    if not et:
+        print("  [한 상] 저녁이 아님(evening_table null)"); return
+    if not et.get("open"):
+        print(f"  [한 상] 이미 차림: {json.dumps(et.get('result'), ensure_ascii=False)[:200]}"); return
+    if persona.startswith("B"):
+        print("  [한 상] B: 차리지 않음"); return
+    items = (et.get("candidates") or {}).get("items") or []
+    people = (et.get("candidates") or {}).get("residents") or []
+    if not items or len(people) < 2:
+        print(f"  [한 상] 후보 부족 items={len(items)} people={len(people)}"); return
+    item = next((i for i in items if i.get("today") and i.get("category") == "food"), None) or \
+        next((i for i in items if i.get("today")), None) or items[0]
+    pf = SCRATCH / f"pt_pairs_{uid}.json"
+    used = json.loads(pf.read_text(encoding="utf-8")) if pf.exists() else []
+    ids = [p["id"] for p in people]
+    pairs = [(a, b) for i, a in enumerate(ids) for b in ids[i + 1:]]
+    pairs.sort(key=lambda pr: used.count("|".join(sorted(pr))))
+    pair = list(pairs[0])
+    r = post("/api/table", {"uid": uid, "relic_id": item.get("relic_id"), "seats": [pair]})
+    if "_status" in r:
+        return
+    used.append("|".join(sorted(pair))); pf.write_text(json.dumps(used, ensure_ascii=False), encoding="utf-8")
+    talk = [f"{t.get('name')}: {t.get('line')}" for t in r.get("talk") or []]
+    print(f"  [한 상] 「{item.get('name')}」 · {r.get('names')} · 신뢰 +{r.get('trust_delta')} 좋아함 {r.get('liked_by')} 같은 짝 {r.get('repeat_pair')} 식량 {r.get('food_paid')}/{r.get('table_store_paid')}")
+    for t in talk:
+        print(f"     {t}")
+    if r.get("promise"):
+        print(f"     약속: {r.get('promise')}")
+    ses.d["table"] = {"item": item.get("name"), "names": r.get("names"), "trust_delta": r.get("trust_delta"),
+                      "liked_by": r.get("liked_by"), "repeat_pair": r.get("repeat_pair"), "talk": talk, "talk_key": r.get("talk_key")}
+    ses.d["decisions"].append("한 상")
+    ses.d["new"].append("table_talk")
+
+
+def s23_report(uid):
+    """5차 지표: 하위 종류 고르기, 기색 읽기 적중(날별 수첩 곡선), 첫 제안의 실제 결과, 한 상, 내일의 부탁·의도."""
+    p = SCRATCH / f"pt_sessions_{uid}.jsonl"
+    if not p.exists():
+        return
+    rows = [json.loads(x) for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
+    picks = [pk for s in rows for pk in s.get("picks") or []]
+    if picks:
+        ab = [pk for pk in picks if pk.get("abuse")]
+        print(f"  하위 종류 고르기 {len(picks)}번 · 일부러 다르게 {len(ab)}번 {[(pk['item'], pk['pick']) for pk in ab]} · 남들 이름 제안 {sum(1 for pk in picks if pk.get('suggest'))}번")
+    good = ("need", "like", "memory", "chain_beat")
+    by = collections.defaultdict(list)
+    for s in rows:
+        by[s.get("day")].append(s)
+    print("  날 | 라벨 | 기색 읽기 n · 맞음(필요·좋아함·기억·매듭) · big | 첫 제안 결과 좋음 | 수첩 아는 칸 | 한 상 신뢰 | 내일의 부탁 일치·의도")
+    for day, ss in sorted(by.items(), key=lambda x: x[0] or 0):
+        gv = [g for s in ss for g in s.get("gives") or []]
+        lab = sorted({str(g.get("labels")) for g in gv})
+        hint = [g for g in gv if g.get("picked_known") is False]
+        hok = sum(1 for g in hint if (g.get("revealed") or {}).get("kind") in good)
+        big = sum(1 for g in hint if (g.get("revealed") or {}).get("big"))
+        first = [g for g in gv if g["chosen"] == g["first"] and g.get("revealed")]
+        fok = sum(1 for g in first if (g.get("revealed") or {}).get("kind") in good)
+        nb = ss[-1].get("notebook") or {}
+        nbk = f"{sum(v[0] or 0 for v in nb.values())}/{sum(v[1] or 0 for v in nb.values())}" if nb else "-"
+        tb = [s.get("table") for s in ss if s.get("table")]
+        tc = [s.get("tomorrow_check") for s in ss if s.get("tomorrow_check")]
+        it = [g for g in gv if g.get("want")]
+        print(f"  {day} | {lab} | {len(hint)} · {hok} · {big} | {fok}/{len(first)} | {nbk} | {[t.get('trust_delta') for t in tb]} | "
+              f"{[c.get('matched') for c in tc]} · {[g.get('intent') for g in it]}")

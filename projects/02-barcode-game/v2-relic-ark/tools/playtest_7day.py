@@ -381,6 +381,11 @@ def main():
             CA.same_answer_report(uid)
             CA.first_report(uid)
             CA.lines_report(uid)
+            CA.s23_report(uid)
+        elif k == 'table':
+            CA.do_table(persona, uid, SES)
+        elif k == 'labels':
+            print('  [늘 이름표]', post('/api/prefs', {'uid': uid, 'labels_always': arg == 'on'}))
         elif k == 'octogift':
             CA.do_octogift(persona, uid, SES, rng)
         elif k == 'bug1':
