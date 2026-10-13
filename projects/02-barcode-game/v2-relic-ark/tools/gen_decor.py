@@ -412,7 +412,12 @@ def main():
     meta["slot_positions_in_cell"] = {"slot_shelf_bracket": [[150, 60], [280, 160]], "slot_hook": [[100, 40], [440, 40]], "slot_stand": [[240, 192]],
                                       "note": "칸 좌표, 소품 좌상단. 머리 위 벽(y < 95)이나 가운데 기둥에만"}
     meta["window_spot"] = window_spots()
-    json.dump(meta, open(os.path.join(DST, "decor_meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    mp = os.path.join(DST, "decor_meta.json")
+    if os.path.exists(mp):                     # S22: gen_knot_props.py 가 쓴 블록(traces·keepsake_spots)은 남긴다
+        for k, v in json.load(open(mp, encoding="utf-8")).items():
+            if k not in meta:
+                meta[k] = v
+    json.dump(meta, open(mp, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
     # 접촉 시트: 꼬리표마다 [플레이트만 | 플레이트+덧씌움+주민 둘]
     f = lambda s, b=False: ImageFont.truetype("C:/Windows/Fonts/malgunbd.ttf" if b else "C:/Windows/Fonts/malgun.ttf", s)

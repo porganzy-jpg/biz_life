@@ -835,5 +835,23 @@
    }
   }
  },
- "_by_subtype_note": "S22 정본: relic_templates.json 의 category → subtype → 선반 소품. match = good/weak/new. 모르는 subtype 이면 by_subtype[category] 의 첫 good 항목, 그것도 없으면 unknown.any. 생성 tools/gen_knot_props.py (gen_props.py 를 다시 돌려도 이 블록은 남는다)"
+ "_by_subtype_note": "S22 정본: relic_templates.json 의 category → subtype → 선반 소품. match = good/weak/new. 모르는 subtype 이면 by_subtype[category] 의 첫 good 항목, 그것도 없으면 unknown.any. 생성 tools/gen_knot_props.py (gen_props.py 를 다시 돌려도 이 블록은 남는다)",
+ "seat_stand": {
+  "name": "자리 받침",
+  "slots": 1,
+  "w": 34,
+  "h": 30,
+  "file": "static/art/props/seat_stand.png",
+  "file4x": "static/art/props/x4/seat_stand.png",
+  "item_floor_y": 18,
+  "item_floor_y_note": "그 사람의 물건(by_subtype 소품, 같은 배율)의 아래 가장자리를 받침 y=18(방석 윗면)에 맞춘다. 물건이 받침 앞에 그려진다(받침 → 물건 순)",
+  "use": "끝 매듭(seat) 공통. 서버 cres.seat.item → 그 물건의 갈래·하위 종류 → by_subtype 소품을 받침 위에. 자리는 decor_meta keepsake_spots",
+  "own_prop_arcs": {
+   "arc_cook_seat": "chair_1",
+   "arc_farmer_color": "sprout_on_sill",
+   "arc_engineer_warm": "warm_basin",
+   "arc_trader_unpack": "name_tag_worn"
+  },
+  "own_prop_note": "이 넷은 받침 대신 그 매듭 소품(props_meta knots)을 쓴다"
+ }
 }

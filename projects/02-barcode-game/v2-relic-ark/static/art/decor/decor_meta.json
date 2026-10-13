@@ -564,11 +564,11 @@
     "id": "trace_scales",
     "ko": "작은 비늘 조각",
     "file": "trace_scales.png",
-    "w": 80,
-    "h": 34,
+    "w": 150,
+    "h": 46,
     "anchor": [
-     40,
-     28
+     75,
+     40
     ],
     "visitors": [
      "small_fish"
@@ -604,5 +604,111 @@
     ]
    }
   ]
+ },
+ "keepsake_spots": {
+  "_note": "S22: 사람의 보관 유물을 놓는 자리. 칸 좌표(564×317, 칸 좌상단 0,0)의 바닥점 = 소품 아래 가운데. 그 방 사람 수만큼 앞에서부터 쓴다. 침대는 quarters·infirmary 에만 있다. 플레이트가 없는 방은 plate_name_map 을 따른다",
+  "by_plate": {
+   "quarters": [
+    {
+     "kind": "bed",
+     "x": 128,
+     "y": 216,
+     "note": "아래 칸 침대 왼쪽"
+    },
+    {
+     "kind": "bed",
+     "x": 272,
+     "y": 216,
+     "note": "아래 칸 침대 오른쪽"
+    },
+    {
+     "kind": "bed",
+     "x": 128,
+     "y": 127,
+     "note": "위 칸 침대 왼쪽"
+    },
+    {
+     "kind": "bed",
+     "x": 272,
+     "y": 127,
+     "note": "위 칸 침대 오른쪽"
+    }
+   ],
+   "infirmary": [
+    {
+     "kind": "bed",
+     "x": 150,
+     "y": 244,
+     "note": "왼쪽 침상 끝"
+    },
+    {
+     "kind": "bed",
+     "x": 322,
+     "y": 244,
+     "note": "오른쪽 침상 끝"
+    }
+   ],
+   "workshop": [
+    {
+     "kind": "table",
+     "x": 300,
+     "y": 205,
+     "note": "작업대 위 오른쪽"
+    },
+    {
+     "kind": "table",
+     "x": 190,
+     "y": 205,
+     "note": "작업대 위 왼쪽"
+    }
+   ],
+   "greenhouse": [
+    {
+     "kind": "ledge",
+     "x": 175,
+     "y": 229,
+     "note": "왼쪽 화단 턱"
+    },
+    {
+     "kind": "ledge",
+     "x": 400,
+     "y": 229,
+     "note": "오른쪽 화단 턱"
+    }
+   ],
+   "storage": [
+    {
+     "kind": "shelf",
+     "x": 350,
+     "y": 87,
+     "note": "벽 선반 맨 위 칸 — 머리 위라 사람에 안 가린다"
+    },
+    {
+     "kind": "floor",
+     "x": 250,
+     "y": 272,
+     "note": "바닥 가운데"
+    }
+   ],
+   "power": [
+    {
+     "kind": "ledge",
+     "x": 430,
+     "y": 196,
+     "note": "오른쪽 장 위 턱"
+    },
+    {
+     "kind": "floor",
+     "x": 250,
+     "y": 274,
+     "note": "바닥 가운데"
+    }
+   ]
+  },
+  "plate_canvas_offset": [
+   54,
+   33
+  ],
+  "plate_canvas_note": "plates_meta(672×378 캔버스) 좌표로 바꾸려면 +54, +33"
  }
 }

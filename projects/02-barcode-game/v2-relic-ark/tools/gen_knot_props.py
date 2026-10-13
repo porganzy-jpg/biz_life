@@ -142,14 +142,18 @@ def trace_tentacle():        # 문어가 끌고 지나간 젖은 자국 + 빨판
     return down(im.filter(ImageFilter.GaussianBlur(0.6 * SS)), 0.8)
 
 
-def trace_scales():          # 작은 비늘 몇 조각 — 등불을 받아 따뜻하게 반짝(작은 물고기 떼)
-    w, h = 80, 34; im = canvas(w, h); d = ImageDraw.Draw(im); r = random.Random(4)
-    for i in range(7):
-        x, y, s_ = 10 + r.uniform(0, 60), 12 + r.uniform(0, 16), r.uniform(3.5, 5.5)
+def trace_scales():          # 작은 비늘 조각 — 등불을 받아 따뜻하게 반짝(작은 물고기 떼). S22 후속: 발자국·문어 자국과 같은 밀도로 키움
+    w, h = 150, 46; im = canvas(w, h); d = ImageDraw.Draw(im); r = random.Random(4)
+    d.ellipse([14 * SS, 24 * SS, 136 * SS, 42 * SS], fill=(*WET, 80))                 # 젖은 자리(떼가 지나간 물기)
+    for i in range(14):
+        x, y, s_ = 18 + r.uniform(0, 114), 14 + r.uniform(0, 22), r.uniform(5.5, 8.5)
         a0 = r.uniform(0, 360)
-        d.pieslice([(x - s_) * SS, (y - s_) * SS, (x + s_) * SS, (y + s_) * SS], a0, a0 + 180, fill=(214, 196, 150, 200), outline=(120, 98, 64, 220), width=SS)
-        d.ellipse([(x - 1) * SS, (y - 1) * SS, (x + 1) * SS, (y + 1) * SS], fill=(255, 238, 196, 230))
-    return down(im, 0.85)
+        d.pieslice([(x - s_) * SS, (y - s_ * 0.8) * SS, (x + s_) * SS, (y + s_ * 0.8) * SS], a0, a0 + 200,
+                   fill=(226, 204, 150, 245), outline=(98, 74, 44, 255), width=int(1.4 * SS))
+        d.arc([(x - s_ * 0.6) * SS, (y - s_ * 0.5) * SS, (x + s_ * 0.6) * SS, (y + s_ * 0.5) * SS], a0 + 30, a0 + 170,
+              fill=(150, 120, 80, 220), width=SS)                                     # 비늘 결
+        d.ellipse([(x - 1.6) * SS, (y - 1.6) * SS, (x + 1.6) * SS, (y + 1.6) * SS], fill=(255, 240, 200, 255))
+    return down(im.filter(ImageFilter.GaussianBlur(0.3 * SS)), 0.95)
 
 
 def trace_seaweed():         # 바닥에 떨어진 해초 한 가닥(정원사의 떼가 다녀감)
@@ -427,9 +431,92 @@ def subtype_sheet(made):
     return out
 
 
+# ══════ 4. 보관 자리(잠자리·앉는 자리) — 방 플레이트 위 칸 좌표(564×317) ══════
+#   유물(by_subtype 소품, 34×30 1배 → 화면 배율에 맞춰)을 그 사람 잠자리·자리 옆에 둘 때의 바닥점(아래 가운데)
+KEEPSAKE_SPOTS = {
+    "quarters":   [dict(kind="bed", x=128, y=216, note="아래 칸 침대 왼쪽"), dict(kind="bed", x=272, y=216, note="아래 칸 침대 오른쪽"),
+                   dict(kind="bed", x=128, y=127, note="위 칸 침대 왼쪽"), dict(kind="bed", x=272, y=127, note="위 칸 침대 오른쪽")],
+    "infirmary":  [dict(kind="bed", x=150, y=244, note="왼쪽 침상 끝"), dict(kind="bed", x=322, y=244, note="오른쪽 침상 끝")],
+    "workshop":   [dict(kind="table", x=300, y=205, note="작업대 위 오른쪽"), dict(kind="table", x=190, y=205, note="작업대 위 왼쪽")],
+    "greenhouse": [dict(kind="ledge", x=175, y=229, note="왼쪽 화단 턱"), dict(kind="ledge", x=400, y=229, note="오른쪽 화단 턱")],
+    "storage":    [dict(kind="shelf", x=350, y=87, note="벽 선반 맨 위 칸 — 머리 위라 사람에 안 가린다"), dict(kind="floor", x=250, y=272, note="바닥 가운데")],
+    "power":      [dict(kind="ledge", x=430, y=196, note="오른쪽 장 위 턱"), dict(kind="floor", x=250, y=274, note="바닥 가운데")],
+}
+
+
+def make_keepsake_spots():
+    meta_p = os.path.join(DECOR, "decor_meta.json")
+    meta = json.load(open(meta_p, encoding="utf-8"))
+    meta["keepsake_spots"] = {
+        "_note": "S22: 사람의 보관 유물을 놓는 자리. 칸 좌표(564×317, 칸 좌상단 0,0)의 바닥점 = 소품 아래 가운데. "
+                 "그 방 사람 수만큼 앞에서부터 쓴다. 침대는 quarters·infirmary 에만 있다. 플레이트가 없는 방은 plate_name_map 을 따른다",
+        "by_plate": KEEPSAKE_SPOTS,
+        "plate_canvas_offset": [54, 33],
+        "plate_canvas_note": "plates_meta(672×378 캔버스) 좌표로 바꾸려면 +54, +33",
+    }
+    json.dump(meta, open(meta_p, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+
+
+# ══════ 5. 「자리 받침」(끝 매듭 공통, 제안 A 승인 2026-10-13) ══════
+def d_seat_stand(s):         # 손때 묻은 낮은 나무 받침 + 둥근 방석 + 앞에 이름 천 고리. 등불색 테 한 줄
+    s.part(G.rect(6, 27.5, 9, 30), "umber", dark=True)                        # 발 둘
+    s.part(G.rect(25, 27.5, 28, 30), "umber", dark=True)
+    s.part(G.cut(4.5, 21.5, 29.5, 27.8, 0.8), "umber")                        # 받침 몸
+    s.part(G.cut(3, 19, 31, 22.2, 0.6), "ochre")                              # 윗판(등불색 테)
+    s.mark([(5, 25), (29, 25)], "umber", 0.45)                                # 나뭇결
+    s.part(G.ell(17, 18.6, 11.5, 2.6), "oxblood")                             # 방석
+    s.mark([(8, 18.4), (26, 18.4)], "oxblood", 0.5, False)
+    s.mark([(14, 22.2), (15, 24.2)], "cream", 0.5); s.mark([(20, 22.2), (19, 24.2)], "cream", 0.5)   # 이름 천 끈
+    s.part([(13.2, 24), (20.8, 24), (20.4, 29.2), (17, 28.4), (13.6, 29.2)], "cream")             # 이름 천
+    s.mark([(14.6, 26.2), (16.4, 25.8), (18.8, 26.4)], None, 0.5)             # 읽히지 않는 이름
+
+
+def make_seat_stand():
+    pid = "seat_stand"
+    sp = G.Sprite(1, seed=sum(map(ord, pid)) * 7); d_seat_stand(sp)
+    big = G.snap(sp.finish()); small = G.snap(big.resize((G.CELL_W, G.CELL_H), Image.LANCZOS))
+    big = G.brushed(big, seed=sum(map(ord, pid)))
+    big.save(os.path.join(G.OUT_4X, pid + ".png")); small.save(os.path.join(G.OUT_1X, pid + ".png"))
+    meta_p = os.path.join(G.OUT_1X, "props_meta.json"); meta = json.load(open(meta_p, encoding="utf-8"))
+    meta["seat_stand"] = {
+        "name": "자리 받침", "slots": 1, "w": G.CELL_W, "h": G.CELL_H,
+        "file": "static/art/props/seat_stand.png", "file4x": "static/art/props/x4/seat_stand.png",
+        "item_floor_y": 18, "item_floor_y_note": "그 사람의 물건(by_subtype 소품, 같은 배율)의 아래 가장자리를 받침 y=18(방석 윗면)에 맞춘다. 물건이 받침 앞에 그려진다(받침 → 물건 순)",
+        "use": "끝 매듭(seat) 공통. 서버 cres.seat.item → 그 물건의 갈래·하위 종류 → by_subtype 소품을 받침 위에. 자리는 decor_meta keepsake_spots",
+        "own_prop_arcs": {"arc_cook_seat": "chair_1", "arc_farmer_color": "sprout_on_sill", "arc_engineer_warm": "warm_basin", "arc_trader_unpack": "name_tag_worn"},
+        "own_prop_note": "이 넷은 받침 대신 그 매듭 소품(props_meta knots)을 쓴다",
+    }
+    json.dump(meta, open(meta_p, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    # 미리보기: 받침 / 받침+물건 셋 / 매듭 소품
+    from PIL import ImageFont
+    f = ImageFont.truetype("C:/Windows/Fonts/malgunbd.ttf", 15)
+    S_ = Image.new("RGBA", (5 * 230 + 20, 330), (26, 22, 18, 255)); dd = ImageDraw.Draw(S_)
+    dd.text((14, 8), "자리 받침(제안 A) — 1배 실제 크기 + 6배 · 받침 위에 그 사람의 물건", font=f, fill=(232, 220, 191))
+    items = [None, "prop_white_carton", "prop_hand_lamp", "prop_little_person_doll", "prop_candy_jar"]
+    for i, it in enumerate(items):
+        c = Image.new("RGBA", (34, 48), (0, 0, 0, 0)); c.alpha_composite(small, (0, 18))
+        if it:
+            pr = Image.open(os.path.join(G.OUT_1X, it + ".png")).convert("RGBA"); c.alpha_composite(pr, (0, 18 + 18 - 30))
+        x = 20 + i * 230
+        S_.alpha_composite(c, (x, 250)); S_.alpha_composite(c.resize((34 * 5, 48 * 5), Image.NEAREST), (x + 40, 40))
+        dd.text((x, 300), it.replace("prop_", "") if it else "seat_stand", font=f, fill=(240, 200, 120))
+    out = os.path.join(ROOT, "docs", "reports", "bg_S22_seat_stand.png"); S_.convert("RGB").save(out, optimize=True)
+    return out
+
+
 if __name__ == "__main__":
     # python tools/gen_knot_props.py            → 전부(매듭·흔적·하위 종류 소품)
     # python tools/gen_knot_props.py subtypes   → 하위 종류 소품 12종 + by_subtype 만
+    if sys.argv[1:] == ["seat"]:                   # 자리 받침만
+        print("seat stand", make_seat_stand()); sys.exit(0)
+    if sys.argv[1:] == ["scales"]:                 # S22 후속: 비늘 흔적 + 보관 자리만
+        im = trace_scales(); im.save(os.path.join(DECOR, "trace_scales.png"), optimize=True)
+        m = json.load(open(os.path.join(DECOR, "decor_meta.json"), encoding="utf-8"))
+        for it in m["traces"]["items"]:
+            if it["id"] == "trace_scales":
+                it.update(w=im.width, h=im.height, anchor=[im.width // 2, im.height - 6])
+        json.dump(m, open(os.path.join(DECOR, "decor_meta.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        make_keepsake_spots(); print("scales + keepsake_spots"); sys.exit(0)
     if sys.argv[1:] != ["subtypes"]:
-        k = make_knots(); t = make_traces(); print("sheet", sheet(k, t))
+        k = make_knots(); t = make_traces(); make_keepsake_spots(); print("sheet", sheet(k, t))
     print("subtype sheet", subtype_sheet(make_subtype_props()))
