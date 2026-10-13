@@ -695,6 +695,66 @@
   "mismatch_with_rule": 0,
   "mismatch_cells_without_rule_ref": 1480
  },
+ "imprint_compose": {
+  "order": [
+   "src/<role>[_b].png",
+   "hair/<role>_<body>/<hair>.png",
+   "faces/<role>_<body>/<face>.png 또는 <hair>_<face>.png (combo_patch_rule)",
+   "suit/<role>_<body>.png (원정 때만)",
+   "imprints/<shape>/<id>.png 각인 전부를 한 장에 모아",
+   "imprints/rolemask/<role>_<body>.png 로 그 한 장을 지움(destination-out)",
+   "본체 위에 얹음"
+  ],
+  "shape_dir": {
+   "어른 체형 A": "imprints/",
+   "어른 체형 B": "imprints/b/",
+   "아이 A": "imprints/kid/",
+   "아이 B": "imprints/kid_b/"
+  },
+  "grid": "모든 겹이 같은 셀(64, x4 는 256)·같은 3열 × 31행. 오프셋 0 — 행·프레임 위치가 이미 각 칸에 들어 있다",
+  "rolemask": "역할마다 각인이 모자·안경·목도리·손에 든 도구 밑으로 숨어야 하는 칸(흰색). 각인 시트는 정찰병·아이 몸에 맞춰 찍혔기 때문",
+  "role_override": "imprints/role/<role>_<body>/<id>.png 가 있으면 몸 모양 폴더의 같은 각인 대신 그것을 쓴다(가림판은 똑같이 건다). 가림판에 통째로 가려지는 칸만 그 역할 옷 위 가장 가까운 빈 칸으로 옮긴 판이다(예: 교섭가 목도리에 가려지던 「아낀 숨」 → 목도리 위 구릿빛 고리)",
+  "mirror": "옆모습(walk_side 등 오른쪽 원본)·방별 작업(왼쪽 원본)을 좌우 반전할 때 본체와 같은 반전을 각인·가림판에도 건다",
+  "x4": "각 파일의 _x4.png 를 쓰거나 x1 을 NEAREST 정수 확대"
+ },
+ "imprint_fit_result": {
+  "float_px": 0,
+  "masked_px": 4700,
+  "cells": 1264,
+  "lost": {},
+  "moved": {
+   "farmer_a": {
+    "debt_paid": 1
+   },
+   "scholar_a": {
+    "debt_paid": 1
+   },
+   "trader_a": {
+    "saved_breath": 56,
+    "debt_paid": 1
+   },
+   "farmer_b": {
+    "debt_paid": 1
+   },
+   "scholar_b": {
+    "debt_paid": 1
+   },
+   "trader_b": {
+    "saved_breath": 70,
+    "debt_paid": 1
+   }
+  },
+  "override_files": [
+   "imprints/role/farmer_a/debt_paid.png",
+   "imprints/role/scholar_a/debt_paid.png",
+   "imprints/role/trader_a/saved_breath.png",
+   "imprints/role/trader_a/debt_paid.png",
+   "imprints/role/farmer_b/debt_paid.png",
+   "imprints/role/scholar_b/debt_paid.png",
+   "imprints/role/trader_b/saved_breath.png",
+   "imprints/role/trader_b/debt_paid.png"
+  ]
+ },
  "elevator": {
   "sequence": [
    "elevator_wait",

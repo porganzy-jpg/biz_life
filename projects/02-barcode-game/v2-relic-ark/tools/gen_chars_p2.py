@@ -2346,6 +2346,19 @@ def imprint_layer(iid, a):
             c.clear(x, y)
     if 'side_cut' in a and mine and len(c.pixels()) <= 1 and len(mine) > 1:
         c = Cv()                              # 한 점만 남으면 그 프레임에서 끈다(S11 규칙과 같다)
+    # S22: 각인은 몸에 붙은 것이다 — 몸 밖 허공에 뜬 칸은 잘라 낸다(머리 뒤로 늘어지는 베일 sun_memory 만 예외).
+    #      몸 픽셀은 건드리지 않고 각인 레이어만 프레임별로 자른다(2026-10-03 원칙). 프레임이 다 만들어진 뒤에만 건다
+    #      (build_raw 안에서 가림 판정용으로 부를 때는 아직 합성본이 없다).
+    key = (a.get('role'), a.get('clip'), a.get('f'), a.get('body'))
+    if iid != 'sun_memory' and key in _RAW and c.pixels():
+        comp = img_of(key[0], key[1], key[2], key[3], 'short', 'f0')
+        before = c.pixels()
+        for (x, y) in before:
+            if comp.own(x, y) is None:
+                c.clear(x, y)
+        after = c.pixels()
+        if len(after) < len(before) and len(after) <= 1 and len(before) > 1:
+            c = Cv()                          # 한 점만 남으면 그 프레임에서 끈다
     return c
 
 
@@ -2812,6 +2825,87 @@ def main():
             sheet_of(cells, 1).save(os.path.join(d0, iid + '.png'))
             sheet_of(cells, SHEET_K).save(os.path.join(d0, iid + '_x4.png'))
     print('[ok] 각인 %d종 × 4벌(어른 A·B, 아이 A·B)' % len(IMPRINTS))
+
+    # ── 3-b. S22 역할 가림판 — 각인 시트는 몸 모양(어른 A·B, 아이 A·B)마다 한 벌인데 역할은 여덟이다 ────
+    #   각인은 정찰병(아이는 아이) 몸에 맞춰 찍혔다. 다른 역할은 모자·안경·목도리·손에 든 도구가 다른 자리에 있어서
+    #   각인이 그 위에 올라앉는 칸이 생긴다(감사: 940칸). 몸 픽셀은 그대로 두고, 역할마다 「각인을 그리지 않을 칸」만
+    #   흰 판(imprints/rolemask/<role>_<body>.png)으로 낸다 → 클라이언트는 각인을 다 그린 뒤 이 판으로 지운다(destination-out).
+    #   판 = (그 역할 합성본이 기준 몸과 다른 칸) ∩ (그 역할 합성본에 무언가 있는 칸) ∩ (그 칸에 각인이 오는 칸).
+    os.makedirs(os.path.join(OUT, 'imprints', 'rolemask'), exist_ok=True)
+    rk = lambda role: {'r_' + role: 'R', 'rD_' + role: 'RD', 'rL_' + role: 'RL'}
+    fit = {'float_px': 0, 'masked_px': 0, 'cells': 0, 'lost': {}, 'moved': {}, 'override_files': []}
+    over = {}
+    for body in BODY_IDS:
+        for role in ROLES:
+            srole = 'kid' if role == 'kid' else 'scout'
+            nk, sk = rk(role), rk(srole)
+            mcells = {}
+            for clip, n in CLIPS:
+                for i in range(n):
+                    comp = img_of(role, clip, i, body, 'short', 'f0')
+                    ref = img_of(srole, clip, i, body, 'short', 'f0')
+                    _b, _o, a0 = raw_of(srole, clip, i, body)
+                    layers = {iid: imprint_layer(iid, a0).pixels() for iid, _k, _p, _c in IMPRINTS}
+                    union = set().union(*layers.values())
+                    m = Image.new('L', (CELL, CELL), 0)
+                    mp = m.load()
+                    masked = set()
+                    for (x, y) in union:
+                        k1, k2 = comp.own(x, y), ref.own(x, y)
+                        if k1 is not None and nk.get(k1, k1) != sk.get(k2, k2):
+                            mp[x, y] = 255
+                            masked.add((x, y))
+                    mcells[(clip, i)] = m
+                    fit['cells'] += 1
+                    fit['masked_px'] += len(masked)
+                    for iid, px in layers.items():
+                        if iid != 'sun_memory':
+                            fit['float_px'] += sum(1 for p in px if comp.own(*p) is None)
+                        if px and not (px - masked):
+                            # 가림판에 통째로 가려진다 → 그 역할 옷 위 가장 가까운 빈 칸으로 옮긴 판(덮어쓰기 파일)을 만든다
+                            fb = suit_forbid(role, clip, i, body) | suit_layer(role, clip, i, body).pixels() | masked | union
+                            own_cols = {'r_' + role, 'rD_' + role, 'rL_' + role}
+                            cxm = sum(p[0] for p in px) / float(len(px)); cym = sum(p[1] for p in px) / float(len(px))
+                            cand = sorted([p for p in comp.pixels() if comp.own(*p) in own_cols and p not in fb
+                                           and math.hypot(p[0] - cxm, p[1] - cym) <= 7],
+                                          key=lambda p: (math.hypot(p[0] - cxm, p[1] - cym), p[1], p[0]))
+                            src_cv = imprint_layer(iid, a0)
+                            cols_ = [src_cv.own(*p) for p in sorted(px)]
+                            moved = Cv()
+                            if cand:
+                                p0 = cand[0]
+                                near = sorted([q for q in cand if abs(q[0] - p0[0]) <= 2 and abs(q[1] - p0[1]) <= 2],
+                                              key=lambda q: (abs(q[0] - p0[0]) + abs(q[1] - p0[1]), q[1], q[0]))
+                                for k_, q in enumerate(near[:len(px)]):
+                                    moved.set(q[0], q[1], cols_[k_ % len(cols_)])
+                            over.setdefault(iid, {})[(clip, i)] = moved
+                            if not moved.pixels() and clip in ('idle', 'walk', 'walk_side'):
+                                fit['lost'].setdefault(iid, []).append('%s_%s/%s/f%d' % (role, body, clip, i))
+                            else:
+                                fit['moved'].setdefault('%s_%s' % (role, body), {}).setdefault(iid, 0)
+                                fit['moved']['%s_%s' % (role, body)][iid] += 1
+            nm = '%s_%s' % (role, body)
+            mask_sheet_of(mcells, 1).save(os.path.join(OUT, 'imprints', 'rolemask', nm + '.png'))
+            mask_sheet_of(mcells, SHEET_K).save(os.path.join(OUT, 'imprints', 'rolemask', nm + '_x4.png'))
+            # 덮어쓰기 파일: 옮긴 칸은 옮긴 판, 나머지 칸은 원래 몸 모양 판 그대로(가림판은 똑같이 건다)
+            for iid, moved_cells in over.items():
+                d0 = os.path.join(OUT, 'imprints', 'role', nm)
+                os.makedirs(d0, exist_ok=True)
+                cells = {}
+                for clip, n in CLIPS:
+                    for i in range(n):
+                        if (clip, i) in moved_cells:
+                            cells[(clip, i)] = moved_cells[(clip, i)].img()
+                        else:
+                            _b, _o, a0 = raw_of(srole, clip, i, body)
+                            cells[(clip, i)] = imprint_layer(iid, a0).img()
+                sheet_of(cells, 1).save(os.path.join(d0, iid + '.png'))
+                sheet_of(cells, SHEET_K).save(os.path.join(d0, iid + '_x4.png'))
+                fit['override_files'].append('imprints/role/%s/%s.png' % (nm, iid))
+            over.clear()
+    IMPRINT_FIT = fit
+    print('[검사 S22] 각인 맞춤 %d칸: 몸 밖에 뜬 칸(베일 제외) %d · 역할 가림판으로 지운 칸 %d · 옮긴 판 %s · 기본 동작에서 통째로 사라진 각인 %d건'
+          % (fit['cells'], fit['float_px'], fit['masked_px'], fit['override_files'], sum(len(v) for v in fit['lost'].values())))
 
     # ── 4. 자동 검사 — 각인 × 각인 / × 얼굴 / × 머리 ────────────────────
     #     S8은 각인끼리만 봤다. S9에서 머리·얼굴 레이어까지 넓혔다(지시).
@@ -3728,6 +3822,57 @@ def main():
             exp_lit[sheet_name(role, body)] = 'check/' + nm
     print('[ok] S15 check/expedition.png · suit70.png · suit_faces.png · explit_*')
 
+    # ── S22 각인 합성 확인 — **출하 파일만으로** 클라이언트 순서대로 합성한다(생성기 내부 값을 쓰지 않는다) ──
+    #   기본 src → hair/<h> → 얼굴(<face> 또는 <hair>_<face>) → [suit] → 각인 12종(체형 폴더) → rolemask 로 지움
+    _fc = {}
+    def fimg(path):
+        if path not in _fc:
+            _fc[path] = Image.open(os.path.join(OUT, path)).convert('RGBA')
+        return _fc[path]
+    def compose_files(role, body, hair, face, suit=False):
+        im = fimg('src/%s.png' % sheet_name(role, body)).copy()
+        im.alpha_composite(fimg('hair/%s_%s/%s.png' % (role, body, hair)))
+        fp = ('faces/%s_%s/%s_%s.png' % (role, body, hair, face)) if (hair != 'short' and face != 'f0') \
+            else ('faces/%s_%s/%s.png' % (role, body, face))
+        im.alpha_composite(fimg(fp))
+        if suit:
+            im.alpha_composite(fimg('suit/%s_%s.png' % (role, body)))
+        lay = Image.new('RGBA', im.size, (0, 0, 0, 0))
+        sub = IMP_SUB[shape_of(role, body)][1:]
+        for iid, _k, _p, _c in IMPRINTS:
+            ov_p = 'imprints/role/%s_%s/%s.png' % (role, body, iid)
+            lay.alpha_composite(fimg(ov_p) if os.path.exists(os.path.join(OUT, ov_p))
+                                else fimg('/'.join(('imprints',) + sub + (iid + '.png',))))
+        mk = fimg('imprints/rolemask/%s_%s.png' % (role, body)).getchannel('L') if False else \
+            Image.open(os.path.join(OUT, 'imprints', 'rolemask', '%s_%s.png' % (role, body))).convert('L')
+        la = lay.getchannel('A')
+        la = Image.composite(Image.new('L', im.size, 0), la, mk)        # destination-out
+        lay.putalpha(la)
+        im.alpha_composite(lay)
+        return im
+    for body in BODY_IDS:
+        cols = ROLES
+        KZ = 2
+        cw = CELL * KZ
+        W_, H_ = 150 + 2 * len(cols) * cw + 30, 40 + len(CLIPS) * cw
+        im = Image.new('RGB', (W_, H_), (34, 26, 20))
+        d = ImageDraw.Draw(im)
+        for half, suit in enumerate((False, True)):
+            x0 = 150 + half * (len(cols) * cw + 30)
+            d.text((x0, 8), '잠수복 겹 없이' if not suit else '잠수복 겹 + 각인', font=f14, fill=(236, 206, 150))
+            for j, role in enumerate(cols):
+                hair, face = LOOK[(role, body)]
+                sh = compose_files(role, body, hair, face, suit)
+                for r_, (clip, n) in enumerate(CLIPS):
+                    cell = sh.crop((0, CELL * r_, CELL, CELL * (r_ + 1)))
+                    bgc = Image.new('RGBA', (cw, cw), (58, 44, 32, 255) if (r_ + j) % 2 else (66, 50, 36, 255))
+                    bgc.alpha_composite(up(cell, KZ))
+                    im.paste(bgc.convert('RGB'), (x0 + j * cw, 40 + r_ * cw))
+        for r_, (clip, n) in enumerate(CLIPS):
+            d.text((6, 40 + r_ * cw + cw // 2 - 8), '%2d %s' % (r_, clip), font=f12, fill=(214, 186, 150))
+        im.save(os.path.join(OUT, 'check', 'imprint_fit_%s.png' % body))
+    print('[ok] S22 check/imprint_fit_a.png · imprint_fit_b.png (출하 파일만으로 합성, 각인 12종 전부)')
+
     # ── 메타 ──
     meta = {
         '_comment': 'P2 48px 생활형 도트 — 확정 화풍. 정수 배율 + image-rendering:pixelated 필수.',
@@ -3789,6 +3934,20 @@ def main():
                             '정면 0~6행에서 곱슬·두건 × 얼굴②·③ 은 단순 겹침이면 틀린다 — 조합 파일이 그 답이다. '
                             '조합 파일은 모든 행(26)을 담고, 생성기가 18조합 × 16시트 × 전 행을 픽셀까지 검사한다.',
         'combo_check_result': COMBO_CHECK,
+        'imprint_compose': {
+            'order': ['src/<role>[_b].png', 'hair/<role>_<body>/<hair>.png',
+                      'faces/<role>_<body>/<face>.png 또는 <hair>_<face>.png (combo_patch_rule)',
+                      'suit/<role>_<body>.png (원정 때만)', 'imprints/<shape>/<id>.png 각인 전부를 한 장에 모아',
+                      'imprints/rolemask/<role>_<body>.png 로 그 한 장을 지움(destination-out)', '본체 위에 얹음'],
+            'shape_dir': {'어른 체형 A': 'imprints/', '어른 체형 B': 'imprints/b/', '아이 A': 'imprints/kid/', '아이 B': 'imprints/kid_b/'},
+            'grid': '모든 겹이 같은 셀(64, x4 는 256)·같은 3열 × 31행. 오프셋 0 — 행·프레임 위치가 이미 각 칸에 들어 있다',
+            'rolemask': '역할마다 각인이 모자·안경·목도리·손에 든 도구 밑으로 숨어야 하는 칸(흰색). 각인 시트는 정찰병·아이 몸에 맞춰 찍혔기 때문',
+            'role_override': 'imprints/role/<role>_<body>/<id>.png 가 있으면 몸 모양 폴더의 같은 각인 대신 그것을 쓴다(가림판은 똑같이 건다). '
+                             '가림판에 통째로 가려지는 칸만 그 역할 옷 위 가장 가까운 빈 칸으로 옮긴 판이다(예: 교섭가 목도리에 가려지던 「아낀 숨」 → 목도리 위 구릿빛 고리)',
+            'mirror': '옆모습(walk_side 등 오른쪽 원본)·방별 작업(왼쪽 원본)을 좌우 반전할 때 본체와 같은 반전을 각인·가림판에도 건다',
+            'x4': '각 파일의 _x4.png 를 쓰거나 x1 을 NEAREST 정수 확대',
+        },
+        'imprint_fit_result': IMPRINT_FIT,
         'elevator': {'sequence': ['elevator_wait', 'back_walk(칸으로 들어감)', 'elevator_turn', 'elevator_ride',
                                   'walk(내림)'],
                      'note': 'ride 는 거의 정지 — 내려가는 느낌은 칸 전체를 세로로 움직여 낸다. '
