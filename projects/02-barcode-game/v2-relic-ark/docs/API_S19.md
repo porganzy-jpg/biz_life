@@ -437,3 +437,10 @@
 
 ### 테스트 메모
 - S13~S24 스위트는 달력 이전 기능을 시험하므로 `S.CALENDAR_ENFORCE = False` 로 돈다. 달력은 `test_s25` 가 시험한다.
+- **S25 후속 — 「이게 뭐예요?」·전역 표**
+  - `subtype_pick.options` 와 `suggest` 는 언제나 카드 갈래의 것만 온다. `suggest` 에 `category` 가 붙는다.
+  - 알려진 가문(예: 8801043)은 `subtype_pick: null` 이다. 화면은 카드 id 가 다른 이전 응답의 `subtype_pick` 를 쓰지 않는다.
+  - 시험·플레이테스트 방주의 표는 전역 투표에 넣지도 세지도 않는다.
+    - uid 앞머리 `pt`, `r4dry`, `r5dry`, `smoke`, `s22check`, `dev_`, `devS`, `test`, `scn_` 등. 실제 사람 uid 는 `u…` 다.
+    - 개발 서버(`RELIC_DEV=1`)에서 만든 방주는 `test_ark` 로 표시된다.
+  - ★ `tools/reset_votes.py`: 이미 쌓인 시험 표를 지운다. 기본은 미리 보기이고, `--apply` 로 지운다(지우기 전 사본을 남긴다).

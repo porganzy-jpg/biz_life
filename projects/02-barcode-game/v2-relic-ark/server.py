@@ -666,6 +666,8 @@ def load_state(uid: str) -> dict:
         st["_loaded_res"] = dict(st.get("resources") or {})   # S18-D 저장 상한: 이번 요청에서 늘어난 분만 자른다
         return st
     st = new_state(uid)
+    if DEV_MODE:
+        st["test_ark"] = True                         # S25 후속: 개발 서버(RELIC_DEV)에서 만든 방주는 전역 집계에서 뺀다
     migrate_s13(st, uid)
     migrate_s15(st)
     migrate_s19(st, uid)
@@ -4277,7 +4279,7 @@ def scan(inp: ScanIn):
 
     # 가문 크라우드소싱
     manual = (inp.source or "").lower() == "manual"
-    if inp.user_category and card.family_code not in GEN.families and not manual:
+    if inp.user_category and card.family_code not in GEN.families and not manual and not vote_excluded(inp.uid, st):
         with db() as con:
             con.execute("INSERT INTO family_votes VALUES(?,?,?,?)", (inp.uid, card.family_code, inp.user_category, time.time()))
 
@@ -5643,6 +5645,26 @@ TEST_UID_PREFIXES = ("pmcheck", "scn_", "s2b_", "imp_", "test", "dev_")
 
 def is_test_uid(uid: str) -> bool:
     return uid in TEST_UIDS or uid.startswith(TEST_UID_PREFIXES)
+
+
+# S25 후속: 전역 투표·집계에서 빼는 시험·플레이테스트 방주(지표 제외 목록 + 플레이테스트 도구 uid 꼴)
+VOTE_EXCLUDE_PREFIXES = TEST_UID_PREFIXES + ("pt", "r4dry", "r5dry", "dry", "smoke", "s22check", "s22c", "s22d", "s22e",
+                                             "s23", "s24", "s25", "devs", "play", "bug")
+VOTES_EXCLUDE_TEST = True       # 투표 장치 자체를 시험하는 옛 스위트(S22~S25)만 끈다
+
+
+def vote_uid_excluded(uid: str) -> bool:
+    if not VOTES_EXCLUDE_TEST:
+        return False
+    u = str(uid or "").lower()
+    return uid in TEST_UIDS or u.startswith(VOTE_EXCLUDE_PREFIXES)
+
+
+def vote_excluded(uid: str, st: dict | None = None) -> bool:
+    """이 방주의 표를 전역 집계에 넣지 않나 — 시험 uid 꼴이거나, 개발 서버에서 만든 방주(test_ark)."""
+    if not VOTES_EXCLUDE_TEST:
+        return False
+    return vote_uid_excluded(uid) or bool((st or {}).get("test_ark"))
 
 
 @app.get("/api/lore/tower")
@@ -8384,16 +8406,23 @@ def subtype_options(cat: str) -> list:
 
 def subtype_vote_suggest(code: str, cat: str) -> dict | None:
     """다른 방주들이 이 바코드를 뭐라고 불렀나 — 서로 다른 방주 수만 센다(개인 정보 없음)."""
+    if cat not in SUBTYPE_KO:
+        return None
     with db() as con:
-        rows = con.execute("SELECT subtype, COUNT(DISTINCT uid) n FROM subtype_votes WHERE barcode=? AND category=? GROUP BY subtype",
-                           (code, cat)).fetchall()
+        raw = con.execute("SELECT uid, subtype FROM subtype_votes WHERE barcode=? AND category=?", (code, cat)).fetchall()
+    cnt: dict = {}
+    for r_ in raw:                                   # S25 후속: 시험·플레이테스트 방주 표는 세지 않는다. 그 갈래 종류만
+        if vote_uid_excluded(r_["uid"]) or r_["subtype"] not in (SUBTYPE_KO.get(cat) or {}):
+            continue
+        cnt.setdefault(r_["subtype"], set()).add(r_["uid"])
+    rows = [{"subtype": k, "n": len(v)} for k, v in cnt.items()]
     tot = sum(int(r["n"]) for r in rows)
     if tot < SUBTYPE_VOTE_MIN or not rows:
         return None
     top = max(rows, key=lambda r: (int(r["n"]), r["subtype"]))
     if int(top["n"]) / tot < SUBTYPE_VOTE_SHARE:
         return None
-    return {"id": top["subtype"], "ko": sub_ko(cat, top["subtype"]), "arks": int(top["n"])}
+    return {"id": top["subtype"], "ko": sub_ko(cat, top["subtype"]), "arks": int(top["n"]), "category": cat}
 
 
 def subtype_pick_for(st: dict, code: str, card_d: dict, bmeta: dict, uid: str = "") -> dict | None:
@@ -8408,6 +8437,7 @@ def subtype_pick_for(st: dict, code: str, card_d: dict, bmeta: dict, uid: str = 
     opts = subtype_options(cat)
     if len(opts) < 2:
         return None
+    assert all(o["id"] in (SUBTYPE_KO.get(cat) or {}) for o in opts)   # S25 후속 회귀 가드: 선택지는 카드 갈래의 것만
     wanted = any(cat in {x.get("category") for x in list(role_taste(r.get("role", "")).get("needs") or []) + likes_of(uid, r)
                          if isinstance(x, dict)} for r in st.get("residents_list") or [])
     sug = subtype_vote_suggest(code, cat)
@@ -8473,7 +8503,7 @@ def scan_subtype(inp: SubtypeIn):
         p["warm"] = list(where.get("warm_ids") or [])
         p["chain"] = [{"rid": x["target"].get("resident_id"), "name": x.get("name"), "tier": x["tier"]}
                       for x in where.pop("_internal", None) or where.get("suggest") or [] if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
-    if not (p or {}).get("manual"):                  # S24: 손으로 친 스캔은 전역 이름 투표에 넣지 않는다
+    if not (p or {}).get("manual") and not vote_excluded(inp.uid, st):   # S24 손 입력 · S25 시험 방주는 전역 투표에 넣지 않는다
         with db() as con:
             con.execute("INSERT OR REPLACE INTO subtype_votes VALUES(?,?,?,?,?)", (inp.uid, code, cat, inp.subtype, time.time()))
     save_state(inp.uid, st)

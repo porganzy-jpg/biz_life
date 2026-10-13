@@ -17,6 +17,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 import server as S  # noqa: E402
 S.CALENDAR_ENFORCE = False   # S25: 이 스위트는 해금 달력 전 기능 자체를 시험한다(달력은 test_s25)
+S.VOTES_EXCLUDE_TEST = False   # 전역 투표 장치를 시험한다(시험 방주 제외는 test_s25b)
 from fastapi.testclient import TestClient  # noqa: E402
 
 S.DB = Path(tempfile.mkdtemp()) / "t24.db"

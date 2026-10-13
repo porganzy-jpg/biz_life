@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 S.DB = Path(tempfile.mkdtemp()) / "t25.db"
 S.DEV_MODE = True
 S.CALENDAR_ENFORCE = True
+S.VOTES_EXCLUDE_TEST = False   # 전역 투표 장치를 시험한다(시험 방주 제외는 test_s25b)
 S.init_db()
 C = TestClient(S.app)
 RESULTS: list[tuple[bool, str]] = []
