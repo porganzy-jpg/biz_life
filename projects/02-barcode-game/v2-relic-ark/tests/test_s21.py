@@ -137,6 +137,7 @@ def t_warm_not_first():
     """3. warm 이 아닌 제안이 있으면 warm 은 1순위가 아니다."""
     uid = "dev_s21_warm"
     ark(uid)
+    post("/api/prefs", {"uid": uid, "labels_always": True})   # S23: 라벨 모드에서의 순서 규칙
     bad = 0
     n = 0
     for i in range(30):

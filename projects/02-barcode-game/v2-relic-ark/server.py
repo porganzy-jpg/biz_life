@@ -1768,6 +1768,7 @@ def public_state(st: dict, uid: str) -> dict:
         "needs_today": needs_today_public(st, uid),
         "room_decor": room_decor_public(st),
         "entrance_airlock": {"level": int((st.get("entrance_airlock") or {}).get("level") or 0)},
+        "prefs": {"labels_always": bool((st.get("prefs") or {}).get("labels_always"))},
         "personal_imprints_catalog": {k: {"name": v.get("name"), "visual": (v.get("visual") or {}).get("ko"),
                                           "line": (v.get("visual") or {}).get("line"), "ability_ko": v.get("ability_ko"),
                                           "cost": (v.get("cost") or {}).get("ko"), "effect": v.get("effect")}
@@ -4019,7 +4020,15 @@ def apply_storage_cap(st: dict, before: dict | None) -> dict:
         for k, v in lost.items():
             tot[k] = int(tot.get(k, 0)) + int(v)
         carry = dict(st.get("overflow_carry") or {})
+        to_table = 0
         for k, v in lost.items():
+            if k in ("food", "water") and TABLE_STORE_FIRST:     # S23: 넘친 식량·물은 한 상 몫부터 채운다
+                core_ = core_of(st)
+                room_ = max(0, TABLE_STORE_MAX - int(core_.get("table_store") or 0))
+                put = min(room_, int(v))
+                core_["table_store"] = int(core_.get("table_store") or 0) + put
+                to_table += put
+                v = int(v) - put
             g = "morale" if k in ("food", "water") else "trade"
             carry[g] = int(carry.get(g, 0)) + int(v)
         conv = dict((prev or {}).get("converted") or {})
@@ -4292,7 +4301,7 @@ def scan(inp: ScanIn):
     where = where_for(st, inp.uid, item_, compact=int(ss_.get("scans") or 0) > 1)
     cc["scans"][card_d["id"]]["warm"] = list(where.get("warm_ids") or [])
     cc["scans"][card_d["id"]]["chain"] = [{"rid": x["target"].get("resident_id"), "name": x.get("name"), "tier": x["tier"]}
-                                          for x in where.get("suggest") or []
+                                          for x in where.pop("_internal", None) or where.get("suggest") or []
                                           if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
     where["subtype_pick"] = subtype_pick_for(st, code, card_d, bmeta)
     save_state(inp.uid, st)
@@ -4431,6 +4440,9 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     out["decor_trace"] = decor_trace(st, uid)
     out["visitors_book"] = visitors_book(st)
     out["missed_chain"] = missed_chain_of(st, uid)
+    out["evening_table"] = evening_table_public(st, uid)
+    out["tomorrow_ask"] = tomorrow_ask(st, uid)
+    out["notebook_tip"] = (core_of(st).get("gossip") or {}) if (core_of(st).get("gossip") or {}).get("day") == day else None
     out["novelty"] = core_t.get("novelty")
     out["wishes_new"] = list(out.get("wishes_new") or []) + wishes_tick(st, uid)
     save_state(uid, st)
@@ -6108,7 +6120,7 @@ def need_today(uid: str, r: dict, day: int) -> dict | None:
     if not needs:
         return None
     n = random.Random(f"{uid}|{r['id']}|{day}|need").choice(needs)
-    return {"category": n.get("category"), "subtype": n.get("subtype"), "ko": rule_ko(n)}
+    return {"category": n.get("category"), "subtype": n.get("subtype"), "ko": rule_ko(n), "idx": needs.index(n)}
 
 
 def join_day(st: dict, r: dict) -> int:
@@ -6790,10 +6802,10 @@ def where_for(st: dict, uid: str, item: dict, compact: bool = False) -> dict:
         pick.append(x)
         if len(pick) >= int(_GP.get("suggest_count", 3)):
             break
-    return {"scan_id": item.get("card_id"), "suggest": pick,
+    return notebook_view(st, uid, item, {"scan_id": item.get("card_id"), "suggest": pick,
             "warm_ids": [x["target"]["resident_id"] for x in pick if x.get("fallback")],
             "shelf": {"target": "shelf", "value": OUTCOME_V.get("keep", 0.8), "label": "선반에"},
-            "default": "shelf", "compact": bool(compact)}
+            "default": "shelf", "compact": bool(compact)})
 
 
 def detach_item(st: dict, ref: str | None, placed: str | None) -> dict | None:
@@ -7220,6 +7232,7 @@ def core_public(st: dict, uid: str) -> dict:
             "seat": cr.get("seat"),
             "arc_line": r.get("arc_line"),
             "keepsakes_recent": keepsakes_recent(cr),        # S22 ②: 그 사람 곁에 그릴 최근 받은 물건 셋
+            "notebook": notebook_public(st, uid, r),             # S23 사람 수첩
         }
     return {"residents": res, "props": list(core_of(st)["props"])}
 
@@ -7562,6 +7575,8 @@ def core_tick(st: dict, uid: str) -> dict:
     morning_core(st, uid)
     moved = shelf_autofill(st)
     nov = novelty_tick(st, uid, visits, arcs)
+    gossip_tick(st, uid, ss)
+    night_visitor_tick(st, uid)
     return {"session": ss, "visits": visits, "arcs": arcs, "autofill": moved, "novelty": nov}
 
 
@@ -7645,8 +7660,11 @@ def give(inp: GiveIn):
     if warm_ids is None:
         warm_ids = list(where_for(st, inp.uid, item).get("warm_ids") or [])   # S22 r4-2: 선반 물건도 「어디로」가 제안한 그대로
     target = inp.target if inp.target not in ("keep",) else "shelf"
+    nb_before = notebook_before(st, inp.uid, item, target)
     out = give_apply(st, inp.uid, item, target, placed, warm_ids=warm_ids)
     out["intent"] = give_intent(st, inp.uid, c["scans"].get(inp.scan_id) if inp.scan_id else None, item, target, out)
+    out["revealed"] = notebook_record(st, inp.uid, item, target, out, nb_before)
+    out["repeat"] = repeat_line(st, inp.uid, item, target, out)
     if out["tier"] != "not_for_me" and target != "shelf":
         og = (st.get("octopus") or {}).get("gift_relic")
         if og and og.get("card_id") == item.get("card_id"):
@@ -7818,7 +7836,7 @@ def leaving(uid: str):
     mc = missed_chain_of(st, uid)
     save_state(uid, st)
     return {"title": card.get("changed_title"), "changed": ch, "next_visit": next_visit_public(st, uid),
-            "missed_chain": mc, "close_label": card.get("close_label")}
+            "missed_chain": mc, "tomorrow_ask": tomorrow_ask(st, uid), "close_label": card.get("close_label")}
 
 
 
@@ -8115,6 +8133,7 @@ def octopus_gift_where(st: dict, uid: str) -> dict | None:
     it = item_from_row(row)
     it["card_id"] = g["card_id"]
     w = where_for(st, uid, it)
+    w.pop("_internal", None)
     w["relic_id"] = g["card_id"]
     w["name"] = g.get("name")
     return w
@@ -8355,7 +8374,7 @@ def scan_subtype(inp: SubtypeIn):
         where = where_for(st, inp.uid, item)
         p["warm"] = list(where.get("warm_ids") or [])
         p["chain"] = [{"rid": x["target"].get("resident_id"), "name": x.get("name"), "tier": x["tier"]}
-                      for x in where.get("suggest") or [] if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
+                      for x in where.pop("_internal", None) or where.get("suggest") or [] if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
     with db() as con:
         con.execute("INSERT OR REPLACE INTO subtype_votes VALUES(?,?,?,?,?)", (inp.uid, code, cat, inp.subtype, time.time()))
     save_state(inp.uid, st)
@@ -8376,6 +8395,8 @@ def give_intent(st: dict, uid: str, rec: dict | None, item: dict, target, out: d
     nd = need_today(uid, r, day_of(st)) if r else None
     if not nd or not match(nd, item):
         return False
+    if vote_mismatch(st, item):
+        return False                                  # S23: 다른 방주들이 다르게 부르는 것을 내 마음대로 불렀으면 큰 장면 없음
     idays = core_of(st).setdefault("intent_days", {})
     if INTENT_ONCE and idays.get(r["id"]) == day_of(st):
         return False                                  # 같은 사람 하루 한 번(기획 S22 intent.once_per_resident_per_day)
@@ -8670,6 +8691,467 @@ def newest_resident_name(st: dict) -> str | None:
     start = float(st.get("created") or 0) + 60
     late = [r for r in st.get("residents_list") or [] if float(r.get("joined") or 0) > start]
     return max(late, key=lambda r: float(r.get("joined") or 0))["name"] if late else None
+
+
+# ── S23 1단계 뒤쪽: 사람 수첩 · 받는 저녁 · 내일의 부탁 (docs/API_S19.md §13) ──────────────
+_S22B = CORE_A.get("s22") or {}
+_NB = _S22B.get("notebook") or {}
+_ET = _S22B.get("evening_table") or {}
+NB_LABELS_UNTIL = int(_NB.get("labels_until_day", 2))
+NB_RECORD_EARLY = bool(_NB.get("record_days_1_2", True))
+NB_GOSSIP_PER_EVENING = int(_NB.get("gossip_per_evening", 1))
+ET_FOOD = int(_ET.get("food_cost_total", 4))
+ET_NO_FOOD_OK = bool(_ET.get("no_food_ok", True))
+ET_TRUST = (int(_ET.get("trust_pair", 3)), int(_ET.get("trust_pair_if_item_liked_by_either", 5)),
+            int(_ET.get("trust_pair_if_item_liked_by_both", 7)))
+ET_REPEAT = float(_ET.get("same_pair_repeat_mult", 0.5))
+_OVX = (CORE_A.get("s19_server_numbers") or {}).get("overflow") or {}
+TABLE_STORE_FIRST = bool(_OVX.get("to_table_store_first", False))
+TABLE_STORE_MAX = int(_OVX.get("table_store_max", 12))
+NIGHT_VISITORS = [v for v in (_live_or_draft("visitors.json").get("night_visitors") or []) if isinstance(v, dict) and v.get("id")]
+KIND_KO = {"like": "좋아함", "need": "필요", "memory": "기억", "dislike": "안 맞음"}
+
+
+def _rot(st: dict, key: str, lines: list):
+    """줄 목록을 방주 안에서 돌려 쓴다(같은 줄 연속 금지). (줄, 번호) 또는 (None, None)."""
+    if isinstance(lines, str):
+        lines = [lines]
+    if not lines:
+        return None, None
+    rot = core_of(st)["flags"].setdefault("rot", {})
+    i = int(rot.get(key, 0)) % len(lines)
+    rot[key] = i + 1
+    return lines[i], i
+
+
+# ① 사람 수첩 ─────────────────────────────────────────────────
+def labels_shown(st: dict) -> bool:
+    return day_of(st) <= NB_LABELS_UNTIL or bool((st.get("prefs") or {}).get("labels_always"))
+
+
+def notebook_slots(st: dict, uid: str, r: dict) -> list:
+    """수첩 칸: 좋아함(역할 + 덧붙임) · 필요(역할 목록) · 기억(열려야 이름이 보인다) · 안 맞음(덧붙임)."""
+    rt = role_taste(r.get("role", ""))
+    out = []
+    for i, x in enumerate(likes_of(uid, r)):
+        out.append({"key": f"like:{i}", "kind": "like", "ko": rule_ko(x), "rule": x})
+    for i, x in enumerate(rt.get("needs") or []):
+        out.append({"key": f"need:{i}", "kind": "need", "ko": rule_ko(x), "rule": x})
+    for m in rt.get("memories") or []:
+        out.append({"key": f"memory:{m.get('id')}", "kind": "memory", "ko": rule_ko(m.get("trigger") or {}), "rule": m.get("trigger")})
+    tw = twist_of(uid, r).get("dislike")
+    if tw:
+        out.append({"key": "dislike", "kind": "dislike", "ko": tw.get("ko"), "rule": {"category": tw["category"], "subtype": tw.get("subtype")}})
+    return out
+
+
+def nb_known(st: dict, rid: str) -> dict:
+    return cres(st, rid).setdefault("notebook", {})
+
+
+def slot_for_tier(st: dict, uid: str, r: dict, item: dict, tier: str, info: dict | None = None) -> str | None:
+    """이 물건이 그 사람의 어느 칸을 건드리나(tier 에 맞춰)."""
+    if tier == "need":
+        nd = need_today(uid, r, day_of(st))
+        return f"need:{nd['idx']}" if nd and match(nd, item) else None
+    if tier == "like":
+        for i, x in enumerate(likes_of(uid, r)):
+            if match(x, item):
+                return f"like:{i}"
+        return None
+    if tier == "memory":
+        m = (info or {}).get("memory") or memory_match(st, r, item)
+        return f"memory:{m.get('id')}" if m else None
+    if tier == "not_for_me":
+        tw = twist_of(uid, r).get("dislike")
+        if tw and match({"category": tw["category"], "subtype": tw.get("subtype")}, item):
+            return "dislike"
+    return None
+
+
+def sign_hint(st: dict, uid: str, r: dict, item: dict, tier: str, slot: str | None) -> str:
+    """라벨 대신 기색 한 줄(resident_tastes roles.<role>.signs, 없으면 ui_moments.signs_generic[갈래])."""
+    signs = role_taste(r.get("role", "")).get("signs") or {}
+    seed = random.Random(f"{uid}|{day_of(st)}|{r['id']}|{item_key(item)}|sign")
+    lines = None
+    if slot and slot.startswith("need:"):
+        arr = signs.get("needs") or []
+        k = int(slot.split(":")[1])
+        lines = arr[k] if k < len(arr) else None
+    elif slot and slot.startswith("like:"):
+        arr = signs.get("likes") or []
+        k = int(slot.split(":")[1])
+        lines = arr[k] if k < len(arr) else None
+    if not lines:
+        lines = (moments().get("signs_generic") or {}).get(item.get("category") or "") or []
+    if isinstance(lines, str):
+        lines = [lines]
+    t = seed.choice(lines) if lines else "{name} 님이 이쪽을 한 번 보셨습니다."
+    return fill_text(t, st, r, item)
+
+
+def notebook_view(st: dict, uid: str, item: dict, w: dict) -> dict:
+    """3일째부터(설정 labels_always 가 아니면): 순서는 사람 → 방(값 정렬·첫자리 강조 없음), 모르는 칸은 라벨 대신 기색."""
+    w["_internal"] = [dict(x) for x in w["suggest"]]     # 서버만 쓰는 원래 등급(응답 전에 뺀다)
+    if labels_shown(st):
+        w.update({"labels": True, "order": "value"})
+        return w
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    order = [r["id"] for r in st.get("residents_list") or []]
+    ppl = sorted([x for x in w["suggest"] if x["kind"] == "resident"], key=lambda x: order.index(x["target"]["resident_id"])
+                 if x["target"]["resident_id"] in order else 99)
+    rooms = sorted([x for x in w["suggest"] if x["kind"] != "resident"], key=lambda x: x["target"].get("slot", 0))
+    for x in ppl:
+        r = by.get(x["target"]["resident_id"])
+        if not r:
+            continue
+        tier = x.get("tier")
+        if tier == "chain_beat":
+            x["known"] = True                         # 사슬은 이미 보이는 이야기다
+            continue
+        slot = slot_for_tier(st, uid, r, item, tier)
+        if slot and slot in nb_known(st, r["id"]):
+            x["known"] = True
+            x["slot"] = slot
+            continue
+        x["hint_ko"] = sign_hint(st, uid, r, item, tier, slot)
+        x["known"] = False
+        for k in ("tier", "icon", "reason_ko", "value", "mult", "fallback", "arc_id", "step"):
+            x.pop(k, None)
+    for x in rooms:
+        x["known"] = True
+    w["suggest"] = ppl + rooms
+    w.update({"labels": False, "order": "fixed"})
+    return w
+
+
+def notebook_before(st: dict, uid: str, item: dict, target) -> dict:
+    """주기 전 — 라벨이 보였나, 그 사람의 그 칸을 이미 알았나(맞힘 판정)."""
+    if not isinstance(target, dict) or not target.get("resident_id"):
+        return {}
+    r = next((x for x in st.get("residents_list") or [] if x["id"] == target["resident_id"]), None)
+    if not r:
+        return {}
+    return {"labels": labels_shown(st), "known": set(nb_known(st, r["id"]).keys())}
+
+
+def notebook_record(st: dict, uid: str, item: dict, target, out: dict, before: dict) -> dict | None:
+    """건넨 뒤 결과 공개 + 수첩 기록. big = 라벨 없이 맞혔다(모르던 칸을 처음 맞힘)."""
+    if not isinstance(target, dict) or not target.get("resident_id"):
+        return None
+    r = next((x for x in st.get("residents_list") or [] if x["id"] == target["resident_id"]), None)
+    if not r:
+        return None
+    tier = out.get("tier")
+    info = {"memory": {"id": ((out.get("effects") or {}).get("memory") or {}).get("id")}} if (out.get("effects") or {}).get("memory") else None
+    slot = slot_for_tier(st, uid, r, item, tier, info)
+    if not slot and tier == "chain_beat":                # 사슬이 풀린 물건도 좋아함·필요 칸을 건드렸으면 적는다
+        for t2 in ("need", "like"):
+            slot = slot_for_tier(st, uid, r, item, t2)
+            if slot:
+                break
+    known_before = slot in (before.get("known") or set()) if slot else True
+    big = bool(slot) and not known_before and not before.get("labels") and tier in ("need", "like", "memory", "chain_beat")
+    if slot and (NB_RECORD_EARLY or not before.get("labels")) and slot not in nb_known(st, r["id"]):
+        nb_known(st, r["id"])[slot] = {"day": day_of(st), "how": "give", "item": item.get("name")}
+    R = moments().get("reveal") or {}
+    kind = "discovered" if big else (tier if tier in R else None)
+    line, i = _rot(st, f"reveal.{kind}", R.get(kind) or []) if kind else (None, None)
+    return {"kind": tier, "big": big, "slot": slot, "new": bool(slot) and not known_before,
+            "slot_ko": next((x["ko"] for x in notebook_slots(st, uid, r) if x["key"] == slot), None) if slot else None,
+            "line": fill_text(line, st, r, item), "line_key": f"reveal.{kind}.{i}" if line else None}
+
+
+def notebook_public(st: dict, uid: str, r: dict) -> dict:
+    kn = nb_known(st, r["id"])
+    rows = []
+    for x in notebook_slots(st, uid, r):
+        k = x["key"] in kn
+        rows.append({"key": x["key"], "kind": x["kind"], "kind_ko": KIND_KO.get(x["kind"]), "known": k,
+                     "ko": x["ko"] if k else None, "how": (kn.get(x["key"]) or {}).get("how"),
+                     "day": (kn.get(x["key"]) or {}).get("day")})
+    return {"slots": rows, "known": sum(1 for x in rows if x["known"]), "total": len(rows)}
+
+
+def repeat_line(st: dict, uid: str, item: dict, target, out: dict) -> dict | None:
+    """같은 세션 같은 사람 두 번째 — 그 사람이 「{other} 님 드려 보세요」(값은 안에서 ×0.8 그대로)."""
+    if not isinstance(target, dict) or not target.get("resident_id"):
+        return None
+    if not any(d.get("kind") == "same_person_today" for d in out.get("diminish") or []):
+        return None
+    r = next((x for x in st.get("residents_list") or [] if x["id"] == target["resident_id"]), None)
+    if not r:
+        return None
+    rank = {"chain_beat": 0, "memory": 1, "need": 2, "like": 3, "warm": 4, "not_for_me": 9}
+    cands = []
+    for o in st.get("residents_list") or []:
+        if o["id"] == r["id"] or o["id"] in (st.get("outside") or []):
+            continue
+        t, _ = resident_tier(st, uid, o, item)
+        given = sum(1 for g in cres(st, o["id"])["given"] if same_session(st, g))
+        cands.append((rank.get(t, 5), given, o["name"], o))
+    if not cands:
+        return None
+    other = min(cands, key=lambda x: x[:3])[3]
+    line, i = _rot(st, f"repeat.{r['id']}", role_taste(r.get("role", "")).get("repeat_lines") or [])
+    line = line or "{other} 님 드려 보세요. 저는 오늘 많이 받았어요."
+    return {"line": fill_text(line, st, r, item, other["name"]), "other_id": other["id"], "other_name": other["name"],
+            "line_key": f"resident_tastes.roles.{r.get('role')}.repeat_lines.{i}" if i is not None else None}
+
+
+def gossip_tick(st: dict, uid: str, ss: dict) -> dict | None:
+    """그날 첫 저녁 세션: 가장 많이 받은 사람의 모르는 칸 하나를 다른 주민·관리실이 흘린다."""
+    c = core_of(st)
+    day = day_of(st)
+    if NB_GOSSIP_PER_EVENING <= 0 or not is_evening() or (c.get("gossip") or {}).get("day") == day or not ss.get("new"):
+        return None
+    ppl = [r for r in st.get("residents_list") or []]
+    if not ppl:
+        return None
+    top = max(ppl, key=lambda r: (len(cres(st, r["id"])["given"]), r["id"]))
+    unknown = [x for x in notebook_slots(st, uid, top) if x["key"] not in nb_known(st, top["id"]) and x["kind"] in ("like", "need", "dislike")]
+    if not unknown:
+        c["gossip"] = {"day": day, "none": True}
+        return None
+    rng = random.Random(f"{uid}|{day}|gossip")
+    slot = unknown[0] if len(unknown) == 1 else rng.choice(unknown)
+    others = [r for r in ppl if r["id"] != top["id"]]
+    teller = rng.choice(others) if others and rng.random() < 0.7 else None
+    N = moments().get("notebook") or {}
+    lines = (N.get("gossip_resident") if teller else N.get("gossip_office")) or N.get("gossip") or []
+    line, _ = _rot(st, "gossip", lines)
+    line = line or ("{other} 님 말로는, {name} 님이 「{ko}」 쪽을 반가워하신답니다." if teller
+                    else "관리실에서 귀띔해 드립니다. {name} 님은 「{ko}」 쪽에 마음이 가신다고 합니다.")
+    line = fill_text(line, st, top, None, teller["name"] if teller else "관리실", ko=slot["ko"], kind_ko=KIND_KO.get(slot["kind"], ""))
+    nb_known(st, top["id"])[slot["key"]] = {"day": day, "how": "gossip"}
+    g = {"day": day, "resident_id": top["id"], "name": top["name"], "slot": slot["key"], "kind": slot["kind"], "ko": slot["ko"],
+         "teller_id": teller["id"] if teller else None, "line": line}
+    c["gossip"] = g
+    overnight_add(st, "notebook_tip", {k: v for k, v in g.items() if k != "day"})
+    return g
+
+
+class PrefsIn(BaseModel):
+    uid: str
+    labels_always: bool | None = None
+
+
+@app.post("/api/prefs")
+def set_prefs(inp: PrefsIn):
+    st = load_state(inp.uid)
+    pr = st.setdefault("prefs", {})
+    if inp.labels_always is not None:
+        pr["labels_always"] = bool(inp.labels_always)
+    save_state(inp.uid, st)
+    return {"ok": True, "prefs": {"labels_always": bool(pr.get("labels_always"))},
+            "label_ko": (moments().get("notebook") or {}).get("labels_always_label") or "늘 이름표 보기"}
+
+
+# ② 받는 저녁, 한 상 ─────────────────────────────────────────────
+def table_candidates(st: dict) -> list:
+    day = day_of(st)
+    out, seen = [], set()
+    rows = list(st.get("shelf") or []) + list(st.get("stored") or [])
+    today = [rec for rec in core_of(st)["scans"].values() if int(rec.get("day") or 0) == day]
+    today_ids = {(rec.get("item") or {}).get("card_id") for rec in today}
+    rows.sort(key=lambda x: (x.get("card_id") not in today_ids, x.get("category") not in ("food", "drink")))
+    for it in rows:
+        rid = it.get("card_id") or it.get("id")
+        if not rid or rid in seen:
+            continue
+        seen.add(rid)
+        out.append({"relic_id": rid, "name": it.get("relic_name") or it.get("name"), "category": it.get("category"),
+                    "today": rid in today_ids})
+        if len(out) >= 8:
+            break
+    return out
+
+
+def evening_table_public(st: dict, uid: str) -> dict | None:
+    """그날 첫 저녁 세션(17~5시)에 한 상. 이미 차렸으면 done 과 결과."""
+    if not is_evening():
+        return None
+    c = core_of(st)
+    day = day_of(st)
+    tb = c.get("table") or {}
+    E = moments().get("evening") or {}
+    if tb.get("day") == day:
+        return {"open": False, "done": True, "result": tb.get("result")}
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    returned = []
+    for rid, cr in (c.get("res") or {}).items():
+        for g in cr.get("given") or []:
+            if int(g.get("day") or 0) == day and rid in by:
+                returned.append({"name": g.get("name"), "to_name": by[rid]["name"], "resident_id": rid})
+    for v in (c["visits"].get("rows") or []) if c["visits"].get("day") == day else []:
+        if v.get("kind") in ("visitor", "night_visitor"):
+            returned.append({"visitor_id": v.get("visitor_id"), "name": v.get("ko"), "room": v.get("room")})
+    op = E.get("open") or []
+    open_line = random.Random(f"{uid}|{day}|evening").choice(op) if op else None
+    return {"open": True, "done": False, "open_ko": open_line, "table_prompt": E.get("table_prompt"),
+            "seat_prompt": E.get("seat_prompt"), "returned": returned,
+            "candidates": {"items": table_candidates(st),
+                           "residents": [{"id": r["id"], "name": r["name"], "role": r.get("role")}
+                                         for r in st.get("residents_list") or [] if r["id"] not in (st.get("outside") or [])]},
+            "food_cost": ET_FOOD, "table_store": int(c.get("table_store") or 0)}
+
+
+class TableIn(BaseModel):
+    uid: str
+    relic_id: str
+    seats: list[list[str]]
+
+
+@app.post("/api/table")
+def table(inp: TableIn):
+    st = load_state(inp.uid)
+    tick_production(st)
+    c = core_of(st)
+    day = day_of(st)
+    if not is_evening():
+        raise HTTPException(400, "한 상은 저녁에 차립니다")
+    if (c.get("table") or {}).get("day") == day:
+        raise HTTPException(400, "오늘 상은 이미 차렸습니다")
+    by = {r["id"]: r for r in st.get("residents_list") or []}
+    if len(inp.seats) != 1 or len(inp.seats[0]) != 2 or len(set(inp.seats[0])) != 2 or any(x not in by for x in inp.seats[0]):
+        raise HTTPException(400, "마주 앉을 두 분을 골라 주세요")
+    row = next((x for x in st.get("shelf") or [] if x.get("card_id") == inp.relic_id), None) or \
+        next((x for x in st.get("stored") or [] if x.get("id") == inp.relic_id or x.get("card_id") == inp.relic_id), None)
+    it = item_from_row(row) if row else ((c["scans"].get(inp.relic_id) or {}).get("item"))
+    if not it:
+        raise HTTPException(400, "상에 올릴 물건이 없습니다")
+    a, b = by[inp.seats[0][0]], by[inp.seats[0][1]]
+    # 식량: 한 상 몫부터, 모자라면 재고에서, 그래도 모자라면 물건만(no_food_ok)
+    need = ET_FOOD
+    paid_store = min(need, int(c.get("table_store") or 0))
+    c["table_store"] = int(c.get("table_store") or 0) - paid_store
+    need -= paid_store
+    paid_food = 0
+    if need and int(st["resources"].get("food", 0)) >= need:
+        st["resources"]["food"] -= need
+        paid_food = need
+    elif need and not ET_NO_FOOD_OK:
+        c["table_store"] += paid_store
+        raise HTTPException(400, "식량이 모자랍니다")
+    la = any(match(x, it) for x in likes_of(inp.uid, a))
+    lb = any(match(x, it) for x in likes_of(inp.uid, b))
+    delta = ET_TRUST[2] if la and lb else ET_TRUST[1] if la or lb else ET_TRUST[0]
+    pair = sorted([a["id"], b["id"]])
+    last = (c.get("table_last") or {}).get("pair")
+    repeat = last == pair
+    if repeat:
+        delta = max(1, int(round(delta * ET_REPEAT)))
+    for x, y in ((a, b), (b, a)):
+        x.setdefault("trust", {})[y["id"]] = min(TRUST_MAX, int(x["trust"].get(y["id"], 0)) + delta)
+    # 대화 한 장면
+    E = moments().get("evening") or {}
+    T = E.get("talk") or {}
+    pairs = T.get("pairs") or {}
+    used = c.setdefault("table_talk_used", [])
+    key, flip = None, False
+    for k_, f_ in ((f"{a.get('role')}+{b.get('role')}", False), (f"{b.get('role')}+{a.get('role')}", True)):
+        if k_ in pairs:
+            key, flip = k_, f_
+            break
+    talk = None
+    if key:
+        opts = [i for i in range(len(pairs[key])) if f"{key}|{i}" not in used]
+        if opts:
+            i = opts[0]
+            used.append(f"{key}|{i}")
+            talk, tk = pairs[key][i], f"evening.talk.pairs.{key}.{i}"
+    if talk is None:
+        g = (T.get("generic") or {}).get(it.get("category") if it.get("category") in ("food", "drink") else "other") or []
+        talk, gi = _rot(st, f"table_generic.{it.get('category')}", g)
+        tk = f"evening.talk.generic.{it.get('category') if it.get('category') in ('food', 'drink') else 'other'}.{gi}"
+    pa, pb = (b, a) if flip else (a, b)
+
+    def f_(t):
+        return (t or "").replace("{a_name}", pa["name"]).replace("{b_name}", pb["name"]).replace("{item}", it.get("name") or "그것")
+    lines = [{"who": pa["id"], "name": pa["name"], "line": f_((talk or {}).get("a"))},
+             {"who": pb["id"], "name": pb["name"], "line": f_((talk or {}).get("b"))}] if talk else []
+    promise, _ = _rot(st, "evening.promise", E.get("promise") or [])
+    result = {"pair": pair, "names": [a["name"], b["name"]], "item": it.get("name"), "relic_id": inp.relic_id,
+              "trust_delta": delta, "liked_by": [x["id"] for x, l in ((a, la), (b, lb)) if l], "repeat_pair": repeat,
+              "food_paid": paid_food, "table_store_paid": paid_store, "talk": lines, "talk_key": tk, "promise": promise}
+    c["table"] = {"day": day, "result": result}
+    c["table_last"] = {"day": day, "pair": pair}
+    session_note(st, f"한 상 — {a['name']}·{b['name']}")
+    day_note(st, "table", f"{a['name']}·{b['name']}")
+    save_state(inp.uid, st)
+    log(inp.uid, "table", {"pair": pair, "delta": delta, "relic": inp.relic_id})
+    return {"ok": True, **result, "state": public_state(st, inp.uid)}
+
+
+def night_visitor_tick(st: dict, uid: str) -> dict | None:
+    """밤 손님(visitors.json night_visitors): hours_from 시 이후 하루 한 번, 불 켜진 방 창에. 다음 날 아침 흔적."""
+    if not NIGHT_VISITORS:
+        return None
+    c = core_of(st)
+    day = day_of(st)
+    if c["flags"].get("night_visit_day") == day:
+        return None
+    h = now_hour()
+    v = NIGHT_VISITORS[0]
+    if not (h >= int(v.get("hours_from", 19)) or h < 5):
+        return None
+    rooms = [r for r in live_rooms(st) if light_on(st, r["slot"])]
+    if not rooms:
+        return None
+    rooms.sort(key=lambda r: (r["id"] != "quarters", r["slot"]))
+    rm = rooms[0]
+    rname = (ROOMS.get(rm["id"]) or {}).get("name", rm["id"])
+    c["flags"]["night_visit_day"] = day
+    arr = v.get("arrival") or []
+    line, _ = _rot(st, f"night.{v['id']}", arr)
+    row = {"day": day, "slot": rm["slot"], "room": rname, "kind": "night_visitor", "visitor_id": v["id"], "ko": v.get("ko"),
+           "sprite": v.get("sprite"), "where": v.get("where"), "line": (line or "").replace("{room}", rname),
+           "first": v["id"] not in c["visitors_seen"]}
+    if c["visits"].get("day") != day:
+        c["visits"] = {"day": day, "rows": []}
+    c["visits"].setdefault("rows", []).append(row)
+    if v["id"] not in c["visitors_seen"]:
+        c["visitors_seen"].append(v["id"])
+    mt = v.get("morning_trace") or []
+    if mt:
+        t = random.Random(f"{uid}|{day}|nighttrace").choice(mt).replace("{room}", rname)
+        c["morning_next"].append({"day": day + 1, "kind": "night_trace", "text": t})
+    return row
+
+
+# ③ 내일의 부탁 · 이름 투표 어긋남 ─────────────────────────────────────
+def tomorrow_ask(st: dict, uid: str) -> dict | None:
+    """내일 실제로 뜰 필요 하나(같은 시드 — 내일 need_today 와 같다)를 미리 한 줄로."""
+    day = day_of(st) + 1
+    ppl = [r for r in st.get("residents_list") or [] if need_today(uid, r, day)]
+    if not ppl:
+        return None
+    r = random.Random(f"{uid}|{day}|tomorrow_ask").choice(ppl)
+    nd = need_today(uid, r, day)
+    tm = ((role_taste(r.get("role", "")).get("tomorrow") or {}).get("needs") or [])
+    lines = tm[nd["idx"]] if nd["idx"] < len(tm) else None
+    if not lines:
+        lines = role_taste(r.get("role", "")).get("tomorrow_ask") or []
+    if not lines:
+        lines = (NEXT_VISIT.get("promises") or {}).get("tomorrow_ask") or []
+    if isinstance(lines, str):
+        lines = [lines]
+    t = random.Random(f"{uid}|{day}|tomorrow_line|{r['id']}").choice(lines) if lines else \
+        "내일 아침 {name} 님이 「{ko}」 쪽 물건을 찾으실 것 같습니다."
+    return {"resident_id": r["id"], "name": r["name"], "day": day, "need": {k: nd[k] for k in ("category", "subtype", "ko")},
+            "line": fill_text(t, st, r, None, None, ko=nd["ko"])}
+
+
+def vote_mismatch(st: dict, item: dict) -> bool:
+    """전역 이름이 정해진(3곳·60%) 바코드를 이 방주가 다르게 정했나."""
+    code = item.get("barcode")
+    if not code:
+        return False
+    bm = (st.get("barcodes") or {}).get(code) or {}
+    if not bm.get("subtype"):
+        return False
+    sug = subtype_vote_suggest(code, item.get("category") or bm.get("category") or "")
+    return bool(sug and sug["id"] != bm["subtype"])
 
 
 # ─────────────────────────────────────────────────────────────

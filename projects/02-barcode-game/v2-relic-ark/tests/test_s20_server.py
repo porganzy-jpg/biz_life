@@ -214,6 +214,7 @@ def t_where_two():
     """스모크 1: 모든 스캔에 선반 밖 선택지 둘 이상, 같은 답 비율이 30% 아래로 갈 수 있다."""
     uid = "dev_s20_where"
     ark(uid)
+    post("/api/prefs", {"uid": uid, "labels_always": True})   # S23: 값 정렬 라벨 모드(3일째부터는 설정일 때만)
     st = S.load_state(uid)                          # 보통 1주차 집: 주민 넷, 방 넷(대상이 셋이면 최소 33%라 30% 를 못 넘는다)
     # S22: 결정적으로 — 시작 주민은 new_state 가 시각 시드로 만든다(이름·id·덧붙임이 실행마다 달랐다). 시드 고정 명단으로 바꾼다
     rng_ = random.Random(2020)

@@ -453,11 +453,12 @@ def t_round2_fixes():
     S.save_state(uid, st)
     st = S.load_state(uid)
     ov = st["storage_overflow"]
-    want = min(12 // S.OVERFLOW_RATE["to_morale"], S.OVERFLOW_RATE["morale_day_max"])
-    ok(st["resources"]["food"] == cap and ov["lost"]["food"] == 12 and ov["converted"].get("morale") == want
+    to_table = min(12, S.TABLE_STORE_MAX) if S.TABLE_STORE_FIRST else 0     # S23: 넘친 식량은 한 상 몫부터
+    want = min((12 - to_table) // S.OVERFLOW_RATE["to_morale"], S.OVERFLOW_RATE["morale_day_max"])
+    ok(st["resources"]["food"] == cap and ov["lost"]["food"] == 12 and int(ov["converted"].get("morale") or 0) == want
        and st["resources"]["morale"] == m0 + want and ov["ko"], f"넘친 식량 12 → 사기 {want}: {ov['ko']}")
     a = ark(uid)
-    ok(any(it["kind"] == "overflow" for it in a["overnight"]["items"]) and a["storage"]["overflow"]["converted"], "밤사이에 넘침 한 줄")
+    ok(any(it["kind"] == "overflow" for it in a["overnight"]["items"]) and a["storage"]["overflow"]["ko"], "밤사이에 넘침 한 줄")
     # 밤사이 제목 = 시각대, 다음 날 저절로 비움
     S.now_hour = lambda: 19
     a = ark(uid)

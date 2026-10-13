@@ -313,3 +313,58 @@
   - 최근 받은 물건 셋이고, 최근 것이 먼저다.
   - `prop` 을 고르는 순서: `props_meta.json by_subtype[갈래][하위 종류].prop` → 그 갈래의 첫 good → `unknown.any`.
 - `card.history`, `visitors_book` 은 위와 같다. `seat`·`props` 는 그대로다.
+
+## 13. S23 바뀐 것 (2026-10-13, 1단계 뒤쪽)
+수치는 `core_a.json` 의 `s22.notebook`·`s22.evening_table`·`s19_server_numbers.overflow` 에서 읽는다. 문장은 시나리오 데이터에서 읽는다.
+
+### ① 사람 수첩
+- **「어디로」(`where`)**: 응답에 `labels: bool`, `order: "value"|"fixed"` 가 붙는다.
+  - 1~2일째, 또는 설정 `labels_always` 가 켜져 있으면 지금처럼 라벨이 붙고 값 순서다(`labels: true`).
+  - **3일째부터**는 `labels: false`, `order: "fixed"` 다.
+    - `suggest` 는 사람(주민 명단 순서) → 방(칸 순서)이다. 첫자리 강조 표시는 없다.
+    - 사람 제안에 `known: bool` 이 붙는다.
+    - 그 사람의 그 칸을 이미 알면(`known: true`) 라벨(`tier`·`icon`·`reason_ko`·`value`)이 그대로 오고, `slot` 이 붙는다.
+    - 모르면(`known: false`) `tier`·`icon`·`reason_ko`·`value`·`mult` 가 **빠지고** `hint_ko`(기색 한 줄)가 온다. 기색은 `resident_tastes roles.<role>.signs.needs[i]/likes[i]` 에서 고르고, 없으면 `ui_moments.signs_generic[갈래]` 를 쓴다.
+    - 사슬 매듭 제안은 늘 `known: true` 다.
+- **`/api/give` 응답 `revealed: {kind, big, slot, new, slot_ko, line, line_key}`**
+  - `kind` = 실제 결과다: need / like / memory / chain_beat / warm / not_for_me.
+  - `big` = 라벨 없이 처음 맞혔다는 뜻이다. 이때 `line` 은 `ui_moments.reveal.discovered[]` 에서 오고, 아니면 `reveal.<kind>[]` 에서 온다.
+  - 맞힌 칸은 수첩에 적힌다. 1~2일째 라벨로 건넨 결과도 적히지만 big 은 아니다.
+- **`core.residents[rid].notebook: {slots: [{key, kind, kind_ko, known, ko, how, day}], known, total}`**
+  - `key` 꼴: `like:i`·`need:i`·`memory:<id>`·`dislike`.
+  - 모르는 칸은 `ko: null` 이다.
+  - `how` 는 `give` 또는 `gossip` 이다.
+- **저녁 귀띔**: 그날 첫 저녁 세션(17~5시)에 한 번 온다. 가장 많이 받은 사람의 모르는 칸 하나를 다른 주민이나 관리실이 흘린다.
+  - `/api/ark.notebook_tip: {resident_id, name, slot, kind, ko, teller_id|null, line}` 로 오고, 밤사이에 `kind: "notebook_tip"` 로도 들어간다.
+  - 문장은 `ui_moments.notebook.gossip_resident[]` / `gossip_office[]` 다.
+- **늘 이름표**: `POST /api/prefs {uid, labels_always}` → `{prefs, label_ko}`. 값은 `/api/ark.prefs.labels_always` 로 읽는다.
+- **같은 세션 같은 사람 두 번째**: `/api/give` 응답에 `repeat: {line, other_id, other_name, line_key}` 가 붙는다(`roles.<role>.repeat_lines[]`, {other}). 값은 그대로 ×0.8 이다.
+
+### ② 받는 저녁, 한 상
+- **`/api/ark.evening_table`**: 저녁(17~5시)에만 온다. 낮에는 null 이다.
+  - 아직 안 차렸으면 `{open: true, open_ko, table_prompt, seat_prompt, returned: [...], candidates: {items: [{relic_id, name, category, today}], residents: [{id, name, role}]}, food_cost, table_store}`.
+  - `returned` 는 오늘 건넨 물건 `[{name, to_name, resident_id}]` 과 오늘 온 손님 `[{visitor_id, name, room}]` 이다.
+  - 차렸으면 `{open: false, done: true, result}` 다.
+- **`POST /api/table {uid, relic_id, seats: [[rid, rid]]}`**
+  - 저녁에만, 하루 한 번 차린다.
+  - 식량 4는 「한 상 몫」(`table_store`)부터 쓰고, 모자라면 재고에서 쓴다. 그래도 모자라면 물건만 올려도 된다.
+  - 신뢰: 둘 다 +3. 둘 중 하나가 그 물건을 좋아하면 +5, 둘 다 좋아하면 +7. 직전 상과 같은 짝이면 ×0.5.
+  - 응답: `{ok, pair, names, item, relic_id, trust_delta, liked_by, repeat_pair, food_paid, table_store_paid, talk: [{who, name, line}×2], talk_key, promise, state}`.
+  - 대화는 `evening.talk.pairs["역할+역할"]`(쓴 것은 다시 안 씀) → `evening.talk.generic.<food|drink|other>` 순으로 고른다.
+  - 물건은 상에 올렸다가 제자리로 돌아온다.
+- **넘침**: 넘친 식량·물은 「한 상 몫」(최대 12)부터 채우고, 남은 것을 사기로 바꾼다(`to_table_store_first`).
+- **밤 손님**: `visitors.json night_visitors[]` 이 19시부터 하루 한 번, 불 켜진 방 창에 온다. 거주실이 먼저다.
+  - `visits[]` 에 `kind: "night_visitor"` 로 들어간다.
+  - 다음 날 아침 밤사이에 `kind: "night_trace"` 흔적이 남는다.
+
+### ③ 내일의 부탁
+- `GET /api/leaving` 과 `/api/ark` 에 `tomorrow_ask: {resident_id, name, day, need: {category, subtype, ko}, line}` 가 붙는다.
+- **내일 실제로 뜰 필요와 같은 시드**다(다음 날 `needs_today` 와 일치, 테스트 확인).
+- 문장 순서: `roles.<role>.tomorrow.needs[i][]` → `roles.<role>.tomorrow_ask[]` → `next_visit promises.tomorrow_ask[]`.
+
+### ④ 이름 투표 어긋남
+- 전역 이름(3곳 이상·60%)이 정해진 바코드를 이 방주가 다른 종류로 정했으면, 필요를 채워도 `intent: false` 다(큰 장면 없음). 보통 건네기는 그대로다.
+
+### 서버 안쪽 메모
+- `where_for` 결과에는 서버만 쓰는 `_internal`(라벨을 가리기 전의 원래 제안)이 붙는다. API 응답 전에 뺀다.
+- 기존 테스트 중 값 정렬을 보는 것(S20 1순위 비율, S21 warm 1순위)은 `labels_always` 를 켜고 돈다.
