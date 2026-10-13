@@ -861,5 +861,18 @@
   "shortage": {
     "_for_dev": "물 빼기·업그레이드 카드의 모자람 한 줄. {res}=재료 이름, {n}=모자란 수. 뒤에 material_hint.<재료키> 한 줄을 이어 붙인다. 「{res} 쪽이」로 써서 받침 처리가 필요 없다.",
     "line": "{res} 쪽이 {n} 모자랍니다."
+  },
+  "overnight": {
+    "consumed": {
+      "_for_dev": "그사이 패널 한 줄. {food} {water} 숫자, {morale}=굶어서 내려간 사기(1 이상일 때만 hungry). 숫자 뒤에 조사를 두지 않았다.",
+      "both": "그사이 식량 {food}, 물 {water} 정도를 다들 나눠 드셨습니다.",
+      "food_only": "그사이 식량 {food} 정도를 다들 나눠 드셨습니다.",
+      "water_only": "그사이 물 {water} 정도를 다들 나눠 드셨습니다.",
+      "hungry": "그사이 식량이 모자라서 다들 조금씩 굶으셨습니다. 기운이 {morale} 정도 빠졌습니다. 먹을 것을 조금 채워 주세요."
+    }
+  },
+  "consumption": {
+    "_for_dev": "자원 띠의 식량·물을 눌렀을 때 한 줄. {people}=주민 수(숫자), {food_per_day} {water_per_day} 소수 가능.",
+    "tip": "지금 {people}분이 하루에 식량 {food_per_day}, 물 {water_per_day} 정도를 드십니다."
   }
 }

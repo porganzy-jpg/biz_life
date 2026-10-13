@@ -79,9 +79,9 @@
    "logo": {
     "file": "lockup_horizontal_dark.png",
     "x": 520,
-    "y": 241,
+    "y": 140,
     "w": 303,
-    "align": "bottom-right",
+    "align": "top-right",
     "h": 105
    }
   }

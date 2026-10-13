@@ -3126,6 +3126,34 @@
     if (g.depth) gm.style.setProperty('--d', Math.round(Math.max(0.06, g.depth.value) * 100) + '%');
   }
 
+  // S26 자원 칩을 누르면 칩 아래 작은 줄: 식량·물은 하루에 얼마나 드시는지(consumption), 그다음 어디서 모이나(material_hint)
+  let resPop = null, resPopT = 0;
+  function closeResPop() { if (resPop) { resPop.remove(); resPop = null; } clearTimeout(resPopT); }
+  function resPopText(k) {
+    const c = ark.consumption || {}, n = (ark.residents_list || []).length, out = [];
+    const T2 = (key, v) => (K.ext && K.ext.T ? K.ext.T(key, v || {}, '') : '');
+    const num = (x) => String(Math.round((+x || 0) * 10) / 10);
+    if ((k === 'food' || k === 'water') && c.on !== false && (c.food_per_day || c.water_per_day)) {
+      const v = { food_per_day: num(c.food_per_day), water_per_day: num(c.water_per_day), people: n };
+      out.push(T2('consumption.tip', v) || ('하루에 다 같이 식량 ' + v.food_per_day + ', 물 ' + v.water_per_day + '씩 드십니다.'));
+    }
+    const h = T2('material_hint.' + k); if (h) out.push(h);
+    return out.join(' ');
+  }
+  document.addEventListener('click', (e) => {
+    const chip = e.target.closest && e.target.closest('#resbar .rchip');
+    if (!chip) { if (resPop && !(e.target.closest && e.target.closest('.respop'))) closeResPop(); return; }
+    const k = chip.dataset.res, was = resPop && resPop.dataset.res === k;
+    closeResPop(); if (was) return;
+    const t = resPopText(k); if (!t) return;
+    resPop = document.createElement('div'); resPop.className = 'respop'; resPop.dataset.res = k;
+    resPop.innerHTML = '<b>' + esc(RES_KO[k] || k) + ' ' + esc((ark.resources || {})[k] || 0) + '</b><p>' + esc(t) + '</p>';
+    $('#base').appendChild(resPop);
+    const r = chip.getBoundingClientRect(), w = Math.min(280, innerWidth - 16);
+    resPop.style.width = w + 'px'; resPop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px'; resPop.style.top = (r.bottom + 6) + 'px';
+    resPopT = setTimeout(closeResPop, 6000);
+  });
+
   // ── 팝오버 셋(≡ 메뉴 · 공기/깊이 · 습격 카드)은 하나만 열린다 ──
   let raidOpen = false;
   function closePops(except) {

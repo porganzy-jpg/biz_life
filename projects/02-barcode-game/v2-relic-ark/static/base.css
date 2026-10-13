@@ -448,7 +448,7 @@ body{
 .topbar{position:absolute; z-index:6; left:0; right:0; top:0; height:44px; display:flex; align-items:center; gap:10px;
   padding:0 10px; background:linear-gradient(rgba(3,9,11,.86),rgba(3,9,11,.62)); border-bottom:1px solid rgba(90,67,32,.35);
   user-select:none; pointer-events:none}
-.topbar button{pointer-events:auto}
+.topbar button, .topbar .rchip{pointer-events:auto}
 .tres{display:flex; gap:6px; flex:0 0 auto}
 .rchip{display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 9px 0 4px; border-radius:15px;
   background:rgba(20,17,12,.85); border:1px solid #3a2c18; font-size:14px; font-weight:700; color:var(--cream);
@@ -1009,3 +1009,8 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .ci.dim, .bopt .ci.dim{opacity:.42}
 .shortline{color:#b9ae94 !important; font-size:12px}
 .rcbtns button[disabled]{opacity:.5; cursor:default}
+/* S26 자원 칩 작은 줄(하루 소비·어디서 모이나) */
+#resbar .rchip{cursor:pointer}
+.respop{position:fixed; z-index:40; padding:8px 11px; background:#0b0e0c; border:1px solid #2a2419; border-left:3px solid #8fc4c8; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.respop b{display:block; font-size:12.5px; color:var(--cream)}
+.respop p{margin:3px 0 0; font-size:12px; line-height:1.55; color:#cfe8ec}

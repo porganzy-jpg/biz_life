@@ -30,3 +30,16 @@
 ## 4. 남은 것
 - `consumption`·`consumed_while_away`(하루 소비)는 아직 화면에 안 그렸다 → 다음 작업(밤사이 한 줄·자원 띠).
 - 짓기 400 의 `missing_ko` 는 지금 토스트(detail)로만 보인다(카드가 미리 막으므로 보통 안 나온다).
+
+## 5. 후속 (PM 2차 지시) — 별도 포트 8041 에서 확인
+- **8002 관련 알림**: 첫 S26 확인 때(라운드 5 공지 전) 8002 를 작업 트리 서버로 한 번 다시 띄웠다(RELIC_DEV=1). 공지 이후로는 8002 를 건드리지 않았고, 확인은 `uvicorn server:app --port 8041` 로만 했다. 확인이 끝난 뒤 8041 은 껐다.
+- **모자람 문장**: `ui_moments.shortage.line`(「{res} 쪽이 {n} 모자랍니다.」) + `material_hint.<재료>` 로 조립한다. 예) 「전력 쪽이 2 모자랍니다. 전자 물건을 찍거나, 발전실을 두시면 모입니다.」 material_sources 조립은 키가 없을 때만 쓴다.
+- **하루 소비**:
+  - 그사이 창에 한 줄을 넣었다(`consumed_while_away` → `overnight.consumed.both|food_only|water_only`, 사기가 내려갔으면 `hungry` 를 덧붙인다). 확인한 문장: 「그사이 식량 1, 물 1 정도를 다들 나눠 드셨습니다.」
+  - 자원 띠의 칩을 누르면 칩 아래에 작은 줄이 뜬다(6초 뒤나 다른 곳을 누르면 닫힘). 식량·물이면 `consumption.tip` 「지금 3분이 하루에 식량 1.8, 물 1.8 정도를 드십니다.」 + material_hint, 그 밖의 칩은 material_hint 만 보인다. 칩이 눌리지 않던 문제(topbar pointer-events)도 고쳤다.
+- **844 타이틀**: 배경 담당이 phone 로고를 y=140 으로 옮겼다. 글 상자 높이를 재서, 로고 아래에 들어가면 아래에 둔다. 844 와 1280 모두 로고 → 문장 → 단추 순서이고 글자는 어둡게 한 자리 위에 온다(title_d1_844.png).
+- **검증**(t_cons.py, 844·1280):
+  - 콘솔 오류 0, 400 이상 0, braces 0.
+  - (자) consumed_while_away·consumption: 응답에 오고 화면에 쓰인다.
+  - 굶은 경우(hungry)는 이번 시험에서 식량이 바닥나지 않아 문장 조립만 확인했다.
+- 스크린샷: s26_overnight_d1_*, s26_respop_*, title_d1_*, title_hungry_*.

@@ -300,9 +300,21 @@
   //      (밤사이 생산·밀린 각인 연출·밤 판정·귀환 한 줄·문어)을 모아 한 장으로. 같은 종류의 같은 문장은 한 번만.
   //      이 창이 닫힌 뒤에 귀환 카드·만남 카드·방송이 차례로 나온다(base.js enqueue)
   let morningShown = null;
+  // S26 하루 소비(consumed_while_away {food, water, morale?}) — 그사이 창 맨 앞 한 줄. 문장은 시나리오 overnight.consumed*
+  function consumedLine(st) {
+    const c = st.consumed_while_away; if (!c) return null;
+    const f = Math.round(+c.food || 0), w = Math.round(+c.water || 0), m = Math.round(Math.abs(+c.morale || 0));
+    if (!f && !w && !m) return null;
+    const v = { food: f, water: w, morale: m };
+    let t = f && w ? T('overnight.consumed.both', v, '') : f ? T('overnight.consumed.food_only', v, '') : w ? T('overnight.consumed.water_only', v, '') : '';
+    if (!t && (f || w)) t = '그사이 다들 ' + [f ? '식량 ' + f : '', w ? '물 ' + w : ''].filter(Boolean).join('·') + '만큼 드셨습니다.';
+    if (m) t = (t ? t + ' ' : '') + (T('overnight.consumed.hungry', v, '') || ('먹을 것이 모자라 사기가 ' + m + ' 내려갔습니다.'));
+    return { kind: 'consumed', text: K.plain(t) };
+  }
   function overnightLines(st) {
     const ov = st.overnight;
     const out = [];
+    const cl = consumedLine(st); if (cl) out.push(cl);
     const prS = st.produced_while_away || {};
     const gotS = Object.entries(prS).filter(([, v]) => v > 0).map(([k, v]) => (K.RES_KO[k] || k) + ' ' + v);
     if (ov && (ov.items || ov.lines)) {                      // 서버 S18 요약: {items:[{kind, data}]}

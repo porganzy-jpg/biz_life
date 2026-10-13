@@ -150,7 +150,8 @@
     logo.style.left = L.x + 'px'; logo.style.top = L.y + 'px'; logo.style.width = L.w + 'px';
     const bw = Math.min(Math.max(L.w, 300), W - 32), below = H - (L.y + L.h);
     bx.style.width = bw + 'px'; bx.style.left = Math.max(16, L.x + L.w - bw) + 'px';
-    if (below >= 130) { bx.style.top = (L.y + L.h + 6) + 'px'; bx.style.bottom = ''; bx.dataset.at = 'below'; }
+    const need = (bx.offsetHeight || 0) + 12;
+    if (below >= Math.min(130, Math.max(70, need))) { bx.style.top = (L.y + L.h + 6) + 'px'; bx.style.bottom = ''; bx.dataset.at = 'below'; }
     else { bx.style.top = ''; bx.style.bottom = (H - L.y + 4) + 'px'; bx.dataset.at = 'above'; }   // 폰 가로: 로고 아래가 좁으면 로고 위(물빛 쪽)에
     D.logo = { x: Math.round(L.x), y: Math.round(L.y), w: Math.round(L.w), h: Math.round(L.h) }; D.box = bx.dataset.at;
   }

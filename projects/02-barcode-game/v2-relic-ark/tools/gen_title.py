@@ -85,7 +85,7 @@ def logo_spot(name, size):
     W, H = size
     if name == "landscape":
         w = int(W * 0.38); return dict(file="lockup_horizontal_dark.png", x=W - w - int(W * 0.04), y=int(H * 0.56), w=w, align="bottom-right")
-    w = int(W * 0.36); return dict(file="lockup_horizontal_dark.png", x=W - w - int(W * 0.025), y=int(H * 0.62), w=w, align="bottom-right")
+    w = int(W * 0.36); return dict(file="lockup_horizontal_dark.png", x=W - w - int(W * 0.025), y=140, w=w, align="top-right")   # 아래에 문구·버튼 130px 이상(클라이언트 규칙)
 
 
 def main():
