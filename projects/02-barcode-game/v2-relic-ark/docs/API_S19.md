@@ -374,3 +374,8 @@
 - 기색은 이 순서로 고른다: 그 칸 정확히(`signs.needs/likes[i]`) → 역할×갈래(`signs.by_category[cat]`) → 갈래 공통(`signs_generic[cat]`).
   - **한 「어디로」 안에서 같은 템플릿을 두 사람에게 쓰지 않는다.**
   - 갈래 공통 줄에는 역할을 붙인다(「요리사 도담 님이…」).
+- `missed_chain` 은 「어디로」를 실제로 정한 스캔만 센다: 닫음(선반), 넘김, 다른 사람·방에 줌. 방금 찍고 아직 고르지 않은 스캔은 빠진다.
+- ★ 개발 전용 `POST /api/dev/imprint {uid, resident_id, ids: [1~3], personal?: bool}`: 주민의 각인 목록을 그 ids 로 바꾼다. 실화면 외형 확인용이다.
+  - `personal: true` 면 개인 각인(imprints_arcs)이다.
+  - 위기 각인이 3개면 역할 진화 표시가 켜진다.
+  - `RELIC_DEV=1` 이 아니면 404 다.

@@ -316,7 +316,37 @@ def t_order_and_hints():
         ok(S.cres(st, ppl[0]["target"]["resident_id"])["given"] == [], "받은 적 없는 사람이 맨 앞")
 
 
-TESTS = [t_order_and_hints, t_notebook_labels, t_notebook_early_record, t_repeat_line, t_gossip, t_table, t_overflow_table_store, t_night_visitor,
+def t_missed_undecided_and_dev_imprint():
+    """후속: 아직 고르지 않은 스캔은 missed_chain 이 아니다 · 개발 전용 각인 주기(RELIC_DEV 아니면 404)."""
+    uid = "dev_s23_mu"
+    ark(uid)
+    st = S.load_state(uid)
+    cook = resident(st, "cook")
+    S.core_of(st)["scans"]["su"] = {"item": item("food", "noodle", "면", "mu1"), "day": S.day_of(st), "given": False,
+                                    "chain": [{"rid": cook["id"], "name": cook["name"], "tier": "chain_beat"}]}
+    S.save_state(uid, st)
+    ok(ark(uid)["missed_chain"] is None and get(f"/api/leaving?uid={uid}")["missed_chain"] is None, "방금 찍고 아직 안 고른 스캔 → missed_chain 없음")
+    st = S.load_state(uid)
+    S.core_of(st)["scans"]["su"].update({"given": True, "to": "shelf"})
+    S.save_state(uid, st)
+    ok((ark(uid)["missed_chain"] or {}).get("resident_id") == cook["id"], "선반으로 닫은 뒤에는 missed_chain")
+    ids = [i["id"] for i in S.IMPRINT_LIST[:3]]
+    j = post("/api/dev/imprint", {"uid": uid, "resident_id": cook["id"], "ids": ids})
+    st = S.load_state(uid)
+    ok(j["ok"] and resident(st, "cook")["imprints"] == ids and j["role_evolved"], f"개발 각인 3개 → 역할 진화 {j['evolved_ko']}")
+    pid = next(iter(S.ARC_IMPRINTS))
+    j = post("/api/dev/imprint", {"uid": uid, "resident_id": cook["id"], "ids": [pid], "personal": True})
+    ok(resident(S.load_state(uid), "cook")["personal_imprints"] == [pid], "개인 각인도")
+    ok(C.post("/api/dev/imprint", json={"uid": uid, "resident_id": cook["id"], "ids": ["nope"]}).status_code == 400, "없는 각인 400")
+    ok(C.post("/api/dev/imprint", json={"uid": uid, "resident_id": cook["id"], "ids": ids + [ids[0]]}).status_code == 400, "4개·중복 400")
+    S.DEV_MODE = False
+    try:
+        ok(C.post("/api/dev/imprint", json={"uid": uid, "resident_id": cook["id"], "ids": ids[:1]}).status_code == 404, "배포(RELIC_DEV 아님) → 404")
+    finally:
+        S.DEV_MODE = True
+
+
+TESTS = [t_missed_undecided_and_dev_imprint, t_order_and_hints, t_notebook_labels, t_notebook_early_record, t_repeat_line, t_gossip, t_table, t_overflow_table_store, t_night_visitor,
          t_tomorrow_ask, t_vote_mismatch]
 
 if __name__ == "__main__":

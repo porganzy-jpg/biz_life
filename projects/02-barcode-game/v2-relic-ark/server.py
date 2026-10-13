@@ -5875,6 +5875,43 @@ def dev_advance_api(inp: DevAdvIn):
     return {"ok": True, "day": day_of(st)}
 
 
+class DevImprintIn(BaseModel):
+    uid: str
+    resident_id: str
+    ids: list[str]
+    personal: bool = False
+
+
+@app.post("/api/dev/imprint")
+def dev_imprint(inp: DevImprintIn):
+    """★ 개발 전용(RELIC_DEV=1): 주민에게 각인 1~3개를 바로 준다(실화면 외형 확인용). 배포에는 없는 것과 같다(404).
+    ids 는 data/imprints.json(위기 각인) 또는 personal=true 면 imprints_arcs.json(개인 각인). 기존 목록을 이 ids 로 바꾼다."""
+    if not DEV_MODE:
+        raise HTTPException(404, "없는 경로입니다")
+    if not 1 <= len(inp.ids) <= 3 or len(set(inp.ids)) != len(inp.ids):
+        raise HTTPException(400, "각인은 서로 다른 1~3개")
+    cat = ARC_IMPRINTS if inp.personal else IMPRINTS
+    bad = [i for i in inp.ids if i not in cat]
+    if bad:
+        raise HTTPException(400, f"없는 각인입니다: {bad}")
+    st = load_state(inp.uid)
+    r = next((x for x in st.get("residents_list") or [] if x["id"] == inp.resident_id), None)
+    if not r:
+        raise HTTPException(400, "없는 사람입니다")
+    if inp.personal:
+        r["personal_imprints"] = list(inp.ids)
+    else:
+        r["imprints"] = list(inp.ids)
+        r["crises"] = sorted({IMPRINTS[i]["crisis"] for i in inp.ids} | set(r.get("crises") or []))
+        if len(r["imprints"]) >= EVOLVE_AT and not r.get("role_evolved"):
+            r["role_evolved"] = True
+            r["evolved_ko"] = ROLE_EVOLUTION.get(r["role"], r.get("role_ko"))
+    save_state(inp.uid, st)
+    log(inp.uid, "dev_imprint", {"resident": inp.resident_id, "ids": inp.ids, "personal": inp.personal})
+    return {"ok": True, "resident_id": r["id"], "imprints": r.get("imprints"), "personal_imprints": r.get("personal_imprints"),
+            "role_evolved": bool(r.get("role_evolved")), "evolved_ko": r.get("evolved_ko")}
+
+
 class SwapIn(BaseModel):
     uid: str
     stored_id: str
@@ -8601,6 +8638,8 @@ def missed_chain_of(st: dict, uid: str) -> dict | None:
     for rec in reversed(list(c["scans"].values())):
         if int(rec.get("day") or 0) != day:
             continue
+        if not rec.get("given"):
+            continue                                  # 아직 「어디로」를 고르지 않은 스캔(방금 찍은 것)은 놓친 게 아니다
         for ch in rec.get("chain") or []:
             rid = ch.get("rid")
             if rid not in by or (rec.get("given") and isinstance(rec.get("to"), dict) and rec["to"].get("resident_id") == rid):
