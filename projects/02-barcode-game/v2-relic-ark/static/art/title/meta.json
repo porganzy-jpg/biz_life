@@ -1,0 +1,97 @@
+{
+ "_note": "타이틀 화면. 레이어를 order 순으로 겹친다. 각 레이어는 화면보다 margin 만큼 크다(가운데 정렬로 놓고 parallax 배율로 천천히 움직인다: 오프셋 = 카메라 이동 × parallax). 생성 tools/gen_title.py, 기존 M5 레이어 조립, 생성 AI 없음",
+ "order": [
+  "far",
+  "cliff",
+  "tower",
+  "near"
+ ],
+ "parallax": {
+  "far": 0.15,
+  "cliff": 0.45,
+  "tower": 0.7,
+  "near": 1.0
+ },
+ "margin_ratio": 0.06,
+ "logo_note": "로고는 기존 static/art/brand/zealandia/(로고 A 「가라앉은 대륙의 창」) 그대로. far 레이어에 로고 자리를 미리 어둡게 해 두었다",
+ "motion_hint": "카메라를 6~10초 주기로 아주 천천히(가로 ±1.5%, 세로 ±1%) 흔든다. near 의 기포는 따로 위로 흘려도 좋다",
+ "logo_dir": "static/art/brand/zealandia/",
+ "crops": {
+  "landscape": {
+   "size": [
+    1280,
+    800
+   ],
+   "layer_size": [
+    1432,
+    896
+   ],
+   "layer_offset": [
+    -76,
+    -48
+   ],
+   "files": {
+    "far": "landscape_far.jpg",
+    "cliff": "landscape_cliff.png",
+    "tower": "landscape_tower.png",
+    "near": "landscape_near.png"
+   },
+   "world_rect": [
+    83,
+    -8,
+    5677,
+    3492
+   ],
+   "logo": {
+    "file": "lockup_horizontal_dark.png",
+    "x": 743,
+    "y": 448,
+    "w": 486,
+    "align": "bottom-right",
+    "h": 169
+   }
+  },
+  "phone": {
+   "size": [
+    844,
+    390
+   ],
+   "layer_size": [
+    944,
+    436
+   ],
+   "layer_offset": [
+    -50,
+    -23
+   ],
+   "files": {
+    "far": "phone_far.jpg",
+    "cliff": "phone_cliff.png",
+    "tower": "phone_tower.png",
+    "near": "phone_near.png"
+   },
+   "world_rect": [
+    270,
+    196,
+    5750,
+    2728
+   ],
+   "logo": {
+    "file": "lockup_horizontal_dark.png",
+    "x": 520,
+    "y": 241,
+    "w": 303,
+    "align": "bottom-right",
+    "h": 105
+   }
+  }
+ },
+ "loading": {
+  "file": "loading_lantern.png",
+  "frame_w": 192,
+  "frame_h": 192,
+  "frames": 8,
+  "use": "진행률 p(0~1) → 프레임 round(p×7). 다 켜지면 마지막 프레임에서 빛만 살짝 숨쉬게(알파 0.9↔1, 2초)",
+  "note": "소품 손등불(prop_hand_lamp x4)이 꺼진 유리 → 따뜻하게 켜진다. 배경 투명, 어두운 바탕 위에"
+ }
+}
