@@ -8769,38 +8769,72 @@ def slot_for_tier(st: dict, uid: str, r: dict, item: dict, tier: str, info: dict
     return None
 
 
-def sign_hint(st: dict, uid: str, r: dict, item: dict, tier: str, slot: str | None) -> str:
-    """라벨 대신 기색 한 줄(resident_tastes roles.<role>.signs, 없으면 ui_moments.signs_generic[갈래])."""
+def sign_candidates(st: dict, r: dict, item: dict, slot: str | None) -> list:
+    """기색 후보 [(템플릿, 출처)] — 칸 정확히(signs.needs/likes[i]) → 역할×갈래(signs.by_category) → 갈래 공통(signs_generic)."""
     signs = role_taste(r.get("role", "")).get("signs") or {}
-    seed = random.Random(f"{uid}|{day_of(st)}|{r['id']}|{item_key(item)}|sign")
-    lines = None
-    if slot and slot.startswith("need:"):
-        arr = signs.get("needs") or []
-        k = int(slot.split(":")[1])
-        lines = arr[k] if k < len(arr) else None
-    elif slot and slot.startswith("like:"):
-        arr = signs.get("likes") or []
-        k = int(slot.split(":")[1])
-        lines = arr[k] if k < len(arr) else None
-    if not lines:
-        lines = (moments().get("signs_generic") or {}).get(item.get("category") or "") or []
-    if isinstance(lines, str):
-        lines = [lines]
-    t = seed.choice(lines) if lines else "{name} 님이 이쪽을 한 번 보셨습니다."
-    return fill_text(t, st, r, item)
+    out = []
+
+    def add(lines, src):
+        if isinstance(lines, str):
+            lines = [lines]
+        for t in lines or []:
+            if isinstance(t, str) and t:
+                out.append((t, src))
+    for pre, key in (("need:", "needs"), ("like:", "likes")):
+        if slot and slot.startswith(pre):
+            arr = signs.get(key) or []
+            k = int(slot.split(":")[1])
+            add(arr[k] if k < len(arr) else None, "slot")
+    add((signs.get("by_category") or {}).get(item.get("category") or ""), "role")
+    add((moments().get("signs_generic") or {}).get(item.get("category") or ""), "generic")
+    return out
+
+
+def sign_hint(st: dict, uid: str, r: dict, item: dict, tier: str, slot: str | None, used: set | None = None) -> str:
+    """라벨 대신 기색 한 줄. 한 「어디로」 안에서 같은 템플릿을 두 사람에게 쓰지 않는다(used).
+    갈래 공통 줄을 쓸 때는 그 사람의 역할을 붙여 누구 이야기인지 읽히게 한다(「요리사 도담 님이…」)."""
+    used = used if used is not None else set()
+    cands = sign_candidates(st, r, item, slot)
+    rng = random.Random(f"{uid}|{day_of(st)}|{r['id']}|{item_key(item)}|sign")
+    for src in ("slot", "role", "generic"):
+        pool = [t for t, s_ in cands if s_ == src and t not in used]
+        if pool:
+            t = rng.choice(pool)
+            used.add(t)
+            if src == "generic":
+                rk = r.get("evolved_ko") or r.get("role_ko") or (ROLES.get(r.get("role")) or {}).get("ko") or ""
+                t = t.replace("{name} 님", f"{rk} {{name}} 님", 1) if rk else t
+            return fill_text(t, st, r, item)
+    rk = r.get("role_ko") or ""
+    qk = ((r.get("quirk") or {}).get("ko") or "") if isinstance(r.get("quirk"), dict) else ""
+    t = f"{rk} {{name}} 님이 이쪽을 한 번 보셨습니다." + (f" {qk}고들 합니다." if qk else "")   # 후보가 다 쓰였을 때만
+    return fill_text(t.strip(), st, r, item)
+
+
+def last_given_at(st: dict, rid: str) -> float:
+    g = cres(st, rid)["given"]
+    if not g:
+        return -1.0
+    return max(float(x.get("at") or 0) or float(x.get("day") or 0) for x in g)
 
 
 def notebook_view(st: dict, uid: str, item: dict, w: dict) -> dict:
-    """3일째부터(설정 labels_always 가 아니면): 순서는 사람 → 방(값 정렬·첫자리 강조 없음), 모르는 칸은 라벨 대신 기색."""
+    """3일째부터(설정 labels_always 가 아니면): 순서는 **가장 오래 못 받은 사람부터**(받은 적 없는 사람 먼저) → 방.
+    값 정렬·첫자리 강조 없음. 모르는 칸은 라벨 대신 기색(한 「어디로」 안에서 같은 문장 없음)."""
     w["_internal"] = [dict(x) for x in w["suggest"]]     # 서버만 쓰는 원래 등급(응답 전에 뺀다)
     if labels_shown(st):
         w.update({"labels": True, "order": "value"})
         return w
     by = {r["id"]: r for r in st.get("residents_list") or []}
     order = [r["id"] for r in st.get("residents_list") or []]
-    ppl = sorted([x for x in w["suggest"] if x["kind"] == "resident"], key=lambda x: order.index(x["target"]["resident_id"])
-                 if x["target"]["resident_id"] in order else 99)
+
+    def room_pos(rid):                                   # 같으면 방 순서(그 사람이 선 칸, 문간·홀은 뒤)
+        sl = station_slot(st, rid)
+        return (sl if sl is not None else 99, order.index(rid) if rid in order else 99)
+    ppl = sorted([x for x in w["suggest"] if x["kind"] == "resident"],
+                 key=lambda x: (last_given_at(st, x["target"]["resident_id"]), room_pos(x["target"]["resident_id"])))
     rooms = sorted([x for x in w["suggest"] if x["kind"] != "resident"], key=lambda x: x["target"].get("slot", 0))
+    used: set = set()
     for x in ppl:
         r = by.get(x["target"]["resident_id"])
         if not r:
@@ -8814,14 +8848,14 @@ def notebook_view(st: dict, uid: str, item: dict, w: dict) -> dict:
             x["known"] = True
             x["slot"] = slot
             continue
-        x["hint_ko"] = sign_hint(st, uid, r, item, tier, slot)
+        x["hint_ko"] = sign_hint(st, uid, r, item, tier, slot, used)
         x["known"] = False
         for k in ("tier", "icon", "reason_ko", "value", "mult", "fallback", "arc_id", "step"):
             x.pop(k, None)
     for x in rooms:
         x["known"] = True
     w["suggest"] = ppl + rooms
-    w.update({"labels": False, "order": "fixed"})
+    w.update({"labels": False, "order": "least_recent"})
     return w
 
 

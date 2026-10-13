@@ -88,7 +88,7 @@ def t_notebook_labels():
     it = item(nd["category"], (nd.get("subtype") or [None])[0], "필요한 것", "nb1")
     w = S.where_for(st, uid, it)
     row = next((x for x in w["suggest"] if x["target"].get("resident_id") == sc["id"]), None)
-    ok(w["labels"] is False and w["order"] == "fixed", "3일째 고정 순서")
+    ok(w["labels"] is False and w["order"] == "least_recent", "3일째 오래 못 받은 사람부터")
     ok(row and row["known"] is False and "tier" not in row and "icon" not in row and "value" not in row and row["hint_ko"]
        and "{" not in row["hint_ko"], f"모르는 칸 → 기색: {row and row.get('hint_ko')}")
     kinds = [x["kind"] for x in w["suggest"]]
@@ -270,7 +270,53 @@ def t_vote_mismatch():
     ok(not S.vote_mismatch(st, {"barcode": code, "category": "drink"}), "같게 부르면 어긋남 아님")
 
 
-TESTS = [t_notebook_labels, t_notebook_early_record, t_repeat_line, t_gossip, t_table, t_overflow_table_store, t_night_visitor,
+def t_order_and_hints():
+    """후속: 3일째부터 가장 오래 못 받은 사람부터(첫자리 쏠림 없음) · 한 「어디로」 안에서 같은 기색 문장 없음."""
+    uid = "dev_s23_ord"
+    ark(uid)
+    to_day(uid, 3)
+    ark(uid)
+    st = S.load_state(uid)
+    for i in range(3):
+        st["residents_list"].append(S.make_resident(("medic", "farmer", "kid")[i], random.Random(40 + i),
+                                                    {r["name"] for r in st["residents_list"]}, uid))
+        st["residents_list"][-1]["joined"] = st["created"]
+        S.ensure_stats(uid, st["residents_list"][-1])
+    S.save_state(uid, st)
+    # B 흉내: 첫 제안만 누른다 — 받는 사람이 돌아가야 한다
+    firsts = []
+    for i in range(8):
+        j = post("/api/scan", {"uid": uid, "barcode": ean(f"49012344{i:04d}"), "user_category": "drink"})
+        w = j["where"]
+        ppl = [x for x in w["suggest"] if x["kind"] == "resident"]
+        if not ppl:
+            continue
+        hints = [x["hint_ko"] for x in ppl if x.get("hint_ko")]
+        st = S.load_state(uid)
+        names = {r["name"] for r in st["residents_list"]}
+        templates = []
+        for h in hints:
+            t_ = h
+            for n in names:
+                t_ = t_.replace(n, "{name}")
+            for rk in ("요리사", "기술자", "정찰병", "의무병", "농부", "아이", "학자", "교섭가"):
+                t_ = t_.replace(rk + " ", "")
+            templates.append(t_)
+        ok(len(set(templates)) == len(templates), f"스캔 {i + 1}: 기색 문장 겹침 없음 ({len(templates)}줄)")
+        firsts.append(ppl[0]["target"]["resident_id"])
+        post("/api/give", {"uid": uid, "scan_id": w["scan_id"], "target": ppl[0]["target"]})
+        post("/api/dev/advance", {"uid": uid, "minutes": 1})
+    top = max(firsts.count(f) for f in set(firsts)) / len(firsts)
+    ok(len(set(firsts)) >= 3 and top <= 0.5, f"첫 제안만 눌러도 받는 사람이 돈다: {len(set(firsts))}명, 최다 {top:.2f}")
+    st = S.load_state(uid)
+    never = [r for r in st["residents_list"] if not S.cres(st, r["id"])["given"]]
+    w = S.where_for(st, uid, item("drink", "milk", "우유", "o1"))
+    ppl = [x for x in w["suggest"] if x["kind"] == "resident"]
+    if never and any(x["target"]["resident_id"] == never[0]["id"] for x in ppl):
+        ok(S.cres(st, ppl[0]["target"]["resident_id"])["given"] == [], "받은 적 없는 사람이 맨 앞")
+
+
+TESTS = [t_order_and_hints, t_notebook_labels, t_notebook_early_record, t_repeat_line, t_gossip, t_table, t_overflow_table_store, t_night_visitor,
          t_tomorrow_ask, t_vote_mismatch]
 
 if __name__ == "__main__":
