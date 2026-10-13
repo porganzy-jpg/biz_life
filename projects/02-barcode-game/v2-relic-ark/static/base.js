@@ -219,7 +219,9 @@
     b:  { path: (r) => '/static/art/chars/front/b/' + r + '.png', cell: 256, baseline: 240, cols: 5, idle: 0, frames: 5, ppm: 110, pixel: false },
     a:  { path: (r) => '/static/art/chars/front/a/' + r + '.png', cell: 256, baseline: 240, cols: 5, idle: 0, frames: 5, ppm: 110, pixel: false },
   };
-  const SIDE_STRIDE_ADULT = 16, SIDE_LOOP_ADULT = 0.8, SRC_PPM = 27.5;
+  // WALK_PACE: 걸음 빠르기 배율(사용자 2026-10-13 "걷는 속도가 너무 느리다"). 옆걸음 한 바퀴를 같은 배율로 줄여 발 미끄럼 0 유지
+  const WALK_PACE = 1.6;
+  const SIDE_STRIDE_ADULT = 16, SIDE_LOOP_ADULT = 0.8 / WALK_PACE, SRC_PPM = 27.5;
   const WALK_MPS = SIDE_STRIDE_ADULT / SIDE_LOOP_ADULT / SRC_PPM;
   const TARGET_PPM = 82.5;        // 세계 1 m = 82.5 px (cam.z = 1 이면 도트 ×3 — 플레이트와 같은 자, S12-B)
 
@@ -283,6 +285,21 @@
     return impImg(IMP_DIR + shape + id + '.png');
   }
   const impSheets = {}, impLog = {};
+  // 각인 머리 위 표식(imprints/pips.json): 화면 18px 고정(×2 판), 불빛을 입히지 않는다, 가진 각인 1~3개를 1px 띄워 가로로
+  const PIP_ORDER = ['spore_mark', 'empty_stomach', 'warden', 'sun_memory', 'empty_seat', 'footprint', 'debt_paid', 'water_memory', 'saved_breath', 'crack_seen', 'depth_mark', 'knock_heard'];
+  let pipsImg = null;
+  function drawPips(p, cx, headY) {
+    const ids = (p.imprints || []).filter(x => PIP_ORDER.indexOf(x) >= 0).slice(0, 3);
+    if (!ids.length) return;
+    if (!pipsImg) pipsImg = impImg(IMP_DIR + 'pips_x2.png');
+    if (pipsImg.st !== 1) return;
+    const S = 18, gap = 2, w = ids.length * S + (ids.length - 1) * gap;
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    ids.forEach((id, i) => ctx.drawImage(pipsImg.img, PIP_ORDER.indexOf(id) * S, 0, S, S, Math.round(cx - w / 2 + i * (S + gap)), Math.round(headY - 4 - S), S, S));
+    ctx.imageSmoothingEnabled = sm;
+    pipLog[p.id] = ids;
+  }
+  const pipLog = {};
   function imprintedSheet(base, p, tint) {
     const ids = (p.imprints || []).concat(p.personal_imprints || []).filter(x => typeof x === 'string' && IMP_HAVE.has(x)).slice(0, 3);
     if (!ids.length || !base || !base.width && !base.naturalWidth) return base;
@@ -1021,7 +1038,7 @@
     CLIPS = { rows: j.rows, frames: j.frames || {}, anim_seconds: j.anim_seconds || {}, room_work: j.room_work || {}, stride };
   }).catch(() => {});
   // 바닥 걷기 속도 = 보폭 × 배율 / 초(meta side_speed). 어른 walk_side 16 원본px / 0.8 s = 20 원본px/s
-  // = 20 / 27.5 m/s ≈ 0.73 m/s(×3 화면에서 60 px/s). 이동 시간표(movement.js)는 이 속도로 짠다.
+  // = 20 / 27.5 m/s ≈ 0.73 m/s, 여기에 WALK_PACE(1.6)를 곱해 ≈ 1.16 m/s(×3 화면에서 96 px/s). 이동 시간표(movement.js)는 이 속도로 짠다.
   // 아이는 보폭 12 라 같은 속도에서 한 바퀴를 0.6 s 로 줄여 돌린다(발이 바닥에 붙는다)
   // (SIDE_STRIDE_ADULT·WALK_MPS 는 이동 어댑터가 먼저 쓰므로 파일 위쪽 TARGET_PPM 옆에 있다)
   // S12-B3: 바닥 걷기 = walk_side(오른쪽이 원본, 왼쪽은 반전) · 들고 걷기 = carry_side · 방 밖 일 = work_34 ·
@@ -1040,7 +1057,8 @@
       if (row == null) continue;
       if ((row + 1) * s.spec.cell > s.img.naturalHeight) continue;      // meta 는 새것, 시트는 아직 옛것
       const fr = Math.max(1, Math.min(s.spec.cols, CLIPS.frames[c] || 1));
-      return { name: c, row, frames: fr, ms: ((CLIPS.anim_seconds[c] || 1) * 1000) / fr, side: !!SIDE_CLIPS[c] };
+      const pace = SIDE_CLIPS[c] ? WALK_PACE : 1;
+      return { name: c, row, frames: fr, ms: ((CLIPS.anim_seconds[c] || 1) * 1000) / fr / pace, side: !!SIDE_CLIPS[c] };
     }
     return { name: 'idle', row: 0, frames: 2, ms: 620 };
   }
@@ -1091,6 +1109,7 @@
         }
         ctx.imageSmoothingEnabled = sm;
         if (p.injured) { ctx.fillStyle = 'rgba(140,59,46,0.5)'; ctx.fillRect(px - 13 * cam.z, floorY - 101 * cam.z, 26 * cam.z, 9 * cam.z); }
+        if (cam.z < 1) drawPips(p, px, floorY - base * 0.78 + bob);     // S22 2차: 멀리서는 각인이 1~3px 라 머리 위 표식으로(z ≥ 1 이면 몸 위 각인이 보인다)
         return { w: cw * 0.42, h: base * 0.78 };
       } catch (e) { /* 스프라이트가 아직 덜 왔다 — 아래 색 사각형으로 */ }
     }
@@ -2634,7 +2653,7 @@
   const SAMPLES = [['8801043015097', '식품'], ['9791162241905', '도서'], ['8806011000013', '의약'],
                    ['8809000111110', '문구'], ['4901234567894', '미지 가문'], ['8801044007770', '패턴']];
   let stream = null, detector = null, scanning = false, lastCode = '', lastAt = 0, scanBusy = false;
-  let pendingCode = null, lastScan = null, K_cardTest = null;
+  let pendingCode = null, lastScan = null, K_cardTest = null, K_detSource = 'none', K_gs1ok = null, lastSource = null;
   function openScan() {
     if (!ark) return;
     closePanel(); setCarry(null);
@@ -2649,22 +2668,52 @@
     startCam();
   }
   function closeScan() { stopCam(); if (K.ext.cards) K.ext.cards.stop(); if (K.ext.coreKeep) K.ext.coreKeep(); $('#scan').hidden = true; }   // S19: 「어디로」를 안 고르고 닫으면 선반
+  // 줄무늬 읽개: 브라우저에 BarcodeDetector 가 있으면 그것, 없으면(아이폰 Safari·Firefox) zxing-wasm 기반 폴리필을 그때 불러온다.
+  //  처음 화면 로드를 늦추지 않게 찍기 창을 열 때만 받는다(한 번 받으면 재사용). 형식은 EAN-13·UPC-A·EAN-8
+  const BC_FORMATS = ['ean_13', 'upc_a', 'ean_8'];
+  const BC_POLYFILL = 'https://cdn.jsdelivr.net/npm/barcode-detector@2.3.1/pure/+esm';
+  let detectorP = null;
+  K_detSource = 'none';
+  async function getDetector() {
+    if (detector) return detector;
+    if (!detectorP) detectorP = (async () => {
+      if ('BarcodeDetector' in window) {
+        try {
+          const fm = window.BarcodeDetector.getSupportedFormats ? await window.BarcodeDetector.getSupportedFormats() : BC_FORMATS;
+          if (BC_FORMATS.some(f => fm.indexOf(f) >= 0)) { K_detSource = 'native'; return new window.BarcodeDetector({ formats: BC_FORMATS.filter(f => fm.indexOf(f) >= 0) }); }
+        } catch (e) { /* 아래 폴리필로 */ }
+      }
+      const mod = await import(BC_POLYFILL);
+      K_detSource = 'wasm';
+      return new mod.BarcodeDetector({ formats: BC_FORMATS });
+    })();
+    try { detector = await detectorP; } catch (e) { detectorP = null; throw e; }
+    return detector;
+  }
   async function startCam() {
     const st = $('#camstatus'), box = $('#cam');
     box.classList.remove('off');
-    if (!('BarcodeDetector' in window)) {
-      box.classList.add('off'); st.textContent = '이 브라우저는 카메라로 줄무늬를 못 읽습니다. 아래에 숫자를 적어 주세요'; return;
-    }
-    if (!navigator.mediaDevices || !window.isSecureContext) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
       box.classList.add('off'); st.textContent = '카메라는 HTTPS에서만 열립니다. 아래에 숫자를 적어 주세요'; return;
     }
+    st.textContent = '카메라 준비 중…';
     try {
-      detector = detector || new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'ean_8'] });
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } } });
+      const detP = getDetector();                         // 카메라 권한을 묻는 동안 읽개도 함께 받는다
+      stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
       if ($('#scan').hidden) { stopCam(); return; }
-      const v = $('#video'); v.srcObject = stream; await v.play();
+      const tr = stream.getVideoTracks()[0];
+      try {                                              // 자동 초점(지원하는 기기만)
+        const cap = tr && tr.getCapabilities ? tr.getCapabilities() : {};
+        if (cap.focusMode && cap.focusMode.indexOf('continuous') >= 0) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+      } catch (e) { /* 초점 고정 기기 */ }
+      const v = $('#video'); v.setAttribute('playsinline', ''); v.muted = true; v.srcObject = stream; await v.play();
+      try { await detP; }
+      catch (e) { st.textContent = '줄무늬 읽개를 받지 못했습니다. 아래에 숫자를 적어 주세요'; return; }
       st.textContent = '줄무늬를 붉은 선에 맞춰 주세요'; scanning = true; camLoop();
-    } catch (e) { box.classList.add('off'); st.textContent = '카메라를 열 수 없습니다. 아래에 숫자를 적어 주세요'; }
+    } catch (e) {
+      box.classList.add('off');
+      st.textContent = (e && e.name === 'NotAllowedError') ? '카메라를 쓰지 않기로 하셨습니다. 아래에 숫자를 적어 주셔도 됩니다' : '카메라를 열 수 없습니다. 아래에 숫자를 적어 주세요';
+    }
   }
   function stopCam() {
     scanning = false;
@@ -2674,27 +2723,44 @@
   async function camLoop() {
     if (!scanning) return;
     try {
-      const codes = await detector.detect($('#video'));
-      const c = codes.find(x => x.rawValue && x.rawValue.length >= 8);
-      if (c && !scanBusy && (c.rawValue !== lastCode || Date.now() - lastAt > 4000)) {
-        lastCode = c.rawValue; lastAt = Date.now();
-        if (navigator.vibrate) navigator.vibrate(30);
-        await handleCode(c.rawValue);
+      const v = $('#video');
+      if (v.readyState >= 2) {
+        const codes = await detector.detect(v);
+        const c = codes.find(x => x.rawValue && x.rawValue.length >= 8 && gs1ok(x.rawValue.replace(/\D/g, '')));
+        if (c && !scanBusy && (c.rawValue !== lastCode || Date.now() - lastAt > 4000)) {
+          lastCode = c.rawValue; lastAt = Date.now();
+          if (navigator.vibrate) navigator.vibrate(30);
+          await handleCode(c.rawValue, undefined, 'camera');
+        }
       }
     } catch (e) { /* 한 프레임 건너뛴다 */ }
-    if (scanning) setTimeout(camLoop, 220);
+    if (scanning) setTimeout(camLoop, K_detSource === 'wasm' ? 300 : 220);
   }
-  async function handleCode(raw, userCat) {
+  // GS1 검증 숫자(EAN-8·UPC-A·EAN-13): 오른쪽에서 셋째 자리부터 3·1·3… 곱해 더한 값으로 끝자리를 맞춘다
+  function gs1ok(code) {
+    if (!/^\d+$/.test(code) || [8, 12, 13].indexOf(code.length) < 0) return false;
+    const d = code.split('').map(Number), chk = d.pop();
+    let sum = 0; d.reverse().forEach((x, i) => { sum += x * (i % 2 === 0 ? 3 : 1); });
+    return (10 - sum % 10) % 10 === chk;
+  }
+  K_gs1ok = gs1ok;
+  async function handleCode(raw, userCat, source) {
     if (scanBusy) return;
     const code = String(raw || '').replace(/\D/g, '');
     if (code.length < 8) { toast('숫자 8~13자리를 적어 주세요'); return; }
+    source = source || lastSource || 'manual';
+    lastSource = source;
+    if (source === 'manual' && !gs1ok(code)) {             // 손으로 적은 번호는 끝자리(검증 숫자)를 먼저 본다
+      toast('관리실에서 알려 드립니다. 숫자를 다시 한 번 확인해 주세요. 끝자리가 줄무늬 아래 숫자와 맞지 않습니다.');
+      return;
+    }
     scanBusy = true; $('#manualBtn').disabled = true;
     try {
       if (userCat === undefined) {
         const pk = await api('/api/peek?barcode=' + code + '&uid=' + encodeURIComponent(uid));
         if (pk.needs_category) { showPicker(pk); return; }
       }
-      const r = await api('/api/scan', { barcode: code, user_category: userCat || null });
+      const r = await api('/api/scan', { barcode: code, user_category: userCat || null, source });   // source: camera | manual(손 입력은 전역 투표·집계에서 뺀다 — 서버)
       stopCam(); pendingCode = null;
       play('sfx_scan_ok.ogg', 0.5);
       // 선반의 정본은 /api/ark 다. 카드 앞면 그림을 선반에 놓일 물건과 같게 하려고 먼저 받는다
@@ -2791,14 +2857,15 @@
     if (el.classList.contains('famline') && r.family_set && r.family_set.just_completed) return el.textContent.trim();
     return firstSentence(el.textContent);
   }
-  function trimGain(rg, r) {
+  function trimGain(rg, r, keep) {
+    keep = keep || 2;
     const spans = [], seen = new Set();
     GAIN_ORDER.forEach(sel => rg.querySelectorAll(':scope > span' + sel).forEach(el => { if (!seen.has(el)) { seen.add(el); spans.push(el); } }));
     rg.querySelectorAll(':scope > span').forEach(el => { if (!seen.has(el) && el.className && el.className !== 'first') { seen.add(el); spans.push(el); } });
-    if (spans.length <= 2 && !spans.some(el => shortOf(el, r) !== el.textContent.trim())) return;
+    if (spans.length <= keep && !spans.some(el => shortOf(el, r) !== el.textContent.trim())) return;
     spans.forEach((el, i) => {
       el.dataset.full = el.innerHTML;
-      if (i < 2) { if (!el.querySelector('button')) el.textContent = shortOf(el, r); }
+      if (i < keep) { if (!el.querySelector('button')) el.textContent = shortOf(el, r); }
       else el.classList.add('folded');
     });
     const more = document.createElement('button'); more.className = 'gmore'; more.textContent = '더 보기';
@@ -2860,7 +2927,9 @@
       ((r.rescan_multiplier > 0 && r.rescan_multiplier < 1) ? ' <span>(다시 읽음 ×' + esc(r.rescan_multiplier) + ')</span>' : '') +
       shelfNote + extra + historyLine(c.history) +
       ((r.voice && r.voice.text) ? '<span class="voice">' + esc(r.voice.who_ko || '') + (r.voice.who_ko ? ': ' : '') + esc(r.voice.text) + '</span>' : '');
-    if ((r.where && r.where.compact) || (r.scans_today || 1) > 1 || (ark && ark.day >= 2)) trimGain(rg, r);   // scan_card: 2일째부터·둘째 찍기부터 두 줄
+    // S23: 카드 아래 글은 늘 접는다 — 「이게 뭐예요?」·「어디로」가 스크롤 없이 보이게. 고를 것이 있으면 한 줄, 없으면 두 줄(「더 보기」로 전부)
+    const choosing = !!((r.where && ((r.where.suggest || []).length || (r.where.subtype_pick && r.where.subtype_pick.needed))));
+    trimGain(rg, r, choosing ? 1 : 2);
     const btn = $('#shelfBtn');
     btn.textContent = slot != null ? (again ? '선반 보기' : '선반에 두기') : '닫기';
     btn.classList.remove('on');
@@ -3520,9 +3589,9 @@
   $('#keybtn').addEventListener('click', openAccount);
   $('#scanbtn').addEventListener('click', openScan);
   $('#scanClose').addEventListener('click', closeScan);
-  $('#manualBtn').addEventListener('click', () => handleCode($('#manual').value));
-  $('#manual').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCode(e.target.value); });
-  $('#samples').addEventListener('click', (e) => { const b = e.target.closest('button[data-c]'); if (b) handleCode(b.dataset.c); });
+  $('#manualBtn').addEventListener('click', () => handleCode($('#manual').value, undefined, 'manual'));
+  $('#manual').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCode(e.target.value, undefined, 'manual'); });
+  $('#samples').addEventListener('click', (e) => { const b = e.target.closest('button[data-c]'); if (b) handleCode(b.dataset.c, undefined, 'manual'); });
   $('#picker').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-cat]'); if (b && pendingCode) handleCode(pendingCode, b.dataset.cat || null);
   });
@@ -3620,8 +3689,11 @@
     podPoses: () => Object.assign({}, podPoseLog),     // ★ 검수용
     gathered: () => Object.assign({}, gatherLog),      // ★ S21 검수용: 꼬리표 방에 그려진 모인 주민 id → slot
     imprints: () => Object.assign({}, impLog),         // ★ S22 검수용: 그려진 각인 겹(사람 id → 각인 id)
+    pips: () => Object.assign({}, pipLog),             // ★ S22 2차 검수용: 머리 위 표식
     showReveal: (r) => showReveal(r),                  // ★ S22: 하위 종류를 고른 뒤 카드 다시 그리기           // ★ S12-B3 검수용: 반전해 그린 클립 수
     moveLog: () => moveLog.slice(),
+    camInfo: () => ({ source: K_detSource, scanning, hasStream: !!stream, status: ($('#camstatus') || {}).textContent }),   // ★ 검수용
+    gs1ok: (c) => K_gs1ok && K_gs1ok(String(c)),
     carryLog: () => carryLog.slice(), queue: () => ({ busy: modalBusy && modalBusy.tag, wait: modalQ.map(x => x.tag), held: heldSay.slice(), log: qLog.slice() }),   // ★ S18 검수용
     josa: (w, p) => josa(w, p),
     openTrade: (sl) => openTrade(sl),                  // ★ S18 검수용                    // 엘리베이터 배차 기록(시각은 performance.now 초)

@@ -341,6 +341,7 @@
     if (k === 'visit') return s(d.line || d.ko);
     if (k === 'overflow') return s(d.ko);
     if (k === 'novelty') return s(d.line);
+    if (k === 'notebook_tip' || k === 'night_trace' || k === 'night_visitor' || k === 'table') return s(d.line || d.ko);   // S23
     if (k === 'souvenir') return s(d.line) || (d.name ? '손님이 「' + d.name + '」 하나를 선반에 두고 갔습니다.' : '');                       // S21: 새것 실마리(memory·visitor·keepsake·octopus_hint)
     if (k === 'keepsake' && d.name && d.item) {                  // ui_moments keepsake.by_time — 저녁에 열어도 「오늘 아침에도」라 하던 것
       const hr = new Date().getHours(), band = hr >= 5 && hr < 11 ? 'morning' : hr < 17 ? 'day' : hr < 21 ? 'evening' : 'night';

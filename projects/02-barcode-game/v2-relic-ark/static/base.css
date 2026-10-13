@@ -403,8 +403,10 @@ body{
   .scan-in{width:min(560px,100%); max-height:100%}
   .rcard{width:min(170px,40vh)}
   /* S16: 폰 가로 — 카드는 왼쪽에 크게, 얻은 것·단추는 오른쪽 */
-  #scanCard:not([hidden]){display:grid; grid-template-columns:auto 1fr; grid-template-rows:1fr auto; column-gap:16px; align-items:center}
-  #scanCard .rcard{grid-row:1 / 3; width:min(230px, calc((100vh - 84px) * 5 / 7)); margin:0}
+  /* S23 수리: 「이게 뭐예요?」·「어디로」가 1열로 흘러 들어가 카드 열이 무너지던 것(S22) — 카드는 1열에 붙박고 나머지는 전부 2열 */
+  #scanCard:not([hidden]){display:grid; grid-template-columns:auto minmax(0,1fr); grid-auto-rows:auto; column-gap:16px; align-items:start}
+  #scanCard .rcard{grid-column:1; grid-row:1 / span 12; align-self:start; position:sticky; top:0; width:min(230px, calc((100vh - 84px) * 5 / 7)); margin:0}
+  #scanCard > :not(.rcard){grid-column:2; min-width:0}
   .scan-in{padding:12px 16px 10px}
   #scanCard .rgain{text-align:left; align-self:center}
   #scanCard .shelfbtn{margin-top:6px}
@@ -917,3 +919,52 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .vbook .vbimg{display:block; max-width:100%; margin-bottom:2px; background-repeat:no-repeat; background-position:0 0; image-rendering:pixelated}
 .vbook .cx{height:auto; min-height:74px}
 .vbook .cx.off .vbimg{filter:brightness(0) opacity(.55)}
+/* S23: 찍기 창 — 카드 아래 글을 접고 고르는 줄을 스크롤 없이(폰 가로) */
+.subpick .gq{font-size:13px; margin:0 0 4px}
+@media (max-height:500px){
+  .rgain{font-size:11.5px; line-height:1.5}
+  .gmore{display:inline-block; min-height:24px; margin:2px 0 0; padding:0 9px; font-size:10.5px}
+  .subpick{margin-top:4px; text-align:left}
+  .subpick .gq{font-size:12px; margin:0 0 2px}
+  .subsug{margin:0 0 3px; font-size:10.5px}
+  .subopts{justify-content:flex-start; gap:4px}
+  .subopts button{min-height:32px; padding:0 9px; font-size:11.5px}
+  #scanCard .give{margin-top:5px}
+  #scanCard .give .gq{display:none}
+  #scanCard .gopt{min-height:40px; flex-direction:row; gap:5px; padding:3px 6px}
+  #scanCard .gopt small{display:none}
+  #scanCard .gname{align-items:flex-start}
+  #scanCard .roomico{width:24px; height:20px} #scanCard .shelfico{width:24px; height:18px}
+  #scanCard .rgain .first + br{display:none}
+}
+/* S23 기색 줄: 폰 가로에서도 보인다(두 줄까지) */
+.gopt .signline{display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; font-size:10.5px; line-height:1.4; color:#cfe8ec; font-style:italic; text-align:left}
+.gopts.signs .gopt.sign{justify-content:flex-start}
+@media (max-height:500px){ #scanCard .gopt small.signline{display:-webkit-box; -webkit-line-clamp:4; font-size:10px; line-height:1.3} #scanCard .gopt.sign{flex-direction:column; align-items:flex-start} }
+.givepop .gp-repeat{margin-top:4px; padding-top:4px; border-top:1px dashed #b9a070; font-size:11.5px}
+.revealbig{position:fixed; left:50%; top:42%; z-index:35; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:6px; width:min(360px,86vw);
+  padding:18px 18px 16px; text-align:center; background:rgba(11,14,12,.94); border:1px solid #5a4320; border-top:3px solid var(--lamp); border-radius:12px; cursor:pointer;
+  animation:rbIn .5s cubic-bezier(.2,1.4,.4,1); transition:opacity .45s}
+.revealbig b{font-size:26px; letter-spacing:.06em; color:var(--lamp); text-shadow:0 0 14px rgba(240,176,85,.5)}
+.revealbig em{font-style:normal; font-size:13px; padding:1px 10px; border-radius:10px; color:#1a150e; background:#8fbf7a}
+.revealbig p{margin:0; font-size:12.5px; line-height:1.6; color:var(--cream)}
+.revealbig .rb-ring{position:absolute; left:50%; top:30px; width:80px; height:80px; margin-left:-40px; border-radius:50%; border:3px solid rgba(240,176,85,.7); animation:rbRing 1.2s ease-out forwards; pointer-events:none}
+.revealbig.off{opacity:0}
+@keyframes rbIn{from{opacity:0; transform:translate(-50%,-44%) scale(.85)}to{opacity:1; transform:translate(-50%,-50%) scale(1)}}
+@keyframes rbRing{from{transform:scale(.4); opacity:1}to{transform:scale(2.6); opacity:0}}
+.nbook{margin-top:4px}
+.nbhead{margin:0 0 3px} .nbhead b{color:#b9ae94}
+.nbslots{display:flex; flex-wrap:wrap; gap:3px}
+.nb{display:inline-flex; align-items:center; gap:3px; padding:1px 6px; font-size:11px; color:#6d7b77; background:#151a17; border:1px dashed #2a2419; border-radius:3px}
+.nb i{font-style:normal; font-size:9.5px; color:#7e8d8c}
+.nb.on{color:var(--cream); border-style:solid; border-color:#5a4320} .nb.on.nb-like{border-color:#d08a72} .nb.on.nb-need{border-color:#6fc9c4} .nb.on.nb-memory{border-color:#ffe2a8}
+.nb small{font-size:9px; color:#8fd8d2}
+.tablecard{width:min(380px, calc(100% - 24px))} .tablecard .chips{margin:4px 0}
+.tret{margin:2px 0 6px; font-size:11.5px; line-height:1.6; color:#b9ae94}
+.tableico{display:inline-block; width:22px; height:14px; border-radius:3px 3px 8px 8px; background:#96703f; box-shadow:0 0 0 2px #14110c}
+.trustup{font-style:normal; font-size:11px; margin-left:auto; padding:0 7px; border-radius:9px; color:#1a150e; background:#8fbf7a}
+.tpromise{margin:4px 0; font-size:12.5px; color:#e8c98a}
+.leave-in .tomask{display:flex; align-items:center; gap:8px; margin:2px 0 8px; font-size:12.5px; line-height:1.6; color:#cfe8ec}
+#labelsbtn.on{color:#1a150e; background:var(--lamp)}
+@media (max-height:500px){ .tablecard{max-height:calc(100% - 70px); overflow:auto} .revealbig{top:50%} }
+@media (prefers-reduced-motion:reduce){ .revealbig, .revealbig .rb-ring{animation:none} }
