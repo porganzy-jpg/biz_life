@@ -420,6 +420,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS codes (code TEXT PRIMARY KEY, uid TEXT NOT NULL, created REAL, used REAL);
         CREATE INDEX IF NOT EXISTS codes_uid ON codes(uid);
         """)
+        try:   # S24: 스캔 출처(camera|manual). 손으로 친 스캔은 전역 집계에서 뺀다
+            con.execute("ALTER TABLE scans ADD COLUMN source TEXT")
+        except sqlite3.OperationalError:
+            pass
         try:   # 한 방주에 코드는 하나 — 동시 발급 경합을 DB 가 막는다(리뷰 2026-10-03)
             con.execute("CREATE UNIQUE INDEX IF NOT EXISTS codes_uid_unique ON codes(uid)")
         except sqlite3.IntegrityError as e:
@@ -2415,6 +2419,8 @@ def family_set_check(st: dict, uid: str, code: str) -> dict | None:
     fs["reward"] = None
     if not fs["completed"] and fs["have"] >= fs["total"]:
         rw = dict(stk("family_sets.reward") or {})
+        if _KNOWN_FAM_CAT.get(code) in SAFE_EXCLUDE_CATS:
+            rw = {}                                   # S24: 담배 가문은 한 벌이 돼도 보상이 없다(완성 표시만)
         lore = FAMILY_LORE.get(code) or {}
         st.setdefault("family_sets", {})[code] = {"day": day_of(st), "decor": lore.get("decor")}
         mor = int(rw.get("morale") or 0)
@@ -4165,6 +4171,7 @@ class ScanIn(BaseModel):
     uid: str
     barcode: str
     user_category: str | None = None
+    source: str | None = None          # S24: "manual" = 손으로 친 숫자(전역 이름 투표·집계에서 뺀다)
 
 
 @app.get("/api/peek")
@@ -4269,13 +4276,15 @@ def scan(inp: ScanIn):
                           "kept_ko": moment("shelf.full.kept", item=card.name)}
 
     # 가문 크라우드소싱
-    if inp.user_category and card.family_code not in GEN.families:
+    manual = (inp.source or "").lower() == "manual"
+    if inp.user_category and card.family_code not in GEN.families and not manual:
         with db() as con:
             con.execute("INSERT INTO family_votes VALUES(?,?,?,?)", (inp.uid, card.family_code, inp.user_category, time.time()))
 
     with db() as con:
-        con.execute("INSERT INTO scans(uid,barcode,category,rarity,mult,ts,day) VALUES(?,?,?,?,?,?,?)",
-                    (inp.uid, code, card.category.value, card.rarity.value, mult, time.time(), day))
+        con.execute("INSERT INTO scans(uid,barcode,category,rarity,mult,ts,day,source) VALUES(?,?,?,?,?,?,?,?)",
+                    (inp.uid, code, card.category.value, card.rarity.value, mult, time.time(), day,
+                     "manual" if manual else "camera"))
     # S13 첫 만남(가문 먼저) · 가문 세트(서로 다른 바코드 수, 방금 넣은 스캔 포함) · 바람
     first_meet = first_meet_lines(st, card.category.value, card.family_code)
     # S15 봉인 상자: 같은 갈래 바코드가 열쇠다(값 0 인 재스캔도). 가장 오래된 것 하나, 같은 바코드는 하루 한 상자
@@ -4290,7 +4299,7 @@ def scan(inp: ScanIn):
     if ss_.get("last") and time.time() - float(ss_["last"]) <= SESSION_GAP_SEC:
         ss_["last"] = time.time()                    # S21: 찍는 동안은 같은 세션
     item_ = item_from_card(card_d)
-    cc["scans"][card_d["id"]] = {"item": item_, "day": day, "given": False, "at": time.time(), "barcode": code,
+    cc["scans"][card_d["id"]] = {"item": item_, "day": day, "given": False, "at": time.time(), "barcode": code, "manual": manual,
                                  "placed": "shelf" if shelf_new else ("stored" if stored else "copy")}
     if card_d.get("subtype"):
         ssub = cc.setdefault("seen_subtypes", {}).setdefault(card_d["category"], [])
@@ -4304,6 +4313,8 @@ def scan(inp: ScanIn):
                                           for x in where.pop("_internal", None) or where.get("suggest") or []
                                           if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
     where["subtype_pick"] = subtype_pick_for(st, code, card_d, bmeta)
+    if manual and where["subtype_pick"]:
+        where["subtype_pick"].update({"suggest": None, "suggest_ko": None})
     save_state(inp.uid, st)
     log(inp.uid, "scan", {"barcode": code, "rarity": card.rarity.value, "category": card.category.value, "mult": mult,
                           "locked": bool(locked), "variant": var["id"], "polish": (polish or {}).get("level"),
@@ -5398,7 +5409,8 @@ def codex(uid: str):
                                             else moment("codex.unknown_no_hint")),
                                 "rarity_best": None, "variant_seen": False})   # 모르는 칸은 태그도 숨긴다
         out.append({"category": cat, "category_ko": CAT_KO.get(cat, cat), "total": len(stems), "found": len(got),
-                    "names": got, "entries": entries, "rarity": rar})
+                    "names": got, "entries": entries, "rarity": rar,
+                    "in_completion": cat not in SAFE_EXCLUDE_CATS})          # S24: 담배는 도감 완성에 세지 않는다
     return out
 
 
@@ -5418,6 +5430,7 @@ def collection(uid: str):
         known = code in seen_f
         hint = moment(f"codex.category_hints.{cat}") if cat else None
         row = {"code": code, "known": known, "name": fn.get("name") if known else None,
+               "in_completion": cat not in SAFE_EXCLUDE_CATS,
                "category": cat, "category_ko": CAT_KO.get(cat or "", ""),
                "have": min(family_have(uid, code), total) if known else 0, "total": total,
                "completed": code in done, "lore_set_count": lore.get("set_count"),
@@ -5452,7 +5465,8 @@ def collection(uid: str):
                 rar[r["rarity"]] = r["c"]
     variants = sum(1 for cat in (st.get("codex_meta") or {}).values() for m in cat.values() if m.get("variant"))
     deep = [x for x in SPOTS if x.get("_src") == "spots_deep.json"]
-    return {"families": fams, "families_done": len(done), "families_total": len(FAMILY_NAMES),
+    return {"families": fams, "families_done": sum(1 for c_ in done if _KNOWN_FAM_CAT.get(c_) not in SAFE_EXCLUDE_CATS),
+            "families_total": sum(1 for c_ in FAMILY_NAMES if _KNOWN_FAM_CAT.get(c_) not in SAFE_EXCLUDE_CATS),
             "creatures": cres, "octopus_finds": finds, "rarity": rar, "variants": {"seen": variants},
             "spots": {"found": sum(1 for x in deep if spot_found(st, uid, x["id"])), "total": len(deep)}}
 
@@ -6153,11 +6167,13 @@ def likes_of(uid: str, r: dict) -> list:
 
 
 def need_today(uid: str, r: dict, day: int) -> dict | None:
-    needs = [n for n in (role_taste(r.get("role", "")).get("needs") or []) if isinstance(n, dict)]
+    allr = [n for n in (role_taste(r.get("role", "")).get("needs") or []) if isinstance(n, dict)]
+    needs = [n for n in allr if safe_rule(n)]          # S24: 찾으러 보내는 것은 안전 목록 안에서만
     if not needs:
         return None
     n = random.Random(f"{uid}|{r['id']}|{day}|need").choice(needs)
-    return {"category": n.get("category"), "subtype": n.get("subtype"), "ko": rule_ko(n), "idx": needs.index(n)}
+    sn = safe_rule(n)
+    return {"category": sn.get("category"), "subtype": sn.get("subtype"), "ko": rule_ko(sn), "idx": allr.index(n)}
 
 
 def join_day(st: dict, r: dict) -> int:
@@ -6318,9 +6334,12 @@ def trig_one(st: dict, uid: str, r: dict, s: dict, k: str, v, ev: dict | None) -
         if not (ev and ev.get("item")):
             return False
         to_ok = ev.get("to") == r["id"] or (isinstance(v, dict) and v.get("to") == "any")
-        return to_ok and match(soft_rule(s, v), ev["item"])
+        rl = safe_rule(soft_rule(s, v))                # S24: 안전 목록 밖 조건은 지운다(없으면 이 갈래로는 못 푼다)
+        return bool(to_ok and rl and match(rl, ev["item"]))
     if k == "give_distinct":
-        rl = soft_rule(s, {"category": v.get("category"), "subtype": v.get("subtype")})
+        rl = safe_rule(soft_rule(s, {"category": v.get("category"), "subtype": v.get("subtype")}))
+        if not rl:
+            return False
         return given_distinct(st, r["id"], rl) >= int(v.get("n", 1))
     if k == "place":
         return place_ok(st, r, v or {})
@@ -6572,7 +6591,7 @@ def arc_status(st: dict, uid: str, r: dict) -> dict | None:
         soft = s.get("soft_step") == int(s["step"]) + 1
         for key in ("give", "give_distinct", "place"):
             if key in trig:
-                v = soft_rule(s, trig[key]) if key != "place" else trig[key]
+                v = (safe_rule(soft_rule(s, trig[key])) or {"category": ""}) if key != "place" else trig[key]
                 hint = (rule_ko(v) + (f" 서로 다른 것 {v.get('n')}개" if key == "give_distinct" else "")) if key != "place" \
                     else f"{(ROOMS.get(v.get('room')) or {}).get('name', v.get('room'))}에 놓기"
                 break
@@ -6800,6 +6819,10 @@ def where_for(st: dict, uid: str, item: dict, compact: bool = False) -> dict:
         if info.get("arc"):
             row.update({"arc_id": info["arc"]["arc_id"], "step": info["arc"]["step"]})
         sug.append(row)
+    if not item_safe(item):                            # S24: 담배·술·약을 '좋아함'으로 권하지 않는다(우연히 주는 건 괜찮다)
+        for x in sug:
+            if x["kind"] == "resident" and x["tier"] in ("like", "memory"):
+                x.update({"tier": "warm", "icon": "warm", "value": WARM_V, "reason_ko": TIER_REASON["warm"], "unsafe_like": True})
     # S20 늘 둘 이상: 제안 밖 사람 중 '반가워할' 사람(같은 갈래를 좋아하거나 필요한 사람 → 오늘 아직 안 받은 사람)
     have_ids = {x["target"].get("resident_id") for x in sug if x["kind"] == "resident"}
     if len(sug) < 2:
@@ -8224,7 +8247,7 @@ def novelty_tick(st: dict, uid: str, visits: list, arcs: list) -> dict | None:
             if m.get("id") in cres(st, r["id"])["memories_seen"] or key in seen:
                 continue
             tr = m.get("trigger") or {}
-            if not memory_hint_ok(st, tr):
+            if not memory_hint_ok(st, tr) or not safe_rule(tr, strict=True):
                 continue                                  # S22: 이 방주가 실제로 찍은 적 있는 하위 종류만 귀띔한다
             ko = rule_ko(tr)
             out = {"kind": "memory_hint", "resident_id": r["id"], "key": key,
@@ -8412,8 +8435,9 @@ def scan_subtype(inp: SubtypeIn):
         p["warm"] = list(where.get("warm_ids") or [])
         p["chain"] = [{"rid": x["target"].get("resident_id"), "name": x.get("name"), "tier": x["tier"]}
                       for x in where.pop("_internal", None) or where.get("suggest") or [] if x["tier"] in ("chain_beat", "memory") and x["kind"] == "resident"]
-    with db() as con:
-        con.execute("INSERT OR REPLACE INTO subtype_votes VALUES(?,?,?,?,?)", (inp.uid, code, cat, inp.subtype, time.time()))
+    if not (p or {}).get("manual"):                  # S24: 손으로 친 스캔은 전역 이름 투표에 넣지 않는다
+        with db() as con:
+            con.execute("INSERT OR REPLACE INTO subtype_votes VALUES(?,?,?,?,?)", (inp.uid, code, cat, inp.subtype, time.time()))
     save_state(inp.uid, st)
     log(inp.uid, "subtype_pick", {"barcode": code, "subtype": inp.subtype})
     done = (moments().get("scan") or {}).get("subtype_done")
@@ -8773,10 +8797,15 @@ def notebook_slots(st: dict, uid: str, r: dict) -> list:
     rt = role_taste(r.get("role", ""))
     out = []
     for i, x in enumerate(likes_of(uid, r)):
+        if not item_rule_safe(x):
+            continue                                  # S24: 담배·술·약 좋아함은 수첩의 '찾을 것'에 올리지 않는다(번호는 그대로)
         out.append({"key": f"like:{i}", "kind": "like", "ko": rule_ko(x), "rule": x})
     for i, x in enumerate(rt.get("needs") or []):
-        out.append({"key": f"need:{i}", "kind": "need", "ko": rule_ko(x), "rule": x})
+        if safe_rule(x):
+            out.append({"key": f"need:{i}", "kind": "need", "ko": rule_ko(safe_rule(x)), "rule": safe_rule(x)})
     for m in rt.get("memories") or []:
+        if not safe_rule(m.get("trigger") or {}, strict=True):
+            continue                                  # S24: 안전 목록 밖 기억(술·약)은 수첩 칸·귀띔에 올리지 않는다
         out.append({"key": f"memory:{m.get('id')}", "kind": "memory", "ko": rule_ko(m.get("trigger") or {}), "rule": m.get("trigger")})
     tw = twist_of(uid, r).get("dislike")
     if tw:
@@ -8808,7 +8837,7 @@ def slot_for_tier(st: dict, uid: str, r: dict, item: dict, tier: str, info: dict
     return None
 
 
-def sign_candidates(st: dict, r: dict, item: dict, slot: str | None) -> list:
+def sign_candidates(st: dict, r: dict, item: dict, slot: str | None, uid: str = "") -> list:
     """기색 후보 [(템플릿, 출처)] — 칸 정확히(signs.needs/likes[i]) → 역할×갈래(signs.by_category) → 갈래 공통(signs_generic)."""
     signs = role_taste(r.get("role", "")).get("signs") or {}
     out = []
@@ -8821,8 +8850,11 @@ def sign_candidates(st: dict, r: dict, item: dict, slot: str | None) -> list:
                 out.append((t, src))
     for pre, key in (("need:", "needs"), ("like:", "likes")):
         if slot and slot.startswith(pre):
-            arr = signs.get(key) or []
             k = int(slot.split(":")[1])
+            src_rules = likes_of(uid, r) if key == "likes" else (role_taste(r.get("role", "")).get("needs") or [])
+            if k < len(src_rules) and not item_rule_safe(src_rules[k]):
+                continue                              # S24: 안전 목록 밖 칸을 가리키는 기색은 쓰지 않는다
+            arr = signs.get(key) or []
             add(arr[k] if k < len(arr) else None, "slot")
     add((signs.get("by_category") or {}).get(item.get("category") or ""), "role")
     add((moments().get("signs_generic") or {}).get(item.get("category") or ""), "generic")
@@ -8833,7 +8865,7 @@ def sign_hint(st: dict, uid: str, r: dict, item: dict, tier: str, slot: str | No
     """라벨 대신 기색 한 줄. 한 「어디로」 안에서 같은 템플릿을 두 사람에게 쓰지 않는다(used).
     갈래 공통 줄을 쓸 때는 그 사람의 역할을 붙여 누구 이야기인지 읽히게 한다(「요리사 도담 님이…」)."""
     used = used if used is not None else set()
-    cands = sign_candidates(st, r, item, slot)
+    cands = sign_candidates(st, r, item, slot, uid)
     rng = random.Random(f"{uid}|{day_of(st)}|{r['id']}|{item_key(item)}|sign")
     for src in ("slot", "role", "generic"):
         pool = [t for t, s_ in cands if s_ == src and t not in used]
@@ -9225,6 +9257,89 @@ def vote_mismatch(st: dict, item: dict) -> bool:
         return False
     sug = subtype_vote_suggest(code, item.get("category") or bm.get("category") or "")
     return bool(sug and sug["id"] != bm["subtype"])
+
+
+# ── S24 안전 목록 (찾으러 보내는 것) ─────────────────────────────────
+_SAFE = CORE_A.get("safe_targets") or {}
+SAFE_EXCLUDE_CATS = set(_SAFE.get("exclude_categories") or ["tobacco"])
+SAFE_EXCLUDE_SUBS = {k: set(v) for k, v in (_SAFE.get("exclude_subtypes") or {"drink": ["alcohol"]}).items()
+                     if not str(k).startswith("_")}
+SAFE_ONLY_SUBS = {k: list(v) for k, v in (_SAFE.get("allow_only_subtypes") or {"medical": ["bandage"]}).items()
+                  if not str(k).startswith("_")}      # 의약은 붕대만(시나리오·PM 합의)
+
+
+def safe_rule(rule, strict: bool = False):
+    """찾으러 보낼 수 있는 규칙만. 갈래가 막힌 목록이면 None, 하위 종류에 막힌 것이 섞였으면 그것만 뺀다(남는 게 없으면 None).
+    strict=True(기억 칸·귀띔)면 하위 종류가 없는 갈래 전체 규칙도, 그 갈래에 막힌 종류가 있으면 그대로 둔다(갈래 이름만 보이므로).
+    갈래 전체 조건(예: 의약 아무거나)은 막힌 종류로 채울 수도 있지만 '그걸 찾아오라'는 말은 아니라 남긴다."""
+    if not isinstance(rule, dict):
+        return rule
+    cat = rule.get("category")
+    if cat in SAFE_EXCLUDE_CATS:
+        return None
+    sub = rule.get("subtype")
+    if cat in SAFE_ONLY_SUBS:                          # 허용 목록 갈래: 하위 종류가 없으면 허용된 것으로 좁힌다
+        subs = (sub if isinstance(sub, list) else [sub]) if sub else list(SAFE_ONLY_SUBS[cat])
+        ok_ = [x for x in subs if x in SAFE_ONLY_SUBS[cat]]
+        if not ok_:
+            return None
+        return dict(rule, subtype=ok_) if ok_ != (sub if isinstance(sub, list) else [sub] if sub else None) else rule
+    if sub:
+        subs = sub if isinstance(sub, list) else [sub]
+        ok_ = [x for x in subs if x not in SAFE_EXCLUDE_SUBS.get(cat, set())]
+        if not ok_:
+            return None
+        if len(ok_) != len(subs):
+            return dict(rule, subtype=ok_)
+    return rule
+
+
+def item_rule_safe(rule) -> bool:
+    """좋아함 규칙이 안전한가 — 갈래가 막혔거나, 허용 목록 갈래(의약)에서 허용 밖 종류만 가리키면 거짓."""
+    if not isinstance(rule, dict):
+        return True
+    cat = rule.get("category")
+    if cat in SAFE_EXCLUDE_CATS:
+        return False
+    sub = rule.get("subtype")
+    subs = (sub if isinstance(sub, list) else [sub]) if sub else []
+    if cat in SAFE_ONLY_SUBS:
+        return bool(subs) and all(x in SAFE_ONLY_SUBS[cat] for x in subs)
+    return not subs or any(x not in SAFE_EXCLUDE_SUBS.get(cat, set()) for x in subs)
+
+
+def item_safe(item: dict) -> bool:
+    """이 물건을 '권해도' 되나(찍은 물건 하나 기준)."""
+    cat, sub = item.get("category"), item.get("subtype")
+    if cat in SAFE_EXCLUDE_CATS:
+        return False
+    if cat in SAFE_ONLY_SUBS:
+        return sub in SAFE_ONLY_SUBS[cat]
+    return sub not in SAFE_EXCLUDE_SUBS.get(cat, set())
+
+
+def safety_audit() -> list:
+    """데이터에서 안전 목록 밖으로 찾으러 보내는 곳(필요·사슬 건네기 조건). 기동 로그와 테스트가 읽는다."""
+    bad = []
+    for role, rt in (TASTES.get("roles") or {}).items():
+        for i, n in enumerate(rt.get("needs") or []):
+            if safe_rule(n) != n:
+                bad.append(f"needs:{role}:{i}")
+    for a in ARCS:
+        for b in a.get("beats") or []:
+            trig = b.get("trigger") or {}
+            for x in [trig] + [y for y in (trig.get("any_of") or []) if isinstance(y, dict)]:
+                for key in ("give", "give_distinct"):
+                    v = x.get(key)
+                    if isinstance(v, dict) and safe_rule({"category": v.get("category"), "subtype": v.get("subtype")}) != \
+                            {"category": v.get("category"), "subtype": v.get("subtype")}:
+                        bad.append(f"arc:{a['id']}:{b.get('step')}:{key}")
+    return bad
+
+
+_SAFETY_BAD = safety_audit()
+if _SAFETY_BAD:
+    print(f"[safety] 안전 목록 밖으로 찾으러 보내는 데이터 {len(_SAFETY_BAD)}곳 — 서버가 걸러 낸다: {_SAFETY_BAD}")
 
 
 # ─────────────────────────────────────────────────────────────

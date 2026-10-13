@@ -379,3 +379,24 @@
   - `personal: true` 면 개인 각인(imprints_arcs)이다.
   - 위기 각인이 3개면 역할 진화 표시가 켜진다.
   - `RELIC_DEV=1` 이 아니면 404 다.
+
+## 14. S24 안전·데이터 (2026-10-13)
+- **안전 목록**(`core_a.json safe_targets`): 담배 갈래는 쓰지 않는다. 술(drink alcohol)도 쓰지 않는다. 의약은 붕대(bandage)만 쓴다.
+  - 이 목록이 걸리는 곳: 필요, 내일의 부탁, 사슬 건네기 조건, 수첩 기억 칸, 기억 실마리.
+  - 서버가 목록 밖 규칙을 지운다(데이터 실수 가드). 필요 `idx` 는 원래 목록의 번호 그대로라 기색·내일 줄과 짝이 맞는다.
+  - 좋아함과 기억 장면(찍었을 때 반응)은 남는다.
+  - 기동 시 `safety_audit()` 가 위반 곳을 로그로 남긴다. 지금 데이터는 위반 0이다.
+- **도감**
+  - `/api/codex[].in_completion`: 담배 갈래는 false 다. 목록에는 보인다.
+  - `/api/collection.families[].in_completion`: 담배 가문 셋은 false 이고, `families_total`·`families_done` 에서 빠진다.
+  - 담배 가문을 한 벌 모아도 보상(사기·장식·이야기)이 없다.
+- **손으로 친 스캔**
+  - `POST /api/scan {..., source: "manual"}` 으로 보낸다.
+  - `scans.source` 에 camera/manual 을 적는다.
+  - 손으로 친 스캔은 `family_votes` 와 `subtype_votes`(다른 방주 이름 집계)에 넣지 않는다. 그 스캔의 `subtype_pick.suggest` 도 null 이다.
+  - 개인 놀이(카드·「어디로」·고르기)는 그대로다.
+- **보관 기한 제안**: `docs/PRIVACY_NOTES.md`(결정 대기, 미구현).
+- **좋아함 쪽 안전**(S24 후속)
+  - 담배·술·붕대 밖 의약은 「어디로」에서 `like`/`memory` 로 권하지 않는다. `warm` 으로 보이고 `unsafe_like: true` 가 붙는다. 우연히 주면 반응은 그대로다.
+  - 이런 좋아함 칸은 수첩 `slots` 에 올리지 않는다(칸 번호는 그대로).
+  - 기색은 안전 목록 밖 칸을 가리키는 `signs.likes/needs[i]` 줄을 쓰지 않는다.
