@@ -256,6 +256,11 @@
     ['#renameRow', '#keepNote'].forEach(q => { const x = $(q); if (x) x.remove(); });
     const sp = r.where && r.where.subtype_pick;
     if (sp && (sp.options || []).length && (sp.needed || sp.later_ok)) setTimeout(() => subtypePick(r, sp), 0);
+    (r.unlock_new || []).forEach(n => {                   // S30: 스캔 응답의 해금 방송(가보 칸 등) — 켠 날 해금과 같은 규칙으로 한 번만
+      const key = (n.feature || '') + '|' + (((K.ark || {}).unlocked || {}).play_day || ''), said = store.get('unlock_said', []);   // 켠 날 해금과 같은 열쇠 — 두 번 방송하지 않게
+      if (!n.line || said.indexOf(key) >= 0) return;
+      said.push(key); store.set('unlock_said', said.slice(-40)); setTimeout(() => K.say(plain(n.line)), 1200); D.log.push('unlock ' + n.feature + ' scan');
+    });
     if (((r.where || {}).heirloom || []).length) setTimeout(() => heirloomRow(r), 0);
     else if (r.keep_note && r.keep_note.ko) setTimeout(() => keepNote(r), 0);
     if ((r.where || {}).rename && (r.where.rename.options || []).length) setTimeout(() => renameRow(r), 0);

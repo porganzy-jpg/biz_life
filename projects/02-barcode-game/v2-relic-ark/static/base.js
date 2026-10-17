@@ -2161,6 +2161,7 @@
       g.innerHTML = '<b>' + (gt.ok ? '준비 끝' : '아직') + '</b>' + (gt.ko ? '<span>' + esc(gt.ko) + '</span>' : '');
       wd.classList.toggle('bad', raid.ready.would !== 'held');
       wd.innerHTML = '지금 맞서시면 <b>' + esc((K.ext.T && K.ext.T('raid_preview.' + raid.ready.would, {}, '')) || raid.ready.would_ko) + '</b>' + shortWord(raid);   // S18 TSV: 미리 보기는 미래형
+      if (raid.hint_action_ko) wd.innerHTML += '<span class="rhintact">' + esc(plain(raid.hint_action_ko)) + '</span>';   // S30: 금·방 잃음 미리보기 아래 「이렇게 해 보세요」 한 줄
     } else { g.hidden = true; wd.hidden = true; }
     renderGate(raid);
     clueMode(raid);
