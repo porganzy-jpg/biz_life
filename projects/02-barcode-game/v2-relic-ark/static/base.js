@@ -2597,7 +2597,7 @@
     const free = shelfFree();
     return '<h3>' + esc(STO()) + ' · ' + stored.length + '점</h3><p class="desc">선반에 자리가 없어서 넣어 둔 것들입니다. 도감에는 그대로 남아 있습니다.' + (free ? ' 선반에 빈 칸이 ' + free + '칸 있습니다.' : '') + '</p>' +
       '<div class="storedlist">' + stored.slice().reverse().slice(0, 12).map(it =>
-        '<div class="sto"><span><b>' + esc(it.relic_name || it.name || '물건') + '</b> · ' + esc(RAR_KO[it.rarity] || '') + ' · ' + esc(whenKo(it.scanned_at)) + '</span>' +
+        '<div class="sto"><span><b>' + esc(it.display_name || it.relic_name || it.name || '물건') + '</b> · ' + esc(RAR_KO[it.rarity] || '') + ' · ' + esc(whenKo(it.scanned_at)) + '</span>' +
         (free ? '<button data-unstore="' + esc(it.id) + '">선반에 올리기</button>' : '') + '</div>').join('') + '</div>';
   }
   // S19(2차 테스트 4): 창고를 넓혀도 상자 속 물건이 저절로 안 올라왔다 → 빈 칸에 들어가는 것부터 하나씩 올린다(서버 /api/shelf/swap, 넣을 자리가 있을 때만 부른다)
@@ -2616,7 +2616,7 @@
     try {
       const r = await api('/api/shelf/swap', { stored_id: it.id });
       if (r.state) apply(r.state);
-      if (typeof r.slot === 'number') { shelfFlash = { slot: r.slot, until: performance.now() + 6000 }; say(plain(r.ko || ('「' + (it.relic_name || it.name) + '」, 선반 빈 칸에 올려 두었습니다.'))); }
+      if (typeof r.slot === 'number') { shelfFlash = { slot: r.slot, until: performance.now() + 6000 }; say(plain(r.ko || ('「' + (it.display_name || it.relic_name || it.name) + '」, 선반 빈 칸에 올려 두었습니다.'))); }
     } catch (e) { /* 다음 상태에서 다시 */ }
     autoBusy = false;
   }
@@ -2632,7 +2632,7 @@
       const it = shelf.find(x => (x.slot | 0) === r.slot);
       if (r.ko || r.down_ko) toast(plain([r.ko, r.down_ko].filter(Boolean).join(' ')));   // 서버 S18 문장(shelf.full.placed·moved)
       else toast(r.down ? plain(TT('shelf.full.moved', { item: r.down }, josa('\'' + r.down + '\'', '은') + ' ' + STO() + '에 넣어 두었습니다.'))
-                   : ((it ? '\'' + (it.relic_name || it.name) + '\', ' : '') + '선반 ' + (r.slot + 1) + '번째 칸에 올렸습니다.'));
+                   : ((it ? '\'' + (it.display_name || it.relic_name || it.name) + '\', ' : '') + '선반 ' + (r.slot + 1) + '번째 칸에 올렸습니다.'));
       if (typeof r.slot === 'number') { shelfFlash = { slot: r.slot, until: performance.now() + 9000 }; }
       return r;
     } catch (e) { toast(e.message || '바꾸지 못했습니다'); return null; }
@@ -2874,7 +2874,7 @@
     const lv = it.polish | 0;
     const when = it.scanned_at ? whenKo(it.scanned_at) + ' 찍은 것' : '';
     const pl = lv > 1 ? (it.polish_label || POLISH_KO[lv] || '') : '';
-    return { rarity: it.rarity, sea: it.variant === 'sea', name: it.relic_name || it.name || propSpec(it.prop_id).name || '물건', category: it.category,
+    return { rarity: it.rarity, sea: it.variant === 'sea', name: it.display_name || it.relic_name || it.name || propSpec(it.prop_id).name || '물건', category: it.category,
              prop_id: it.prop_id, lines: [[pl, when].filter(Boolean).join(' · ')].filter(Boolean) };
   }
   // 닦기 도장 글: 오늘 센 것만 「닦였습니다」(세지 않은 재스캔에 '닦았다'고 찍으면 거짓 문장이 된다 — 서버 polish 와 같은 규칙)
@@ -2888,7 +2888,7 @@
     const c = (so.candidates || []).filter(fits).slice(0, 3);
     return '<span class="where swapq">' + esc(plain(TT('shelf.full.prompt', { item }, so.ko || '선반이 꽉 차서 ' + STO() + '에 넣어 두었습니다. 선반의 물건과 바꾸시겠습니까?'))) + '</span>' +
       (c.length ? '<span class="swapbtns">' + c.map(x => '<button data-swap="' + esc(so.stored_id) + '" data-slot="' + esc(x.slot) + '">' +
-        esc('「' + (x.relic_name || x.name || '물건') + '」') + '<small>' + esc(TT('shelf.full.swap_label', {}, '바꿔 놓기')) + (POLISH_KO[x.polish] ? ' · ' + esc(POLISH_KO[x.polish]) : '') + '</small></button>').join('') +
+        esc('「' + (x.display_name || x.relic_name || x.name || '물건') + '」') + '<small>' + esc(TT('shelf.full.swap_label', {}, '바꿔 놓기')) + (POLISH_KO[x.polish] ? ' · ' + esc(POLISH_KO[x.polish]) : '') + '</small></button>').join('') +
         '<button data-keep="1">' + esc(TT('shelf.full.keep_label', {}, '그대로 두기')) + '</button></span>' : '');
   }
   function polishStamp(pol) {
@@ -3688,6 +3688,8 @@
       const rs = s != null ? s : shelfRoomSlot();
       const acts = [{ label: '창고 보기', fn: () => openCard({ slot: rs }) }];
       if (sh.item.card_id && K.ext.core && K.ext.core.regift) acts.unshift({ label: '건네기', fn: () => K.ext.core.regift(sh.item) });   // S19: 찍지 않고 다시 주기
+      if (sh.item.card_id && ['rare', 'epic', 'legendary'].indexOf(sh.item.rarity) >= 0 && K.ext.core && K.ext.core.heirFromShelf)    // S31: 귀함 이상만
+        acts.splice(1, 0, { label: '가보로 드리기', fn: () => K.ext.core.heirFromShelf(sh.item) });
       if (K.ext.cards) { closeCard(); K.ext.cards.peek(shelfCardOf(sh.item), '', acts); }
       else { toast(shelfLine(sh.item)); openCard({ slot: rs }); }
       return;

@@ -138,6 +138,28 @@
     D.log.push('subpick ' + (sp.options || []).length + (sg ? ' suggest' : ''));
   }
   let lastPick = null;
+  // S30·S31 해금 방송(unlock_new[]) — 스캔·/api/ark·/api/relic/where 어디로 와도 켠 날 해금과 같은 열쇠(기능|켠 날)로 한 번만
+  function sayUnlockNew(list, from) {
+    (list || []).forEach(n => {
+      const key = (n.feature || '') + '|' + (((K.ark || {}).unlocked || {}).play_day || ''), said = store.get('unlock_said', []);
+      if (!n.line || said.indexOf(key) >= 0) return;
+      said.push(key); store.set('unlock_said', said.slice(-40)); setTimeout(() => K.say(plain(n.line)), 1200); D.log.push('unlock ' + n.feature + ' ' + from);
+    });
+  }
+  // S31 선반 물건 「가보로 드리기」: GET /api/relic/where → heirloom[] 를 작은 패널에. 건네기는 /api/give {relic_id, target:{resident_id, heirloom:true}}
+  async function heirFromShelf(it) {
+    const id = it.card_id || it.id; if (!id) return;
+    let w;
+    try { w = await call('/api/relic/where?uid=' + encodeURIComponent(K.uid) + '&relic_id=' + encodeURIComponent(id)); }
+    catch (err) { K.toast(err.message || '지금은 고를 수 없습니다'); return; }
+    const wh = w.where || w;
+    sayUnlockNew(w.unlock_new || wh.unlock_new, 'shelf');
+    if (!(wh.heirloom || []).length) { K.toast('지금은 이 물건을 가보로 드릴 분이 없습니다.'); return; }
+    const nm = it.display_name || it.relic_name || it.name || '물건';
+    const body = K.panel('<h2>' + esc(plain(w.heirloom_label || wh.heirloom_label || '가보로 드리기')) + '</h2><p class="sub">「' + esc(nm) + '」</p><div id="heirHost"></div>');
+    heirloomRow({ relic_id: id, where: { heirloom: wh.heirloom }, onDone: () => K.closePanel() }, body.querySelector('#heirHost'));
+    D.log.push('heir shelf ' + wh.heirloom.length);
+  }
   // S27 간직 메모: 가보 칸이 열리기 전(3일째 전)에 들어온 귀함 이상 — 단추 없이 한 줄(나중에 가보로)
   const keepSaid = {};
   function keepNote(r) {
@@ -182,23 +204,22 @@
     D.log.push('renamerow ' + (rn.options || []).length + (rn.can_today === false ? ' done_today' : ''));
   }
   // S25 가보 칸: 「어디로」 아래 작은 줄 「가보로 · ○○」. 이미 가보가 있으면 서버가 바꿀지 묻는다(기본 그대로)
-  function heirloomRow(r) {
+  function heirloomRow(r, host, first) {
     const hs = (r.where.heirloom || []).slice(0, 4);
     const old = $('#heirRow'); if (old) old.remove();
     const el = document.createElement('div'); el.id = 'heirRow'; el.className = 'heirrow';
-    el.classList.add('fold');
+    el.classList.add('fold'); if (host) el.classList.add('open');   // S31: 선반·문어 카드 안에서는 펼친 채로
     el.innerHTML = '<button class="hfold" aria-expanded="false"><i aria-hidden="true"></i>' + esc((() => { const v = K.ext.moment && K.ext.moment('heirloom.fold_label'); return plain((Array.isArray(v) ? v[0] : (typeof v === 'string' ? v : '')) || '가보로 둘 수 있습니다'); })()) + ' <b aria-hidden="true">▸</b></button>' +
       '<p class="hq"><i aria-hidden="true"></i>' + esc(T('heirloom.ask', {}, '오래 아낄 물건입니다. 누구의 가보로 둘까요?')) + '</p><div class="hopts">' +
       hs.map((h, i) => '<button data-h="' + i + '"' + (h.second ? ' class="hsecond"' : '') + '>' + face(personById((h.target || {}).resident_id), 22) + '<span class="hl"><b>' + esc(h.label || ('가보로 · ' + h.name)) + (h.swap ? ' <small>바꾸기</small>' : '') + '</b>' +
         (h.hint_ko ? '<small class="hh">' + esc(plain(h.hint_ko)) + '</small>' : '') + '</span></button>').join('') +
       ((hs.find(h => h.second) || {}).more_ko ? '<button class="hmore" data-hmore="1">' + esc(plain(hs.find(h => h.second).more_ko)) + '</button>' : '') + '</div>';   // S27: 후보마다 한 줄 · S29: 덧붙인 둘째 후보는 「다른 분도 보여 드릴까요?」 뒤에
-    const strip = $('#giveStrip'), btn = $('#shelfBtn');
-    const after = strip ? strip.nextSibling : btn;
-    (strip || btn).parentNode.insertBefore(el, after);
+    if (host) { if (first && host.firstChild) host.insertBefore(el, host.firstChild); else host.appendChild(el); const fb = el.querySelector('.hfold b'); if (fb) fb.textContent = '▾'; }
+    else { const strip = $('#giveStrip'), btn = $('#shelfBtn'); const after = strip ? strip.nextSibling : btn; (strip || btn).parentNode.insertBefore(el, after); }
     const send = async (target) => {
       el.classList.add('busy');
       let res;
-      try { res = await call(API.give, { scan_id: (r.where || {}).scan_id || (r.card || {}).id, target }); }
+      try { res = await call(API.give, r.relic_id ? { relic_id: r.relic_id, target } : { scan_id: (r.where || {}).scan_id || (r.card || {}).id, target }); }
       catch (err) { el.classList.remove('busy'); K.toast(err.message || '드리지 못했습니다'); return; }
       el.classList.remove('busy');
       if (res && res.ok === false && res.ask_swap) {                 // 바꿀까요? (기본: 그대로)
@@ -213,7 +234,8 @@
       if (res.state) K.apply(res.state);
       r._placed = true;
       const sg = $('#giveStrip'); if (sg) sg.remove();
-      el.remove(); K.closeScan();
+      el.remove();
+      if (r.onDone) r.onDone(res); else K.closeScan();
       react(res, { rid: target.resident_id, reason: 'heir', target });
       if (!res.heirloom_refused) heirLines(res.heirloom, target.resident_id);       // S27: 거절이면 돌려받음 한 줄만
       D.log.push('heir give ' + ((res.heirloom || {}).tier || '') + ((res.heirloom || {}).swapped ? ' swapped' : ''));
@@ -256,11 +278,7 @@
     ['#renameRow', '#keepNote'].forEach(q => { const x = $(q); if (x) x.remove(); });
     const sp = r.where && r.where.subtype_pick;
     if (sp && (sp.options || []).length && (sp.needed || sp.later_ok)) setTimeout(() => subtypePick(r, sp), 0);
-    (r.unlock_new || []).forEach(n => {                   // S30: 스캔 응답의 해금 방송(가보 칸 등) — 켠 날 해금과 같은 규칙으로 한 번만
-      const key = (n.feature || '') + '|' + (((K.ark || {}).unlocked || {}).play_day || ''), said = store.get('unlock_said', []);   // 켠 날 해금과 같은 열쇠 — 두 번 방송하지 않게
-      if (!n.line || said.indexOf(key) >= 0) return;
-      said.push(key); store.set('unlock_said', said.slice(-40)); setTimeout(() => K.say(plain(n.line)), 1200); D.log.push('unlock ' + n.feature + ' scan');
-    });
+    sayUnlockNew(r.unlock_new, 'scan');
     if (((r.where || {}).heirloom || []).length) setTimeout(() => heirloomRow(r), 0);
     else if (r.keep_note && r.keep_note.ko) setTimeout(() => keepNote(r), 0);
     if ((r.where || {}).rename && (r.where.rename.options || []).length) setTimeout(() => renameRow(r), 0);
@@ -916,7 +934,7 @@
   function regift(it) {
     const a = K.ark || {}, rd = a.room_decor || {};
     const rooms = unlocked('decor_place') ? Object.keys(rd).filter(k => (rd[k].items || []).filter(x => !x.boxed).length < (rd[k].cap || 0)).map(k => +k) : [];
-    const body = K.panel('<h2>' + esc(it.relic_name || it.name || '물건') + ' 건네기</h2><p class="sub">누구에게, 어디에 둘까요?</p>' +
+    const body = K.panel('<h2>' + esc(it.display_name || it.relic_name || it.name || '물건') + ' 건네기</h2><p class="sub">누구에게, 어디에 둘까요?</p>' +
       '<div class="gopts regift">' + people().map(p => '<button class="gopt" data-rid="' + esc(p.id) + '">' + face(p, 34) + '<span class="gname"><b>' + esc(p.name) + '</b>' +
         (normTaste(p).need ? '<small>오늘 ' + esc(normTaste(p).need.ko) + '</small>' : '') + '</span></button>').join('') +
       rooms.map(s => '<button class="gopt" data-slot="' + s + '"><i class="roomico" aria-hidden="true"></i><span class="gname"><b>' + esc(roomName(s)) + '</b><small>꾸밈 칸</small></span></button>').join('') + '</div>');
@@ -948,7 +966,7 @@
     if (!w || !w.relic_id || octOpen === w.relic_id || $('.octwhere')) return;
     const dism = store.get('oct_where_dismissed', {});
     if ((dism[w.relic_id] || 0) >= 2) return;                // 「선반에 그대로」를 두 번 고르면 더 묻지 않는다(물건은 선반에 남는다)
-    const sug = normSuggest({ where: w }); if (!sug.length) return;
+    const sug = normSuggest({ where: w }); if (!sug.length && !(w.heirloom || []).length) return;
     octOpen = w.relic_id;
     const show = () => {
       const q = window.ARKBASE.queue ? window.ARKBASE.queue() : {};
@@ -959,6 +977,12 @@
         '<p class="bline">「' + esc(plain(nm)) + '」</p>' + '<div class="give">' + stripHTML(sug, false, T('octopus_gift.where_keep', {}, '선반에 그대로')) + '</div>';
       $('#base').appendChild(el);
       const close = () => { el.classList.add('off'); setTimeout(() => el.remove(), 400); };
+      if ((w.heirloom || []).length) {                       // S31: 가보 후보 — heirloom_first 면 「어디로」 앞에
+        const host = document.createElement('div'); host.className = 'octheir';
+        const give = el.querySelector('.give'); if (w.heirloom_first) give.before(host); else give.after(host);
+        heirloomRow({ relic_id: w.relic_id, where: { heirloom: w.heirloom }, onDone: close }, host);
+        D.log.push('octwhere heir ' + w.heirloom.length + (w.heirloom_first ? ' first' : ''));
+      }
       el.addEventListener('click', async (e) => {
         const b = e.target.closest('button.gopt'); if (!b || el.classList.contains('busy')) return;
         if (b.dataset.i === 'keep') { dism[w.relic_id] = (dism[w.relic_id] || 0) + 1; store.set('oct_where_dismissed', dism); close(); D.log.push('octwhere keep'); return; }
@@ -1190,7 +1214,7 @@
     });
     mb.appendChild(b); K.onApply(paint);
   })();
-  K.ext.core = { afterReveal, morningExtra, hasMorning, queueBeat, leaveCard, regift };
+  K.ext.core = { afterReveal, morningExtra, hasMorning, queueBeat, leaveCard, regift, heirFromShelf };
   // /api/ark 에만 오는 키(방문·떠날 때 약속·오늘의 비트·세션)는 다른 응답의 state(public_state)에 없다 — 지난 값을 이어 쓴다
   const lastFull = {};
   K.onApply((st) => {
@@ -1198,6 +1222,7 @@
     ['visits', 'next_visit', 'beat_today', 'session', 'visitors_book', 'decor_trace', 'missed_chain', 'prefs', 'evening_table', 'tomorrow_ask', 'unlocked', 'memory_wall', 'leave_order'].forEach(k => { if (st[k] === undefined) { if (lastFull[k] !== undefined) st[k] = lastFull[k]; } else lastFull[k] = st[k]; });
     computeGather(st);
     unlockCheck(st);
+    sayUnlockNew(st.unlock_new, 'ark');
     noveltyCheck(st);
     tipCheck(st);
     tableCheck(st);

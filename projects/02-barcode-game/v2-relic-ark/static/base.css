@@ -1077,3 +1077,5 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .heirrow.more .hmore{display:none}
 .heirrow .hopts .hmore{min-height:34px; padding:0 12px; font-size:11.5px; color:#cdb98a; background:transparent; border:1px dashed #5a4320; border-radius:17px; cursor:pointer}
 .rwould .rhintact{display:block; margin-top:4px; font-size:12px; line-height:1.5; color:#cfe8ec}   /* S30 */
+.octwhere .octheir{margin-top:6px}
+.octwhere .heirrow{margin-top:0}
