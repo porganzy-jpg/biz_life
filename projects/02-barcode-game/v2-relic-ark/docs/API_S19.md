@@ -587,3 +587,28 @@
   - 낮에 한 걸음 간 사슬은, 다음 걸음이 small 이고 min_days_after_prev 가 1 이하이면 같은 날 저녁에 한 걸음 더 열린다(하루 한 번).
 - **아는 칸이 적은 방주**: 라벨이 꺼진 날 방주 전체 아는 칸이 3 미만이면, 지금 물건과 기색이 맞는 사람(need·like·memory·chain)이 첫 칸이다(`first_reason:"fit"`). 깃발은 `LOW_KNOWN`.
 - **`POST /api/dev/raid {uid, creature, grade?}`**(개발 전용, 배포 404): 오늘 습격을 그 생물로 새로 연다(소리 단계).
+
+## 21. S32 「다음 할 일」 한 줄 · 첫 스캔 길잡이 (2026-10-17)
+- **`next_step`**: `/api/ark` 와 모든 `state`(건네기·찍기·자리·짓기 응답)에 실린다.
+  - 모양: `{id, kind, feature?, line_ko, target:{kind, …}, hint_mode:"always"|"idle", idle_sec:null|30}`.
+  - id 는 kind 를 쓰되, unlock_try 이면 `unlock_try.<feature>` 다.
+  - 우선순위(맞는 것 하나만):
+    1. `place`: 홀에 사람이 있고 자리가 남은 방이 있다. target `{kind:"hall", resident_id, slot}`.
+    2. 오늘 필요(안 채운 것, 안전 목록 안)나 열린 매듭(건네기 조건). target `{kind:"scan", resident_id, arc_id?}`.
+       - 라벨 있는 날은 `need`(「{name}」「{ko}」).
+       - 라벨 없는 날은 `need_hint`(이름만, 답 없음).
+    3. `give_shelf`: 오늘 찍고 자리를 안 정한 물건이 둘 이상. target `{kind:"shelf", scan_id}`.
+    4. `unlock_try`: 열렸는데 한 번도 안 써 본 기능. 순서는 decor → raid → expedition → table → memory_wall. target kind 는 room·expedition·table 이다.
+    5. `raid_waiting`: 오늘 습격이 끝나지 않았다. target `{kind:"room", raid_id}`.
+    6. `build`: 방이 셋 미만이고 지을 수 있다. target `{kind:"room", room_id, slot}`.
+    7. `done`: target `{kind:"menu"}`.
+  - 문장은 `ui_moments.next_step.<kind>[]`(unlock_try 는 `.<feature>[]`)에서 읽는다. 고르는 시드는 같은 날·같은 kind 면 같은 줄이 되게 한다(읽기 전용). 서버 기본 문장은 키가 없을 때만 쓴다.
+  - 켠 날 1~3은 `hint_mode:"always"` 다. 4일째부터는 `"idle"` 이고, 30초 동안 손을 놓았는지는 화면이 판단한다.
+  - 약·담배·술은 가리키지 않는다(필요·매듭 조건에 안전 목록을 적용한다).
+- **`tutorial`**:
+  - `/api/ark.tutorial = {next_step_id|null, done:bool, done_steps[], steps[]}`.
+  - 걸음: `scan_button`, `scan_window`, `card_flip`, `subtype_pick`, `where`, `after_first_give`. 시나리오 `ui_moments.tutorial.<걸음>` 과 같은 이름이다.
+  - `POST /api/tutorial {uid, step}` 은 그 걸음을 봤다고 적는다(`core.tutorial_seen`). 방주마다 한 번이다.
+  - `step:"skip"` 이면 남은 걸음을 모두 적는다.
+  - 화면 별칭도 받는다: scan_input→scan_window, card→card_flip, subtype·quick_pick→subtype_pick, after_give→after_first_give.
+  - 없는 걸음은 400 이다.

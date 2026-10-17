@@ -1726,6 +1726,7 @@ def public_state(st: dict, uid: str) -> dict:
                                                 "fallback": True} if shelf_capacity(st) else None)),
         # 짓기·레벨업 가능 여부(서버가 판단한다. 화면은 그리기만)
         "build_options": build_options(st, uid),
+        "next_step": next_step_public(st, uid),           # S32: 건네기·찍기·자리·짓기 응답의 state 에도(화면이 행동마다 새로 그린다)
         "upgrades": {str(r["slot"]): upgrade_option(st, uid, r["id"], room_level(r))
                      for r in live_rooms(st)},
         "hall_level": int(st.get("hall_level") or 1),
@@ -4537,6 +4538,8 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     out["evening_table"] = evening_table_public(st, uid)
     out["unlocked"] = unlocked_public(st)
     out["unlocked"]["new"] = unlock_new(st, uid)
+    out["next_step"] = next_step_public(st, uid)        # S32 「다음 할 일」 한 줄
+    out["tutorial"] = tutorial_public(st)               # S32 첫 스캔 길잡이(방주마다 한 번)
     out["next_visit"], out["tomorrow_ask"], out["leave_order"] = leave_lines(st, uid, nv=out["next_visit"])
     out["memory_wall"] = memory_wall_public(st, uid)
     out["notebook_tip"] = (core_of(st).get("gossip") or {}) if (core_of(st).get("gossip") or {}).get("day") == day else None
@@ -10659,6 +10662,160 @@ def dev_raid(inp: DevRaidIn):
     ensure_raid(st, inp.uid, force=inp.creature, reset=True, grade_force=inp.grade)
     save_state(inp.uid, st)
     return {"ok": True, "raid": raid_public(st, st.get("raid")), "state": public_state(st, inp.uid)}
+
+
+# ── S32 「다음 할 일」 한 줄 · 첫 스캔 길잡이 ─────────────────────────
+NEXT_KIND_DEFAULT = {
+    "place": "빈 방에 사람을 한 분 모셔 보세요.",
+    "need": "{name} 님이 「{ko}」 쪽을 찾으십니다. 집에서 찾아 찍어 보세요.",
+    "need_hint": "{name} 님 기색을 한번 살펴보세요. 무언가 찾는 눈치입니다.",
+    "give_shelf": "선반 물건을 「어디로」로 누군가에게 건네 보세요.",
+    "unlock_try.decor": "방에 물건을 하나 놓아 보세요.",
+    "unlock_try.raid": "창밖을 한번 살펴보세요. 손님이 올 것 같습니다.",
+    "unlock_try.expedition": "문간 문이 열렸습니다. 한 분 내보내 보세요.",
+    "unlock_try.table": "두 분을 한 상에 앉혀 보세요.",
+    "unlock_try.memory_wall": "식량창고 벽 고리에 물건을 걸어 보세요.",
+    "raid_waiting": "창밖에 무언가 있습니다.",
+    "build": "새 방 하나를 열어 보시겠습니까?",
+    "done": "오늘은 이만하면 충분합니다. 「≡ → 오늘은 여기까지」로 내일 부탁을 받아 두세요.",
+}
+NEXT_KIND_ALWAYS_DAYS = 3        # 켠 날 1~3은 늘 보인다. 그 뒤로는 30초 손 놓은 세션에만(화면이 판단)
+NEXT_IDLE_SEC = 30
+
+
+def next_line(st: dict, key: str, **kw) -> str:
+    N = moments().get("next_step") or {}
+    node = N
+    for k in key.split("."):
+        node = node.get(k) if isinstance(node, dict) else None
+    lines = node if isinstance(node, list) else ([node] if isinstance(node, str) else [])
+    t = random.Random(f"{st.get('created')}|{day_of(st)}|next|{key}").choice(lines) if lines else None   # 읽기만(같은 날 같은 줄)
+    t = t or NEXT_KIND_DEFAULT.get(key) or ""
+    for k, v in kw.items():
+        t = t.replace("{" + k + "}", str(v))
+    return t
+
+
+def next_step_pick(st: dict, uid: str) -> dict:
+    day = day_of(st)
+    c = core_of(st)
+    out_ids = set(st.get("outside") or [])
+    # 1 아직 자리를 정하지 않은 사람 + 자리가 남은 방
+    hall = hall_of(st)
+    if hall:
+        smap = stations_map(st)
+        free = [rm for rm in live_rooms(st) if len(smap.get(int(rm["slot"]), [])) < room_cap_of(rm)]
+        if free:
+            return {"kind": "place", "line_ko": next_line(st, "place"),
+                    "target": {"resident_id": hall[0]["id"], "slot": int(free[0]["slot"])}}
+    # 2 오늘 필요(안 채운 것) · 열린 매듭 — 라벨이 꺼진 날은 기색 판(답을 말하지 않는다)
+    for r in st.get("residents_list") or []:
+        if r["id"] in out_ids:
+            continue
+        nd = need_today(uid, r, day)
+        if nd and item_rule_safe(nd) and not need_met_today(st, uid, r, nd):
+            if labels_shown(st):
+                return {"kind": "need", "line_ko": next_line(st, "need", name=r["name"], ko=nd.get("ko") or rule_ko(nd)),
+                        "target": {"resident_id": r["id"]}}
+            return {"kind": "need_hint", "line_ko": next_line(st, "need_hint", name=r["name"]), "target": {"resident_id": r["id"]}}
+    for r in st.get("residents_list") or []:
+        if r["id"] in out_ids or (CALENDAR_ENFORCE and not is_unlocked(st, "first_chain_knot")):
+            continue
+        a, s_ = current_arc(st, r)
+        beat = next_beat(a, s_) if a else None
+        if not beat or not beat_open(st, r, s_, beat) or arc_today_blocked(st, s_, beat):
+            continue
+        g = (beat.get("trigger") or {}).get("give") or {}
+        rule = {"category": g.get("category"), "subtype": g.get("subtype")} if g.get("category") else None
+        if rule and item_rule_safe(rule):
+            if labels_shown(st):
+                return {"kind": "need", "line_ko": next_line(st, "need", name=r["name"], ko=rule_ko(rule)),
+                        "target": {"resident_id": r["id"], "arc_id": a["id"]}}
+            return {"kind": "need_hint", "line_ko": next_line(st, "need_hint", name=r["name"]),
+                    "target": {"resident_id": r["id"], "arc_id": a["id"]}}
+    # 3 오늘 찍고 아직 자리를 안 정한 물건이 쌓였다
+    waiting = [k for k, v in c["scans"].items() if int(v.get("day") or 0) == day and not v.get("given")
+               and v.get("placed") != "copy" and item_safe(v.get("item") or {})]
+    if len(waiting) >= 2:
+        return {"kind": "give_shelf", "line_ko": next_line(st, "give_shelf"), "target": {"scan_id": waiting[-1]}}
+    # 4 새로 열렸는데 한 번도 안 써 본 것
+    tries = []
+    if is_unlocked(st, "decor_place") and not any(decor_items(st, rm["slot"]) for rm in live_rooms(st)):
+        tries.append("decor")
+    if is_unlocked(st, "raids") and not st.get("raid_log"):
+        tries.append("raid")
+    if is_unlocked(st, "expedition") and not int(st.get("exp_count") or 0) and not st.get("expedition"):
+        tries.append("expedition")
+    if is_unlocked(st, "evening_table") and not c.get("table_last") and evening_table_public(st, uid):
+        tries.append("table")
+    mw = c.get("memory_wall")
+    if is_unlocked(st, "memory_wall") and (not mw or sum(1 for x in (mw.get("slots") or []) if x) <= 1):
+        tries.append("memory_wall")
+    if tries:
+        return {"kind": "unlock_try", "feature": tries[0], "line_ko": next_line(st, f"unlock_try.{tries[0]}")}
+    # 5 기다리는 습격
+    raid = st.get("raid")
+    if raid and not raid.get("none") and not raid.get("resolved") and raid.get("day") == day:
+        return {"kind": "raid_waiting", "line_ko": next_line(st, "raid_waiting"), "target": {"raid_id": raid.get("id")}}
+    # 6 지을 수 있고 지은 방이 둘 미만
+    if len(live_rooms(st)) < 3:
+        bo = build_options(st, uid)
+        can = [(rid, sl) for rid, o in bo.items() for sl, b in (o.get("by_slot") or {}).items() if b.get("can")]
+        if can:
+            return {"kind": "build", "line_ko": next_line(st, "build"), "target": {"room_id": can[0][0], "slot": int(can[0][1])}}
+    # 7 끝
+    return {"kind": "done", "line_ko": next_line(st, "done")}
+
+
+NEXT_TARGET_KIND = {"place": "hall", "need": "scan", "need_hint": "scan", "give_shelf": "shelf", "raid_waiting": "room",
+                    "build": "room", "done": "menu", "unlock_try.decor": "room", "unlock_try.raid": "room",
+                    "unlock_try.expedition": "expedition", "unlock_try.table": "table", "unlock_try.memory_wall": "room"}
+
+
+def next_step_public(st: dict, uid: str) -> dict | None:
+    p = play_day(st)
+    out = next_step_pick(st, uid)
+    out["id"] = out["kind"] + (f".{out['feature']}" if out.get("feature") else "")
+    tg = dict(out.get("target") or {})
+    tg["kind"] = NEXT_TARGET_KIND.get(out["id"], "menu")
+    if out["id"] == "unlock_try.memory_wall":
+        tg["room_id"] = "pantry"
+    out["target"] = tg
+    out["hint_mode"] = "always" if p <= NEXT_KIND_ALWAYS_DAYS else "idle"
+    out["idle_sec"] = None if p <= NEXT_KIND_ALWAYS_DAYS else NEXT_IDLE_SEC
+    return out
+
+
+TUTORIAL_STEPS = ("scan_button", "scan_window", "card_flip", "subtype_pick", "where", "after_first_give")   # 시나리오 ui_moments.tutorial 이름
+TUTORIAL_ALIAS = {"scan_input": "scan_window", "card": "card_flip", "subtype": "subtype_pick", "quick_pick": "subtype_pick",
+                  "after_give": "after_first_give"}
+
+
+def tutorial_public(st: dict) -> dict:
+    done = set(core_of(st).get("tutorial_seen") or [])
+    nxt = next((s_ for s_ in TUTORIAL_STEPS if s_ not in done), None)
+    return {"next_step_id": nxt, "done": nxt is None, "done_steps": [s_ for s_ in TUTORIAL_STEPS if s_ in done],
+            "steps": list(TUTORIAL_STEPS)}
+
+
+class TutorialIn(BaseModel):
+    uid: str
+    step: str
+
+
+@app.post("/api/tutorial")
+def tutorial_mark(inp: TutorialIn):
+    """첫 스캔 길잡이 한 걸음을 봤다고 적는다(방주마다 한 번 — 다시 보이지 않는다)."""
+    step = TUTORIAL_ALIAS.get(inp.step, inp.step)
+    if step != "skip" and step not in TUTORIAL_STEPS:
+        raise HTTPException(400, "없는 걸음입니다")
+    st = load_state(inp.uid)
+    seen = core_of(st).setdefault("tutorial_seen", [])
+    for s_ in (TUTORIAL_STEPS if step == "skip" else (step,)):    # skip = 남은 걸음 모두
+        if s_ not in seen:
+            seen.append(s_)
+    save_state(inp.uid, st)
+    return {"ok": True, "tutorial": tutorial_public(st)}
 
 
 # ─────────────────────────────────────────────────────────────
