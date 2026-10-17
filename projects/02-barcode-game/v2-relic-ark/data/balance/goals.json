@@ -13,85 +13,358 @@
     "all_three": "다음 날 '내일의 부탁' 하나가 또렷해진다: 떠날 때 카드에 그 사람 이름과 하위 종류까지(평소엔 갈래만). 집에서 미리 찾아 둘 수 있다 — 의도 스캔을 민다",
     "_basis": "풍요 원칙 — 자원을 주면 목표가 수입 최적화가 된다. 셋을 다 하면 내일이 조금 더 보인다 = 다시 올 이유(세션 계약 5번째)."
   },
-  "conditions_doc": "cond 는 서버가 상태에서 판정한다. 키: staffed(room_id, n) · production_rooms_staffed(n) · rooms_built(n, 시작 방 제외) · depth_m(n) · residents(n) · scans_distinct_today(n) · gives_today(n) · gives_distinct_people_today(n) · need_met_today(n) · intent_today(n) · chain_beats_total(n) · decor_placed_today(n) · tag_any(n) · octopus_named · raid_handled_today(오늘 습격이 없었으면 자동 완료로 치지 않고 '조용한 날' 대체 목표로 바꾼다) · notebook_entries_total(n) · expeditions_started_total(n) · table_set_today · wall_slots_filled_total(n) · level2_rooms(n) · repaired_today",
-
+  "conditions_doc": "cond 는 서버가 상태에서 판정한다. 키: staffed(room_id, n) · production_rooms_staffed(n) · rooms_built(n, 시작 방 제외 — 화면의 방 수는 n+1) · depth_m(n) · residents(n) · scans_distinct_today(n) · gives_today(n) · gives_distinct_people_today(n) · need_met_today(n) · intent_today(n) · chain_beats_total(n) · decor_placed_today(n) · tag_any(n) · octopus_named · raid_handled_today(오늘 습격이 없었으면 자동 완료로 치지 않고 '조용한 날' 대체 목표로 바꾼다) · notebook_entries_total(n) · expeditions_started_total(n) · table_set_today · wall_slots_filled_total(n) · level2_rooms(n) · repaired_today",
   "week1": {
     "1": [
-      {"id": "w1_staff_pantry", "kind": "manage", "cond": {"staffed": ["pantry", 1]}, "text": "goal.w1_staff_pantry", "_why": "첫 방송과 같은 일. 사람을 끌어다 놓으면 방이 돈다를 배운다"},
-      {"id": "w1_scan3",        "kind": "new",    "cond": {"scans_distinct_today": 3},    "text": "goal.w1_scan3"},
-      {"id": "w1_first_give",   "kind": "core",   "cond": {"gives_today": 1},             "text": "goal.w1_first_give", "_why": "찍은 것이 사람에게 간다 — 핵심 루프 첫 한 바퀴"}
+      {
+        "id": "w1_staff_pantry",
+        "kind": "manage",
+        "cond": {
+          "staffed": [
+            "pantry",
+            1
+          ]
+        },
+        "text": "goal.w1_staff_pantry",
+        "_why": "첫 방송과 같은 일. 사람을 끌어다 놓으면 방이 돈다를 배운다"
+      },
+      {
+        "id": "w1_scan3",
+        "kind": "new",
+        "cond": {
+          "scans_distinct_today": 3
+        },
+        "text": "goal.w1_scan3"
+      },
+      {
+        "id": "w1_first_give",
+        "kind": "core",
+        "cond": {
+          "gives_today": 1
+        },
+        "text": "goal.w1_first_give",
+        "_why": "찍은 것이 사람에게 간다 — 핵심 루프 첫 한 바퀴"
+      }
     ],
     "2": [
-      {"id": "w2_build_one",    "kind": "manage", "cond": {"rooms_built": 1},             "text": "goal.w2_build_one", "_why": "'다른 방은 어떻게 여나'(플테 질문)의 답. 빈 칸 → 물 빼기"},
-      {"id": "w2_need_met",     "kind": "core",   "cond": {"need_met_today": 1},          "text": "goal.w2_need_met"},
-      {"id": "w2_decor",        "kind": "new",    "cond": {"decor_placed_today": 1},      "text": "goal.w2_decor", "_unlock": "decor_place"}
+      {
+        "id": "w2_build_one",
+        "kind": "manage",
+        "cond": {
+          "rooms_built": 1
+        },
+        "text": "goal.w2_build_one",
+        "_why": "'다른 방은 어떻게 여나'(플테 질문)의 답. 빈 칸 → 물 빼기"
+      },
+      {
+        "id": "w2_need_met",
+        "kind": "core",
+        "cond": {
+          "need_met_today": 1
+        },
+        "text": "goal.w2_need_met"
+      },
+      {
+        "id": "w2_decor",
+        "kind": "new",
+        "cond": {
+          "decor_placed_today": 1
+        },
+        "text": "goal.w2_decor",
+        "_unlock": "decor_place"
+      }
     ],
     "3": [
-      {"id": "w3_accept_guest", "kind": "manage", "cond": {"residents": 4},               "text": "goal.w3_accept_guest", "_unlock": "guest_knock"},
-      {"id": "w3_first_knot",   "kind": "core",   "cond": {"chain_beats_total": 1},       "text": "goal.w3_first_knot"},
-      {"id": "w3_raid",         "kind": "new",    "cond": {"raid_handled_today": true},   "text": "goal.w3_raid", "_unlock": "raids", "alt_if_quiet": "w3_two_rooms_staffed"}
+      {
+        "id": "w3_accept_guest",
+        "kind": "manage",
+        "cond": {
+          "residents": 4
+        },
+        "text": "goal.w3_accept_guest",
+        "_unlock": "guest_knock"
+      },
+      {
+        "id": "w3_first_knot",
+        "kind": "core",
+        "cond": {
+          "chain_beats_total": 1
+        },
+        "text": "goal.w3_first_knot"
+      },
+      {
+        "id": "w3_raid",
+        "kind": "new",
+        "cond": {
+          "raid_handled_today": true
+        },
+        "text": "goal.w3_raid",
+        "_unlock": "raids",
+        "alt_if_quiet": "w3_quiet_tag"
+      }
     ],
     "4": [
-      {"id": "w4_two_rooms",    "kind": "manage", "cond": {"production_rooms_staffed": 2}, "text": "goal.w4_two_rooms"},
-      {"id": "w4_read_mood",    "kind": "core",   "cond": {"gives_distinct_people_today": 2}, "text": "goal.w4_read_mood"},
-      {"id": "w4_notebook",     "kind": "new",    "cond": {"notebook_entries_total": 3},  "text": "goal.w4_notebook", "_unlock": "notebook"}
+      {
+        "id": "w4_two_rooms",
+        "kind": "manage",
+        "cond": {
+          "production_rooms_staffed": 2
+        },
+        "text": "goal.w4_two_rooms"
+      },
+      {
+        "id": "w4_read_mood",
+        "kind": "core",
+        "cond": {
+          "gives_distinct_people_today": 2
+        },
+        "text": "goal.w4_read_mood"
+      },
+      {
+        "id": "w4_notebook",
+        "kind": "new",
+        "cond": {
+          "notebook_entries_total": 3
+        },
+        "text": "goal.w4_notebook",
+        "_unlock": "notebook"
+      }
     ],
     "5": [
-      {"id": "w5_go_down",      "kind": "manage", "cond": {"depth_m": 60},                "text": "goal.w5_go_down", "_why": "아래로 내려간다 = 이 게임의 진행. 물 빼기 비용(전력·부품·식량)이 처음 든다"},
-      {"id": "w5_intent",       "kind": "core",   "cond": {"intent_today": 1},            "text": "goal.w5_intent", "_why": "아침에 본 부탁을 집에서 찾아 찍기 — 이 게임만의 행동"},
-      {"id": "w5_expedition",   "kind": "new",    "cond": {"expeditions_started_total": 1}, "text": "goal.w5_expedition", "_unlock": "expedition"}
+      {
+        "id": "w5_go_down",
+        "kind": "manage",
+        "cond": {
+          "depth_m": 60
+        },
+        "text": "goal.w5_go_down",
+        "_why": "아래로 내려간다 = 이 게임의 진행. 물 빼기 비용(전력·부품·식량)이 처음 든다"
+      },
+      {
+        "id": "w5_intent",
+        "kind": "core",
+        "cond": {
+          "intent_today": 1
+        },
+        "text": "goal.w5_intent",
+        "_why": "아침에 본 부탁을 집에서 찾아 찍기 — 이 게임만의 행동"
+      },
+      {
+        "id": "w5_expedition",
+        "kind": "new",
+        "cond": {
+          "expeditions_started_total": 1
+        },
+        "text": "goal.w5_expedition",
+        "_unlock": "expedition"
+      }
     ],
     "6": [
-      {"id": "w6_rooms4",       "kind": "manage", "cond": {"rooms_built": 3},             "text": "goal.w6_rooms4"},
-      {"id": "w6_second_knot",  "kind": "core",   "cond": {"chain_beats_total": 2},       "text": "goal.w6_second_knot"},
-      {"id": "w6_table",        "kind": "new",    "cond": {"table_set_today": true},      "text": "goal.w6_table", "_unlock": "evening_table"}
+      {
+        "id": "w6_rooms4",
+        "kind": "manage",
+        "cond": {
+          "rooms_built": 3
+        },
+        "text": "goal.w6_rooms4",
+        "_note": "rooms_built 는 시작 방(식량창고)을 뺀 수다. 3 = 방이 모두 넷. 제목은 「방을 넷으로」"
+      },
+      {
+        "id": "w6_second_knot",
+        "kind": "core",
+        "cond": {
+          "chain_beats_total": 2
+        },
+        "text": "goal.w6_second_knot"
+      },
+      {
+        "id": "w6_table",
+        "kind": "new",
+        "cond": {
+          "table_set_today": true
+        },
+        "text": "goal.w6_table",
+        "_unlock": "evening_table"
+      }
     ],
     "7": [
-      {"id": "w7_residents5",   "kind": "manage", "cond": {"residents": 5},               "text": "goal.w7_residents5"},
-      {"id": "w7_three_people", "kind": "core",   "cond": {"gives_distinct_people_today": 3}, "text": "goal.w7_three_people"},
-      {"id": "w7_wall_slot",    "kind": "new",    "cond": {"wall_slots_filled_total": 3}, "text": "goal.w7_wall_slot", "_unlock": "memory_wall", "_note": "첫 벽은 4칸 중 2칸 미리 → 하나만 더 채우면 3"}
+      {
+        "id": "w7_residents5",
+        "kind": "manage",
+        "cond": {
+          "residents": 5
+        },
+        "text": "goal.w7_residents5"
+      },
+      {
+        "id": "w7_three_people",
+        "kind": "core",
+        "cond": {
+          "gives_distinct_people_today": 3
+        },
+        "text": "goal.w7_three_people"
+      },
+      {
+        "id": "w7_wall_slot",
+        "kind": "new",
+        "cond": {
+          "wall_slots_filled_total": 3
+        },
+        "text": "goal.w7_wall_slot",
+        "_unlock": "memory_wall",
+        "_note": "첫 벽은 4칸 중 2칸 미리 → 하나만 더 채우면 3"
+      }
     ],
     "_alt": {
-      "w3_two_rooms_staffed": {"kind": "new", "cond": {"production_rooms_staffed": 2}, "text": "goal.w3_quiet_day", "_why": "습격이 안 온 날(조용한 날) 대신"}
+      "w3_quiet_tag": {
+        "kind": "new",
+        "cond": {
+          "tag_any": 1
+        },
+        "text": "goal.w3_quiet_tag",
+        "_why": "습격이 안 온 날 대신 — 방 하나에 꼬리표 붙이기(꾸밈 둘). 4일째 '생산 방 둘'과 겹치지 않게 바꿨다"
+      }
     },
     "_calendar": "data/balance/unlock_calendar.json(서버가 읽는 현행판: 1 첫 매듭 · 2 꾸밈 · 3 손님·습격 · 4 기색·수첩 · 5 원정 · 6 한 상 · 7 기억 벽). 새 기능 목표는 그날 열린 기능이다. 열리지 않은 기능 목표는 내지 않는다."
   },
-
   "pool": {
     "_rule": "8번째 켠 날부터: 빈 칸마다 관리·핵심·새것(그 주에 덜 한 기능) 중 빈 갈래에서 하나. 같은 목표는 3일 안에 다시 내지 않는다. 숫자 n 은 지금 상태 + 작은 걸음(아래 step)으로 정한다 — 늘 '오늘 할 수 있는' 크기.",
     "manage": [
-      {"id": "p_staff_new_room", "cond": {"production_rooms_staffed": "cur+1"}, "if": "생산 방 중 빈 방이 있을 때"},
-      {"id": "p_build",          "cond": {"rooms_built": "cur+1"}, "if": "빈 칸이 있고 물 빼기 비용의 절반 이상을 가졌을 때"},
-      {"id": "p_level2",         "cond": {"level2_rooms": "cur+1"}, "if": "Lv2 비용의 70% 이상을 가졌을 때"},
-      {"id": "p_repair",         "cond": {"repaired_today": true}, "if": "금 간 방이 있을 때(우선)"},
-      {"id": "p_go_down",        "cond": {"depth_m": "cur+60"}, "if": "다음 층 빈 칸이 있을 때"}
+      {
+        "id": "p_staff_new_room",
+        "cond": {
+          "production_rooms_staffed": "cur+1"
+        },
+        "if": "생산 방 중 빈 방이 있을 때"
+      },
+      {
+        "id": "p_build",
+        "cond": {
+          "rooms_built": "cur+1"
+        },
+        "if": "빈 칸이 있고 물 빼기 비용의 절반 이상을 가졌을 때"
+      },
+      {
+        "id": "p_level2",
+        "cond": {
+          "level2_rooms": "cur+1"
+        },
+        "if": "Lv2 비용의 70% 이상을 가졌을 때"
+      },
+      {
+        "id": "p_repair",
+        "cond": {
+          "repaired_today": true
+        },
+        "if": "금 간 방이 있을 때(우선)"
+      },
+      {
+        "id": "p_go_down",
+        "cond": {
+          "depth_m": "cur+60"
+        },
+        "if": "다음 층 빈 칸이 있을 때"
+      }
     ],
     "core": [
-      {"id": "p_need_two",       "cond": {"need_met_today": 2}},
-      {"id": "p_intent",         "cond": {"intent_today": 1}},
-      {"id": "p_knot",           "cond": {"chain_beats_total": "cur+1"}, "if": "열린 매듭이 있을 때"},
-      {"id": "p_three_people",   "cond": {"gives_distinct_people_today": 3}},
-      {"id": "p_heirloom",       "cond": {"heirlooms_total": "cur+1"}, "if": "귀함 이상 카드가 선반에 있을 때"}
+      {
+        "id": "p_need_two",
+        "cond": {
+          "need_met_today": 2
+        }
+      },
+      {
+        "id": "p_intent",
+        "cond": {
+          "intent_today": 1
+        }
+      },
+      {
+        "id": "p_knot",
+        "cond": {
+          "chain_beats_total": "cur+1"
+        },
+        "if": "열린 매듭이 있을 때"
+      },
+      {
+        "id": "p_three_people",
+        "cond": {
+          "gives_distinct_people_today": 3
+        }
+      },
+      {
+        "id": "p_heirloom",
+        "cond": {
+          "heirlooms_total": "cur+1"
+        },
+        "if": "귀함 이상 카드가 선반에 있을 때"
+      }
     ],
     "feature": [
-      {"id": "p_decor_tag",      "cond": {"tag_any": "cur+1"}},
-      {"id": "p_expedition",     "cond": {"expeditions_started_total": "cur+1"}},
-      {"id": "p_table",          "cond": {"table_set_today": true}},
-      {"id": "p_wall",           "cond": {"wall_slots_filled_total": "cur+1"}},
-      {"id": "p_tide",           "cond": {"tide_tries_week": 1}, "if": "물때가 열린 뒤"}
+      {
+        "id": "p_decor_tag",
+        "cond": {
+          "tag_any": "cur+1"
+        }
+      },
+      {
+        "id": "p_expedition",
+        "cond": {
+          "expeditions_started_total": "cur+1"
+        }
+      },
+      {
+        "id": "p_table",
+        "cond": {
+          "table_set_today": true
+        }
+      },
+      {
+        "id": "p_wall",
+        "cond": {
+          "wall_slots_filled_total": "cur+1"
+        }
+      },
+      {
+        "id": "p_tide",
+        "cond": {
+          "tide_tries_week": 1
+        },
+        "if": "물때가 열린 뒤"
+      }
     ],
     "no_repeat_days": 3
   },
-
   "production_display": {
     "_doc": "방 카드의 생산 숫자(플테: '3명 넣으면 식량을 만드나?'). 서버 room_output 과 같은 식을 시간 단위로 보여 준다.",
     "formula": "1시간 생산 = 기본[레벨] ÷ 8 × 일손 배율[사람 수] × 능력치 배율(방 평균, 0.88~1.18) × (금 갔으면 0.7) × (불 꺼짐이면 0.5) + 역할 보너스(그 방에 있을 때)",
-    "staff_mult": [0.5, 1.0, 1.35, 1.6, 1.8],
+    "staff_mult": [
+      0.5,
+      1.0,
+      1.35,
+      1.6,
+      1.8
+    ],
     "show": "방 카드 한 줄: 「식량 시간당 0.4 · 하루 9.6」. 끌어다 놓는 동안 그 방 위에 「→ 하루 12.9」처럼 바뀔 값. 사람 0이면 「사람이 없어 절반만 돕니다」",
     "examples_per_day": {
-      "pantry_food_2": {"0명": 3.0, "1명": 6.0, "2명": 8.1, "3명": 9.6},
-      "well_water_3":  {"0명": 4.5, "1명": 9.0, "2명": 12.2, "3명": 14.4},
-      "greenhouse_food_3": {"0명": 4.5, "1명": 9.0, "2명": 12.2, "3명": 14.4},
+      "pantry_food_2": {
+        "0명": 3.0,
+        "1명": 6.0,
+        "2명": 8.1,
+        "3명": 9.6
+      },
+      "well_water_3": {
+        "0명": 4.5,
+        "1명": 9.0,
+        "2명": 12.2,
+        "3명": 14.4
+      },
+      "greenhouse_food_3": {
+        "0명": 4.5,
+        "1명": 9.0,
+        "2명": 12.2,
+        "3명": 14.4
+      },
       "_note": "능력치 5(배율 1.0), 금·불 꺼짐 없음. 하루 = 8시간 틱 셋. 요리사가 식량창고에 있으면 틱당 +1(하루 +3)"
     }
   }
