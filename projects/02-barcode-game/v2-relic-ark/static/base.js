@@ -160,12 +160,14 @@
   }
   function flushSay() {
     if (!heldSay.length) return;
+    if (window.ARKGUIDE && window.ARKGUIDE.holding && window.ARKGUIDE.holding()) return;   // S32: 길잡이가 끝나면 다시 흘린다
     const l = heldSay.shift(); toast(l);
     if (heldSay.length) setTimeout(() => { if (!modalBusy) flushSay(); }, 3200);
   }
   function say(m) {                                   // 관리실 방송 한 줄 — 큰 창이 떠 있으면 닫힌 뒤에
     if (!m) return;
-    if (modalBusy || modalQ.length || !qReady) { if (heldSay.indexOf(m) < 0) heldSay.push(m); return; }
+    const guiding = window.ARKGUIDE && window.ARKGUIDE.holding && window.ARKGUIDE.holding();   // S32: 길잡이 말풍선이 떠 있는 동안 방송은 뒤로
+    if (modalBusy || modalQ.length || !qReady || guiding) { if (heldSay.indexOf(m) < 0) heldSay.push(m); return; }
     toast(m);
   }
   const qLog = [];
@@ -3768,7 +3770,7 @@
   // slotBox·peopleHits 는 자동 검수(Playwright)가 캔버스를 정확히 누르기 위한 읽기 전용 창이다.
   // S13-B: base_collect.js 가 쓰는 안쪽 손잡이(화면 모듈끼리만). 상태는 읽기만 하고, 바꾸는 길은 api → apply 하나다
   const K = {
-    api, toast, play, esc, plain, uid, fill: fillText, josa, say, enqueue, whenPanelGone, qLog,
+    api, toast, play, esc, plain, uid, fill: fillText, josa, say, enqueue, whenPanelGone, qLog, flushSay: () => { if (!modalBusy) flushSay(); },
     get ark() { return ark; }, get cb() { return cb; }, get catalog() { return catalog; }, RES_KO, RAR_KO,
     get ctx() { return ctx; }, get z() { return cam.z; }, sx: (x) => sx(x), sy: (y) => sy(y), propImg: (id) => propImg(id), propForCategory2: (c) => propForCategory(c),
     get view() { return view; }, closeScan: () => closeScan(), lightOf: (s) => lightOf(s),

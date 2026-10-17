@@ -1079,3 +1079,27 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .rwould .rhintact{display:block; margin-top:4px; font-size:12px; line-height:1.5; color:#cfe8ec}   /* S30 */
 .octwhere .octheir{margin-top:6px}
 .octwhere .heirrow{margin-top:0}
+/* ══ S32 「다음 할 일」 한 줄 · 첫 찍기 길잡이 ══ */
+.nextstep{position:absolute; z-index:7; left:12px; top:50px; max-width:min(520px, calc(100% - 24px)); display:flex; align-items:center; gap:7px; min-height:30px; padding:0 12px 0 9px;
+  font:inherit; font-size:12.5px; color:var(--cream); background:rgba(11,14,12,.88); border:1px solid #2a2419; border-left:3px solid #6fc9c4; border-radius:15px; cursor:pointer;
+  opacity:0; transform:translateY(-4px); transition:opacity .5s ease, transform .5s ease}
+.nextstep.in{opacity:1; transform:none}
+.nextstep span{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nextstep i{flex:none; width:8px; height:8px; border-radius:50%; background:#6fc9c4; box-shadow:0 0 0 3px rgba(111,201,196,.2)}
+@media (max-height:500px){ .nextstep{top:42px; left:8px; max-width:calc(100% - 140px); min-height:26px; font-size:11.5px} }
+.gdglow{position:fixed; z-index:60; pointer-events:none; border-radius:12px; box-shadow:0 0 0 2px rgba(240,176,85,.9), 0 0 18px 6px rgba(240,176,85,.45); animation:gdPulse 1.6s ease-in-out infinite}
+@keyframes gdPulse{50%{box-shadow:0 0 0 2px rgba(240,176,85,.5), 0 0 26px 10px rgba(240,176,85,.25)}}
+.gdarrow{position:fixed; z-index:61; pointer-events:none; width:24px; height:24px}
+.gdarrow::before{content:''; position:absolute; inset:0; background:#f0b055; clip-path:polygon(50% 100%, 0 35%, 30% 35%, 30% 0, 70% 0, 70% 35%, 100% 35%)}
+.gdarrow.right::before{transform:rotate(-90deg)}
+.gdarrow.down{animation:gdBobY 1s ease-in-out infinite} .gdarrow.right{animation:gdBobX 1s ease-in-out infinite}
+@keyframes gdBobY{50%{transform:translateY(5px)}} @keyframes gdBobX{50%{transform:translateX(5px)}}
+.coach{position:fixed; z-index:62; padding:10px 12px; background:#f3e6c4; color:#2a2014; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.45); font-size:13px; line-height:1.55}
+.coach b{display:block; margin-bottom:2px; font-size:12px; color:#7a5a20}
+.coach p{margin:0 0 4px}
+.coach .cbtns{display:flex; justify-content:flex-end; gap:6px; margin-top:4px}
+.coach .cbtns button{min-height:32px; padding:0 12px; font:inherit; font-size:12px; border-radius:16px; cursor:pointer; border:1px solid #b9a070; background:transparent; color:#5a4320}
+.coach .cbtns button.on{background:#e8b04a; border-color:#8a6420; color:#1a150e}
+.coach .cbtns .skip{color:#8a7a5a; border-style:dashed}
+@media (max-height:500px){ .coach{font-size:12px; padding:8px 10px} }
+@media (prefers-reduced-motion:reduce){ .gdglow, .gdarrow{animation:none} .nextstep{transition:none} }
