@@ -192,10 +192,12 @@ def t_heirloom():
         if nfm and len(nfm) < len(st["residents_list"]):
             break
     opts = S.heirloom_options(st, uid, it)
-    ids = {o["target"]["resident_id"] for o in opts}
-    ok(nfm and not ids & {r["id"] for r in nfm}, f"돌려줄 사람 {len(nfm)}명은 가보 후보 아님(후보 {len(opts)})")
+    ids = {o["target"]["resident_id"] for o in opts if not o.get("second")}
+    sec = {o["target"]["resident_id"] for o in opts if o.get("second")}
+    ok(nfm and not ids & {r["id"] for r in nfm}, f"돌려줄 사람 {len(nfm)}명은 가보 후보 아님(후보 {len(opts)}, 「다른 분도」 {len(sec)})")
+    nfm = [r for r in nfm if r["id"] not in sec]
     ok(opts and all(o.get("hint_ko") and "{" not in o["hint_ko"] for o in opts), f"후보 단서: {opts and opts[0]['hint_ko']}")
-    S.core_of(st)["scans"]["hx"] = {"item": it, "day": S.day_of(st), "given": False, "placed": "copy", "at": time.time()}
+    S.core_of(st)["scans"]["hx"] = {"item": it, "day": S.day_of(st), "given": False, "placed": "copy", "at": time.time(), "warm": []}
     S.save_state(uid, st)
     g = post("/api/give", {"uid": uid, "scan_id": "hx", "target": {"resident_id": nfm[0]["id"], "heirloom": True}})
     st = S.load_state(uid)

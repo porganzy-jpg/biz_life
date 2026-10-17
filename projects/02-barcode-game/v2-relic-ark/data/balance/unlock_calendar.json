@@ -1,6 +1,6 @@
 {
-  "_doc": "S25 첫 주 해금 달력 — 날짜와 기능만(문장 없음). 사양 docs/FIRST_WEEK_CALENDAR.md. 날 = 켠 날 차례(비트와 같은 셈). 떠날 때 예고 문장의 정본은 beats.json days[n].teaser(PM 결정 2026-10-13), 처음 열릴 때 방송은 ui_moments.unlock.<기능>. S27(5차 플테): 라벨 끄기(mood_hints·notebook) 3→4일째, first_chain_knot 3→1일째(요리사 의자 매듭은 arcs.json days_since_join 0). PM 첫 세션(2026-10-17): 가보 칸은 첫 귀함 카드 + 켠 날 3 이상(conditional.heirloom.min_play_day).",
-  "_version": "2026-10-17",
+  "_doc": "S25 첫 주 해금 달력 — 날짜와 기능만(문장 없음). 사양 docs/FIRST_WEEK_CALENDAR.md. 날 = 켠 날 차례(비트와 같은 셈). 떠날 때 예고 문장의 정본은 beats.json days[n].teaser(PM 결정 2026-10-13), 처음 열릴 때 방송은 ui_moments.unlock.<기능>. S27(5차 플테): 라벨 끄기(mood_hints·notebook) 3→4일째, first_chain_knot 3→1일째(요리사 의자 매듭은 arcs.json days_since_join 0). PM 첫 세션(2026-10-17): 가보 칸은 첫 귀함 카드 + 켠 날 3 이상(conditional.heirloom.min_play_day). S29(6차 플테): 4일째에 수첩·기색·습격이 겹쳐 습격을 3일째로(첫 위협 longneck 보장은 threats first_week_guarantee by_day 4 그대로).",
+  "_version": "2026-10-17b",
   "days": {
     "1": {
       "unlocks": [
@@ -20,13 +20,13 @@
     },
     "3": {
       "unlocks": [
-        "guest_knock"
+        "guest_knock",
+        "raids"
       ],
       "beat": "first_knock_first_request"
     },
     "4": {
       "unlocks": [
-        "raids",
         "mood_hints",
         "notebook"
       ],
@@ -65,7 +65,7 @@
     }
   },
   "overrides": {
-    "raid_first_day": 4,
+    "raid_first_day": 3,
     "expedition_first_day": 5
   }
 }

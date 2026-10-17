@@ -523,3 +523,25 @@
   - hang 응답에는 `line`(memory_wall.hung, {item}{n}{m}), `complete`, `story[]`, `complete_ko` 가 온다. complete_ko 는 다 찼을 때의 완성 방송이고, 시나리오가 보상 약속을 뺐다.
   - `memory_wall.prefilled_ko`: 미리 찬 첫 칸 설명.
 - (S27 후속, PM: 기억 벽 완성 보상 없음) `open_ko`·`prefilled_ko` 의 {item} 은 첫 칸 물건 이름으로 채운다. `complete_ko` 는 story[] 앞에 보낸다.
+
+## 18. S29 6차 플테 §4 (2026-10-17)
+- **이름 다시 붙이기**
+  - 바코드마다 하루 한 번이다(`core.flags.rename_days{바코드:날}`). 400 문장은 「이 물건 이름은 오늘 이미 다시 붙였습니다」.
+  - 다시 붙이면 선반·창고의 그 바코드 행에도 `subtype` 을 적는다.
+  - `item_from_row` 는 행의 subtype 을 먼저 쓴다(r6-1). `where.rename.can_today` 도 바코드별로 계산한다.
+- **라벨 없는 날 「어디로」**: 수첩에 아는 칸(need > like > memory)이 이 물건과 맞는 사람을 첫 칸에 둔다(`first_reason:"known"`). 맞는 사람이 줄에 있게 하는 규칙(S27 pin_rows)은 그대로다.
+- **저녁 귀띔**: 가장 많이 받은 사람의 수첩이 다 찼으면, 빈칸이 있는 사람 가운데 가장 많이 받은 사람의 칸을 흘린다. 빈칸이 하나라도 남아 있으면 매일 저녁 나온다.
+- **가보**
+  - 오늘 들어온 사람은 후보가 아니다(1일째 첫 주민 제외).
+  - 후보가 하나뿐이면 가까운 사람 하나를 더 붙인다(`second:true, more_ko`). 고르는 순서는 같은 갈래 기억 → 같은 갈래 좋아함 → 받은 수이고, 안 맞음(twist dislike)인 사람은 뺀다.
+  - 두 번째 후보에게 건네면 반가워함으로 받는다(돌려주지 않는다).
+- **밤 손님**: `visitors.json night_visitors[]` 4종 중 그 시각에 올 수 있는 손님에서 고른다(시드 uid|day). 이틀 연속 같은 손님은 없다(`flags.night_visit_last`).
+- **원정 귀환**: `expedition_return`(exp_unseen)은 처음 보인 세션에만 오고, 다음 세션에 서버가 지운다(r6-3).
+- **한 번에 고르기 기본 8**
+  - 알약·장갑양말모자·충전선·곡물밥·통조림절임·우유·붙이는 메모·씻는 것. 6차 로그 13회를 다시 셌다.
+  - 이 방주가 고른 것은 최대 3칸(`QUICK_ARK_MAX`).
+- **달력·위협**
+  - 습격은 3일째, 기색·수첩은 4일째.
+  - `threats.first_week_guarantee.by_day` 를 3으로 옮겼다(PM). 3일째 첫 습격은 긴목이다.
+  - 해금 방송은 /api/ark `unlocked.new` 로 한 번, 긴목은 /api/raid/today 소리 단계로 따로 온다.
+  - beats teaser_required 는 3일째로 옮겼다(시나리오).

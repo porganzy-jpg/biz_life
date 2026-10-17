@@ -237,7 +237,7 @@ def t_night_visitor():
     a = ark(uid)
     S.now_hour = lambda: 10
     nv = [v for v in a["visits"] if v.get("kind") == "night_visitor"]
-    ok(nv and nv[0]["visitor_id"] == S.NIGHT_VISITORS[0]["id"] and nv[0]["line"] and "{room}" not in nv[0]["line"], f"밤 손님 {nv and nv[0]['line'][:30]}")
+    ok(nv and nv[0]["visitor_id"] in {v["id"] for v in S.NIGHT_VISITORS} and nv[0]["line"] and "{room}" not in nv[0]["line"], f"밤 손님 {nv and nv[0]['line'][:30]}")
     post("/api/dev/advance", {"uid": uid, "minutes": 60 * 24})
     a = ark(uid)
     ok(any(it["kind"] == "night_trace" for it in (a["overnight"] or {}).get("items") or []), "다음 날 아침 흔적")

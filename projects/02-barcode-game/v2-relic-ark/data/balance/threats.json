@@ -257,7 +257,7 @@
   },
   "first_week_guarantee": {
     "_status": "⚠ 제안(플레이테스트: A 7일 동안 위협 0회)",
-    "by_day": 4,
+    "by_day": 3,
     "creature": "longneck",
     "severity": 0,
     "target": "occupied_room",
