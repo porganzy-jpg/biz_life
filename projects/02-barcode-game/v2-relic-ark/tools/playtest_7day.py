@@ -187,27 +187,9 @@ def do_raid(uid, policy):
         print("   미리보기:", json.dumps(raid.get('ready'), ensure_ascii=False)[:600])
     if raid.get('card_mode') == 'clue':
         print("  [단서 모드] 버릇:", raid.get('habit'), "| 동사:", json.dumps(raid.get('verbs'), ensure_ascii=False)[:900], "| 만남:", ((ark(uid).get('combat') or {}).get('encounters')))
-        if policy == 'careful':
-            hb = raid.get('habit') or ''
-            tslot = raid.get('target_slot')
-            if '불' in hb:
-                post('/api/raid/verb', {'uid': uid, 'verb': 'light'}); post('/api/ark/light', {'uid': uid, 'slot': tslot, 'on': False}); vb = '불(그 방 불 끄기)'
-            else:
-                post('/api/raid/verb', {'uid': uid, 'verb': 'station'}); vb = '자리(그 방에 모이기)'
-                st = ark(uid)
-                for p in st['residents_list']:
-                    post('/api/ark/station', {'uid': uid, 'resident_id': p['id'], 'slot': tslot}, quiet=True)
-            rr = get(f'/api/raid/today?uid={uid}').get('raid') or {}
-            if vb.startswith('불') and ((rr.get('preview') or {}).get('short_of') or (rr.get('ready') or {}).get('short_of')):
-                st = ark(uid)          # 6차: 손이 모자라다면 그 방에 사람도 모은다
-                for p in st['residents_list']:
-                    post('/api/ark/station', {'uid': uid, 'resident_id': p['id'], 'slot': tslot}, quiet=True)
-                vb += ' + 손 모으기'
-                rr = get(f'/api/raid/today?uid={uid}').get('raid') or {}
-            print(f"   버릇을 읽고 → {vb} · 미리보기 {json.dumps((rr.get('ready') or {}).get('would_ko'), ensure_ascii=False)} short_of={(rr.get('preview') or {}).get('short_of') or (rr.get('ready') or {}).get('short_of')}")
-            a = post('/api/raid/advance', {'uid': uid})
-            print("  [접촉 결과]", json.dumps({k: a.get(k) for k in ('result', 'result_ko', 'line', 'gained')}, ensure_ascii=False)[:400])
-            post('/api/ark/light', {'uid': uid, 'slot': tslot, 'on': True}, quiet=True)
+        if policy == 'careful':      # 8차 준비: 버릇·미리보기·행동·도구·전원을 사람처럼 따진다(playtest_raid)
+            import playtest_raid as PR
+            PR.careful_clue(uid, raid)
             return
     if policy == 'careful':
         gate_fix(uid, raid)
