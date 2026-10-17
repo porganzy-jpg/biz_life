@@ -1103,3 +1103,28 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .coach .cbtns .skip{color:#8a7a5a; border-style:dashed}
 @media (max-height:500px){ .coach{font-size:12px; padding:8px 10px} }
 @media (prefers-reduced-motion:reduce){ .gdglow, .gdarrow{animation:none} .nextstep{transition:none} }
+/* ══ S33 ══ */
+.rgain .gainres{display:inline-flex; align-items:baseline; gap:3px; margin:0 6px 2px 0; font-size:14px; color:var(--cream)}
+.rgain .gainres em{font-style:normal; font-size:19px; font-weight:700; color:#f0b055; letter-spacing:.01em}
+@media (max-height:500px){ .rgain .gainres{font-size:12.5px} .rgain .gainres em{font-size:16px} }
+.rcline.buildsline b{color:#8fd8d2; font-weight:500}
+.rcline.buildsline .dim{opacity:.5}
+.rcline.outline b{color:var(--cream); font-weight:500}
+.rcline.outline em{font-style:normal; font-size:15px; font-weight:700; color:#f0b055}
+.rcline.outline small{color:#93a6a3}
+.rcline.outhalf{color:#b9ae94; font-size:11.5px}
+/* 오늘의 목표 셋 */
+.goals{position:absolute; z-index:7; left:12px; top:86px; width:min(260px, calc(100% - 24px)); padding:7px 10px; background:rgba(11,14,12,.86); border:1px solid #2a2419; border-radius:10px; font-size:12px; color:var(--cream)}
+.goals .ghead{display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; padding:0; font:inherit; font-size:11.5px; color:#cdb98a; background:none; border:0; cursor:pointer}
+.goals ul{list-style:none; margin:5px 0 0; padding:0; display:grid; gap:4px}
+.goals li{display:flex; align-items:flex-start; gap:7px; line-height:1.45}
+.goals li i{flex:none; width:13px; height:13px; margin-top:2px; border:1.5px solid #8a7a5a; border-radius:3px}
+.goals li.done i{background:#8fbf7a; border-color:#8fbf7a; box-shadow:inset 0 0 0 2px #0b0e0c}
+.goals li.done span{color:#93a6a3; text-decoration:line-through; text-decoration-color:rgba(147,166,163,.6)}
+.goals li small{margin-left:auto; flex:none; font-size:10.5px; color:#93a6a3}
+.goals li.just{animation:goalPop .9s ease}
+@keyframes goalPop{30%{transform:scale(1.04); background:rgba(143,191,122,.18)}}
+.goals.fold ul{display:none}
+.goals.alldone{border-color:#5a7a4a}
+@media (max-height:500px){ .goals{top:72px; left:8px; width:auto; max-width:min(240px, calc(100% - 140px)); padding:4px 9px} .goals li{font-size:11px} }
+@media (prefers-reduced-motion:reduce){ .goals li.just{animation:none} }

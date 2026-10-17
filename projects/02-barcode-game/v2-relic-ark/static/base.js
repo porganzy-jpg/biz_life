@@ -1691,6 +1691,17 @@
     const c = (catalog[id] && catalog[id].cost) || {};
     return Object.entries(c).map(([k, v]) => (RES_KO[k] || k) + ' ' + v).join(' · ');
   }
+  // S33 빈 칸 안내: 이 칸에 지을 수 있는 방이 무엇을 만드는지(rooms_catalog.produces) 한 줄씩 — 「정수실 → 물」
+  function buildsLine(slot) {
+    const bo = ark.build_options || {}, rc = ark.rooms_catalog || catalog || {};
+    const rows = Object.keys(bo).filter(id => !(rc[id] || {}).fixed).map(id => {
+      const pr = Array.isArray(bo[id].produces) ? bo[id].produces : Object.keys((rc[id] || {}).produces || {}).filter(k => ((rc[id] || {}).produces || {})[k] > 0 && RES_KO[k]);   // 서버 build_options.produces(전력 공급·공방 칸 같은 것은 뺀 목록)
+      const bs = (bo[id].by_slot || {})[String(slot)];
+      return pr.length ? { id, nm: (rc[id] || {}).name || id, pr: pr.map(k => RES_KO[k] || k).join('·'), can: bs ? bs.can !== false : !!bo[id].can } : null;
+    }).filter(Boolean).sort((a, b) => (b.can - a.can)).slice(0, 4);
+    if (!rows.length) return '';
+    return '<p class="rcline buildsline"><b>여기를 지으면</b> · ' + rows.map(x => '<span class="' + (x.can ? '' : 'dim') + '">' + esc(x.nm) + ' → ' + esc(x.pr) + '</span>').join(' / ') + '</p>';
+  }
   // S26 물 빼기(펌프) 비용 — 방 비용과 따로 한 줄. 모자란 항목만 흐리게, 빨간색·경고 없음(design_drain_cost §3)
   function costHTML(cost, miss) {
     return Object.entries(cost || {}).filter(([, v]) => v > 0)
@@ -3002,7 +3013,7 @@
           (c.family_name ? '<span>' + esc(c.family_name) + '</span>' : '') +
           (c.tags || []).filter(t => t !== '미확인').slice(0, 3).map(t => '<span>#' + esc(t) + '</span>').join('') + '</div>';
     }
-    const g = Object.entries(r.gained || {}).map(([k, v]) => '<b>' + esc(RES_KO[k] || k) + ' +' + esc(v) + '</b>').join(' · ');
+    const g = Object.entries(r.gained || {}).map(([k, v]) => '<b class="gainres">' + esc(RES_KO[k] || k) + ' <em>+' + esc(v) + '</em></b>').join(' ');   // S33: 얻은 것은 크게
     // S13: 이미 선반에 있는 바코드면 새 칸을 먹지 않고 「닦였습니다」(polish). 서버가 준 문장이 이긴다
     const pol = r.polish || null, again = pol && r.shelf_new === false;
     const shelfNote = again
@@ -3307,7 +3318,7 @@
       const depth = (floorOf(slot) - DOME_FLOOR) * DEPTH_PER_FLOOR;
       if (!room) {
         const dc = drainInfo(slot), dm = dc && Object.keys(dc.missing || {}).length;
-        h = '<h4>물이 찬 칸<small>깊이 ' + depth + 'm</small></h4><p class="rcline">물을 빼면 이 칸을 되찾습니다.</p>' + drainLineHTML(slot) +
+        h = '<h4>물이 찬 칸<small>깊이 ' + depth + 'm</small></h4><p class="rcline">물을 빼면 이 칸을 되찾습니다.</p>' + drainLineHTML(slot) + buildsLine(slot) +
             (dm ? '<p class="rcline shortline">' + esc(shortLine(dc.missing)) + '</p>' : '') +
             '<div class="rcbtns"><button class="on" data-c="build"' + (dm ? ' disabled' : '') + '>물 빼기</button></div>';
       } else if (room.flooded) {
@@ -3329,7 +3340,7 @@
             (prod && prod.label ? '<i class="rctag">' + esc(prod.label) + '</i>' : '') + '</h4>' +
             (crk ? '<p class="rcline">' + esc(K.ext.T ? K.ext.T('crack.still_cracked', { room: spec.name || room.id }, '') : '') + '</p>' : '') +
             (prod && prod.ko && !crk ? '<p class="rcline">' + esc(plain(prod.ko)) + '</p>' : '') +
-            contribLine(prod) + storedLine(slot) + (K.ext.decorFor ? K.ext.decorFor(slot) : '') +
+            outputLine(prod, room) + contribLine(prod) + storedLine(slot) + (K.ext.decorFor ? K.ext.decorFor(slot) : '') +
             '<div class="rcmeta"><span>' + n + '/' + cap + '명</span>' +
             (prod && typeof prod.mult === 'number' ? '<span class="rcmult' + (prod.mult < 1 ? ' neg' : (prod.mult > 1 ? ' pos' : '')) + '">생산 ×' + (Math.round(prod.mult * 100) / 100) + '</span>' : '') +
             st.map(k => '<span class="rcstat" title="이 방에 유리한 능력치">' + esc(ko[k] || k) + '</span>').join('') + '</div>' +
@@ -3382,6 +3393,14 @@
     });
   }
   // S14: 누가 이 방 산출을 얼마나 올리고 내리는지(production[slot].per_person, 서버 계산). 셋까지만
+  function outputLine(prod, room) {
+    if (!prod || typeof prod.output_per_day !== 'number') return '';
+    const rc = (ark.rooms_catalog || catalog || {})[(room || {}).id || prod.room_id] || {};
+    const res = Object.keys(rc.produces || {}).filter(k => rc.produces[k] > 0).map(k => RES_KO[k] || k).join('·') || '생산';
+    return '<p class="rcline outline"><b>' + esc(res) + '</b> · 하루 <em>' + esc(fmt1(prod.output_per_day)) + '</em>' +
+      (typeof prod.output_per_hour === 'number' ? ' <small>(시간당 ' + esc(fmt1(prod.output_per_hour)) + ')</small>' : '') + '</p>' +
+      ((prod.half_without_people || (prod.staff != null ? prod.staff : prod.people) === 0) ? '<p class="rcline outhalf">' + esc(TT('production.no_staff', {}, '사람이 없어 절반만 돕니다')) + '</p>' : '');
+  }
   function contribLine(prod) {
     const pp = (prod && prod.per_person) || [];
     if (!pp.length) return '';
@@ -3424,6 +3443,7 @@
   //      서버가 칸마다 ark_delta_pct 를 주면 그것을, 없으면 같은 서버 미리보기(room/from_delta_pct)에 방마다의
   //      기준 산출(목록 생산량 + 역할 보탬) × 배율 × 불을 곱해 방주 전체로 합친다. 꽉 찬 방·일손 없음은 글자로 함께
   // S18-B2: 방주 전체 변화는 서버 값(move_preview[사람][칸].ark_delta_pct)만 쓴다. 화면 근사는 지웠다(방 하나 +120% 를 전체 +72% 로 서버가 잰다)
+  const fmt1 = (v) => String(Math.round((+v || 0) * 10) / 10);
   function arkDeltaPct(pv) { return pv && typeof pv.ark_delta_pct === 'number' ? pv.ark_delta_pct : null; }
   const carryLog = [];
   function drawCarryNumbers() {
@@ -3437,8 +3457,14 @@
     if (pv && pv.can === false) { pill(bx, by, '꽉 참', 'off', true); return; }
     const dp = arkDeltaPct(pv);
     const r1 = dp == null ? null : Math.round(dp);
-    const txt = '방주 전체 생산 ' + (r1 == null ? '변화 없음' : (r1 > 0 ? '+' : (r1 < 0 ? '−' : '±')) + Math.abs(r1) + '%');
-    pill(bx, by, txt, r1 == null || r1 === 0 ? 'flat' : (r1 > 0 ? 'up' : 'down'), true);
+    const prH = (ark.production || {})[String(hover)] || {};
+    const byP = Array.isArray(prH.by_people) ? prH.by_people[Math.min(prH.by_people.length - 1, ((prH.people != null ? prH.people : prH.staff) | 0) + 1)] : null;
+    const after = pv && typeof pv.room_per_day_after === 'number' ? pv.room_per_day_after : (typeof byP === 'number' ? byP : null);   // S33: 하루 값 예보(서버 값 → by_people[지금+1])
+    const now0 = ((ark.production || {})[String(hover)] || {}).output_per_day;
+    const txt = after != null ? ('→ 하루 ' + fmt1(after) + (typeof now0 === 'number' ? '  (지금 ' + fmt1(now0) + ')' : ''))
+      : '방주 전체 생산 ' + (r1 == null ? '변화 없음' : (r1 > 0 ? '+' : (r1 < 0 ? '−' : '±')) + Math.abs(r1) + '%');
+    const kind = after != null ? (typeof now0 === 'number' && after < now0 ? 'down' : 'up') : (r1 == null || r1 === 0 ? 'flat' : (r1 > 0 ? 'up' : 'down'));
+    pill(bx, by, txt, kind, true);
     // 떠나는 방이 비게 되면 한 줄(숫자가 아니라 글자)
     const pr = here != null ? (ark.production || {})[String(here)] : null;
     if (pr) {

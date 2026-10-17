@@ -227,8 +227,46 @@
     setTimeout(() => { if (K.flushSay) K.flushSay(); }, 600);   // 길잡이 동안 미룬 방송을 이제
     D.log.push('tut end');
   }
+  // ══ 3. S33 오늘의 목표 셋(관리·핵심·새것) ═══════════════════════════
+  //  /api/ark.goals [{id, kind, text_key, done, progress:[cur,n]}] — 모든 응답 state 에도. 문장 ui_moments goal.<key>.title/.done
+  //  끝낸 것: 체크 + 관리실 한 줄(goals_done_now[].line_ko → goal.<key>.done) + 그 줄이 한 번 반짝. 셋 다: 「내일 부탁이 또렷해집니다」
+  //  폰 가로(높이 500 이하)는 「목표 1/3」 한 줄로 접고, 누르면 편다
+  const gp = document.createElement('div'); gp.className = 'goals'; gp.hidden = true; gp.id = 'goals';
+  ($('#base') || document.body).appendChild(gp);
+  let goalsPrev = null, goalsOpen = null; const goalSaid = {};   // 서버 goals_done_now 가 여러 응답에 겹쳐 와도 한 번만
+  // PM 결정: 목표 문장은 서버 응답(goals[].title_ko·done_ko, all_done_ko)에서. ui_moments.goal.* 는 서버 문장이 없을 때만
+  const gText = (g, part) => { const sv = part === 'title' ? g.title_ko : g.done_ko; if (sv) return plain(sv);
+    const k = String(g.text_key || g.id).replace(/^goal[.]/, ''); const m = K.ext.moment && K.ext.moment('goal.' + k + '.' + part);
+    return plain((Array.isArray(m) ? m[0] : m) || ''); };
+  function drawGoals(st) {
+    const gs = st && st.goals; if (gs === undefined) return;
+    if (!Array.isArray(gs) || !gs.length) { gp.hidden = true; return; }
+    if (!gs.every(g => gText(g, 'title'))) { gp.hidden = true; D.goals = { waiting_text: true }; return; }   // 문장이 없으면 id 를 보이지 않는다
+    const n = gs.filter(g => g.done).length, phone = innerHeight <= 500;
+    if (goalsOpen === null) goalsOpen = !phone;
+    const just = goalsPrev ? gs.filter(g => g.done && !(goalsPrev[g.id] || {}).done).map(g => g.id) : [];
+    gp.innerHTML = '<button class="ghead" aria-expanded="' + goalsOpen + '"><span>' + esc(T('goal.panel_title', '오늘의 목표')) + ' ' + n + '/' + gs.length + '</span><b aria-hidden="true">' + (goalsOpen ? '▾' : '▸') + '</b></button>' +
+      '<ul>' + gs.map(g => '<li class="' + (g.done ? 'done' : '') + (just.indexOf(g.id) >= 0 ? ' just' : '') + '" data-kind="' + esc(g.kind || '') + '"><i aria-hidden="true"></i><span>' + esc(gText(g, 'title')) + '</span>' +
+        (!g.done && Array.isArray(g.progress) && g.progress[1] > 1 ? '<small>' + (g.progress[0] | 0) + '/' + g.progress[1] + '</small>' : '') + '</li>').join('') + '</ul>';
+    gp.classList.toggle('fold', !goalsOpen); gp.classList.toggle('alldone', n === gs.length);
+    gp.hidden = false;
+    // 끝낸 것 방송(서버 goals_done_now 가 오면 그 문장, 아니면 goal.<key>.done)
+    // 끝낸 것 방송: 서버 goals_done_now(서버가 한 번만 싣는다) — 문장이 없으면 goal.<key>.done
+    const now = (st.goals_done_now || []);
+    now.forEach(sv => { if (goalSaid[sv.id]) return; goalSaid[sv.id] = 1; const g = gs.find(x => x.id === sv.id) || { id: sv.id }; const ln = sv.line_ko || gText(g, 'done'); if (ln) K.say(plain(ln)); D.log.push('goal done ' + sv.id); });
+    if (now.some(sv => goalSaid[sv.id] === 1 && (goalSaid[sv.id] = 2)) && n === gs.length && !goalSaid._all && (goalSaid._all = 1)) setTimeout(() => { const m = K.ext.moment && K.ext.moment('goal.all_done');
+      K.say(plain(st.all_done_ko || st.goals_all_done_ko || (Array.isArray(m) ? m[0] : m) || '관리실입니다. 오늘 할 일을 다 해 주셨습니다. 내일 부탁이 또렷해집니다.')); D.log.push('goal all done'); }, 1600);
+    goalsPrev = Object.fromEntries(gs.map(g => [g.id, { done: !!g.done }]));
+    D.goals = { n, total: gs.length, open: goalsOpen, just };
+  }
+  gp.addEventListener('click', (e) => { if (!e.target.closest('.ghead')) return; goalsOpen = !goalsOpen; drawGoals({ goals: Object.keys(goalsPrev || {}).length ? lastGoals : [] }); });
+  let lastGoals = [];
+  K.onApply((st) => { if (st.goals !== undefined) { lastGoals = st.goals || []; drawGoals(st); } });
+  // 「다음 할 일」 줄 아래에 붙인다(줄이 숨으면 그 자리로)
+  function placeGoals() { const b = $('#nextstep'); const top = b && !b.hidden ? b.getBoundingClientRect().bottom + 6 : (innerHeight <= 500 ? 44 : 52); gp.style.top = top + 'px'; }
+  setInterval(placeGoals, 500);
   D.holding = () => tut.active && !!tut.el && !tut.el.hidden;
   D.state = () => ({ step: D.step || null, tut: { active: tut.active, id: tut.id }, coach: D.coach || null, lit: D.lit || null, barShown: !bar.hidden });
   D.light = (t) => light(t, 3000);
-  if (K.ark) { showStep(K.ark); tutCheck(K.ark); }
+  if (K.ark) { showStep(K.ark); tutCheck(K.ark); if (K.ark.goals !== undefined) { lastGoals = K.ark.goals || []; drawGoals(K.ark); } }
 })();
