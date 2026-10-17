@@ -34,6 +34,7 @@ S.CALENDAR_ENFORCE = True
 S.VOTES_EXCLUDE_TEST = False
 S.init_db()
 C = TestClient(S.app)
+S.LOW_KNOWN = 0                  # S31 아는 칸 적은 방주 첫 칸 규칙은 test_s31
 S.NEW_STATE_SEED = "s29"         # 시작 주민 고정(흔들림 방지)
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10

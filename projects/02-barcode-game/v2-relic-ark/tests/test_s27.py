@@ -33,6 +33,7 @@ S.CALENDAR_ENFORCE = True
 S.VOTES_EXCLUDE_TEST = False
 S.init_db()
 C = TestClient(S.app)
+S.LOW_KNOWN = 0                  # S31 아는 칸 적은 방주 첫 칸 규칙은 test_s31
 S.NEW_STATE_SEED = "s27"         # 시작 주민 고정(흔들림 방지)
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10
@@ -196,8 +197,8 @@ def t_heirloom():
         if nfm and len(nfm) < len(st["residents_list"]):
             break
     opts = S.heirloom_options(st, uid, it)
-    ids = {o["target"]["resident_id"] for o in opts if not o.get("second")}
-    sec = {o["target"]["resident_id"] for o in opts if o.get("second")}
+    ids = {o["target"]["resident_id"] for o in opts if not o.get("near")}
+    sec = {o["target"]["resident_id"] for o in opts if o.get("near")}
     ok(nfm and not ids & {r["id"] for r in nfm}, f"돌려줄 사람 {len(nfm)}명은 가보 후보 아님(후보 {len(opts)}, 「다른 분도」 {len(sec)})")
     nfm = [r for r in nfm if r["id"] not in sec]
     ok(opts and all(o.get("hint_ko") and "{" not in o["hint_ko"] for o in opts), f"후보 단서: {opts and opts[0]['hint_ko']}")

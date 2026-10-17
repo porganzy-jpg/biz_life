@@ -567,3 +567,23 @@
   - 원정 경로는 쓰지 않았다(문어가 2일째부터 매일 오므로).
 - **가보 후보 단서**: `roles.<역할>.heirloom.fit_hint_by_category.<갈래>[]` 를 먼저 읽고, 없으면 `fit_hint[]` 를 쓴다. 고르는 시드는 사람|물건이다.
 - **밤 손님**: 첫 손님의 시각(19시)부터 넷 모두 고를 수 있다. 각 손님의 hours_from 은 이제 고르는 데 쓰지 않는다.
+
+## 20. S31 8차 플테 (2026-10-17)
+- **r8-1 보장 귀함 → 가보**
+  - 원인 둘:
+    - 보장 귀함이 담배·약 조각일 수 있었다. 안전 목록 밖이라 가보 후보가 0이었다.
+    - 아무도 그 갈래를 좋아하지 않으면 모두 not_for_me 라서 후보가 0이었다.
+  - 보장 귀함은 이제 안전하고, 누군가 좋아하거나 필요로 하는 갈래의 relic_shard 에서 고른다.
+  - `heirloom_options` 는 후보가 2명 미만이면 가까운 사람으로 채운다(`near:true`). 원래 후보가 있으면 더한 사람은 `second:true, more_ko`, 없으면 첫째는 바로 보이고 둘째만 second 다.
+  - near 인 사람에게 건네면 돌려주지 않는다.
+  - 문어 조각 「어디로」에 `heirloom_first` 를 더했다. 문어 담배 조각은 선반에서 stationery 로 둔다.
+- **선반 「가보로 드리기」**
+  - `GET /api/relic/where?uid&relic_id` 가 선반·창고 물건의 「어디로」(heirloom 포함)를 돌려준다. `heirloom_label`, `unlock_new[]` 도 함께 온다.
+  - 건네기는 `POST /api/give {relic_id, target:{resident_id, heirloom:true}}` 다.
+- **가보 해금 방송**: 고를 화면이 있을 때만 낸다. 고를 화면이란 그 스캔·선반 물건의 「어디로」에 가보 후보가 있는 경우다. 없으면 미룬다(`HEIR_BROADCAST_NEEDS_SCREEN`).
+- **r8-2**: `shelf[].display_name` 은 물건 이름(문어 줄과 같다)이다. `name` 은 소품 이름 그대로다.
+- **저녁 몫**
+  - 아침·낮 세션에 그날 아직 열린 기억이 없으면, 기억 후보 하나를 「어디로」 사람 줄 끝으로 보낸다(`evening_reserve:true`). 줄에서 빠지지는 않는다.
+  - 낮에 한 걸음 간 사슬은, 다음 걸음이 small 이고 min_days_after_prev 가 1 이하이면 같은 날 저녁에 한 걸음 더 열린다(하루 한 번).
+- **아는 칸이 적은 방주**: 라벨이 꺼진 날 방주 전체 아는 칸이 3 미만이면, 지금 물건과 기색이 맞는 사람(need·like·memory·chain)이 첫 칸이다(`first_reason:"fit"`). 깃발은 `LOW_KNOWN`.
+- **`POST /api/dev/raid {uid, creature, grade?}`**(개발 전용, 배포 404): 오늘 습격을 그 생물로 새로 연다(소리 단계).

@@ -32,6 +32,7 @@ S.CALENDAR_ENFORCE = True
 S.VOTES_EXCLUDE_TEST = False
 S.init_db()
 C = TestClient(S.app)
+S.HEIR_BROADCAST_NEEDS_SCREEN = False   # S31 「고를 화면이 있을 때만」은 test_s31
 S.NEW_STATE_SEED = "s30"         # 시작 주민 고정(흔들림 방지)
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10

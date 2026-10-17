@@ -1873,6 +1873,7 @@ def shelf_public(st: dict) -> list[dict]:
             continue
         row = {k: it.get(k) for k in keys}
         row["card_id"] = it.get("card_id")             # S19-A2: 선반 물건을 고를 때(arc.ask relic·/api/give relic_id)
+        row["display_name"] = it.get("relic_name") or it.get("name")   # S31 r8-2: 물건 이름(문어 줄과 같은 이름). name 은 소품 이름
         row["subtype"] = shelf_subtype(it)
         lv = polish_level(it)
         row["polish"] = lv
@@ -2553,6 +2554,14 @@ def octopus_tick(st: dict, uid: str) -> dict | None:
         oc["gift_day"] = day
         gr = guaranteed_rare_due(st)
         if gr:                                        # S30: 첫 주 귀함 하나 보장(B — 띄엄띄엄 켜는 사람의 빈 가보 칸)
+            safe_f = [f for f in finds if f.get("favor_category") in EX.CATS and f.get("kind") == "relic_shard"
+                      and item_safe({"category": f.get("favor_category"), "subtype": None})]   # 담배·약(붕대 밖)은 가보가 될 수 없다
+            liked = {x.get("category") for r_ in st.get("residents_list") or []
+                     for x in likes_of(uid, r_) + list(role_taste(r_.get("role", "")).get("needs") or []) if isinstance(x, dict)}
+            safe_f = [f for f in safe_f if f.get("favor_category") in liked] or safe_f   # S31 r8-1: 누군가 반가워할 갈래로
+            if safe_f and (pick not in safe_f):
+                pick = random.Random(f"{uid}|{day}|guaranteed_rare").choice(safe_f)   # S31 r8-1: 담배 조각은 가보가 될 수 없다
+                oc["gift_today"] = pick["id"]
             oc["gift_relic"] = octopus_gift_relic(st, pick, day)
             core_of(st)["flags"]["guaranteed_rare_day"] = day
             first_rare_tick(st, {"rarity": "rare"})
@@ -4395,7 +4404,7 @@ def scan(inp: ScanIn):
             "zero_reaction": zr_,
             "where": where,
             "heirloom_ascend": heir_up, "keep_note": keep_note,
-            "unlock_new": unlock_new(st) if CALENDAR_ENFORCE else [],   # S30: 가보 칸 방송은 귀함 카드와 함께
+            "unlock_new": unlock_new(st, inp.uid, heir_screen=bool(where.get("heirloom")) or None) if CALENDAR_ENFORCE else [],   # S30·S31: 가보 칸 방송은 고를 화면과 함께
             "beat_today": first_beat,                     # PM 첫 세션: 첫 스캔 뒤에 첫 비트
             "scans_today": today + 1, "scan_cap": DAILY_SCAN_CAP, "resources": st["resources"], "voice": voice,
             "storage": storage_public(st)}
@@ -4527,7 +4536,7 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     out["missed_chain"] = missed_chain_of(st, uid)
     out["evening_table"] = evening_table_public(st, uid)
     out["unlocked"] = unlocked_public(st)
-    out["unlocked"]["new"] = unlock_new(st)
+    out["unlocked"]["new"] = unlock_new(st, uid)
     out["next_visit"], out["tomorrow_ask"], out["leave_order"] = leave_lines(st, uid, nv=out["next_visit"])
     out["memory_wall"] = memory_wall_public(st, uid)
     out["notebook_tip"] = (core_of(st).get("gossip") or {}) if (core_of(st).get("gossip") or {}).get("day") == day else None
@@ -6407,6 +6416,8 @@ def early_arc_rid(st: dict) -> str | None:
 
 def beat_opens_day(st: dict, r: dict, s: dict, beat: dict) -> int:
     trig = beat.get("trigger") or {}
+    if evening_step_ok(st, s, beat):
+        return day_of(st)
     if s["step"] == 0 and s.get("last_day") is None:
         d = first_open_raw(st, r, beat)
         if d > 2 and early_arc_rid(st) == r["id"]:
@@ -6621,7 +6632,10 @@ def fire_beat(st: dict, uid: str, r: dict, a: dict, s: dict, beat: dict, item: d
     row = arc_public_beat(st, r, a, s, beat, item, other)
     core_of(st)["session"].setdefault("fired", []).append(f"{r['id']}|{a['id']}|{beat.get('step')}")
     s["step"] = int(s["step"]) + 1
+    if s.get("last_day") == day and is_evening():
+        s["evening_extra_day"] = day                  # S31: 아침에 한 걸음, 같은 저녁에 작은 한 걸음 더(하루 한 번만)
     s["last_day"] = day
+    s["last_evening"] = is_evening()
     s.setdefault("days", {})[str(s["step"])] = day
     if beat.get("ask"):
         s["ask_pending"] = int(beat.get("step", s["step"]))
@@ -6694,7 +6708,7 @@ def arc_tick(st: dict, uid: str) -> list:
         if not a:
             continue
         beat = next_beat(a, s)
-        if not beat or not beat_open(st, r, s, beat) or s.get("last_day") == day:
+        if not beat or not beat_open(st, r, s, beat) or arc_today_blocked(st, s, beat):
             continue
         trig = beat.get("trigger") or {}
         soft_check(st, r, s, beat)
@@ -6713,7 +6727,7 @@ def arc_try_give(st: dict, uid: str, r: dict, item: dict, preview: bool = False)
     if not a:
         return None
     beat = next_beat(a, s)
-    if not beat or not beat_open(st, r, s, beat) or s.get("last_day") == day_of(st):
+    if not beat or not beat_open(st, r, s, beat) or arc_today_blocked(st, s, beat):
         return None
     if beat_already_fired(st, r, a, s, beat):
         return None                                   # S22 r4-1: 이미 푼 매듭은 다시 제안하지도 풀지도 않는다
@@ -6910,7 +6924,7 @@ def room_decor_tier(st: dict, uid: str, room: dict, item: dict) -> tuple[str, di
     for r in st.get("residents_list") or []:
         a, s = current_arc(st, r)
         beat = next_beat(a, s) if a else None
-        if not beat or not beat_open(st, r, s, beat) or s.get("last_day") == day_of(st):
+        if not beat or not beat_open(st, r, s, beat) or arc_today_blocked(st, s, beat):
             continue
         pv = (beat.get("trigger") or {}).get("place") or {}
         if pv.get("room") == room["id"] and pv.get("category") and \
@@ -7904,7 +7918,7 @@ def give(inp: GiveIn):
         warm_ids = list(where_for(st, inp.uid, item).get("warm_ids") or [])   # S22 r4-2: 선반 물건도 「어디로」가 제안한 그대로
     target = inp.target if inp.target not in ("keep",) else "shelf"
     if isinstance(target, dict) and target.get("heirloom"):
-        if any(o.get("second") and o["target"]["resident_id"] == target.get("resident_id") for o in heirloom_options(st, inp.uid, item)):
+        if any(o.get("near") and o["target"]["resident_id"] == target.get("resident_id") for o in heirloom_options(st, inp.uid, item)):
             warm_ids = list(warm_ids or []) + [target["resident_id"]]   # S29: 「다른 분도」로 보인 사람은 반가워한다(돌려주지 않는다)
         hp = heirloom_prepare(st, inp.uid, item, target)       # S25 가보: 바꿀까요? 물음이면 아무것도 바꾸지 않고 돌려준다
         if hp.get("ask_swap"):
@@ -8364,6 +8378,8 @@ def arc_item_at_home(st: dict, uid: str, r: dict, beat: dict) -> bool:
 def octopus_gift_relic(st: dict, find: dict, day: int) -> dict | None:
     """문어 이야기 선물(비트 5)을 선반(차면 창고 상자)에 건넬 수 있는 물건으로 놓는다. card_id = oct-<id>-<day>."""
     cat = find.get("favor_category") if find.get("favor_category") in EX.CATS else "stationery"
+    if cat in SAFE_EXCLUDE_CATS:
+        cat = "stationery"                            # S31: 문어 조각이 담배 갈래 선반 물건이 되지 않게
     cid = f"oct-{find['id']}-{day}"
     card = {"category": cat, "rarity": "rare", "id": cid, "name": find.get("name"), "family_name": None,
             "barcode": None, "_day": day}
@@ -8394,6 +8410,7 @@ def octopus_gift_where(st: dict, uid: str) -> dict | None:
     w.pop("_internal", None)
     w["relic_id"] = g["card_id"]
     w["name"] = g.get("name")
+    w["heirloom_first"] = bool(w.get("heirloom")) and core_of(st)["flags"].get("guaranteed_rare_day") is not None
     return w
 
 
@@ -9170,6 +9187,14 @@ def notebook_view(st: dict, uid: str, item: dict, w: dict) -> dict:
             row = next(x for x in w["suggest"] if x.get("target", {}).get("resident_id") == story)
             w["suggest"].remove(row)
             w["suggest"].insert(0, dict(row, first_reason="story"))
+        else:
+            ppl_ = [x for x in w["suggest"] if x["kind"] == "resident"]
+            rest_ = [x for x in w["suggest"] if x["kind"] != "resident"]
+            ppl_ = memory_for_evening(st, w, ppl_)
+            if ppl_ and w["suggest"] and w["suggest"][0]["kind"] == "resident":
+                w["suggest"] = ppl_ + rest_
+            else:
+                w["suggest"] = [x for x in w["suggest"] if x["kind"] != "resident" or x in ppl_]
         w.update({"labels": True, "order": "value"})
         return w
     by = {r["id"]: r for r in st.get("residents_list") or []}
@@ -9210,11 +9235,18 @@ def notebook_view(st: dict, uid: str, item: dict, w: dict) -> dict:
     story = evening_story_first(st, w)
     if story:
         kfit = [x for x in ppl if x["target"]["resident_id"] == story]
+    elif not kfit and known_total(st) < LOW_KNOWN:  # S31 ③: 아는 칸이 아직 적은 방주(B) — 지금 찍은 물건과 기색이 맞는 사람이 첫 칸
+        tiers = {x["target"].get("resident_id"): x.get("tier") for x in w.get("_internal") or [] if x.get("kind") == "resident"}
+        fitp = [x for x in ppl if tiers.get(x["target"]["resident_id"]) in ("need", "like", "memory", "chain_beat")]
+        if fitp:
+            kfit = fitp[:1]
+            kfit[0]["slot_hint_first"] = True
     if kfit:                                          # S29: 이미 얻은 앎(수첩)이 맞는 사람이 첫 칸 — 답을 흘리는 것이 아니다
         kfit.sort(key=lambda x: 0 if str(x.get("slot") or "").startswith("need:") else 1)
         ppl = kfit + [x for x in ppl if x not in kfit]
         for x in kfit:
-            x["first_reason"] = "story" if story else "known"
+            x["first_reason"] = "story" if story else ("fit" if x.pop("slot_hint_first", None) else "known")
+    ppl = memory_for_evening(st, w, ppl)               # S31 ②: 아침에는 기억 하나를 저녁 몫으로(뒤로, 고르면 줄 수 있다)
     w["suggest"] = ppl + rooms
     w.update({"labels": False, "order": "least_recent"})
     return w
@@ -9703,8 +9735,9 @@ def unlock_teaser(st: dict) -> dict | None:
             "required": bool(b.get("teaser_required"))}
 
 
-def unlock_new(st: dict) -> list:
-    """이번 켠 날에 처음 열린 기능의 방송(ui_moments.unlock.<기능>). 한 번만."""
+def unlock_new(st: dict, uid: str = "", heir_screen: bool | None = None) -> list:
+    """이번 켠 날에 처음 열린 기능의 방송(ui_moments.unlock.<기능>). 한 번만.
+    S31: 가보 칸 방송은 고를 화면(가보 후보가 있는 「어디로」)이 있을 때만 — 없으면 미룬다."""
     if not CALENDAR_ENFORCE:
         return []
     c = core_of(st)
@@ -9714,6 +9747,10 @@ def unlock_new(st: dict) -> list:
     for f in sorted(unlocked_set(st)):
         if f in shown or f in FEATURES_ALWAYS:
             continue
+        if f == "heirloom" and HEIR_BROADCAST_NEEDS_SCREEN:
+            ok_ = heir_screen if heir_screen is not None else heir_choosable(st, uid)
+            if not ok_:
+                continue
         shown.append(f)
         ln = U.get(f)
         if isinstance(ln, list):
@@ -9788,15 +9825,19 @@ def heirloom_options(st: dict, uid: str, item: dict) -> list:
         out.append({"kind": "heirloom", "target": {"resident_id": r["id"], "heirloom": True}, "name": r["name"],
                     "label": f"{lab} · {r['name']}", "tier": tier, "value": HEIR_V, "swap": bool(h),
                     "current": heirloom_public(r), "hint_ko": heir_fit_hint(st, r, item)})
-    if len(out) == 1:
-        nx = heirloom_second(st, uid, item, tier, {out[0]["target"]["resident_id"]})
+    base = len(out)
+    while len(out) < 2:                               # S29: 하나면 하나 더 · S31: 0이면 가까운 사람 둘(보장 귀함이 갈 데가 없던 r8-1)
+        nx = heirloom_second(st, uid, item, tier, {o["target"]["resident_id"] for o in out})
+        if not nx:
+            break
         if nx:
             r = nx
             H = moments().get("heirloom") or {}
             out.append({"kind": "heirloom", "target": {"resident_id": r["id"], "heirloom": True}, "name": r["name"],
                         "label": f"{lab} · {r['name']}", "tier": tier, "value": HEIR_V, "swap": bool(r.get("heirloom")),
-                        "current": heirloom_public(r), "second": True,
-                        "more_ko": H.get("more_label") if isinstance(H.get("more_label"), str) else "다른 분도 보여 드릴까요?",
+                        "current": heirloom_public(r), "second": base > 0 or len(out) > 0, "near": True,
+                        "more_ko": (H.get("more_label") if isinstance(H.get("more_label"), str) else "다른 분도 보여 드릴까요?")
+                        if (base > 0 or len(out) > 0) else None,
                         "hint_ko": heir_fit_hint(st, r, item)})
     return out
 
@@ -10524,6 +10565,100 @@ def heir_fit_hint(st: dict, r: dict, item: dict) -> str:
         pool = [fh] if isinstance(fh, str) else list(fh)
     t = random.Random(f"{r['id']}|{item_key(item)}|fit").choice(pool) if pool else "{name} 님 손에 오래 머물 것 같습니다."
     return fill_text(t, st, r, item)
+
+
+# ── S31 ────────────────────────────────────────────────────────────
+HEIR_BROADCAST_NEEDS_SCREEN = True
+LOW_KNOWN = 3              # 방주 전체 아는 칸이 이보다 적으면(B 4일째 2/36) 기색이 맞는 사람을 첫 칸에
+
+
+def known_total(st: dict) -> int:
+    return sum(len(cres(st, r["id"]).get("notebook") or {}) for r in st.get("residents_list") or [])
+
+
+def evening_step_ok(st: dict, s: dict, beat: dict | None) -> bool:
+    """아침(낮)에 한 걸음 간 사슬의 다음 작은 걸음은 같은 날 저녁에 한 번 더 열 수 있다(min_days_after_prev ≤ 1)."""
+    if not beat or not is_evening():
+        return False
+    day = day_of(st)
+    if s.get("last_day") != day or s.get("last_evening") is not False or s.get("evening_extra_day") == day:
+        return False
+    trig = beat.get("trigger") or {}
+    gap = int(trig.get("min_days_after_prev", ARC_COOLDOWN_DEFAULT))
+    return gap <= 1 and (beat.get("size") or "small") == "small"
+
+
+def arc_today_blocked(st: dict, s: dict, beat: dict | None) -> bool:
+    return s.get("last_day") == day_of(st) and not evening_step_ok(st, s, beat)
+
+
+def memory_for_evening(st: dict, w: dict, ppl: list) -> list:
+    """아침·낮 세션: 오늘 아직 아무 기억도 안 열렸으면 기억 후보 하나를 줄 끝으로(저녁 몫). 저녁엔 그대로."""
+    if is_evening() or len(ppl) < 2:
+        return ppl
+    day = day_of(st)
+    if any(int(cres(st, r["id"]).get("memory_day") or 0) == day for r in st.get("residents_list") or []):
+        return ppl
+    tiers = {x["target"].get("resident_id"): x.get("tier") for x in w.get("_internal") or [] if x.get("kind") == "resident"}
+    mem = [x for x in ppl if tiers.get(x["target"]["resident_id"]) == "memory"]
+    if not mem:
+        return ppl
+    m = mem[0]
+    out = [x for x in ppl if x is not m] + [m]
+    m["evening_reserve"] = True
+    if m.get("first_reason"):
+        m.pop("first_reason", None)
+    return out
+
+
+def heir_choosable(st: dict, uid: str) -> bool:
+    """지금 가보로 고를 화면이 있나: 선반·창고의 귀함 이상 물건 중 가보 후보가 있는 것."""
+    for row in (st.get("shelf") or []) + (st.get("stored") or []):
+        if _rk(row.get("rarity")) < _rk(HEIR_MIN):
+            continue
+        it = item_from_row(row)
+        if heirloom_options(st, uid, it):
+            return True
+    return False
+
+
+@app.get("/api/relic/where")
+def relic_where(uid: str, relic_id: str):
+    """S31 ①: 선반·창고 물건 하나의 「어디로」(가보 후보 포함) — 선반에서 「가보로 드리기」. 건네기는 /api/give {relic_id, target}."""
+    st = load_state(uid)
+    row = next((x for x in st.get("shelf") or [] if x.get("card_id") == relic_id), None) or \
+        next((x for x in st.get("stored") or [] if x.get("id") == relic_id or x.get("card_id") == relic_id), None)
+    if not row:
+        raise HTTPException(400, "선반·창고 상자에 그런 물건이 없습니다")
+    it = item_from_row(row)
+    it["card_id"] = relic_id
+    w = where_for(st, uid, it)
+    w.pop("_internal", None)
+    w.update({"relic_id": relic_id, "name": it.get("name"),
+              "heirloom_label": (moments().get("heirloom") or {}).get("give_label") or "가보로 드리기"})
+    new = unlock_new(st, uid, heir_screen=bool(w.get("heirloom")))
+    save_state(uid, st)
+    return dict(w, unlock_new=new)
+
+
+class DevRaidIn(BaseModel):
+    uid: str
+    creature: str
+    grade: int | None = None
+
+
+@app.post("/api/dev/raid")
+def dev_raid(inp: DevRaidIn):
+    """★ 개발 전용(RELIC_DEV=1): 오늘의 습격을 이 생물로 새로 연다(소리 단계부터). 배포에서는 404."""
+    if not DEV_MODE:
+        raise HTTPException(404, "없는 경로입니다")
+    if inp.creature not in combat.CREATURES:
+        raise HTTPException(400, f"없는 생물입니다: {inp.creature}")
+    st = load_state(inp.uid)
+    tick_production(st)
+    ensure_raid(st, inp.uid, force=inp.creature, reset=True, grade_force=inp.grade)
+    save_state(inp.uid, st)
+    return {"ok": True, "raid": raid_public(st, st.get("raid")), "state": public_state(st, inp.uid)}
 
 
 # ─────────────────────────────────────────────────────────────

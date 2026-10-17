@@ -153,7 +153,7 @@ def t_heirloom():
     it = item("food", "noodle", "귀한 면", "h1")
     opts = S.heirloom_options(st, uid, it)
     nfm = sum(1 for r in st["residents_list"] if S.resident_tier(st, uid, r, it)[0] == "not_for_me")
-    ok(len([o for o in opts if not o.get("second")]) == len(st["residents_list"]) - nfm and all(o["target"]["heirloom"] and o["value"] == S.HEIR_V for o in opts),
+    ok(len([o for o in opts if not o.get("near")]) == len(st["residents_list"]) - nfm and all(o["target"]["heirloom"] and o["value"] == S.HEIR_V for o in opts),
        f"귀함 → 가보 선택지 {[o['label'] for o in opts]}")
     ok(not S.heirloom_options(st, uid, item("food", "noodle", "보통 면", "h0", "uncommon")), "쓸만함 이하는 가보 아님")
     ok(not S.heirloom_options(st, uid, item("tobacco", "smoke", "연기", "ht")), "안전 목록 밖은 가보 아님")
