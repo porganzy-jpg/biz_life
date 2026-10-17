@@ -442,6 +442,10 @@ def do_loop(persona, uid, keys, ses: Session, rng: random.Random):
                                                -ses.given_people[(h.get("target") or {}).get("resident_id")]))
                 tgt, why, picked = dict(hpick["target"]), f"가보로: {hpick.get('label')}", hpick
                 ses.d["decisions"].append("가보:" + str(hpick.get("name")))
+            elif persona.startswith("B") and hl[0].get("target"):     # 8차: B는 가보 첫 후보(기본값)를 누른다
+                hpick = hl[0]
+                tgt, why, picked = dict(hpick["target"]), f"가보로(첫 후보): {hpick.get('label')}", hpick
+                ses.d["decisions"].append("가보:" + str(hpick.get("name")))
         g = post("/api/give", {"uid": uid, "scan_id": w["scan_id"], "target": tgt})
         if g.get("ok") is False and g.get("ask_swap"):
             asw = g["ask_swap"]

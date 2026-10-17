@@ -55,7 +55,7 @@ def _preview(uid):
     r = (get(f"/api/raid/today?uid={uid}") or {}).get("raid") or {}
     rd = r.get("ready") or {}
     return {"would": rd.get("would"), "would_ko": rd.get("would_ko"), "ok": (rd.get("gate") or {}).get("ok"),
-            "short": rd.get("short_of")}
+            "short": rd.get("short_of"), "hint": r.get("hint_action_ko"), "capped": rd.get("capped_week1")}
 
 
 def _gather(uid, slot):
@@ -138,7 +138,10 @@ def careful_clue(uid, raid):
     opts = {"use": []}
     trace, best, seen = [], None, []
     print(f"   [버릇 읽기] 「{habit}」 → 떠오른 대응 {[(KO.get(m, m), s) for m, s in read] or '없음'}")
-    for mv in cand:
+    hints, hint_moves = [], []
+    i = 0
+    while i < len(cand):
+        mv = cand[i]; i += 1
         if mv in ACTS:
             o = acts_have.get(mv) or {}
             lack = {k: v - int((st.get("resources") or {}).get(k, 0)) for k, v in (o.get("cost") or {}).items() if int((st.get("resources") or {}).get(k, 0)) < v}
@@ -162,6 +165,12 @@ def careful_clue(uid, raid):
             break
         if mv in TOGGLE and not pv["ok"]:
             _revert(uid, mv, slot)                       # 안 통한 토글은 되돌리고 다음으로
+        if pv.get("hint") and pv["hint"] not in hints:  # S30 귀띔: 읽고 떠오른 대응을 다음 시도 맨 앞에
+            hints.append(pv["hint"])
+            hm = [m for m, _ in read_habit(pv["hint"]) if m != mv]
+            hint_moves += hm
+            print(f"     귀띔: 「{pv['hint']}」 → 떠오른 대응 {[KO.get(m, m) for m in hm] or '없음'}")
+            cand = cand[:i] + hm + [m for m in cand[i:] if m not in hm]
     else:
         if best and best[0] in TOGGLE and best[0] not in ("people", "stand_still") and seen and RANK.get(best[1], 1.5) < max(seen):
             _apply(uid, best[0], slot, opts)             # 가장 나았던 배치로 돌아간다
@@ -178,6 +187,8 @@ def careful_clue(uid, raid):
     post("/api/ark/power", {"uid": uid, "on": True}, quiet=True)
     with (SCRATCH / f"pt_raid_{uid}.jsonl").open("a", encoding="utf-8") as f:
         f.write(json.dumps({"day": st.get("day"), "creature": cre.get("id"), "habit": habit, "read": read,
+                            "hints": hints, "hint_moves": hint_moves, "hint_led": bool(best and best[0] in hint_moves and best[1] in GOOD),
+                            "capped": pv.get("capped"),
                             "trace": trace, "final_preview": pv.get("would"), "result": a.get("result")},
                            ensure_ascii=False) + "\n")
     return a
