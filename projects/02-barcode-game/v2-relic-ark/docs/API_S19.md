@@ -517,3 +517,8 @@
     - 고르면 `POST /api/scan {.., user_category, user_subtype}` 한 번이면 된다. subtype_pick 은 다시 묻지 않는다.
     - 안전 목록 밖 조합은 400.
 - 플래그: `DAYTIME_TABLE`(옛 S23·S25 스위트는 False), `FIRST_ENTRY_GATE`(옛 S19·S25b 는 False). test_s25 는 가보 min_play_day 를 1로 둔다.
+- (S27 후속) 첫 만남 줄은 `ui_moments.subtype_first.<갈래>.<종류>[]` 를 먼저 읽는다. 시드는 갈래|종류|이름이고, 서버 기본 문장은 키가 없을 때만 쓴다.
+- (S27 후속) 기억 벽:
+  - `/api/ark.memory_wall` 에 `total`, `complete`, `open_ko`(처음 한 번만), `story`(다 찼을 때) 가 더해졌다.
+  - hang 응답에는 `line`(memory_wall.hung, {item}{n}{m}), `complete`, `story[]`, `complete_ko` 가 온다. complete_ko 는 다 찼을 때의 완성 방송이고, 시나리오가 보상 약속을 뺐다.
+  - `memory_wall.prefilled_ko`: 미리 찬 첫 칸 설명.

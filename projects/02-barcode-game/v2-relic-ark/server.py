@@ -10075,9 +10075,15 @@ def memory_wall_public(st: dict, uid: str) -> dict | None:
               "slots": [first] + [None] * (MEMORY_WALL_SLOTS - 1)}
         c["memory_wall"] = mw
     M = moments().get("memory_wall") if isinstance(moments().get("memory_wall"), dict) else {}
+    filled = sum(1 for x in mw["slots"] if x)
+    first_open = not mw.get("announced")
+    mw["announced"] = True                            # 처음 열릴 때 방송은 한 번
     return {"open": True, "room": mw["room"], "opened_day": mw.get("opened_day"), "slots": mw["slots"],
-            "filled": sum(1 for x in mw["slots"] if x), "first_label_ko": (M or {}).get("first_label"),
-            "hang_prompt_ko": (M or {}).get("hang_prompt")}
+            "filled": filled, "total": len(mw["slots"]), "complete": filled == len(mw["slots"]),
+            "first_label_ko": (M or {}).get("first_label"), "hang_prompt_ko": (M or {}).get("hang_prompt"),
+            "open_ko": (M or {}).get("open") if first_open else None,
+            "prefilled_ko": (M or {}).get("prefilled") if mw["slots"] and mw["slots"][0] and mw["slots"][0].get("from") in ("first_given", "first_scan") else None,
+            "story": list((M or {}).get("story") or []) if filled == len(mw["slots"]) else None}
 
 
 class WallIn(BaseModel):
@@ -10107,9 +10113,18 @@ def memory_wall_hang(inp: WallIn):
     detach_item(st, it.get("card_id") or inp.relic_id, None)
     mw["slots"][i] = {"name": it.get("name"), "barcode": it.get("barcode"), "category": it.get("category"),
                       "subtype": it.get("subtype"), "day": day_of(st), "from": "hung", "prop": prop_for_item(it)}
-    session_note(st, f"기억 벽 — {it.get('name')}")
+    M = moments().get("memory_wall") if isinstance(moments().get("memory_wall"), dict) else {}
+    n, m = sum(1 for x in mw["slots"] if x), len(mw["slots"])
+    ln, _ = _rot(st, "memory_wall.hung", (M or {}).get("hung") or [])
+    line = (ln or "「{item}」, 식량창고 벽에 걸었습니다. {n}/{m}.").replace("{item}", it.get("name") or "").replace("{n}", str(n)).replace("{m}", str(m))
+    done = n == m
+    if done:
+        mw["complete_day"] = day_of(st)
+    session_note(st, line)
     save_state(inp.uid, st)
-    return {"ok": True, "memory_wall": memory_wall_public(st, inp.uid), "state": public_state(st, inp.uid)}
+    return {"ok": True, "line": line, "complete": done, "complete_ko": (M or {}).get("complete") if done else None,   # 보상 약속 없는 완성 방송(시나리오 2026-10-17)
+            "story": list((M or {}).get("story") or []) if done else None,
+            "memory_wall": memory_wall_public(st, inp.uid), "state": public_state(st, inp.uid)}
 
 
 # ── ⑧ 「관리실이 대신 막을까요?」(낮 세션) ───────────────────────────
@@ -10312,6 +10327,10 @@ def first_meet_sub(cat: str, sub: str, name: str | None) -> dict:
     """하위 종류를 고른 뒤의 첫 만남 줄: first_meet.json subtypes[갈래][하위 종류] → 없으면 하위 종류 이름으로 짠 줄.
     (갈래 줄은 하위 종류를 짐작한 문장이라 고른 것과 어긋날 수 있다 — 예: 우유를 골랐는데 「민물 냄새」)"""
     fm = ((FIRST_MEET.get("subtypes") or {}).get(cat) or {}).get(sub) or {}
+    sf = ((moments().get("subtype_first") or {}).get(cat) or {}).get(sub)
+    if isinstance(sf, list) and sf:                   # 시나리오 S27: ui_moments.subtype_first.<갈래>.<종류>[] (자리표시자 없음)
+        t = random.Random(f"{cat}|{sub}|{name}|first").choice(sf)
+        fm = {"line": t, "line_short": t}
     ko = sub_ko(cat, sub)
     line = fm.get("line") or f"처음 보는 {ko}입니다. 「{name or ko}」, 선반에 올려 두겠습니다."
     short = fm.get("line_short") or f"처음 보는 {ko}입니다."

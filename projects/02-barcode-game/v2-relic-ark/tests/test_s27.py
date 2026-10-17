@@ -216,7 +216,7 @@ def t_rename():
     ok(r.status_code == 400, "rename 없이는 못 바꾼다")
     r = post("/api/scan/subtype", {"uid": uid, "barcode": code, "subtype": "milk", "rename": True})
     ok(r["ok"] and r["subtype"] == "milk" and r["renamed_from"] and r["done_ko"], f"다시 붙임: {r['done_ko']}")
-    ok(r["first_meet"]["line_ko"] and "우유" in r["first_meet"]["line_short"] and r["first_meet"]["replaces"] == "category",
+    ok(r["first_meet"]["line_ko"] in (S.moments()["subtype_first"]["drink"]["milk"]) and r["first_meet"]["replaces"] == "category",
        f"고른 하위 종류에 맞춘 첫 만남 줄: {r['first_meet']['line_ko']}")
     st = S.load_state(uid)
     ok(st["barcodes"][S.GEN.normalize(code)]["subtype"] == "milk", "이 방주 기록이 바뀜")
@@ -324,6 +324,13 @@ def t_memory_wall():
     j2 = post("/api/scan", {"uid": uid, "barcode": ean("880104301547")})
     h = post("/api/memory_wall/hang", {"uid": uid, "relic_id": j2["card"]["id"]})
     ok(h["memory_wall"]["filled"] == 2, "빈 고리에 걸기")
+    ok(h["line"] and "{" not in h["line"] and "2/4" in h["line"], f"걸기 한 줄(memory_wall.hung): {h['line']}")
+    for i, k in enumerate(("880104301554", "880104301561")):
+        jj = post("/api/scan", {"uid": uid, "barcode": ean(k)})
+        h = post("/api/memory_wall/hang", {"uid": uid, "relic_id": jj["card"]["id"]})
+    ok(h["complete"] and h["story"] and h["complete_ko"] and "{" not in h["complete_ko"], f"다 차면 완성 방송 + 뒷이야기 {len(h['story'] or [])}줄")
+    ok(mw.get("prefilled_ko"), f"미리 찬 칸 설명: {mw.get('prefilled_ko')}")
+    ok(mw.get("open_ko") and ark(uid)["memory_wall"]["open_ko"] is None, "처음 열릴 때 방송은 한 번")
 
 
 def t_office():
@@ -365,7 +372,7 @@ def t_quick_pick():
     j = post("/api/scan", {"uid": uid, "barcode": code, "user_category": "drink", "user_subtype": "milk"})
     ok(j["card"]["category"] == "drink" and j["card"]["subtype"] == "milk" and not j["where"].get("subtype_pick"), "한 번에 정해짐(하위 종류 물음 없음)")
     fm = [m for m in j["first_meet"] if m["kind"] in ("category", "subtype")]
-    ok(fm and fm[0]["kind"] == "subtype" and "우유" in fm[0]["line_short"], f"첫 만남 줄이 고른 것에 맞춤: {fm and fm[0]['line_ko']}")
+    ok(fm and fm[0]["kind"] == "subtype" and fm[0]["line_ko"] in S.moments()["subtype_first"]["drink"]["milk"], f"첫 만남 줄이 고른 것에 맞춤: {fm and fm[0]['line_ko']}")
     st = S.load_state(uid)
     ok(st["barcodes"][S.GEN.normalize(code)]["subtype"] == "milk" and "milk" in S.core_of(st)["seen_subtypes"].get("drink", []), "방주 기록")
     pk2 = get(f"/api/peek?barcode={ean('490123499002')}&uid={uid}")
