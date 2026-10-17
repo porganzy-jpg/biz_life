@@ -492,7 +492,8 @@
             "farmer",
             "engineer"
           ],
-          "line_alt": "누구는 따뜻하대. 누구는 조용하대. 누구는 모른대. 다 적었어."
+          "line_alt": "누구는 따뜻하대. 누구는 조용하대. 누구는 모른대. 다 적었어.",
+          "announce_alt": "아이가 「{item}」 들고 주민분들께 하나씩 물어보고 다닙니다. 단맛이 무슨 맛이냐고요. 대답이 다 달랐답니다."
         },
         {
           "step": 3,
@@ -532,5 +533,6 @@
     }
   ],
   "_stagger": "S19 첫 매듭 날짜 엇갈림(days_since_join, 합류한 날 기준): 요리사 0(1일째), 정찰병 1(2일째), 농부 0(합류한 날, 3일째 손님이면 3일째), 기술자 3(4일째), 의무병 2·아이 1·학자 2·교섭가 3(합류 뒤 1~3일). min_days_after_prev 는 그대로.",
-  "_after_ask_rule": "S21(서버와 합의): after_ask 는 문자열이거나 객체. 객체면 키 = choice 옵션 라벨 그대로 / give·place·pick_relic 는 done·skip / pick_residents 는 done. 맞는 키가 없으면 _default."
+  "_after_ask_rule": "S21(서버와 합의): after_ask 는 문자열이거나 객체. 객체면 키 = choice 옵션 라벨 그대로 / give·place·pick_relic 는 done·skip / pick_residents 는 done. 맞는 키가 없으면 _default.",
+  "_alt_rule": "r5-5: line_alt 는 line 만 바꾼다. announce 를 바꿔야 할 때는 announce_alt 를 쓴다(없으면 announce 그대로)."
 }

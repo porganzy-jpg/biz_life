@@ -245,7 +245,8 @@
     const big = ef.memory || ef.arc;                         // 기억·매듭이면 대사가 그쪽 것
     const line = plain(txt((ef.memory && ef.memory.line) || rc.line || res.line || rc.announce || ''));
     const kind = ef.returned_to_shelf ? 'returned' : (res.tier === 'chain_beat' ? 'chain' : (res.tier || res.kind || s.reason || 'like'));
-    if (rc.announce && rc.line) K.say(plain(rc.announce));    // 관리실 방송은 한 줄 뒤에
+    const arcTx = ef.arc ? [ef.arc.announce, ef.arc.line, ef.arc.broadcast] : [];
+    if (rc.announce && rc.line && !sameT(rc.announce, rc.line) && !arcTx.some(x => sameT(x, rc.announce))) K.say(plain(rc.announce));    // 관리실 방송은 한 줄 뒤에
     if (res.intent) D.log.push('intent');
     if (ef.keepsake && ef.keepsake.line) setTimeout(() => K.say(plain(ef.keepsake.line)), 600);
     const rid = (res.who && res.who.id) || (res.target && res.target.resident_id) || s.rid;
@@ -381,6 +382,21 @@
   // ══════════════════════════════════════════════════════════════
   //  3. 매듭 이야기 카드 — 아침 패널 말고는 세션에 한 번. 작은 카드(큰 창 아님), 고르기(ask) 있으면 단추
   // ══════════════════════════════════════════════════════════════
+  // r5-5 같은 문장 겹침: 서버가 역할 없는 대체 줄을 announce·line 양쪽에 실을 때가 있다. 화면에서는 같은 말을 한 번만
+  const normT = (x) => String(plain(txt(x || ''))).replace(/[「」『』"'“”‘’\s.,…!?·~]/g, '');
+  const sameT = (a, b) => { const x = normT(a), y = normT(b); return !!x && x === y; };
+  const saidAt = {};
+  D.dupSkips = 0;
+  if (!K.__sayWrapped) {
+    const raw = K.say; K.__sayWrapped = true;
+    K.say = (m) => {
+      const k = normT(m); if (!k) return raw(m);
+      const now = Date.now();
+      const onCard = [...document.querySelectorAll('.beatcard .bline, .beatcard .bcast, .givepop p')].some(e => normT(e.textContent) === k);
+      if (onCard || (saidAt[k] && now - saidAt[k] < 60000)) { D.dupSkips++; D.log.push('say dup'); return; }
+      saidAt[k] = now; return raw(m);
+    };
+  }
   let beatShown = 0, beatQ = [];
   const beatSeen = {};
   function queueBeat(b) { if (!b) return; b.id = b.id || ((b.arc_id || '') + ':' + (b.step || '')); if (beatSeen[b.id] || beatQ.some(x => x.id === b.id)) return; beatSeen[b.id] = 1; beatQ.push(b); setTimeout(showBeat, 900); }
@@ -392,6 +408,7 @@
     const p = personById(b.resident_id || b.who || b.rid);
     const ask = b.ask || null;
     b.title = b.title ? b.title + (b.step ? ' · ' + b.step + '/' + (b.steps || '') : '') : ''; b.broadcast = b.broadcast || b.announce; b.arc = b.arc || { step: b.step, total: b.steps };
+    if (b.broadcast && b.line && sameT(b.broadcast, b.line)) { b.broadcast = ''; D.log.push('beat dedupe'); }
     const el = document.createElement('div'); el.className = 'beatcard' + (b.size === 'big' ? ' big' : '');
     el.innerHTML = '<div class="phead">' + face(p, 40) + '<b>' + esc(txt(b.title) || (p ? p.name : '')) + '</b>' + arcDots(b.arc || (p && normTaste(p).arc)) + '</div>' +
       (b.broadcast ? '<p class="bcast">' + esc(plain(txt(b.broadcast))) + '</p>' : '') +
@@ -1070,5 +1087,5 @@
     }).catch(() => {});
   }
   D.state = () => ({ pending: !!pending, beatShown, beatQ: beatQ.length });
-  D.leaveCard = leaveCard; D.react = react; D.pop = pop;
+  D.leaveCard = leaveCard; D.react = react; D.pop = pop; D.queueBeat = (b) => { beatShown = 0; queueBeat(b); };   // ★ 검수용
 })();
