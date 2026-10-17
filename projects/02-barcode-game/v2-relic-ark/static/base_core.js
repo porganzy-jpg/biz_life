@@ -661,10 +661,11 @@
   }
   K.ext.decorFor = (slot) => {                             // 방 카드 한 줄: 꾸밈 칸 n/m · 꼬리표 · 다가가는 꼬리표
     const r = roomAt(slot); if (!r) return '';
-    const dc = decorOf(r); if (!dc.n) return '';
+    const mw = K.ext.wallLine ? K.ext.wallLine(slot) : '';    // S27 기억 벽(식량창고)
+    const dc = decorOf(r); if (!dc.n) return mw;
     const near = (dc.raw.tags || []).filter(t => !t.on && t.have).map(t => t.ko + ' ' + t.have + '/' + t.need);
     const trc = ((K.ark || {}).decor_trace || []).find(d => d.slot === slot);
-    return (trc && trc.line ? '<p class="rcline traceline">' + esc(plain(trc.line)) + '</p>' : '') + '<p class="rcline decorline">꾸밈 ' + dc.items.length + '/' + dc.n + (dc.tags.length ? ' · <b>' + esc(dc.tags.map(t => t.ko).join(' · ')) + '</b>' : '') + (near.length ? ' · ' + esc(near[0]) : '') + '</p>' +
+    return mw + (trc && trc.line ? '<p class="rcline traceline">' + esc(plain(trc.line)) + '</p>' : '') + '<p class="rcline decorline">꾸밈 ' + dc.items.length + '/' + dc.n + (dc.tags.length ? ' · <b>' + esc(dc.tags.map(t => t.ko).join(' · ')) + '</b>' : '') + (near.length ? ' · ' + esc(near[0]) : '') + '</p>' +
       (dc.items.length ? '<div class="decorlist">' + dc.items.map(it => '<button data-decrm="' + esc(it.id) + '" data-slot="' + slot + '" title="선반으로">' + esc(it.name || '') + ' ×</button>').join('') + '</div>' : '');
   };
   document.addEventListener('click', async (e) => {
@@ -688,6 +689,7 @@
   K.ext.drawRoomExtra = (room, slot, ix, iy, iw, ih, t, lit, ppl) => {
     const ctx = K.ctx, z = K.z, dc = decorOf(room);
     try { drawSpots(room, slot, ix, iy, iw, ih, t, lit, ppl); } catch (e) { /* 자리 소품이 실패해도 방은 그린다 */ }
+    try { drawWall(room, slot, ix, iy, iw, ih, lit); } catch (e) { /* 기억 벽이 실패해도 방은 그린다 */ }
     const kx0 = iw / ART.decCell[0], ky0 = ih / ART.decCell[1];
     // S22 흔적(decor_trace — 꼬리표까지 하나 남은 방): 바닥 가운데 기둥 자리에 반투명 그림
     ((K.ark || {}).decor_trace || []).filter(d => d.slot === slot).slice(0, 1).forEach(d => {
@@ -899,9 +901,10 @@
     document.querySelectorAll('.beatcard, .ppop').forEach(el => el.classList.toggle('folded', open));   // .octwhere 도 .beatcard
   }).observe($('#scan'), { attributes: true, attributeFilter: ['hidden'] });
   // S25: 큰 창은 한 번에 하나(UI_SIMPLE) — 패널(도감·장부 등)이 열려 있는 동안 문어의 「어디로」 카드는 잠시 숨긴다
-  const octHide = () => { const open = !$('#panel').hidden || !$('#raidbar').hidden; document.querySelectorAll('.beatcard.octwhere').forEach(e => { e.hidden = open; }); };
+  const octHide = () => { const open = !$('#panel').hidden || !$('#raidbar').hidden || !$('#roomcard').hidden; document.querySelectorAll('.beatcard.octwhere').forEach(e => { e.hidden = open; }); };
   new MutationObserver(octHide).observe($('#panel'), { attributes: true, attributeFilter: ['hidden'] });
-  new MutationObserver(octHide).observe($('#raidbar'), { attributes: true, attributeFilter: ['hidden'] });   // S27: 습격 카드를 펼치면 문어 카드도 잠시 숨김
+  new MutationObserver(octHide).observe($('#raidbar'), { attributes: true, attributeFilter: ['hidden'] });
+  new MutationObserver(octHide).observe($('#roomcard'), { attributes: true, attributeFilter: ['hidden'] });   // 방 카드를 열어도(눌러서 연 것이 먼저)   // S27: 습격 카드를 펼치면 문어 카드도 잠시 숨김
   // 선반 물건 다시 주기(API_S19 §2 relic_id): 사람 + 꾸밈 칸이 남은 방 중에서 고른다
   function regift(it) {
     const a = K.ark || {}, rd = a.room_decor || {};
@@ -1004,6 +1007,93 @@
       setTimeout(() => firstScene(sc.lines), 2200);
     }
   }
+  // ══ S27 기억 벽(7일째 식량창고, 고리 넷) ══════════════════════
+  //  /api/ark.memory_wall {open, room, slots[4], filled, total, complete, first_label_ko, hang_prompt_ko, open_ko(처음 한 번), prefilled_ko, story}
+  //  방 카드 한 줄 + 「여기 걸기」 → 작은 패널(고리 넷 · 선반/창고 물건) → POST /api/memory_wall/hang. 다 차면 complete_ko + story 세 줄 장면
+  const MW_HOOKS = [[150, 128], [200, 128], [250, 128], [300, 128]];   // 식량창고(storage 플레이트) 왼쪽 빈 벽 — 칸 좌표. 선반 줄·꾸밈 받침·탁자와 안 겹치는 자리
+  const wallOf = () => { const w = (K.ark || {}).memory_wall; return w && w.open ? w : null; };
+  function wallCheck(st) {
+    const w = st.memory_wall; if (!w || !w.open || !w.open_ko) return;
+    const said = store.get('wall_open_said', false); if (said) return;
+    store.set('wall_open_said', true); setTimeout(() => K.say(plain(w.open_ko)), 2000); D.log.push('wall open');
+  }
+  function wallLine(slot) {
+    const w = wallOf(), r = roomAt(slot); if (!w || !r || r.id !== w.room) return '';
+    const names = (w.slots || []).filter(Boolean).map(x => x.name).slice(0, 2);
+    return '<p class="rcline mwline"><b>' + esc(plain(w.first_label_ko || '기억 벽')) + '</b> ' + (w.filled | 0) + '/' + (w.total || (w.slots || []).length) +
+      (names.length ? ' · 「' + esc(names.join('」 「')) + '」' : '') + '</p>' +
+      (w.complete ? '' : '<div class="rcbtns"><button data-mw="' + slot + '">' + esc(T('memory_wall.hang_label', {}, '여기 걸기')) + '</button></div>');
+  }
+  K.ext.wallLine = wallLine;
+  function openWall(slot) {
+    const w = wallOf(); if (!w) return;
+    const ark = K.ark || {};
+    const items = (ark.shelf || []).filter(x => x.card_id).map(x => ({ id: x.card_id, name: x.relic_name || x.name || '물건', where: '선반' }))
+      .concat((ark.stored || []).map(x => ({ id: x.id || x.card_id, name: x.relic_name || x.name || '물건', where: '창고' })).filter(x => x.id)).slice(0, 12);
+    const hooks = (w.slots || []).map((x, i) => '<li class="' + (x ? 'on' : '') + '"><i aria-hidden="true"></i>' + (x ? '「' + esc(x.name || '') + '」' + (x.from === 'first_given' && x.resident_name ? ' <small>' + esc(x.resident_name) + ' 님께 처음 드린 것</small>' : x.from === 'first_scan' ? ' <small>처음 찍은 것</small>' : '') : '<small>빈 고리</small>') + '</li>').join('');
+    const body = K.panel('<h2>' + esc(plain(w.first_label_ko || '기억 벽')) + '</h2><p class="sub">' + (w.filled | 0) + '/' + (w.total || 4) + '</p>' +
+      (w.prefilled_ko ? '<p class="desc">' + esc(plain(w.prefilled_ko)) + '</p>' : '') +
+      '<ol class="mwhooks">' + hooks + '</ol>' +
+      (w.complete ? (w.story ? w.story.map(l => '<p class="desc mwstory">' + esc(plain(l)) + '</p>').join('') : '') :
+        '<h3>' + esc(plain(w.hang_prompt_ko || '어느 물건을 벽에 걸어 둘까요?')) + '</h3>' +
+        (items.length ? '<div class="chips">' + items.map(x => '<button class="chip" data-mwi="' + esc(x.id) + '">' + esc(x.name) + ' <small>' + esc(x.where) + '</small></button>').join('') + '</div>'
+                      : '<p class="desc">걸 물건이 선반에 없습니다. 무엇이든 찍어 오시면 됩니다.</p>')));
+    body.classList.remove('busy');
+    body.onclick = async (e) => {   // #panelBody 는 늘 같은 요소 — 덧붙이지 않고 바꿔 단다
+      const b = e.target.closest('[data-mwi]'); if (!b || body.classList.contains('busy')) return;
+      body.classList.add('busy');
+      let r;
+      try { r = await call('/api/memory_wall/hang', { relic_id: b.dataset.mwi }); }
+      catch (err) { body.classList.remove('busy'); K.toast(err.message || '걸지 못했습니다'); return; }
+      if (r.state) K.apply(r.state);
+      if (r.memory_wall && K.ark) { K.ark.memory_wall = r.memory_wall; lastFull.memory_wall = r.memory_wall; }
+      K.closePanel();
+      if (r.line) K.toast(plain(r.line));
+      D.log.push('wall hang ' + ((r.memory_wall || {}).filled || '') + (r.complete ? ' complete' : ''));
+      body.classList.remove('busy'); body.onclick = null;
+      if (r.complete) wallScene(r.complete_ko, r.story || []);
+    };
+    D.log.push('wall panel ' + items.length);
+  }
+  function wallScene(head, story) {
+    const q = window.ARKBASE.queue ? window.ARKBASE.queue() : {};
+    if (!$('#panel').hidden || $('.beatcard:not(.octwhere)') || q.busy) { setTimeout(() => wallScene(head, story), 1200); return; }   // 문어 카드는 기다리지 않는다
+    const el = document.createElement('div'); el.className = 'beatcard scenecard wallscene';
+    el.innerHTML = '<div class="phead"><i class="mwico" aria-hidden="true"></i><b>' + esc(plain(((K.ark || {}).memory_wall || {}).first_label_ko || '기억 벽')) + '</b></div>' +
+      (head ? '<p class="sl sl-office" style="--i:0">' + esc(plain(head)) + '</p>' : '') +
+      story.map((l, i) => '<p class="sl sl-narration" style="--i:' + (i + 1) + '">' + esc(plain(l)) + '</p>').join('') +
+      '<div class="rowbtns"><button class="ok">그렇군요</button></div>';
+    $('#base').appendChild(el);
+    el.addEventListener('click', (e) => { if (e.target.closest('button.ok')) { el.classList.add('off'); setTimeout(() => el.remove(), 400); } });
+    D.log.push('wall scene ' + story.length);
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-mw]'); if (!b) return;
+    e.stopPropagation(); openWall(+b.dataset.mw);
+  }, true);
+  const wallLog = {};
+  D.wall = () => Object.assign({}, wallLog);
+  function drawWall(room, slot, ix, iy, iw, ih, lit) {
+    const w = wallOf(); if (!w || room.id !== w.room || K.z < 0.25) return;
+    const ctx = K.ctx, kx = iw / ART.decCell[0], ky = ih / ART.decCell[1], drawn = [];
+    ctx.save(); ctx.imageSmoothingEnabled = false; if (lit === false) ctx.globalAlpha = 0.6;
+    { const [x0, y0] = MW_HOOKS[0], x1 = MW_HOOKS[MW_HOOKS.length - 1][0];                       // 고리를 단 가로 막대 — 선반 줄과 따로 읽히게
+      ctx.fillStyle = '#4a3418'; ctx.fillRect(ix + (x0 - 16) * kx, iy + (y0 - 4) * ky, (x1 - x0 + 32) * kx, 3.5 * ky);
+      ctx.fillStyle = 'rgba(232,201,138,.35)'; ctx.fillRect(ix + (x0 - 16) * kx, iy + (y0 - 4) * ky, (x1 - x0 + 32) * kx, 1 * ky); }
+    (w.slots || []).slice(0, MW_HOOKS.length).forEach((x, i) => {
+      const [hx, hy] = MW_HOOKS[i], cx = ix + hx * kx, top = iy + hy * ky;
+      ctx.fillStyle = '#3a2a16'; ctx.fillRect(cx - 2.5 * kx, top - 3 * ky, 5 * kx, 4 * ky);          // 고리 못
+      if (!x) { ctx.strokeStyle = 'rgba(205,185,138,.55)'; ctx.lineWidth = Math.max(1, 1.5 * kx); ctx.beginPath(); ctx.arc(cx, top + 4 * ky, 3.5 * kx, 0, Math.PI); ctx.stroke(); return; }
+      const pid = x.prop || propIdOf(x), pi = pid && K.propImg(pid);
+      ctx.strokeStyle = '#2a1e10'; ctx.lineWidth = Math.max(1, 1.2 * kx); ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, top + 6 * ky); ctx.stroke();   // 끈
+      if (!pi || !pi.ok1) return;
+      const sc = 1.0 * kx, wpx = pi.x1.naturalWidth * sc, hpx = pi.x1.naturalHeight * sc;
+      ctx.drawImage(pi.x1, cx - wpx / 2, top + 6 * ky, wpx, hpx);
+      drawn.push(pid);
+    });
+    ctx.restore();
+    wallLog[slot] = drawn;
+  }
   function firstScene(lines) {
     const q = window.ARKBASE.queue ? window.ARKBASE.queue() : {};
     if (!$('#scan').hidden || !$('#panel').hidden || $('.beatcard') || q.busy || (q.wait || []).length) { setTimeout(() => firstScene(lines), 1500); return; }
@@ -1098,12 +1188,13 @@
   const lastFull = {};
   K.onApply((st) => {
     if (D.mock) D.mock.decorate(st);                        // ★ 시험대: 서버 모양을 먼저 입힌다
-    ['visits', 'next_visit', 'beat_today', 'session', 'visitors_book', 'decor_trace', 'missed_chain', 'prefs', 'evening_table', 'tomorrow_ask', 'unlocked'].forEach(k => { if (st[k] === undefined) { if (lastFull[k] !== undefined) st[k] = lastFull[k]; } else lastFull[k] = st[k]; });
+    ['visits', 'next_visit', 'beat_today', 'session', 'visitors_book', 'decor_trace', 'missed_chain', 'prefs', 'evening_table', 'tomorrow_ask', 'unlocked', 'memory_wall', 'leave_order'].forEach(k => { if (st[k] === undefined) { if (lastFull[k] !== undefined) st[k] = lastFull[k]; } else lastFull[k] = st[k]; });
     computeGather(st);
     unlockCheck(st);
     noveltyCheck(st);
     tipCheck(st);
     tableCheck(st);
+    wallCheck(st);
     octWhere(st);
     renderNext(st);
     (st.arc_events || []).filter(Boolean).forEach(e => queueBeat(Object.assign({ id: (e.arc_id || '') + ':' + (e.step || '') }, e)));
