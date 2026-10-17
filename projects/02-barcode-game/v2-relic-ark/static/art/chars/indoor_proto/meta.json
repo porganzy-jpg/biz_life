@@ -1,0 +1,25 @@
+{
+ "_comment": "실내복 시제품 — 요리사 · 체형 A. 손으로 찍은 도트(생성 AI 없음). 기존 P2 시트와 같은 셀·기준선",
+ "cell": 64,
+ "baseline": 60,
+ "cols": 3,
+ "rows": {
+  "idle": 0,
+  "walk_side": 1,
+  "work": 2
+ },
+ "frames": {
+  "idle": 2,
+  "walk_side": 3,
+  "work": 3
+ },
+ "anim_seconds": {
+  "idle": 2.8,
+  "walk_side": 0.8,
+  "work": 1.4
+ },
+ "facing": {
+  "walk_side": "right(원본) · 왼쪽 = 반전"
+ },
+ "hair_top_y": 19
+}
