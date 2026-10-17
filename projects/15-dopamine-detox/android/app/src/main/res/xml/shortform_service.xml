@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  감시 대상 패키지만 이벤트를 받는다(배터리). 규칙 JSON에 앱을 추가하면 여기에도 추가할 것.
+  설정 앱(com.android.settings)은 P0에서는 감시하지 않는다(우회 방지는 이후 단계).
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewScrolled"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="150"
+    android:packageNames="com.google.android.youtube,com.instagram.android,com.kakao.talk,com.nhn.android.search,com.zhiliaoapp.musically,com.ss.android.ugc.trill"
+    android:description="@string/service_description" />

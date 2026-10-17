@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "updated": "2026-10-17",
+  "_comment": "verified=false 규칙은 실제 폰에서 덤프로 확인 전의 후보. viewIds는 리소스 이름만(패키지 접두어 없이). selectedTabs는 '선택된' 탭의 text/contentDescription 일치.",
+  "apps": [
+    {
+      "package": "com.google.android.youtube",
+      "name": "유튜브",
+      "surfaces": [
+        {
+          "id": "yt_shorts",
+          "label": "쇼츠",
+          "viewIds": ["reel_recycler", "reel_player_page_container", "reel_watch_player"],
+          "selectedTabs": ["Shorts", "쇼츠"],
+          "verified": false
+        }
+      ]
+    },
+    {
+      "package": "com.instagram.android",
+      "name": "인스타그램",
+      "surfaces": [
+        {
+          "id": "ig_reels",
+          "label": "릴스",
+          "viewIds": ["clips_viewer_view_pager", "clips_video_container"],
+          "selectedTabs": ["Reels", "릴스"],
+          "verified": false
+        }
+      ]
+    },
+    {
+      "package": "com.kakao.talk",
+      "name": "카카오톡",
+      "surfaces": [
+        {
+          "id": "kakao_shortform",
+          "label": "숏폼 탭",
+          "viewIds": [],
+          "selectedTabs": ["숏폼", "지금"],
+          "verified": false
+        }
+      ]
+    },
+    {
+      "package": "com.nhn.android.search",
+      "name": "네이버",
+      "surfaces": [
+        {
+          "id": "naver_clip",
+          "label": "클립",
+          "viewIds": [],
+          "selectedTabs": ["클립"],
+          "verified": false
+        }
+      ]
+    },
+    {
+      "package": "com.zhiliaoapp.musically",
+      "name": "틱톡",
+      "blockWholeApp": true,
+      "surfaces": []
+    },
+    {
+      "package": "com.ss.android.ugc.trill",
+      "name": "틱톡(아시아)",
+      "blockWholeApp": true,
+      "surfaces": []
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">고요</string>
+    <string name="service_label">고요 숏폼 차단</string>
+    <string name="service_description">유튜브 쇼츠, 인스타 릴스, 카카오톡 숏폼, 네이버 클립 화면을 감지해 닫습니다. 화면 정보는 이 기기 안에서만 처리되며 어디로도 전송되지 않습니다(이 앱에는 인터넷 권한이 없습니다).</string>
+</resources>
