@@ -16,6 +16,9 @@ import playtest_core_a as CA
 
 ROOM_PRI = ["quarters", "storage", "greenhouse", "well", "workshop", "airlock", "generator", "library", "infirmary", "pantry"]
 
+def SCRATCH_DRAIN(uid):
+    return SCRATCH / f"pt_drain_{uid}.jsonl"
+
 
 def summary(st):
     print(f"== Day {st.get('day')} | {res_line(st)} | 스캔 {st.get('scans_today')}/{st.get('scan_cap')} | 등급 {st.get('grade')}")
@@ -111,6 +114,21 @@ def do_build(uid, max_n=2):
         else:
             print(f"   {rid}: 놓을 칸 없음(마지막 오류 {r.get('detail')})")
     st = ark(uid)
+    # 6차: 짓고 싶은데 물 빼기 때문에 못 짓는 방(방 값은 되는데 빈 칸이 모두 물 빼기 모자람)
+    used2 = {r['slot'] for r in st['rooms'] if not r.get('flooded')}
+    have2 = {r['id'] for r in st['rooms'] if not r.get('flooded')}
+    for rid in ROOM_PRI:
+        o = (st['build_options'] or {}).get(rid) or {}
+        if (rid in have2 and rid not in ('quarters', 'storage')) or o.get('can') or o.get('lacking') or o.get('cond_missing'):
+            continue
+        bs = o.get('by_slot') or {}
+        free = {k: v for k, v in bs.items() if int(k) not in used2}
+        if free and not any(v.get('can') for v in free.values()):
+            k0, v0 = min(free.items(), key=lambda kv: sum((kv[1].get('missing') or {}).values()))
+            print(f"   !! [짓고 싶은데 모자람] {rid}: 방 값은 되는데 물 빼기 — 가장 싼 칸 {k0} 물 빼기 {v0.get('drain_cost')} 모자람 {v0.get('missing')}")
+            with open(SCRATCH_DRAIN(uid), 'a', encoding='utf-8') as f:
+                f.write(json.dumps({'day': st.get('day'), 'room': rid, 'slot': k0, 'missing': v0.get('missing'), 'drain': v0.get('drain_cost')}, ensure_ascii=False) + chr(10))
+            break
     for slot, u in (st.get('upgrades') or {}).items():
         if u and u.get('can'):
             r = post('/api/ark/upgrade', {'uid': uid, 'slot': int(slot)})
@@ -158,6 +176,10 @@ def do_raid(uid, policy):
         return
     if policy == 'look':
         return
+    if policy == 'office':      # 6차 B: 「관리실이 대신 막을까요?」(낮 세션)
+        a = post('/api/raid/auto_defend', {'uid': uid})
+        print("  [관리실이 대신 막기]", json.dumps({k: a.get(k) for k in ('result', 'result_ko', 'line', 'gained', 'office', 'detail')}, ensure_ascii=False)[:600])
+        return
     if raid.get('stage') == 'sound':
         a = post('/api/raid/advance', {'uid': uid})
         raid = a.get('raid') or raid
@@ -176,6 +198,12 @@ def do_raid(uid, policy):
                 for p in st['residents_list']:
                     post('/api/ark/station', {'uid': uid, 'resident_id': p['id'], 'slot': tslot}, quiet=True)
             rr = get(f'/api/raid/today?uid={uid}').get('raid') or {}
+            if vb.startswith('불') and ((rr.get('preview') or {}).get('short_of') or (rr.get('ready') or {}).get('short_of')):
+                st = ark(uid)          # 6차: 손이 모자라다면 그 방에 사람도 모은다
+                for p in st['residents_list']:
+                    post('/api/ark/station', {'uid': uid, 'resident_id': p['id'], 'slot': tslot}, quiet=True)
+                vb += ' + 손 모으기'
+                rr = get(f'/api/raid/today?uid={uid}').get('raid') or {}
             print(f"   버릇을 읽고 → {vb} · 미리보기 {json.dumps((rr.get('ready') or {}).get('would_ko'), ensure_ascii=False)} short_of={(rr.get('preview') or {}).get('short_of') or (rr.get('ready') or {}).get('short_of')}")
             a = post('/api/raid/advance', {'uid': uid})
             print("  [접촉 결과]", json.dumps({k: a.get(k) for k in ('result', 'result_ko', 'line', 'gained')}, ensure_ascii=False)[:400])
@@ -398,10 +426,13 @@ def main():
             CA.first_report(uid)
             CA.lines_report(uid)
             CA.s23_report(uid)
+            CA.r6_report(uid)
         elif k == 'clock':
             print('  [개발 시계]', post('/api/dev/clock', {'uid': uid, 'hour': None if arg == 'off' else int(arg)}))
         elif k == 'table':
             CA.do_table(persona, uid, SES)
+        elif k == 'wall':
+            CA.do_wall(persona, uid, SES)
         elif k == 'labels':
             print('  [늘 이름표]', post('/api/prefs', {'uid': uid, 'labels_always': arg == 'on'}))
         elif k == 'octogift':

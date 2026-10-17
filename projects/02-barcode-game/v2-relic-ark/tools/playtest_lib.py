@@ -62,14 +62,36 @@ def post(path, body, quiet=False):
     return api("POST", path, body, quiet=quiet)
 
 
-def scan(uid, code, cat=None, show=True):
+def scan(uid, code, cat=None, show=True, sub=None, abuse=False):
+    """6차: 모르는 바코드는 peek.quick_pick(8+기타) — 현실 하위 종류가 보기에 있으면 그것(갈래+하위 종류 한 번에),
+    없으면 「기타」 → 갈래만. abuse=True 면 같은 갈래의 다른 보기를 일부러 고른다(악용·이름 다시 붙이기 점검)."""
     pk = get(f"/api/peek?barcode={code}&uid={uid}")
     use = cat if pk.get("needs_category") else None
-    r = post("/api/scan", {"uid": uid, "barcode": code, "user_category": use})
+    body = {"uid": uid, "barcode": code, "user_category": use}
+    qp = pk.get("quick_pick") if pk.get("needs_category") else None
+    qinfo = None
+    if qp:
+        opts = qp.get("options") or []
+        hit = next((o for o in opts if o.get("category") == cat and o.get("subtype") == sub), None)
+        if abuse:
+            alt = next((o for o in opts if o.get("category") == cat and o.get("subtype") != sub), None)
+            hit = alt or hit
+        if hit:
+            body["user_subtype"] = hit["subtype"]
+        qinfo = {"prompt": qp.get("prompt_ko"), "opts": [f"{o.get('ko')}({o.get('src')})" for o in opts],
+                 "hit": bool(hit) and not abuse, "abuse": bool(abuse and hit and hit.get("subtype") != sub),
+                 "picked": (hit or {}).get("subtype"), "other": not hit}
+        if show:
+            print(f"     [한 번에 고르기] 「{qp.get('prompt_ko')}」 {qinfo['opts']} → {(hit or {}).get('ko') or '기타(갈래만 ' + str(cat) + ')'}{' (일부러 다르게)' if qinfo['abuse'] else ''}")
+    r = post("/api/scan", body)
+    if isinstance(r, dict):
+        r["_qp"] = qinfo
     if show and "_status" not in r:
         c = r.get("card") or {}
         g = ", ".join(f"{k}+{v}" for k, v in (r.get("gained") or {}).items()) or "(얻은 것 없음)"
         print(f"  [찍기] {code} → 「{c.get('name')}」 {c.get('rarity')} {c.get('category')} {('가문:' + c.get('family_name')) if c.get('family_name') else ''} | {g} ×{r.get('rescan_multiplier')} | 선반 {r.get('shelf_slot')} new={r.get('shelf_new')} first={r.get('first_time')}")
+        if (r.get("keep_note") or {}).get("ko"):
+            print(f"     ◇ 간직할 것: {r['keep_note']['ko']}")
         if r.get("polish") and r["polish"].get("ko"):
             print(f"     닦기: {r['polish']['ko']} ({r['polish'].get('label')})")
         for m in r.get("first_meet") or []:
