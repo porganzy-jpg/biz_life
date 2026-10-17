@@ -300,10 +300,17 @@
     D.log.push('strip ' + sug.length + (compact ? ' compact' : ''));
   }
   // 선반(= 닫기)도 서버에 자리를 정해 준다(API §0 「닫기(=선반)」). 실패해도 물건은 이미 선반에 있다
+  let keepToastSaid = false;
   function keepShelf(r) {
     const sid = (r.where || {}).scan_id || (r.card || {}).id;
     if (!sid || D.mock || r._placed) return; r._placed = true;
-    call(API.give, { scan_id: sid, target: 'shelf' }).then(x => { if (x && x.state) K.apply(x.state); }).catch(() => {});
+    D.log.push('keep ' + sid);                               // S32 길잡이: 「선반에」는 건네기가 아니다
+    if (!keepToastSaid) K.ext.keepToastAt = performance.now();
+    call(API.give, { scan_id: sid, target: 'shelf' }).then(x => {
+      if (x && x.state) K.apply(x.state);
+      const an = x && x.reaction && (x.reaction.announce || x.reaction.line);   // 서버 「선반에 올려 두었습니다」를 세션에 한 번
+      if (an && !keepToastSaid) { keepToastSaid = true; setTimeout(() => K.toast(plain(txt(an))), 500); }
+    }).catch(() => {});
   }
   K.ext.coreKeep = () => { if (pending) { keepShelf(pending); const el = $('#giveStrip'); done(el); } };
   function done(el) { if (el) el.remove(); const b = $('#shelfBtn'); if (b) b.hidden = false; pending = null; }

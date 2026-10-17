@@ -196,7 +196,15 @@
     if (k === 'scan_input' && vis('#scanCard')) return tutSend(id);
     if (k === 'card') { tut.saw.t0 = tut.saw.t0 || Date.now(); if (Date.now() - tut.saw.t0 > 6000 && !$('#scan').hidden) return tutSend(id); }   // 말풍선을 안 눌러도 6초 뒤 다음
     if (k === 'subtype') { if (vis('#subPick')) tut.saw.pick = true; else if (tut.saw.pick || vis('#giveStrip')) return tutSend(id); }
-    if (k === 'where') { if (vis('#giveStrip')) tut.saw.strip = true; else if (tut.saw.strip) return tutSend(id); }
+    if (k === 'where') {
+      if (vis('#giveStrip')) { tut.saw.strip = true; if (tut.el.hidden) { tut.el.hidden = false; placeCoach(); light(TUT_DEF[id].target, 600000); } }
+      else if (tut.saw.strip) {
+        // 버그 수정: 「선반에」를 골라 줄이 사라진 것은 건넨 것이 아니다 — 다음 「어디로」까지 기다린다(말풍선은 접는다)
+        const last = ((window.ARKCORE || {}).log || []).slice().reverse().find(x => /^(give|keep|heir give|octwhere give|regift) /.test(x)) || '';
+        if (/^keep /.test(last)) { tut.saw.strip = false; tut.el.hidden = true; unlight(); D.log.push('tut where kept'); return; }
+        return tutSend(id);
+      }
+    }
     // 찍기 창을 닫아 버렸으면 다시 찍기 단추 쪽을 가리킨다(단계는 서버가 정한다 — 화면은 빛만 옮긴다)
     const d = TUT_DEF[id] || {};
     if (d.target && !targetRect(d.target) && ['scan_input', 'card', 'subtype', 'where'].indexOf(k) >= 0 && $('#scan').hidden) light({ kind: 'scan' }, 600000);

@@ -2660,7 +2660,8 @@
     const room = (ark.rooms || []).find(r => r.slot === rs);
     const nm = (room && (catalog[room.id] || {}).name) || '창고';
     if (pol) { toast(rescanLine(pol, it)); return; }
-    toast((it ? '\'' + (it.name || propSpec(it.prop_id).name) + '\', ' : '') + nm + ' 선반에 두었습니다.');
+    if (K.ext.keepToastAt && performance.now() - K.ext.keepToastAt < 2000) return;   // 「선반에」를 고른 첫 번에는 서버 문장이 대신 뜬다
+    toast((it ? '\'' + (it.display_name || it.relic_name || it.name || propSpec(it.prop_id).name) + '\', ' : '') + nm + ' 선반에 두었습니다.');
   }
 
   // 불 버튼. 거울눈 앞에서 노려지는 방의 불을 끄는 것은 **긴목에게 배운 정답이 오답이 되는 자리**다
