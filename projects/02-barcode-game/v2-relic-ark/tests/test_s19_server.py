@@ -26,6 +26,7 @@ S.DB = Path(tempfile.mkdtemp()) / "t19.db"
 S.DEV_MODE = True
 S.init_db()
 C = TestClient(S.app)
+S.FIRST_ENTRY_GATE = False   # S27 첫 진입판은 test_s27
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10          # 기본은 아침(저녁 조건은 테스트마다 바꾼다)
 
@@ -429,7 +430,7 @@ def t_beats_session_leaving():
     # 떠날 때 카드
     lv = get(f"/api/leaving?uid={uid}")
     ok(lv["next_visit"]["line"] and lv["next_visit"]["kind"] in ("expedition_return", "guest_at_door", "arc_beat_ready",
-                                                                  "box_key_hint", "visitor_expected", "need_tomorrow", "nothing"),
+                                                                  "box_key_hint", "visitor_expected", "need_tomorrow", "nothing", "tomorrow_ask"),   # S27 r5-3 합침
        f"떠날 때: {lv['next_visit']['kind']} — {lv['next_visit']['line']}")
     st = S.load_state(uid)
     st["expedition"] = {"id": "exp-x", "members": [st["residents_list"][0]["id"]], "returns_at": time.time() + 3600,

@@ -28,6 +28,7 @@ S.init_db()
 C = TestClient(S.app)
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10
+S.DAYTIME_TABLE = False          # S27 낮 한 상은 test_s27 이 본다
 
 
 def ok(cond, msg):
@@ -247,7 +248,7 @@ def t_tomorrow_ask():
     uid = "dev_s23_tom"
     ark(uid)
     lv = get(f"/api/leaving?uid={uid}")
-    ta = lv["tomorrow_ask"]
+    ta = lv["tomorrow_ask"] or (S.tomorrow_ask(S.load_state(uid), uid) if lv["next_visit"]["kind"] == "tomorrow_ask" else None)   # S27 r5-3: 합쳐지면 next_visit 자리
     ok(ta and ta["line"] and "{" not in ta["line"], f"내일의 부탁: {ta and ta['line']}")
     post("/api/dev/advance", {"uid": uid, "minutes": 60 * 24})
     a = ark(uid)
@@ -315,7 +316,7 @@ def t_order_and_hints():
     w = S.where_for(st, uid, item("drink", "milk", "우유", "o1"))
     ppl = [x for x in w["suggest"] if x["kind"] == "resident"]
     if never and any(x["target"]["resident_id"] == never[0]["id"] for x in ppl):
-        ok(S.cres(st, ppl[0]["target"]["resident_id"])["given"] == [], "받은 적 없는 사람이 맨 앞")
+        ok(any(S.cres(st, x["target"]["resident_id"])["given"] == [] for x in ppl[:2]), "받은 적 없는 사람이 앞(S27: 고정한 사람은 둘째 칸)")
 
 
 def t_missed_undecided_and_dev_imprint():

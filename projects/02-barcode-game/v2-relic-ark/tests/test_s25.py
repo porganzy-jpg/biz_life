@@ -26,8 +26,10 @@ S.CALENDAR_ENFORCE = True
 S.VOTES_EXCLUDE_TEST = False   # 전역 투표 장치를 시험한다(시험 방주 제외는 test_s25b)
 S.init_db()
 C = TestClient(S.app)
+S.UNLOCK_CAL["conditional"]["heirloom"]["min_play_day"] = 1   # S27 가보 3일째는 test_s27
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10
+S.DAYTIME_TABLE = False          # S27 낮 한 상은 test_s27 이 본다
 
 
 def ok(cond, msg):
@@ -94,10 +96,11 @@ def t_calendar():
     lv = get(f"/api/leaving?uid={uid}")
     ok(lv["unlock_teaser"] and lv["unlock_teaser"]["required"] == bool(S.BEATS["2"].get("teaser_required")), "2일째 예고(필수 표시)")
     a = next_day(uid)
-    ok(not S.labels_shown(S.load_state(uid)) and "notebook" in a["unlocked"]["features"], "3일째 기색·수첩")
+    ok(S.labels_shown(S.load_state(uid)) and "notebook" not in a["unlocked"]["features"], "3일째까지 라벨(S27: 4일째에 꺼짐)")
     # 사흘을 쉬어도 켠 날 차례: 실제 7일째, 켠 날 4
     post("/api/dev/advance", {"uid": uid, "minutes": 60 * 24 * 3})
     a = ark(uid)
+    ok(not S.labels_shown(S.load_state(uid)) and "notebook" in a["unlocked"]["features"], "4일째 기색·수첩(S27)")
     ok(a["unlocked"]["play_day"] == 4 and "raids" in a["unlocked"]["features"] and "expedition" not in a["unlocked"]["features"],
        "켠 날 4: 습격 열림, 원정은 아직(실제 날짜와 무관)")
     a = next_day(uid)
@@ -117,7 +120,7 @@ def t_calendar_early_locks():
     ok(S.evening_table_public(st, uid) is None, "1일째 저녁에도 한 상 없음")
     S.now_hour = lambda: 10
     cook = resident(st, "cook")
-    ok(S.arc_try_give(st, uid, cook, item("food", "noodle", "면", "x1", "common"), preview=True) is None, "1일째 매듭 없음")
+    ok(S.is_unlocked(st, "first_chain_knot"), "S27: 첫 매듭은 1일째부터(요리사 의자)")
     r = C.post("/api/octopus/name", json={"uid": uid, "name": "먹물"})
     ok(r.status_code in (400, 403), "문어 이름 짓기 2일째 전 거절")
 
@@ -148,7 +151,8 @@ def t_heirloom():
     sc, cook = resident(st, "scout"), resident(st, "cook")
     it = item("food", "noodle", "귀한 면", "h1")
     opts = S.heirloom_options(st, uid, it)
-    ok(len(opts) == len(st["residents_list"]) and all(o["target"]["heirloom"] and o["value"] == S.HEIR_V for o in opts),
+    nfm = sum(1 for r in st["residents_list"] if S.resident_tier(st, uid, r, it)[0] == "not_for_me")
+    ok(len(opts) == len(st["residents_list"]) - nfm and all(o["target"]["heirloom"] and o["value"] == S.HEIR_V for o in opts),
        f"귀함 → 가보 선택지 {[o['label'] for o in opts]}")
     ok(not S.heirloom_options(st, uid, item("food", "noodle", "보통 면", "h0", "uncommon")), "쓸만함 이하는 가보 아님")
     ok(not S.heirloom_options(st, uid, item("tobacco", "smoke", "연기", "ht")), "안전 목록 밖은 가보 아님")
@@ -183,7 +187,9 @@ def t_heirloom():
     ok(g["heirloom"]["swapped"] and ck["heirloom"]["barcode"] == "h2" and ck["heirloom_history"][0]["name"] == "귀한 면"
        and g["heirloom"]["lines"].get("speak"), f"바꿈 → 이력·진귀함 대사 {g['heirloom']['lines'].get('speak')}")
     # 전설 → 세 번째 기억(한 번, 바꿔도 닫히지 않음)
-    it3 = item("book", "story", "전설의 책", "h3", "legendary")
+    it3 = next(x for x in (item("book", "story", "전설의 책", "h3", "legendary"), item("tool", "hand_tool", "전설의 연장", "h3", "legendary"),
+                           item("clothing", "warm", "전설의 외투", "h3", "legendary"))
+               if S.resident_tier(st, uid, resident(st, "scout"), x)[0] != "not_for_me")   # S27: 돌려줄 물건은 가보가 못 된다
     S.core_of(st)["scans"]["sh4"] = {"item": it3, "day": S.day_of(st), "given": False, "placed": "copy", "at": time.time()}
     S.save_state(uid, st)
     g = post("/api/give", {"uid": uid, "scan_id": "sh4", "target": {"resident_id": sc["id"], "heirloom": True}})

@@ -28,6 +28,7 @@
   // ══════════════════════════════════════════════════════════════
   let MOM = {};
   K.api('/api/text/moments').then(j => { MOM = j || {}; }).catch(() => { MOM = {}; });
+  K.ext.moment = (key) => key.split('.').reduce((o, k) => (o == null ? o : o[k]), MOM);   // 배열·객체 그대로(후보 목록 등)
   function T(key, vars, fallback) {
     let o = MOM;
     const parts = key.split('.');

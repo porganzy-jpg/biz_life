@@ -464,3 +464,56 @@
   - 전원이 내려가 있어도 먹는다.
   - `/api/ark.consumption: {food_per_day, water_per_day, on}`, `/api/ark.consumed_while_away: {food, water, morale?}|null`.
 - 옛 스위트 S13·S18 은 무료 짓기·소비 없는 생산 수치를 가정하므로 `DRAIN_ENFORCE`·`CONSUME_ENFORCE` 를 끄고 돈다.
+
+## 17. S27 5차 플테 원인 고침 + PM 첫 세션 큐 (2026-10-17)
+- **기색(①)**: 후보 순서는 이렇다. 지금 물건에 맞는 칸(slot) → 이 집에 있는 하위 종류를 가리키는 칸(home) → 역할×갈래 → 공통. home 은 `seen_subtypes` 와 선반·창고 물건에서 찾는다. 안전 목록 밖 칸은 쓰지 않는다.
+- **「어디로」 줄(②)**: 필요·좋아함·기억·매듭이 맞는 사람과 오늘 부탁한 사람(`asked_today`, 어제 tomorrow_ask 와 같은 시드)은 줄에서 빠지지 않는다.
+  - 행에 `pinned: "fit"|"asked"` 가 붙는다.
+  - 수첩 순서(least_recent)에서 고정한 사람이 맨 앞이면, 고정 안 한 사람 하나를 앞으로 보낸다(첫 칸 아님).
+  - 부탁한 사람이 돌려줄 물건이면 warm_ids 에 넣어 반가워함으로 처리한다.
+- **달력(③④)**:
+  - 첫 매듭(`first_chain_knot`)은 1일째. 사람마다 열리는 날은 arcs `days_since_join` 이 정한다. 요리사 의자 매듭이 1일째다.
+  - 기색·수첩(`mood_hints`·`notebook`)은 4일째에 열린다. 라벨은 1~3일째 동안 보인다.
+  - 가보: `conditional.heirloom.min_play_day = 3`.
+- **낮 한 상(④)**: `/api/ark.evening_table` 은 낮 세션에도 연다(`daytime:true`). 문장은 `ui_moments.daytime_table` 의 open·table_prompt·seat_prompt·generic·close 를 쓴다. 한 상은 하루 한 번으로 저녁과 같이 센다. `/api/table` 응답에 `daytime` 이 붙고, promise 자리에 daytime_table.close 를 넣는다.
+- **기억 벽(④)**:
+  - `/api/ark.memory_wall: {open, room:"pantry", slots[4], filled, opened_day}|null`. 7일째부터 연다.
+  - 첫 칸은 처음 건넨 물건(`from:"first_given"`, 받은 사람 이름)으로 채운다. 그런 물건이 없으면 처음 찍은 물건(`first_scan`)을 쓴다.
+  - `POST /api/memory_wall/hang {uid, relic_id, slot?}`: 선반·창고 물건을 빈 고리에 건다.
+- **가보(⑤)**:
+  - 돌려줄 사람(not_for_me)에게는 「가보로」를 내지 않는다.
+  - 후보 행마다 `hint_ko` 를 붙인다(roles.<역할>.heirloom.fit_hint).
+  - API 로 새어 들어오면 `heirloom:null, heirloom_refused:true` 로 답하고, 결과는 돌려받음 한 줄뿐이다.
+- **이름 다시 붙이기(⑥)**: `POST /api/scan/subtype {uid, barcode|scan_id, subtype, rename:true}`.
+  - 하루 한 번. 두 번째는 400.
+  - 응답 `renamed_from`, `done_ko`(scan.rename_done).
+  - 전역 표는 새 이름으로 바꾼다(한 방주 한 표). 수첩 기록은 그대로 둔다.
+  - 버튼 문장은 `scan.rename_label`·`rename_confirm`({old}).
+  - 이미 이름 붙인 바코드를 다시 찍으면 스캔 응답 `where.rename: {options[{id,ko,current}], current{id,ko}, can_today, label_ko, confirm_ko}|null` 이 온다(subtype_pick 이 있으면 null).
+- **첫 만남 줄**: `/api/scan/subtype` 응답에 `first_meet:{kind:"subtype", key, line_ko, line_short, replaces:"category", fallback}` 와 `first_meet_was_shown` 을 싣는다.
+  - 문장 출처는 first_meet.json `subtypes[갈래][종류]` 이고, 없으면 서버가 하위 종류 이름으로 짠다.
+  - 한 번에 고르기 스캔에서는 갈래 줄을 이 줄로 바꿔 보낸다.
+- **버그(⑦)**:
+  - r5-1: 그날 매듭을 풀었거나 기억을 연 사람(`solved_today`)에게는 missed_chain 을 띄우지 않는다.
+  - r5-3: `/api/leaving` 와 `/api/ark` 에 순서 필드 `order`·`leave_order` 를 싣는다. 다음 약속이 need_tomorrow·nothing 이면 내일의 부탁 하나로 합친다(`next_visit.kind:"tomorrow_ask"`, `tomorrow_ask:null`).
+  - r5-4: 개발 시계가 있으면 밤 판정은 그 시각만 보고 실제 시계 마감은 보지 않는다.
+  - r5-5: `_alt` 는 line 에만 쓴다. announce 는 announce_alt 가 없으면 원래 문장을 쓰고, 마지막 대체로 입말(line)을 쓰지 않는다.
+  - 「선반이 꽉 찼습니다」는 세션에 한 번만 묻는다. 그 뒤로는 `swap_offer:null` 이고 `stored.quiet_ko` 만 보낸다.
+- **관리실(⑧)**:
+  - `raid.office: {ask, yes_label, no_label}|null`. 낮 세션의 오늘 습격 가운데 아직 끝나지 않은 것에만 붙는다.
+  - `POST /api/raid/auto_defend {uid}`:
+    - 불·전원·사람 자리 조합(27가지)을 `combat.evaluate` 로 재서 가장 나은 배치로 맞선다. 행동·소모품은 쓰지 않는다.
+    - 상한은 scarred 라서 방을 잃지 않는다. 끝나면 배치를 원래대로 돌린다.
+    - 응답은 접촉 응답에 `office:{plan, line}` 을 더한 것이고, line 은 raid_office.held|scarred 에서 고른다.
+    - 저녁·끝난 습격·습격 없음이면 400.
+- **PM 첫 세션 큐**:
+  - 첫 진입(1일째, 찍은 것 없음):
+    - 밤사이 판은 `morning.first_entry` 로 바꾼다(`band:"first_entry"`, `first_entry:true`).
+    - 첫 비트(first_scan)는 숨겼다가 첫 스캔 응답 `beat_today` 로 연다.
+  - 간직 메모: 가보 칸이 열리기 전에 들어온 귀함 이상 카드는 스캔 응답에 `keep_note:{name, rarity, ko}` 를 싣는다(heirloom.keep_note[]). `core.keep_list` 에도 남긴다.
+  - 한 번에 고르기:
+    - `GET /api/peek` 가 needs_category 일 때 `quick_pick:{prompt_ko, options[8]{category, subtype, ko, prop, src}, other:{label_ko, next:"categories"}}` 를 싣는다.
+    - 순서는 ① 이 방주가 고른 것(바코드마다 시작점을 돌린다) ② 전역 투표(시험 방주 제외) ③ 기본 8(면·과자·물·우유·옷·건전지·이야기책·씻는 것). 개인화는 하지 않는다. 담배·술은 뺀다.
+    - 고르면 `POST /api/scan {.., user_category, user_subtype}` 한 번이면 된다. subtype_pick 은 다시 묻지 않는다.
+    - 안전 목록 밖 조합은 400.
+- 플래그: `DAYTIME_TABLE`(옛 S23·S25 스위트는 False), `FIRST_ENTRY_GATE`(옛 S19·S25b 는 False). test_s25 는 가보 min_play_day 를 1로 둔다.

@@ -142,7 +142,7 @@
     const old = $('#heirRow'); if (old) old.remove();
     const el = document.createElement('div'); el.id = 'heirRow'; el.className = 'heirrow';
     el.classList.add('fold');
-    el.innerHTML = '<button class="hfold" aria-expanded="false"><i aria-hidden="true"></i>' + esc(T('heirloom.fold_label', {}, '가보로 둘 수 있습니다')) + ' <b aria-hidden="true">▸</b></button>' +
+    el.innerHTML = '<button class="hfold" aria-expanded="false"><i aria-hidden="true"></i>' + esc((() => { const v = K.ext.moment && K.ext.moment('heirloom.fold_label'); return plain((Array.isArray(v) ? v[0] : (typeof v === 'string' ? v : '')) || '가보로 둘 수 있습니다'); })()) + ' <b aria-hidden="true">▸</b></button>' +
       '<p class="hq"><i aria-hidden="true"></i>' + esc(T('heirloom.ask', {}, '오래 아낄 물건입니다. 누구의 가보로 둘까요?')) + '</p><div class="hopts">' +
       hs.map((h, i) => '<button data-h="' + i + '">' + face(personById((h.target || {}).resident_id), 22) + esc(h.label || ('가보로 · ' + h.name)) + (h.swap ? ' <small>바꾸기</small>' : '') + '</button>').join('') + '</div>';
     const strip = $('#giveStrip'), btn = $('#shelfBtn');

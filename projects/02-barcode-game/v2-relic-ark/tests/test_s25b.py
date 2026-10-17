@@ -26,6 +26,7 @@ S.DB = Path(tempfile.mkdtemp()) / "t25b.db"
 S.DEV_MODE = False                      # 운영처럼(개발 서버 방주 표시 없음)
 S.init_db()
 C = TestClient(S.app)
+S.FIRST_ENTRY_GATE = False   # S27 첫 진입판은 test_s27
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10
 
