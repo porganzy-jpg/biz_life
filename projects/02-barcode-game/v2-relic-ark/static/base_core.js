@@ -126,6 +126,8 @@
       const nr = Object.assign({}, r, { card: Object.assign({}, r.card, res.card || {}), where: Object.assign({}, res.where || r.where, { subtype_pick: null }) });
       lastPick = nr;
       redrawFront(nr);
+      document.querySelectorAll('#rgain .meetline[data-kind="category"]').forEach(x => x.remove());     // S28: 고르기 전 짐작으로 쓴 줄(「민물 냄새 나는 병」)이 남지 않게
+      if (res.line_ko || res.done_line) { const g = $('#rgain'); if (g) { const sp2 = document.createElement('span'); sp2.className = 'meetline picked'; sp2.textContent = plain(res.line_ko || res.done_line); g.appendChild(sp2); } }
       el.remove();
       afterReveal(nr);
       if (res.done_ko) K.toast(plain(res.done_ko));
@@ -139,7 +141,9 @@
     const hs = (r.where.heirloom || []).slice(0, 4);
     const old = $('#heirRow'); if (old) old.remove();
     const el = document.createElement('div'); el.id = 'heirRow'; el.className = 'heirrow';
-    el.innerHTML = '<p class="hq"><i aria-hidden="true"></i>' + esc(T('heirloom.ask', {}, '오래 아낄 물건입니다. 누구의 가보로 둘까요?')) + '</p><div class="hopts">' +
+    el.classList.add('fold');
+    el.innerHTML = '<button class="hfold" aria-expanded="false"><i aria-hidden="true"></i>' + esc(T('heirloom.fold_label', {}, '가보로 둘 수 있습니다')) + ' <b aria-hidden="true">▸</b></button>' +
+      '<p class="hq"><i aria-hidden="true"></i>' + esc(T('heirloom.ask', {}, '오래 아낄 물건입니다. 누구의 가보로 둘까요?')) + '</p><div class="hopts">' +
       hs.map((h, i) => '<button data-h="' + i + '">' + face(personById((h.target || {}).resident_id), 22) + esc(h.label || ('가보로 · ' + h.name)) + (h.swap ? ' <small>바꾸기</small>' : '') + '</button>').join('') + '</div>';
     const strip = $('#giveStrip'), btn = $('#shelfBtn');
     const after = strip ? strip.nextSibling : btn;
@@ -167,7 +171,11 @@
       heirLines(res.heirloom, target.resident_id);
       D.log.push('heir give ' + ((res.heirloom || {}).tier || '') + ((res.heirloom || {}).swapped ? ' swapped' : ''));
     };
-    el.onclick = (e) => { const b = e.target.closest('button[data-h]'); if (b && !el.classList.contains('busy')) send(hs[+b.dataset.h].target); };
+    el.onclick = (e) => {
+      const f = e.target.closest('.hfold');
+      if (f) { const o = el.classList.toggle('open'); f.setAttribute('aria-expanded', String(o)); f.querySelector('b').textContent = o ? '▾' : '▸'; D.log.push('heir fold ' + (o ? 'open' : 'close')); return; }
+      const b = e.target.closest('button[data-h]'); if (b && !el.classList.contains('busy')) send(hs[+b.dataset.h].target);
+    };
     D.log.push('heirrow ' + hs.length);
   }
   // 등급별 줄: 귀함 = 쓰는 모습(방송), 진귀함 = 대사의 주어(방송), 전설 = 세 번째 기억 장면(작은 카드, 세 줄)
@@ -187,7 +195,7 @@
   }
   function redrawFront(r) {                                  // 카드 앞면만(뒤집기·연출 없이)
     const c = r.card || {}, f = $('#rcFront'); if (!f || !K.ext.cards) return;
-    const pid = K.propForCategory(c.category);
+    const pid = K.propForItem ? K.propForItem(c.category, c.subtype) : K.propForCategory(c.category);   // S28 고른 이름의 소품
     f.innerHTML = K.ext.cards.face({ rarity: c.rarity, sea: !!(c.sea_variant || (r.variant && r.variant.shiny)), name: c.name, category: c.category,
                                      subtype_ko: c.subtype_ko, flavor: c.flavor, prop_id: pid });
     K.ext.cards.settle($('#rcard'));

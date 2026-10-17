@@ -1014,3 +1014,25 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .respop{position:fixed; z-index:40; padding:8px 11px; background:#0b0e0c; border:1px solid #2a2419; border-left:3px solid #8fc4c8; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.45)}
 .respop b{display:block; font-size:12.5px; color:var(--cream)}
 .respop p{margin:3px 0 0; font-size:12px; line-height:1.55; color:#cfe8ec}
+/* ══ S28 첫 세션 손질 ══ */
+/* 가보 줄 접기: 「가보로 둘 수 있습니다 ▸」 한 줄 — 누르면 사람 단추 */
+.heirrow.fold{padding:4px 8px}
+.heirrow.fold:not(.open) .hq, .heirrow.fold:not(.open) .hopts{display:none}
+.heirrow .hfold{display:flex; align-items:center; gap:6px; width:100%; min-height:32px; padding:0; font:inherit; font-size:12.5px; color:#f1dfb0; background:none; border:0; cursor:pointer; text-align:left}
+.heirrow .hfold i{flex:none; width:10px; height:12px; background:#e8b04a; clip-path:polygon(50% 0,100% 30%,82% 100%,18% 100%,0 30%)}
+.heirrow .hfold b{margin-left:auto; color:#e8b04a; font-weight:400}
+.heirrow.fold.open .hq{margin-top:4px}
+@media (max-height:500px){
+  /* 「어디로」 단추(폰 가로): 위에 이유(좋아함·반가움), 아래에 얼굴+이름 — 글자가 한 자씩 꺾이지 않게 */
+  #scanCard .gopt{display:grid; grid-template-columns:auto minmax(0,1fr); grid-template-areas:"why why" "face name" "sign sign";
+    align-items:center; justify-items:start; column-gap:4px; row-gap:1px; min-height:44px; padding:3px 4px}
+  #scanCard .gopt .gname b{font-size:12px; letter-spacing:-.02em}
+  #scanCard .gopt .gname{display:contents}
+  #scanCard .gopt .why{grid-area:why; white-space:nowrap}
+  #scanCard .gopt > .face, #scanCard .gopt > .roomico, #scanCard .gopt > .shelfico{grid-area:face}
+  #scanCard .gopt .gname b{grid-area:name; min-width:0}
+  #scanCard .gopt .signline{grid-area:sign}
+  #scanCard .gopt.keep{grid-template-areas:"face name"; }
+  /* 「도감에 처음 적힌 유물」 다음 줄과 붙지 않게 */
+  #scanCard .rgain .first::after{content:' · '; color:#93a6a3}
+}

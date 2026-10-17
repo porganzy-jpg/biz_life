@@ -127,6 +127,7 @@
   let cam = { x: 0, y: 220, z: 1 }, view = { w: 0, h: 0, dpr: 1 };
 
   const braceLog = { toasts: 0, canvas: 0, samples: [] };
+  const podTagLog = {};                                // ★ S28 검수용: 문간 이름표에 그린 이름·활동
   (() => {                                             // 캔버스 글자도 센다(검수용, 비용은 indexOf 한 번)
     const ft = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.fillText = function (t, ...a) {
@@ -1273,12 +1274,19 @@
       const fy = sy(sp.floor_y), px = sx(sp.x);
       const box = drawPerson(p, px, fy, t, i, 1, lit, pose, room, opt);
       podPoseLog[sp.pose] = (podPoseLog[sp.pose] || 0) + 1;
-      if (act && K.ext.podLabel && cam.z > 0.3) {          // 작은 이름표(활동) — 눌러야 설명
-        const lb = K.ext.podLabel(act);
-        if (lb) { ctx.font = 'bold 11px "Noto Sans KR",sans-serif'; const tw = ctx.measureText(lb).width + 10;
-          ctx.fillStyle = act === 'waiting' ? 'rgba(40,52,60,0.9)' : 'rgba(20,17,12,0.82)'; ctx.fillRect(px - tw / 2, fy + 4, tw, 16);
-          ctx.fillStyle = act === 'waiting' ? '#bfe0e6' : '#e6d7b0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lb, px, fy + 12);
-          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; }
+      if (cam.z > 0.3) {                                     // S28 이름표: 이름이 먼저(누가 누군지), 문간 활동은 작게 옆에 — 눌러야 설명
+        const lb = (act && K.ext.podLabel && (cam.z >= 0.75 || act === 'waiting')) ? K.ext.podLabel(act) : '', nm = p.name || '';   // 멀리서는 이름만(이름표끼리 겹치지 않게)
+        if (nm || lb) {
+          ctx.font = 'bold 11px "Noto Sans KR",sans-serif'; const w1 = nm ? ctx.measureText(nm).width : 0;
+          ctx.font = '9.5px "Noto Sans KR",sans-serif'; const w2 = lb ? ctx.measureText(lb).width : 0;
+          const gap = nm && lb ? 5 : 0, tw = w1 + w2 + gap + 10, x0 = px - tw / 2;
+          ctx.fillStyle = act === 'waiting' ? 'rgba(40,52,60,0.9)' : 'rgba(20,17,12,0.82)'; ctx.fillRect(x0, fy + 4, tw, 16);
+          ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+          if (nm) { ctx.font = 'bold 11px "Noto Sans KR",sans-serif'; ctx.fillStyle = '#f1e4c2'; ctx.fillText(nm, x0 + 5, fy + 12); }
+          if (lb) { ctx.font = '9.5px "Noto Sans KR",sans-serif'; ctx.fillStyle = act === 'waiting' ? '#bfe0e6' : '#a9a08a'; ctx.fillText(lb, x0 + 5 + w1 + gap, fy + 12.5); }
+          ctx.textBaseline = 'alphabetic';
+          podTagLog[id] = { name: nm, act: lb };
+        }
       }
       if (carry && carry.id === id) {
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
@@ -2378,9 +2386,9 @@
   const RAR_KO = { common: '흔함', uncommon: '쓸만함', rare: '귀함', epic: '진귀함', legendary: '전설' };  // ROOMS_AND_ITEMS §1
   const CAT_FILL = { food: '#c08a33', drink: '#d8c9a3', medical: '#e6d7b0', electronics: '#39312a',
                      stationery: '#b03a24', book: '#8d8f4a', apparel: '#96703f', tobacco: '#dc7728', unknown: '#7e8d8c' };
-  let shelf = [], propsMeta = {}, shelfFlash = null, stored = [];
+  let shelf = [], propsMeta = {}, shelfFlash = null, stored = [], propsBySub = {};
   fetch('/static/art/props/props_meta.json').then(r => (r.ok ? r.json() : null))
-    .then(j => { propsMeta = (j && j.props) || {}; }).catch(() => { propsMeta = {}; });
+    .then(j => { propsMeta = Object.assign({}, (j && j.subtype_props) || {}, (j && j.props) || {}); propsBySub = (j && j.by_subtype) || {}; }).catch(() => { propsMeta = {}; });
   const propImgs = {};
   function propImg(id) {
     if (!id || !PROP_ID_OK.test(id)) return null;
@@ -2397,6 +2405,12 @@
   function propSpec(id) {
     const m = propsMeta[id] || {};
     return { w: m.w || 34, h: m.h || 30, slots: Math.max(1, m.slots || 1), name: m.name || '' };
+  }
+  // S28: 이름(하위 종류)이 정해진 물건은 그 하위 종류의 소품 — 「내 우유가 이게 됐다」. 없으면 갈래 소품
+  function propForItem(cat, sub) {
+    const c = (propsBySub || {})[cat] || {}, e = sub && c[sub];
+    if (e && e.prop && PROP_ID_OK.test(e.prop)) return e.prop;
+    return propForCategory(cat);
   }
   function propForCategory(cat) {
     const ids = Object.keys(propsMeta);
@@ -2923,7 +2937,8 @@
     const has = Object.prototype.hasOwnProperty.call(r, 'shelf_slot');
     const slot = typeof r.shelf_slot === 'number' ? r.shelf_slot : null;
     const item = slot != null ? shelf.find(x => (x.slot | 0) === slot) : null;
-    const pid = (item && item.prop_id) || propForCategory(c.category);
+    const guess = !!(r.where && r.where.subtype_pick && r.where.subtype_pick.needed);   // 아직 묻는 중이면 짐작한 하위 종류 그림을 쓰지 않는다
+    const pid = (c.subtype && !guess && propForItem(c.category, c.subtype)) || (item && item.prop_id) || propForCategory(c.category);
     const sp = propSpec(pid);
     const sea = !!((r.variant && r.variant.shiny) || c.sea_variant || (item && item.variant === 'sea'));
     const front = $('#rcFront');
@@ -3709,7 +3724,7 @@
     get ark() { return ark; }, get cb() { return cb; }, get catalog() { return catalog; }, RES_KO, RAR_KO,
     get ctx() { return ctx; }, get z() { return cam.z; }, sx: (x) => sx(x), sy: (y) => sy(y), propImg: (id) => propImg(id), propForCategory2: (c) => propForCategory(c),
     get view() { return view; }, closeScan: () => closeScan(), lightOf: (s) => lightOf(s),
-    propSpec: (id) => propSpec(id), propForCategory: (c) => propForCategory(c),
+    propSpec: (id) => propSpec(id), propForCategory: (c) => propForCategory(c), propForItem: (c, sb) => propForItem(c, sb),
     apply: (st) => apply(st), reload: () => load(false),
     onApply: (f) => applyHooks.push(f), onLoad: (f) => loadHooks.push(f),
     panel(html) { closeCard(); closePops(); sel = null; $('#panelBody').innerHTML = html; $('#panel').hidden = false; placePanel(); return $('#panelBody'); },
@@ -3731,6 +3746,7 @@
     cam: () => Object.assign({}, cam, { zmin: zMin() }),
     sil: () => silDbg,
     // ★ S13 검수: 화면에 보이는 글(DOM 글자 + 지금까지 띄운 토스트 + 캔버스 글자)에 '{' 가 몇 번 나왔나
+    podTags: () => Object.assign({}, podTagLog),
     braceCheck: () => {
       const dom = (document.body.innerText.match(/[{}]/g) || []).length;
       return { dom, toasts: braceLog.toasts, canvas: braceLog.canvas, samples: braceLog.samples.slice(0, 5) };
