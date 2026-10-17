@@ -35,7 +35,6 @@
     "guide_up": "윗물 아이 — 위로 빛의 길을 내서 올려 보낸다",
     "none": "동거 문어 · 그늘 · 먼 울음 — 판정이 없다"
   },
-
   "creatures": [
     {
       "id": "swarm",
@@ -64,7 +63,8 @@
         "scarred": "두 군데를 놓쳤습니다. 물은 들어오지 않았고, 소리만 들어왔습니다.",
         "breached": "이음매가 먼저 열렸습니다. 방 하나가 물에 잠겼습니다."
       },
-      "event_id": "deep_seam_swarm"
+      "event_id": "deep_seam_swarm",
+      "hint_action_ko": "작은 녀석들은 손이 많이 닿아 있는 이음매는 잘 못 건드린다고 합니다."
     },
     {
       "id": "longneck",
@@ -93,7 +93,8 @@
         "scarred": "유리에 긴 자국이 남았습니다. 닦아도 지워지지 않습니다.",
         "breached": "유리가 휘다가 접혔습니다. 그 방은 이제 바다입니다."
       },
-      "event_id": "deep_longneck_at_glass"
+      "event_id": "deep_longneck_at_glass",
+      "hint_action_ko": "저 녀석은 어두운 창 앞에는 오래 머물지 않는다고 합니다."
     },
     {
       "id": "warden",
@@ -122,7 +123,8 @@
         "scarred": "유리 세 장에 금이 갔습니다. 모두 같은 방향입니다.",
         "breached": "한 번 눌렸고, 그걸로 끝났습니다. 그 방에는 이제 소리가 없습니다."
       },
-      "event_id": "deep_gatekeeper_pass"
+      "event_id": "deep_gatekeeper_pass",
+      "hint_action_ko": "저 녀석은 조용한 집 앞은 그냥 지나간다고들 합니다."
     },
     {
       "id": "claws",
@@ -151,7 +153,8 @@
         "scarred": "한 분의 소매가 뜯겼습니다. 피보다 물이 먼저 들어갔습니다.",
         "breached": "에어락이 닫히지 않았습니다. 안쪽 복도는 그날로 비었습니다."
       },
-      "event_id": "deep_nail_swarm"
+      "event_id": "deep_nail_swarm",
+      "hint_action_ko": "저 녀석들은 문 안쪽까지는 따라 들어오지 못한다고 합니다."
     },
     {
       "id": "mirror_eye",
@@ -180,7 +183,8 @@
         "scarred": "창 한 장이 안쪽으로 밀려 틀에서 떴습니다. 비친 모습은 그대로입니다.",
         "breached": "유리가 밀려 들어왔습니다. 끝까지 같은 자세였습니다."
       },
-      "event_id": "deep_mirror_eye"
+      "event_id": "deep_mirror_eye",
+      "hint_action_ko": "저 녀석은 더 밝게 비치는 쪽으로 옮겨 간다고 합니다."
     },
     {
       "id": "straight_one",
@@ -209,7 +213,8 @@
         "scarred": "유리 한 점이 하얗게 부서졌습니다. 깊지는 않습니다. 아직은요.",
         "breached": "같은 자리를 세 번 쳤습니다. 세 번째에 창이 안으로 들어왔습니다."
       },
-      "event_id": "deep_straight_aim"
+      "event_id": "deep_straight_aim",
+      "hint_action_ko": "물빛이 흐려지면 저 녀석은 길을 잃는다고 합니다."
     },
     {
       "id": "lid",
@@ -238,7 +243,8 @@
         "scarred": "누가 발을 옮겼습니다. 떠나면서 창틀 하나를 긁고 갔습니다.",
         "breached": "놀란 쪽은 저 녀석이었습니다. 몸을 한 번 털었고, 그걸로 끝났습니다."
       },
-      "event_id": "deep_lid_settles"
+      "event_id": "deep_lid_settles",
+      "hint_action_ko": "아무것도 움직이지 않으면, 저 녀석은 돌인 줄 알고 떠난다고 합니다."
     },
     {
       "id": "needle",
@@ -267,7 +273,8 @@
         "scarred": "그물 하나가 걸려서 딸려 갔습니다. 그쪽 벽이 한 번 크게 울렸습니다.",
         "breached": "계류줄이 끊어지기 전에 방이 먼저 뜯겨 나갔습니다."
       },
-      "event_id": "deep_needle_passes"
+      "event_id": "deep_needle_passes",
+      "hint_action_ko": "걸리는 것만 없으면 저 녀석은 제 길로 지나간다고 합니다."
     },
     {
       "id": "big_maw",
@@ -296,7 +303,8 @@
         "scarred": "{room} 창틀이 휘었습니다. 안에 있던 것들이 한쪽으로 쏠린 채 그대로 굳었습니다.",
         "breached": "{room} 쪽이 통째로 뜯겨 나갔습니다. 바닥만 남았습니다."
       },
-      "event_id": "deep_big_maw"
+      "event_id": "deep_big_maw",
+      "hint_action_ko": "배가 부르면 저 녀석은 순순히 내려간다고 합니다."
     },
     {
       "id": "follower",
@@ -325,7 +333,8 @@
         "scarred": "창고 벽이 안쪽으로 휘었습니다. 선반은 아직 한쪽으로 기울어 있습니다.",
         "breached": "창고가 통째로 아래로 내려갔습니다. 며칠 뒤 선반 하나가 에어락 앞에 놓여 있었습니다."
       },
-      "event_id": "deep_followed_home"
+      "event_id": "deep_followed_home",
+      "hint_action_ko": "가져온 것 하나를 돌려받으면 저 녀석은 조용해진다고 합니다."
     },
     {
       "id": "upper_child",
@@ -355,7 +364,8 @@
         "breached": "덧문을 내렸습니다. 사흘 뒤 그 창 앞은 손톱 무리로 덮였습니다."
       },
       "event_id": "deep_upper_child",
-      "note": "1막에서 유일하게 '막는' 것이 아니라 '보내 주는' 습격이다. 성공 보상은 자원이 아니라 장면이고, 대가는 금기를 깬 것이다(S3·P3)."
+      "note": "1막에서 유일하게 '막는' 것이 아니라 '보내 주는' 습격이다. 성공 보상은 자원이 아니라 장면이고, 대가는 금기를 깬 것이다(S3·P3).",
+      "hint_action_ko": "위로 이어진 불빛이 있으면 저 아이는 그 길을 따라간다고 합니다."
     },
     {
       "id": "octopus",

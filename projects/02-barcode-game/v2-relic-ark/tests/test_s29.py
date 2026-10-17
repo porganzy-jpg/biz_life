@@ -163,6 +163,7 @@ def t_heirloom_second():
     to_play_day(uid, 3)
     st = S.load_state(uid)
     S.core_of(st)["flags"]["first_rare_day"] = 1
+    S.core_of(st)["flags"]["heir_open_day"] = 1
     found = None
     for c, subs in S.SUBTYPE_KO.items():
         for s_ in subs:

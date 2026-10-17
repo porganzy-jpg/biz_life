@@ -31,6 +31,7 @@ S.DB = TMP
 S.DEV_MODE = True
 S.init_db()
 C = TestClient(S.app)
+S.WEEK1_CAP = False   # S30 첫 주 상한은 test_s30
 RESULTS: list[tuple[bool, str]] = []
 
 

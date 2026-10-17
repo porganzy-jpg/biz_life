@@ -178,7 +178,7 @@ def t_like_safety():
     row = next((x for x in w.get("_internal") or w["suggest"] if x["target"].get("resident_id") == tr["id"]), None)
     ok(not row or row["tier"] != "like", f"담배를 '좋아함'으로 권하지 않는다 {row and row['tier']}")
     out = S.give_apply(st, uid, it, {"resident_id": tr["id"]}, "copy")
-    ok(out["tier"] == "like", "우연히 주면 반응은 그대로(좋아함)")
+    ok(out["tier"] == "warm", "S30 r7-1: 우연히 주어도 반응은 반가움까지(좋아함 아님)")
     S.core_of(st)["beats"]["play_day"] = 5
     st["created"] -= 86400 * 4
     h = S.sign_hint(st, uid, tr, it, "like", f"like:{tob[0]}", set())

@@ -545,3 +545,25 @@
   - `threats.first_week_guarantee.by_day` 를 3으로 옮겼다(PM). 3일째 첫 습격은 긴목이다.
   - 해금 방송은 /api/ark `unlocked.new` 로 한 번, 긴목은 /api/raid/today 소리 단계로 따로 온다.
   - beats teaser_required 는 3일째로 옮겼다(시나리오).
+
+## 19. S30 7차 플테 (2026-10-17)
+- **안전(r7-1)**
+  - `resident_tier` 첫머리에서 안전 목록 밖 물건(담배·술·붕대 밖 약)을 거른다. 그런 물건은 최대 `warm`(`info.unsafe`)이고, 안 맞음(twist dislike)이면 not_for_me 다.
+  - 그래서 좋아함·필요·기억·매듭·big 이 나오지 않는다.
+  - quick_pick 기본 8에서 알약을 빼고 조명(light)을 넣었다. 「기타」(갈래 → 종류)로는 여전히 고를 수 있다.
+- **「어디로」**
+  - 저녁 세션에는 그날 아직 움직이지 않은(`solved_today` 아님) 매듭·기억 후보를 첫 칸에 둔다(`first_reason:"story"`). 라벨 있는 날과 없는 날 모두 그렇다.
+  - 꾸밈이 열린 날(달력의 decor_place 날)은 꾸밈 제안을 한 줄만 낸다. 꼬리표 완성 직전인 방이면 두 줄까지 허용한다.
+- **습격**
+  - 단서 미리보기 `ready.would` 가 scarred·breached 이면 `raid.hint_action_ko` 를 싣는다(creatures.json `hint_action_ko`).
+  - 켠 날 1~7은 결과 상한이 scarred 다. 접촉·밤 판정·관리실 모두 해당하고, 미리보기도 scarred 로 보이며 `capped_week1:true` 가 붙는다. 깃발은 `WEEK1_CAP` 이다.
+- **가보 칸 해금**
+  - 첫 귀함 + 켠 날 3 이상 + **그날 들어온 귀함 이상 카드**(`flags.heir_open_day`)가 모두 있어야 열린다.
+  - 스캔 응답 `unlock_new[]` 에 방송이 실린다.
+  - 예외: `min_play_day` 가 1 이하이면 예전 규칙을 쓴다.
+- **보장 귀함**
+  - 켠 날 4~7인데 귀함 이상이 한 번도 없었으면, 그날 문어 선물이 귀함 유물(선반)이 되어 가보 칸이 열린다.
+  - 밤사이 판에 `guaranteed_rare{item, ko, card_id}` 가 실린다(ui_moments.guaranteed_rare.octopus).
+  - 원정 경로는 쓰지 않았다(문어가 2일째부터 매일 오므로).
+- **가보 후보 단서**: `roles.<역할>.heirloom.fit_hint_by_category.<갈래>[]` 를 먼저 읽고, 없으면 `fit_hint[]` 를 쓴다. 고르는 시드는 사람|물건이다.
+- **밤 손님**: 첫 손님의 시각(19시)부터 넷 모두 고를 수 있다. 각 손님의 hours_from 은 이제 고르는 데 쓰지 않는다.

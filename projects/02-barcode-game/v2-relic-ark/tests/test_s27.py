@@ -114,7 +114,9 @@ def t_calendar_and_first_entry():
     ok(kn and kn["ko"] and "{" not in kn["ko"], f"간직 메모: {kn and kn['ko']}")
     a = next_day(uid, 2)
     st = S.load_state(uid)
-    ok(S.labels_shown(st) and S.is_unlocked(st, "heirloom"), "3일째: 라벨 그대로, 가보 칸 열림")
+    ok(not S.is_unlocked(st, "heirloom"), "S30: 3일째라도 그날 귀함 카드 전에는 닫힘")
+    S.heir_open_tick(st, {"rarity": "rare"})
+    ok(S.labels_shown(st) and S.is_unlocked(st, "heirloom"), "3일째: 라벨 그대로, 귀함 카드와 함께 가보 칸 열림")
     ok(S.keep_note_tick(st, {"barcode": "k2", "name": "x", "rarity": "rare"}) is None, "열린 뒤엔 간직 메모 없음")
     a = next_day(uid)
     st = S.load_state(uid)
@@ -184,6 +186,7 @@ def t_heirloom():
     to_play_day(uid, 3)
     st = S.load_state(uid)
     S.core_of(st)["flags"]["first_rare_day"] = 1
+    S.core_of(st)["flags"]["heir_open_day"] = 1
     S.save_state(uid, st)
     st = S.load_state(uid)
     for c, s_ in ALL_ITEMS:
