@@ -30,6 +30,7 @@ S.UNLOCK_CAL["conditional"]["heirloom"]["min_play_day"] = 1   # S27 가보 3일�
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10
 S.DAYTIME_TABLE = False          # S27 낮 한 상은 test_s27 이 본다
+S.NEW_STATE_SEED = "t25"         # 시작 주민을 uid 로 고정(시각 시드면 성향이 매번 달라 흔들렸다)
 
 
 def ok(cond, msg):
@@ -187,9 +188,11 @@ def t_heirloom():
     ok(g["heirloom"]["swapped"] and ck["heirloom"]["barcode"] == "h2" and ck["heirloom_history"][0]["name"] == "귀한 면"
        and g["heirloom"]["lines"].get("speak"), f"바꿈 → 이력·진귀함 대사 {g['heirloom']['lines'].get('speak')}")
     # 전설 → 세 번째 기억(한 번, 바꿔도 닫히지 않음)
-    it3 = next(x for x in (item("book", "story", "전설의 책", "h3", "legendary"), item("tool", "hand_tool", "전설의 연장", "h3", "legendary"),
-                           item("clothing", "warm", "전설의 외투", "h3", "legendary"))
-               if S.resident_tier(st, uid, resident(st, "scout"), x)[0] != "not_for_me")   # S27: 돌려줄 물건은 가보가 못 된다
+    # S27: 돌려줄 물건은 가보가 못 된다 → 정찰병이 받는(not_for_me 아님) 안전한 전설 물건을 결정적으로 고른다
+    # (예전 목록에 없는 갈래 tool·clothing 이 섞여 있어, 주민 성향이 시각 시드로 바뀌면 StopIteration 이 났다)
+    it3 = next(item(c, s_, "전설의 물건", "h3", "legendary") for c, subs in sorted(S.SUBTYPE_KO.items()) for s_ in sorted(subs)
+               if S.item_safe({"category": c, "subtype": s_})
+               and S.resident_tier(st, uid, resident(st, "scout"), item(c, s_, "전설의 물건", "h3", "legendary"))[0] != "not_for_me")
     S.core_of(st)["scans"]["sh4"] = {"item": it3, "day": S.day_of(st), "given": False, "placed": "copy", "at": time.time()}
     S.save_state(uid, st)
     g = post("/api/give", {"uid": uid, "scan_id": "sh4", "target": {"resident_id": sc["id"], "heirloom": True}})
@@ -246,7 +249,13 @@ def t_raid_heirloom_weight():
     ok((S.raid_target_weights(st) or {}).get(2) == S.RAID_CHERISHED_MULT, "가보 가진 사람의 방 ×1.5")
 
 
-TESTS = [t_calendar, t_calendar_early_locks, t_subtype_wanted, t_heirloom, t_heirloom_polish, t_display_rare, t_raid_heirloom_weight]
+def t_seed_guard():
+    """흔들림 가드: 시드를 고정하면 같은 uid 의 시작 주민(id·이름)이 매번 같다."""
+    a1, a2 = S.new_state("dev_s25_seed"), S.new_state("dev_s25_seed")
+    ok([(r["id"], r["name"]) for r in a1["residents_list"]] == [(r["id"], r["name"]) for r in a2["residents_list"]], "시작 주민 고정")
+
+
+TESTS = [t_seed_guard, t_calendar, t_calendar_early_locks, t_subtype_wanted, t_heirloom, t_heirloom_polish, t_display_rare, t_raid_heirloom_weight]
 
 if __name__ == "__main__":
     for t in TESTS:

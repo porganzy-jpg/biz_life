@@ -606,9 +606,12 @@ def make_resident(role: str, rng: random.Random, taken: set, uid: str = "") -> d
             "stats": {}, "quirk": {}}   # ensure_stats 가 uid 를 알고 채운다(시드가 uid 를 쓴다)
 
 
+NEW_STATE_SEED: str | None = None   # 테스트 전용: 주어지면 시작 주민(이름·id·성향)을 uid 로 고정한다(평소엔 시각 시드)
+
+
 def new_state(uid: str = "") -> dict:
     now = time.time()
-    rng = random.Random(now)
+    rng = random.Random(f"{NEW_STATE_SEED}|{uid}") if NEW_STATE_SEED is not None else random.Random(now)
     taken: set = set()
     residents = [make_resident(role, rng, taken, uid) for role in ("cook", "engineer", "scout")]   # 시작 3인: 먹이고, 고치고, 살핀다
     for _r in residents:

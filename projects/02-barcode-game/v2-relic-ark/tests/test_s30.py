@@ -32,6 +32,7 @@ S.CALENDAR_ENFORCE = True
 S.VOTES_EXCLUDE_TEST = False
 S.init_db()
 C = TestClient(S.app)
+S.NEW_STATE_SEED = "s30"         # 시작 주민 고정(흔들림 방지)
 RESULTS: list[tuple[bool, str]] = []
 S.now_hour = lambda: 10
 
