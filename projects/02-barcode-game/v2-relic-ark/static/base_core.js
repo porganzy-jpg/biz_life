@@ -189,8 +189,9 @@
     el.classList.add('fold');
     el.innerHTML = '<button class="hfold" aria-expanded="false"><i aria-hidden="true"></i>' + esc((() => { const v = K.ext.moment && K.ext.moment('heirloom.fold_label'); return plain((Array.isArray(v) ? v[0] : (typeof v === 'string' ? v : '')) || '가보로 둘 수 있습니다'); })()) + ' <b aria-hidden="true">▸</b></button>' +
       '<p class="hq"><i aria-hidden="true"></i>' + esc(T('heirloom.ask', {}, '오래 아낄 물건입니다. 누구의 가보로 둘까요?')) + '</p><div class="hopts">' +
-      hs.map((h, i) => '<button data-h="' + i + '">' + face(personById((h.target || {}).resident_id), 22) + '<span class="hl"><b>' + esc(h.label || ('가보로 · ' + h.name)) + (h.swap ? ' <small>바꾸기</small>' : '') + '</b>' +
-        (h.hint_ko ? '<small class="hh">' + esc(plain(h.hint_ko)) + '</small>' : '') + '</span></button>').join('') + '</div>';   // S27: 후보마다 어울리는 까닭 한 줄
+      hs.map((h, i) => '<button data-h="' + i + '"' + (h.second ? ' class="hsecond"' : '') + '>' + face(personById((h.target || {}).resident_id), 22) + '<span class="hl"><b>' + esc(h.label || ('가보로 · ' + h.name)) + (h.swap ? ' <small>바꾸기</small>' : '') + '</b>' +
+        (h.hint_ko ? '<small class="hh">' + esc(plain(h.hint_ko)) + '</small>' : '') + '</span></button>').join('') +
+      ((hs.find(h => h.second) || {}).more_ko ? '<button class="hmore" data-hmore="1">' + esc(plain(hs.find(h => h.second).more_ko)) + '</button>' : '') + '</div>';   // S27: 후보마다 한 줄 · S29: 덧붙인 둘째 후보는 「다른 분도 보여 드릴까요?」 뒤에
     const strip = $('#giveStrip'), btn = $('#shelfBtn');
     const after = strip ? strip.nextSibling : btn;
     (strip || btn).parentNode.insertBefore(el, after);
@@ -218,6 +219,7 @@
       D.log.push('heir give ' + ((res.heirloom || {}).tier || '') + ((res.heirloom || {}).swapped ? ' swapped' : ''));
     };
     el.onclick = (e) => {
+      if (e.target.closest('[data-hmore]')) { el.classList.add('more'); D.log.push('heir more'); return; }
       const f = e.target.closest('.hfold');
       if (f) { const o = el.classList.toggle('open'); f.setAttribute('aria-expanded', String(o)); f.querySelector('b').textContent = o ? '▾' : '▸'; D.log.push('heir fold ' + (o ? 'open' : 'close')); return; }
       const b = e.target.closest('button[data-h]'); if (b && !el.classList.contains('busy')) send(hs[+b.dataset.h].target);
@@ -1249,5 +1251,6 @@
     }).catch(() => {});
   }
   D.state = () => ({ pending: !!pending, beatShown, beatQ: beatQ.length });
+  D.heirRow = (r) => heirloomRow(r);   // ★ 검수용
   D.leaveCard = leaveCard; D.react = react; D.pop = pop; D.queueBeat = (b) => { beatShown = 0; queueBeat(b); };   // ★ 검수용
 })();
