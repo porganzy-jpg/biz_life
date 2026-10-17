@@ -612,3 +612,23 @@
   - `step:"skip"` 이면 남은 걸음을 모두 적는다.
   - 화면 별칭도 받는다: scan_input→scan_window, card→card_flip, subtype·quick_pick→subtype_pick, after_give→after_first_give.
   - 없는 걸음은 400 이다.
+
+## 22. S33 오늘의 목표 셋 · 방 생산 숫자 (2026-10-17)
+- **목표**: `/api/ark` 와 모든 state 에 아래 필드가 실린다.
+  - `goals: [{id, kind:"manage"|"core"|"new", text_key, done, progress:[cur,n], carried, title_ko, done_ko}]`(셋).
+  - `goals_done_now: [{id, line_ko}]`: 방금 끝낸 것. 한 번만 온다.
+  - `tomorrow_need_clear`: 셋 다 끝낸 날.
+  - `all_done_ko`: 셋 다 끝낸 날의 방송. goals_text.json all_done[] 에서 날 시드로 고른다.
+  - 문장의 정본은 `data/goals_text.json` 이다(PM).
+- **규칙**: `data/balance/goals.json`.
+  - 켠 날 1~7은 week1[날], 8부터는 pool 이다. pool 은 같은 목표를 3일 안에 다시 내지 않고, n = 지금 + 걸음이며, if 조건(비용 절반·70%, 금 간 방이면 수리 먼저)을 지킨다.
+  - 못 끝낸 목표는 남는다(`carried`). 다음 켠 날에는 끝낸 칸만 채운다. 그날 목표 중 칸에 못 넣은 것은 대기열로 간다. 열리지 않은 기능 목표는 대기한다.
+  - `raid_handled_today` 목표는 그날 습격이 없으면(raid.none) `_alt`(지금 w3_quiet_tag) 로 바뀐다.
+  - 한 번 끝낸 목표는 끝난 채로 둔다(「오늘」 조건이 다음 날 꺼지지 않게).
+  - 자원 보상은 없다.
+- **내일 부탁 또렷**: 셋 다 끝낸 날, 떠날 때 `tomorrow_ask.clear:true, subtype_ko` 가 실린다. 합쳐진 경우에는 `next_visit.data.clear/subtype_ko/name` 이다.
+- **방 생산**: `production[slot]`(옛 값 그대로 + 덧붙임).
+  - 덧붙인 값: `output_per_tick`, `output_per_day`(= 틱 × 3), `output_per_hour`(= 틱 ÷ 8), `resources_per_day{}`, `by_people[0~3명 하루]`, `half_without_people`.
+  - 비어 있는 자리는 지금 사람으로 먼저 채우고, 나머지는 능력치 5·역할 없는 손으로 센다.
+  - `move_preview[rid][slot].room_per_day_after`: 그 사람이 들어간 뒤 그 방의 하루 값이다.
+  - `build_options[room].produces[]`: 그 방이 만드는 자원 키(예: ["water"]).

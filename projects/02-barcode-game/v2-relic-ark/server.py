@@ -1727,6 +1727,7 @@ def public_state(st: dict, uid: str) -> dict:
         # 짓기·레벨업 가능 여부(서버가 판단한다. 화면은 그리기만)
         "build_options": build_options(st, uid),
         "next_step": next_step_public(st, uid),           # S32: 건네기·찍기·자리·짓기 응답의 state 에도(화면이 행동마다 새로 그린다)
+        **goals_public(st, uid),                          # S33 오늘의 목표 셋(goals, goals_done_now, tomorrow_need_clear)
         "upgrades": {str(r["slot"]): upgrade_option(st, uid, r["id"], room_level(r))
                      for r in live_rooms(st)},
         "hall_level": int(st.get("hall_level") or 1),
@@ -1767,7 +1768,7 @@ def public_state(st: dict, uid: str) -> dict:
         # S14 드래그 미리보기 — 서버가 미리 계산한다(화면은 게임 숫자를 계산하지 않는다, D2)
         "move_preview": move_preview(st),
         # ── S13 이해관계·수집 (docs/API_S13.md) ─────────────────────
-        "production": production_public(st),
+        "production": production_merged(st),               # S33: 옛 방 카드 값(staff·per_person·label…) + 하루·시간당·사람 수별
         # 물 찬 칸(사용자 결정 2026-10-03): 다시 지을 수 있다. was_* 는 잃기 전 방(화면이 같은 방을 먼저 권할 수 있게)
         "flooded_cells": [{"slot": r["slot"], "was_id": (r.get("flooded_from") or {}).get("id", r.get("id")),
                            "was_name": (ROOMS.get((r.get("flooded_from") or {}).get("id", r.get("id"))) or {}).get("name"),
@@ -2282,6 +2283,7 @@ def move_preview(st: dict) -> dict:
                     newp = base_ppl[slot] + ([p] if counts else [])
                     to_new = room_output(st, r, newp)
                     cell["room_delta_pct"] = pct(to_new, base_out[slot])
+                    cell["room_per_day_after"] = round(to_new * 3, 1)   # S33: 「→ 하루 12.9」(production_public 과 같은 식)
             # S18-A2 방주 전체 산출 변화(떠난 방 + 옮겨 간 방, 나머지는 그대로). 화면은 이 한 숫자를 크게 쓴다
             new_total = base_total
             if from_new is not None:
@@ -4623,7 +4625,9 @@ def build_options(st: dict, uid: str) -> dict:
         cost, lack = priced(st, spec.get("cost"))
         miss = cond_check(st, uid, BUILD_COND.get(rid))
         out[rid] = {"cost": cost, "lacking": lack, "cond": (BUILD_COND.get(rid) or {}).get("ko"),
-                    "cond_missing": miss, "can": not lack and not miss}
+                    "cond_missing": miss, "can": not lack and not miss,
+                    "produces": [k for k, v in (spec.get("produces") or {}).items()     # S33: 「정수실 → 물」 빈 칸 안내
+                                 if isinstance(v, (int, float)) and k not in ("power_supply", "craft_slots")]}
         # S26 칸마다 물 빼기를 더한 판정(방 비용과 따로 drain_cost, 합친 missing)
         by = {}
         for sl, cell in drain_cells(st).items():
@@ -10154,9 +10158,15 @@ def leave_lines(st: dict, uid: str, nv: dict | None = None) -> tuple:
     내일의 부탁 한 줄로 합친다(next_visit 자리에 넣고 tomorrow_ask 는 null). 아니면 둘 다 + 보여 줄 순서."""
     nv = nv if nv is not None else next_visit_public(st, uid)
     ta = tomorrow_ask(st, uid)
+    if ta and goals_all_done_today(st):               # S33: 목표 셋을 다 한 날 — 내일 부탁이 또렷해진다
+        sub = (ta["need"].get("subtype") or [None])
+        sub = sub[0] if isinstance(sub, list) else sub
+        ta = dict(ta, clear=True, subtype_ko=sub_ko(ta["need"]["category"], sub) if sub else None)
     if ta and (nv or {}).get("kind") in ("need_tomorrow", "nothing"):
         nv = {"kind": "tomorrow_ask", "title": (nv or {}).get("title"), "line": ta["line"],
-              "data": {"resident_id": ta["resident_id"], "need": ta["need"]}, "merged_from": (nv or {}).get("kind")}
+              "data": {"resident_id": ta["resident_id"], "need": ta["need"], "clear": bool(ta.get("clear")),
+                       "subtype_ko": ta.get("subtype_ko"), "name": ta.get("name")},
+              "clear": bool(ta.get("clear")), "merged_from": (nv or {}).get("kind")}
         return nv, None, ["next_visit", "missed_chain"]
     return nv, ta, ["next_visit", "missed_chain", "tomorrow_ask"]
 
@@ -10816,6 +10826,314 @@ def tutorial_mark(inp: TutorialIn):
             seen.append(s_)
     save_state(inp.uid, st)
     return {"ok": True, "tutorial": tutorial_public(st)}
+
+
+# ── S33 오늘의 목표 셋(data/balance/goals.json · docs/GOALS_WEEK1.md) · 방 생산 숫자 ──────────────
+GOALS = _live_or_draft("goals.json") or {}
+if not GOALS:
+    try:
+        GOALS = json.loads((ROOT / "data" / "balance" / "goals.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        GOALS = {}
+GOAL_KINDS = ("manage", "core", "new")
+try:
+    GOALS_TEXT = json.loads((ROOT / "data" / "goals_text.json").read_text(encoding="utf-8"))   # PM: 목표 문장 정본
+except (OSError, json.JSONDecodeError):
+    GOALS_TEXT = {}
+
+
+def goal_text(gid: str, field: str) -> str | None:
+    node = (GOALS_TEXT.get("goal") or {}).get(gid) or {}
+    v = node.get(field) if isinstance(node, dict) else None
+    if isinstance(v, list):
+        v = v[0] if v else None
+    return v if isinstance(v, str) else None
+POOL_KIND = {"manage": "manage", "core": "core", "new": "feature"}
+TICKS_PER_DAY = 3
+TICK_HOURS = 8
+GOALS_ENFORCE = True
+
+
+def _prod_rooms(st: dict) -> list:
+    return [r for r in live_rooms(st) if any(isinstance(v, (int, float)) and k not in ("power_supply", "craft_slots")
+                                            for k, v in room_produces(r).items())]
+
+
+def goal_metric(st: dict, uid: str, key: str, arg=None):
+    """조건 키 → 지금 값(숫자 또는 참거짓). 판정은 상태에서만(goals.json conditions_doc)."""
+    c = core_of(st)
+    day = day_of(st)
+    smap = stations_map(st)
+    if key == "staffed":
+        rid = arg[0] if isinstance(arg, list) else arg
+        return max([len(smap.get(int(r["slot"]), [])) for r in live_rooms(st) if r["id"] == rid] or [0])
+    if key == "production_rooms_staffed":
+        return sum(1 for r in _prod_rooms(st) if smap.get(int(r["slot"])))
+    if key == "rooms_built":
+        return max(0, len(live_rooms(st)) - 1)
+    if key == "depth_m":
+        return depth_of(st)
+    if key == "residents":
+        return len(st.get("residents_list") or [])
+    if key == "scans_distinct_today":
+        return len({v.get("barcode") or k for k, v in c["scans"].items() if int(v.get("day") or 0) == day and not v.get("_probe")})
+    gl = [(rid, g) for rid, cr in (c.get("res") or {}).items() for g in cr.get("given") or []
+          if int(g.get("day") or 0) == day and not g.get("_probe")]
+    if key == "gives_today":
+        return len(gl)
+    if key == "gives_distinct_people_today":
+        return len({rid for rid, _ in gl})
+    if key == "need_met_today":
+        n = 0
+        for r in st.get("residents_list") or []:
+            nd = need_today(uid, r, day)
+            if nd and need_met_today(st, uid, r, nd):
+                n += 1
+        return n
+    if key == "intent_today":
+        return sum(1 for v in (c.get("intent_days") or {}).values() if v == day)
+    if key == "chain_beats_total":
+        return sum(int(s_.get("step") or 0) for cr in (c.get("res") or {}).values() for s_ in (cr.get("arcs") or {}).values()
+                   if isinstance(s_, dict))
+    if key == "decor_placed_today":
+        return sum(1 for r in live_rooms(st) for it in decor_items(st, r["slot"]) if int(it.get("day") or 0) == day)
+    if key == "tag_any":
+        return sum(len(room_tags_on(st, r["slot"])) for r in live_rooms(st))
+    if key == "octopus_named":
+        return bool((st.get("octopus") or {}).get("name"))
+    if key == "raid_handled_today":
+        rd = st.get("raid") or {}
+        return bool(rd.get("day") == day and rd.get("resolved"))
+    if key == "notebook_entries_total":
+        return known_total(st)
+    if key == "expeditions_started_total":
+        return int(st.get("exp_count") or 0)
+    if key == "table_set_today":
+        return (c.get("table") or {}).get("day") == day
+    if key == "wall_slots_filled_total":
+        return sum(1 for x in ((c.get("memory_wall") or {}).get("slots") or []) if x)
+    if key == "level2_rooms":
+        return sum(1 for r in live_rooms(st) if room_level(r) >= 2)
+    if key == "repaired_today":
+        return bool(((st.get("day_log") or {}).get(str(day)) or {}).get("repaired"))
+    if key == "heirlooms_total":
+        return sum(1 for r in st.get("residents_list") or [] if r.get("heirloom"))
+    if key == "tide_tries_week":
+        return 0
+    return 0
+
+
+def goal_eval(st: dict, uid: str, g: dict) -> tuple[bool, list]:
+    cond = g.get("cond") or {}
+    key, arg = next(iter(cond.items())) if cond else (None, None)
+    if key == "staffed":
+        n = int(arg[1]) if isinstance(arg, list) and len(arg) > 1 else 1
+        cur = goal_metric(st, uid, key, arg)
+        return cur >= n, [min(cur, n), n]
+    cur = goal_metric(st, uid, key, arg)
+    if isinstance(arg, bool) or isinstance(cur, bool):
+        v = bool(cur)
+        return v, [1 if v else 0, 1]
+    n = int(g.get("n") or arg or 1)
+    return int(cur) >= n, [min(int(cur), n), n]
+
+
+def _goal_row(g: dict, kind: str, pd: int, cur_metric=None) -> dict:
+    row = {"id": g["id"], "kind": kind, "cond": dict(g.get("cond") or {}), "text": g.get("text") or f"goal.{g['id']}",
+           "from_pd": pd, "done": False}
+    for k in ("alt_if_quiet", "_unlock"):
+        if g.get(k):
+            row[k] = g[k]
+    return row
+
+
+def _goal_ok_unlock(st: dict, g: dict) -> bool:
+    f = g.get("_unlock")
+    return not f or not CALENDAR_ENFORCE or is_unlocked(st, f)
+
+
+def _pool_candidates(st: dict, uid: str, kind: str, recent: dict, pd: int) -> list:
+    out = []
+    for g in (GOALS.get("pool") or {}).get(POOL_KIND[kind]) or []:
+        if not isinstance(g, dict) or not g.get("id"):
+            continue
+        if pd - int(recent.get(g["id"], -99)) < int((GOALS.get("pool") or {}).get("no_repeat_days", 3)):
+            continue
+        key, arg = next(iter((g.get("cond") or {}).items()))
+        if not pool_if_ok(st, uid, g["id"]):
+            continue
+        g2 = dict(g, cond={key: arg})
+        if isinstance(arg, str) and arg.startswith("cur+"):
+            g2["n"] = int(goal_metric(st, uid, key)) + int(arg[4:])
+            g2["cond"] = {key: g2["n"]}
+        out.append(g2)
+    if kind == "manage":                              # 금 간 방이 있으면 수리가 먼저
+        out.sort(key=lambda g: g["id"] != "p_repair")
+    return out
+
+
+def pool_if_ok(st: dict, uid: str, gid: str) -> bool:
+    """pool 의 if(오늘 할 수 있는 크기만)."""
+    if gid == "p_staff_new_room":
+        smap = stations_map(st)
+        return any(not smap.get(int(r["slot"])) for r in _prod_rooms(st))
+    if gid == "p_build":
+        for sl, cell in drain_cells(st).items():
+            tot = sum(int(v) for v in cell["drain_cost"].values())
+            have = sum(min(int(st["resources"].get(k, 0)), int(v)) for k, v in cell["drain_cost"].items())
+            if tot == 0 or have * 2 >= tot:
+                return True
+        return False
+    if gid == "p_level2":
+        for r in live_rooms(st):
+            up = upgrade_option(st, uid, r["id"], room_level(r))
+            if up and up.get("to") == 2:
+                tot = sum(int(v) for v in (up.get("cost") or {}).values()) or 1
+                lack = sum(int(v) for v in (up.get("lacking") or {}).values())
+                if (tot - lack) / tot >= 0.7:
+                    return True
+        return False
+    if gid == "p_repair":
+        return any(r.get("cracked") for r in live_rooms(st))
+    if gid == "p_go_down":
+        d = depth_of(st)
+        return any(int(cell["depth_m"]) > d for cell in drain_cells(st).values())
+    if gid == "p_knot":
+        for r in st.get("residents_list") or []:
+            a, s_ = current_arc(st, r)
+            if a and next_beat(a, s_):
+                return True
+        return False
+    if gid == "p_heirloom":
+        return is_unlocked(st, "heirloom") and any(_rk(x.get("rarity")) >= _rk(HEIR_MIN) for x in st.get("shelf") or [])
+    if gid == "p_tide":
+        return False                                  # 물때가 아직 없다
+    if gid in ("p_expedition",):
+        return is_unlocked(st, "expedition")
+    if gid in ("p_table",):
+        return is_unlocked(st, "evening_table")
+    if gid in ("p_wall",):
+        return is_unlocked(st, "memory_wall")
+    if gid in ("p_decor_tag",):
+        return is_unlocked(st, "decor_place")
+    return True
+
+
+def goals_tick(st: dict, uid: str) -> dict:
+    """켠 날이 바뀌면 빈 칸(어제 끝낸 칸)만 그날 목표로 채운다. 못 끝낸 것은 남는다. 그날 목표 중 못 넣은 것은 대기열로."""
+    c = core_of(st)
+    G = c.setdefault("goals", {"slots": {}, "queue": [], "pd": None, "recent": {}, "announced": []})
+    pd = max(1, play_day(st))
+    if G.get("pd") != pd:
+        for k in GOAL_KINDS:
+            sl = G["slots"].get(k)
+            if sl and sl.get("done"):
+                G["slots"][k] = None
+        today = []
+        W = (GOALS.get("week1") or {}).get(str(pd)) if pd <= 7 else None
+        if W:
+            today = [_goal_row(g, g.get("kind"), pd) for g in W if isinstance(g, dict) and g.get("kind") in GOAL_KINDS]
+        for k in GOAL_KINDS:
+            if G["slots"].get(k):
+                continue
+            cand = [g for g in today if g["kind"] == k and _goal_ok_unlock(st, g)] + \
+                   [g for g in G["queue"] if g["kind"] == k and _goal_ok_unlock(st, g)]
+            if not cand and pd > 7:
+                cand = [_goal_row(g, k, pd) for g in _pool_candidates(st, uid, k, G["recent"], pd)]
+                for x in cand:
+                    x["cond"] = dict(x["cond"])
+            if cand:
+                pick = cand[0]
+                G["slots"][k] = pick
+                G["recent"][pick["id"]] = pd
+                if pick in G["queue"]:
+                    G["queue"].remove(pick)
+                if pick in today:
+                    today.remove(pick)
+        G["queue"] += [g for g in today if g["id"] not in {x["id"] for x in G["queue"]}]
+        del G["queue"][:-9]
+        G["pd"] = pd
+        G["all_done_pd"] = None
+    # 조용한 날: 오늘 습격이 없으면 습격 목표를 대체 목표로
+    for k in GOAL_KINDS:
+        sl = G["slots"].get(k)
+        rd = st.get("raid") or {}
+        if sl and not sl.get("done") and sl.get("alt_if_quiet") and rd.get("day") == day_of(st) and rd.get("none"):
+            alt = ((GOALS.get("week1") or {}).get("_alt") or {}).get(sl["alt_if_quiet"])
+            if alt:
+                G["slots"][k] = {"id": sl["alt_if_quiet"], "kind": k, "cond": dict(alt.get("cond") or {}),
+                                 "text": alt.get("text") or f"goal.{sl['alt_if_quiet']}", "from_pd": sl.get("from_pd"),
+                                 "done": False, "alt_of": sl["id"]}
+    # 판정(끝낸 것은 끝난 채로 — 「오늘」 조건이 다음 날 거꾸로 꺼지지 않게)
+    for k in GOAL_KINDS:
+        sl = G["slots"].get(k)
+        if sl and not sl.get("done"):
+            ok_, prog = goal_eval(st, uid, sl)
+            sl["progress"] = prog
+            if ok_:
+                sl.update({"done": True, "done_pd": pd, "progress": [prog[1], prog[1]]})
+    filled = [G["slots"].get(k) for k in GOAL_KINDS if G["slots"].get(k)]
+    if filled and len(filled) == len(GOAL_KINDS) and all(x.get("done") and x.get("done_pd") == pd for x in filled):
+        G["all_done_pd"] = pd
+    return G
+
+
+def goals_all_done_today(st: dict) -> bool:
+    G = core_of(st).get("goals") or {}
+    return G.get("all_done_pd") is not None and G.get("all_done_pd") == max(1, play_day(st))
+
+
+def goals_public(st: dict, uid: str) -> dict:
+    if not GOALS_ENFORCE or not GOALS:
+        return {"goals": [], "goals_done_now": [], "tomorrow_need_clear": False}
+    G = goals_tick(st, uid)
+    rows, now = [], []
+    for k in GOAL_KINDS:
+        sl = G["slots"].get(k)
+        if not sl:
+            continue
+        rows.append({"id": sl["id"], "kind": k, "text_key": sl.get("text"), "done": bool(sl.get("done")),
+                     "progress": sl.get("progress") or [0, 1], "carried": sl.get("from_pd") != G.get("pd"),
+                     "title_ko": goal_text(sl["id"], "title"), "done_ko": goal_text(sl["id"], "done")})
+        if sl.get("done") and sl["id"] not in G["announced"]:
+            G["announced"].append(sl["id"])
+            now.append({"id": sl["id"], "line_ko": goal_text(sl["id"], "done")})
+    del G["announced"][:-60]
+    clear = goals_all_done_today(st)
+    ad = GOALS_TEXT.get("all_done") or []
+    ad = [ad] if isinstance(ad, str) else ad
+    all_ko = random.Random(f"{st.get('created')}|{G.get('pd')}|goals_all").choice(ad) if (clear and ad) else None
+    return {"goals": rows, "goals_done_now": now, "tomorrow_need_clear": clear, "all_done_ko": all_ko}
+
+
+def production_merged(st: dict) -> dict:
+    out = {k: dict(v) if isinstance(v, dict) else v for k, v in (production_public(st) or {}).items()}
+    for k, v in production_out(st).items():
+        if isinstance(out.get(k), dict):
+            out[k].update({kk: vv for kk, vv in v.items() if kk not in out[k] or kk.startswith("output_") or kk in ("by_people", "half_without_people", "resources_per_day")})
+        else:
+            out[k] = v
+    return out
+
+
+def production_out(st: dict) -> dict:
+    """방마다 생산 숫자: 한 틱(8시간) 산출 × 3 = 하루, ÷ 8 = 시간당. by_people = 0~3명일 때의 하루 값(지금 사람부터 채우고, 그 뒤는 능력치 5 의 손)."""
+    out = {}
+    for r in _prod_rooms(st):
+        here = staff_people(st, r["slot"])
+        tick = room_output(st, r, here)
+        m = room_mult(st, r, people=here)[0] * (1.0 if light_on(st, r["slot"]) else 0.5)
+        bn = room_bonus_for(st, r, people=here)
+        res = {k: round((v + bn.get(k, 0)) * m * TICKS_PER_DAY, 1) for k, v in room_produces(r).items()
+               if isinstance(v, (int, float)) and k not in ("power_supply", "craft_slots")}
+        by = []
+        for n in range(4):
+            ppl = list(here[:n]) + [{"id": f"_hand{i}", "name": "", "role": None, "stats": {}} for i in range(max(0, n - len(here)))]
+            by.append(round(room_output(st, r, ppl) * TICKS_PER_DAY, 1))
+        out[str(r["slot"])] = {"room_id": r["id"], "people": len(here), "output_per_tick": round(tick, 2),
+                               "output_per_day": round(tick * TICKS_PER_DAY, 1), "output_per_hour": round(tick / TICK_HOURS, 2),
+                               "resources_per_day": res, "by_people": by, "half_without_people": len(here) == 0}
+    return out
 
 
 # ─────────────────────────────────────────────────────────────

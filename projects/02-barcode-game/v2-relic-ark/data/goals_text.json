@@ -1,5 +1,5 @@
 {
-  "_doc": "하루 목표 셋 문장(관리실 방송). 키 = data/balance/goals.json 의 id. title=목표 줄(권하는 말), done=끝났을 때 한 줄. all_done[]=셋 다 끝난 날. 자리표시자 없음.",
+  "_doc": "하루 목표 셋 문장(관리실 방송). 키 = data/balance/goals.json 의 id. title=목표 줄(권하는 말), done=끝났을 때 한 줄. all_done[]=셋 다 끝난 날. 자리표시자 없음. 정본(PM 결정): 서버가 읽어 /api/ark.goals 로 보낸다.",
   "goal": {
     "w1_staff_pantry": {
       "title": "식량창고에 한 분 모셔 주세요",
