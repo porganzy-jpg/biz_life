@@ -331,6 +331,7 @@
   // 반응: 사람이면 그 사람 위에 물건 + 마음 + 한 줄, 방이면 방이 한 번 밝아지고 한 줄
   function react(res, s) {
     const rc = res.reaction || {}, ef = res.effects || {};
+    if (K.ext.giftChips && res.tier !== 'keep') { try { K.ext.giftChips(res); } catch (e) { /* 칩이 실패해도 반응은 그린다 */ } }   // S34 건네기 결과 칩
     const big = ef.memory || ef.arc;                         // 기억·매듭이면 대사가 그쪽 것
     const line = plain(txt((ef.memory && ef.memory.line) || rc.line || res.line || rc.announce || ''));
     const kind = ef.returned_to_shelf ? 'returned' : (res.tier === 'chain_beat' ? 'chain' : (res.tier || res.kind || s.reason || 'like'));
