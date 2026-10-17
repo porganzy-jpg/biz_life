@@ -11,6 +11,15 @@
 (() => {
   'use strict';
   const RM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  // ?new=1 이면 이 브라우저의 방주를 잊고 새 방주로 시작한다(처음부터 해 보기). 옛 방주는 서버에 그대로 남는다
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('new') === '1') {
+      localStorage.removeItem('ark_uid');
+      q.delete('new');
+      history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+    }
+  } catch (e) { /* 저장소·주소를 못 바꾸면 하던 방주로 연다 */ }
   let firstVisit = true;
   try { firstVisit = !localStorage.getItem('ark_uid'); } catch (e) { /* 저장소가 막히면 처음으로 본다 */ }
   const T0 = performance.now();
