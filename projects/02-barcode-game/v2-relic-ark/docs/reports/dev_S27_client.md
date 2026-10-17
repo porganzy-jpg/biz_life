@@ -21,3 +21,30 @@
 - 844·1280 콘솔 오류 0. 스크린샷 s27_dup_card_{844,1280}.png.
 
 **남는 것**: 서버 쪽 근본 수정(`_alt` 는 line 에만, announce 는 관리실 서술 대체)은 서버·시나리오 몫이다. 화면은 그것과 무관하게 겹침을 막는다.
+
+## S27 화면 본작업 (API_S19 §17 + where.rename) — 2026-10-17, 커밋하지 않음
+확인은 8041 별도 포트에서만 했다. 8002 는 건드리지 않았고 확인 뒤 8041 은 껐다. 시험 스크립트는 scratchpad t_s27.py.
+
+| 항목 | 화면 | 파일 |
+|---|---|---|
+| 한 번에 고르기(peek.quick_pick) | 갈래를 모르는 바코드: 그림 8개(props x4) + 「기타」. 고르면 `/api/scan {user_category, user_subtype}` 한 번이고 「이게 뭐예요?」를 다시 묻지 않는다. 「기타」 → 예전 갈래 8개 → 하위 종류 | base.js showPicker·handleCode |
+| 고른 뒤 첫 만남 줄(first_meet kind=subtype, replaces) | 갈래 짐작 줄을 지우고 「처음 보는 우유입니다.」 | base_core subtypePick |
+| 이름 다시 붙이기(where.rename) | 이미 이름을 붙인 바코드를 다시 찍으면 「이름 다시 붙이기 ▸」 한 줄. 누르면 rename_confirm 문장과 이름 단추가 나오고, 지금 이름은 눌리지 않는다. 바꾸면 그림·이름·첫 만남 줄을 다시 그리고 done_ko 를 띄운다. 하루 한 번이라 두 번째는 「오늘은 한 번 바꾸셨습니다」 단추가 눌리지 않는다 | base_core renameRow |
+| 간직 메모(keep_note) | 가보 칸이 열리기 전에 들어온 귀함 이상 카드에 단추 없는 한 줄. 같은 물건은 세션에 한 번 | base_core keepNote |
+| 가보 후보 한 줄(hint_ko) | 「가보로 · 온새」 아래 「부엌에서 쓰던 손때 묻은 물건을 아끼시는 분입니다.」. 접힌 줄이 이미 묻고 있어서 펼쳤을 때 같은 물음이 한 번 더 나오지 않게 했다. heirloom_refused 면 결과 한 줄만 | base_core heirloomRow |
+| 떠날 때 순서(order/leave_order) + 내일의 부탁 합치기(r5-3) | 서버 순서대로 그리고, 빠진 블록은 뒤에 붙인다. next_visit.kind=tomorrow_ask 면 「다음에 켜시면」 아래 그 사람 얼굴 + 부탁 한 줄. 「오늘은 여기까지」 문장은 없다 | base_core leaveCard |
+| 낮 한 상(evening_table.daytime) | 카드 제목 「낮 상」, 문장은 서버 open_ko·table_prompt(daytime_table) | base_core openTable |
+| 관리실이 대신 막기(raid.office) | 습격 카드에 물음과 [관리실에 맡기기][직접 하기]. 맡기면 `/api/raid/auto_defend` → 결과 글자·office.line 방송. 「직접 하기」를 누르면 그 습격 동안 접는다 | base.js renderRaid·autoDefend |
+| 선반 꽉 참(세션에 한 번) | 처음 한 번만 바꾸기를 묻는다. 그 뒤로는 서버 `stored.quiet_ko` 한 줄(흐린 색) | base.js showReveal |
+| 첫 진입(overnight.first_entry) | 「어서 오십시오」 판(morning.first_entry). 하루 소비 줄은 그사이 창 맨 앞으로 옮겼다 | base_collect morning |
+| 덤 | 습격 카드를 펼치면 문어 「어디로」 카드를 잠시 숨긴다(844 에서 둘이 겹쳐 단추를 가리던 것). 이름을 묻는 중에는 짐작한 하위 종류 그림 대신 갈래 그림 | base_core·base.js |
+
+**검증 (844·1280)**
+- (자) 13개 필드가 모두 응답에 오고 화면에서 쓰인다(seen=used): quick_pick, first_meet.subtype, keep_note, where.rename, rename.done_ko, heirloom.hint_ko, leave.order, next_visit.tomorrow_ask, evening_table.daytime, raid.office, auto_defend.office, stored.quiet_ko, overnight.first_entry.
+- 관리실 맡기기 결과: held(plan 있음).
+- 콘솔 오류 0. 이름 두 번째 바꾸기 400 은 시험에서 일부러 피했고, 그 밖에 400 이상 응답은 0. braces 0.
+- 스크린샷(s27_*_{844,1280}): first_entry, quick_pick, quick_card, keep_note, rename_open, renamed, leave_order, heir_hints, shelf_quiet, daytime_table, raid_office, raid_office_done.
+
+**남은 것**
+- 기억 벽(memory_wall)과 「어디로」의 pinned 표시는 이번 지시 목록에 없어서 하지 않았다(서버는 준비됨).
+- t_s28 시험은 한 번에 고르기 때문에 고르는 길이 바뀌어 고쳐야 한다(화면 결함은 아님).

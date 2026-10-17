@@ -384,12 +384,15 @@
     K.enqueue('overnight', (done) => {
       const hr = new Date().getHours(), when = hr >= 5 && hr < 11 ? '아침' : hr < 17 ? '낮' : hr < 21 ? '저녁' : '밤';
       const tk = hr >= 5 && hr < 11 ? 'morning' : hr < 17 ? 'day' : hr < 21 ? 'evening' : 'night';                       // S19: 저녁에 열어도 「아침」이라 하던 것
-      const title = T('morning.by_time.' + tk + '.title', {}, '') || (tk === 'morning' ? ((ov && ov.title) || T('morning.title', {}, '밤사이')) : '그사이');
-      const open0 = T('morning.by_time.' + tk + '.open', {}, '');
+      const fe = !!(ov && (ov.first_entry || ov.band === 'first_entry'));          // S27 첫 진입: 「어서 오십시오」 판(그사이 없음)
+      const title = fe ? (T('morning.first_entry.title', {}, '') || ov.title || '어서 오십시오')
+        : (T('morning.by_time.' + tk + '.title', {}, '') || (tk === 'morning' ? ((ov && ov.title) || T('morning.title', {}, '밤사이')) : '그사이'));
+      const open0 = fe ? (T('morning.first_entry.open', {}, '') || ov.open || '') : T('morning.by_time.' + tk + '.open', {}, '');
       const body = K.panel('<h2>' + esc(title) + '</h2><p class="sub">' + esc(day) + '일째 ' + when + '</p>' +
         '<p class="desc">' + esc(K.plain(open0 || (ov && ov.open) || T('morning.open', {}, '좋은 아침입니다, 관리실입니다.'))) + '</p>' +
+        lines.filter(l => l.kind === 'consumed').map(l => '<p class="dayline ov-consumed">' + esc(l.text) + '</p>').join('') +   // 하루 소비는 맨 앞
         (K.ext.core && K.ext.core.morningExtra ? K.ext.core.morningExtra(st) : '') +   // S19: 오늘 바라는 것·찾아온 이·오늘의 일
-        lines.map(l => '<p class="dayline ov-' + esc(l.kind) + '">' + esc(l.text) + '</p>').join('') +
+        lines.filter(l => l.kind !== 'consumed').map(l => '<p class="dayline ov-' + esc(l.kind) + '">' + esc(l.text) + '</p>').join('') +
         '<p class="desc">' + esc(K.plain((ov && ov.close) || T('morning.close', {}, ''))) + '</p>' +
         '<div class="rowbtns"><button class="ovok">' + esc(T('overnight.ok', {}, '확인')) + '</button></div>');
       body.querySelector('.ovok').addEventListener('click', () => K.closePanel());

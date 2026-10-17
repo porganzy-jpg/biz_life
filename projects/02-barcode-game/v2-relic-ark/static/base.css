@@ -1036,3 +1036,30 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
   /* 「도감에 처음 적힌 유물」 다음 줄과 붙지 않게 */
   #scanCard .rgain .first::after{content:' · '; color:#93a6a3}
 }
+/* ══ S27 ══ */
+/* 한 번에 고르기: 그림 8 + 기타 */
+.picker.quick{grid-template-columns:repeat(4,1fr)}
+.picker .qopt{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:64px; padding:4px 2px}
+.picker .qopt img{width:48px; height:auto; image-rendering:pixelated}
+.picker .qopt span{font-size:12px}
+.picker .qother{grid-column:1/-1; min-height:36px; color:#b9ae94}
+@media (max-height:500px){ .picker.quick{grid-template-columns:repeat(8,1fr); gap:4px} .picker .qopt{min-height:56px} .picker .qopt img{width:36px} .picker .qopt span{font-size:11px} }
+/* 습격: 관리실이 대신 */
+.roffice{margin:6px 0; padding:7px 9px; background:#0e1a1c; border-left:3px solid #6fc9c4; border-radius:6px}
+.roffice p{margin:0 0 6px; font-size:12.5px; line-height:1.55; color:#cfe8ec}
+.roffice .rowbtns button{min-height:40px}
+.where.quiet{color:#93a6a3}
+/* S27 가보 후보 한 줄 · 간직 메모 · 이름 다시 붙이기 */
+.heirrow .hopts button .hl{display:flex; flex-direction:column; align-items:flex-start; gap:1px; text-align:left}
+.heirrow .hopts button .hl b{font-weight:500}
+.heirrow .hopts .hh{font-size:10.5px; line-height:1.35; color:#cdb98a; white-space:normal}
+.keepnote{display:flex; align-items:flex-start; gap:6px; margin:8px 0 0; padding:6px 9px; font-size:12px; line-height:1.55; color:#f1dfb0; background:#12100b; border-left:3px solid #8a6420; border-radius:6px}
+.keepnote i{flex:none; width:9px; height:11px; margin-top:4px; background:#cdb98a; clip-path:polygon(50% 0,100% 30%,82% 100%,18% 100%,0 30%)}
+.renamerow{margin-top:6px}
+.renamerow .rnfold{min-height:32px; padding:0 12px; font:inherit; font-size:12px; color:#b9ae94; background:transparent; border:1px dashed #4a4030; border-radius:16px; cursor:pointer}
+.renamerow .rnfold[disabled]{cursor:default; opacity:.7}
+.renamerow .rnfold small{font-size:10.5px; color:#93a6a3}
+.renamerow .gq{margin:6px 0 4px; font-size:12px; line-height:1.5; color:#cfe8ec}
+.renamerow.busy button{opacity:.5; pointer-events:none}
+@media (max-height:500px){ .keepnote{margin-top:5px; padding:4px 7px; font-size:11px} .heirrow .hopts .hh{font-size:10px} }
+.heirrow.fold .hfold ~ .hq{display:none}   /* 접힌 줄이 이미 묻는다 — 같은 물음 두 번 없이 */

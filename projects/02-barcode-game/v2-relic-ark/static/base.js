@@ -2056,6 +2056,25 @@
     } catch (e) { toast(e.message || '물을 빼지 못했습니다'); }
   }
 
+  let officeNo = null;
+  async function autoDefend() {                              // S27: POST /api/raid/auto_defend — 응답은 접촉 응답 + office{plan, line}
+    const of = $('#roffice'); if (of) of.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    try {
+      const r = await api('/api/raid/auto_defend', {});
+      if (r.state) apply(r.state);
+      if (r.result) {
+        play((cb.raid && cb.raid.creature.audio && cb.raid.creature.audio.contact) || 'sfx_water_splash.ogg', 0.6);
+        const wd = RESULT_WORD[r.result] || [r.result_ko || '', '#e6d7b0'];
+        floatWord(raidTargetSlot(), wd[0], wd[1]);
+        lastOutcome = Object.assign({ raidId: cb.raid && cb.raid.id }, r);
+      }
+      raidOpen = false;
+      toast(plain((r.office && r.office.line) || r.line || ''));
+      officeLog.push({ result: r.result || null, plan: !!(r.office && r.office.plan) });
+      renderRaid(); refreshRaid();
+    } catch (e) { toast(e.message || '관리실이 지금은 맡을 수 없습니다'); if (of) of.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
+  }
+  const officeLog = [];
   async function advanceRaid() {
     const btn = $('#radv'); btn.disabled = true;
     try {
@@ -2123,6 +2142,16 @@
     if (!eyeEl) { eyeEl = document.createElement('p'); eyeEl.id = 'reye'; eyeEl.className = 'eye-early';
                   $('#rhow').after(eyeEl); }
     eyeEl.hidden = !raid.eye_early;
+    // S27 관리실이 대신: 낮 세션의 아직 안 끝난 오늘 습격에만 서버가 office 를 붙인다. 「직접 하기」를 고르면 그 습격 동안 접는다
+    let of = $('#roffice');
+    if (!of) { of = document.createElement('div'); of.id = 'roffice'; of.className = 'roffice'; $('#radv').before(of);
+      of.addEventListener('click', (e) => {
+        if (e.target.closest('[data-oyes]')) autoDefend();
+        else if (e.target.closest('[data-ono]')) { officeNo = (cb.raid || {}).id || true; renderRaid(); }
+      }); }
+    const ofc = raid.office;
+    of.hidden = !(ofc && ofc.ask) || officeNo === (raid.id || true);
+    if (!of.hidden) of.innerHTML = '<p>' + esc(plain(ofc.ask)) + '</p><div class="rowbtns"><button class="on" data-oyes="1">' + esc(plain(ofc.yes_label || '관리실에 맡기기')) + '</button><button data-ono="1">' + esc(plain(ofc.no_label || '직접 하기')) + '</button></div>';
     if (raid.eye_early) eyeEl.textContent = plain(raid.eye_early.ko);
     const g = $('#rgate'), wd = $('#rwould');
     if (raid.ready && raid.creature.threat && raid.stage !== 'done') {
@@ -2796,7 +2825,7 @@
     return (10 - sum % 10) % 10 === chk;
   }
   K_gs1ok = gs1ok;
-  async function handleCode(raw, userCat, source) {
+  async function handleCode(raw, userCat, source, userSub) {
     if (scanBusy) return;
     const code = String(raw || '').replace(/\D/g, '');
     if (code.length < 8) { toast('숫자 8~13자리를 적어 주세요'); return; }
@@ -2812,7 +2841,7 @@
         const pk = await api('/api/peek?barcode=' + code + '&uid=' + encodeURIComponent(uid));
         if (pk.needs_category) { showPicker(pk); return; }
       }
-      const r = await api('/api/scan', { barcode: code, user_category: userCat || null, source });   // source: camera | manual(손 입력은 전역 투표·집계에서 뺀다 — 서버)
+      const r = await api('/api/scan', Object.assign({ barcode: code, user_category: userCat || null, source }, userSub ? { user_subtype: userSub } : {}));   // S27 한 번에 고르기: 하위 종류까지   // source: camera | manual(손 입력은 전역 투표·집계에서 뺀다 — 서버)
       stopCam(); pendingCode = null;
       play('sfx_scan_ok.ogg', 0.5);
       // 선반의 정본은 /api/ark 다. 카드 앞면 그림을 선반에 놓일 물건과 같게 하려고 먼저 받는다
@@ -2821,9 +2850,20 @@
     } catch (e) { toast(e.message || '읽지 못했습니다'); }
     finally { scanBusy = false; $('#manualBtn').disabled = false; }
   }
-  function showPicker(pk) {
-    pendingCode = pk.barcode;
+  let pendingPick = null, fullSaid = false;
+  function showPicker(pk, cats) {
+    pendingCode = pk.barcode; pendingPick = pk;
     const w = $('#picker'); w.hidden = false;
+    const qp = pk.quick_pick;
+    if (qp && (qp.options || []).length && !cats) {          // S27: 갈래·하위 종류를 한 번에(그림 8 + 「기타」)
+      w.classList.add('quick');
+      w.innerHTML = '<p>' + esc(plain(qp.prompt_ko || '이 가문의 성문은 처음 봅니다. 어떤 물건인가요?')) + '</p>' +
+        qp.options.slice(0, 8).map((o, i) => '<button class="qopt" data-qi="' + i + '">' +
+          (o.prop && PROP_ID_OK.test(o.prop) ? '<img alt="" src="/static/art/props/x4/' + esc(o.prop) + '.png">' : '') + '<span>' + esc(o.ko || '') + '</span></button>').join('') +
+        '<button class="qother" data-qother="1">' + esc(plain((qp.other || {}).label_ko || '기타')) + '</button>';
+      return;
+    }
+    w.classList.remove('quick');
     w.innerHTML = '<p>이 가문의 성문은 처음 봅니다. 어떤 물건인가요?</p>' +
       (pk.categories || []).map(c => '<button data-cat="' + esc(c) + '">' + esc(CAT_KO[c] || c) + '</button>').join('') +
       '<button data-cat="">모름</button>';
@@ -2938,7 +2978,7 @@
     const slot = typeof r.shelf_slot === 'number' ? r.shelf_slot : null;
     const item = slot != null ? shelf.find(x => (x.slot | 0) === slot) : null;
     const guess = !!(r.where && r.where.subtype_pick && r.where.subtype_pick.needed);   // 아직 묻는 중이면 짐작한 하위 종류 그림을 쓰지 않는다
-    const pid = (c.subtype && !guess && propForItem(c.category, c.subtype)) || (item && item.prop_id) || propForCategory(c.category);
+    const pid = guess ? propForCategory(c.category) : ((c.subtype && propForItem(c.category, c.subtype)) || (item && item.prop_id) || propForCategory(c.category));
     const sp = propSpec(pid);
     const sea = !!((r.variant && r.variant.shiny) || c.sea_variant || (item && item.variant === 'sea'));
     const front = $('#rcFront');
@@ -2966,7 +3006,9 @@
       : (slot != null
         ? '<span class="where">' + esc((item && item.name) || sp.name || '물건') + ', 선반 ' + (slot + 1) + '번째 칸에 두겠습니다</span>'
         : (r.swap_offer && r.swap_offer.stored_id ? swapOffer(r.swap_offer, c.name || '')
-          : (has ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : '')));
+          : ((r.stored && r.stored.quiet_ko) ? '<span class="where quiet">' + esc(plain(r.stored.quiet_ko)) + '</span>'      // S27: 두 번째부터는 조용히
+            : (has && !fullSaid ? '<span class="where">선반이 꽉 찼습니다. 창고를 넓히시면 더 둘 수 있습니다</span>' : ''))));
+    if (has && slot == null) fullSaid = true;
     const vr = r.variant && r.variant.shiny ? r.variant : null;
     const extra = (vr ? '<span class="variantline">' + esc(plain(vr.ko || '')) + '</span>' : '') +
       (r.first_meet || []).map((m, i) => '<span class="meetline" data-kind="' + esc(m.kind || '') + '" data-i="' + i + '">' + esc(plain(m.line || '')) + '</span>').join('') +
@@ -3677,6 +3719,9 @@
   $('#manual').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleCode(e.target.value, undefined, 'manual'); });
   $('#samples').addEventListener('click', (e) => { const b = e.target.closest('button[data-c]'); if (b) handleCode(b.dataset.c, undefined, 'manual'); });
   $('#picker').addEventListener('click', (e) => {
+    const q = e.target.closest('button[data-qi]');
+    if (q && pendingCode && pendingPick && pendingPick.quick_pick) { const o = pendingPick.quick_pick.options[+q.dataset.qi]; if (o) handleCode(pendingCode, o.category, undefined, o.subtype); return; }
+    if (e.target.closest('button[data-qother]') && pendingPick) { showPicker(pendingPick, true); return; }
     const b = e.target.closest('button[data-cat]'); if (b && pendingCode) handleCode(pendingCode, b.dataset.cat || null);
   });
   $('#shelfBtn').addEventListener('click', toShelf);
@@ -3747,6 +3792,7 @@
     sil: () => silDbg,
     // ★ S13 검수: 화면에 보이는 글(DOM 글자 + 지금까지 띄운 토스트 + 캔버스 글자)에 '{' 가 몇 번 나왔나
     podTags: () => Object.assign({}, podTagLog),
+    officeLog: () => officeLog.slice(), autoDefend: () => autoDefend(),
     braceCheck: () => {
       const dom = (document.body.innerText.match(/[{}]/g) || []).length;
       return { dom, toasts: braceLog.toasts, canvas: braceLog.canvas, samples: braceLog.samples.slice(0, 5) };
