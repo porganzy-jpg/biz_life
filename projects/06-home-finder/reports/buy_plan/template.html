@@ -61,7 +61,11 @@ nav.tabs button:focus-visible,button:focus-visible,select:focus-visible,input:fo
 .strat .ok-t{color:var(--ok);font-weight:600}.strat .no-t{color:var(--no);font-weight:600}
 .role{font:700 12px var(--body);color:var(--muted);letter-spacing:.03em}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
-.d8{background:var(--t8)}.d9{background:var(--t9)}.dl{background:var(--land)}.ds{background:var(--sub)}.dr{background:var(--ink)}
+.d8{background:var(--t8)}.d9{background:var(--t9)}.dl{background:var(--land)}.ds{background:var(--sub)}.dr{background:var(--ink)}.dz{background:var(--sub)}
+.tier.tz{background:var(--sub)}
+.ten-tbl td{white-space:normal;vertical-align:top}.ten-tbl .ok{color:var(--ok);font-weight:600}.ten-tbl .no{color:var(--no);font-weight:600}
+.eff{display:flex;flex-wrap:wrap;gap:6px}
+.list>*{min-width:0}#zsort{max-width:100%}.toolbar label{min-width:0;max-width:100%}.tier.tw{background:var(--muted)}.tier.tc{background:var(--warn)}
 .count{font-family:var(--mono);font-size:11.5px;color:var(--muted);font-weight:500}
 main{display:grid;gap:16px;grid-template-columns:1fr}
 @media (min-width:1000px){ main{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start} #mapbox{position:sticky;top:calc(env(safe-area-inset-top,0px) + 56px)} }
@@ -127,7 +131,7 @@ footer p{margin:0}
 <div class="wrap">
   <header>
     <h1>마지막 집 후보</h1>
-    <p class="lede">재택근무 · 생애최초 · 현금 8억 기준으로 고른 수도권 아파트와 땅입니다. 호가는 2026년 10월 1일 네이버 부동산, 기준 시세는 최근 12개월 국토부 실거래입니다.</p>
+    <p class="lede">재택근무 · 생애최초 · 현금 8억 기준으로 고른 수도권 아파트와 땅입니다. '관심 권역' 탭은 2026년 10월 17일 호가, 나머지 탭은 10월 1일 호가입니다. 기준 시세는 최근 12개월 국토부 실거래입니다.</p>
     <div class="facts">
       <span>대출 가정 <b>생애최초 LTV 70%, 최대 6억</b></span>
       <span>총비용 <b>매수가 + 취득세 + 중개·법무비</b></span>
@@ -137,6 +141,8 @@ footer p{margin:0}
   </header>
 
   <nav class="tabs" role="tablist" aria-label="보기">
+    <button role="tab" id="tab-zone" data-tab="zone"><span class="dot dz"></span>관심 권역<span class="count" id="n-zone"></span></button>
+    <button role="tab" id="tab-routes" data-tab="routes"><span class="dot dz"></span>세 갈래 후보<span class="count" id="n-routes"></span></button>
     <button role="tab" id="tab-strat" data-tab="strat"><span class="dot dr"></span>매수 전략<span class="count" id="n-strat"></span></button>
     <button role="tab" id="tab-rec" data-tab="rec"><span class="dot dr"></span>추천<span class="count" id="n-rec"></span></button>
     <button role="tab" id="tab-t8" data-tab="t8"><span class="dot d8"></span>8억 이하<span class="count" id="n-t8"></span></button>
@@ -190,6 +196,9 @@ footer p{margin:0}
 const APTS = /*APTS*/;
 const LAND = /*LAND*/;
 const RECS = /*RECS*/;
+const ZONE = /*ZONE*/;
+const ZONE_HTML = /*ZONE_HTML*/;
+const ROUTES = /*ROUTES*/;
 const STRAT = /*STRAT*/;
 const STRAT_HTML = /*STRAT_HTML*/;
 const LAND_HTML = /*LAND_HTML*/;
@@ -245,6 +254,8 @@ const markers = new Map();
 
 function color(item) {
   if (item.kind === "land") return css("--land");
+  if (item.kind === "route") return item.rt === "1" ? css("--t8") : item.rt === "2" ? css("--sub") : css("--t9");
+  if (item.kind === "zone") return item.verdict === "추천" ? css("--t8") : item.verdict === "기다리기" ? css("--muted") : css("--t9");
   return item.tier === "8억" ? css("--t8") : css("--t9");
 }
 function radius(item) {
@@ -273,7 +284,7 @@ function hjCard(h) {
   </article>`;
 }
 function addMarker(it, pts) {
-  const key = it.kind === "land" ? "l" + it.id : "a" + it.cn;
+  const key = it.kind === "land" ? "l" + it.id : it.kind === "route" ? "r" + it.cn : "a" + it.cn;
   if (markers.has(key)) return;
   const mk = L.circleMarker([it.y, it.x], { radius: radius(it), color: css("--surface"), weight: 1.5, fillColor: color(it), fillOpacity: .92 })
     .bindTooltip(it.kind === "land" ? `${it.dong} · 땅 ${eok(it.med_price)}` : `${it.name} · ${eok(it.movein ?? it.tenant)}`, { className: "pin-label", direction: "top", offset: [0, -6] })
@@ -362,8 +373,154 @@ function landCard(l, extra = "") {
   </article>`;
 }
 
+const RT = {
+  "1": ["① 대출 없이 바로 입주", "총비용 8억 이하. 빚 없이 사고 1년이면 현금이 다시 1억 쌓입니다."],
+  "2": ["② 세 끼고 사서 1~2년 뒤 입주", "세 낀 매물 총비용 10.4억 이하. 보증금·만기·계약 시작일(2026.5 이전이어야 실거주 유예)은 매물마다 확인이 필요합니다."],
+  "3": ["③ 바로 입주 + 대출", "총비용 8~14억. 대출 6억이면 월 약 286만 원(연 4%, 30년)."],
+};
+// 실평수·밀도 칩: 전용 평당가 · 전용률 · 용적률 · 건폐율 · 세대당 주차
+function effChips(a) {
+  const c = (cls, label, val) => `<span class="chip ${cls}">${label} <b>${val}</b></span>`;
+  return `<div class="eff">
+    ${a.ppy ? c("", "전용 평당", a.ppy.toLocaleString() + "만") : ""}
+    ${c(a.excl_ratio >= 0.78 ? "good" : a.excl_ratio && a.excl_ratio < 0.72 ? "bad" : "", "전용률", a.excl_ratio ? Math.round(a.excl_ratio * 100) + "%" : "–")}
+    ${c(a.far && a.far <= 220 ? "good" : a.far >= 300 ? "bad" : "", "용적률", a.far ? a.far + "%" : "–")}
+    ${c(a.bcr && a.bcr <= 20 ? "good" : a.bcr >= 30 ? "bad" : "", "건폐율", a.bcr ? a.bcr + "%" : "–")}
+    ${c(a.park >= 1.2 ? "good" : a.park != null && a.park < 1 ? "bad" : "", "주차", a.park != null ? a.park.toFixed(2) + "대/세대" : "–")}
+  </div>`;
+}
+// 주변 1.5km 서울시 정비사업(2026.6 기준)
+function redevLine(a) {
+  const r = a.redev;
+  if (!r) return "";
+  if (!r.n && !r.own) return "주변 정비사업: 1.5km 안 없음";
+  const own = r.own ? `이 단지가 ${esc(r.own.kind)} 구역(${esc(r.own.stage)}) · ` : "";
+  const near = r.near.slice(0, 3).map(z => `${esc(z.name)}(${esc(z.kind)}, ${esc(z.stage)}, ${z.new_hh ? z.new_hh.toLocaleString() + "세대" : "세대수 미정"}, ${dist(z.d)})`).join(" · ");
+  return `${own}주변 정비사업 1.5km 안 ${r.n}곳(착공·관리처분 ${r.started}곳), 새 아파트 약 ${r.new_hh.toLocaleString()}세대 · 가까운 곳: ${near}`;
+}
+function routeCard(a) {
+  const L = a.liv, chip = (ok, label, val) => `<span class="chip ${ok ? "good" : "bad"}">${label} <b>${val}</b></span>`;
+  const p = (k, v, s) => `<div class="price"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`;
+  let main;
+  if (a.rt === "1") main = p("바로 입주", eok(a.movein), `${esc(a.movein_floor)} · 총 ${eok(a.movein_total)} · 남는 현금 ${eok(8 - a.movein_total)}`);
+  else if (a.rt === "2") {
+    const t = a.ten || {};
+    const dep = t.dep ? `보증금 ${eok(t.dep)}` : "보증금 미기재";
+    const mv = t.mv ? `만기 ${t.mv.slice(0, 7)}` : "만기 미기재";
+    const el = t.eligible === false ? " · 실거주 유예 불가 가능(계약 " + t.lease_start + " 추정)" : t.eligible ? " · 유예 대상" : "";
+    const ok = t.total != null ? (retOk({ ...t, dep: t.dep }) ? " · 만기 반환 가능" : " · 반환 자금 부족") : "";
+    main = p("세 낀 집", eok(a.tenant), `${esc(a.tenant_floor)} · 총 ${eok(a.tenant_total)} · ${dep} · ${mv}${el}${ok}`);
+  }
+  else { const loan = Math.min(6, Math.max(0, a.movein_total - 8)); main = p("바로 입주", eok(a.movein), `${esc(a.movein_floor)} · 총 ${eok(a.movein_total)} · 대출 ${eok(loan)} (월 약 ${Math.round(loan * 47.7)}만)`); }
+  const other = a.rt !== "2" && a.tenant != null ? p("세 낀 집", eok(a.tenant), `총 ${eok(a.tenant_total)}`) : a.rt === "2" && a.movein != null ? p("바로 입주", eok(a.movein), `총 ${eok(a.movein_total)}`) : "";
+  const note = a.rt === "2" ? a.tenant_note : a.movein_note;
+  return `<article class="card" data-key="r${a.cn}" style="--accent:${color(a)}">
+    <div class="card-top"><div><h3 class="name">${esc(a.name)}</h3>
+      <div class="where">${esc(a.gu)} ${esc(a.dong)} · ${esc(a.zone)} · 전용 ${a.area}㎡ · ${a.built}년 · ${a.hh.toLocaleString()}세대 · 매물 ${a.listings}건</div></div>
+      <span class="tier tz">${a.score}점</span></div>
+    <div class="prices">${main}${other}
+      <div class="price"><span class="k">호가/최근 실거래 (대표 평형)</span><span class="v">${a.gap == null ? "–" : (a.gap >= 0 ? "+" : "") + (a.gap * 100).toFixed(1) + "%"}</span><span class="s">${a.gap != null && a.gap > 0.1 ? "실거래보다 많이 높게 나옴" : "실거래 근처"}</span></div>
+    </div>
+    <div class="chips">
+      ${chip((L.subway_m ?? 1e9) <= 500, "역", dist(L.subway_m))}
+      ${chip((L.univ_hospital_m ?? 1e9) <= 3000, "대학병원", dist(L.univ_hospital_m))}
+      ${chip((L.park_m ?? 1e9) <= 300, "공원", dist(L.park_m))}
+      ${chip((L.warehouse_m ?? 1e9) <= 3000, "창고형", dist(L.warehouse_m))}
+      <span class="chip">서울시청 <b>${a.km}km</b></span>
+    </div>
+    ${effChips(a)}
+    <p class="note">${redevLine(a)}</p>
+    <p class="note">재건축: ${esc(recon(a))}${note ? " · 매물 설명: “" + esc(note) + "”" : ""}</p>
+    <div class="links"><a href="https://fin.land.naver.com/complexes/${a.cn}?tab=article&tradeTypes=A1" target="_blank" rel="noopener">네이버 매물 보기</a>
+      <a href="https://map.kakao.com/link/map/${encodeURIComponent(a.name)},${a.y},${a.x}" target="_blank" rel="noopener">카카오맵에서 위치</a></div>
+  </article>`;
+}
+function short(a) {
+  const need = cashNeeded(a.movein, a.movein_total) - 8;
+  if (need <= 0) return "";
+  return SAVE > 0 ? ` · ${need.toFixed(2)}억 부족(저축 ${Math.ceil(need / SAVE * 12)}개월)` : ` · ${need.toFixed(2)}억 부족`;
+}
+function recon(a) {
+  const age = 2026 - a.built;
+  if (age < 15) return `${a.built}년식이라 해당 없음. 새 집 상태로 오래 사는 쪽입니다.`;
+  if (!a.far) return `${a.built}년식, 용적률이 공개되지 않아 판단 보류.`;
+  if (a.far >= 230) return `${a.built}년식인데 용적률 ${a.far}%로 이미 높아 재건축으로 늘릴 집이 거의 없습니다. 기대하지 말고 감가되는 집으로 보세요(리모델링이 현실적).`;
+  return `${a.built}년식, 용적률 ${a.far}%. 연한(30년)까지 ${Math.max(0, 30 - age)}년이고 사업성은 낮은 편입니다.`;
+}
+function tenTable(a) {
+  if (!a.ten || !a.ten.length) return "";
+  const yn = (v, y, n) => v == null ? "–" : v ? `<span class="ok">${y}</span>` : `<span class="no">${n}</span>`;
+  const rows = a.ten.map(t => `<tr>
+    <td class="num">${eok(t.price)}<br><span class="note">${esc(t.floor)}</span></td>
+    <td class="num">${t.dep ? eok(t.dep) : "미기재"}${t.rent ? `<br><span class="note">월 ${t.rent}만</span>` : ""}${t.dep_src === "전세 호가로 추정" ? `<br><span class="note">추정</span>` : ""}</td>
+    <td>${t.mv ? t.mv.slice(0, 7) : "–"}<br><span class="note">계약 ${t.lease_start || "?"} 추정</span></td>
+    <td>${yn(t.eligible, "유예 대상", "유예 불가 가능")}<br>${t.cash_now != null ? "지금 " + eok(t.cash_now) : ""}</td>
+    <td>${yn(retOk(t), "만기 반환 가능", "반환 자금 부족")}</td>
+    <td class="num">${t.discount != null ? (t.discount >= 0 ? "−" : "+") + Math.abs(t.discount).toFixed(2) + "억" : "–"}<br><span class="note">이자 ${t.interest != null ? t.interest.toFixed(2) + "억" : "–"}</span></td>
+  </tr>`).join("");
+  return `<div class="table-wrap"><table class="ten-tbl"><thead><tr><th>세 낀 매물</th><th>보증금</th><th>입주가능</th><th>실거주 유예</th><th>만기 때</th><th>바로 입주 대비</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function zoneCard(a) {
+  const best = Math.min(...[a.movein, a.tenant].filter(v => v != null));
+  const gap = (best / a.ref - 1) * 100;
+  const gapCls = gap > 1 ? "gap-up" : gap < -1 ? "gap-down" : "";
+  const vc = { "추천": "t8", "기다리기": "tw", "확인 필요": "tc" }[a.verdict] || "t9";
+  const chip = (ok, label, val) => `<span class="chip ${ok ? "good" : "bad"}">${label} <b>${val}</b></span>`;
+  const p = (k, v, s, off) => `<div class="price${off ? " off" : ""}"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`;
+  const movein = a.movein != null
+    ? p("바로 입주", eok(a.movein), `${esc(a.movein_floor || "")} · 총 ${eok(a.movein_total)} · 현금 ${eok(cashNeeded(a.movein, a.movein_total))}${short(a)}`)
+    : p("바로 입주", "매물 없음", "세 낀 집만 나와 있음", true);
+  // 세 낀 집: 지금은 대출 없이(총비용 − 보증금), 만기 때 보증금 반환은 남은 현금 + 퇴거자금 대출 1억으로 가정
+  const tt = (a.ten || []).find(x => x.price === a.tenant) || { total: a.tenant_total, months: 0 };
+  const tenantOk = a.tenant_total != null && retOk(tt);
+  const tenant = a.tenant != null
+    ? p("세 낀 집", eok(a.tenant), `총 ${eok(a.tenant_total)} · ${tenantOk ? "만기 때 보증금 반환 가능" : "만기 때 보증금 반환 자금 부족"}`)
+    : "";
+  const mom = a.mom == null ? "–" : (a.mom >= 0 ? "+" : "") + (a.mom * 100).toFixed(1) + "%";
+  return `<article class="card" data-key="a${a.cn}" style="--accent:${color(a)}">
+    <div class="card-top">
+      <div><h3 class="name">${esc(a.name)}</h3>
+        <div class="where">${esc(a.region)} ${esc(a.dong)} · 전용 ${a.area}㎡ · ${a.built}년 · 매물 ${a.listings}건${a.nname && a.nname.replace(/\s|\(.*\)/g, "") !== a.name.replace(/\s|\(.*\)/g, "") ? " · 네이버 이름 " + esc(a.nname) : ""}</div></div>
+      <span class="tier ${vc}">${esc(a.verdict)}</span>
+    </div>
+    <div class="prices">${movein}${tenant}
+      <div class="price"><span class="k">최근 실거래 3건</span><span class="v">${eok(a.ref)}</span><span class="s">${a.last.map(v => v.toFixed(2)).join(" · ")} · 호가 <span class="${gapCls}">${gap >= 0 ? "+" : ""}${gap.toFixed(1)}%</span></span></div>
+    </div>
+    <div class="deal">
+      <div><span class="k">목표가</span><span class="v">${eok(a.target)}</span></div>
+      <div><span class="k">3개월 추세</span><span class="v">${mom}</span></div>
+      <div><span class="k">전세 호가</span><span class="v">${eok(a.jeonse)}</span></div>
+    </div>
+    <div class="chips">
+      ${chip((a.subway ?? 1e9) <= 500, "역", dist(a.subway))}
+      ${chip((a.univ_m ?? 1e9) <= 3000, "대학병원", dist(a.univ_m))}
+      ${chip((a.park_m ?? 1e9) <= 300, "공원", dist(a.park_m))}
+      ${chip((a.wh_m ?? 1e9) <= 3000, "창고형", dist(a.wh_m))}
+      <span class="chip">서울시청 <b>${a.seoul_km}km</b></span>
+    </div>
+    <p class="note">${a.univ ? esc(a.univ) : ""}${a.wh ? " · " + esc(a.wh) : ""}</p>
+    <div class="eff">
+      <span class="chip">전용 평당 <b>${a.ppy.toLocaleString()}만</b></span>
+      <span class="chip ${a.excl_ratio >= 0.78 ? "good" : a.excl_ratio < 0.72 ? "bad" : ""}">전용률 <b>${a.excl_ratio ? Math.round(a.excl_ratio * 100) + "%" : "–"}</b></span>
+      <span class="chip ${a.far && a.far <= 220 ? "good" : a.far >= 300 ? "bad" : ""}">용적률 <b>${a.far ? a.far + "%" : "미공개"}</b></span>
+      <span class="chip">${a.hh ? a.hh.toLocaleString() + "세대" : "세대수 –"}${a.top_floor ? " · 최고 " + a.top_floor + "층" : ""}</span>
+    </div>
+    <p class="note">재건축: ${esc(recon(a))}${a.bcr ? ` · 건폐율 ${a.bcr}%` : ""}${a.park != null ? ` · 주차 ${a.park.toFixed(2)}대/세대` : ""}</p>
+    <p class="note">${redevLine(a)}</p>
+    <ul class="why">${a.pros.map(x => `<li>${esc(x)}</li>`).join("")}${a.cons.map(x => `<li class="minus">걸리는 점: ${esc(x)}</li>`).join("")}</ul>
+    ${tenTable(a)}
+    ${a.movein_note || a.note ? `<p class="note">매물 설명: “${esc(a.movein_note || a.note)}”</p>` : ""}
+    <div class="links">
+      <a href="https://fin.land.naver.com/complexes/${a.cn}?tab=article&tradeTypes=A1" target="_blank" rel="noopener">네이버 매물 보기</a>
+      <a href="https://map.kakao.com/link/map/${encodeURIComponent(a.name)},${a.y},${a.x}" target="_blank" rel="noopener">카카오맵에서 위치</a>
+    </div>
+  </article>`;
+}
+
 /* ── 탭 ── */
 const INTRO = {
+  routes: ["세 갈래 후보", "관심 권역 안 300세대 이상 · 2000년 이후 아파트 293곳을 네이버 단지 데이터로 거른 뒤, 점수 상위 62곳의 실제 매물(10월 17일)을 확인해 ① 대출 없이 · ② 세 낀 집 · ③ 바로 입주 + 대출로 나눴습니다. 한 단지가 여러 갈래에 들어갈 수 있습니다. 점수(100) = 생활환경 28 · 집(연식·평형·세대수) 20 · 교통 17 · 호가/실거래 13 · 실평수(전용률) 6 · 용적률 6 · 건폐율 3 · 주변 정비사업 7. 정비사업은 서울시 정비사업 추진현황(2026.6월 말)에서 반경 1.5km 안 구역을 단계(착공일수록 확실)·새 세대수·거리로 가중했습니다."],
+  zone: ["관심 권역", "서울 중부·서부·동부·남부, 마곡, 하남, 과천에서 다시 고른 후보입니다(10월 17일 호가). 권역별로 실거래 3건 대비 호가가 낮은 순서입니다. 표시: 추천 · 협상하면 · 대출로 살 때 · 확인 필요 · 기다리기."],
   rec: ["추천", "조건별로 하나씩 고른 집과 땅입니다. 장점과 걸리는 점을 함께 적었습니다."],
   t8: ["총 8억 이하", "매수가·취득세·중개비를 합쳐 8억 안에 드는 집입니다. 바로 입주 가격과 세 낀 집 가격을 따로 보여줍니다."],
   t9: ["9억대 (총 8~10억)", "2억을 더 쓰면 서울 입지가 열립니다. 생애최초 대출 6억을 쓰면 현금은 3~4억이면 됩니다."],
@@ -372,7 +529,11 @@ const INTRO = {
   hj: ["개발 호재", "후보 근처에서 공사 중이거나 계획된 철도·개발 사업입니다. 확실성은 공사 단계로 매겼습니다. 점수에는 사업 규모 × 확실성(높음 1.0 · 중간 0.6 · 낮음 0.25)을 더하고, 반경 끝으로 갈수록 절반까지 줄이며, 최대 +15점입니다. 이미 호가에 들어간 호재도 있으니 실거래 대비 호가 차이와 함께 보세요."],
   land: ["땅 사서 짓기", "지목 '대'이고 시세의 40% 미만으로 팔린 이상 거래를 뺀 실거래입니다. 땅값 + 취득세 + 40평 신축(평당 900만 원, 관리·녹지지역은 토목비 5천만 원 추가)이 10억 안에 드는 동입니다. 지번이 가려진 실거래라 동 단위 시세입니다. 실제 필지를 찾는 방법은 바로 아래에 정리했습니다."],
 };
-let tab = "strat";
+let tab = "zone";
+let zsort = "zone";
+let SAVE = 1.0;                       // 연 저축액(억) — 화면 입력칸
+// 세 낀 집: 지금 현금(총비용 − 보증금) ≤ 8억, 만기 때 남은 현금 + 그때까지 저축 + 퇴거자금 대출 1억 ≥ 보증금
+const retOk = t => (t.dep == null || t.total - t.dep <= 8) && t.total <= 9 + SAVE * (t.months || 0) / 12;
 let selected = null;
 
 function itemsFor(t) {
@@ -390,6 +551,24 @@ function itemsFor(t) {
   if (t === "t8") return A.filter(a => a.tier === "8억").sort(s).map(a => ({ kind: "apt", ...a }));
   if (t === "t9") return A.filter(a => a.tier === "10억").sort(s).map(a => ({ kind: "apt", ...a }));
   if (t === "sub") return A.filter(a => (a.subway ?? 1e9) <= 800 && misses(a).length <= 1).sort((a, b) => ((a.subway > 500) - (b.subway > 500)) || s(a, b)).map(a => ({ kind: "apt", ...a }));
+  if (t === "routes") {
+    const out = [];
+    for (const rt of ["1", "2", "3"]) ROUTES.filter(a => a.routes.includes(rt)).sort((a, b) => b.score - a.score).forEach(a => out.push({ ...a, kind: "route", rt }));
+    return out;
+  }
+  if (t === "zone") {
+    const order = ["서부", "남부", "마곡", "동부", "하남", "중부"];   // 같은 권역 안에서는 호가/실거래가 낮은 순
+    const gapOf = a => Math.min(...[a.movein, a.tenant].filter(v => v != null)) / a.ref;
+    // 유예 대상이고 만기 때 보증금을 돌려줄 수 있는 매물만 이득으로 센다
+    const ben = a => Math.max(-9, ...(a.ten || []).filter(x => x.eligible !== false && retOk(x)).map(x => x.benefit ?? -9));
+    const zs = {
+      zone: (a, b) => order.indexOf(a.zone) - order.indexOf(b.zone) || gapOf(a) - gapOf(b),
+      ppy: (a, b) => a.ppy - b.ppy,
+      ten: (a, b) => ben(b) - ben(a) || gapOf(a) - gapOf(b),
+      far: (a, b) => (a.far || 999) - (b.far || 999),
+    }[zsort];
+    return ZONE.slice().sort(zs).map(a => ({ ...a, kind: "zone" }));
+  }
   if (t === "strat") return STRAT.map(s => ({ kind: "apt", strat: s, ...APTS.find(a => a.cn === s.id) }));
   if (t === "hj") return HOJAE.map(h => ({ ...h, kind: "hj", hkind: h.kind }));
   if (t === "land") return LAND.slice().sort((a, b) => b.score - a.score).map(l => ({ kind: "land", ...l }));
@@ -399,11 +578,24 @@ function itemsFor(t) {
 function render() {
   const items = itemsFor(tab);
   document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
-  $("#toolbar").hidden = tab === "rec" || tab === "land" || tab === "hj" || tab === "strat";
+  $("#toolbar").hidden = tab === "routes" || tab === "zone" || tab === "rec" || tab === "land" || tab === "hj" || tab === "strat";
   const [h, p] = INTRO[tab];
   $("#intro").innerHTML = `<h2>${h}</h2><p>${p}</p>`;
-  let html = tab === "strat" ? `<div class="strat">${STRAT_HTML}</div>` : tab === "land" ? `<div class="strat">${LAND_HTML}</div>` : "", lastGroup = null;
+  let html = tab === "zone" ? `<div class="strat">${ZONE_HTML}</div><div class="toolbar"><label for="zsort">정렬 <select id="zsort">
+      <option value="zone"${zsort === "zone" ? " selected" : ""}>권역별 · 호가가 실거래에 가까운 순</option>
+      <option value="ten"${zsort === "ten" ? " selected" : ""}>세 낀 매물 이득 큰 순</option>
+      <option value="ppy"${zsort === "ppy" ? " selected" : ""}>전용 평당가 낮은 순</option>
+      <option value="far"${zsort === "far" ? " selected" : ""}>용적률 낮은 순 (쾌적)</option>
+    </select></label><label for="save">연 저축 <input id="save" type="number" min="0" max="5" step="0.1" value="${SAVE}" style="width:5em;font:inherit"> 억</label></div>` : tab === "strat" ? `<div class="strat">${STRAT_HTML}</div>` : tab === "land" ? `<div class="strat">${LAND_HTML}</div>` : "", lastGroup = null;
   for (const it of items) {
+    if (tab === "routes") {
+      if (it.rt !== lastGroup) { html += `<p class="sec-title">${RT[it.rt][0]}</p><p class="note">${RT[it.rt][1]}</p>`; lastGroup = it.rt; }
+      html += routeCard(it); continue;
+    }
+    if (tab === "zone") {
+      if (zsort === "zone" && it.zone !== lastGroup) { html += `<p class="sec-title">${esc(it.zone)}</p>`; lastGroup = it.zone; }
+      html += zoneCard(it); continue;
+    }
     if (tab === "rec" && it.rec.group !== lastGroup) { html += `<p class="sec-title">${esc(it.rec.group)}</p>`; lastGroup = it.rec.group; }
     if (tab === "sub") {
       const g = it.subway <= 500 ? "역 500m 이내" : "역 500~800m (조금 더 걸으면)";
@@ -438,6 +630,10 @@ function render() {
     if (it.kind === "hj") { it.pts.forEach(p => pts.push([p.y, p.x])); continue; }
     addMarker(it, pts);
   }
+  const zsel = document.querySelector("#zsort");
+  if (zsel) zsel.addEventListener("change", e => { zsort = e.target.value; render(); });
+  const sv = document.querySelector("#save");
+  if (sv) sv.addEventListener("change", e => { const v = parseFloat(e.target.value); SAVE = isFinite(v) && v >= 0 ? v : 0; render(); });
   document.querySelectorAll("[data-goto]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); select(b.dataset.goto, false); }));
   document.querySelectorAll('.card[data-key^="h"]').forEach(c => c.addEventListener("click", e => {
     if (e.target.closest("a,button")) return;
@@ -447,7 +643,7 @@ function render() {
   document.querySelectorAll(".card").forEach(c => c.addEventListener("click", e => { if (e.target.closest("a")) return; select(c.dataset.key, false); }));
   if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 13 });
   selected = null;
-  ["strat", "rec", "t8", "t9", "sub", "land", "hj"].forEach(t => { const n = t === tab ? items.length : itemsFor(t).length; $("#n-" + t).textContent = n; });
+  ["routes", "zone", "strat", "rec", "t8", "t9", "sub", "land", "hj"].forEach(t => { const n = t === tab ? items.length : itemsFor(t).length; $("#n-" + t).textContent = n; });
   try { localStorage.setItem("hf-tab", tab); } catch (e) {}
 }
 
