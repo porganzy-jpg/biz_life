@@ -329,8 +329,8 @@ def t_memory_wall():
         jj = post("/api/scan", {"uid": uid, "barcode": ean(k)})
         h = post("/api/memory_wall/hang", {"uid": uid, "relic_id": jj["card"]["id"]})
     ok(h["complete"] and h["story"] and h["complete_ko"] and "{" not in h["complete_ko"], f"다 차면 완성 방송 + 뒷이야기 {len(h['story'] or [])}줄")
-    ok(mw.get("prefilled_ko"), f"미리 찬 칸 설명: {mw.get('prefilled_ko')}")
-    ok(mw.get("open_ko") and ark(uid)["memory_wall"]["open_ko"] is None, "처음 열릴 때 방송은 한 번")
+    ok(mw.get("prefilled_ko") and "{" not in mw["prefilled_ko"], f"미리 찬 칸 설명: {mw.get('prefilled_ko')}")
+    ok(mw.get("open_ko") and "{" not in mw["open_ko"] and ark(uid)["memory_wall"]["open_ko"] is None, f"처음 열릴 때 방송은 한 번: {mw.get('open_ko')}")
 
 
 def t_office():

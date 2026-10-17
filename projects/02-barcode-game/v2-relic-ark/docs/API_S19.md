@@ -522,3 +522,4 @@
   - `/api/ark.memory_wall` 에 `total`, `complete`, `open_ko`(처음 한 번만), `story`(다 찼을 때) 가 더해졌다.
   - hang 응답에는 `line`(memory_wall.hung, {item}{n}{m}), `complete`, `story[]`, `complete_ko` 가 온다. complete_ko 는 다 찼을 때의 완성 방송이고, 시나리오가 보상 약속을 뺐다.
   - `memory_wall.prefilled_ko`: 미리 찬 첫 칸 설명.
+- (S27 후속, PM: 기억 벽 완성 보상 없음) `open_ko`·`prefilled_ko` 의 {item} 은 첫 칸 물건 이름으로 채운다. `complete_ko` 는 story[] 앞에 보낸다.

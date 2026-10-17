@@ -10081,8 +10081,8 @@ def memory_wall_public(st: dict, uid: str) -> dict | None:
     return {"open": True, "room": mw["room"], "opened_day": mw.get("opened_day"), "slots": mw["slots"],
             "filled": filled, "total": len(mw["slots"]), "complete": filled == len(mw["slots"]),
             "first_label_ko": (M or {}).get("first_label"), "hang_prompt_ko": (M or {}).get("hang_prompt"),
-            "open_ko": (M or {}).get("open") if first_open else None,
-            "prefilled_ko": (M or {}).get("prefilled") if mw["slots"] and mw["slots"][0] and mw["slots"][0].get("from") in ("first_given", "first_scan") else None,
+            "open_ko": (str((M or {}).get("open") or "").replace("{item}", (mw["slots"][0] or {}).get("name") or "") or None) if first_open else None,
+            "prefilled_ko": str((M or {}).get("prefilled") or "").replace("{item}", (mw["slots"][0] or {}).get("name") or "") or None if mw["slots"] and mw["slots"][0] and mw["slots"][0].get("from") in ("first_given", "first_scan") else None,
             "story": list((M or {}).get("story") or []) if filled == len(mw["slots"]) else None}
 
 
