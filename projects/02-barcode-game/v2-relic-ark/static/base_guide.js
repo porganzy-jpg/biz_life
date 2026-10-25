@@ -259,12 +259,26 @@
     goalsPrev = Object.fromEntries(gs.map(g => [g.id, { done: !!g.done }]));
     D.goals = { n, total: gs.length, open: goalsOpen, just };
   }
-  gp.addEventListener('click', (e) => { if (!e.target.closest('.ghead')) return; goalsOpen = !goalsOpen; drawGoals({ goals: Object.keys(goalsPrev || {}).length ? lastGoals : [] }); });
+  gp.addEventListener('click', (e) => { if (!e.target.closest('.ghead')) return; if (zoomFold) { zoomFold = false; zoomUserOpen = true; gp.classList.remove('fold'); return; } goalsOpen = !goalsOpen; drawGoals({ goals: Object.keys(goalsPrev || {}).length ? lastGoals : [] }); });
   let lastGoals = [];
   K.onApply((st) => { if (st.goals !== undefined) { lastGoals = st.goals || []; drawGoals(st); } });
   // 「다음 할 일」 줄 아래에 붙인다(줄이 숨으면 그 자리로)
-  function placeGoals() { const b = $('#nextstep'); const top = b && !b.hidden ? b.getBoundingClientRect().bottom + 6 : (innerHeight <= 500 ? 44 : 52); gp.style.top = top + 'px'; }
+  function placeGoals() {                               // 「다음 할 일」 줄 아래, 그 줄이 숨으면 얼굴 띠 아래
+    const b = $('#nextstep'), f = $('#faces'); let top = innerHeight <= 500 ? 44 : 52;
+    if (f && !f.hidden && f.style.visibility !== 'hidden') top = Math.max(top, f.getBoundingClientRect().bottom + 6);
+    if (b && !b.hidden) top = Math.max(top, b.getBoundingClientRect().bottom + 6);
+    gp.style.top = top + 'px';
+  }
   setInterval(placeGoals, 500);
+  // 가까이 볼 때(배율 1.1 이상) 펼친 목표 판이 방 이름표를 가린다 — 그동안만 한 줄로 접는다(누가 직접 펴면 그대로)
+  let zoomFold = false, zoomUserOpen = false;
+  setInterval(() => {
+    if (gp.hidden || !goalsOpen) { if (zoomFold) { zoomFold = false; gp.classList.toggle('fold', !goalsOpen); } return; }
+    const want = (K.z || 1) >= 1.1 && !zoomUserOpen;
+    if ((K.z || 1) < 1.1) zoomUserOpen = false;
+    if (want !== zoomFold || (want && !gp.classList.contains('fold'))) { zoomFold = want; gp.classList.toggle('fold', want || !goalsOpen); D.goalsZoomFold = want;
+      const ar = gp.querySelector('.ghead b'); if (ar) ar.textContent = gp.classList.contains('fold') ? '▸' : '▾'; }
+  }, 400);
   D.holding = () => tut.active && !!tut.el && !tut.el.hidden;
   D.state = () => ({ step: D.step || null, tut: { active: tut.active, id: tut.id }, coach: D.coach || null, lit: D.lit || null, barShown: !bar.hidden });
   D.light = (t) => light(t, 3000);

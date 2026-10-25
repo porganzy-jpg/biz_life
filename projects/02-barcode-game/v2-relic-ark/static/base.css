@@ -1191,3 +1191,4 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 body.hh-dim .faces .fline{opacity:.6} body.hh-dim .faces .fchip .face{filter:saturate(.6) brightness(.85)}
 .bopt.locked{opacity:.75} .bopt.locked small{color:#cdb98a !important}
 .lockico{display:inline-block; width:9px; height:11px; margin-right:5px; vertical-align:-1px; border:2px solid #cdb98a; border-top-width:4px; border-radius:2px}
+@media (max-height:500px){ .beatcard.octwhere{max-height:calc(100% - 110px); overflow:auto} }   /* 폰 가로: 문어 카드가 위 줄(자원·날짜)을 덮지 않게 */
