@@ -680,3 +680,4 @@
 - `goals[]` 행에 `person`(사람 때문의 목표)이 붙는다. title_ko·done_ko 는 행 값이 먼저다.
 - (S35 후속, PM) `household` 에는 식량·물만 담는다. 전력은 소비가 없어서 띠에서 빼고, 화면은 숫자로 보인다.
 - (S35 후속) 닫힌 방 종류 `build_options[rid]` 에 `locked_by_role`(예: "farmer")과 `locked_ko`(예: 「농부가 오면 열립니다」)가 붙는다. 편한 방 표에 주인 역할이 없는 방(bath)은 role 이 null 이고 문장은 일반형이다.
+- (S35 후속, PM) 물 끓이는 방(bath)은 사람 해금에서 뺐다. economy 조건 「발전실 Lv2」 그대로이고 locked_by_role 은 없다. 사람이 여는 방 종류는 greenhouse·infirmary·decoder·lounge 넷이다.

@@ -95,6 +95,9 @@ def t_room_types():
     bo = a["build_options"]["greenhouse"]
     ok(bo["locked_by_role"] == "farmer" and bo["locked_ko"] == "농부가 오면 열립니다", f"잠금 역할 {bo['locked_by_role']} · {bo['locked_ko']}")
     ok("locked_by_role" not in a["build_options"]["quarters"], "열린 방엔 잠금 역할 없음")
+    bb = a["build_options"]["bath"]
+    ok("locked_by_role" not in bb and not bb["people_locked"] and "발전실 Lv2" in (bb.get("cond") or "") and "bath" not in a["room_types_open"],
+       f"물 끓이는 방은 사람 해금 밖 — 조건 「{bb.get('cond')}」 그대로")
     ok(not a["room_news"], "시작 주민의 방 종류는 방송 없음")
     st = S.load_state(uid)
     st["resources"].update({k: 999 for k in st["resources"]})

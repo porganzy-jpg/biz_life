@@ -11399,7 +11399,7 @@ def comfort_mutter_tick(st: dict, uid: str) -> list:
 HOUSE_RES = ("food", "water")      # PM: 전력은 소비가 없어 살림 띠에 넣지 않는다(화면은 숫자로)
 HOUSE_FULL_DAYS = 3
 ROOMS_BY_PEOPLE = True          # 옛 스위트(아무 방이나 짓던 때)만 끈다
-PEOPLE_GATED_ROOMS = ("greenhouse", "infirmary", "decoder", "lounge", "bath")   # 사람이 여는 방 종류(나머지는 처음부터)
+PEOPLE_GATED_ROOMS = ("greenhouse", "infirmary", "decoder", "lounge")   # 사람이 여는 방 종류. 물 끓이는 방(bath)은 PM 결정으로 빼고 economy 조건(발전실 Lv2) 그대로
 
 
 def household_public(st: dict) -> list:
