@@ -25,6 +25,7 @@ S.DB = Path(tempfile.mkdtemp()) / "t14.db"
 S.DEV_MODE = True
 S.init_db()
 C = TestClient(S.app)
+S.COMFORT_ENFORCE = False   # S34 편한 방 덤은 test_s34
 RESULTS: list[tuple[bool, str]] = []
 
 

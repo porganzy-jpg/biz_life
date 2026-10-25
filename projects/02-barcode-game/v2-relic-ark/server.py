@@ -2200,6 +2200,7 @@ def room_mult(st: dict, room: dict, counts: dict | None = None, people: list[dic
         ppl = staff_people(st, room["slot"]) if people is None else people
         n = len(ppl)
         sf, per = stat_factor(ppl, room_stat_of(room["id"]))
+        sf = comfort_adjust(st, room, ppl, sf)            # S34 편한 방
     sm = staff_mult(n)
     cm = float(stk("crack.prod_mult")) if room.get("cracked") else 1.0
     nb = need_bonus_mult(st, room)                    # S19 오늘의 필요를 채운 사람의 방 +10%(그날 하루)
@@ -2274,7 +2275,8 @@ def move_preview(st: dict) -> dict:
             key = "hall" if slot is None else str(slot)
             if slot == cur:
                 continue
-            cell = {"from_delta_pct": from_delta, "room_delta_pct": None, "can": True}
+            cell = {"from_delta_pct": from_delta, "room_delta_pct": None, "can": True,
+                    "comfort": bool(r is not None and r["id"] == comfort_room_of(st, p))}   # S34 그 사람의 편한 방
             if r is not None:
                 cap = room_cap_of(r)
                 if len([x for x in all_here[slot] if x["id"] != p["id"]]) >= cap:
@@ -4532,6 +4534,8 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     for x in arc_new:
         x["shown"] = True
     out["arc_events"] = [{k: v for k, v in x.items() if k != "shown"} for x in arc_new]
+    out["heart_scenes"] = heart_scenes_pop(st) if not out["arc_events"] else []   # S34: 큰 장면이 없는 조용한 순간에만
+    out["comfort_mutters"] = comfort_mutter_tick(st, uid)
     out["shelf_autofill"] = core_t.get("autofill") or []
     out["octopus_gift_where"] = octopus_gift_where(st, uid)
     out["decor_trace"] = decor_trace(st, uid)
@@ -7493,6 +7497,8 @@ def core_public(st: dict, uid: str) -> dict:
             "heirloom": heirloom_public(r),                     # S25 가보 칸
             "third_memory_open": bool(r.get("third_memory_open")),
             "notebook": notebook_public(st, uid, r),             # S23 사람 수첩
+            "heart": heart_public(st, r),                        # S34 마음
+            **comfort_public(st, uid, r),                        # S34 편한 방
         }
     return {"residents": res, "props": list(core_of(st)["props"])}
 
@@ -7941,6 +7947,9 @@ def give(inp: GiveIn):
         else:
             out["heirloom"] = heirloom_place(st, inp.uid, item, target, out)
     out["repeat"] = repeat_line(st, inp.uid, item, target, out)
+    eff_ = out.setdefault("effects", {})
+    eff_["heart"] = heart_gain(st, inp.uid, target, out, item)       # S34 C안 마음
+    eff_["chips"] = effect_chips(st, out)                             # S34 결과 칩 한 줄
     if out["tier"] != "not_for_me" and target != "shelf":
         og = (st.get("octopus") or {}).get("gift_relic")
         if og and og.get("card_id") == item.get("card_id"):
@@ -8110,11 +8119,12 @@ def leaving(uid: str):
         ch = [f"{k} {', '.join(map(str, v[:2]))}" for k, v in note.items() if isinstance(v, list)][:2]
     card = NEXT_VISIT.get("card") or {}
     mc = missed_chain_of(st, uid)
-    save_state(uid, st)
     nv, ta, order = leave_lines(st, uid)
+    hs_ = heart_scenes_pop(st)                        # S34: 미룬 마음 장면은 떠날 때 카드에
+    save_state(uid, st)
     return {"title": card.get("changed_title"), "changed": ch, "next_visit": nv,
             "missed_chain": mc, "tomorrow_ask": ta, "unlock_teaser": unlock_teaser(st),
-            "order": [k for k in order if k != "missed_chain" or mc],
+            "order": [k for k in order if k != "missed_chain" or mc], "heart_scenes": hs_,
             "close_label": card.get("close_label")}
 
 
@@ -9481,6 +9491,11 @@ def table(inp: TableIn):
     repeat = last == pair
     if repeat:
         delta = max(1, int(round(delta * ET_REPEAT)))
+    inv = c.get("table_invite") or {}
+    invited = bool(inv and sorted([inv.get("rid"), inv.get("other")]) == pair)
+    if invited:
+        delta = int(round(delta * HEART_INVITE_MULT))   # S34 마음 4 「한 상 초대」 — 그 짝이면 ×1.5
+        c["table_invite"] = None
     for x, y in ((a, b), (b, a)):
         x.setdefault("trust", {})[y["id"]] = min(TRUST_MAX, int(x["trust"].get(y["id"], 0)) + delta)
     # 대화 한 장면
@@ -9518,7 +9533,7 @@ def table(inp: TableIn):
     if daytime:
         promise, _ = _rot(st, "daytime_table.close", DT.get("close") or [])
     result = {"daytime": daytime, "pair": pair, "names": [a["name"], b["name"]], "item": it.get("name"), "relic_id": inp.relic_id,
-              "trust_delta": delta, "liked_by": [x["id"] for x, l in ((a, la), (b, lb)) if l], "repeat_pair": repeat,
+              "trust_delta": delta, "invited": invited, "liked_by": [x["id"] for x, l in ((a, la), (b, lb)) if l], "repeat_pair": repeat,
               "food_paid": paid_food, "table_store_paid": paid_store, "talk": lines, "talk_key": tk, "promise": promise}
     c["table"] = {"day": day, "result": result}
     c["table_last"] = {"day": day, "pair": pair}
@@ -11133,6 +11148,225 @@ def production_out(st: dict) -> dict:
         out[str(r["slot"])] = {"room_id": r["id"], "people": len(here), "output_per_tick": round(tick, 2),
                                "output_per_day": round(tick * TICKS_PER_DAY, 1), "output_per_hour": round(tick / TICK_HOURS, 2),
                                "resources_per_day": res, "by_people": by, "half_without_people": len(here) == 0}
+    return out
+
+
+# ── S34 C안: 마음 · 편한 방 · 결과 칩 (data/balance/c_plan.json · docs/C_PLAN.md) ─────────────
+try:
+    C_PLAN = json.loads((ROOT / "data" / "balance" / "c_plan.json").read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError):
+    C_PLAN = {}
+_HEART = C_PLAN.get("heart") or {}
+HEART_POINTS = {k: float(v) for k, v in (_HEART.get("points") or {"warm": 1, "like": 2, "need": 3, "memory": 3, "chain": 3,
+                                                                  "heirloom": 4, "not_for_me": 0}).items()}
+HEART_LEVELS = [int(x) for x in (_HEART.get("levels") or [3, 8, 18, 32, 52])]
+HEART_DAMPEN = bool(_HEART.get("dampen_applies", True))
+HEART_INVITE_MULT = 1.5
+_COMFORT = C_PLAN.get("comfort_room") or {}
+COMFORT_BY_ROLE = dict(_COMFORT.get("by_role") or {})
+COMFORT_TWIST = float((_COMFORT.get("quirk_twist") or {}).get("chance", 0.3))
+COMFORT_BONUS = float(_COMFORT.get("stat_bonus", 0.12))
+COMFORT_MAX = float(_COMFORT.get("max_mult_in_comfort", 1.3))
+COMFORT_ENFORCE = True     # 옛 S14 스위트는 편한 방 덤 없는 능력치 배율 자체를 시험한다
+
+
+def heart_level_of(points: float) -> int:
+    return sum(1 for t in HEART_LEVELS if points >= t)
+
+
+def heart_state(st: dict, rid: str) -> dict:
+    h = cres(st, rid).setdefault("heart", {"points": 0.0, "level": 0})
+    return h
+
+
+def heart_public(st: dict, r: dict) -> dict:
+    h = heart_state(st, r["id"])
+    lv = int(h.get("level") or 0)
+    return {"points": h.get("points", 0), "level": lv, "levels": HEART_LEVELS,
+            "next": HEART_LEVELS[lv] if lv < len(HEART_LEVELS) else None,
+            "line": r.get("heart_line"), "keepsake": r.get("heart_keepsake")}
+
+
+def _heart_text(r: dict, lv: int) -> dict:
+    node = ((role_taste(r.get("role", "")).get("heart") or {}).get("levels") or {}).get(str(lv))
+    if isinstance(node, str):
+        node = {"announce": node}
+    return node if isinstance(node, dict) else {}
+
+
+def heart_gain(st: dict, uid: str, target, out: dict, item: dict) -> dict | None:
+    """건넨 결과로 마음 점수(감쇠 곱, 0.5 단위). 단계가 넘으면 그 단계가 여는 것을 열고 장면을 만든다.
+    같은 건네기에 매듭·기억·필요 장면이 이미 있으면 단계 장면은 미뤄 둔다(떠날 때·다음 조용한 순간)."""
+    if not isinstance(target, dict) or not target.get("resident_id"):
+        return None
+    r = next((x for x in st.get("residents_list") or [] if x["id"] == target["resident_id"]), None)
+    if not r:
+        return None
+    tier = out.get("tier")
+    key = "chain" if tier == "chain_beat" else tier
+    if target.get("heirloom") and out.get("heirloom"):
+        key = "heirloom"
+    base = float(HEART_POINTS.get(key, 0))
+    mult = float(out.get("mult") or 1.0) if HEART_DAMPEN else 1.0
+    gain = round(base * mult * 2) / 2.0
+    h = heart_state(st, r["id"])
+    before = int(h.get("level") or 0)
+    h["points"] = round(float(h.get("points") or 0) + gain, 1)
+    after = heart_level_of(h["points"])
+    res = {"gain": gain, "total": h["points"], "level": after, "ko": f"마음 +{gain:g}" if gain else None}
+    if after > before:
+        h["level"] = after
+        eff = out.get("effects") or {}
+        big_already = tier in ("chain_beat", "memory", "need") or bool(eff.get("arc") or eff.get("memory"))
+        scenes = [heart_open_level(st, uid, r, lv, item) for lv in range(before + 1, after + 1)]
+        fill = (moments().get("heart") or {}).get("fill") or []
+        fill_ln = random.Random(f"{r['id']}|{after}|fill").choice(fill).replace("{name}", r["name"]) if fill else None
+        up = {"level": after, "fill_ko": fill_ln, "scenes": scenes, "deferred": big_already}
+        if big_already:                               # 큰 장면 하루 하나 — 단계 장면은 미룬다
+            core_of(st).setdefault("heart_pending", []).extend(scenes)
+            up["scenes"] = []
+        res["level_up"] = up
+    return res
+
+
+def heart_open_level(st: dict, uid: str, r: dict, lv: int, item: dict) -> dict:
+    T = _heart_text(r, lv)
+    fill = lambda t, **kw: (fill_text(t, st, r, item, kw.get("other"), ko=kw.get("ko")) if t else None)
+    row = {"resident_id": r["id"], "name": r["name"], "level": lv}
+    if lv == 1:
+        r["heart_line"] = fill(T.get("line")) or r.get("heart_line")
+        row.update({"kind": "line", "announce": fill(T.get("announce")) or f"{r['name']} 님이 오늘 먼저 인사를 건네셨습니다.",
+                    "line": r["heart_line"]})
+    elif lv == 2:
+        gos = core_of(st).get("gossip") or {}
+        cand = [x for x in notebook_slots(st, uid, r) if x["kind"] == "like" and x["key"] not in nb_known(st, r["id"])
+                and not (gos.get("resident_id") == r["id"] and gos.get("slot") == x["key"])]
+        ko = None
+        if cand:
+            sl = random.Random(f"{uid}|{r['id']}|heart2").choice(cand)
+            nb_known(st, r["id"])[sl["key"]] = {"day": day_of(st), "how": "heart"}
+            ko = sl["ko"]
+        row.update({"kind": "notebook", "slot_ko": ko,
+                    "announce": fill(T.get("announce"), ko=ko or "") if ko else fill(T.get("line")),
+                    "line": fill(T.get("line"), ko=ko or "")})
+    elif lv == 3:
+        rg = role_taste(r.get("role", "")).get("return_gift") or []
+        last = (cres(st, r["id"])["given"] or [{}])[-1].get("name") or item.get("name") or ""
+        cid = f"heart-{r['id']}"
+        card = {"category": "stationery", "rarity": "common", "id": cid, "name": f"{r['name']} 님의 답례", "barcode": None,
+                "_day": day_of(st)}
+        if not any(x.get("card_id") == cid for x in (st.get("shelf") or []) + (st.get("stored") or [])):
+            if shelf_place(st, card) is None:
+                store_overflow(st, card)
+        for x in (st.get("shelf") or []) + (st.get("stored") or []):
+            if x.get("card_id") == cid or x.get("id") == cid:
+                x["relic_name"] = card["name"]
+                x["heart_gift"] = r["id"]
+        gl = random.Random(f"{r['id']}|rg").choice(rg).replace("{name}", r["name"]).replace("{item}", last) if rg else None
+        row.update({"kind": "return_gift", "card_id": cid, "announce": fill(T.get("announce")), "line": fill(T.get("line")),
+                    "gift_ko": gl})
+    elif lv == 4:
+        others = [x for x in st.get("residents_list") or [] if x["id"] != r["id"] and x["id"] not in (st.get("outside") or [])]
+        other = max(others, key=lambda x: (int((r.get("trust") or {}).get(x["id"], 0)), x["id"])) if others else None
+        if other:
+            core_of(st)["table_invite"] = {"rid": r["id"], "other": other["id"], "day": day_of(st)}
+        on = other["name"] if other else ""
+        row.update({"kind": "table_invite", "other_id": other and other["id"], "other_name": on,
+                    "announce": fill(T.get("announce"), other=on), "line": fill(T.get("line"), other=on)})
+    elif lv == 5:
+        sc = [fill(x) for x in (T.get("scene") or []) if isinstance(x, str)]
+        r["heart_keepsake"] = fill(T.get("keepsake")) or f"{r['name']} 님 머리맡에 작은 것 하나가 오래 놓였습니다."
+        row.update({"kind": "story_knot", "announce": fill(T.get("announce")), "scene": sc, "keepsake": r["heart_keepsake"]})
+    return row
+
+
+def heart_scenes_pop(st: dict) -> list:
+    c = core_of(st)
+    out = list(c.get("heart_pending") or [])
+    c["heart_pending"] = []
+    return out
+
+
+def effect_chips(st: dict, out: dict) -> list:
+    """건넨 결과의 효과를 한 줄 칩 배열로(사기·방 생산·수첩·머리맡·마음)."""
+    eff = out.get("effects") or {}
+    chips = []
+    if eff.get("returned_to_shelf"):
+        chips.append({"kind": "returned", "ko": "선반으로 돌아옴"})
+    m = eff.get("morale")
+    if isinstance(m, (int, float)) and m:
+        chips.append({"kind": "morale", "ko": f"사기 +{m:g}"})
+    rb = eff.get("room_bonus")
+    if isinstance(rb, dict):
+        rm = room_at(st, rb.get("slot"))
+        rn = (ROOMS.get((rm or {}).get("id")) or {}).get("name", "방")
+        chips.append({"kind": "room_bonus", "ko": f"{rn} 오늘 +{rb.get('pct', 10)}%"})
+    rv = out.get("revealed") or {}
+    if isinstance(rv, dict) and rv.get("slot"):
+        chips.append({"kind": "notebook", "ko": "수첩에 한 칸"})
+    if eff.get("keepsake"):
+        chips.append({"kind": "keepsake", "ko": "머리맡에 놓임"})
+    hg = eff.get("heart") or {}
+    if hg.get("gain"):
+        chips.append({"kind": "heart", "ko": hg.get("ko") or f"마음 +{hg['gain']:g}"})
+    if hg.get("level_up"):
+        chips.append({"kind": "heart_level", "ko": f"마음 {hg['level_up']['level']}칸"})
+    return chips
+
+
+def comfort_room_of(st: dict, r: dict) -> str | None:
+    """편한 방(사람마다 하나). 역할 표 → 특이점이 + 인 사람 30% 는 그 스탯을 쓰는 방. 한 번 정하면 저장."""
+    if r.get("comfort_room"):
+        return r["comfort_room"]
+    room = (role_taste(r.get("role", "")).get("comfort_room")) or COMFORT_BY_ROLE.get(r.get("role"))
+    q = r.get("quirk") if isinstance(r.get("quirk"), dict) else {}
+    if q.get("stat") and int(q.get("sign") or 0) > 0:
+        rng = random.Random(f"{r['id']}|comfort")
+        if rng.random() < COMFORT_TWIST:
+            opts = sorted(rid for rid in ROOMS if room_stat_of(rid) == q["stat"] and rid not in ("hall", "airlock") and rid != room)
+            if opts:
+                room = rng.choice(opts)
+    r["comfort_room"] = room
+    return room
+
+
+def comfort_public(st: dict, uid: str, r: dict) -> dict:
+    cr_ = comfort_room_of(st, r)
+    slot = station_slot(st, r["id"])
+    here = room_at(st, slot) if slot is not None else None
+    built = any(x["id"] == cr_ for x in live_rooms(st))
+    fb = None
+    if not built:
+        fb = "quarters" if any(x["id"] == "quarters" for x in live_rooms(st)) else "airlock"
+    return {"comfort_room": cr_, "comfort_built": built, "comfort_fallback": fb,
+            "comfort_now": bool(here and not here.get("flooded") and here["id"] == cr_)}
+
+
+def comfort_adjust(st: dict, room: dict, ppl: list, sf: float) -> float:
+    """편한 방에 있는 사람마다 개인 배율 +0.12(평균이면 /사람 수), 그 방 상한 1.18 → 1.30."""
+    if not COMFORT_ENFORCE or not ppl or not room_stat_of(room["id"]):
+        return sf
+    k = sum(1 for p_ in ppl if not str(p_.get("id", "")).startswith("_") and comfort_room_of(st, p_) == room["id"])
+    if not k:
+        return sf
+    return round(min(COMFORT_MAX, sf + COMFORT_BONUS * k / len(ppl)), 4)
+
+
+def comfort_mutter_tick(st: dict, uid: str) -> list:
+    """편한 방에 있는 사람은 하루 한 번 혼잣말(resident_tastes roles.<역할>.comfort_mutter[])."""
+    c = core_of(st)
+    day = day_of(st)
+    md = c.setdefault("mutter_day", {})
+    out = []
+    for r in st.get("residents_list") or []:
+        if md.get(r["id"]) == day or not comfort_public(st, uid, r)["comfort_now"]:
+            continue
+        lines = role_taste(r.get("role", "")).get("comfort_mutter") or []
+        if not lines:
+            continue
+        md[r["id"]] = day
+        out.append({"resident_id": r["id"], "name": r["name"], "room": comfort_room_of(st, r),
+                    "line": random.Random(f"{uid}|{day}|{r['id']}|mutter").choice(lines)})
     return out
 
 

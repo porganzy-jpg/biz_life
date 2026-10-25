@@ -632,3 +632,28 @@
   - 비어 있는 자리는 지금 사람으로 먼저 채우고, 나머지는 능력치 5·역할 없는 손으로 센다.
   - `move_preview[rid][slot].room_per_day_after`: 그 사람이 들어간 뒤 그 방의 하루 값이다.
   - `build_options[room].produces[]`: 그 방이 만드는 자원 키(예: ["water"]).
+
+## 23. S34 C안: 마음 · 편한 방 · 결과 칩 (2026-10-25)
+- **마음**(data/balance/c_plan.json heart)
+  - 건넨 결과 점수: warm 1 · like 2 · need·memory·chain 3 · heirloom 4 · not_for_me 0. 여기에 「어디로」 감쇠 배율을 곱하고 0.5 단위로 반올림한다.
+  - `POST /api/give` 응답 `effects.heart = {gain, total, level, ko, level_up?}`.
+    - `level_up = {level, fill_ko, scenes[], deferred}`.
+    - scenes[] 행: `{kind:"line"|"notebook"|"return_gift"|"table_invite"|"story_knot", level, resident_id, name, announce, line, …}`.
+    - notebook 행에는 slot_ko, return_gift 행에는 card_id·gift_ko, table_invite 행에는 other_id·other_name, story_knot 행에는 scene[3]·keepsake 가 더 붙는다.
+  - 문턱은 3/8/18/32/52 다. 단계가 여는 것:
+    - L1: 인사 줄(`heart.line`).
+    - L2: 수첩 좋아함 한 칸이 저절로 적힌다(저녁 귀띔이 고른 칸은 피한다).
+    - L3: 답례 소품 `heart-<rid>` 가 선반(차면 창고)에 놓인다. 자원은 없다.
+    - L4: `core.table_invite` — 그 짝으로 한 상을 차리면 신뢰 ×1.5 이고, `/api/table` 응답에 `invited:true` 가 붙는다.
+    - L5: 덧매듭 장면과 `heart.keepsake`(머리맡 영구).
+  - **겹침 금지**: 같은 건네기에 매듭·기억·필요 장면이 있으면 단계 장면은 `deferred:true` 로 미룬다. 미룬 장면은 `/api/leaving.heart_scenes[]` 나, `/api/ark.heart_scenes[]`(그 응답에 arc_events 가 없을 때만)로 한 번 온다.
+  - `/api/ark.core.residents[rid].heart = {points, level, levels, next, line, keepsake}`.
+  - 문장 출처: `resident_tastes.roles.<역할>.heart.levels.<n>`(객체: announce·line, L5 는 scene·keepsake), `return_gift[]`, `ui_moments.heart.fill[]`.
+- **편한 방**(c_plan comfort_room)
+  - 정하는 순서: `resident_tastes.roles.<역할>.comfort_room` → by_role. 특이점 sign>0 인 사람의 30% 는 그 스탯을 쓰는 다른 방으로 바뀐다(시드 rid). 한 번 정하면 `r.comfort_room` 에 남는다.
+  - `/api/ark.core.residents[rid]` 에 `comfort_room`, `comfort_built`, `comfort_fallback`(없으면 quarters, 그것도 없으면 airlock), `comfort_now` 가 붙는다.
+  - 생산 방에서는 그 방 능력치 배율에 편한 방 사람마다 +0.12/사람 수를 더하고, 상한이 1.18 에서 1.30 으로 오른다(`COMFORT_ENFORCE`).
+  - `/api/ark.comfort_mutters[] = {resident_id, name, room, line}`: 편한 방에 있는 사람마다 하루 한 번.
+  - `move_preview[rid][slot].comfort`: 그 사람의 편한 방이면 true.
+- **결과 칩**: `effects.chips[] = [{kind, ko}]`.
+  - kind: returned · morale · room_bonus · notebook · keepsake · heart · heart_level.
