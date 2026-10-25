@@ -1181,6 +1181,8 @@
       if (dragging && dragging.id === p.id) return;          // 들고 있는 사람은 손끝에 그린다
       if (movingNow[p.id]) return;                           // 아직 오는 중 — 이동 층에서 그린다
       const life = lifeAt(p, slot, t, step);
+      const uo = K.ext.usePose && K.ext.usePose(p.id, t);      // S36 그날 처음 「쓰는 모습」
+      if (uo) life.pose = uo;
       const px = sx(standX(r, i, n)) + life.off;
       // 작업 행(7~16)은 설비가 왼쪽인 것이 원본. 방의 오른쪽 절반에 선 사람은 셀째 반전 — 설비가 가까운 벽 쪽에 온다
       const mirror = people.length > 1 && (i + 0.5) / people.length > 0.5;

@@ -710,5 +710,189 @@
    33
   ],
   "plate_canvas_note": "plates_meta(672×378 캔버스) 좌표로 바꾸려면 +54, +33"
+ },
+ "use_spots": {
+  "_note": "S36: 건넨 물건을 주인이 하루 한 번 쓰는 자리. 칸 좌표(564×317). item = 물건(by_subtype 소품 34×30 1배) 아래 가운데, stand = 쓰는 사람이 서는 발 가운데(y = 282). keepsake_spots·장식 자리 소품과 겹치지 않음(생성기가 셈)",
+  "by_plate": {
+   "quarters": [
+    {
+     "kind": "shelf",
+     "item": [
+      448,
+      203
+     ],
+     "stand": [
+      498,
+      282
+     ],
+     "note": "오른쪽 책장 가운데 칸"
+    },
+    {
+     "kind": "crate",
+     "item": [
+      381,
+      246
+     ],
+     "stand": [
+      316,
+      282
+     ],
+     "note": "책상 아래 낮은 궤짝 위"
+    }
+   ],
+   "storage": [
+    {
+     "kind": "shelf",
+     "item": [
+      200,
+      189
+     ],
+     "stand": [
+      252,
+      282
+     ],
+     "note": "벽 선반 아래 칸 왼쪽"
+    },
+    {
+     "kind": "stack",
+     "item": [
+      462,
+      147
+     ],
+     "stand": [
+      410,
+      282
+     ],
+     "note": "오른쪽 높은 짐 더미 꼭대기"
+    }
+   ],
+   "workshop": [
+    {
+     "kind": "crate",
+     "item": [
+      130,
+      209
+     ],
+     "stand": [
+      182,
+      282
+     ],
+     "note": "작업대 왼쪽 흰 상자 위"
+    },
+    {
+     "kind": "floor",
+     "item": [
+      400,
+      276
+     ],
+     "stand": [
+      348,
+      282
+     ],
+     "note": "작업대 오른쪽 끝 바닥 — 의자 옆 자리"
+    }
+   ],
+   "infirmary": [
+    {
+     "kind": "shelf",
+     "item": [
+      432,
+      177
+     ],
+     "stand": [
+      372,
+      282
+     ],
+     "note": "약 선반 아래 칸"
+    },
+    {
+     "kind": "crate",
+     "item": [
+      442,
+      253
+     ],
+     "stand": [
+      494,
+      282
+     ],
+     "note": "선반 밑 낮은 상자 위"
+    }
+   ],
+   "power": [
+    {
+     "kind": "ledge",
+     "item": [
+      380,
+      146
+     ],
+     "stand": [
+      328,
+      282
+     ],
+     "note": "오른쪽 장 윗면"
+    },
+    {
+     "kind": "ledge",
+     "item": [
+      200,
+      174
+     ],
+     "stand": [
+      252,
+      282
+     ],
+     "note": "왼쪽 기계 윗면"
+    }
+   ],
+   "greenhouse": [
+    {
+     "kind": "shelf",
+     "item": [
+      300,
+      146
+     ],
+     "stand": [
+      248,
+      282
+     ],
+     "note": "가운데 화분 선반"
+    },
+    {
+     "kind": "shelf",
+     "item": [
+      440,
+      206
+     ],
+     "stand": [
+      388,
+      282
+     ],
+     "note": "아래 화분 선반 오른쪽"
+    }
+   ]
+  },
+  "room_to_plate": {
+   "quarters": "quarters",
+   "decoder": "quarters",
+   "pantry": "storage",
+   "storage": "storage",
+   "lounge": "storage",
+   "infirmary": "infirmary",
+   "bath": "infirmary",
+   "workshop": "workshop",
+   "greenhouse": "greenhouse",
+   "well": "greenhouse",
+   "generator": "power",
+   "power": "power"
+  },
+  "room_to_plate_note": "base_core.js PLATE_OF 와 같은 대응. 플레이트를 함께 쓰는 방(decoder=quarters 등)은 같은 자리를 쓴다",
+  "overlap_check": {
+   "quarters": [],
+   "storage": [],
+   "workshop": [],
+   "infirmary": [],
+   "power": [],
+   "greenhouse": []
+  }
  }
 }

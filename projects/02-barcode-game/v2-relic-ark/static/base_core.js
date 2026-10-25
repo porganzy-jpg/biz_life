@@ -605,7 +605,8 @@
     const b = ART.bySub || {}, c = b[k.category] || {};
     return ((c[k.subtype] || {}).prop) || ((Object.values(c).find(x => x.match === 'good') || {}).prop) || ((b.unknown || {}).any || {}).prop || null;
   }
-  const keepLog = {}, rareLog = {}, spotLog = {};
+  const keepLog = {}, rareLog = {}, spotLog = {}, useLog = {};
+  D.useSpots = () => Object.assign({}, useLog);
   let spotFrame = -1;
   D.spots = () => JSON.parse(JSON.stringify(spotLog));
   // S25 남은 것: 그 방 사람 수만큼 keepsake_spots(침상·작업대·화단 턱·선반) 앞에서부터 — i 번째 사람의 물건 하나.
@@ -632,7 +633,21 @@
       if (!it) it = (c.keepsakes_recent || [])[0] || null;
       if (it) rows.push({ rid: p.id, c, seat: null, it });
     });
-    rows.slice(0, spots.length).forEach((r, i) => {
+    const us = ((((K.ark || {}).core || {}).rooms || {})[String(slot)] || {}).use_spots || [];   // S36 쓰는 자리 둘 — 배경 담당 decor_meta.use_spots(머리맡 자리와 겹침 0)
+    const uSpots = ((ART.useSpots || {}).by_plate || {})[((ART.useSpots || {}).room_to_plate || {})[room.id] || SPOT_PLATE[room.id] || room.id] || [];
+    const usedN = 0;                                         // 머리맡·자리 소품은 keepsake_spots 그대로(쓰는 자리는 따로 있다)
+    us.slice(0, 2).forEach(u => {
+      const us0 = uSpots[u.spot != null ? u.spot : 0]; const sp = us0 && us0.item ? { x: us0.item[0], y: us0.item[1] } : null; if (!sp) return;
+      const pid = (u.item && (u.item.prop || propIdOf(u.item))); const pi = pid && K.propImg(pid); if (!pi || !pi.ok1) return;
+      const sc = 1.0 * kx, cx = ix + sp.x * kx, bottom = iy + sp.y * ky, w = pi.x1.naturalWidth * sc, h = pi.x1.naturalHeight * sc;   // 1배(배경 규격: 34×30 소품 1배로 겹침 0 확인). 사람보다 먼저 그린다(사람 뒤 — 쓰는 사람이 앞에 선다)
+      ctx.save(); ctx.imageSmoothingEnabled = false; if (lit === false) ctx.globalAlpha = 0.6;
+      ctx.drawImage(pi.x1, cx - w / 2, bottom - h, w, h);
+      if (u.today_used) { ctx.globalAlpha = 0.5; ctx.fillStyle = '#ffe2a8'; ctx.beginPath(); ctx.arc(cx + w / 2, bottom - h, 2.2 * kx, 0, 6.2832); ctx.fill(); }   // 오늘 쓴 것은 작은 반짝
+      ctx.restore();
+      useLog[slot + ':' + u.spot] = { prop: pid, owner: u.owner_id, action: u.action, used: !!u.today_used };
+    });
+    rows.slice(0, Math.max(0, spots.length - usedN)).forEach((r, i0) => {
+      const i = i0 + usedN;
       const sp = spots[i], it = r.it;
       const pid = it && propIdOf(it); const pi = pid && K.propImg(pid); if (!pi || !pi.ok1) return;
       const sc = 1.6 * kx, cx = ix + sp.x * kx; let bottom = iy + sp.y * ky, stood = false;
@@ -694,6 +709,7 @@
     if (!j) return; if (j.cell) ART.decCell = j.cell; if (j.clear_zones && j.clear_zones.floor_band_y) ART.floorY = j.clear_zones.floor_band_y;
     (j.tags || []).forEach(t => { ART.dec[t.id] = t; loadImg('/static/art/decor/' + t.file); });
     if (j.keepsake_spots && j.keepsake_spots.by_plate) ART.kspots = j.keepsake_spots.by_plate;
+    if (j.use_spots && j.use_spots.by_plate) ART.useSpots = j.use_spots;
     if (j.slots) { ART.slots = { list: j.slots, pos: j.slot_positions_in_cell || {} }; spotsCache = null; }
     if (j.traces) { ART.traces = j.traces; (j.traces.items || []).forEach(x => loadImg('/static/art/decor/' + x.file)); }
     const wc = (j.window_spot || {}).cells || {}; Object.keys(wc).forEach(k => { if (wc[k] && wc[k].visitor_world) ART.win[k] = wc[k].visitor_world; });
@@ -1194,6 +1210,17 @@
       said.push(k); store.set('news_said', said.slice(-60)); setTimeout(() => K.say(plain(n.ko)), 1800); D.log.push('news ' + n.kind); });
     if (st.household_note) { const k = 'hh|' + (st.day || '') + '|' + st.household_note; if (said.indexOf(k) < 0) { said.push(k); store.set('news_said', said.slice(-60)); setTimeout(() => K.say(plain(st.household_note)), 2400); D.log.push('household note'); } }
   }
+  const USE_POSE = { eat: 'sit', drink: 'sit', read: 'lounge', write: 'work', tinker: 'work', wrap: 'work', bandage: 'work', look: 'glance' };
+  const usePoseUntil = {};
+  K.ext.usePose = (rid, t) => { const u = usePoseUntil[rid]; if (!u) return null; if (u.t0 == null) u.t0 = t; return t - u.t0 < 4500 ? u.pose : null; };
+  function useCheck(st) {
+    (st.use_news || []).forEach(n => {
+      if (!n.ko) return;
+      usePoseUntil[n.resident_id] = { pose: USE_POSE[n.action] || 'idle', t0: null };
+      setTimeout(() => K.say(plain(n.ko)), 2200);
+      D.log.push('use ' + n.resident_id + ' ' + n.action);
+    });
+  }
   function heartCheck(st) {
     (st.heart_scenes || []).forEach(h => heartScene(h.resident_id || h.rid, h.scenes ? Object.assign({}, h, { deferred: false }) : { level: h.level, fill_ko: h.fill_ko, scenes: [h], deferred: false }));
     const ms = st.comfort_mutters || [], said = store.get('mutter_said', []);
@@ -1304,6 +1331,7 @@
     wallCheck(st);
     heartCheck(st);
     newsCheck(st);
+    useCheck(st);
     octWhere(st);
     renderNext(st);
     (st.arc_events || []).filter(Boolean).forEach(e => queueBeat(Object.assign({ id: (e.arc_id || '') + ':' + (e.step || '') }, e)));
