@@ -1710,6 +1710,10 @@ def combat_public(st: dict) -> dict:
 def public_state(st: dict, uid: str) -> dict:
     with db() as con:
         today = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND day=?", (uid, day_of(st))).fetchone()["c"]
+    _un = use_tick(st, uid)                           # S36 먼저 적어야 core.rooms.today_used 가 맞다
+    if _un:
+        core_of(st).setdefault("use_news_pending", []).extend(_un)
+        del core_of(st)["use_news_pending"][:-12]
     people_rooms_tick(st, uid, core_of(st).setdefault("goals", {"slots": {}, "queue": [], "pd": None, "recent": {}, "announced": []}))   # S35 먼저(짓기 목록이 이걸 본다)
     return {
         "day": day_of(st), "resources": st["resources"], "rooms": st["rooms"], "residents": st["residents"],
@@ -4540,6 +4544,8 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     out["arc_events"] = [{k: v for k, v in x.items() if k != "shown"} for x in arc_new]
     out["heart_scenes"] = heart_scenes_pop(st) if not out["arc_events"] else []   # S34: 큰 장면이 없는 조용한 순간에만
     out["comfort_mutters"] = comfort_mutter_tick(st, uid)
+    out["use_news"] = list(core_of(st).get("use_news_pending") or [])   # S36 그날 처음 「쓴다」 — 한 번
+    core_of(st)["use_news_pending"] = []
     out["room_news"] = people_news_pop(st)            # S35 「열림 · {name} 님 덕분」·「머물 칸이 없습니다」
     out["household_note"] = household_note(st, uid)
     out["shelf_autofill"] = core_t.get("autofill") or []
@@ -7515,7 +7521,7 @@ def core_public(st: dict, uid: str) -> dict:
             "heart": heart_public(st, r),                        # S34 마음
             **comfort_public(st, uid, r),                        # S34 편한 방
         }
-    return {"residents": res, "props": list(core_of(st)["props"])}
+    return {"residents": res, "props": list(core_of(st)["props"]), "rooms": use_rooms_public(st)}   # S36 쓰는 자리
 
 
 def morning_core(st: dict, uid: str) -> None:
@@ -11525,6 +11531,104 @@ def comfort_goal_candidates(st: dict, uid: str, pd: int) -> list:
                     "person": r["name"], "text": "goal.comfort_room",
                     "title_ko": f"{r['name']} 님 편한 방({nm}) 짓기", "done_ko": f"{r['name']} 님이 「{nm}」에서 한숨 돌리십니다."})
     return out[:1]
+
+
+# ── S36 준 물건이 방에서 쓰인다(docs/C_PLAN.md §5) — 자원·숫자 없음, 장면만 ─────────────
+USE_SPOTS_PER_ROOM = 2
+USE_ACTION_BY_CAT = {"food": "eat", "drink": "drink", "apparel": "wrap", "book": "read", "electronics": "tinker",
+                     "stationery": "write", "medical": "bandage"}          # 그 밖(담배·모름) = look(쳐다보기만)
+USE_DEFAULT_KO = {"eat": "{name} 님이 「{item}」를 조금씩 맛보십니다.", "drink": "{name} 님이 「{item}」를 한 모금 하십니다.",
+                  "wrap": "{name} 님이 「{item}」를 어깨에 둘러 보십니다.", "read": "{name} 님이 「{item}」를 펼쳐 놓고 읽으십니다.",
+                  "tinker": "{name} 님이 「{item}」를 이리저리 만져 보십니다.", "write": "{name} 님이 「{item}」로 뭔가 적으십니다.",
+                  "bandage": "{name} 님이 「{item}」로 손을 감아 보십니다.", "look": "{name} 님이 「{item}」를 한참 들여다보십니다."}
+
+
+def use_room_of(st: dict, r: dict) -> dict | None:
+    """쓰는 방: 편한 방 → 없으면 거주실. 둘 다 없으면 없음."""
+    cr = comfort_room_of(st, r)
+    rooms = live_rooms(st)
+    return next((x for x in rooms if x["id"] == cr), None) or next((x for x in rooms if x["id"] == "quarters"), None)
+
+
+def use_items_of(st: dict, r: dict) -> list:
+    """그 사람이 쓰는 물건: 가보 먼저, 그다음 최근 받은 것(머리맡 목록). 안전 목록 밖은 '쳐다보기'로만."""
+    out = []
+    h = r.get("heirloom")
+    if h and h.get("name"):
+        out.append({"name": h["name"], "category": h.get("category"), "subtype": h.get("subtype"), "barcode": h.get("barcode"),
+                    "prop": h.get("prop"), "heirloom": True})
+    for it in reversed(cres(st, r["id"])["items"]):
+        if it.get("name") and not any(o.get("barcode") and o.get("barcode") == it.get("barcode") for o in out):
+            out.append({"name": it.get("name"), "category": it.get("category"), "subtype": it.get("subtype"),
+                        "barcode": it.get("barcode"), "prop": prop_for_item(it), "heirloom": False})
+        if len(out) >= USE_SPOTS_PER_ROOM:
+            break
+    return out
+
+
+def use_action(it: dict) -> str:
+    if not item_safe(it) and it.get("category") != "medical":
+        return "look"
+    if it.get("category") == "medical" and not item_safe(it):
+        return "look"                                 # 붕대 밖 약은 쓰는 모습을 보이지 않는다(안전)
+    return USE_ACTION_BY_CAT.get(it.get("category") or "", "look")
+
+
+def use_rooms_public(st: dict) -> dict:
+    """방마다 쓰는 자리 둘: 그 방을 쓰는 사람들의 물건(가보·최근) — 사람 차례로 하나씩 돌아가며."""
+    day = day_of(st)
+    log_ = core_of(st).get("use_log") or {}
+    per_room: dict = {}
+    for r in st.get("residents_list") or []:
+        rm = use_room_of(st, r)
+        if not rm:
+            continue
+        per_room.setdefault(int(rm["slot"]), []).append((r, use_items_of(st, r)))
+    out = {}
+    for slot, rows in per_room.items():
+        spots = []
+        depth = 0
+        while len(spots) < USE_SPOTS_PER_ROOM and any(len(its) > depth for _, its in rows):
+            for r, its in rows:
+                if depth < len(its) and len(spots) < USE_SPOTS_PER_ROOM:
+                    it = its[depth]
+                    key = f"{r['id']}|{it.get('barcode') or it['name']}"
+                    spots.append({"spot": len(spots), "item": {k: it.get(k) for k in ("name", "prop", "category", "subtype", "heirloom")},
+                                  "owner_id": r["id"], "owner_name": r["name"], "action": use_action(it),
+                                  "today_used": log_.get(key) == day, "key": key})
+            depth += 1
+        if spots:
+            out[str(slot)] = {"use_spots": spots}
+    return out
+
+
+def use_tick(st: dict, uid: str) -> list:
+    """그 사람이 그 방에 있으면 하루 한 번 「쓴다」로 적고, 처음 한 번 방송한다(사람마다 하루 한 줄)."""
+    c = core_of(st)
+    day = day_of(st)
+    log_ = c.setdefault("use_log", {})
+    said = c.setdefault("use_said", {})
+    news = []
+    for slot, row in use_rooms_public(st).items():
+        for sp in row["use_spots"]:
+            r = next((x for x in st.get("residents_list") or [] if x["id"] == sp["owner_id"]), None)
+            if not r or station_slot(st, r["id"]) != int(slot) or r["id"] in (st.get("outside") or []):
+                continue
+            key = sp["key"]
+            if log_.get(key) == day:
+                continue
+            log_[key] = day
+            if said.get(r["id"]) == day:
+                continue
+            said[r["id"]] = day
+            U = (moments().get("use_action") or {}).get(sp["action"])
+            lines = U if isinstance(U, list) else ([U] if isinstance(U, str) else [])
+            t = random.Random(f"{uid}|{day}|{r['id']}|use").choice(lines) if lines else USE_DEFAULT_KO[sp["action"]]
+            news.append({"resident_id": r["id"], "name": r["name"], "slot": int(slot), "spot": sp["spot"], "action": sp["action"],
+                         "item": sp["item"]["name"], "ko": t.replace("{name}", r["name"]).replace("{item}", sp["item"]["name"])})
+    for k in [k for k, v in log_.items() if int(v) < day - 7]:
+        log_.pop(k, None)
+    return news
 
 
 # ─────────────────────────────────────────────────────────────

@@ -681,3 +681,15 @@
 - (S35 후속, PM) `household` 에는 식량·물만 담는다. 전력은 소비가 없어서 띠에서 빼고, 화면은 숫자로 보인다.
 - (S35 후속) 닫힌 방 종류 `build_options[rid]` 에 `locked_by_role`(예: "farmer")과 `locked_ko`(예: 「농부가 오면 열립니다」)가 붙는다. 편한 방 표에 주인 역할이 없는 방(bath)은 role 이 null 이고 문장은 일반형이다.
 - (S35 후속, PM) 물 끓이는 방(bath)은 사람 해금에서 뺐다. economy 조건 「발전실 Lv2」 그대로이고 locked_by_role 은 없다. 사람이 여는 방 종류는 greenhouse·infirmary·decoder·lounge 넷이다.
+
+## 25. S36 준 물건이 방에서 쓰인다 (2026-10-25)
+- **`core.rooms[slot].use_spots = [{spot:0|1, item:{name, prop, category, subtype, heirloom}, owner_id, owner_name, action, today_used, key}]`**(/api/ark 와 모든 state).
+  - 쓰는 방은 그 사람의 편한 방이다. 지어지지 않았으면 거주실이고, 거주실도 없으면 쓰는 자리가 없다.
+  - 물건은 가보가 먼저, 그다음 최근 받은 것(머리맡 목록)이다. 한 방을 여러 사람이 쓰면 사람 차례로 하나씩 돌아가며 두 자리를 채운다.
+  - 끝 매듭 자리(seat)는 그대로 영구다. 이것과는 따로다.
+- **action**(갈래 → 동작 8): food eat · drink drink · apparel wrap · book read · electronics tinker · stationery write · medical(붕대) bandage · 그 밖 look.
+  - 안전 목록 밖 물건(붕대 밖 약·담배·술)은 look(쳐다보기)만 한다.
+- **하루 한 번**: 그 사람이 그 방에 서 있으면 그날 그 물건을 「쓴다」로 적는다(today_used).
+  - 사람마다 하루 한 줄 `/api/ark.use_news[] {resident_id, name, slot, spot, action, item, ko}` 가 한 번 온다.
+  - 문장은 `ui_moments.use_action.<action>[]` 에서 읽는다({name} {item}).
+- 자원·숫자는 없다(장면만).
