@@ -18,6 +18,29 @@
     return '<i class="face" data-role="' + esc(p.role || '') + '" style="width:' + size + 'px;height:' + size + 'px;background-image:url(' + sheet + ');background-size:' + (768 * k).toFixed(1) + 'px auto;background-position:-' + (76 * k).toFixed(1) + 'px -' + (28 * k).toFixed(1) + 'px" aria-hidden="true"></i>';
   }
 
+  // ══ 0. S34 마음 다섯 칸 · 편한 방 ═══════════════════════════════════
+  const HEART_N = 5;
+  function heartOf(rid) { const c = (((K.ark || {}).core || {}).residents || {})[rid] || {}; return c.heart || null; }
+  function heartPips(h, big) {
+    const lv = Math.max(0, Math.min(HEART_N, (h && h.level) | 0));
+    // 다음 칸까지 얼마나 찼나(문턱 levels[lv-1] → levels[lv])
+    const L = (h && h.levels) || [], lo = lv > 0 ? (L[lv - 1] || 0) : 0, hi = L[lv] != null ? L[lv] : null;
+    const part = hi != null && hi > lo ? Math.max(0, Math.min(1, ((h.points || 0) - lo) / (hi - lo))) : 0;
+    let out = '';
+    for (let i = 0; i < HEART_N; i++) out += '<i class="hp' + (i < lv ? ' on' : '') + '"' + (i === lv && part > 0 ? ' style="--f:' + Math.round(part * 100) + '%"' : '') + '></i>';
+    return '<span class="hpips' + (big ? ' big' : '') + '" aria-label="마음 ' + lv + '/' + HEART_N + '">' + out + '</span>';
+  }
+  K.ext.heartRow = (rid, withComfort) => {
+    const h = heartOf(rid), c = (((K.ark || {}).core || {}).residents || {})[rid] || {};
+    if (!h && !c.comfort_room) return '';
+    const rc = (K.ark || {}).rooms_catalog || K.catalog || {};
+    const cname = c.comfort_room ? ((rc[c.comfort_room] || {}).name || c.comfort_room) : '';
+    const left = h && h.next != null ? Math.max(0, Math.round((h.next - (h.points || 0)) * 10) / 10) : null;
+    return '<p class="pheart">' + (h ? '<b>마음</b> ' + heartPips(h, true) + (left ? ' <small>다음 칸까지 ' + left + '</small>' : '') : '') + '</p>' +
+      (withComfort && cname ? '<p class="pcomfort"><i class="houseico" aria-hidden="true"></i>편한 방 <b>' + esc(cname) + '</b>' +
+        (c.comfort_now ? ' <small>지금 여기 계십니다</small>' : (c.comfort_built === false ? ' <small>아직 없는 방입니다</small>' : '')) + '</p>' : '');
+  };
+
   // ══ 1. 얼굴 띠 ════════════════════════════════════════════════
   const strip = document.createElement('div'); strip.id = 'faces'; strip.className = 'faces'; strip.hidden = true;
   strip.setAttribute('role', 'list'); strip.setAttribute('aria-label', '식구');
@@ -38,14 +61,14 @@
     const a = K.ark || {}, ppl = a.residents_list || [], cr = (a.core || {}).residents || {};
     if (!ppl.length) { strip.hidden = true; return; }
     const outside = ((a.combat || {}).outside) || [];
-    const rows = ppl.map(p => ({ p, m: moodOf(p, cr[p.id] || {}), out: outside.indexOf(p.id) >= 0 }));
-    const key = JSON.stringify(rows.map(r => [r.p.id, r.m.line, r.m.need, r.m.story, r.out]));
+    const rows = ppl.map(p => ({ p, m: moodOf(p, cr[p.id] || {}), out: outside.indexOf(p.id) >= 0, h: (cr[p.id] || {}).heart || null, home: !!(cr[p.id] || {}).comfort_now }));
+    const key = JSON.stringify(rows.map(r => [r.p.id, r.m.line, r.m.need, r.m.story, r.out, r.h && r.h.level, r.h && r.h.points, r.home]));
     if (key === lastKey && !strip.hidden) return; lastKey = key;
     strip.innerHTML = rows.map(r => '<button class="fchip' + (r.out ? ' out' : '') + '" role="listitem" data-pid="' + esc(r.p.id) + '" title="' + esc(r.p.name + ' · ' + r.m.line) + '">' +
       face(r.p, innerHeight <= 500 ? 28 : 34) +
       '<span class="fname"><b>' + esc(r.p.name) + '</b>' +
         (r.m.need ? '<i class="fneed ' + r.m.need + '" aria-label="' + (r.m.need === 'met' ? '받음' : '오늘 필요') + '"></i>' : '') +
-        (r.m.story ? '<i class="fstory" aria-label="이야기"></i>' : '') + '</span>' +
+        (r.m.story ? '<i class="fstory" aria-label="이야기"></i>' : '') + (r.home ? '<i class="houseico sm" aria-label="편한 방에 계심"></i>' : '') + (r.h ? heartPips(r.h) : '') + '</span>' +
       '<small class="fline">' + esc(r.out ? T('faces.outside', '바깥에 나가 계십니다') : r.m.line) + '</small></button>').join('');
     strip.hidden = false;
     D.faces = rows.map(r => ({ id: r.p.id, name: r.p.name, line: r.m.line, need: r.m.need || null, story: !!r.m.story }));
@@ -71,27 +94,34 @@
 
   // ══ 2. 건네기 결과 칩 ═══════════════════════════════════════════
   const RES_KO = K.RES_KO || {};
+  const SV_KIND = { morale: 'morale', room_bonus: 'room', notebook: 'note', heart: 'heart', heart_level: 'heart', returned: 'returned' };
   function chipsOf(res) {
     const ef = (res && res.effects) || {}, out = [];
+    if (Array.isArray(ef.chips) && ef.chips.length) {       // S34 서버 effects.chips [{kind, ko}]
+      ef.chips.filter(c => c && c.ko && c.kind !== 'keepsake').forEach(c => out.push({ k: SV_KIND[c.kind] || c.kind, t: plain(c.ko) }));
+      if (ef.arc && ef.arc.step) out.push({ k: 'story', t: '이야기 ' + ef.arc.step + '/' + (ef.arc.steps || '') });
+      return out.slice(0, 5);
+    }
     if (ef.morale) out.push({ k: 'morale', t: '사기 ' + (ef.morale > 0 ? '+' : '') + ef.morale });
     if (ef.room_bonus && ef.room_bonus.pct) {
       const rm = ((K.ark || {}).rooms || []).find(r => r.slot === ef.room_bonus.slot), nm = rm ? ((K.catalog[rm.id] || {}).name || rm.id) : '방';
       out.push({ k: 'room', t: nm + ' 생산 +' + ef.room_bonus.pct + '%(오늘)' });
     }
     const rv = res.revealed; if (rv && (rv.new || rv.kind)) out.push({ k: 'note', t: '수첩 +1' });
-    const heart = ef.heart != null ? ef.heart : (ef.trust != null ? ef.trust : (res.heart_delta != null ? res.heart_delta : null));   // S34 서버 뒤(필드 이름 확정 전 셋 다 본다)
-    if (heart) out.push({ k: 'heart', t: '마음 ' + (heart > 0 ? '+' : '') + heart });
+    const hv = ef.heart;                                     // S34 서버: effects.heart {gain, total, level, ko}
+    if (hv && typeof hv === 'object' && (hv.ko || hv.gain)) out.push({ k: 'heart', t: plain(hv.ko || ('마음 +' + hv.gain)) });
+    else if (typeof hv === 'number' && hv) out.push({ k: 'heart', t: '마음 ' + (hv > 0 ? '+' : '') + hv });
     if (ef.arc && ef.arc.step) out.push({ k: 'story', t: '이야기 ' + ef.arc.step + '/' + (ef.arc.steps || '') });
     if (ef.memory) out.push({ k: 'memory', t: '기억 하나' });
     if (ef.decor && ef.decor.items != null) out.push({ k: 'decor', t: '꾸밈 ' + ef.decor.items + '/' + (ef.decor.cap || '') });
-    if (ef.keepsake && ef.keepsake.name) out.push({ k: 'keep', t: '머리맡에 「' + ef.keepsake.name + '」' });
+    // 머리맡 물건은 관리실 한 줄(keepsake.line)이 따로 말하므로 칩에는 넣지 않는다(같은 말 두 번 없이)
     return out.slice(0, 5);
   }
   const chipBox = document.createElement('div'); chipBox.className = 'giftchips'; chipBox.hidden = true; chipBox.setAttribute('aria-live', 'polite');
   ($('#base') || document.body).appendChild(chipBox);
   let chipT = 0;
   function showChips(res) {
-    const cs = chipsOf(res); D.lastChips = cs.map(c => c.t);
+    const cs = chipsOf(res); D.lastChips = cs.map(c => c.t); D.chipsIn = 'float';
     if (!cs.length) return;
     chipBox.innerHTML = cs.map((c, i) => '<span class="gchip gc-' + c.k + '" style="--i:' + i + '">' + esc(c.t) + '</span>').join('');
     chipBox.hidden = false; chipBox.classList.remove('off'); void chipBox.offsetWidth; chipBox.classList.add('in');
@@ -99,6 +129,7 @@
     D.log.push('chips ' + cs.length);
   }
   K.ext.giftChips = showChips;
+  K.ext.chipsHTML = (res) => { const cs = chipsOf(res); D.lastChips = cs.map(c => c.t); D.chipsIn = 'card'; return cs.map(c => '<span class="gchip gc-' + c.k + '">' + esc(c.t) + '</span>').join(''); };
 
   // ══ 3. 「어디로」 이유 표시를 누르면 한 줄 ═══════════════════════════
   const WHY_HELP = {
@@ -127,6 +158,6 @@
     D.log.push('why ' + k);
   }, true);
 
-  D.state = () => ({ faces: D.faces || null, chips: D.lastChips || null, why: pop.hidden ? null : pop.textContent });
+  D.state = () => ({ faces: D.faces || null, chips: D.lastChips || null, chipsIn: D.chipsIn || null, why: pop.hidden ? null : pop.textContent });
   if (K.ark) drawFaces();
 })();

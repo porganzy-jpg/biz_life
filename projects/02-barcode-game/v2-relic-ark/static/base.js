@@ -160,13 +160,13 @@
   }
   function flushSay() {
     if (!heldSay.length) return;
-    if (window.ARKGUIDE && window.ARKGUIDE.holding && window.ARKGUIDE.holding()) return;   // S32: 길잡이가 끝나면 다시 흘린다
+    if ((window.ARKGUIDE && window.ARKGUIDE.holding && window.ARKGUIDE.holding()) || (window.ARKCORE && window.ARKCORE.sceneHold && window.ARKCORE.sceneHold())) return;   // 길잡이·장면 카드가 끝나면 다시 흘린다
     const l = heldSay.shift(); toast(l);
     if (heldSay.length) setTimeout(() => { if (!modalBusy) flushSay(); }, 3200);
   }
   function say(m) {                                   // 관리실 방송 한 줄 — 큰 창이 떠 있으면 닫힌 뒤에
     if (!m) return;
-    const guiding = window.ARKGUIDE && window.ARKGUIDE.holding && window.ARKGUIDE.holding();   // S32: 길잡이 말풍선이 떠 있는 동안 방송은 뒤로
+    const guiding = (window.ARKGUIDE && window.ARKGUIDE.holding && window.ARKGUIDE.holding()) || (window.ARKCORE && window.ARKCORE.sceneHold && window.ARKCORE.sceneHold());   // S32 길잡이 · S34 장면 카드가 떠 있는(뜰) 동안 방송은 뒤로
     if (modalBusy || modalQ.length || !qReady || guiding) { if (heldSay.indexOf(m) < 0) heldSay.push(m); return; }
     toast(m);
   }
@@ -3445,12 +3445,26 @@
   // S18-B2: 방주 전체 변화는 서버 값(move_preview[사람][칸].ark_delta_pct)만 쓴다. 화면 근사는 지웠다(방 하나 +120% 를 전체 +72% 로 서버가 잰다)
   const fmt1 = (v) => String(Math.round((+v || 0) * 10) / 10);
   function arkDeltaPct(pv) { return pv && typeof pv.ark_delta_pct === 'number' ? pv.ark_delta_pct : null; }
-  const carryLog = [];
+  const carryLog = [], comfortLog = {};
+  function houseMark(x, y, on) {                              // 작은 집(지붕 + 몸통 + 문) — 등불색, 손끝이 그 방 위면 더 밝게
+    const s = on ? 1.25 : 1;
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    ctx.fillStyle = 'rgba(20,17,12,0.85)'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = on ? '#ffd27a' : '#f0b055';
+    ctx.beginPath(); ctx.moveTo(-9, -1); ctx.lineTo(0, -9); ctx.lineTo(9, -1); ctx.closePath(); ctx.fill();
+    ctx.fillRect(-6, -1, 12, 9);
+    ctx.fillStyle = 'rgba(20,17,12,0.9)'; ctx.fillRect(-2, 3, 4, 5);
+    ctx.restore();
+  }
   function drawCarryNumbers() {
     const who = dragging || (carry && (ark.residents_list || []).find(r => r.id === carry.id));
     if (!who) return;
     const here = cb.stations[who.id];
     const hover = dragging ? slotAt(pointer.x, pointer.y) : null;
+    // S34 편한 방: 드는 순간부터 그 사람의 편한 방 위에 작은 집 표시(서버 move_preview[사람][칸].comfort)
+    const mpAll = (ark.move_preview || {})[who.id] || {};
+    Object.keys(mpAll).forEach(k => { if (!mpAll[k] || !mpAll[k].comfort || k === 'hall') return; const q = rectOf(+k); if (!q) return;
+      houseMark(sx(q.x + q.w) - 24, sy(q.y + q.h) - 26, +k === hover); comfortLog[who.id] = +k; });   // 방 오른쪽 아래(이름표·예보 알약과 안 겹치게)
     if (hover == null || hover === here) return;           // 손끝이 방 위에 있을 때만, 그 방으로 옮기면 어떻게 되는지
     const pv = movePreview(who.id, hover);
     const bx = Math.min(view.w - 120, pointer.x + 110), by = Math.max(60, pointer.y - 74);   // 손끝 오른쪽 위 — 사람 그림 밖
@@ -3857,7 +3871,7 @@
     moveLog: () => moveLog.slice(),
     camInfo: () => ({ source: K_detSource, scanning, hasStream: !!stream, status: ($('#camstatus') || {}).textContent }),   // ★ 검수용
     gs1ok: (c) => K_gs1ok && K_gs1ok(String(c)),
-    carryLog: () => carryLog.slice(), queue: () => ({ busy: modalBusy && modalBusy.tag, wait: modalQ.map(x => x.tag), held: heldSay.slice(), log: qLog.slice() }),   // ★ S18 검수용
+    carryLog: () => carryLog.slice(), comfortLog: () => Object.assign({}, comfortLog), queue: () => ({ busy: modalBusy && modalBusy.tag, wait: modalQ.map(x => x.tag), held: heldSay.slice(), log: qLog.slice() }),   // ★ S18 검수용
     josa: (w, p) => josa(w, p),
     openTrade: (sl) => openTrade(sl),                  // ★ S18 검수용                    // 엘리베이터 배차 기록(시각은 performance.now 초)
   };

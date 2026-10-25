@@ -253,7 +253,7 @@
     // 끝낸 것 방송(서버 goals_done_now 가 오면 그 문장, 아니면 goal.<key>.done)
     // 끝낸 것 방송: 서버 goals_done_now(서버가 한 번만 싣는다) — 문장이 없으면 goal.<key>.done
     const now = (st.goals_done_now || []);
-    now.forEach(sv => { if (goalSaid[sv.id]) return; goalSaid[sv.id] = 1; const g = gs.find(x => x.id === sv.id) || { id: sv.id }; const ln = sv.line_ko || gText(g, 'done'); if (ln) K.say(plain(ln)); D.log.push('goal done ' + sv.id); });
+    now.forEach(sv => { if (goalSaid[sv.id]) return; goalSaid[sv.id] = 1; const g = gs.find(x => x.id === sv.id) || { id: sv.id }; const ln = sv.line_ko || gText(g, 'done'); if (ln) setTimeout(() => K.say(plain(ln)), 1200);   /* 건네기 반응·장면 카드 판단이 먼저 서도록 */ D.log.push('goal done ' + sv.id); });
     if (now.some(sv => goalSaid[sv.id] === 1 && (goalSaid[sv.id] = 2)) && n === gs.length && !goalSaid._all && (goalSaid._all = 1)) setTimeout(() => { const m = K.ext.moment && K.ext.moment('goal.all_done');
       K.say(plain(st.all_done_ko || st.goals_all_done_ko || (Array.isArray(m) ? m[0] : m) || '관리실입니다. 오늘 할 일을 다 해 주셨습니다. 내일 부탁이 또렷해집니다.')); D.log.push('goal all done'); }, 1600);
     goalsPrev = Object.fromEntries(gs.map(g => [g.id, { done: !!g.done }]));

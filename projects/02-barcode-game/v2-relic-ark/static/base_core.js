@@ -331,7 +331,12 @@
   // 반응: 사람이면 그 사람 위에 물건 + 마음 + 한 줄, 방이면 방이 한 번 밝아지고 한 줄
   function react(res, s) {
     const rc = res.reaction || {}, ef = res.effects || {};
-    if (K.ext.giftChips && res.tier !== 'keep') { try { K.ext.giftChips(res); } catch (e) { /* 칩이 실패해도 반응은 그린다 */ } }   // S34 건네기 결과 칩
+    const willCard = !!(ef.arc && !ef.arc.deferred && beatShown < 1 && !beatSeen[(ef.arc.arc_id || '') + ':' + (ef.arc.step || '')]);   // S34: 이 건네기 뒤 장면 카드가 뜬다
+    if (willCard) { sceneWait = true; [ef.arc.announce, ef.arc.line, ef.arc.broadcast, rc.line, rc.announce].forEach(x => { const k = normT(x); if (k) cardSaid.add(k); }); }
+    let chipsHTML = '';
+    if (res.tier !== 'keep') {
+      try { if (willCard && K.ext.chipsHTML) chipsHTML = K.ext.chipsHTML(res); else if (K.ext.giftChips) K.ext.giftChips(res); } catch (e) { /* 칩이 실패해도 반응은 그린다 */ }   // S34 결과 칩: 카드가 있으면 카드 안에
+    }
     const big = ef.memory || ef.arc;                         // 기억·매듭이면 대사가 그쪽 것
     const line = plain(txt((ef.memory && ef.memory.line) || rc.line || res.line || rc.announce || ''));
     const kind = ef.returned_to_shelf ? 'returned' : (res.tier === 'chain_beat' ? 'chain' : (res.tier || res.kind || s.reason || 'like'));
@@ -346,7 +351,8 @@
       const tg = (ef.decor.tags || []).find(t => !t.on && t.have) || null;
       res._line = (ef.decor.tag_added ? ef.decor.tag_added.announce || '' : '') || ('꾸밈 ' + ef.decor.items + '/' + ef.decor.cap + (tg ? ' · ' + txt(tg) + ' ' + tg.have + '/' + tg.need : ''));
     }
-    if (ef.arc && !ef.arc.deferred) res.beat = Object.assign({ resident_id: rid }, ef.arc);
+    if (ef.arc && !ef.arc.deferred) res.beat = Object.assign({ resident_id: rid, _chips: chipsHTML }, ef.arc);
+    if (ef.heart && ef.heart.level_up && !ef.heart.level_up.deferred) heartScene(rid, ef.heart.level_up);   // S34 마음 한 칸 — 매듭 카드가 있으면 그 뒤에
     void big;
     const p = rid ? personById(rid) : null;
     const st = p ? stationOf(p) : slot;
@@ -356,7 +362,7 @@
       if (p) { const h = (window.ARKBASE.peopleHits() || []).find(x => x.id === p.id); if (h) at = { x: h.cx, y: h.cy - 46 }; }
       if (!at && slot != null) { const b = window.ARKBASE.slotBox(slot); if (b) at = { x: b.x + b.w / 2, y: b.y + b.h * 0.35 }; }
       if (!at) at = { x: K.view.w / 2, y: K.view.h / 2 };
-      pop(at, kind, line || plain(res._line || ''), null, res.repeat && res.repeat.line ? plain(res.repeat.line) : '');
+      if (!willCard) pop(at, kind, line || plain(res._line || ''), null, res.repeat && res.repeat.line ? plain(res.repeat.line) : '');   // 장면 카드가 뜨면 머리 위 말풍선은 띄우지 않는다(카드가 대사를 말한다)
       const rv = res.revealed;
       if (rv && rv.line) {
         if (rv.big) bigReveal(rv, p); else setTimeout(() => K.say(plain(rv.line)), 900);
@@ -439,7 +445,8 @@
     if (!body) return false;                                // 서버가 아직 취향을 안 보내면 예전 토스트
     if (ppop) ppop.remove();
     ppop = document.createElement('div'); ppop.className = 'ppop';
-    ppop.innerHTML = '<div class="phead">' + face(p, 36) + '<b>' + esc(p.name) + '</b><em>' + esc(p.evolved_ko || p.role_ko || '') + '</em></div>' + body +
+    ppop.innerHTML = '<div class="phead">' + face(p, 36) + '<b>' + esc(p.name) + '</b><em>' + esc(p.evolved_ko || p.role_ko || '') + '</em></div>' +
+      (K.ext.heartRow ? K.ext.heartRow(p.id, true) : '') + body +
       (normTaste(p).ask ? '<div class="rowbtns"><button class="on" data-ask="' + esc(p.id) + '">' + esc(T('arc.ask_label', {}, '물어보실 게 있답니다')) + '</button></div>' : '') +
       '<p class="phint">' + esc((cap ? cap + ' ' : '') + '옮길 방을 누르시면 자리를 옮깁니다') + '</p>';
     $('#base').appendChild(ppop);
@@ -476,6 +483,19 @@
   const normT = (x) => String(plain(txt(x || ''))).replace(/[「」『』"'“”‘’\s.,…!?·~]/g, '');
   const sameT = (a, b) => { const x = normT(a), y = normT(b); return !!x && x === y; };
   const saidAt = {};
+  const cardSaid = new Set();
+  let sceneWait = false;
+  const sceneCard = () => document.querySelector('.beatcard:not(.octwhere):not(.off), .revealbig');
+  D.sceneHold = () => sceneWait || !!sceneCard();
+  new MutationObserver(() => {
+    const on = !!sceneCard();
+    if (on) sceneWait = false;
+    if (on !== document.body.classList.contains('scene-on')) {
+      document.body.classList.toggle('scene-on', on);
+      if (!on) setTimeout(() => { if (!sceneCard() && K.flushSay) K.flushSay(); }, 500);   // 카드가 닫히면 미룬 방송을 차례로
+    }
+  }).observe(document.getElementById('base') || document.body, { childList: true, subtree: false });
+  setInterval(() => { if (sceneWait && !sceneCard() && !beatQ.length) { sceneWait = false; if (K.flushSay) K.flushSay(); } }, 3000);   // 카드가 끝내 안 뜨면 풀어 준다
   D.dupSkips = 0;
   if (!K.__sayWrapped) {
     const raw = K.say; K.__sayWrapped = true;
@@ -483,7 +503,7 @@
       const k = normT(m); if (!k) return raw(m);
       const now = Date.now();
       const onCard = [...document.querySelectorAll('.beatcard .bline, .beatcard .bcast, .givepop p')].some(e => normT(e.textContent) === k);
-      if (onCard || (saidAt[k] && now - saidAt[k] < 60000)) { D.dupSkips++; D.log.push('say dup'); return; }
+      if (onCard || cardSaid.has(k) || (saidAt[k] && now - saidAt[k] < 60000)) { D.dupSkips++; D.log.push('say dup'); return; }
       saidAt[k] = now; return raw(m);
     };
   }
@@ -501,6 +521,7 @@
     if (b.broadcast && b.line && sameT(b.broadcast, b.line)) { b.broadcast = ''; D.log.push('beat dedupe'); }
     const el = document.createElement('div'); el.className = 'beatcard' + (b.size === 'big' ? ' big' : '');
     el.innerHTML = '<div class="phead">' + face(p, 40) + '<b>' + esc(txt(b.title) || (p ? p.name : '')) + '</b>' + arcDots(b.arc || (p && normTaste(p).arc)) + '</div>' +
+      (b._chips ? '<div class="cardchips">' + b._chips + '</div>' : '') +
       (b.broadcast ? '<p class="bcast">' + esc(plain(txt(b.broadcast))) + '</p>' : '') +
       (b.line ? '<p class="bline">「' + esc(plain(txt(b.line))) + '」</p>' : '') +
       (ask ? askHTML(ask, p) : '<div class="rowbtns"><button class="ok">' + esc(T('beat.ok', {}, '그렇군요')) + '</button></div>');
@@ -860,6 +881,7 @@
     const st = K.ark || {};
     let d = null;
     if (!D.mock) { try { d = await call(API.leaving + '?uid=' + encodeURIComponent(K.uid)); } catch (e) { d = null; } }
+    if (d && (d.heart_scenes || []).length) d.heart_scenes.forEach(h => heartScene(h.resident_id || h.rid, h.scenes ? Object.assign({}, h, { deferred: false }) : { level: h.level, fill_ko: h.fill_ko, scenes: [h], deferred: false }));   // S34 미룬 마음 장면(떠날 때 카드 뒤에)
     const changed = ((d && (d.changed || d.lines)) || st.session_changes || []).map(txt).filter(Boolean).slice(0, 2);
     const nv = (d && d.next_visit) || st.next_visit || null;
     const nxt = (nv && txt(nv.line || nv)) || T('leave.nothing', {}, '다음에 켜시면 밤사이 일을 한꺼번에 알려 드리겠습니다. 편히 쉬십시오.');
@@ -1133,6 +1155,44 @@
     ctx.restore();
     wallLog[slot] = drawn;
   }
+  // ══ S34 마음 단계 장면 · 편한 방 혼잣말 ══════════════════════════
+  //  give effects.heart.level_up {level, fill_ko, scenes[{kind, announce, line, scene[]?, keepsake?}], deferred}
+  //  deferred 면 /api/ark·/api/leaving 의 heart_scenes[] 로 한 번 온다. 카드는 한 번에 하나(다른 장면 카드가 닫힌 뒤)
+  const heartSeen = store.get('heart_seen', []);
+  function heartScene(rid, lu) {
+    if (!lu || lu.deferred || !(lu.scenes || []).length) return;
+    const key = rid + ':' + (lu.level || '');
+    if (heartSeen.indexOf(key) >= 0) return;
+    heartSeen.push(key); store.set('heart_seen', heartSeen.slice(-60));
+    const show = () => {
+      const q = window.ARKBASE.queue ? window.ARKBASE.queue() : {};
+      if (!$('#scan').hidden || !$('#panel').hidden || $('.beatcard:not(.octwhere)') || $('.leavecard') || q.busy) { setTimeout(show, 1500); return; }
+      const p = personById(rid);
+      const rows = [];
+      if (lu.fill_ko) rows.push({ who: 'office', text: lu.fill_ko });
+      lu.scenes.forEach(sc => {
+        if (sc.announce) rows.push({ who: 'office', text: sc.announce });
+        (sc.scene || []).forEach(t => rows.push({ who: 'narration', text: t }));
+        if (sc.line) rows.push({ who: 'line', text: sc.line });
+      });
+      const el = document.createElement('div'); el.className = 'beatcard scenecard heartscene';
+      el.innerHTML = '<div class="phead">' + face(p, 36) + '<b>' + esc((p ? p.name + ' · ' : '') + '마음 ' + (lu.level || '') + '칸') + '</b>' + (K.ext.heartRow ? '' : '') + '</div>' +
+        rows.map((r, i) => r.who === 'line' ? '<p class="bline" style="--i:' + i + '">「' + esc(plain(r.text)) + '」</p>' : '<p class="sl sl-' + r.who + '" style="--i:' + i + '">' + esc(plain(r.text)) + '</p>').join('') +
+        '<div class="rowbtns"><button class="ok">그렇군요</button></div>';
+      rows.forEach(r => { const k = normT(r.text); if (k) cardSaid.add(k); });   // 카드가 말한 것은 방송으로 다시 하지 않는다
+      $('#base').appendChild(el);
+      el.addEventListener('click', (e) => { if (e.target.closest('button.ok')) { el.classList.add('off'); setTimeout(() => el.remove(), 400); } });
+      D.log.push('heart scene ' + key + ' ' + lu.scenes.map(x => x.kind).join(','));
+    };
+    setTimeout(show, 1600);
+  }
+  K.ext.heartScene = heartScene;
+  function heartCheck(st) {
+    (st.heart_scenes || []).forEach(h => heartScene(h.resident_id || h.rid, h.scenes ? Object.assign({}, h, { deferred: false }) : { level: h.level, fill_ko: h.fill_ko, scenes: [h], deferred: false }));
+    const ms = st.comfort_mutters || [], said = store.get('mutter_said', []);
+    ms.forEach(m => { const k = (m.resident_id || '') + '|' + (st.day || '') + '|' + (m.line || ''); if (!m.line || said.indexOf(k) >= 0) return;
+      said.push(k); store.set('mutter_said', said.slice(-40)); setTimeout(() => K.say(plain((m.name ? m.name + ' 님 혼잣말: ' : '') + '「' + m.line + '」')), 2600); D.log.push('mutter ' + m.resident_id); });
+  }
   function firstScene(lines) {
     const q = window.ARKBASE.queue ? window.ARKBASE.queue() : {};
     if (!$('#scan').hidden || !$('#panel').hidden || $('.beatcard') || q.busy || (q.wait || []).length) { setTimeout(() => firstScene(lines), 1500); return; }
@@ -1235,6 +1295,7 @@
     tipCheck(st);
     tableCheck(st);
     wallCheck(st);
+    heartCheck(st);
     octWhere(st);
     renderNext(st);
     (st.arc_events || []).filter(Boolean).forEach(e => queueBeat(Object.assign({ id: (e.arc_id || '') + ':' + (e.step || '') }, e)));
