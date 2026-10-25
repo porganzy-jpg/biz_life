@@ -16,7 +16,7 @@ gen_chars_p2.py — P2(48px 생활형 도트) 확정판 · 전체 등장인물 �
 출력: static/art/chars/front/p2/…   (상세는 같은 폴더 meta.json)
 실행: python tools/gen_chars_p2.py
 """
-import os, io, json, math
+import os, io, json, math, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 import time
@@ -38,6 +38,20 @@ Image.Image.save = _save_retry
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'static', 'art', 'chars', 'front', 'p2')
+# ── 옷차림 축(실내복, 2026-10-17 사용자 승인) ──
+#   suit   = 지금 P2(잠수복 + 투구). 기본값. 이 값일 때 모든 그리기 경로는 바뀌기 전과 **한 칸도 다르지 않다**(해시로 증명).
+#   indoor = 집 안 옷. 투구·두건·공기통·랜턴·무게추 장화를 벗고 맨머리 + 역할 모자 + 일옷 + 실내화.
+#            같은 셀·같은 31행·같은 패치 규칙. 출력은 front/p2/indoor/.
+OUTFIT = 'suit'
+for _a in sys.argv[1:]:
+    if _a.startswith('--outfit='):
+        OUTFIT = _a.split('=', 1)[1]
+if OUTFIT == 'indoor':
+    OUT = os.path.join(OUT, 'indoor')
+
+
+def IND():
+    return OUTFIT == 'indoor'
 
 # ── 규약 상수 ────────────────────────────────────────────────────────────
 CELL = 64          # 원화 셀 (정사각)
@@ -184,6 +198,15 @@ PAL = {
     'olivD': (70, 66, 38),
     'skin':  (240, 207, 174),
     'skinD': (206, 162, 128),
+    # 실내복: 머리통 맨살은 얼굴 창(skin)과 **같은 색, 다른 열쇠** — 얼굴 창 찾기·홍조 판정이 바뀌지 않게
+    'skinH': (240, 207, 174),
+    'skinHD': (206, 162, 128),
+    # 실내복: 맨손·팔뚝·목도 얼굴과 같은 색, 다른 열쇠 — 손이 얼굴 가까이 와도 얼굴 창으로 잘못 읽히지 않게
+    'skinA': (240, 207, 174),
+    'skinAD': (206, 162, 128),
+    'shirt': (236, 222, 192), 'shirtD': (200, 182, 148), 'shirtL': (250, 242, 222),
+    'shoe': (146, 88, 62), 'shoeD': (100, 58, 42),
+    'capW': (250, 244, 230), 'capWD': (212, 202, 182),
     'blush': (216, 134, 118),
     'ink':   (58, 36, 24),      # 눈·눈썹·입
     'white': (255, 246, 230),
@@ -515,11 +538,49 @@ def wave(c, x0, x1, y, t, step=2):
         c.set(x, y, t)
 
 
+SUIT_SLV = dict(M='suitM', D='suitD', L='suitL', FM='suitM', FD='suitD', FL='suitL')
+SLV = dict(SUIT_SLV)
+# 실내복 소매 — 셔츠를 걷어 올린 역할(팔뚝 맨살) / 겉옷 소매가 손목까지 오는 역할
+INDOOR_SHIRT = ('scout', 'cook', 'farmer')
+
+
+def set_sleeve(role):
+    """이번에 그리는 사람의 소매 색. suit 이면 늘 잠수복 갈색(바뀌기 전과 같다)."""
+    global SLV
+    if not IND():
+        SLV = dict(SUIT_SLV)
+        return
+    if role in INDOOR_SHIRT:
+        SLV = dict(M='shirt', D='shirtD', L='shirtL', FM='skinA', FD='skinAD', FL='skinA')
+    else:                                   # 겉옷 소매는 몸통보다 한 단 어둡게 — 팔이 몸에 묻히지 않게
+        SLV = dict(M='rD_' + role, D='rD_' + role, L='r_' + role,
+                   FM='rD_' + role, FD='rD_' + role, FL='r_' + role)
+
+
+def arm_rect(c, x0, y0, x1, y1, part, mid=None):
+    """곧게 내린 팔 한 토막. mid 가 있으면 그 아래는 팔뚝(F*) 색 — suit 에서는 두 색이 같아 바뀌기 전과 같다."""
+    if mid is None or not IND():
+        c.rect(x0, y0, x1, y1, SLV[part])
+        return
+    c.rect(x0, y0, x1, min(y1, mid), SLV[part])
+    if y1 > mid:
+        c.rect(x0, mid + 1, x1, y1, SLV['F' + part])
+
+
 def mitten(c, cx, cy, t='cream'):
+    if IND():                               # 집 안 — 맨손
+        c.ell(cx, cy, 1.8, 1.7, {'cream': 'skinA', 'creamD': 'skinAD'}.get(t, t))
+        return
     c.ell(cx, cy, 2.4, 2.2, t)
 
 
 def boot(c, x0, x1, y0, y1):
+    if IND():                               # 집 안 — 바짓단 + 실내화(무게추 없음)
+        c.rect(x0 + 1, y0, x1 - 1, y1 - 2, 'suitD')
+        c.rect(x0, y1 - 1, x1, y1, 'shoe')
+        c.rect(x0, y1, x1, y1, 'shoeD')
+        c.set(x0 + 1, y1 - 1, 'shirt')
+        return
     c.rect(x0, y0, x1, y1 - 1, 'bootM')
     c.rect(x0, y0, x0 + 1, y1 - 1, 'bootL')
     c.rect(x0, y1, x1, y1, 'brassM')      # 무게추 밑창
@@ -617,6 +678,202 @@ def headwear(c, role, hx, hy, hr, back=False, layer='over'):
             c.ell_in(hx - 1.5, hy - 2.2, hr - .5, hr - 1.2, rL, only=(rM,))
             c.set(hx, hy - hr - 2, rD); c.set(hx, hy - hr - 1, rM)      # 꼭지
             c.rect(hx - hr, hy + hr - 2, hx + hr, hy + hr, rD)          # 후드 아랫단
+
+
+def _skull_cap(c, hx, hy, hr, t, y_to, side_to=None, side_w=1.6):
+    """머리통 윗부분을 덮는 천(후드·머릿수건·털모자). y_to 까지 덮고, side_to 까지 옆 테두리를 내린다."""
+    for y in range(int(math.floor(hy - hr - 1)), int(math.ceil(hy + hr)) + 1):
+        for x in range(int(math.floor(hx - hr - 1)), int(math.ceil(hx + hr + 1)) + 1):
+            dx, dy = (x - hx) / (hr + .5), (y - (hy + .3)) / (hr + .8)
+            r = dx * dx + dy * dy
+            if r > 1.0:
+                continue
+            if y <= y_to:
+                c.set(x, y, t)
+            elif side_to is not None and y <= side_to and math.sqrt(r) >= 1.0 - side_w / (hr + .5):
+                c.set(x, y, t)
+
+
+def headwear_indoor(c, role, hx, hy, hr, view='front'):
+    """집 안 머리 위 역할 표식 — 「머리 위는 역할 자리」(2026-10-17). 투구 없이 머리카락 위에 얹는다.
+    view: front · back · q34 · side(오른쪽). 얼굴 창은 부르는 쪽에서 비킨다."""
+    top = hy - hr
+    rM, rD, rL = 'r_' + role, 'rD_' + role, 'rL_' + role
+    side = (view == 'side')
+    back = (view == 'back')
+    if role == 'cook':                                     # 흰 요리 모자 + 역할 색 머리띠
+        w = 6.0 if not side else 5.4
+        cx_ = hx + (-.6 if side else 0)
+        tb = top + 2
+        c.ell(cx_, tb - 3.2, w + .6, 4.6, 'capW')
+        c.ell_in(cx_ + 2.0, tb - 2.4, w - 2.0, 3.2, 'capWD', only=('capW',))
+        if not back:
+            c.ell_in(cx_ - 2.0, tb - 4.6, 2.4, 1.6, 'white', only=('capW', 'capWD'))
+        c.rect(cx_ - w + 1, tb, cx_ + w - 1, tb + 2, rM)
+        c.rect(cx_ - w + 1, tb, cx_ + w - 1, tb, rL)
+        c.rect(cx_ - w + 1, tb + 2, cx_ + w - 1, tb + 2, rD)
+        wave(c, cx_ - w + 2, cx_ + w - 2, tb - 1.2, 'capWD', 2)
+    elif role == 'scout':                                  # 헐렁한 올리브 후드(앞은 트였다) + 꼭지 + 뒤 꼬리
+        _skull_cap(c, hx, hy, hr, rM, top + 3 if not back else hy + 2, side_to=(hy + 1 if not back else None))
+        _skull_cap(c, hx - 1.6, hy - 2.0, hr - 2.2, rL, top + 2) if not back else None
+        sx = -1 if side else 1
+        c.rect(hx - 2, top - 3, hx + 1, top - 1, rD); c.set(hx - 1, top - 4, rM)
+        if not side:
+            c.rect(hx + hr - 2, top + 6, hx + hr + 3, top + 10, rD)
+            c.rect(hx + hr + 1, top + 9, hx + hr + 3, top + 14, rM)
+        else:
+            c.rect(hx - hr - 3, top + 6, hx - hr + 2, top + 10, rD)
+            c.rect(hx - hr - 3, top + 9, hx - hr - 1, top + 14, rM)
+        if not back:
+            c.rect(hx - hr + 2, top + 3, hx + hr - 2, top + 3, rD)
+    elif role == 'medic':                                  # 머릿수건 + 이마 십자 + 뒤 꼬리
+        _skull_cap(c, hx, hy, hr, rL, top + 3 if not back else hy, side_to=None)
+        _skull_cap(c, hx + 2, hy + .5, hr - 1.5, rM, top + 1) if not back else None
+        if not side:
+            c.rect(hx + hr - 2, top + 5, hx + hr + 2, top + 11, rL)
+            c.rect(hx + hr, top + 9, hx + hr + 2, top + 12, rM)
+        else:
+            c.rect(hx - hr - 2, top + 5, hx - hr + 2, top + 11, rL)
+            c.rect(hx - hr - 2, top + 9, hx - hr, top + 12, rM)
+        if not back:
+            cxx = hx + (hr - 4 if side else 0)
+            c.rect(cxx - 1, top + 1, cxx + 1, top + 1, 'ox'); c.set(cxx, top, 'ox'); c.set(cxx, top + 2, 'ox')
+    elif role == 'kid':                                    # 노란 털모자 + 방울(사용자 승인)
+        _skull_cap(c, hx, hy, hr, rM, top + 3 if not back else top + 4)
+        for x in range(int(hx - hr), int(hx + hr) + 1):
+            for y in (top + 3, top + 4):
+                if c.own(x, y) == rM or (y == top + 4 and abs(x - hx) <= hr - 1):
+                    c.set(x, y, rD if (x % 2 == 0) else rL)
+        c.ell(hx + (-1 if side else 0), top - 1.4, 2.0, 1.7, rL)
+        c.set(int(hx), int(top - 2), 'white')
+    elif side:
+        headwear_side(c, role, hx, hy, hr, 'under')
+        headwear_side(c, role, hx, hy, hr, 'over')
+    else:
+        headwear(c, role, hx, hy, hr, back, 'under')
+        headwear(c, role, hx, hy, hr, back, 'over')
+
+
+def hat_onto(ov, base, hat):
+    """모자 판을 ov 에 얹는다. 얼굴 창(skin·skinD)에 떨어지는 칸은 버린다 — 얼굴은 언제나 다 보인다."""
+    for (x, y) in hat.pixels():
+        if base.own(x, y) in ('skin', 'skinD'):
+            continue
+        ov.set(x, y, hat.own(x, y))
+
+
+def skull_indoor(c, hx, hy, hr, back=False):
+    """맨머리 — 머리통(앞모습: 맨살 skinH, 뒷모습: 머리카락) + 귀. 얼굴 창은 부르는 쪽이 그대로 그린다."""
+    if back:
+        c.ell(hx, hy + .3, hr - .2, hr + .3, 'hair')
+        c.ell_in(hx + 2, hy + 1.6, hr - 2.2, hr - 1.6, 'hairD', only=('hair',))
+        c.ell_in(hx - 2.2, hy - 2.4, 2.6, 1.6, 'suitH', only=('hair',))
+        return
+    c.ell(hx, hy + .3, hr - .2, hr + .3, 'skinH')
+    c.ell_in(hx + 2.2, hy + 2.4, hr - 2.4, hr - 2.0, 'skinHD', only=('skinH',))
+    fy = hy + 1.5
+    for sx in (-1, 1):                                     # 귀
+        ex = int(round(hx + sx * (hr - .4)))
+        c.rect(ex, int(round(fy)), ex, int(round(fy)) + 1, 'skinH' if sx < 0 else 'skinHD')
+
+
+# ── 실내 일옷(겉옷 디테일) — 몸통 색 면 위에 역할을 말하는 것 하나씩 ──
+def garment_indoor(c, role, cx, neck_y, torso_cy, torso_rx, torso_ry, belt_y, leg_y0, back=False, kid=False):
+    rM, rD, rL = 'r_' + role, 'rD_' + role, 'rL_' + role
+    if role == 'cook':                                     # 크림 셔츠 + 앞치마(가슴받이·주머니·뒤 매듭)
+        if not back:
+            c.rect(cx - 4, neck_y + 3, cx + 4, belt_y, rM); c.rect(cx - 4, neck_y + 3, cx + 4, neck_y + 3, rL)
+            c.rect(cx - 7, belt_y, cx + 7, leg_y0 + 5, rM)
+            c.rect(cx - 7, belt_y, cx - 6, leg_y0 + 5, rL)
+            c.rect(cx + 5, belt_y, cx + 7, leg_y0 + 5, rD)
+            c.rect(cx - 7, leg_y0 + 5, cx + 7, leg_y0 + 5, rD)
+            c.rect(cx - 3, belt_y + 3, cx + 2, belt_y + 5, rD); c.rect(cx - 3, belt_y + 3, cx + 2, belt_y + 3, rL)
+            c.set(cx - 5, neck_y + 2, rD); c.set(cx + 5, neck_y + 2, rD)
+            c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y, rD)
+        else:
+            c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y, rD)
+            c.rect(cx - 2, belt_y - 1, cx + 2, belt_y + 1, rD); c.rect(cx - 1, belt_y + 2, cx - 1, belt_y + 4, rD)
+            c.rect(cx + 1, belt_y + 2, cx + 1, belt_y + 3, rD)
+            c.rect(cx - 7, belt_y + 1, cx - 6, leg_y0 + 5, rM); c.rect(cx + 6, belt_y + 1, cx + 7, leg_y0 + 5, rM)
+    elif role == 'scout':                                  # 올리브 조끼 — 앞이 트여 셔츠가 보인다
+        if not back:
+            c.rect(cx - 1, neck_y + 1, cx + 1, belt_y - 1, 'shirt')
+            c.rect(cx - 6, torso_cy - 1, cx - 4, torso_cy, rD); c.rect(cx + 4, torso_cy - 1, cx + 6, torso_cy, rD)
+        c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y + 1, 'oliv')
+    elif role == 'farmer':                                 # 황토 멜빵 작업복(가슴받이) + 셔츠
+        c.rect(cx - 4, torso_cy - 3, cx + 4, belt_y + 1, rM); c.rect(cx - 4, torso_cy - 3, cx + 4, torso_cy - 3, rL)
+        if not back:
+            c.rect(cx - 2, torso_cy - 1, cx + 2, torso_cy + 1, rD)
+        c.rect(cx - 5, neck_y + 1, cx - 4, torso_cy - 3, rD); c.rect(cx + 4, neck_y + 1, cx + 5, torso_cy - 3, rD)
+        c.rect(cx - 6, belt_y + 1, cx + 6, leg_y0 + 1, rM)
+    elif role == 'medic':                                  # 크림 가운 — 단추 줄 + 가슴 십자
+        if not back:
+            for y in range(neck_y + 3, belt_y + 4, 3):
+                c.set(cx, y, rD)
+            c.rect(cx - 6, torso_cy - 2, cx - 4, torso_cy - 2, 'ox'); c.rect(cx - 5, torso_cy - 3, cx - 5, torso_cy - 1, 'ox')
+        c.rect(cx - 7, belt_y + 1, cx + 7, leg_y0 + 4, rM); c.rect(cx - 7, leg_y0 + 4, cx + 7, leg_y0 + 4, rD)
+        if not back:
+            c.rect(cx, belt_y + 1, cx, leg_y0 + 3, rD)
+    elif role == 'engineer':                               # 숯회색 작업복 — 지퍼 + 가슴 주머니 + 공구 고리
+        if not back:
+            c.rect(cx, neck_y + 1, cx, belt_y + 1, 'brassM')
+            c.rect(cx + 2, torso_cy - 2, cx + 5, torso_cy, rL); c.rect(cx + 2, torso_cy - 2, cx + 5, torso_cy - 2, rD)
+        c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y + 1, 'oliv')
+        c.set(cx - 5, belt_y + 2, 'tankL'); c.set(cx - 5, belt_y + 3, 'tankL')
+    elif role == 'scholar':                                # 자줏빛 긴 외투 — 깃 V + 무릎까지 내려오는 자락
+        if not back:
+            c.rect(cx - 1, neck_y + 1, cx + 1, neck_y + 4, 'shirt')
+            c.set(cx - 2, neck_y + 1, rL); c.set(cx + 2, neck_y + 1, rL)
+        c.rect(cx - 7, belt_y, cx + 7, leg_y0 + 6, rM); c.rect(cx - 7, leg_y0 + 6, cx + 7, leg_y0 + 6, rD)
+        c.rect(cx - 7, belt_y, cx - 6, leg_y0 + 6, rL)
+        if not back:
+            c.rect(cx, belt_y, cx, leg_y0 + 5, rD)
+    elif role == 'trader':                                 # 적갈 코트 — 놋쇠 단추 둘 + 짧은 자락
+        if not back:
+            c.set(cx - 2, torso_cy - 2, 'brassM'); c.set(cx - 2, torso_cy + 1, 'brassM')
+            c.rect(cx - 1, neck_y + 1, cx - 1, belt_y + 1, rD)
+        c.rect(cx - 7, belt_y, cx + 7, leg_y0 + 3, rM); c.rect(cx - 7, leg_y0 + 3, cx + 7, leg_y0 + 3, rD)
+    elif role == 'kid':                                    # 노란 우비 — 단추 둘 + 짧은 자락
+        if not back:
+            c.set(cx, torso_cy - 1, 'cream'); c.set(cx, torso_cy + 2, 'cream')
+        c.rect(cx - 5, belt_y, cx + 5, leg_y0 + 2, rM); c.rect(cx - 5, leg_y0 + 2, cx + 5, leg_y0 + 2, rD)
+
+
+def garment_side_indoor(c, role, cx, neck_y, torso_cy, torso_rx, torso_ry, belt_y, leg_y0, kid=False):
+    """옆모습(오른쪽) 일옷 디테일 — 앞이 오른쪽."""
+    rM, rD, rL = 'r_' + role, 'rD_' + role, 'rL_' + role
+    fx_ = int(cx + torso_rx)
+    if role == 'cook':                                     # 앞치마 앞판 + 등 뒤 매듭
+        for y in range(neck_y + 3, leg_y0 + 6):
+            x0 = int(cx + 1) if y <= belt_y else int(cx - 4)
+            c.rect(x0, y, fx_ - (1 if y <= belt_y else 0) + (1 if y > belt_y else 0), y, rM)
+        c.rect(int(cx + 1), neck_y + 3, fx_ - 1, neck_y + 3, rL)
+        c.rect(int(cx - 4), leg_y0 + 5, fx_ + 1, leg_y0 + 5, rD)
+        c.rect(int(cx - torso_rx), belt_y, fx_, belt_y, rD)
+        c.rect(int(cx - torso_rx - 2), belt_y - 1, int(cx - torso_rx - 1), belt_y + 1, rD)
+        c.set(int(cx - torso_rx - 2), belt_y + 2, rD)
+    elif role == 'farmer':                                 # 멜빵 가슴받이(앞) + 끈
+        c.rect(int(cx + 1), torso_cy - 3, fx_ - 1, belt_y + 1, rM)
+        c.rect(int(cx), neck_y + 1, int(cx), torso_cy - 3, rD)
+        c.rect(int(cx - 4), belt_y + 1, fx_, leg_y0 + 1, rM)
+    elif role == 'scout':
+        c.rect(fx_ - 1, neck_y + 2, fx_ - 1, belt_y - 1, 'shirt')
+        c.rect(int(cx - torso_rx + 1), belt_y, fx_ - 1, belt_y + 1, 'oliv')
+    elif role == 'medic':
+        c.rect(int(cx - 5), belt_y + 1, fx_, leg_y0 + 4, rM); c.rect(int(cx - 5), leg_y0 + 4, fx_, leg_y0 + 4, rD)
+        c.set(fx_ - 2, torso_cy - 2, 'ox'); c.set(fx_ - 3, torso_cy - 2, 'ox'); c.set(fx_ - 2, torso_cy - 3, 'ox')
+    elif role == 'engineer':
+        c.rect(fx_ - 1, neck_y + 1, fx_ - 1, belt_y + 1, 'brassM')
+        c.rect(int(cx - torso_rx + 1), belt_y, fx_ - 1, belt_y + 1, 'oliv')
+    elif role == 'scholar':                                # 긴 외투 자락 — 뒤로 조금 끌린다
+        c.rect(int(cx - 6), belt_y, fx_, leg_y0 + 6, rM); c.rect(int(cx - 6), leg_y0 + 6, fx_, leg_y0 + 6, rD)
+        c.rect(int(cx - 6), belt_y, int(cx - 5), leg_y0 + 6, rL)
+    elif role == 'trader':
+        c.rect(int(cx - 5), belt_y, fx_, leg_y0 + 3, rM); c.rect(int(cx - 5), leg_y0 + 3, fx_, leg_y0 + 3, rD)
+        c.set(fx_ - 1, torso_cy - 2, 'brassM'); c.set(fx_ - 1, torso_cy + 1, 'brassM')
+    elif role == 'kid':
+        c.rect(int(cx - 4), belt_y, fx_, leg_y0 + 2, rM); c.rect(int(cx - 4), leg_y0 + 2, fx_, leg_y0 + 2, rD)
+        c.set(fx_ - 1, torso_cy - 1, 'cream')
 
 
 def hand_prop(c, role, x, y, flip=False):
@@ -773,13 +1030,14 @@ def elbow_of(sh, hand, a, b, out):
 
 
 def arm_to(c, sh, hand, R, side):
-    t = 'suitM' if side == 'l' else 'suitD'
+    t = SLV['M'] if side == 'l' else SLV['D']
+    tf = SLV['FM'] if side == 'l' else SLV['FD']
     a = b = R * 0.56 + 0.3
     e = elbow_of(sh, hand, a, b, -1 if side == 'l' else 1)
     seg(c, sh, e, t, 3)
-    seg(c, e, hand, t, 3)
+    seg(c, e, hand, tf, 3 if not IND() else 2)
     if side == 'l':
-        seg(c, (sh[0] - 1, sh[1]), (e[0] - 1, e[1]), 'suitL', 1)
+        seg(c, (sh[0] - 1, sh[1]), (e[0] - 1, e[1]), SLV['L'], 1)
     return e
 
 
@@ -1082,15 +1340,15 @@ def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
     am = Cv()                        # 팔만 따로 — 머리 뒤 베일 각인을 가리는 판정에 쓴다
     mid_ = belt_y - 4
     prof = g.get('profile', False)   # S12 옆모습 작업 — 먼 팔은 몸통 뒤라 그리지 않고 도구는 허리에 건다
-    am.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y0 + 3, 'suitM')      # 어깨 뿌리
+    am.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y0 + 3, SLV['M'])     # 어깨 뿌리
     if not prof:
-        am.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y0 + 3, 'suitD')
+        am.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y0 + 3, SLV['D'])
     if lhand is not None:
         e = arm_to(am, SL, lhand, R, 'l')
         wl = (lhand[0], lhand[1])
     else:
-        am.rect(ax_l, arm_y0 + 1, ax_l + 3, mid_, 'suitM'); am.rect(ax_l + tk, mid_, ax_l + 3 + tk, arm_y1, 'suitM')
-        am.rect(ax_l, arm_y0 + 1, ax_l + 1, mid_, 'suitL'); am.rect(ax_l + tk, mid_, ax_l + 1 + tk, arm_y1, 'suitL')
+        am.rect(ax_l, arm_y0 + 1, ax_l + 3, mid_, SLV['M']); am.rect(ax_l + tk, mid_, ax_l + 3 + tk, arm_y1, SLV['FM'])
+        am.rect(ax_l, arm_y0 + 1, ax_l + 1, mid_, SLV['L']); am.rect(ax_l + tk, mid_, ax_l + 1 + tk, arm_y1, SLV['FL'])
         wl = (ax_l + 1 + tk, arm_y1 + 2)
         e = (SL[0], SL[1] + R * 0.55)
     if rhand is not None:
@@ -1099,7 +1357,7 @@ def s11_pose(c, ov, clip, f, g, objc, mitc, anc, hide):
     elif prof:
         wr = g['hip_xy']
     else:
-        am.rect(ax_r, arm_y0 + 1, ax_r + 3, mid_, 'suitD'); am.rect(ax_r - tk, mid_, ax_r + 3 - tk, arm_y1, 'suitD')
+        am.rect(ax_r, arm_y0 + 1, ax_r + 3, mid_, SLV['D']); am.rect(ax_r - tk, mid_, ax_r + 3 - tk, arm_y1, SLV['FD'])
         wr = (ax_r + 2 - tk, arm_y1 + 2)
     c.blit(am)
     anc['_arm'] = am
@@ -1167,6 +1425,12 @@ def headwear_side(c, role, hx, hy, hr, layer, f=0):
 
 def side_boot(c, x0, x1, y0, y1, far):
     """옆에서 본 무게추 장화 — 발끝이 오른쪽."""
+    if IND():                               # 실내화
+        c.rect(x0 + 1, y0, x1 - 1, y1 - 2, 'suitD')
+        c.rect(x0, y1 - 1, x1, y1, 'shoeD' if far else 'shoe')
+        if not far:
+            c.set(x0 + 1, y1 - 1, 'shirt')
+        return
     c.rect(x0, y0, x1, y1 - 1, 'suitD' if far else 'bootM')
     if not far:
         c.rect(x0, y0, x0 + 1, y1 - 1, 'bootL')
@@ -1201,6 +1465,7 @@ def s15_pose(clip, f, kid):
 def build_side(role, clip, f, body, stand=False, pose=None):
     """옆모습 본체(오른쪽을 본다). build_raw 와 같은 (base, ov, 앵커) 를 돌려준다.
     세로 좌표(맨머리 44/33px · 목 · 몸통 · 허리 · 발 기준선)는 앞모습과 같은 식이다."""
+    set_sleeve(role)
     c = Cv()
     ov = Cv(stencil=c)
     kid = (role == 'kid')
@@ -1260,8 +1525,8 @@ def build_side(role, clip, f, body, stand=False, pose=None):
         for ry in range(FOOT + 1 - pose['ladder']['step'], 0, -pose['ladder']['step']):
             c.rect(lx - 2, ry, lx - 1, ry, 'tankL')
 
-    # ── 등 뒤 공기통 (옆에서 보면 등 뒤로 튀어나온다 — 옆모습의 가장 큰 실루엣 단서) ──
-    if not kid:
+    # ── 등 뒤 공기통 (옆에서 보면 등 뒤로 튀어나온다 — 옆모습의 가장 큰 실루엣 단서) ── (집 안에는 없다)
+    if not kid and not IND():
         tank(c, cx - torso_rx - 1, torso_cy - 1, torso_ry - 1.2)
         c.rect(cx - torso_rx, neck_y - 1, cx - torso_rx + 2, neck_y + 1, 'suitD')   # 호스 이음
 
@@ -1289,11 +1554,12 @@ def build_side(role, clip, f, body, stand=False, pose=None):
         side_boot(c, fxp - 2, fxp + (3 if not kid else 2), FOOT - 4 - lift, FOOT - lift, far)
 
     # ── 몸통 ──
-    c.ell(cx, torso_cy, torso_rx, torso_ry, rM)
-    c.ell_in(cx - 2, torso_cy - 2.2, torso_rx - 2, torso_ry - 1.2, rL, only=(rM,))
-    c.ell_in(cx, torso_cy + torso_ry - 1, torso_rx, 3.2, rD, only=(rM, rL))
+    tM, tD, tL = (('shirt', 'shirtD', 'shirtL') if (IND() and role in ('cook', 'farmer')) else (rM, rD, rL))
+    c.ell(cx, torso_cy, torso_rx, torso_ry, tM)
+    c.ell_in(cx - 2, torso_cy - 2.2, torso_rx - 2, torso_ry - 1.2, tL, only=(tM,))
+    c.ell_in(cx, torso_cy + torso_ry - 1, torso_rx, 3.2, tD, only=(tM, tL))
     if B['waist']:                                  # 체형 B — 옆에서는 허리 앞뒤가 1px 들어간다
-        coat = (rM, rD, rL)
+        coat = (tM, tD, tL)
         for yy in range(belt_y - 2, belt_y + 2):
             dy = (yy - torso_cy) / max(torso_ry, .001)
             if abs(dy) >= 1.0:
@@ -1305,32 +1571,47 @@ def build_side(role, clip, f, body, stand=False, pose=None):
             for xx in range(cx - 12, cx + 13):
                 if abs(xx - cx) > rr - cut and c.own(xx, yy) in coat:
                     c.clear(xx, yy)
-    c.rect(cx - 4, torso_cy - 2, cx - 3, torso_cy, 'ox')                   # 기운 자국
-    c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y + 1, 'oliv')
-    c.rect(int(cx + torso_rx - 1), belt_y, int(cx + torso_rx - 1), belt_y + 1, 'brassM')   # 버클(앞)
+    if IND():                                       # 집 안 일옷(옆) — 역할 옷 디테일
+        garment_side_indoor(c, role, cx, neck_y, torso_cy, torso_rx, torso_ry, belt_y, leg_y0, kid)
+    else:
+        c.rect(cx - 4, torso_cy - 2, cx - 3, torso_cy, 'ox')                   # 기운 자국
+        c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y + 1, 'oliv')
+        c.rect(int(cx + torso_rx - 1), belt_y, int(cx + torso_rx - 1), belt_y + 1, 'brassM')   # 버클(앞)
 
-    # ── 허리 랜턴 — 등 쪽 허리에 건다 ──
-    if not kid:
+    # ── 허리 랜턴 — 등 쪽 허리에 건다 ── (집 안에서는 차지 않는다)
+    if not kid and not IND():
         lantern(c, int(cx - torso_rx), belt_y + 3)
 
-    # ── 목 실링 + 어깨 링 ──
-    c.ell(cx, neck_y - 1, torso_rx - .2, 2.6, 'cream')
-    c.ell(cx, neck_y - 2, torso_rx - .8, 1.9, 'creamD')
-    wave(c, cx - torso_rx + 2, cx + torso_rx - 2, neck_y - 3, 'suitD')
-    c.rect(cx - torso_rx + 1, neck_y, cx + torso_rx - 1, neck_y, 'brassD')
+    # ── 목 실링 + 어깨 링 ── (집 안: 목 + 옷깃)
+    if IND():
+        c.rect(hx - 1, neck_y - 3, hx + 2, neck_y, 'skinAD')
+        cM, cD = (('shirt', 'shirtD') if role in INDOOR_SHIRT else (rL, rD))
+        c.ell(cx + .5, neck_y, torso_rx - 2.0, 1.5, cM)
+        c.rect(int(cx - torso_rx + 3), neck_y + 1, int(cx + torso_rx - 2), neck_y + 1, cD)
+    else:
+        c.ell(cx, neck_y - 1, torso_rx - .2, 2.6, 'cream')
+        c.ell(cx, neck_y - 2, torso_rx - .8, 1.9, 'creamD')
+        wave(c, cx - torso_rx + 2, cx + torso_rx - 2, neck_y - 3, 'suitD')
+        c.rect(cx - torso_rx + 1, neck_y, cx + torso_rx - 1, neck_y, 'brassD')
 
-    # ── 머리: 놋쇠 돔 + 옆으로 난 얼굴 창 ──
-    c.ell(hx, hy, hr, hr, 'brassD')
-    c.ell(hx, hy - .5, hr - .9, hr - .9, 'brassM')
-    c.ell(hx, hy - 1.1, hr - 1.9, hr - 1.9, 'brass')
-    c.ell(hx - hr * .42, hy - hr * .58, hr * .36, hr * .24, 'brassH')
-    headwear_side(c, role, hx, hy, hr, 'under', f)
-    c.set(int(round(hx - hr + 1.6)), int(round(hy - 1)), 'brassH')            # 뒤 볼트 하나
+    # ── 머리: 놋쇠 돔 + 옆으로 난 얼굴 창 ── (집 안: 맨머리)
     fy = hy + 1.5
     fr = hr - 2.2
     wrx, wry = fr - 2.0, fr
     wx = hx + hr - wrx - 1.2                       # 얼굴 창은 투구 앞쪽에 붙는다
-    c.ell(wx, fy, wrx + .9, wry + .9, 'brassD')
+    if IND():
+        c.ell(hx, hy + .3, hr - .2, hr + .3, 'skinH')
+        c.ell_in(hx - 2.0, hy + 2.0, hr - 3.0, hr - 2.4, 'skinHD', only=('skinH',))
+        ex_ = int(round(wx - wrx - 1.4))           # 귀 — 얼굴 창 바로 뒤
+        c.ell(ex_, fy + 1, 1.2, 1.6, 'skinH'); c.set(ex_, int(round(fy + 1)), 'skinHD')
+    else:
+        c.ell(hx, hy, hr, hr, 'brassD')
+        c.ell(hx, hy - .5, hr - .9, hr - .9, 'brassM')
+        c.ell(hx, hy - 1.1, hr - 1.9, hr - 1.9, 'brass')
+        c.ell(hx - hr * .42, hy - hr * .58, hr * .36, hr * .24, 'brassH')
+        headwear_side(c, role, hx, hy, hr, 'under', f)
+        c.set(int(round(hx - hr + 1.6)), int(round(hy - 1)), 'brassH')            # 뒤 볼트 하나
+        c.ell(wx, fy, wrx + .9, wry + .9, 'brassD')
     c.ell(wx, fy, wrx, wry, 'skin')
     c.ell_in(wx + 1.4, fy + 1.6, wrx - .6, wry - .8, 'skinD', only=('skin',))
     win = {}
@@ -1352,7 +1633,12 @@ def build_side(role, clip, f, body, stand=False, pose=None):
         tx = int(round(hx - hr + 3)) - [0, 1, 0][f] if not (carry or stand) else int(round(hx - hr + 3))
         ov.rect(tx - 2, hy + hr, tx, hy + hr + 1, rM)
         ov.rect(tx - 3, hy + hr + 2, tx - 1, hy + hr + 3, rM)
-    headwear_side(ov, role, hx, hy, hr, 'over', f)
+    if IND():                                       # 머리 위 역할 표식(옆) — 얼굴 창은 비킨다
+        hat = Cv()
+        headwear_indoor(hat, role, hx, hy, hr, 'side')
+        hat_onto(ov, c, hat)
+    else:
+        headwear_side(ov, role, hx, hy, hr, 'over', f)
 
     # ── 가까운 팔 · 도구 / 상자 ──
     am, mit = Cv(), Cv()
@@ -1540,6 +1826,7 @@ def build_raw(role, clip='idle', f=0, body='a'):
         return build_side(role, clip, f, body, pose=s15_pose(clip, f, role == 'kid'))
     if clip in TURN_PROFILE:                 # S12-B 옆모습 작업(왼쪽)
         return build_profile_work(role, clip, f, body)
+    set_sleeve(role)
     c = Cv()
     ov = Cv(stencil=c)
     kid = (role == 'kid')
@@ -1583,8 +1870,8 @@ def build_raw(role, clip='idle', f=0, body='a'):
     leg_y0 = int(round(torso_cy + torso_ry - 1))
     cx = 32
 
-    # ── 뒤쪽: 공기통 ──
-    if not kid:
+    # ── 뒤쪽: 공기통 ── (실내복에는 없다)
+    if not kid and not IND():
         if back:
             pass                 # 뒤에서 보면 공기통이 앞에 온다 — 몸통 뒤에 그린다
         else:
@@ -1596,15 +1883,16 @@ def build_raw(role, clip='idle', f=0, body='a'):
         draw_legs(c, P['legs'], cx, leg_y0, kid, f)
 
     # ── 몸통 — 역할 겉옷이 가장 큰 색 면이다 (70px 판독의 두 번째 축) ──
-    c.ell(cx, torso_cy, torso_rx, torso_ry, rM)
-    c.ell_in(cx - 2, torso_cy - 2.2, torso_rx - 2, torso_ry - 1.2, rL, only=(rM,))
-    c.ell_in(cx, torso_cy + torso_ry - 1, torso_rx, 3.2, rD, only=(rM, rL))
-    c.rect(cx - torso_rx, neck_y + 1, cx - torso_rx + 1, torso_cy + 1, 'suitM')
-    c.rect(cx + torso_rx - 1, neck_y + 1, cx + torso_rx, torso_cy + 1, 'suitD')
+    tM, tD, tL = (('shirt', 'shirtD', 'shirtL') if (IND() and role in ('cook', 'farmer')) else (rM, rD, rL))
+    c.ell(cx, torso_cy, torso_rx, torso_ry, tM)
+    c.ell_in(cx - 2, torso_cy - 2.2, torso_rx - 2, torso_ry - 1.2, tL, only=(tM,))
+    c.ell_in(cx, torso_cy + torso_ry - 1, torso_rx, 3.2, tD, only=(tM, tL))
+    c.rect(cx - torso_rx, neck_y + 1, cx - torso_rx + 1, torso_cy + 1, SLV['M'])
+    c.rect(cx + torso_rx - 1, neck_y + 1, cx + torso_rx, torso_cy + 1, SLV['D'])
 
     # ── 허리선 (체형 B) ── 겉옷을 좌우 1px씩만 깎는다. 과장 금지(§6-3).
     if B['waist'] and P['legs'] not in ('sit', 'kneel'):
-        coat = (rM, rD, rL, 'suitM', 'suitD')
+        coat = (rM, rD, rL, 'suitM', 'suitD') if not IND() else (tM, tD, tL, SLV['M'], SLV['D'])
         for yy in range(belt_y - 2, belt_y + 2):
             dy = (yy - torso_cy) / max(torso_ry, .001)
             if abs(dy) >= 1.0:
@@ -1617,19 +1905,22 @@ def build_raw(role, clip='idle', f=0, body='a'):
                 if abs(xx - cx) > rr - cut and c.own(xx, yy) in coat:
                     c.clear(xx, yy)
 
-    if not back:
+    if IND():                                            # 집 안 일옷 — 잠수복 멜빵·띠·버클 대신 역할 옷 디테일
+        garment_indoor(c, role, cx, neck_y, torso_cy, torso_rx, torso_ry, belt_y, leg_y0, back, kid)
+    elif not back:
         c.rect(cx - 4, neck_y + 1, cx - 3, belt_y - 1, 'cream')
         c.rect(cx + 3, neck_y + 1, cx + 4, belt_y - 1, 'cream')
         c.rect(cx - 7, torso_cy - 2, cx - 6, torso_cy, 'ox')      # 기운 자국
     else:
         c.rect(cx - 5, neck_y + 2, cx + 5, neck_y + 3, 'cream')
-    c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y + 1, 'oliv')
-    if not back:
+    if not IND():
+        c.rect(cx - torso_rx + 1, belt_y, cx + torso_rx - 1, belt_y + 1, 'oliv')
+    if not back and not IND():
         c.rect(cx - 1, belt_y - 1, cx + 1, belt_y + 2, 'brassM')
         c.set(cx, belt_y, 'brassH')
 
     # ── 뒷모습의 공기통 — 등에 메므로 앞으로 나온다 ──
-    if back and not kid:
+    if back and not kid and not IND():
         tank(c, cx - 5, torso_cy - 1, torso_ry - .6)
         tank(c, cx + 5, torso_cy - 1, torso_ry - .6)
         c.rect(cx - 1, int(torso_cy - torso_ry), cx + 1, int(torso_cy + torso_ry - 2), 'cream')
@@ -1638,9 +1929,10 @@ def build_raw(role, clip='idle', f=0, body='a'):
     arm_y0 = neck_y + 1
     arm_y1 = belt_y + (2 if not kid else 1)
     ax_l, ax_r = int(cx - torso_rx - 2), int(cx + torso_rx - 1)
+    amid = belt_y - 4
     if pc == 'carry':
-        c.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y1 - 1, 'suitM')
-        c.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y1 - 1, 'suitD')
+        arm_rect(c, ax_l, arm_y0 + 1, ax_l + 3, arm_y1 - 1, 'M', amid)
+        arm_rect(c, ax_r, arm_y0 + 1, ax_r + 3, arm_y1 - 1, 'D', amid)
         bx0, bx1 = cx - 7, cx + 7
         by0, by1 = int(torso_cy - 1), int(torso_cy + 6)
         c.rect(bx0, by0, bx1, by1, 'suitL')
@@ -1651,15 +1943,15 @@ def build_raw(role, clip='idle', f=0, body='a'):
         wl, wr = (cx - 9, by0 + 2), (cx + 9, by0 + 2)
         mitten(c, wl[0], wl[1]); mitten(c, wr[0], wr[1], 'creamD')
     elif clip == 'hurt':
-        c.rect(ax_l, arm_y0 + 1, ax_l + 3, FOOT - 5, 'suitM')
+        arm_rect(c, ax_l, arm_y0 + 1, ax_l + 3, FOOT - 5, 'M', amid)
         wl = (ax_l + 1, FOOT - 3)
         mitten(c, wl[0], wl[1])                                   # 바닥을 짚은 손
-        c.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y1, 'suitD')
+        arm_rect(c, ax_r, arm_y0 + 1, ax_r + 3, arm_y1, 'D', amid)
         wr = (ax_r + 2, arm_y1 + 2)
         mitten(c, wr[0], wr[1], 'creamD')
     elif clip == 'sit':
-        c.rect(ax_l, arm_y0 + 1, ax_l + 3, arm_y1, 'suitM')
-        c.rect(ax_r, arm_y0 + 1, ax_r + 3, arm_y1, 'suitD')
+        arm_rect(c, ax_l, arm_y0 + 1, ax_l + 3, arm_y1, 'M', amid)
+        arm_rect(c, ax_r, arm_y0 + 1, ax_r + 3, arm_y1, 'D', amid)
         wl, wr = (ax_l + 1, arm_y1 + 2), (ax_r + 2, arm_y1 + 2)
         mitten(c, wl[0], wl[1]); mitten(c, wr[0], wr[1], 'creamD')
     elif s11:
@@ -1676,18 +1968,18 @@ def build_raw(role, clip='idle', f=0, body='a'):
         # 아래를 1px 안으로 붙여 어깨→허리로 좁아지는 바깥선을 만든다.
         tk = int(round(BODIES[body]['waist'] and 1 or 0))
         mid = belt_y - 4
-        c.rect(ax_l, arm_y0 + 1, ax_l + 3, mid, 'suitM')
-        c.rect(ax_l + tk, mid, ax_l + 3 + tk, arm_y1 + sw, 'suitM')
-        c.rect(ax_l, arm_y0 + 1, ax_l + 1, mid, 'suitL')
-        c.rect(ax_l + tk, mid, ax_l + 1 + tk, arm_y1 + sw, 'suitL')
-        c.rect(ax_r, arm_y0 + 1, ax_r + 3, mid, 'suitD')
-        c.rect(ax_r - tk, mid, ax_r + 3 - tk, arm_y1 - sw + lift, 'suitD')
+        c.rect(ax_l, arm_y0 + 1, ax_l + 3, mid, SLV['M'])
+        c.rect(ax_l + tk, mid, ax_l + 3 + tk, arm_y1 + sw, SLV['FM'])
+        c.rect(ax_l, arm_y0 + 1, ax_l + 1, mid, SLV['L'])
+        c.rect(ax_l + tk, mid, ax_l + 1 + tk, arm_y1 + sw, SLV['FL'])
+        c.rect(ax_r, arm_y0 + 1, ax_r + 3, mid, SLV['D'])
+        c.rect(ax_r - tk, mid, ax_r + 3 - tk, arm_y1 - sw + lift, SLV['FD'])
         wl = (ax_l + 1 + tk, arm_y1 + sw + 2)
         wr = (ax_r + 2 - tk, arm_y1 - sw + lift + 2)
         mitten(c, wl[0], wl[1]); mitten(c, wr[0], wr[1], 'creamD')
 
-    # ── 허리 랜턴 (장갑과 겹치지 않게 허리띠 바로 아래 앞쪽) ──
-    if not kid:
+    # ── 허리 랜턴 (장갑과 겹치지 않게 허리띠 바로 아래 앞쪽) ── (집 안에서는 차지 않는다)
+    if not kid and not IND():
         lantern(c, int(cx - torso_rx + 1), belt_y + 3)
 
     # ── 다리 (앞) ──
@@ -1698,25 +1990,38 @@ def build_raw(role, clip='idle', f=0, body='a'):
     if not back and pc in ('idle', 'walk', 'work'):
         hand_prop(c, role, wr[0], wr[1])
 
-    # ── 목 실링 + 어깨 링 ──
-    c.ell(cx, neck_y - 1, torso_rx - .4, 2.8, 'cream')
-    c.ell(cx, neck_y - 2, torso_rx - 1, 2.0, 'creamD')
-    wave(c, cx - torso_rx + 2, cx + torso_rx - 2, neck_y - 3, 'suitD')
-    c.rect(cx - torso_rx + 1, neck_y, cx + torso_rx - 1, neck_y, 'brassD')
-    c.set(cx - torso_rx + 2, neck_y, 'brassM'); c.set(cx + torso_rx - 2, neck_y, 'brassM')
+    # ── 목 실링 + 어깨 링 ── (집 안: 목 + 옷깃)
+    if IND():
+        c.rect(hx - 2, neck_y - 3, hx + 2, neck_y, 'skinAD'); c.rect(hx - 2, neck_y - 3, hx - 1, neck_y, 'skinA')
+        cM, cD = (('shirt', 'shirtD') if role in INDOOR_SHIRT else (rL, rD))
+        c.ell(cx, neck_y, torso_rx - 3.2, 1.6, cM)
+        c.rect(int(cx - torso_rx + 4), neck_y + 1, int(cx + torso_rx - 4), neck_y + 1, cD)
+    else:
+        c.ell(cx, neck_y - 1, torso_rx - .4, 2.8, 'cream')
+        c.ell(cx, neck_y - 2, torso_rx - 1, 2.0, 'creamD')
+        wave(c, cx - torso_rx + 2, cx + torso_rx - 2, neck_y - 3, 'suitD')
+        c.rect(cx - torso_rx + 1, neck_y, cx + torso_rx - 1, neck_y, 'brassD')
+        c.set(cx - torso_rx + 2, neck_y, 'brassM'); c.set(cx + torso_rx - 2, neck_y, 'brassM')
 
-    # ── 머리: 놋쇠 돔 + 완전히 노출된 얼굴 (면갑을 올린 상태) ──
-    c.ell(hx, hy, hr, hr, 'brassD')
-    c.ell(hx, hy - .5, hr - .9, hr - .9, 'brassM')
-    c.ell(hx, hy - 1.1, hr - 1.9, hr - 1.9, 'brass')
-    c.ell(hx - hr * .42, hy - hr * .58, hr * .36, hr * .24, 'brassH')
-    headwear(c, role, hx, hy, hr, back, 'under')
-    for bx in (-1, 1):                                   # 볼트 두 개
-        c.set(int(round(hx + bx * (hr - 1.2))), int(round(hy - 1)), 'brassH')
+    # ── 머리: 놋쇠 돔 + 완전히 노출된 얼굴 (면갑을 올린 상태) ── (집 안: 맨머리)
+    if IND():
+        skull_indoor(c, hx, hy, hr, back=(back or turn))
+    else:
+        c.ell(hx, hy, hr, hr, 'brassD')
+        c.ell(hx, hy - .5, hr - .9, hr - .9, 'brassM')
+        c.ell(hx, hy - 1.1, hr - 1.9, hr - 1.9, 'brass')
+        c.ell(hx - hr * .42, hy - hr * .58, hr * .36, hr * .24, 'brassH')
+        headwear(c, role, hx, hy, hr, back, 'under')
+        for bx in (-1, 1):                                   # 볼트 두 개
+            c.set(int(round(hx + bx * (hr - 1.2))), int(round(hy - 1)), 'brassH')
     fy = hy + 1.5
     fr = hr - 2.2
-    c.ell(hx, fy, fr + .9, fr + .9, 'brassD')            # 얼굴 구멍 테
-    if back:
+    if not IND():
+        c.ell(hx, fy, fr + .9, fr + .9, 'brassD')            # 얼굴 구멍 테
+    if back and IND():                                   # 집 안 뒷모습 — 뒤통수 머리카락 위에 가르마 · 목덜미만
+        c.rect(int(hx), int(hy - hr + 2), int(hx), int(hy + 1), 'hairD')
+        c.rect(int(hx - 2), int(fy + fr - 1), int(hx + 2), int(fy + fr), 'skinD')
+    elif back:
         c.ell(hx, fy, fr, fr, 'hair')
         c.ell_in(hx - 1.6, fy - 1.8, fr - 1.0, fr - 1.4, 'suitH', only=('hair',))
         c.rect(int(hx), int(fy - fr), int(hx), int(fy + fr - 3), 'hairD')   # 가르마
@@ -1725,7 +2030,8 @@ def build_raw(role, clip='idle', f=0, body='a'):
         # S11 엘리베이터에 들어서며 몸을 돌리는 한 프레임 — 얼굴 구멍의 왼쪽은 뒷머리,
         # 오른쪽 절반에만 맨살과 눈 하나. 얼굴 레이어(3종)는 이 프레임에 얹지 않는다.
         c.ell(hx, fy, fr, fr, 'hair')
-        c.ell_in(hx - 1.6, fy - 1.8, fr - 1.0, fr - 1.4, 'suitH', only=('hair',))
+        if not IND():                                    # 집 안: 투구 반사광 없이 머리카락만
+            c.ell_in(hx - 1.6, fy - 1.8, fr - 1.0, fr - 1.4, 'suitH', only=('hair',))
         c.ell_in(hx + 2.4, fy + .6, fr - 1.9, fr - .4, 'skin', only=('hair', 'suitH'))
         c.ell_in(hx + 3.4, fy + 2.0, fr - 2.8, fr - 1.6, 'skinD', only=('skin',))
         ey = ey_of(fy)
@@ -1746,7 +2052,8 @@ def build_raw(role, clip='idle', f=0, body='a'):
         # S12-B 3/4 왼쪽 — 얼굴 창이 왼쪽(보는 쪽)으로 1.6px 옮겨 가고 폭이 좁아진다. 오른쪽은 투구 옆면(놋쇠)
         wx = hx - 1.6
         wrx = fr - .7
-        c.ell(wx, fy, wrx + .9, fr + .9, 'brassD')
+        if not IND():
+            c.ell(wx, fy, wrx + .9, fr + .9, 'brassD')
         c.ell(wx, fy, wrx, fr, 'skin')
         c.ell_in(wx + 1.6, fy + 1.6, wrx - .6, fr - .6, 'skinD', only=('skin',))
         q_win = {}
@@ -1777,7 +2084,12 @@ def build_raw(role, clip='idle', f=0, body='a'):
             ov.rect(hx - hr + 1, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
             ov.rect(hx + hr - 3, hy + hr + 1, hx + hr - 1, hy + hr + 4, rM)
 
-    headwear(ov, role, hx, hy, hr, back, 'over')
+    if IND():                                            # 머리 위 역할 표식 — 머리카락 위, 얼굴 창은 비킨다
+        hat = Cv()
+        headwear_indoor(hat, role, hx, hy, hr, 'back' if (back or turn) else ('q34' if q34 else 'front'))
+        hat_onto(ov, c, hat)
+    else:
+        headwear(ov, role, hx, hy, hr, back, 'over')
 
     if clip == 'return_tired' and f == 1:                 # S15 — 후 하고 내쉬는 숨(투구 밖)
         ov.set(int(round(hx + hr + 1)), int(round(fy + 2)), 'cream')
@@ -1879,6 +2191,16 @@ def hair_layer(hid, a, base):
     cr = 'cream' if hid == 'scarf' else 'hair'
     crD = 'creamD' if hid == 'scarf' else 'hairD'
 
+    # ⓪ 실내복 — 머리통(맨살 skinH) 중 눈 줄보다 위 = 머리카락. 여섯 종 공통(두건은 천 색).
+    #    뒷모습은 본체가 이미 머리카락이라 두건만 덮는다.
+    if IND():
+        if face:
+            for (x, y) in base.pixels():
+                if base.own(x, y) in ('skinH', 'skinHD') and y <= fy - 1:
+                    c.set(x, y, crD if (x > hx + 3 or (base.own(x, y) == 'skinHD' and x > hx)) else cr)
+        elif hid == 'scarf':
+            c.ell_in(hx, hy + .3, hr + .5, hr + .8, cr, only=('hair', 'hairD', 'suitH'))
+            c.ell_in(hx + 2, hy + 1.6, hr - 2.2, hr - 1.6, crD, only=(cr,))
     # ① 정수리 띠 — 여섯 종 공통. S8이 본체에 직접 그리던 두 줄과 같은 식이다.
     if face:
         c.ell_in(hx, fy - fr + 1.2, fr - .4, 2.1, cr, only=('skin', 'skinD'))
@@ -1904,6 +2226,13 @@ def hair_layer(hid, a, base):
         c.rect(hx + hr, rim, hx + hr + 1, rim + 3, core)    # 짧은 꽁지
         c.set(hx + hr + 1, rim + 4, hi)
     elif hid == 'long':
+        if IND():                                            # 맨머리 — 관자놀이에서 어깨까지 내려오는 옆머리
+            for sxs in (-1, 1):
+                x0 = int(round(hx + sxs * (hr - 1.0)))
+                for y in range(int(round(fy - 1)), int(neck_y + 3)):
+                    for x, t in ((x0, core), (x0 + sxs, core), (x0 - sxs, hi if y < neck_y else None)):
+                        if t and base.own(x, y) not in ('skin', 'skinD'):      # 얼굴 창은 덮지 않는다(조합 패치 규칙)
+                            c.set(x, y, t)
         for sx in (a['ax_l'] + 5, a['ax_r'] - 3):
             c.rect(sx, neck_y + 3, sx + 1, neck_y + 7, core)  # 어깨 앞으로 내린 두 갈래
             c.rect(sx, neck_y + 3, sx, neck_y + 6, hi)
@@ -1920,6 +2249,16 @@ def hair_layer(hid, a, base):
         for sx in (hx - fr + 2.0, hx + fr - 2.0):           # 이마 양끝 곱슬 두 점
             c.ell_in(sx, fy - fr + 3.4, 1.5, 1.4, cr, only=('skin', 'skinD'))
             c.set(sx, fy - fr + 4, crD)
+        if IND():                                            # 맨머리 — 머리통 둘레가 울퉁불퉁
+            tmp_ = Cv()
+            for ang in range(200, 341, 28):
+                bx_ = hx + (hr + .3) * math.cos(math.radians(ang)); by_ = hy + .3 + (hr + .6) * math.sin(math.radians(ang))
+                tmp_.ell(bx_, by_, 1.3, 1.2, cr)
+            for sxs in (-1, 1):
+                tmp_.ell(hx + sxs * (hr - .2), fy - 1.5, 1.2, 1.4, crD)
+            for (x, y) in tmp_.pixels():
+                if base.own(x, y) not in ('skin', 'skinD'):                # 얼굴 창은 덮지 않는다
+                    c.set(x, y, tmp_.own(x, y))
     elif hid == 'scarf':
         # 왼쪽으로 비껴 내려 묶은 두건 — 베일 각인(머리 왼쪽 바깥)과 자리를 다투지
         # 않도록 **얼굴 구멍 안쪽**에만 머문다.
@@ -2012,6 +2351,24 @@ def face_layer(fid, a, base, hair=None):
 #   규칙은 앞모습과 같다: ①여섯 종 모두 **같은 앞머리 띠 + 귀밑머리**로 시작한다(기본 short 가 완전히 덮인다)
 #   ②갈래는 투구 테 아래(뒤통수 밑)에서만 나온다 ③얼굴 픽셀과 머리 픽셀은 한 칸도 겹치지 않는다
 #   — 그래야 머리 패치와 얼굴 패치를 **함께** 얹어도 그 조합이 그대로 나온다(생성기가 18조합 전수 검사).
+def _indoor_skull_hair(c, a, base, cr, crD, back_dir):
+    """실내복 공통 머리: 머리통 맨살(skinH) 중 ① 눈 줄보다 위 ② 얼굴 창 뒤쪽(귀 뒤)이면서 목 위 = 머리카락.
+    back_dir: 뒤통수 쪽 방향(옆모습 오른쪽 보기 = -1, 3/4 왼쪽 보기 = +1)."""
+    win, fy, rim, hx = a['win'], a['fy'], a['rim'], a['hx']
+    for (x, y) in base.pixels():
+        if base.own(x, y) not in ('skinH', 'skinHD'):
+            continue
+        behind = False
+        if y in win:
+            lo, hi = win[y]
+            behind = (x < lo - 1) if back_dir < 0 else (x > hi + 1)
+        else:
+            behind = (x - hx) * back_dir > 0
+        if y <= fy - 1 or (behind and y <= rim):
+            dark = (base.own(x, y) == 'skinHD') or ((x - hx) * back_dir > 3)
+            c.set(x, y, crD if dark else cr)
+
+
 def hair_layer_side(hid, a, base):
     c = Cv(stencil=base)
     win, ey = a['win'], a['ey']
@@ -2022,6 +2379,8 @@ def hair_layer_side(hid, a, base):
     core, hi = (cr, crD) if hid == 'scarf' else (crD, cr)
     SK = ('skin', 'skinD')
     t0 = min(win)
+    if IND():
+        _indoor_skull_hair(c, a, base, cr, crD, -1)
     # ① 공통: 앞머리 띠(창 윗줄 ~ 눈썹 위) + 귀밑머리(창 뒤 두 칸, 눈썹 줄 ~ 눈 아래)
     band = list(range(t0, min(ey - 3, t0 + 2)))      # 두 줄 — 창이 작아 얼굴 자리를 남긴다
     for yy in band:
@@ -2117,6 +2476,9 @@ def hair_layer_q34(hid, a, base):
     core, hi = (cr, crD) if hid == 'scarf' else (crD, cr)
     SK = ('skin', 'skinD')
     t0 = min(win)
+    if IND():
+        a_ = dict(a); a_['fy'] = a.get('fy', ey)
+        _indoor_skull_hair(c, a_, base, cr, crD, +1)
     band = list(range(t0, min(ey - 3, t0 + 2)))
     for yy in band:
         lo, hi_ = win[yy]
@@ -2338,7 +2700,10 @@ def imprint_layer(iid, a):
         cut |= a['behind_px']
     if 'side_cut' in a:                       # S12 옆모습 — 몸 앞으로 온 팔·장갑·도구·상자가 가린 칸
         cut |= a['side_cut'].get(iid, a['side_cut']['*'])
-    if a.get('clip') not in S11_IDS and a.get('clip') not in SIDE_IDS and a.get('clip') not in S15_SIDE:   # PM 2026-10-03: 기존 7행 충돌 39건 수리
+    _old = (a.get('clip') not in S11_IDS and a.get('clip') not in SIDE_IDS and a.get('clip') not in S15_SIDE)
+    if _old or (IND() and (a.get('role'), a.get('clip'), a.get('f'), a.get('body')) in _RAW):
+        # PM 2026-10-03: 기존 7행 충돌 39건 수리. 실내복 판은 머리카락이 머리통 전체를 덮으므로 **모든 행**에 같은 규칙을 건다
+        # (각인은 머리 6·얼굴 3 아래로 숨고, 각인끼리는 뒤의 것이 비킨다 — 각인 레이어만 자른다)
         cut |= _old_row_cut(iid, a)
     mine = c.pixels()
     for (x, y) in cut:
@@ -2778,39 +3143,42 @@ def main():
     #   검사: ①겹 × (머리 6 ∪ 얼굴 18조합 ∪ 각인 12) 픽셀 = 0
     #         ②18조합마다, 그 조합이 기본 시트에서 바꾼 칸(머리·얼굴 변화)을 겹이 한 칸도 덮지 않는다
     #           → 기본 + 머리 + 얼굴(조합 규칙) + 겹 == 그 조합 그대로 + 겹. 얼굴이 유리 너머로 보인다.
-    os.makedirs(os.path.join(OUT, 'suit'), exist_ok=True)
-    suit_clash, suit_cover, suit_cells = 0, 0, 0
-    for body in BODY_IDS:
-        for role in ROLES:
-            cellsets = [(clip, i) for clip, n in CLIPS for i in range(n)]
-            scells = {}
-            for (clip, i) in cellsets:
-                sc_ = suit_layer(role, clip, i, body)
-                scells[(clip, i)] = sc_.img()
-                n_ = len(sc_.pixels() & suit_forbid(role, clip, i, body))
-                suit_clash += n_
-                suit_cells += 1
-                if n_:
-                    print('   [!!] 잠수복 겹 충돌 %s_%s %s f%d: %d칸' % (role, body, clip, i, n_))
-            ssheet = sheet_of(scells, 1)
-            nm = '%s_%s' % (role, body)
-            ssheet.save(os.path.join(OUT, 'suit', nm + '.png'))
-            sheet_of(scells, SHEET_K).save(os.path.join(OUT, 'suit', nm + '_x4.png'))
-            dsheet = sheet_of({k: img_of(role, k[0], k[1], body, 'short', 'f0').img() for k in cellsets}, 1)
-            salpha = ssheet.getchannel('A').load()
-            dpx = dsheet.load()
-            for hid, _k, _n in HAIRS:
-                for fid, _k2, _n2 in FACES:
-                    want = sheet_of({k: img_of(role, k[0], k[1], body, hid, fid).img() for k in cellsets}, 1)
-                    wpx = want.load()
-                    for y in range(want.height):
-                        for x in range(want.width):
-                            if salpha[x, y] and wpx[x, y] != dpx[x, y]:
-                                suit_cover += 1
-    SUIT_CHECK = {'suit_sheets': len(BODY_IDS) * len(ROLES), 'cells': suit_cells,
-                  'suit_x_hair_face_imprint_px': suit_clash, 'suit_covers_combo_change_px': suit_cover}
-    print('[검사 S15] 잠수복 겹 %d장 · %d칸: 겹×(머리·얼굴·각인) %d칸 · 18조합 변화를 덮은 칸 %d'
-          % (len(BODY_IDS) * len(ROLES), suit_cells, suit_clash, suit_cover))
+    if not IND():                       # 실내복 판에는 잠수복 겹이 없다(잠수복은 suit 판의 일)
+        os.makedirs(os.path.join(OUT, 'suit'), exist_ok=True)
+        suit_clash, suit_cover, suit_cells = 0, 0, 0
+        for body in BODY_IDS:
+            for role in ROLES:
+                cellsets = [(clip, i) for clip, n in CLIPS for i in range(n)]
+                scells = {}
+                for (clip, i) in cellsets:
+                    sc_ = suit_layer(role, clip, i, body)
+                    scells[(clip, i)] = sc_.img()
+                    n_ = len(sc_.pixels() & suit_forbid(role, clip, i, body))
+                    suit_clash += n_
+                    suit_cells += 1
+                    if n_:
+                        print('   [!!] 잠수복 겹 충돌 %s_%s %s f%d: %d칸' % (role, body, clip, i, n_))
+                ssheet = sheet_of(scells, 1)
+                nm = '%s_%s' % (role, body)
+                ssheet.save(os.path.join(OUT, 'suit', nm + '.png'))
+                sheet_of(scells, SHEET_K).save(os.path.join(OUT, 'suit', nm + '_x4.png'))
+                dsheet = sheet_of({k: img_of(role, k[0], k[1], body, 'short', 'f0').img() for k in cellsets}, 1)
+                salpha = ssheet.getchannel('A').load()
+                dpx = dsheet.load()
+                for hid, _k, _n in HAIRS:
+                    for fid, _k2, _n2 in FACES:
+                        want = sheet_of({k: img_of(role, k[0], k[1], body, hid, fid).img() for k in cellsets}, 1)
+                        wpx = want.load()
+                        for y in range(want.height):
+                            for x in range(want.width):
+                                if salpha[x, y] and wpx[x, y] != dpx[x, y]:
+                                    suit_cover += 1
+        SUIT_CHECK = {'suit_sheets': len(BODY_IDS) * len(ROLES), 'cells': suit_cells,
+                      'suit_x_hair_face_imprint_px': suit_clash, 'suit_covers_combo_change_px': suit_cover}
+        print('[검사 S15] 잠수복 겹 %d장 · %d칸: 겹×(머리·얼굴·각인) %d칸 · 18조합 변화를 덮은 칸 %d'
+              % (len(BODY_IDS) * len(ROLES), suit_cells, suit_clash, suit_cover))
+    else:
+        SUIT_CHECK = {'skipped': 'indoor 판 — 잠수복 겹은 suit 판(front/p2/suit/)만 쓴다'}
 
     # ── 3. 각인 레이어 — 네 체형(어른 A·B, 아이 A·B)마다 한 벌 ──────────
     for sid, arole, abody in SHAPES:
@@ -2863,7 +3231,7 @@ def main():
                             fit['float_px'] += sum(1 for p in px if comp.own(*p) is None)
                         if px and not (px - masked):
                             # 가림판에 통째로 가려진다 → 그 역할 옷 위 가장 가까운 빈 칸으로 옮긴 판(덮어쓰기 파일)을 만든다
-                            fb = suit_forbid(role, clip, i, body) | suit_layer(role, clip, i, body).pixels() | masked | union
+                            fb = suit_forbid(role, clip, i, body) | (suit_layer(role, clip, i, body).pixels() if not IND() else set()) | masked | union
                             own_cols = {'r_' + role, 'rD_' + role, 'rL_' + role}
                             cxm = sum(p[0] for p in px) / float(len(px)); cym = sum(p[1] for p in px) / float(len(px))
                             cand = sorted([p for p in comp.pixels() if comp.own(*p) in own_cols and p not in fb
@@ -3623,8 +3991,12 @@ def main():
                                 same_var.append('%s_%s %s f%d %s=%s' % (role, body, clip, i, hl[x_], hl[y_]))
                     for h, _k, _n in HAIRS:          # 머리 패치 + 얼굴 패치를 **함께** 얹어도 그 조합이 나오는가
                         for fc, _k2, _n2 in FACES:
-                            got = apply_patch(apply_patch(di, hp[h]), fp_[fc])
                             want = img_of(role, clip, i, body, h, fc).img()
+                            if IND() and h != 'short' and fc != 'f0':     # 실내복 판 — 클라이언트 조합 규칙(<hair>_<face>.png)대로
+                                hs_ = apply_patch(di, hp[h])
+                                got = apply_patch(hs_, diff_img(hs_, want))
+                            else:
+                                got = apply_patch(apply_patch(di, hp[h]), fp_[fc])
                             if list(got.getdata()) != list(want.getdata()):
                                 combo_bad += 1
                                 print('   [!!] 조합 실패 %s_%s %s f%d %s+%s' % (role, body, clip, i, h, fc))
@@ -3754,77 +4126,79 @@ def main():
     print('[ok] S12 check/walk_side.png · side70.png · side_hair_face.png · turn_new.png · sidelit_* · turnlit_*')
 
     # ── S15 검증 그림 — 원정(잠수복 겹을 얹은 판) ──
-    def suited(role, clip, fi, body, hair, face):
-        im_ = build(role, clip, fi, body, hair, face)[0].img()
-        im_.alpha_composite(suit_layer(role, clip, fi, body).img())
-        return im_
-    seq15 = [(c_, i_) for c_, n_ in S15_CLIPS for i_ in range(n_)]
-    W15, H15 = 150 + len(seq15) * 112, 40 + 8 * 170
-    im = Image.new('RGB', (W15, H15), (10, 30, 38))
-    d = ImageDraw.Draw(im)
-    d.rectangle([0, H15 - 30, W15, H15], fill=(40, 46, 40))
-    for r, role in enumerate(ROLES):
-        body = BODY_IDS[r % 2]
-        hair, face = LOOK[(role, body)]
-        y0 = 40 + r * 170
-        d.text((8, y0 + 70), ROLE_KO[role], font=f14, fill=(200, 226, 220))
-        for j, (clip, fi) in enumerate(seq15):
-            spr = up(suited(role, clip, fi, body, hair, face), 3)
-            im.paste(spr, (150 + j * 112 - 60, y0 + 160 - BASE_Y * 3), spr)
-    for j, (clip, fi) in enumerate(seq15):
-        d.text((150 + j * 112 - 6, 20), '%s %d' % (clip, fi), font=f12, fill=(200, 226, 220))
-    d.text((8, 2), 'S15 원정 — 잠수복 겹(면갑 유리·투구 등불·발목 납 띠·거품)을 얹은 판 (×3)', font=f14, fill=(220, 236, 230))
-    im.save(os.path.join(OUT, 'check', 'expedition.png'))
-    # 70px — 잠수복을 입어도 역할이 갈리는가(색 / 실루엣)
-    W7, H7 = 140 + 16 * 70, 34 + 2 * 110
-    im = Image.new('RGB', (W7, H7), (16, 40, 48))
-    d = ImageDraw.Draw(im)
-    for rr, (lab, clip, fi, sil) in enumerate((('잠수복 · 걸음', 'swim_side', 0, False), ('실루엣', 'swim_side', 0, True))):
-        y0 = 34 + rr * 110
-        d.text((8, y0 + 40), lab, font=f12, fill=(210, 230, 224))
-        for j, (role, body) in enumerate(order):
+    exp_lit, seq15 = {}, [(c_, i_) for c_, n_ in S15_CLIPS for i_ in range(n_)]
+    if not IND():                       # 원정 그림은 suit 판에서만
+        def suited(role, clip, fi, body, hair, face):
+            im_ = build(role, clip, fi, body, hair, face)[0].img()
+            im_.alpha_composite(suit_layer(role, clip, fi, body).img())
+            return im_
+        seq15 = [(c_, i_) for c_, n_ in S15_CLIPS for i_ in range(n_)]
+        W15, H15 = 150 + len(seq15) * 112, 40 + 8 * 170
+        im = Image.new('RGB', (W15, H15), (10, 30, 38))
+        d = ImageDraw.Draw(im)
+        d.rectangle([0, H15 - 30, W15, H15], fill=(40, 46, 40))
+        for r, role in enumerate(ROLES):
+            body = BODY_IDS[r % 2]
             hair, face = LOOK[(role, body)]
-            one = suited(role, clip, fi, body, hair, face)
-            if sil:
-                px_ = one.load()
-                for yy in range(one.height):
-                    for xx in range(one.width):
-                        if px_[xx, yy][3] > 0:
-                            px_[xx, yy] = (6, 14, 18, 255)
-            z70 = one.resize((int(round(CELL * sc70)), int(round(CELL * sc70))), Image.NEAREST)
-            im.paste(z70, (140 + j * 70 + 35 - z70.width // 2, y0 + 104 - int(BASE_Y * sc70)), z70)
-    for j, (role, body) in enumerate(order):
-        d.text((140 + j * 70 + 6, 6), ROLE_KO[role][:2] + body.upper(), font=f12, fill=(210, 230, 224))
-    im.save(os.path.join(OUT, 'check', 'suit70.png'))
-    # 얼굴이 유리 너머로 보이는가 — 확대
-    im = Image.new('RGB', (20 + 6 * 250, 290), (10, 30, 38))
-    d = ImageDraw.Draw(im)
-    for j, (role, body, clip, fi, h, fc) in enumerate((('engineer', 'a', 'swim_idle', 0, 'short', 'f0'),
-                                                       ('medic', 'b', 'swim_idle', 0, 'curly', 'f2'),
-                                                       ('scout', 'a', 'swim_side', 0, 'tied', 'f1'),
-                                                       ('kid', 'b', 'swim_side', 1, 'scarf', 'f0'),
-                                                       ('trader', 'b', 'return_tired', 0, 'long', 'f1'),
-                                                       ('farmer', 'a', 'return_tired', 1, 'braid', 'f2'))):
-        one = suited(role, clip, fi, body, h, fc)
-        _b, _o, a_ = raw_of(role, clip, fi, body)
-        ht = int(a_['head_top'][1])
-        cut = one.crop((14, max(0, ht - 8), 50, max(0, ht - 8) + 34))
-        z = up(cut, 7)
-        im.paste(z, (20 + j * 250, 30), z)
-        d.text((20 + j * 250, 8), '%s %s %s+%s' % (ROLE_KO[role], clip, h, fc), font=f12, fill=(210, 230, 224))
-    im.save(os.path.join(OUT, 'check', 'suit_faces.png'))
-    # 비교 페이지용 — 잠수복을 얹은 원정 띠(×3, 12칸)
-    exp_lit = {}
-    for body in BODY_IDS:
-        for role in ROLES:
-            hair, face = LOOK[(role, body)]
-            strip = Image.new('RGBA', (CELL * 3 * len(seq15), CELL * 3), (0, 0, 0, 0))
+            y0 = 40 + r * 170
+            d.text((8, y0 + 70), ROLE_KO[role], font=f14, fill=(200, 226, 220))
             for j, (clip, fi) in enumerate(seq15):
-                strip.paste(up(suited(role, clip, fi, body, hair, face), 3), (CELL * 3 * j, 0))
-            nm = 'explit_%s.png' % sheet_name(role, body)
-            strip.save(os.path.join(OUT, 'check', nm))
-            exp_lit[sheet_name(role, body)] = 'check/' + nm
-    print('[ok] S15 check/expedition.png · suit70.png · suit_faces.png · explit_*')
+                spr = up(suited(role, clip, fi, body, hair, face), 3)
+                im.paste(spr, (150 + j * 112 - 60, y0 + 160 - BASE_Y * 3), spr)
+        for j, (clip, fi) in enumerate(seq15):
+            d.text((150 + j * 112 - 6, 20), '%s %d' % (clip, fi), font=f12, fill=(200, 226, 220))
+        d.text((8, 2), 'S15 원정 — 잠수복 겹(면갑 유리·투구 등불·발목 납 띠·거품)을 얹은 판 (×3)', font=f14, fill=(220, 236, 230))
+        im.save(os.path.join(OUT, 'check', 'expedition.png'))
+        # 70px — 잠수복을 입어도 역할이 갈리는가(색 / 실루엣)
+        W7, H7 = 140 + 16 * 70, 34 + 2 * 110
+        im = Image.new('RGB', (W7, H7), (16, 40, 48))
+        d = ImageDraw.Draw(im)
+        for rr, (lab, clip, fi, sil) in enumerate((('잠수복 · 걸음', 'swim_side', 0, False), ('실루엣', 'swim_side', 0, True))):
+            y0 = 34 + rr * 110
+            d.text((8, y0 + 40), lab, font=f12, fill=(210, 230, 224))
+            for j, (role, body) in enumerate(order):
+                hair, face = LOOK[(role, body)]
+                one = suited(role, clip, fi, body, hair, face)
+                if sil:
+                    px_ = one.load()
+                    for yy in range(one.height):
+                        for xx in range(one.width):
+                            if px_[xx, yy][3] > 0:
+                                px_[xx, yy] = (6, 14, 18, 255)
+                z70 = one.resize((int(round(CELL * sc70)), int(round(CELL * sc70))), Image.NEAREST)
+                im.paste(z70, (140 + j * 70 + 35 - z70.width // 2, y0 + 104 - int(BASE_Y * sc70)), z70)
+        for j, (role, body) in enumerate(order):
+            d.text((140 + j * 70 + 6, 6), ROLE_KO[role][:2] + body.upper(), font=f12, fill=(210, 230, 224))
+        im.save(os.path.join(OUT, 'check', 'suit70.png'))
+        # 얼굴이 유리 너머로 보이는가 — 확대
+        im = Image.new('RGB', (20 + 6 * 250, 290), (10, 30, 38))
+        d = ImageDraw.Draw(im)
+        for j, (role, body, clip, fi, h, fc) in enumerate((('engineer', 'a', 'swim_idle', 0, 'short', 'f0'),
+                                                           ('medic', 'b', 'swim_idle', 0, 'curly', 'f2'),
+                                                           ('scout', 'a', 'swim_side', 0, 'tied', 'f1'),
+                                                           ('kid', 'b', 'swim_side', 1, 'scarf', 'f0'),
+                                                           ('trader', 'b', 'return_tired', 0, 'long', 'f1'),
+                                                           ('farmer', 'a', 'return_tired', 1, 'braid', 'f2'))):
+            one = suited(role, clip, fi, body, h, fc)
+            _b, _o, a_ = raw_of(role, clip, fi, body)
+            ht = int(a_['head_top'][1])
+            cut = one.crop((14, max(0, ht - 8), 50, max(0, ht - 8) + 34))
+            z = up(cut, 7)
+            im.paste(z, (20 + j * 250, 30), z)
+            d.text((20 + j * 250, 8), '%s %s %s+%s' % (ROLE_KO[role], clip, h, fc), font=f12, fill=(210, 230, 224))
+        im.save(os.path.join(OUT, 'check', 'suit_faces.png'))
+        # 비교 페이지용 — 잠수복을 얹은 원정 띠(×3, 12칸)
+        exp_lit = {}
+        for body in BODY_IDS:
+            for role in ROLES:
+                hair, face = LOOK[(role, body)]
+                strip = Image.new('RGBA', (CELL * 3 * len(seq15), CELL * 3), (0, 0, 0, 0))
+                for j, (clip, fi) in enumerate(seq15):
+                    strip.paste(up(suited(role, clip, fi, body, hair, face), 3), (CELL * 3 * j, 0))
+                nm = 'explit_%s.png' % sheet_name(role, body)
+                strip.save(os.path.join(OUT, 'check', nm))
+                exp_lit[sheet_name(role, body)] = 'check/' + nm
+        print('[ok] S15 check/expedition.png · suit70.png · suit_faces.png · explit_*')
 
     # ── S22 각인 합성 확인 — **출하 파일만으로** 클라이언트 순서대로 합성한다(생성기 내부 값을 쓰지 않는다) ──
     #   기본 src → hair/<h> → 얼굴(<face> 또는 <hair>_<face>) → [suit] → 각인 12종(체형 폴더) → rolemask 로 지움
@@ -3860,7 +4234,7 @@ def main():
         W_, H_ = 150 + 2 * len(cols) * cw + 30, 40 + len(CLIPS) * cw
         im = Image.new('RGB', (W_, H_), (34, 26, 20))
         d = ImageDraw.Draw(im)
-        for half, suit in enumerate((False, True)):
+        for half, suit in enumerate((False,) if IND() else (False, True)):
             x0 = 150 + half * (len(cols) * cw + 30)
             d.text((x0, 8), '잠수복 겹 없이' if not suit else '잠수복 겹 + 각인', font=f14, fill=(236, 206, 150))
             for j, role in enumerate(cols):
@@ -4034,6 +4408,17 @@ def main():
             '5_depth': '방 깊이 1.7m — 벽 가까이 세우고 앞뒤로 겹치는 소품을 두지 않는다',
         },
     }
+    if IND():                                            # 실내복 판 — 옷차림 규칙(사용자 승인 2026-10-17)
+        meta['outfit'] = 'indoor'
+        meta['outfit_rule'] = {
+            'indoor': '거점 안(방·홀·엘리베이터·일하는 동작)·인물 카드·초상 — front/p2/indoor/',
+            'suit': '에어락·해치 앞(나갈 준비) — front/p2/ (투구 + 잠수복)',
+            'suit+layer': '원정(바깥)·해치 내려가기·해저 걸음·상자 나르기 — front/p2/ + front/p2/suit/',
+            'helmet_only': '습격 중 · 물 찬 칸 되찾기 · 금 간 방 수리 — front/p2/ 그대로(잠수복 겹 없이)',
+            'switch': '옷이 바뀌는 순간은 에어락을 지날 때 한 번. 돌아올 때는 에어락에서 return_tired(잠수복) 뒤 다음 칸부터 실내복',
+            'role_rule': '머리 위는 역할 자리 — 집 안에서도 역할 모자(요리 모자·후드·머릿수건·고글·밀짚 챙·납작 모자·챙모자·노란 털모자)가 머리 꼭대기에 있고, 머리 갈래는 모자 테 아래에서만 나온다. 보조 판독축 = 겉옷 색',
+            'same_grid': '셀·발 기준선·31행·3열·머리 6/얼굴 3/조합 얼굴/각인/가림판 규칙 모두 front/p2/ 와 같다. 원정 전용 행(26~30)도 같은 자리에 있지만 실내에서는 쓰지 않는다',
+            'same_person': '사람마다 고른 머리·얼굴 id(pick_look)는 옷차림과 무관 — 같은 사람이 투구를 벗으면 같은 머리가 다 보인다'}
     with io.open(os.path.join(OUT, 'meta.json'), 'w', encoding='utf-8') as fp:
         fp.write(json.dumps(meta, ensure_ascii=False, indent=1))
     print('[ok] meta.json / check/*.png')
