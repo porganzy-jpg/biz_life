@@ -4639,6 +4639,7 @@ def build_options(st: dict, uid: str) -> dict:
         out[rid] = {"cost": cost, "lacking": lack, "cond": (BUILD_COND.get(rid) or {}).get("ko"),
                     "opened_by": (core_of(st).get("room_types") or {}).get(rid),
                     "people_locked": not room_type_open(st, rid),
+                    **room_lock_role(st, rid),
                     "cond_missing": miss, "can": not lack and not miss,
                     "produces": [k for k, v in (spec.get("produces") or {}).items()     # S33: 「정수실 → 물」 빈 칸 안내
                                  if isinstance(v, (int, float)) and k not in ("power_supply", "craft_slots")]}
@@ -11395,7 +11396,7 @@ def comfort_mutter_tick(st: dict, uid: str) -> list:
 
 
 # ── S35 살림 게이지 · 방은 사람 때문에 열린다 (docs/C_PLAN.md §3·§4) ─────────────────
-HOUSE_RES = ("food", "water", "power")
+HOUSE_RES = ("food", "water")      # PM: 전력은 소비가 없어 살림 띠에 넣지 않는다(화면은 숫자로)
 HOUSE_FULL_DAYS = 3
 ROOMS_BY_PEOPLE = True          # 옛 스위트(아무 방이나 짓던 때)만 끈다
 PEOPLE_GATED_ROOMS = ("greenhouse", "infirmary", "decoder", "lounge", "bath")   # 사람이 여는 방 종류(나머지는 처음부터)
@@ -11440,6 +11441,22 @@ def room_type_open(st: dict, rid: str) -> bool:
     if any(r["id"] == rid for r in st.get("rooms") or []):
         return True                                   # 이미 지은(또는 물 찬) 방 종류는 그대로
     return rid in (core_of(st).get("room_types") or {})
+
+
+def room_lock_role(st: dict, rid: str) -> dict:
+    """닫힌 방 종류: 어느 역할이 오면 열리나(편한 방 표). 열려 있으면 빈 dict."""
+    if room_type_open(st, rid):
+        return {}
+    role = next((ro for ro, rm in sorted(COMFORT_BY_ROLE.items()) if rm == rid), None)
+    rk = (ROLES.get(role) or {}).get("ko") if role else None
+    return {"locked_by_role": role, "locked_ko": f"{rk}{josa_ga(rk)} 오면 열립니다" if rk else "이 방을 편해할 분이 오면 열립니다"}
+
+
+def josa_ga(word: str | None) -> str:
+    if not word:
+        return "가"
+    ch = word[-1]
+    return "이" if "가" <= ch <= "힣" and (ord(ch) - 0xAC00) % 28 else "가"
 
 
 def room_wait_ko(rid: str) -> str:

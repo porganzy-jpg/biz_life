@@ -63,7 +63,7 @@ def t_household():
     S.save_state(uid, st)
     a = ark(uid)
     hh = {x["res"]: x for x in a["household"]}
-    ok(list(hh) == ["food", "water", "power"] and hh["food"]["level"] == "full" and hh["water"]["level"] == "low" and hh["power"]["level"] == "empty",
+    ok(list(hh) == ["food", "water"] and hh["food"]["level"] == "full" and hh["water"]["level"] == "low",
        f"띠 {[(x['res'], x['days'], x['level'], x['ko']) for x in a['household']]}")
     ok(not a["household_dim"] and a["needs_today"] is not None, "식량·물이 있으면 부탁 그대로")
     st = S.load_state(uid)
@@ -92,6 +92,9 @@ def t_room_types():
     a = ark(uid)
     rto = a["room_types_open"]
     ok(not rto["greenhouse"]["open"] and a["build_options"]["greenhouse"]["people_locked"], "온실은 처음엔 닫힘")
+    bo = a["build_options"]["greenhouse"]
+    ok(bo["locked_by_role"] == "farmer" and bo["locked_ko"] == "농부가 오면 열립니다", f"잠금 역할 {bo['locked_by_role']} · {bo['locked_ko']}")
+    ok("locked_by_role" not in a["build_options"]["quarters"], "열린 방엔 잠금 역할 없음")
     ok(not a["room_news"], "시작 주민의 방 종류는 방송 없음")
     st = S.load_state(uid)
     st["resources"].update({k: 999 for k in st["resources"]})
