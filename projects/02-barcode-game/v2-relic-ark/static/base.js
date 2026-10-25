@@ -1081,6 +1081,32 @@
 
   // opts: {face: -1 왼쪽 / 1 오른쪽(옆걸음), mirror: true(작업 행 셀 반전), frame: 고정 프레임, glance: 홀에서 둘러보기}
   const outfitLog = {}, swapAt = {}, swapLog = [];
+  let rectCount = 0;
+  const ROLES_ALL = ['cook', 'engineer', 'farmer', 'kid', 'medic', 'scholar', 'scout', 'trader'];
+  const preloadIndoor = () => ROLES_ALL.forEach(r => { sprite(r, 'indoor'); sprite(r + '_b', 'indoor'); });
+  if (window.ARKTITLE && window.ARKTITLE.afterReady) window.ARKTITLE.afterReady(preloadIndoor); else setTimeout(preloadIndoor, 1500);
+  // 생김새 한 장: 몸 시트 + hair/<role>_<body>/<hair>.png(짧은머리 아니면) + 얼굴 패치(머리 ≠ short 이고 얼굴 ≠ f0 이면 <hair>_<face>, 아니면 <face>)
+  const lookImgs = {}, looks = {}, lookLog = {};
+  function lookImg(src) { let o = lookImgs[src]; if (!o) { o = lookImgs[src] = { img: new Image(), st: 0 }; o.img.onload = () => { o.st = o.img.naturalWidth ? 1 : -1; }; o.img.onerror = () => { o.st = -1; }; o.img.src = src; } return o; }
+  function lookSprite(s, p) {
+    const hair = p.hair || 'short', face = p.face || 'f0';
+    if (!s || !s.spec.pixel || (hair === 'short' && face === 'f0')) return s;
+    const root = s.spec.indoor ? '/static/art/chars/front/p2/indoor/' : '/static/art/chars/front/p2/';
+    const rb = p.role + '_' + (p.body === 'b' ? 'b' : 'a');
+    const key = rb + '|' + hair + '|' + face + '|' + (s.spec.indoor ? 'in' : 'out');
+    if (looks[key]) return looks[key];
+    const L = [];
+    if (hair !== 'short') L.push(lookImg(root + 'hair/' + rb + '/' + hair + '.png'));
+    if (face !== 'f0') L.push(lookImg(root + 'faces/' + rb + '/' + (hair !== 'short' ? hair + '_' + face : face) + '.png'));
+    if (L.some(l => l.st === 0)) return s;                 // 패치가 다 올 때까지는 기본 얼굴
+    const ok = L.filter(l => l.st === 1);
+    const w = s.img.naturalWidth, h = s.img.naturalHeight; if (!w || !h) return s;
+    const c = document.createElement('canvas'); c.width = w; c.height = h; c.naturalWidth = w; c.naturalHeight = h;   // 시트처럼 읽히게(tintedSheet·clipFor 가 naturalWidth/Height 를 본다)
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(s.img, 0, 0); ok.forEach(l => g.drawImage(l.img, 0, 0, w, h));
+    looks[key] = { img: c, ok: true, spec: s.spec, maskImg: s.maskImg, tint: {} };
+    lookLog[p.id] = key;
+    return looks[key];
+  }
   const raidOn = () => !!(cb && cb.raid && !cb.raid.resolved && cb.raid.stage && cb.raid.stage !== 'done' && cb.raid.creature && cb.raid.creature.threat);
   function drawPerson(p, px, floorY, t, i, scale, lit, pose, roomId, opts) {
     opts = opts || {};
@@ -1089,7 +1115,9 @@
     const bob = moving ? 0 : Math.sin(t / 700 + i * 1.7) * 0.8 * cam.z;
     // 옷차림(char_indoor.md): 거점 안은 실내복, 에어락·문간 앞과 습격 중(방 안)은 투구 판. 호출이 정하면(opts.outfit) 그것
     const outfit = opts.outfit || (raidOn() && roomId !== undefined && opts.inRoom ? 'out' : 'indoor');
-    const s = sprite(p.role, outfit);
+    const roleKey = p.role + (p.body === 'b' ? '_b' : '');      // 체형 B 시트
+    let s = sprite(roleKey, outfit) || (outfit !== 'out' ? sprite(roleKey, 'out') : null) || sprite(p.role, outfit) || sprite(p.role, 'out');   // 실내 시트가 아직이면 투구 판으로(색 사각형 대신)
+    s = lookSprite(s, p);
     if (s) {
       const sp = s.spec;
       const of1 = sp.indoor ? 'indoor' : 'out';
@@ -1112,7 +1140,7 @@
       const flip = (clip.side && opts.face < 0) || (!clip.side && opts.mirror && /^work_|^carry_34$/.test(clip.name));
       try {
         const tint = lit === false ? TINT_DARK : TINT_LIT;
-        const sheet = sp.pixel ? imprintedSheet(tintedSheet(s, p.role, tint), p, tint, !!sp.indoor) : s.img;
+        const sheet = sp.pixel ? imprintedSheet(tintedSheet(s, roleKey, tint), p, tint, !!sp.indoor) : s.img;
         const sm = ctx.imageSmoothingEnabled;
         if (sp.pixel) ctx.imageSmoothingEnabled = false;
         // 2.5D 조건 ③ — 발밑 접지 그림자. 없으면 떠 있는 것처럼 보인다
@@ -1140,6 +1168,7 @@
         return { w: cw * 0.42, h: base * 0.78 };
       } catch (e) { /* 스프라이트가 아직 덜 왔다 — 아래 색 사각형으로 */ }
     }
+    rectCount++;                                         // ★ 검수: 색 사각형으로 그린 횟수(시트가 아직 안 왔을 때)
     const hgt = (p.role === 'kid' ? 66 : 88) * cam.z * k, wid = 29 * cam.z * k;
     ctx.fillStyle = ROLE_COLOR[p.role] || '#d8c9a3';
     ctx.fillRect(px - wid / 2, floorY - hgt + bob, wid, hgt);
@@ -1296,7 +1325,7 @@
       if (pose === 'work') room = 'gear';                // work_34 로 떨어진다(방 행 없음)
       if ((sp.pose === 'lean_wall' || act === 'nerve') && glanceAt(id, t)) { pose = 'glance'; opt.frame = glanceFrame(id, t); }
       const fy = sy(sp.floor_y), px = sx(sp.x);
-      opt.outfit = 'out';                                 // 에어락·해치 앞은 투구 판(옷이 바뀌는 순간 = 에어락 문을 지날 때)
+      if (K.ext.podGearing && K.ext.podGearing(id)) opt.outfit = 'out';   // PM 결정: 문간에서 기다리는 사람은 실내복. 원정 채비(나가는·돌아온 사람)만 투구 판
       const box = drawPerson(p, px, fy, t, i, 1, lit, pose, room, opt);
       podPoseLog[sp.pose] = (podPoseLog[sp.pose] || 0) + 1;
       if (cam.z > 0.3) {                                     // S28 이름표: 이름이 먼저(누가 누군지), 문간 활동은 작게 옆에 — 눌러야 설명
@@ -3873,7 +3902,7 @@
     cam: () => Object.assign({}, cam, { zmin: zMin() }),
     sil: () => silDbg,
     // ★ S13 검수: 화면에 보이는 글(DOM 글자 + 지금까지 띄운 토스트 + 캔버스 글자)에 '{' 가 몇 번 나왔나
-    podTags: () => Object.assign({}, podTagLog), outfits: () => Object.assign({}, outfitLog), outfitSwaps: () => swapLog.slice(),
+    podTags: () => Object.assign({}, podTagLog), outfits: () => Object.assign({}, outfitLog), outfitSwaps: () => swapLog.slice(), looks: () => Object.assign({}, lookLog), rectCount: () => rectCount,
     officeLog: () => officeLog.slice(), autoDefend: () => autoDefend(),
     braceCheck: () => {
       const dom = (document.body.innerText.match(/[{}]/g) || []).length;

@@ -1316,6 +1316,8 @@
     });
     mb.appendChild(b); K.onApply(paint);
   })();
+  // 문간 자리에서 투구 판으로 그릴 사람: 막 돌아온 원정대(expedition_return.members, 돌아온 세션에만) — PM 결정(기다리는 사람은 실내복)
+  K.ext.podGearing = (id) => { const r = (K.ark || {}).expedition_return; return !!(r && (r.members || []).some(m => (m && (m.id || m)) === id)); };
   K.ext.core = { afterReveal, morningExtra, hasMorning, queueBeat, leaveCard, regift, heirFromShelf };
   // /api/ark 에만 오는 키(방문·떠날 때 약속·오늘의 비트·세션)는 다른 응답의 state(public_state)에 없다 — 지난 값을 이어 쓴다
   const lastFull = {};

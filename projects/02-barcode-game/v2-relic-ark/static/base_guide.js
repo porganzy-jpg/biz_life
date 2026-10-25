@@ -259,6 +259,11 @@
     goalsPrev = Object.fromEntries(gs.map(g => [g.id, { done: !!g.done }]));
     D.goals = { n, total: gs.length, open: goalsOpen, just };
   }
+  document.addEventListener('pointerdown', (e) => {
+    if (innerHeight > 500 || !goalsOpen || gp.hidden) return;
+    if (e.target.closest && e.target.closest('#goals')) return;
+    goalsOpen = false; gp.classList.add('fold'); const ar = gp.querySelector('.ghead b'); if (ar) ar.textContent = '▸'; D.log.push('goals auto-fold');
+  }, true);
   gp.addEventListener('click', (e) => { if (!e.target.closest('.ghead')) return; if (zoomFold) { zoomFold = false; zoomUserOpen = true; gp.classList.remove('fold'); return; } goalsOpen = !goalsOpen; drawGoals({ goals: Object.keys(goalsPrev || {}).length ? lastGoals : [] }); });
   let lastGoals = [];
   K.onApply((st) => { if (st.goals !== undefined) { lastGoals = st.goals || []; drawGoals(st); } });
