@@ -89,6 +89,10 @@
     const sb = strip.hidden ? top0 : strip.getBoundingClientRect().bottom;
     const ns = $('#nextstep'); if (ns) ns.style.top = (sb + 6) + 'px';
   }
+  // S35 겉모습(API §26): residents_list[].appearance {body, hair, face, sheet} → 그리기가 읽는 p.body·hair·face 로 옮긴다
+  const lookIn = (st) => (st.residents_list || []).forEach(r => { const ap = r && r.appearance; if (!ap) return; if (ap.body) r.body = ap.body; if (ap.hair) r.hair = ap.hair; if (ap.face) r.face = ap.face; });
+  K.onApply((st) => lookIn(st));
+  if (K.ark) lookIn(K.ark);
   K.onApply(() => setTimeout(drawFaces, 0));
   // 패널(짓기·도감 등)이 열리면 얼굴 띠는 잠시 숨는다 — 큰 창은 하나(패널 위로 띠가 겹치던 것)
   const pn = document.getElementById('panel');

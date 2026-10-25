@@ -1708,6 +1708,8 @@ def combat_public(st: dict) -> dict:
 
 
 def public_state(st: dict, uid: str) -> dict:
+    for _r in st.get("residents_list") or []:
+        appearance_of(uid, _r)                        # S37 residents_list 에도 겉모습(한 번 정하면 저장)
     with db() as con:
         today = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND day=?", (uid, day_of(st))).fetchone()["c"]
     _un = use_tick(st, uid)                           # S36 먼저 적어야 core.rooms.today_used 가 맞다
@@ -7519,6 +7521,7 @@ def core_public(st: dict, uid: str) -> dict:
             "third_memory_open": bool(r.get("third_memory_open")),
             "notebook": notebook_public(st, uid, r),             # S23 사람 수첩
             "heart": heart_public(st, r),                        # S34 마음
+            "appearance": appearance_of(uid, r),                 # S37 겉모습(체형·머리·얼굴)
             **comfort_public(st, uid, r),                        # S34 편한 방
         }
     return {"residents": res, "props": list(core_of(st)["props"]), "rooms": use_rooms_public(st)}   # S36 쓰는 자리
@@ -11629,6 +11632,39 @@ def use_tick(st: dict, uid: str) -> list:
     for k in [k for k, v in log_.items() if int(v) < day - 7]:
         log_.pop(k, None)
     return news
+
+
+# ── S37 주민 겉모습(static/art/chars/front/p2/meta.json bodies·hair·faces) ─────────────
+try:
+    _CHMETA = json.loads((ROOT / "static" / "art" / "chars" / "front" / "p2" / "meta.json").read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError):
+    _CHMETA = {}
+LOOK_BODIES = sorted((_CHMETA.get("bodies") or {"a": {}, "b": {}}).keys())
+LOOK_HAIRS = [h["id"] for h in _CHMETA.get("hair") or []] or ["short", "tied", "long", "braid", "curly", "scarf"]
+LOOK_FACES = [f["id"] for f in _CHMETA.get("faces") or []] or ["f0", "f1", "f2"]
+
+
+def _fnv(text: str) -> int:
+    h = 2166136261
+    for ch in text:
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def appearance_of(uid: str, r: dict) -> dict:
+    """체형·머리·얼굴 — 역할·성별·이름·특이점과 무관하게 uid + 주민 id 로만 고른다(D6, 2026-10-01 역할≠성별).
+    생성기 pick_look 과 같은 FNV 꼴(role 자리에 uid|id). 아이도 같은 체형 a·b(시트는 kid / kid_b). 18조합 모두 조합 패치가 있다.
+    한 번 정하면 r["appearance"] 에 남는다."""
+    ap = r.get("appearance")
+    if isinstance(ap, dict) and ap.get("body") in LOOK_BODIES and ap.get("hair") in LOOK_HAIRS and ap.get("face") in LOOK_FACES:
+        return ap
+    key = f"{uid}|{r.get('id')}"
+    body = LOOK_BODIES[(_fnv(key + "|body") >> 7) % len(LOOK_BODIES)]
+    h = _fnv(key + "|" + body + "|0")
+    ap = {"body": body, "hair": LOOK_HAIRS[h % len(LOOK_HAIRS)], "face": LOOK_FACES[(h >> 11) % len(LOOK_FACES)],
+          "sheet": f"{r.get('role')}{(_CHMETA.get('bodies') or {}).get(body, {}).get('sheet_suffix', '' if body == 'a' else '_b')}"}
+    r["appearance"] = ap
+    return ap
 
 
 # ─────────────────────────────────────────────────────────────

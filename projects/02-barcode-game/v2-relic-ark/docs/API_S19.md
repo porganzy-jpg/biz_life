@@ -693,3 +693,18 @@
   - 사람마다 하루 한 줄 `/api/ark.use_news[] {resident_id, name, slot, spot, action, item, ko}` 가 한 번 온다.
   - 문장은 `ui_moments.use_action.<action>[]` 에서 읽는다({name} {item}).
 - 자원·숫자는 없다(장면만).
+
+## 26. S37 주민 겉모습 (2026-10-25)
+- `/api/ark.core.residents[rid].appearance` 와 `state.residents_list[].appearance` 는 `{body:"a"|"b", hair, face, sheet}` 다.
+  - hair: short · tied · long · braid · curly · scarf.
+  - face: f0 · f1 · f2.
+  - sheet: `<role>` 또는 `<role>_b`. 아이도 kid / kid_b 다.
+- **고르는 법**: uid + 주민 id 로만 고른다. 생성기 `pick_look` 과 같은 FNV 꼴이고, 체형은 별도 해시 비트를 쓴다.
+  - 역할·이름·특이점·성별과 무관하다(2026-10-01 결정).
+  - 18조합 모두 조합 패치가 있어서 어느 조합이든 그릴 수 있다(meta.json combo_patch_rule).
+  - 처음 정하면 `r.appearance` 에 저장하고, 그 뒤에는 바뀌지 않는다.
+- **그리는 순서**(meta.json imprint_compose):
+  1. `src/<sheet>.png`
+  2. `hair/<role>_<body>/<hair>.png`
+  3. 얼굴: hair≠short 이고 face≠f0 이면 `faces/<role>_<body>/<hair>_<face>.png`, 아니면 `<face>.png`
+  4. 잠수복, 그다음 각인.
