@@ -719,22 +719,9 @@
  },
  "imprint_fit_result": {
   "float_px": 0,
-  "masked_px": 10846,
+  "masked_px": 10750,
   "cells": 1264,
-  "lost": {
-   "knock_heard": [
-    "scholar_a/idle/f0",
-    "scholar_a/idle/f1",
-    "scholar_a/walk/f0",
-    "scholar_a/walk/f1",
-    "scholar_a/walk/f2",
-    "scholar_b/idle/f0",
-    "scholar_b/idle/f1",
-    "scholar_b/walk/f0",
-    "scholar_b/walk/f1",
-    "scholar_b/walk/f2"
-   ]
-  },
+  "lost": {},
   "moved": {
    "cook_a": {
     "footprint": 49,
@@ -762,7 +749,6 @@
    "scholar_a": {
     "empty_stomach": 51,
     "empty_seat": 51,
-    "knock_heard": 19,
     "footprint": 1,
     "debt_paid": 1,
     "saved_breath": 3
@@ -799,7 +785,6 @@
    "scholar_b": {
     "empty_stomach": 47,
     "empty_seat": 52,
-    "knock_heard": 19,
     "footprint": 1,
     "debt_paid": 1,
     "saved_breath": 3
@@ -830,7 +815,6 @@
    "imprints/role/farmer_a/debt_paid.png",
    "imprints/role/scholar_a/empty_stomach.png",
    "imprints/role/scholar_a/empty_seat.png",
-   "imprints/role/scholar_a/knock_heard.png",
    "imprints/role/scholar_a/footprint.png",
    "imprints/role/scholar_a/debt_paid.png",
    "imprints/role/scholar_a/saved_breath.png",
@@ -855,7 +839,6 @@
    "imprints/role/farmer_b/debt_paid.png",
    "imprints/role/scholar_b/empty_stomach.png",
    "imprints/role/scholar_b/empty_seat.png",
-   "imprints/role/scholar_b/knock_heard.png",
    "imprints/role/scholar_b/footprint.png",
    "imprints/role/scholar_b/debt_paid.png",
    "imprints/role/scholar_b/saved_breath.png",

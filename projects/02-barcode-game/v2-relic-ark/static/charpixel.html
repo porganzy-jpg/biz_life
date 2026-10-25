@@ -80,6 +80,75 @@
 <body>
 <div class="wrap">
 
+<!-- ══════════════ §실내복 — 집 안에서는 투구를 벗는다 (2026-10-25) ══════════════ -->
+<style>
+  .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(400px,100%),1fr));gap:12px;margin-top:12px}
+  .icard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 6px 10px;min-width:0}
+  .icard h3{font-size:15px;margin:2px 8px 6px}
+  .irow{display:flex;justify-content:center;gap:2px;overflow:hidden}
+  .iwin{width:120px;height:168px;overflow:hidden;flex:0 0 auto}
+  .ispr{width:192px;height:168px;margin-left:-36px;image-rendering:pixelated;background-repeat:no-repeat}
+  .icard .sig{margin:4px 8px 0}
+  .paused4 .ispr{animation-play-state:paused !important}
+  @keyframes i2{to{background-position-x:-384px}}
+  @keyframes i3{to{background-position-x:-576px}}
+</style>
+<section id="indoor">
+  <h1>§실내복 — 집 안에서는 투구를 벗는다<span class="badge">신규</span></h1>
+  <p class="sub">2026-10-17 사용자: <b>“들어오면 옷이 바뀌어야 하지 않나?”</b> → 8역할 × 체형 A·B 실내복(<code>front/p2/indoor/</code>).
+     투구·두건·공기통·무게추 장화를 벗고 <b>머리카락과 얼굴이 다 보인다</b>. 역할은 여전히 <b>머리 위</b>(요리 모자·후드·머릿수건·고글·밀짚 챙·납작 모자·챙모자·노란 털모자)와 겉옷 색으로 읽는다.
+     셀·31행·머리 6/얼굴 3·조합 얼굴·각인 규칙은 투구 판과 같다(검사 전부 0).</p>
+  <div class="rules">
+    <b>옷 바꾸는 규칙</b>
+    <table class="conv">
+      <tr><th>자리·상황</th><th>옷차림</th><th>시트</th></tr>
+      <tr><td>거점 안(방·홀·엘리베이터·일), 인물 카드·초상</td><td><b>실내복</b></td><td><code>front/p2/indoor/</code></td></tr>
+      <tr><td>에어락·해치 앞</td><td>잠수복 + 투구</td><td><code>front/p2/</code></td></tr>
+      <tr><td>원정(바깥)</td><td>잠수복 + 투구 + 잠수복 겹</td><td><code>front/p2/</code> + <code>suit/</code></td></tr>
+      <tr><td>습격 중 · 물 찬 칸 되찾기 · 금 간 방 수리</td><td>투구만</td><td><code>front/p2/</code></td></tr>
+    </table>
+    <p class="cap">옷이 바뀌는 순간은 에어락을 지날 때 한 번. 각인·가림판도 <b>같은 뿌리 폴더</b>의 <code>imprints/</code> 를 쓴다(실내 몸은 각인 자리가 다르다).</p>
+  </div>
+  <div class="bar" style="padding:12px 0 0"><button id="itoggle">전부 정지 ■</button>
+    <button id="iswap">투구 판과 바꿔 보기</button>
+    <span class="meta" style="padding:0">×3 = 방 합성 배율 · 왼쪽부터 idle · walk_side · work_34</span></div>
+  <div class="igrid" id="igrid"></div>
+  <p class="cap">관련 그림:
+     <a href="art/chars/front/p2/indoor/check/row70_16_light.png" style="color:var(--accent)">70px 열여섯</a> ·
+     <a href="art/chars/front/p2/indoor/check/crew16.png" style="color:var(--accent)">한 방의 열여섯</a> ·
+     <a href="art/chars/front/p2/indoor/check/imprint_fit_a.png" style="color:var(--accent)">각인 합성(31행)</a></p>
+</section>
+<script>
+(function(){
+  const ROLE_KO = {scout:'정찰병',cook:'요리사',medic:'의무병',engineer:'기술자',farmer:'농부',scholar:'학자',trader:'교섭가',kid:'아이'};
+  const SIG = {scout:'올리브 후드 · 조끼 · 망원경', cook:'흰 요리 모자 · 앞치마 · 국자', medic:'머릿수건 · 가운 · 약 가방', engineer:'머리 위 고글 · 작업복 · 렌치',
+               farmer:'밀짚 챙 · 멜빵 작업복 · 물뿌리개', scholar:'납작 모자 · 긴 외투 · 책', trader:'챙모자 · 코트 · 손저울', kid:'노란 털모자 · 우비 · 등불'};
+  const root = 'art/chars/front/p2/';
+  let swap = false, meta = null;
+  function draw() {
+    const g = document.getElementById('igrid'); g.innerHTML = '';
+    const rows = meta.rows, fr = meta.frames;
+    Object.keys(ROLE_KO).forEach((r, k) => {
+      const body = k % 2 ? 'b' : 'a', nm = body === 'a' ? r : r + '_b';
+      const src = root + (swap ? '' : 'indoor/') + 'src/' + nm + '.png';
+      let inner = '';
+      [['idle', 'i2', 2.8], ['walk_side', 'i3', .8], ['work_34', 'i3', 1.4]].forEach(([clip, kf, sec]) => {
+        const n = fr[clip];
+        inner += `<div class="iwin"><div class="ispr" style="background-image:url('${src}');background-size:576px ${rows && 192 * Object.keys(rows).length}px;
+          background-position:0 -${rows[clip] * 192 + 18}px;animation:${n === 2 ? 'i2' : 'i3'} ${sec}s steps(${n}) infinite"></div></div>`;
+      });
+      g.insertAdjacentHTML('beforeend', `<div class="icard"><h3>${ROLE_KO[r]} <span class="meta" style="padding:0">체형 ${body.toUpperCase()}${swap ? ' · 투구 판' : ''}</span></h3>
+        <div class="irow">${inner}</div><div class="sig">${SIG[r]}</div></div>`);
+    });
+  }
+  fetch(root + 'indoor/meta.json').then(r => r.json()).then(m => { meta = m; draw(); })
+    .catch(e => { document.getElementById('igrid').textContent = 'indoor/meta.json 을 읽지 못했다: ' + e; });
+  document.getElementById('iswap').addEventListener('click', (e) => { swap = !swap; e.target.textContent = swap ? '실내복으로 돌아가기' : '투구 판과 바꿔 보기'; if (meta) draw(); });
+  const t = document.getElementById('itoggle');
+  t.addEventListener('click', () => { const on = document.getElementById('indoor').classList.toggle('paused4'); t.textContent = on ? '전부 재생 ▶' : '전부 정지 ■'; });
+})();
+</script>
+
 <!-- ══════════════ §원정 — 잠수복 겹 · 바깥 동작 (스프린트 15-D) ══════════════ -->
 <style>
   .sea{position:relative;height:250px;overflow:hidden;border-radius:12px;border:1px solid #1d3a40;

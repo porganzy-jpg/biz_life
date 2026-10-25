@@ -2077,8 +2077,9 @@ def build_raw(role, clip='idle', f=0, body='a'):
         # ↓ 머리카락과 얼굴은 레이어로 빠졌다 (hair_layer / face_layer)
         if role == 'scholar':                            # 깨진 안경 (얼굴보다 위)
             ov.rect(hx - 6, ey_of(fy) - 1, hx - 1, ey_of(fy) - 1, 'brassM')
-            ov.rect(hx + 1, ey_of(fy) - 1, hx + 6, ey_of(fy) - 1, 'brassM')
-            ov.set(hx - 6, ey_of(fy), 'brassM'); ov.set(hx + 6, ey_of(fy), 'brassM')
+            gr_ = 5 if IND() else 6                      # 실내복: 오른 안경 다리를 1px 줄여 관자놀이 울림쇠 각인 자리를 비운다
+            ov.rect(hx + 1, ey_of(fy) - 1, hx + gr_, ey_of(fy) - 1, 'brassM')
+            ov.set(hx - 6, ey_of(fy), 'brassM'); ov.set(hx + gr_, ey_of(fy), 'brassM')
             ov.set(hx - 3, ey_of(fy) + 1, 'brassH')
         if role == 'trader':                             # 목도리
             ov.rect(hx - hr + 1, hy + hr - 1, hx + hr - 1, hy + hr + 1, rL)
@@ -3200,6 +3201,8 @@ def main():
     #   흰 판(imprints/rolemask/<role>_<body>.png)으로 낸다 → 클라이언트는 각인을 다 그린 뒤 이 판으로 지운다(destination-out).
     #   판 = (그 역할 합성본이 기준 몸과 다른 칸) ∩ (그 역할 합성본에 무언가 있는 칸) ∩ (그 칸에 각인이 오는 칸).
     os.makedirs(os.path.join(OUT, 'imprints', 'rolemask'), exist_ok=True)
+    import shutil                                         # 옮긴 판은 매번 새로 낸다 — 더는 필요 없는 옛 판이 남으면 클라이언트가 그것을 쓴다
+    shutil.rmtree(os.path.join(OUT, 'imprints', 'role'), ignore_errors=True)
     rk = lambda role: {'r_' + role: 'R', 'rD_' + role: 'RD', 'rL_' + role: 'RL'}
     fit = {'float_px': 0, 'masked_px': 0, 'cells': 0, 'lost': {}, 'moved': {}, 'override_files': []}
     over = {}
