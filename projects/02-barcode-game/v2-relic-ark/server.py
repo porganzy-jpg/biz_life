@@ -1710,6 +1710,7 @@ def combat_public(st: dict) -> dict:
 def public_state(st: dict, uid: str) -> dict:
     with db() as con:
         today = con.execute("SELECT COUNT(*) c FROM scans WHERE uid=? AND day=?", (uid, day_of(st))).fetchone()["c"]
+    people_rooms_tick(st, uid, core_of(st).setdefault("goals", {"slots": {}, "queue": [], "pd": None, "recent": {}, "announced": []}))   # S35 먼저(짓기 목록이 이걸 본다)
     return {
         "day": day_of(st), "resources": st["resources"], "rooms": st["rooms"], "residents": st["residents"],
         "injured": st["injured"], "hand": st["hand"], "hardcore": st["hardcore"],
@@ -1726,6 +1727,9 @@ def public_state(st: dict, uid: str) -> dict:
                                                 "fallback": True} if shelf_capacity(st) else None)),
         # 짓기·레벨업 가능 여부(서버가 판단한다. 화면은 그리기만)
         "build_options": build_options(st, uid),
+        "household": household_public(st),                # S35 살림 게이지(식량·물·전력)
+        "household_dim": needs_paused(st),                # S35 빈 칸이 있으면 기색 한 단계 흐림·새 부탁 쉼
+        "room_types_open": room_types_open_public(st),     # S35 사람이 연 방 종류
         "next_step": next_step_public(st, uid),           # S32: 건네기·찍기·자리·짓기 응답의 state 에도(화면이 행동마다 새로 그린다)
         **goals_public(st, uid),                          # S33 오늘의 목표 셋(goals, goals_done_now, tomorrow_need_clear)
         "upgrades": {str(r["slot"]): upgrade_option(st, uid, r["id"], room_level(r))
@@ -4536,6 +4540,8 @@ def get_ark(uid: str, debug_act: int | None = Query(None, description="★ 개�
     out["arc_events"] = [{k: v for k, v in x.items() if k != "shown"} for x in arc_new]
     out["heart_scenes"] = heart_scenes_pop(st) if not out["arc_events"] else []   # S34: 큰 장면이 없는 조용한 순간에만
     out["comfort_mutters"] = comfort_mutter_tick(st, uid)
+    out["room_news"] = people_news_pop(st)            # S35 「열림 · {name} 님 덕분」·「머물 칸이 없습니다」
+    out["household_note"] = household_note(st, uid)
     out["shelf_autofill"] = core_t.get("autofill") or []
     out["octopus_gift_where"] = octopus_gift_where(st, uid)
     out["decor_trace"] = decor_trace(st, uid)
@@ -4628,7 +4634,11 @@ def build_options(st: dict, uid: str) -> dict:
             continue
         cost, lack = priced(st, spec.get("cost"))
         miss = cond_check(st, uid, BUILD_COND.get(rid))
+        if not room_type_open(st, rid):               # S35: 방 종류는 그 방을 편해할 사람이 들어와야 열린다
+            miss = list(miss) + [room_wait_ko(rid)]
         out[rid] = {"cost": cost, "lacking": lack, "cond": (BUILD_COND.get(rid) or {}).get("ko"),
+                    "opened_by": (core_of(st).get("room_types") or {}).get(rid),
+                    "people_locked": not room_type_open(st, rid),
                     "cond_missing": miss, "can": not lack and not miss,
                     "produces": [k for k, v in (spec.get("produces") or {}).items()     # S33: 「정수실 → 물」 빈 칸 안내
                                  if isinstance(v, (int, float)) and k not in ("power_supply", "craft_slots")]}
@@ -4665,6 +4675,8 @@ def build(inp: BuildIn):
         raise HTTPException(400, "없는 방입니다")
     if ROOMS[inp.room_id].get("fixed"):
         raise HTTPException(400, "홀은 처음부터 있습니다. 짓는 것이 아니라 올리는 방입니다")
+    if not room_type_open(st, inp.room_id):
+        raise HTTPException(400, room_wait_ko(inp.room_id))
     if inp.room_id == "airlock" and inp.slot == -1:
         # S19: 에어락 = 문간 증설(칸을 먹지 않는다). 플레이테스트 2차: 에어락에 빈 칸이 필요해 6일째부터 막혔다
         if room_level_of(st, "airlock") >= 1:
@@ -6828,7 +6840,7 @@ def resident_tier(st: dict, uid: str, r: dict, item: dict) -> tuple[str, dict]:
     tw = twist_of(uid, r)
     if tw.get("dislike") and match({"category": tw["dislike"]["category"], "subtype": tw["dislike"].get("subtype")}, item):
         return "not_for_me", info
-    nd = need_today(uid, r, day_of(st))
+    nd = need_today(uid, r, day_of(st)) if not needs_paused(st) else None   # S35 살림이 비면 새 부탁은 쉰다
     if nd and match(nd, item):
         info["need"] = nd
         return "need", info
@@ -7464,6 +7476,8 @@ def need_met_today(st: dict, uid: str, r: dict, nd: dict | None = None) -> bool:
 def needs_today_public(st: dict, uid: str) -> list:
     day = day_of(st)
     out = []
+    if needs_paused(st):
+        return out                                    # S35: 살림이 빈 동안 오늘 필요는 쉰다
     for r in st.get("residents_list") or []:
         nd = need_today(uid, r, day)
         if nd:
@@ -10737,7 +10751,7 @@ def next_step_pick(st: dict, uid: str) -> dict:
     for r in st.get("residents_list") or []:
         if r["id"] in out_ids:
             continue
-        nd = need_today(uid, r, day)
+        nd = need_today(uid, r, day) if not needs_paused(st) else None
         if nd and item_rule_safe(nd) and not need_met_today(st, uid, r, nd):
             if labels_shown(st):
                 return {"kind": "need", "line_ko": next_line(st, "need", name=r["name"], ko=nd.get("ko") or rule_ko(nd)),
@@ -10935,6 +10949,11 @@ def goal_metric(st: dict, uid: str, key: str, arg=None):
         return sum(1 for r in st.get("residents_list") or [] if r.get("heirloom"))
     if key == "tide_tries_week":
         return 0
+    if key == "beds_free":
+        return beds_state(st)["free"]
+    if key == "room_built":
+        rid = arg if isinstance(arg, str) else (arg[0] if isinstance(arg, list) else None)
+        return any(r["id"] == rid for r in live_rooms(st))
     return 0
 
 
@@ -10946,6 +10965,8 @@ def goal_eval(st: dict, uid: str, g: dict) -> tuple[bool, list]:
         cur = goal_metric(st, uid, key, arg)
         return cur >= n, [min(cur, n), n]
     cur = goal_metric(st, uid, key, arg)
+    if key == "room_built":
+        return bool(cur), [1 if cur else 0, 1]
     if isinstance(arg, bool) or isinstance(cur, bool):
         v = bool(cur)
         return v, [1 if v else 0, 1]
@@ -11053,6 +11074,8 @@ def goals_tick(st: dict, uid: str) -> dict:
                 continue
             cand = [g for g in today if g["kind"] == k and _goal_ok_unlock(st, g)] + \
                    [g for g in G["queue"] if g["kind"] == k and _goal_ok_unlock(st, g)]
+            if not cand and k == "manage":
+                cand = comfort_goal_candidates(st, uid, pd)   # S35: 편한 방이 아직 없는 사람의 방 짓기
             if not cand and pd > 7:
                 cand = [_goal_row(g, k, pd) for g in _pool_candidates(st, uid, k, G["recent"], pd)]
                 for x in cand:
@@ -11109,10 +11132,11 @@ def goals_public(st: dict, uid: str) -> dict:
             continue
         rows.append({"id": sl["id"], "kind": k, "text_key": sl.get("text"), "done": bool(sl.get("done")),
                      "progress": sl.get("progress") or [0, 1], "carried": sl.get("from_pd") != G.get("pd"),
-                     "title_ko": goal_text(sl["id"], "title"), "done_ko": goal_text(sl["id"], "done")})
+                     "title_ko": sl.get("title_ko") or goal_text(sl["id"], "title"),
+                     "done_ko": sl.get("done_ko") or goal_text(sl["id"], "done"), "person": sl.get("person")})
         if sl.get("done") and sl["id"] not in G["announced"]:
             G["announced"].append(sl["id"])
-            now.append({"id": sl["id"], "line_ko": goal_text(sl["id"], "done")})
+            now.append({"id": sl["id"], "line_ko": sl.get("done_ko") or goal_text(sl["id"], "done")})
     del G["announced"][:-60]
     clear = goals_all_done_today(st)
     ad = GOALS_TEXT.get("all_done") or []
@@ -11368,6 +11392,122 @@ def comfort_mutter_tick(st: dict, uid: str) -> list:
         out.append({"resident_id": r["id"], "name": r["name"], "room": comfort_room_of(st, r),
                     "line": random.Random(f"{uid}|{day}|{r['id']}|mutter").choice(lines)})
     return out
+
+
+# ── S35 살림 게이지 · 방은 사람 때문에 열린다 (docs/C_PLAN.md §3·§4) ─────────────────
+HOUSE_RES = ("food", "water", "power")
+HOUSE_FULL_DAYS = 3
+ROOMS_BY_PEOPLE = True          # 옛 스위트(아무 방이나 짓던 때)만 끈다
+PEOPLE_GATED_ROOMS = ("greenhouse", "infirmary", "decoder", "lounge", "bath")   # 사람이 여는 방 종류(나머지는 처음부터)
+
+
+def household_public(st: dict) -> list:
+    """살림 띠: 칸 = 재고 ÷ (주민 × 하루치) = 며칠치. 3일치 이상이면 가득. 전력은 소비가 없어 같은 잣대(주민 × 0.6)로만 그린다."""
+    n = max(1, len(st.get("residents_list") or []))
+    per = {"food": CONSUME_FOOD, "water": CONSUME_WATER, "power": CONSUME_FOOD}
+    out = []
+    for k in HOUSE_RES:
+        have = float(st["resources"].get(k, 0) or 0)
+        daily = n * float(per[k] or 0.6)
+        days = round(have / daily, 1) if daily > 0 else 0.0
+        lvl = "empty" if have < 1 else "low" if days < 1 else "ok" if days < HOUSE_FULL_DAYS else "full"
+        out.append({"res": k, "have": int(have), "days": days, "level": lvl,
+                    "fill": min(1.0, round(days / HOUSE_FULL_DAYS, 2)),
+                    "ko": f"{RES_KO_SRV.get(k, k)} {('가득' if lvl == 'full' else f'{days:g}일치') if lvl != 'empty' else '바닥'}"})
+    return out
+
+
+def needs_paused(st: dict) -> bool:
+    """식량이나 물이 바닥이면(재고 1 미만) 새 부탁이 쉰다. 벌은 없다(기색 흐림 = 사기 −1 을 화면에 보이는 것)."""
+    if not HOUSEHOLD_ENFORCE:
+        return False
+    return any(float(st["resources"].get(k, 0) or 0) < 1 for k in ("food", "water"))
+
+
+HOUSEHOLD_ENFORCE = True
+
+
+def household_note(st: dict, uid: str) -> str | None:
+    if not needs_paused(st):
+        return None
+    lines = ((moments().get("household_empty") or {}).get("lines")) or []
+    return random.Random(f"{uid}|{day_of(st)}|household").choice(lines) if lines else "살림이 바닥이라 오늘은 부탁을 잠깐 쉬겠습니다."
+
+
+def room_type_open(st: dict, rid: str) -> bool:
+    if not ROOMS_BY_PEOPLE or rid not in PEOPLE_GATED_ROOMS:
+        return True
+    if any(r["id"] == rid for r in st.get("rooms") or []):
+        return True                                   # 이미 지은(또는 물 찬) 방 종류는 그대로
+    return rid in (core_of(st).get("room_types") or {})
+
+
+def room_wait_ko(rid: str) -> str:
+    nm = (ROOMS.get(rid) or {}).get("name", rid)
+    return f"아직 「{nm}」을 편해할 분이 없습니다"
+
+
+def room_types_open_public(st: dict) -> dict:
+    return {rid: {"open": room_type_open(st, rid), "by": (core_of(st).get("room_types") or {}).get(rid)}
+            for rid in PEOPLE_GATED_ROOMS}
+
+
+def people_rooms_tick(st: dict, uid: str, G: dict) -> None:
+    """① 편한 방 주인이 처음 들어오면 그 방 종류가 열린다(시작 주민은 조용히). ② 손님이 왔는데 잠자리가 없으면 한 번 방송 + 관리 칸 목표."""
+    c = core_of(st)
+    rt = c.setdefault("room_types", {})
+    news = c.setdefault("people_news", [])
+    for r in st.get("residents_list") or []:
+        cr = comfort_room_of(st, r)
+        if ROOMS_BY_PEOPLE and cr in PEOPLE_GATED_ROOMS and cr not in rt and not any(x["id"] == cr for x in st.get("rooms") or []):
+            starter = float(r.get("joined") or 0) <= float(st.get("created") or 0) + 60
+            rt[cr] = {"by": r["id"], "name": r["name"], "day": day_of(st), "starter": starter}
+            if not starter:
+                M = moments().get("room_open")
+                t = (M[0] if isinstance(M, list) and M else M if isinstance(M, str) else None) or "열림 · {room} — {name} 님 덕분"
+                news.append({"kind": "room_open", "room_id": cr, "resident_id": r["id"],
+                             "ko": t.replace("{name}", r["name"]).replace("{room}", (ROOMS.get(cr) or {}).get("name", cr))})
+    seen = c.setdefault("no_room_seen", [])
+    if beds_state(st)["free"] <= 0:
+        for g in st.get("guests") or []:
+            if g.get("guest_id") in seen:
+                continue
+            seen.append(g["guest_id"])
+            N = moments().get("no_room") or {}
+            arr = N.get("arrival") or []
+            line = (random.Random(f"{uid}|{g['guest_id']}|noroom").choice(arr) if arr else "{name} 님이 오셨는데, 머물 칸이 아직 없습니다.")
+            news.append({"kind": "no_room", "guest_id": g["guest_id"], "ko": line.replace("{name}", g["name"])})
+            row = {"id": f"room_for_{g['guest_id']}", "kind": "manage", "cond": {"beds_free": 1}, "from_pd": max(1, play_day(st)),
+                   "done": False, "person": g["name"], "text": "no_room.goal_title",
+                   "title_ko": (N.get("goal_title") or "{name} 님 머물 칸 하나 마련하기").replace("{name}", g["name"]),
+                   "done_ko": (N.get("goal_done") or "{name} 님 방이 생겼습니다.").replace("{name}", g["name"])}
+            cur = (G.get("slots") or {}).get("manage")
+            if cur and not cur.get("done"):
+                G["queue"].insert(0, cur)              # 하던 관리 목표는 대기열 맨 앞으로(사라지지 않는다)
+            G.setdefault("slots", {})["manage"] = row
+    del news[:-12]
+    del seen[:-30]
+
+
+def people_news_pop(st: dict) -> list:
+    c = core_of(st)
+    out = list(c.get("people_news") or [])
+    c["people_news"] = []
+    return out
+
+
+def comfort_goal_candidates(st: dict, uid: str, pd: int) -> list:
+    """편한 방이 아직 없는 사람(comfort_fallback) — 「○○ 님 편한 방 짓기」. 그 방 종류가 열려 있을 때만."""
+    out = []
+    for r in st.get("residents_list") or []:
+        cr = comfort_room_of(st, r)
+        if not cr or any(x["id"] == cr for x in live_rooms(st)) or not room_type_open(st, cr) or cr not in ROOMS:
+            continue
+        nm = (ROOMS.get(cr) or {}).get("name", cr)
+        out.append({"id": f"comfort_{r['id']}", "kind": "manage", "cond": {"room_built": cr}, "from_pd": pd, "done": False,
+                    "person": r["name"], "text": "goal.comfort_room",
+                    "title_ko": f"{r['name']} 님 편한 방({nm}) 짓기", "done_ko": f"{r['name']} 님이 「{nm}」에서 한숨 돌리십니다."})
+    return out[:1]
 
 
 # ─────────────────────────────────────────────────────────────

@@ -657,3 +657,24 @@
   - `move_preview[rid][slot].comfort`: 그 사람의 편한 방이면 true.
 - **결과 칩**: `effects.chips[] = [{kind, ko}]`.
   - kind: returned · morale · room_bonus · notebook · keepsake · heart · heart_level.
+
+## 24. S35 살림 게이지 · 방은 사람 때문에 열린다 (2026-10-25)
+- **`household`**(/api/ark 와 모든 state): `[{res:"food"|"water"|"power", have, days, level:"full"|"ok"|"low"|"empty", fill:0~1, ko}]`.
+  - `days` = 재고 ÷ (주민 × 하루치). 하루치는 식량·물 0.6 이다. 전력은 소비가 없어서 같은 잣대(0.6)로 그리기만 한다.
+  - level: 3일치 이상이면 full, 1일치 미만이면 low, 재고 1 미만이면 empty.
+  - `fill` = days ÷ 3 이고 1 에서 멈춘다. 새 상한은 없다.
+- **`household_dim`**: 식량이나 물이 바닥(1 미만)이면 true 다.
+  - 기색을 한 단계 흐리게 그린다(화면).
+  - 오늘 필요(새 부탁)가 쉰다: needs_today=[], 「어디로」에 need 판정 없음, next_step 이 need 를 가리키지 않음. 매듭은 그대로다.
+  - `/api/ark.household_note` 는 그동안 한 줄(ui_moments.household_empty.lines[])이다. 벌은 없다(사기 −1/일은 S26 그대로).
+- **방 종류**: greenhouse·infirmary·decoder·lounge·bath 는 그 방을 편한 방으로 갖는 사람이 들어와야 열린다(`ROOMS_BY_PEOPLE`).
+  - 이미 지은 방 종류는 그대로 열려 있다. 시작 주민이 연 것은 방송하지 않는다.
+  - `room_types_open{rid:{open, by:{name, day, starter}}}`.
+  - `build_options[rid]` 에 `people_locked`, `opened_by` 가 붙는다. 닫혀 있으면 cond_missing 에 「아직 「○○」을 편해할 분이 없습니다」가 들어간다.
+  - 닫힌 방을 `/api/ark/build` 로 지으려 하면 400 이다.
+  - 열리는 순간 `/api/ark.room_news[] {kind:"room_open", room_id, resident_id, ko}` 가 한 번 온다. 문장은 ui_moments.room_open 이고, 없으면 「열림 · {room} — {name} 님 덕분」이다.
+- **머물 칸 없음**: 잠자리가 0 인데 손님이 문간에 있으면, 손님마다 한 번 `room_news {kind:"no_room", guest_id, ko}`(ui_moments.no_room.arrival[])가 온다.
+  - 동시에 관리 칸 목표 `room_for_<guest_id>`(cond beds_free 1, title_ko/done_ko = no_room.goal_title/goal_done, person)가 생긴다.
+  - 하던 관리 목표는 대기열 맨 앞으로 간다.
+- **편한 방 짓기 목표**: 관리 칸이 비고 그날 목표가 없을 때, 편한 방이 아직 없는 사람(그 방 종류가 열린 경우)의 `comfort_<rid>` 목표 「○○ 님 편한 방(방 이름) 짓기」를 낸다(cond room_built).
+- `goals[]` 행에 `person`(사람 때문의 목표)이 붙는다. title_ko·done_ko 는 행 값이 먼저다.

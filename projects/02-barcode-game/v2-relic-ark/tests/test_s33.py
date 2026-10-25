@@ -137,7 +137,7 @@ def t_pool_day8():
     S.core_of(st)["goals"] = {"slots": {}, "queue": [], "pd": None, "recent": {}, "announced": []}
     G = S.goals_tick(st, uid)
     ids = [ (G["slots"].get(k) or {}).get("id") for k in S.GOAL_KINDS]
-    ok(all(ids) and all(i.startswith("p_") for i in ids), f"8일째 pool {ids}")
+    ok(all(ids) and all(i.startswith(("p_", "comfort_")) for i in ids), f"8일째 pool {ids}(S35: 편한 방 짓기가 관리 칸에 먼저 올 수 있다)")
     core = G["slots"]["core"]
     if core["id"] == "p_knot":
         ok(core["cond"]["chain_beats_total"] == S.goal_metric(st, uid, "chain_beats_total") + 1, "n = 지금 + 1")
