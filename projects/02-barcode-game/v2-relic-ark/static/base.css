@@ -1178,3 +1178,16 @@ p.srchint, div.srchint{margin:4px 0 6px; font-size:12px}
 .beatcard.heartscene{border-left-color:#f2a49a}
 .heartscene .bline{opacity:0; animation:slIn .5s ease forwards; animation-delay:calc(var(--i) * .55s)}
 @media (prefers-reduced-motion:reduce){ .heartscene .bline{opacity:1; animation:none} }
+/* ══ S35 살림 띠 · 바닥이면 기색 흐리게 ══ */
+.rchip.band{gap:6px; padding-right:10px}
+.rchip .hband{display:inline-block; position:relative; width:46px; height:7px; border-radius:4px; background:rgba(230,215,176,.16); overflow:hidden; text-decoration:none}
+.rchip .hband b{position:absolute; left:0; top:0; bottom:0; border-radius:4px; background:currentColor; transition:width .6s ease}
+.rchip.band.food{color:#e0a64a} .rchip.band.water{color:#8fc4c8} .rchip.band.power{color:#f0b055}
+.rchip.band.lv-full .hband b{box-shadow:0 0 6px currentColor}
+.rchip.band.lv-low .hband{background:rgba(230,215,176,.28)}
+.rchip.band.lv-empty .hband{background:rgba(147,166,163,.25); box-shadow:inset 0 0 0 1px rgba(230,215,176,.35)}
+.rchip.band i{color:#1a150e}
+@media (max-height:500px){ .rchip .hband{width:30px; height:6px} }
+body.hh-dim .faces .fline{opacity:.6} body.hh-dim .faces .fchip .face{filter:saturate(.6) brightness(.85)}
+.bopt.locked{opacity:.75} .bopt.locked small{color:#cdb98a !important}
+.lockico{display:inline-block; width:9px; height:11px; margin-right:5px; vertical-align:-1px; border:2px solid #cdb98a; border-top-width:4px; border-radius:2px}

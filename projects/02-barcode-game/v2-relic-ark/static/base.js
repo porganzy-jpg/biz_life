@@ -215,6 +215,9 @@
   // 정수 배율·최근접 보간으로 그린다(2.5D 성립 조건 ①). c/b/a 는 옛 렌더 시트(셀 256·5프레임).
   // 폴백 사슬 p2 → c → b → a → 색 사각형. 폴더만 바뀌어도 코드는 그대로다.
   const SHEETS = {
+    p2i: { path: (r) => '/static/art/chars/front/p2/indoor/src/' + r + '.png',
+           mask: (r) => '/static/art/chars/front/p2/indoor/masks/' + r + '.png',
+           cell: 64, baseline: 60, cols: 3, idle: 0, frames: 2, ppm: 27.5, pixel: true, indoor: true },
     p2: { path: (r) => '/static/art/chars/front/p2/src/' + r + '.png',
           mask: (r) => '/static/art/chars/front/p2/masks/' + r + '.png',
           cell: 64, baseline: 60, cols: 3, idle: 0, frames: 2, ppm: 27.5, pixel: true },
@@ -229,17 +232,21 @@
   const TARGET_PPM = 82.5;        // 세계 1 m = 82.5 px (cam.z = 1 이면 도트 ×3 — 플레이트와 같은 자, S12-B)
 
   const sprites = {};
-  function sprite(role) {
+  // outfit: 'indoor'(거점 안·카드) | 'out'(에어락·해치 앞, 습격 중 — 투구 판 front/p2/). 실내 시트가 없으면 p2 로 내려간다
+  function sprite(role, outfit) {
     if (CHAR_VARIANT === 'none') return null;
-    let s = sprites[role];
+    const indoor = outfit !== 'out' && CHAR_VARIANT === 'p2';
+    const sk = role + (indoor ? '|in' : '');
+    let s = sprites[sk];
     if (s === undefined) {
-      const chain = [CHAR_VARIANT].concat(CHAR_FALLBACK.filter(v => v !== CHAR_VARIANT))
+      const chain = (indoor ? ['p2i'] : []).concat([CHAR_VARIANT]).concat(CHAR_FALLBACK.filter(v => v !== CHAR_VARIANT))
                                   .filter(v => SHEETS[v]);
-      s = sprites[role] = { img: new Image(), ok: false, i: 0, chain, spec: SHEETS[chain[0]], tint: {} };
+      s = sprites[sk] = { img: new Image(), ok: false, i: 0, chain, spec: SHEETS[chain[0]], tint: {} };
       s.img.onload = () => { s.ok = s.img.naturalWidth > 0; };
       s.img.onerror = () => {
         s.ok = false; s.i += 1;
-        if (s.i < s.chain.length) { s.spec = SHEETS[s.chain[s.i]]; s.img.src = s.spec.path(role); }
+        if (s.i < s.chain.length) { s.spec = SHEETS[s.chain[s.i]]; s.img.src = s.spec.path(role);
+          if (s.spec.mask) { s.maskImg = new Image(); s.maskImg.onerror = () => { s.maskImg = null; }; s.maskImg.src = s.spec.mask(role); } }
       };
       s.img.src = s.spec.path(role);
       if (s.spec.mask) { s.maskImg = new Image(); s.maskImg.onerror = () => { s.maskImg = null; }; s.maskImg.src = s.spec.mask(role); }
@@ -271,7 +278,7 @@
   //  ① 그 사람의 각인만 한 장에 모은다 — imprints/role/<role>_<body>/<id>.png 가 있으면 그것, 없으면 몸 모양 폴더(어른 A imprints/, 아이 kid/)
   //  ② imprints/rolemask/<role>_<body>.png 로 그 한 장만 지운다(destination-out) ③ 본체 위에 얹는다(오프셋 0, 반전은 본체와 같이 — 같은 시트라 저절로)
   //  화면은 체형 A 시트만 쓰므로 body = a. 그림이 없는 각인(개인 각인 등)은 건너뛴다
-  const IMP_DIR = '/static/art/chars/front/p2/imprints/';
+  const IMP_DIR = '/static/art/chars/front/p2/imprints/', IMP_DIR_IN = '/static/art/chars/front/p2/indoor/imprints/';
   const impImgs = {};
   function impImg(src) {
     let o = impImgs[src];
@@ -281,11 +288,12 @@
   // 그림이 있는 각인(imprints/ 폴더의 위기 각인 12종) · 역할 판 목록(meta.json imprint_fit_result.override_files) — 없는 파일은 부르지 않는다(404 0)
   const IMP_HAVE = new Set(['crack_seen', 'debt_paid', 'depth_mark', 'empty_seat', 'empty_stomach', 'footprint', 'knock_heard', 'saved_breath',
                             'spore_mark', 'sun_memory', 'warden', 'water_memory']);
-  let IMP_OVR = new Set();
-  function impLayerFor(role, id) {                    // 역할 판 먼저(없으면 몸 모양 폴더)
-    const shape = role === 'kid' ? 'kid/' : '';
-    if (IMP_OVR.has('imprints/role/' + role + '_a/' + id + '.png')) return impImg(IMP_DIR + 'role/' + role + '_a/' + id + '.png');
-    return impImg(IMP_DIR + shape + id + '.png');
+  let IMP_OVR = new Set(), IMP_OVR_IN = new Set();
+  fetch('/static/art/chars/front/p2/indoor/meta.json').then(r => (r.ok ? r.json() : null)).then(j => { if (j) IMP_OVR_IN = new Set(((j.imprint_fit_result || {}).override_files) || []); }).catch(() => {});
+  function impLayerFor(role, id, indoor) {            // 역할 판 먼저(없으면 몸 모양 폴더) — 뿌리는 옷차림을 따른다
+    const shape = role === 'kid' ? 'kid/' : '', dir = indoor ? IMP_DIR_IN : IMP_DIR, ovr = indoor ? IMP_OVR_IN : IMP_OVR;
+    if (ovr.has('imprints/role/' + role + '_a/' + id + '.png')) return impImg(dir + 'role/' + role + '_a/' + id + '.png');
+    return impImg(dir + shape + id + '.png');
   }
   const impSheets = {}, impLog = {};
   // 각인 머리 위 표식(imprints/pips.json): 화면 18px 고정(×2 판), 불빛을 입히지 않는다, 가진 각인 1~3개를 1px 띄워 가로로
@@ -303,13 +311,13 @@
     pipLog[p.id] = ids;
   }
   const pipLog = {};
-  function imprintedSheet(base, p, tint) {
+  function imprintedSheet(base, p, tint, indoor) {
     const ids = (p.imprints || []).concat(p.personal_imprints || []).filter(x => typeof x === 'string' && IMP_HAVE.has(x)).slice(0, 3);
     if (!ids.length || !base || !base.width && !base.naturalWidth) return base;
-    const key = p.role + '|' + ids.join(',') + '|' + tint;
+    const key = p.role + '|' + ids.join(',') + '|' + tint + (indoor ? '|in' : '');
     if (impSheets[key]) return impSheets[key];
-    const mask = impImg(IMP_DIR + 'rolemask/' + p.role + '_a.png');
-    const layers = ids.map(id => impLayerFor(p.role, id));
+    const mask = impImg((indoor ? IMP_DIR_IN : IMP_DIR) + 'rolemask/' + p.role + '_a.png');
+    const layers = ids.map(id => impLayerFor(p.role, id, indoor));
     if (mask.st === 0 || layers.some(l => !l || l.st === 0)) return base;          // 다 올 때까지는 본체만
     const ok = layers.filter(l => l.st === 1);
     if (!ok.length) { impSheets[key] = base; return base; }
@@ -1072,14 +1080,21 @@
   const usedClips = {}, flipLog = {};                 // 검수용: 그린 클립·반전해 그린 클립                               // 검수용: 지금까지 실제로 그린 클립 이름
 
   // opts: {face: -1 왼쪽 / 1 오른쪽(옆걸음), mirror: true(작업 행 셀 반전), frame: 고정 프레임, glance: 홀에서 둘러보기}
+  const outfitLog = {}, swapAt = {}, swapLog = [];
+  const raidOn = () => !!(cb && cb.raid && !cb.raid.resolved && cb.raid.stage && cb.raid.stage !== 'done' && cb.raid.creature && cb.raid.creature.threat);
   function drawPerson(p, px, floorY, t, i, scale, lit, pose, roomId, opts) {
     opts = opts || {};
     const k = (scale == null ? 1 : scale);
     const moving = pose === 'walk' || pose === 'carry' || pose === 'elevator_ride';
     const bob = moving ? 0 : Math.sin(t / 700 + i * 1.7) * 0.8 * cam.z;
-    const s = sprite(p.role);
+    // 옷차림(char_indoor.md): 거점 안은 실내복, 에어락·문간 앞과 습격 중(방 안)은 투구 판. 호출이 정하면(opts.outfit) 그것
+    const outfit = opts.outfit || (raidOn() && roomId !== undefined && opts.inRoom ? 'out' : 'indoor');
+    const s = sprite(p.role, outfit);
     if (s) {
       const sp = s.spec;
+      const of1 = sp.indoor ? 'indoor' : 'out';
+      if (outfitLog[p.id] && outfitLog[p.id] !== of1) { swapAt[p.id] = t; swapLog.push(p.id + ':' + of1); }   // 옷이 바뀌는 순간(에어락 문)
+      outfitLog[p.id] = of1;
       // 도트는 **정수 배율**로만 키운다(2.5D 조건 ①). 렌더 시트는 기존대로 연속 배율
       const want = (TARGET_PPM * cam.z * k) / sp.ppm;
       // 아주 멀리서(폰 가로 맞춤 등) ×1 이 방보다 크면 그때만 소수 배율로 줄인다 — 사람이 방보다 커 보이면 안 된다
@@ -1097,7 +1112,7 @@
       const flip = (clip.side && opts.face < 0) || (!clip.side && opts.mirror && /^work_|^carry_34$/.test(clip.name));
       try {
         const tint = lit === false ? TINT_DARK : TINT_LIT;
-        const sheet = sp.pixel ? imprintedSheet(tintedSheet(s, p.role, tint), p, tint) : s.img;
+        const sheet = sp.pixel ? imprintedSheet(tintedSheet(s, p.role, tint), p, tint, !!sp.indoor) : s.img;
         const sm = ctx.imageSmoothingEnabled;
         if (sp.pixel) ctx.imageSmoothingEnabled = false;
         // 2.5D 조건 ③ — 발밑 접지 그림자. 없으면 떠 있는 것처럼 보인다
@@ -1117,6 +1132,11 @@
         ctx.imageSmoothingEnabled = sm;
         if (p.injured) { ctx.fillStyle = 'rgba(140,59,46,0.5)'; ctx.fillRect(px - 13 * cam.z, floorY - 101 * cam.z, 26 * cam.z, 9 * cam.z); }
         if (cam.z < 1) drawPips(p, px, floorY - base * 0.78 + bob);     // S22 2차: 멀리서는 각인이 1~3px 라 머리 위 표식으로(z ≥ 1 이면 몸 위 각인이 보인다)
+        const sw = swapAt[p.id] != null ? (t - swapAt[p.id]) / 600 : 2;     // 에어락에서 옷이 바뀐 순간: 문 열림 같은 김 한 번(0.6초)
+        if (sw >= 0 && sw < 1) {
+          ctx.save(); ctx.globalAlpha = (1 - sw) * 0.7; ctx.fillStyle = '#e8f4f2';
+          ctx.beginPath(); ctx.ellipse(px, floorY - base * 0.4, cw * (0.25 + sw * 0.25), base * (0.45 + sw * 0.2), 0, 0, 6.2832); ctx.fill(); ctx.restore();
+        }
         return { w: cw * 0.42, h: base * 0.78 };
       } catch (e) { /* 스프라이트가 아직 덜 왔다 — 아래 색 사각형으로 */ }
     }
@@ -1164,7 +1184,7 @@
       const px = sx(standX(r, i, n)) + life.off;
       // 작업 행(7~16)은 설비가 왼쪽인 것이 원본. 방의 오른쪽 절반에 선 사람은 셀째 반전 — 설비가 가까운 벽 쪽에 온다
       const mirror = people.length > 1 && (i + 0.5) / people.length > 0.5;
-      const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot), life.pose, life.room, { face: life.face, mirror });
+      const box = drawPerson(p, px, floorY, t, i, 1, lightOf(slot), life.pose, life.room, { face: life.face, mirror, inRoom: true });
       if (carry && carry.id === p.id) {                      // 집어 든 표시
         ctx.strokeStyle = '#f0b055'; ctx.lineWidth = Math.max(1, 2 * cam.z);
         ctx.strokeRect(px - box.w / 2 - 3, floorY - box.h - 6, box.w + 6, box.h + 10);
@@ -1274,6 +1294,7 @@
       if (pose === 'work') room = 'gear';                // work_34 로 떨어진다(방 행 없음)
       if ((sp.pose === 'lean_wall' || act === 'nerve') && glanceAt(id, t)) { pose = 'glance'; opt.frame = glanceFrame(id, t); }
       const fy = sy(sp.floor_y), px = sx(sp.x);
+      opt.outfit = 'out';                                 // 에어락·해치 앞은 투구 판(옷이 바뀌는 순간 = 에어락 문을 지날 때)
       const box = drawPerson(p, px, fy, t, i, 1, lit, pose, room, opt);
       podPoseLog[sp.pose] = (podPoseLog[sp.pose] || 0) + 1;
       if (cam.z > 0.3) {                                     // S28 이름표: 이름이 먼저(누가 누군지), 문간 활동은 작게 옆에 — 눌러야 설명
@@ -1307,7 +1328,7 @@
         const sp = free[gi] != null ? spots[free[gi]] : { x: (E.hatch ? E.hatch.x - 60 : wa.x + wa.w - 40) - gi * 50, floor_y: wa.floor_y || wa.y + wa.h };
         const fy = sy(sp.floor_y), px = sx(sp.x);
         const box = drawPerson({ id: g.id, role: g.role || 'trader', name: g.name }, px, fy, t, 7 + gi, 1, lit, gi === 0 && glanceAt(g.id, t) ? 'glance' : 'idle', null,
-                               { frame: glanceFrame(g.id, t) });
+                               { frame: glanceFrame(g.id, t), outfit: 'out' });   // 바깥에서 온 손님
         ctx.font = 'bold 11px "Noto Sans KR",sans-serif'; const lb = '손님'; const tw = ctx.measureText(lb).width + 10;
         ctx.fillStyle = 'rgba(70,52,20,0.92)'; ctx.fillRect(px - tw / 2, fy + 4, tw, 16);
         ctx.fillStyle = '#ffe2a8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lb, px, fy + 12);
@@ -1406,7 +1427,7 @@
     ctx.fillText('밖 · ' + ids.length + '명', x + 6, y + 16);
     const list = (ark.residents_list || []).filter(r => ids.indexOf(r.id) >= 0);
     const floorY = sy(o.y + o.h), step = w / (list.length + 1);
-    list.forEach((p, i) => { if (!movingNow[p.id]) drawPerson(p, x + step * (i + 1), floorY, t, i, 1, false, 'idle'); });
+    list.forEach((p, i) => { if (!movingNow[p.id]) drawPerson(p, x + step * (i + 1), floorY, t, i, 1, false, 'idle', null, { outfit: 'out' }); });   // 바깥에 나간 사람
   }
 
   // ── 이동 중인 사람과 엘리베이터 칸 (S11-C → S12-B: M5 승강로 A·B) ─────────────────
@@ -1660,7 +1681,7 @@
     drawFront(t);                                     // 겹 5 — 앞(시차 1.12)
     if (carry || dragging) drawCarryNumbers();        // 끄는 동안 방마다 그 사람의 숫자 하나
     if (dragging) {                                   // 손끝에 매달린 사람
-      drawPerson(dragging, pointer.x, pointer.y + 48 * cam.z, t, 0, 1, true, 'idle');
+      drawPerson(dragging, pointer.x, pointer.y + 48 * cam.z, t, 0, 1, true, 'idle', null, { outfit: outfitLog[dragging.id] || 'indoor' });   // 들고 있는 동안 옷은 그대로
     }
     drawWords(t);
     drawLidMark(t);
@@ -1697,7 +1718,7 @@
     const rows = Object.keys(bo).filter(id => !(rc[id] || {}).fixed).map(id => {
       const pr = Array.isArray(bo[id].produces) ? bo[id].produces : Object.keys((rc[id] || {}).produces || {}).filter(k => ((rc[id] || {}).produces || {})[k] > 0 && RES_KO[k]);   // 서버 build_options.produces(전력 공급·공방 칸 같은 것은 뺀 목록)
       const bs = (bo[id].by_slot || {})[String(slot)];
-      return pr.length ? { id, nm: (rc[id] || {}).name || id, pr: pr.map(k => RES_KO[k] || k).join('·'), can: bs ? bs.can !== false : !!bo[id].can } : null;
+      return pr.length ? { id, nm: (rc[id] || {}).name || id, pr: pr.map(k => RES_KO[k] || k).join('·'), can: !bo[id].people_locked && (bs ? bs.can !== false : !!bo[id].can), lk: bo[id].people_locked } : null;
     }).filter(Boolean).sort((a, b) => (b.can - a.can)).slice(0, 4);
     if (!rows.length) return '';
     return '<p class="rcline buildsline"><b>여기를 지으면</b> · ' + rows.map(x => '<span class="' + (x.can ? '' : 'dim') + '">' + esc(x.nm) + ' → ' + esc(x.pr) + '</span>').join(' / ') + '</p>';
@@ -2045,11 +2066,14 @@
   function buildOpt(id, slot, o, tail) {
     const bs = o && o.by_slot ? o.by_slot[String(slot)] : null;
     const miss = bs ? (bs.missing || {}) : (o ? (o.lacking || {}) : {});
-    const cond = o ? (o.cond_missing || []).map(plain) : [];
-    const can = bs ? bs.can !== false && !cond.length : (o ? !Object.keys(miss).length && !cond.length : !lacking(id).length);
+    const locked = !!(o && o.people_locked);                  // S35 방은 사람 때문에 열린다 — 「농부가 오면 열립니다」
+    const cond = o ? (o.cond_missing || []).filter(x => !(locked && /편해할 분이 없습니다/.test(x))).map(plain) : [];
+    const can = !locked && (bs ? bs.can !== false && !cond.length : (o ? !Object.keys(miss).length && !cond.length : !lacking(id).length));
     const cost = (o && o.cost) || (catalog[id] && catalog[id].cost) || {};
     const cap = (ark.room_caps || {})[id];
     const roomMiss = Object.keys(miss).filter(k => cost[k]).length;
+    if (locked) return '<button class="bopt lack locked" data-room="' + esc(id) + '" disabled><b><i class="lockico" aria-hidden="true"></i>' + esc(catalog[id].name || id) + '</b>' +
+      '<small>' + esc(plain(o.locked_ko || '이 방을 편해할 분이 오면 열립니다')) + '</small></button>';
     return '<button class="bopt' + (can ? '' : ' lack') + '" data-room="' + esc(id) + '"' + (can ? '' : ' disabled') + '><b>' + esc(catalog[id].name || id) +
       (tail || '') + (cap ? ' · 정원 ' + cap : '') + '</b>' +
       '<small>' + (costHTML(cost, miss) || '들 것 없음') + '</small>' +
@@ -3187,8 +3211,17 @@
   const TOP_RES = ['power', 'food', 'water', 'parts'];
   function renderTop(st) {
     const res = st.resources || {};
-    $('#resbar').innerHTML = TOP_RES.map(k =>
-      '<span class="rchip ' + k + '" data-res="' + k + '" title="' + esc(RES_KO[k] || k) + '"><i>' + CHIP[k] + '</i>' + esc(res[k] || 0) + '</span>').join('');
+    const hh = {}; (st.household || []).forEach(h => { if (h && h.res) hh[h.res] = h; });
+    $('#resbar').innerHTML = TOP_RES.map(k => {
+      const h = hh[k];
+      if (h && typeof h.fill === 'number' && k !== 'power') {   // S35 살림 띠 — 식량·물만(PM 결정: 전력은 쓰는 양이 없어 숫자로)
+        const pct = Math.round(Math.max(0, Math.min(1, h.fill)) * 100);
+        return '<span class="rchip ' + k + ' band lv-' + esc(h.level || 'ok') + '" data-res="' + k + '" title="' + esc((RES_KO[k] || k) + ' · ' + plain(h.ko || '')) + '"><i>' + CHIP[k] + '</i>' +
+          '<s class="hband" aria-label="' + esc(plain(h.ko || '')) + '"><b style="width:' + pct + '%"></b></s></span>';
+      }
+      return '<span class="rchip ' + k + '" data-res="' + k + '" title="' + esc(RES_KO[k] || k) + '"><i>' + CHIP[k] + '</i>' + esc(res[k] || 0) + '</span>';
+    }).join('');
+    document.body.classList.toggle('hh-dim', !!st.household_dim);   // S35: 식량·물이 바닥이면 기색을 한 단계 흐리게
     // 나머지는 ≡ 메뉴의 「창고」에 — 0 인 것도 보인다(보이지 않는 자원 때문에 막히지 않게, S9-C 지적)
     $('#mres').innerHTML = Object.keys(res).filter(k => TOP_RES.indexOf(k) < 0)
       .map(k => '<span>' + esc(RES_KO[k] || k) + '<b>' + esc(res[k]) + '</b></span>').join('');
@@ -3203,6 +3236,7 @@
   function closeResPop() { if (resPop) { resPop.remove(); resPop = null; } clearTimeout(resPopT); }
   function resPopText(k) {
     const c = ark.consumption || {}, n = (ark.residents_list || []).length, out = [];
+    const hh = (ark.household || []).find(h => h && h.res === k); if (hh && hh.ko) { const t0 = plain(hh.ko); out.push(/[.!?…다]$/.test(t0) ? t0 : t0 + '.'); }   // S35 「사흘치 넉넉합니다」 같은 살림 한 줄
     const T2 = (key, v) => (K.ext && K.ext.T ? K.ext.T(key, v || {}, '') : '');
     const num = (x) => String(Math.round((+x || 0) * 10) / 10);
     if ((k === 'food' || k === 'water') && c.on !== false && (c.food_per_day || c.water_per_day)) {
@@ -3837,7 +3871,7 @@
     cam: () => Object.assign({}, cam, { zmin: zMin() }),
     sil: () => silDbg,
     // ★ S13 검수: 화면에 보이는 글(DOM 글자 + 지금까지 띄운 토스트 + 캔버스 글자)에 '{' 가 몇 번 나왔나
-    podTags: () => Object.assign({}, podTagLog),
+    podTags: () => Object.assign({}, podTagLog), outfits: () => Object.assign({}, outfitLog), outfitSwaps: () => swapLog.slice(),
     officeLog: () => officeLog.slice(), autoDefend: () => autoDefend(),
     braceCheck: () => {
       const dom = (document.body.innerText.match(/[{}]/g) || []).length;

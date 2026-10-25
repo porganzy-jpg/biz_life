@@ -80,7 +80,7 @@
   function face(p, size) {
     if (!p) return '<i class="face blank"></i>';
     size = size || 40;
-    const sheet = '/static/art/chars/front/p2/' + encodeURIComponent(p.role || 'scout') + (p.body === 'b' ? '_b' : '') + '.png';
+    const sheet = '/static/art/chars/front/p2/indoor/' + encodeURIComponent(p.role || 'scout') + (p.body === 'b' ? '_b' : '') + '.png';
     const k = size / 104;
     return '<i class="face" data-role="' + esc(p.role || '') + '" style="width:' + size + 'px;height:' + size + 'px;background-image:url(' + sheet + ');background-size:' + (768 * k).toFixed(1) + 'px auto;background-position:-' + (76 * k).toFixed(1) + 'px -' + (28 * k).toFixed(1) + 'px" aria-hidden="true"></i>';
   }
@@ -1187,6 +1187,13 @@
     setTimeout(show, 1600);
   }
   K.ext.heartScene = heartScene;
+  // S35 방 소식(room_news[] 한 번만: 방 종류 열림 · 머물 칸 없음) · 살림이 바닥일 때 한 줄(household_note)
+  function newsCheck(st) {
+    const said = store.get('news_said', []);
+    (st.room_news || []).forEach(n => { const k = (n.kind || '') + '|' + (n.room_id || n.guest_id || '') + '|' + (n.resident_id || ''); if (!n.ko || said.indexOf(k) >= 0) return;
+      said.push(k); store.set('news_said', said.slice(-60)); setTimeout(() => K.say(plain(n.ko)), 1800); D.log.push('news ' + n.kind); });
+    if (st.household_note) { const k = 'hh|' + (st.day || '') + '|' + st.household_note; if (said.indexOf(k) < 0) { said.push(k); store.set('news_said', said.slice(-60)); setTimeout(() => K.say(plain(st.household_note)), 2400); D.log.push('household note'); } }
+  }
   function heartCheck(st) {
     (st.heart_scenes || []).forEach(h => heartScene(h.resident_id || h.rid, h.scenes ? Object.assign({}, h, { deferred: false }) : { level: h.level, fill_ko: h.fill_ko, scenes: [h], deferred: false }));
     const ms = st.comfort_mutters || [], said = store.get('mutter_said', []);
@@ -1296,6 +1303,7 @@
     tableCheck(st);
     wallCheck(st);
     heartCheck(st);
+    newsCheck(st);
     octWhere(st);
     renderNext(st);
     (st.arc_events || []).filter(Boolean).forEach(e => queueBeat(Object.assign({ id: (e.arc_id || '') + ':' + (e.step || '') }, e)));

@@ -14,7 +14,7 @@
 
   // 얼굴: base_core 와 같은 시트 자르기(생활형 도트 idle 첫 칸의 머리)
   function face(p, size) {
-    const sheet = '/static/art/chars/front/p2/' + encodeURIComponent(p.role || 'scout') + (p.body === 'b' ? '_b' : '') + '.png', k = size / 104;
+    const sheet = '/static/art/chars/front/p2/indoor/' + encodeURIComponent(p.role || 'scout') + (p.body === 'b' ? '_b' : '') + '.png', k = size / 104;
     return '<i class="face" data-role="' + esc(p.role || '') + '" style="width:' + size + 'px;height:' + size + 'px;background-image:url(' + sheet + ');background-size:' + (768 * k).toFixed(1) + 'px auto;background-position:-' + (76 * k).toFixed(1) + 'px -' + (28 * k).toFixed(1) + 'px" aria-hidden="true"></i>';
   }
 
@@ -50,6 +50,7 @@
     const arc = c.arc || {}, nx = arc.next || {};
     if (c.third_memory_open) return { line: T('faces.third_memory', '세 번째 기억을 꺼낼 듯합니다'), story: true };
     if (nx.open && !arc.done) return { line: plain(c.arc_line || T('faces.story_open', '할 이야기가 있는 눈치입니다')), story: true };
+    if (document.body.classList.contains('hh-dim') || ((K.ark || {}).household_dim)) return { line: T('faces.household_dim', '살림이 비어 다들 기운이 없습니다') };   // S35 오늘 필요가 쉰다
     const nd = (c.needs_today || [])[0];
     if (nd && c.given_need_today) return { line: T('faces.need_met', '오늘 바라던 것을 받으셨습니다'), need: 'met' };
     if (nd && K.ext.unlocked && K.ext.unlocked('mood_hints')) return { line: T('faces.need_hint', '뭔가 찾는 눈치입니다'), need: 'want' };   // 기색 날(4일째~)에는 무엇인지 말하지 않는다 — 수첩·기색으로 맞힌다
@@ -89,6 +90,9 @@
     const ns = $('#nextstep'); if (ns) ns.style.top = (sb + 6) + 'px';
   }
   K.onApply(() => setTimeout(drawFaces, 0));
+  // 패널(짓기·도감 등)이 열리면 얼굴 띠는 잠시 숨는다 — 큰 창은 하나(패널 위로 띠가 겹치던 것)
+  const pn = document.getElementById('panel');
+  if (pn) new MutationObserver(() => { strip.style.visibility = pn.hidden ? '' : 'hidden'; }).observe(pn, { attributes: true, attributeFilter: ['hidden'] });
   addEventListener('resize', () => { lastKey = ''; drawFaces(); });
   setInterval(layoutTop, 600);
 
