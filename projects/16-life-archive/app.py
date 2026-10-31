@@ -9,10 +9,12 @@ import os
 import re
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -23,6 +25,25 @@ from sources import search_all  # noqa: E402
 
 ROOT = Path(__file__).parent
 app = FastAPI(title="Life Archive")
+
+# DNS 재바인딩 막기: 남의 도메인 이름으로 들어온 요청은 받지 않는다.
+# 폰 등에서 IP로 접속하려면 .env에 ALLOWED_HOSTS=192.168.0.10 처럼 쉼표로 추가.
+ALLOWED_HOSTS = ["localhost", "127.0.0.1",
+                 *filter(None, os.getenv("ALLOWED_HOSTS", "").split(","))]
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
+
+MAX_UPLOAD = 20 * 1024 * 1024
+
+
+@app.middleware("http")
+async def same_origin_writes(request: Request, call_next):
+    """CSRF 막기: 바꾸는 요청은 이 앱 화면에서 온 것만 받는다.
+    브라우저는 다른 사이트가 보낸 POST에 Origin을 붙이므로, 그 호스트가 우리와 다르면 거절."""
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        origin = request.headers.get("origin")
+        if origin and urlsplit(origin).netloc != request.headers.get("host"):
+            return JSONResponse({"detail": "다른 사이트에서 온 요청은 받지 않습니다"}, status_code=403)
+    return await call_next(request)
 
 
 @app.get("/api/search")
@@ -81,8 +102,11 @@ async def photo(cid: int, file: UploadFile):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"):
         raise HTTPException(400, "이미지 파일만 올릴 수 있습니다")
+    body = await file.read(MAX_UPLOAD + 1)
+    if len(body) > MAX_UPLOAD:
+        raise HTTPException(413, "사진은 20MB까지 올릴 수 있습니다")
     name = f"{cid}-{uuid.uuid4().hex[:8]}{ext}"
-    (db.DATA / "photos" / name).write_bytes(await file.read())
+    (db.DATA / "photos" / name).write_bytes(body)
     remove_photo(c.get("photo"))
     return db.update_card(cid, {"photo": name})
 
@@ -105,7 +129,12 @@ def export_json():
 
 @app.get("/api/export.csv")
 def export_csv():
-    rows = [{**c, "links": json.dumps(c["links"], ensure_ascii=False)} for c in db.list_cards()]
+    def cell(v):
+        # 외부 DB 제목이 =·+·-·@로 시작하면 엑셀이 수식으로 실행하므로 ' 를 앞에 붙인다
+        return "'" + v if isinstance(v, str) and v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
+
+    rows = [{k: cell(v) for k, v in {**c, "links": json.dumps(c["links"], ensure_ascii=False)}.items()}
+            for c in db.list_cards()]
     buf = io.StringIO()
     buf.write("﻿")  # 엑셀에서 한글이 깨지지 않게
     w = csv.DictWriter(buf, fieldnames=["id", *db.CARD_FIELDS, "created_at", "updated_at"],
