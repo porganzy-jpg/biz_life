@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>나의 아카이브</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>나의 아카이브</h1>
+    <p class="sub" id="who"></p>
+  </div>
+  <nav class="views" id="views">
+    <button data-view="timeline" class="on">연대기</button>
+    <button data-view="shelf">진열장</button>
+    <button data-view="all">전체</button>
+  </nav>
+  <div class="tools">
+    <button id="btn-settings" class="ghost">출생연도</button>
+    <a class="ghost" href="/api/export.json">JSON</a>
+    <a class="ghost" href="/api/export.csv">CSV</a>
+  </div>
+</header>
+
+<section class="finder">
+  <form id="search-form" autocomplete="off">
+    <input id="q" type="search" placeholder="영화, 책, 만화, 게임, 노래, 장소, 사건… 무엇이 당신을 만들었나요?">
+    <button type="submit">찾기</button>
+    <button type="button" id="btn-memo" class="ghost memo-btn">메모</button>
+  </form>
+  <div id="results" class="results" hidden>
+    <div class="results-head">
+      <div class="chips" id="kind-chips"></div>
+      <div class="results-actions">
+        <button id="btn-manual" class="ghost">직접 만들기</button>
+        <button id="btn-close-results" class="ghost">닫기</button>
+      </div>
+    </div>
+    <p class="errors" id="search-errors" hidden></p>
+    <div class="result-grid" id="result-grid"></div>
+  </div>
+</section>
+
+<main id="main"></main>
+
+<dialog id="editor">
+  <form method="dialog" id="card-form">
+    <div class="ed-head">
+      <div class="ed-cover" id="ed-cover"></div>
+      <div>
+        <select name="kind" id="ed-kind"></select>
+        <input name="title" id="ed-title" class="ed-title" placeholder="제목" required>
+        <input name="subtitle" placeholder="부제 · 만든 사람">
+        <label class="inline">작품 연도 <input name="year" type="number" min="1800" max="2100"></label>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>그때의 나</legend>
+      <div class="row">
+        <label>처음 만난 해 <input name="met_year" id="ed-met-year" type="number" min="1900" max="2100"></label>
+        <label>그때 나이 <input id="ed-age" type="number" min="0" max="120"></label>
+      </div>
+      <label>어디서 <input name="place" placeholder="외할머니 댁 거실, 동네 오락실…"></label>
+      <label>누구와 <input name="people" placeholder="형, 같은 반 친구…"></label>
+      <label>한 줄 기억 <textarea name="memory" rows="2" placeholder="그 장면, 그 냄새, 그날의 기분"></textarea></label>
+      <label>나에게 남긴 것 <textarea name="influence" rows="2" placeholder="이걸 계기로 무엇을 좋아하게 됐는지"></textarea></label>
+      <div class="row">
+        <label>내 사진 <input type="file" id="ed-photo" accept="image/*"></label>
+        <label class="check"><input name="pinned" type="checkbox"> 진열장에 놓기</label>
+      </div>
+    </fieldset>
+
+    <div class="ed-foot">
+      <button type="button" id="ed-delete" class="danger ghost">지우기</button>
+      <span class="grow"></span>
+      <button type="button" id="ed-cancel" class="ghost">취소</button>
+      <button type="submit" id="ed-save">담기</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="memo">
+  <form method="dialog" id="memo-form">
+    <h2>메모</h2>
+    <p class="sub">떠오른 걸 바로 적어 두세요. 해를 적으면 연대기의 그해에 꽂힙니다.</p>
+    <textarea name="text" rows="5" placeholder="문방구에서 팔던 그 딱지 이름이 뭐였지…" required></textarea>
+    <div class="row">
+      <label>몇 년 일이었나요? (선택) <input name="met_year" type="number" min="1900" max="2100"></label>
+      <label class="check"><input name="pinned" type="checkbox"> 진열장에 놓기</label>
+    </div>
+    <div class="ed-foot">
+      <button type="button" id="memo-delete" class="danger ghost">지우기</button>
+      <span class="grow"></span>
+      <button type="button" id="memo-cancel" class="ghost">취소</button>
+      <button type="submit">적기</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="settings">
+  <form method="dialog" id="settings-form">
+    <h2>몇 년에 태어났나요?</h2>
+    <p class="sub">나이 축 연대기를 그리는 데만 씁니다.</p>
+    <label>출생연도 <input name="birth_year" type="number" min="1900" max="2100" required></label>
+    <label>이름(선택) <input name="name" placeholder="아카이브 첫 줄에 나올 이름"></label>
+    <div class="ed-foot"><span class="grow"></span><button type="submit">저장</button></div>
+  </form>
+</dialog>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
